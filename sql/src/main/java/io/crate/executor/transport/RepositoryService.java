@@ -23,9 +23,6 @@
 package io.crate.executor.transport;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.analyze.DropRepositoryAnalyzedStatement;
 import io.crate.exceptions.Exceptions;
@@ -48,6 +45,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.repositories.RepositoryException;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class RepositoryService {
@@ -82,8 +80,8 @@ public class RepositoryService {
         }
     }
 
-    public ListenableFuture<Long> execute(DropRepositoryAnalyzedStatement analyzedStatement) {
-        final SettableFuture<Long> future = SettableFuture.create();
+    public CompletableFuture<Long> execute(DropRepositoryAnalyzedStatement analyzedStatement) {
+        final CompletableFuture<Long> future = new CompletableFuture<>();
         final String repoName = analyzedStatement.repositoryName();
         deleteRepositoryAction.execute(
             new DeleteRepositoryRequest(repoName),
@@ -93,20 +91,20 @@ public class RepositoryService {
                     if (!deleteRepositoryResponse.isAcknowledged()) {
                         LOGGER.info("delete repository '{}' not acknowledged", repoName);
                     }
-                    future.set(1L);
+                    future.complete(1L);
                 }
 
                 @Override
                 public void onFailure(Throwable e) {
-                    future.setException(e);
+                    future.completeExceptionally(e);
                 }
             }
         );
         return future;
     }
 
-    public ListenableFuture<Long> execute(CreateRepositoryAnalyzedStatement statement) {
-        final SettableFuture<Long> result = SettableFuture.create();
+    public CompletableFuture<Long> execute(CreateRepositoryAnalyzedStatement statement) {
+        final CompletableFuture<Long> result = new CompletableFuture<>();
         final String repoName = statement.repositoryName();
 
         PutRepositoryRequest request = new PutRepositoryRequest(repoName);
@@ -115,7 +113,7 @@ public class RepositoryService {
         putRepositoryAction.execute(request, new ActionListener<PutRepositoryResponse>() {
             @Override
             public void onResponse(PutRepositoryResponse putRepositoryResponse) {
-                result.set(1L);
+                result.complete(1L);
             }
 
             @Override
@@ -128,7 +126,7 @@ public class RepositoryService {
                 dropIfExists(repoName, new Runnable() {
                     @Override
                     public void run() {
-                        result.setException(t);
+                        result.completeExceptionally(t);
                     }
                 });
             }
@@ -141,7 +139,14 @@ public class RepositoryService {
         if (repository == null) {
             callback.run();
         } else {
-            execute(new DropRepositoryAnalyzedStatement(repoName)).addListener(callback, MoreExecutors.directExecutor());
+            execute(new DropRepositoryAnalyzedStatement(repoName)).whenComplete(
+                (Long result, Throwable t) -> {
+                    if (t != null) {
+                        LOGGER.error("Error occurred whilst trying to delete repository", t);
+                    }
+                    callback.run();
+                }
+            );
         }
     }
 

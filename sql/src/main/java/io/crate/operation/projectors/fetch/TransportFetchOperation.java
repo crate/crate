@@ -36,6 +36,7 @@ import io.crate.executor.transport.TransportFetchNodeAction;
 import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class TransportFetchOperation implements FetchOperation {
 
@@ -64,9 +65,9 @@ public class TransportFetchOperation implements FetchOperation {
     }
 
     @Override
-    public ListenableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId,
-                                                                  IntObjectMap<? extends IntContainer> toFetch,
-                                                                  boolean closeContext) {
+    public CompletableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId,
+                                                                   IntObjectMap<? extends IntContainer> toFetch,
+                                                                   boolean closeContext) {
         FutureActionListener<NodeFetchResponse, IntObjectMap<? extends Bucket>> listener = new FutureActionListener<>(GET_FETCHED);
         transportFetchNodeAction.execute(
             nodeId,

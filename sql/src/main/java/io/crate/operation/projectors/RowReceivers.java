@@ -68,4 +68,12 @@ public class RowReceivers {
         receiver.setNextRow(row);
         receiver.finish(RepeatHandle.UNSUPPORTED);
     }
+
+    public static void sendOneRow(RowReceiver receiver, Row row, Throwable t) {
+        if (t != null) {
+            receiver.fail(t);
+        } else {
+            sendOneRow(receiver, row);
+        }
+    }
 }

@@ -23,8 +23,6 @@
 package io.crate.protocols.postgres;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
@@ -44,6 +42,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.function.BiConsumer;
 
 import static io.crate.protocols.postgres.ConnectionContext.State.STARTUP_HEADER;
 import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
@@ -206,7 +205,7 @@ class ConnectionContext {
         return sqlOperations.createSession(defaultSchema, Option.NONE, 0);
     }
 
-    private static class ReadyForQueryCallback implements FutureCallback<Object> {
+    private static class ReadyForQueryCallback implements BiConsumer<Object, Throwable> {
         private final Channel channel;
 
         private ReadyForQueryCallback(Channel channel) {
@@ -214,15 +213,22 @@ class ConnectionContext {
         }
 
         @Override
-        public void onSuccess(@Nullable Object result) {
+        public void accept(Object o, Throwable t) {
+            if (t == null) {
+                onSuccess(o);
+            } else {
+                onFailure(t);
+            }
+        }
+
+        private void onSuccess(@Nullable Object result) {
             if (result == null || result.equals(Boolean.FALSE)) {
                 // only send ReadyForQuery if query was not interrupted
                 Messages.sendReadyForQuery(channel);
             }
         }
 
-        @Override
-        public void onFailure(@Nonnull Throwable t) {
+        private void onFailure(@Nonnull Throwable t) {
             Messages.sendReadyForQuery(channel);
         }
     }
@@ -349,8 +355,8 @@ class ConnectionContext {
 
     /**
      * Flush Message
-     *  | 'H' | int32 len
-     *
+     * | 'H' | int32 len
+     * <p>
      * Flush forces the backend to deliver any data pending in it's output buffers.
      */
     private void handleFlush(Channel channel) {
@@ -530,7 +536,8 @@ class ConnectionContext {
             return;
         }
         try {
-            Futures.addCallback(session.sync(), new ReadyForQueryCallback(channel));
+            ReadyForQueryCallback readyForQueryCallback = new ReadyForQueryCallback(channel);
+            session.sync().whenComplete(readyForQueryCallback);
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, t);
             Messages.sendReadyForQuery(channel);
@@ -569,7 +576,8 @@ class ConnectionContext {
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(query, channel, Symbols.extractTypes(fields), null);
                 session.execute("", 0, resultSetReceiver);
             }
-            Futures.addCallback(session.sync(), new ReadyForQueryCallback(channel));
+            ReadyForQueryCallback readyForQueryCallback = new ReadyForQueryCallback(channel);
+            session.sync().whenComplete(readyForQueryCallback);
         } catch (Throwable t) {
             session.clearState();
             Messages.sendErrorResponse(channel, t);

@@ -21,8 +21,6 @@
 
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row1;
@@ -38,8 +36,6 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.is;
@@ -86,16 +82,11 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
         final AtomicReference<Throwable> throwable = new AtomicReference<>();
 
-        Futures.addCallback(ctx.completionFuture(), new FutureCallback<Object>() {
-            @Override
-            public void onSuccess(@Nullable Object result) {
-
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
+        ctx.completionFuture().whenComplete((r, t) -> {
+            if (t != null) {
                 assertTrue(throwable.compareAndSet(null, t));
-
+            } else {
+                fail("Expected exception");
             }
         });
 

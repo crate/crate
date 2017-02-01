@@ -22,8 +22,6 @@
 
 package io.crate.protocols.postgres;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.RowReceiverToResultReceiver;
 import io.crate.action.sql.SessionContext;
@@ -49,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 class BatchPortal extends AbstractPortal {
 
@@ -124,7 +123,7 @@ class BatchPortal extends AbstractPortal {
     }
 
     @Override
-    public ListenableFuture<Void> sync(Planner planner, StatsTables statsTables) {
+    public CompletableFuture<Void> sync(Planner planner, StatsTables statsTables) {
         CountdownFutureCallback completionCallback = new CountdownFutureCallback(analysis.size());
         for (int i = 0; i < analysis.size(); i++) {
             UUID jobId = UUID.randomUUID();
@@ -138,8 +137,11 @@ class BatchPortal extends AbstractPortal {
             }
             ResultReceiver resultReceiver = resultReceivers.get(i);
             statsTables.logExecutionStart(jobId, stmt);
-            Futures.addCallback(resultReceiver.completionFuture(), new StatsTablesUpdateListener(jobId, statsTables));
-            Futures.addCallback(resultReceiver.completionFuture(), completionCallback);
+            StatsTablesUpdateListener statsTablesUpdateListener = new StatsTablesUpdateListener(jobId, statsTables);
+
+            resultReceiver.completionFuture().whenComplete(statsTablesUpdateListener);
+            resultReceiver.completionFuture().whenComplete(completionCallback);
+
             RowReceiver rowReceiver = new RowReceiverToResultReceiver(resultReceiver, 0);
             portalContext.getExecutor().execute(plan, rowReceiver, new RowN(batchParams.toArray()));
         }

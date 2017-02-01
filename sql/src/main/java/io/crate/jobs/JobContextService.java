@@ -22,7 +22,9 @@
 package io.crate.jobs;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.*;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.operation.collect.stats.StatsTables;
@@ -38,6 +40,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 @Singleton
@@ -120,7 +123,10 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         }
         final UUID jobId = contextBuilder.jobId();
         JobExecutionContext newContext = contextBuilder.build();
-        Futures.addCallback(newContext.completionFuture(), new JobContextCallback(jobId));
+
+        JobContextCallback jobContextCallback = new JobContextCallback(jobId);
+        newContext.completionFuture().whenComplete(jobContextCallback);
+
         JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
         if (existing != null) {
             throw new IllegalArgumentException(
@@ -157,28 +163,24 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     }
 
     private ListenableFuture<Integer> killContexts(Collection<UUID> toKill) {
-        assert !toKill.isEmpty(): "toKill must not be empty";
+        assert !toKill.isEmpty() : "toKill must not be empty";
         int numKilled = 0;
         CountdownFutureCallback countDownFuture = new CountdownFutureCallback(toKill.size());
         for (UUID jobId : toKill) {
             JobExecutionContext ctx = activeContexts.get(jobId);
             if (ctx != null) {
-                Futures.addCallback(ctx.completionFuture(), countDownFuture);
+                ctx.completionFuture().whenComplete(countDownFuture);
                 ctx.kill();
                 numKilled++;
             } else {
                 // no kill but we need to count down
-                countDownFuture.onSuccess(null);
+                countDownFuture.onSuccess();
             }
         }
         final SettableFuture<Integer> result = SettableFuture.create();
         final int finalNumKilled = numKilled;
-        countDownFuture.addListener(new Runnable() {
-            @Override
-            public void run() {
-                result.set(finalNumKilled);
-            }
-        }, MoreExecutors.directExecutor());
+        countDownFuture.whenComplete(
+            (r, e) -> result.set(finalNumKilled));
         return result;
     }
 
@@ -195,7 +197,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         return killContexts(toKill);
     }
 
-    private class JobContextCallback implements FutureCallback<Object> {
+    private class JobContextCallback implements BiConsumer<Void, Throwable> {
 
         private UUID jobId;
 
@@ -212,14 +214,21 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
             }
         }
 
-        @Override
-        public void onSuccess(@Nullable Object result) {
+        public void onSuccess() {
             remove(null);
         }
 
-        @Override
         public void onFailure(@Nonnull Throwable throwable) {
             remove(throwable);
+        }
+
+        @Override
+        public void accept(Void aVoid, Throwable t) {
+            if (t == null) {
+                onSuccess();
+            } else {
+                onFailure(t);
+            }
         }
     }
 

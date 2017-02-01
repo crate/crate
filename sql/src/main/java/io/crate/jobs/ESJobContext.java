@@ -21,7 +21,6 @@
 
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.SettableFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.support.TransportAction;
@@ -31,6 +30,7 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class ESJobContext extends AbstractExecutionSubContext {
 
@@ -39,14 +39,14 @@ public class ESJobContext extends AbstractExecutionSubContext {
     private final List<? extends ActionListener> listeners;
     private String operationName;
     private final List<? extends ActionRequest> requests;
-    private final List<SettableFuture<Long>> resultFutures;
+    private final List<CompletableFuture<Long>> resultFutures;
     private final TransportAction transportAction;
 
     public ESJobContext(int id,
                         String operationName,
                         List<? extends ActionRequest> requests,
                         List<? extends ActionListener> listeners,
-                        List<SettableFuture<Long>> resultFutures,
+                        List<CompletableFuture<Long>> resultFutures,
                         TransportAction transportAction) {
         super(id, LOGGER);
         this.operationName = operationName;
@@ -65,7 +65,7 @@ public class ESJobContext extends AbstractExecutionSubContext {
 
     @Override
     protected void innerKill(@Nonnull Throwable t) {
-        for (SettableFuture<Long> resultFuture : resultFutures) {
+        for (CompletableFuture<Long> resultFuture : resultFutures) {
             resultFuture.cancel(true);
         }
     }
@@ -73,9 +73,9 @@ public class ESJobContext extends AbstractExecutionSubContext {
     @Override
     protected void innerClose(@Nullable Throwable t) {
         if (t != null) {
-            for (SettableFuture<Long> resultFuture : resultFutures) {
+            for (CompletableFuture<Long> resultFuture : resultFutures) {
                 if (!resultFuture.isDone()) {
-                    resultFuture.setException(t);
+                    resultFuture.completeExceptionally(t);
                 }
             }
         }

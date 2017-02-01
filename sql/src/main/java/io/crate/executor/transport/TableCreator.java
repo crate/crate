@@ -48,6 +48,7 @@ import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexTemplateAlreadyExistsException;
 
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class TableCreator {
@@ -70,8 +71,8 @@ public class TableCreator {
     }
 
 
-    public SettableFuture<Long> create(CreateTableAnalyzedStatement statement) {
-        final SettableFuture<Long> result = SettableFuture.create();
+    public CompletableFuture<Long> create(CreateTableAnalyzedStatement statement) {
+        final CompletableFuture<Long> result = new CompletableFuture<>();
 
         // real work done in createTable()
         deleteOrphans(new CreateTableResponseListener(result, statement), statement);
@@ -97,7 +98,7 @@ public class TableCreator {
             .alias(new Alias(statement.tableIdent().indexName()));
     }
 
-    private void createTable(final SettableFuture<Long> result, final CreateTableAnalyzedStatement statement) {
+    private void createTable(final CompletableFuture<Long> result, final CreateTableAnalyzedStatement statement) {
         if (statement.templateName() != null) {
             transportActionProvider.transportPutIndexTemplateAction().execute(createTemplateRequest(statement), new ActionListener<PutIndexTemplateResponse>() {
                 @Override
@@ -105,7 +106,7 @@ public class TableCreator {
                     if (!response.isAcknowledged()) {
                         warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", statement.tableIdent().fqn()));
                     }
-                    result.set(SUCCESS_RESULT);
+                    result.complete(SUCCESS_RESULT);
                 }
 
                 @Override
@@ -120,7 +121,7 @@ public class TableCreator {
                     if (!response.isAcknowledged()) {
                         warnNotAcknowledged(String.format(Locale.ENGLISH, "creating table '%s'", statement.tableIdent().fqn()));
                     }
-                    result.set(SUCCESS_RESULT);
+                    result.complete(SUCCESS_RESULT);
                 }
 
                 @Override
@@ -132,19 +133,19 @@ public class TableCreator {
     }
 
 
-    private void setException(SettableFuture<Long> result, Throwable e, CreateTableAnalyzedStatement statement) {
+    private void setException(CompletableFuture<Long> result, Throwable e, CreateTableAnalyzedStatement statement) {
         e = Exceptions.unwrap(e);
         String message = e.getMessage();
         if ("mapping [default]".equals(message) && e.getCause() != null) {
             // this is a generic mapping parse exception,
             // the cause has usually a better more detailed error message
-            result.setException(e.getCause());
+            result.completeExceptionally(e.getCause());
         } else if (statement.ifNotExists() &&
                    (e instanceof IndexAlreadyExistsException
                     || (e instanceof IndexTemplateAlreadyExistsException && statement.templateName() != null))) {
-            result.set(null);
+            result.complete(null);
         } else {
-            result.setException(e);
+            result.completeExceptionally(e);
         }
     }
 
@@ -212,10 +213,10 @@ public class TableCreator {
 
     class CreateTableResponseListener implements ActionListener<Long> {
 
-        final SettableFuture<Long> result;
+        final CompletableFuture<Long> result;
         final CreateTableAnalyzedStatement statement;
 
-        public CreateTableResponseListener(SettableFuture<Long> result, CreateTableAnalyzedStatement statement) {
+        public CreateTableResponseListener(CompletableFuture<Long> result, CreateTableAnalyzedStatement statement) {
             this.result = result;
             this.statement = statement;
 
@@ -228,7 +229,7 @@ public class TableCreator {
 
         @Override
         public void onFailure(Throwable e) {
-            result.setException(e);
+            result.completeExceptionally(e);
         }
     }
 }

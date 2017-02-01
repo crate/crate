@@ -26,10 +26,6 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.Option;
@@ -39,7 +35,8 @@ import io.crate.analyze.AddColumnAnalyzedStatement;
 import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.PartitionedTableParameterInfo;
 import io.crate.analyze.TableParameter;
-import io.crate.core.MultiFutureCallback;
+import io.crate.concurrent.CompletableFutures;
+import io.crate.concurrent.MultiBiConsumer;
 import io.crate.core.collections.Row;
 import io.crate.exceptions.AlterTableAliasException;
 import io.crate.metadata.PartitionName;
@@ -71,6 +68,8 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
 
 @Singleton
 public class AlterTableOperation {
@@ -89,8 +88,8 @@ public class AlterTableOperation {
         this.sqlOperations = sqlOperations;
     }
 
-    public ListenableFuture<Long> executeAlterTableAddColumn(final AddColumnAnalyzedStatement analysis) {
-        final SettableFuture<Long> result = SettableFuture.create();
+    public CompletableFuture<Long> executeAlterTableAddColumn(final AddColumnAnalyzedStatement analysis) {
+        final CompletableFuture<Long> result = new CompletableFuture<>();
         if (analysis.newPrimaryKeys() || analysis.hasNewGeneratedColumns()) {
             TableIdent ident = analysis.table().ident();
             String stmt =
@@ -103,7 +102,7 @@ public class AlterTableOperation {
                 session.execute(SQLOperations.Session.UNNAMED, 1, new ResultSetReceiver(analysis, result));
                 session.sync();
             } catch (Throwable t) {
-                result.setException(t);
+                result.completeExceptionally(t);
             }
         } else {
             addColumnToTable(analysis, result);
@@ -114,11 +113,11 @@ public class AlterTableOperation {
     private class ResultSetReceiver implements ResultReceiver {
 
         private final AddColumnAnalyzedStatement analysis;
-        private final SettableFuture<?> result;
+        private final CompletableFuture<?> result;
 
         private long count;
 
-        ResultSetReceiver(AddColumnAnalyzedStatement analysis, SettableFuture<?> result) {
+        ResultSetReceiver(AddColumnAnalyzedStatement analysis, CompletableFuture<?> result) {
             this.analysis = analysis;
             this.result = result;
         }
@@ -145,22 +144,22 @@ public class AlterTableOperation {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            result.setException(t);
+            result.completeExceptionally(t);
         }
 
         @Override
-        public ListenableFuture<?> completionFuture() {
+        public CompletableFuture<?> completionFuture() {
             return result;
         }
     }
 
-    public ListenableFuture<Long> executeAlterTable(AlterTableAnalyzedStatement analysis) {
+    public CompletableFuture<Long> executeAlterTable(AlterTableAnalyzedStatement analysis) {
         DocTableInfo table = analysis.table();
         if (table.isAlias() && !table.isPartitioned()) {
-            return Futures.immediateFailedFuture(new AlterTableAliasException(table.ident().fqn()));
+            return CompletableFutures.failedFuture(new AlterTableAliasException(table.ident().fqn()));
         }
 
-        List<ListenableFuture<Long>> results = new ArrayList<>(3);
+        List<CompletableFuture<Long>> results = new ArrayList<>(3);
 
         if (table.isPartitioned()) {
             // create new filtered partition table settings
@@ -190,23 +189,23 @@ public class AlterTableOperation {
             results.add(updateSettings(analysis.tableParameter(), table.ident().indexName()));
         }
 
-        final SettableFuture<Long> result = SettableFuture.create();
+        final CompletableFuture<Long> result = new CompletableFuture<>();
         applyMultiFutureCallback(result, results);
         return result;
     }
 
-    private ListenableFuture<Long> updateTemplate(TableParameter tableParameter, TableIdent tableIdent) {
+    private CompletableFuture<Long> updateTemplate(TableParameter tableParameter, TableIdent tableIdent) {
         return updateTemplate(tableParameter.mappings(), tableParameter.settings(), tableIdent);
     }
 
-    private ListenableFuture<Long> updateTemplate(Map<String, Object> newMappings,
-                                                  Settings newSettings,
-                                                  TableIdent tableIdent) {
+    private CompletableFuture<Long> updateTemplate(Map<String, Object> newMappings,
+                                                   Settings newSettings,
+                                                   TableIdent tableIdent) {
         String templateName = PartitionName.templateName(tableIdent.schema(), tableIdent.name());
         IndexTemplateMetaData indexTemplateMetaData =
             clusterService.state().metaData().templates().get(templateName);
         if (indexTemplateMetaData == null) {
-            return Futures.immediateFailedFuture(new RuntimeException("Template for partitioned table is missing"));
+            return CompletableFutures.failedFuture(new RuntimeException("Template for partitioned table is missing"));
         }
 
         // merge mappings
@@ -233,9 +232,9 @@ public class AlterTableOperation {
         return listener;
     }
 
-    private ListenableFuture<Long> updateMapping(Map<String, Object> newMapping, String... indices) {
+    private CompletableFuture<Long> updateMapping(Map<String, Object> newMapping, String... indices) {
         if (newMapping.isEmpty()) {
-            return Futures.immediateFuture(null);
+            return CompletableFuture.completedFuture(null);
         }
         assert areAllMappingsEqual(clusterService.state().metaData(), indices) :
             "Trying to update mapping for indices with different existing mappings";
@@ -246,7 +245,7 @@ public class AlterTableOperation {
             String index = indices[0];
             mapping = metaData.index(index).mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
         } catch (IOException e) {
-            return Futures.immediateFailedFuture(e);
+            return CompletableFutures.failedFuture(e);
         }
 
         XContentHelper.update(mapping, newMapping, false);
@@ -289,9 +288,9 @@ public class AlterTableOperation {
         return mergedMapping;
     }
 
-    private ListenableFuture<Long> updateSettings(TableParameter concreteTableParameter, String... indices) {
+    private CompletableFuture<Long> updateSettings(TableParameter concreteTableParameter, String... indices) {
         if (concreteTableParameter.settings().getAsMap().isEmpty() || indices.length == 0) {
-            return Futures.immediateFuture(null);
+            return CompletableFuture.completedFuture(null);
         }
         UpdateSettingsRequest request = new UpdateSettingsRequest(concreteTableParameter.settings(), indices);
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
@@ -301,9 +300,9 @@ public class AlterTableOperation {
         return listener;
     }
 
-    private void addColumnToTable(AddColumnAnalyzedStatement analysis, final SettableFuture<?> result) {
+    private void addColumnToTable(AddColumnAnalyzedStatement analysis, final CompletableFuture<?> result) {
         boolean updateTemplate = analysis.table().isPartitioned();
-        List<ListenableFuture<Long>> results = new ArrayList<>(2);
+        List<CompletableFuture<Long>> results = new ArrayList<>(2);
         final Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
 
         if (updateTemplate) {
@@ -318,20 +317,18 @@ public class AlterTableOperation {
         applyMultiFutureCallback(result, results);
     }
 
-    private void applyMultiFutureCallback(final SettableFuture<?> result, List<ListenableFuture<Long>> futures) {
-        MultiFutureCallback<Long> multiFutureCallback = new MultiFutureCallback<>(futures.size(), new FutureCallback<List<Long>>() {
-            @Override
-            public void onSuccess(@Nullable List<Long> future) {
-                result.set(null);
+    private void applyMultiFutureCallback(final CompletableFuture<?> result, List<CompletableFuture<Long>> futures) {
+        BiConsumer<List<Long>, Throwable> finalConsumer = (List<Long> receivedResult, Throwable t) -> {
+            if (t == null) {
+                result.complete(null);
+            } else {
+                result.completeExceptionally(t);
             }
+        };
 
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                result.setException(t);
-            }
-        });
-        for (ListenableFuture<Long> future : futures) {
-            Futures.addCallback(future, multiFutureCallback);
+        MultiBiConsumer<Long> consumer = new MultiBiConsumer(futures.size(), finalConsumer);
+        for (CompletableFuture<Long> future : futures) {
+            future.whenComplete(consumer);
         }
     }
 

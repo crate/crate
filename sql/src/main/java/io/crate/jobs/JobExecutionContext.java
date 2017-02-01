@@ -23,10 +23,6 @@ package io.crate.jobs;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.exceptions.Exceptions;
@@ -40,10 +36,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 
 public class JobExecutionContext implements CompletionListenable {
 
@@ -56,7 +54,7 @@ public class JobExecutionContext implements CompletionListenable {
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final String coordinatorNodeId;
     private final StatsTables statsTables;
-    private final SettableFuture<Void> finishedFuture = SettableFuture.create();
+    private final CompletableFuture<Void> finishedFuture = new CompletableFuture();
     private final AtomicBoolean killSubContextsOngoing = new AtomicBoolean(false);
     private final Collection<String> participatedNodes;
     private volatile Throwable failure;
@@ -113,7 +111,9 @@ public class JobExecutionContext implements CompletionListenable {
         for (ExecutionSubContext context : orderedContexts) {
             int subContextId = context.id();
             orderedContextIds.add(subContextId);
-            Futures.addCallback(context.completionFuture(), new RemoveSubContextListener(subContextId));
+
+            context.completionFuture().whenComplete(new RemoveSubContextListener(subContextId));
+
             ExecutionSubContext existingContext = subContexts.put(subContextId, context);
             if (existingContext != null) {
                 throw new IllegalArgumentException("ExecutionSubContext for " + subContextId + " already added");
@@ -209,14 +209,14 @@ public class JobExecutionContext implements CompletionListenable {
 
     private void finish() {
         if (failure != null) {
-            finishedFuture.setException(failure);
+            finishedFuture.completeExceptionally(failure);
         } else {
-            finishedFuture.set(null);
+            finishedFuture.complete(null);
         }
     }
 
     @Override
-    public ListenableFuture<?> completionFuture() {
+    public CompletableFuture<Void> completionFuture() {
         return finishedFuture;
     }
 
@@ -229,7 +229,7 @@ public class JobExecutionContext implements CompletionListenable {
                '}';
     }
 
-    private class RemoveSubContextListener implements FutureCallback<CompletionState> {
+    private class RemoveSubContextListener implements BiConsumer<CompletionState, Throwable> {
 
         private final int id;
 
@@ -247,14 +247,12 @@ public class JobExecutionContext implements CompletionListenable {
             return RemoveSubContextPosition.UNKNOWN;
         }
 
-        @Override
         public void onSuccess(@Nullable CompletionState state) {
             assert state != null : "state must not be null";
             statsTables.operationFinished(id, jobId, null, state.bytesUsed());
             remove();
         }
 
-        @Override
         public void onFailure(@Nonnull Throwable t) {
             failure = t;
             statsTables.operationFinished(id, jobId, Exceptions.messageOf(t), -1);
@@ -266,6 +264,15 @@ public class JobExecutionContext implements CompletionListenable {
                 for (ExecutionSubContext subContext : subContexts.values()) {
                     subContext.kill(t);
                 }
+            }
+        }
+
+        @Override
+        public void accept(CompletionState completionState, Throwable throwable) {
+            if (throwable == null) {
+                onSuccess(completionState);
+            } else {
+                onFailure(throwable);
             }
         }
     }

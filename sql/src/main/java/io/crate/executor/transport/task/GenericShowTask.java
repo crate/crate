@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport.task;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.AbstractShowAnalyzedStatement;
 import io.crate.core.collections.Row;
@@ -32,6 +31,7 @@ import io.crate.operation.projectors.RowReceiver;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class GenericShowTask implements Task {
 
@@ -56,7 +56,7 @@ public class GenericShowTask implements Task {
     }
 
     @Override
-    public List<? extends ListenableFuture<Long>> executeBulk() {
+    public List<CompletableFuture<Long>> executeBulk() {
         throw new UnsupportedOperationException("show task cannot be executed as bulk operation");
     }
 }

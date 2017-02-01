@@ -21,11 +21,8 @@
 
 package io.crate.executor.transport.task;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.concurrent.CompletableFutures;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.Executor;
@@ -34,8 +31,8 @@ import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.jobs.*;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dml.UpsertById;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -54,12 +51,12 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class UpsertByIdTask extends JobTask {
 
@@ -77,6 +74,34 @@ public class UpsertByIdTask extends JobTask {
     private BulkShardProcessorContext bulkShardProcessorContext;
 
     private JobExecutionContext jobExecutionContext;
+
+    @Override
+    public void execute(final RowReceiver rowReceiver, Row parameters) {
+        CompletableFuture<Long> result;
+        if (upsertById.items().size() > 1) {
+            try {
+                result = executeBulkShardProcessor().get(0);
+            } catch (Throwable throwable) {
+                rowReceiver.fail(throwable);
+                return;
+            }
+        } else {
+            assert upsertById.items().size() == 1 : "number of upsertById.items() must be 1";
+            try {
+                UpsertById.Item item = upsertById.items().get(0);
+                if (upsertById.isPartitionedTable() &&
+                    autoCreateIndex.shouldAutoCreate(item.index(), clusterService.state())) {
+                    result = createIndexAndExecuteUpsertRequest(item);
+                } else {
+                    result = executeUpsertRequest(item);
+                }
+            } catch (Throwable throwable) {
+                rowReceiver.fail(throwable);
+                return;
+            }
+        }
+        result.whenComplete((count, throwable) -> RowReceivers.sendOneRow(rowReceiver, new Row1(count), throwable));
+    }
 
     public UpsertByIdTask(UpsertById upsertById,
                           ClusterService clusterService,
@@ -100,47 +125,8 @@ public class UpsertByIdTask extends JobTask {
         autoCreateIndex = new AutoCreateIndex(settings, indexNameExpressionResolver);
     }
 
-    @Override
-    public void execute(final RowReceiver rowReceiver, Row parameters) {
-        ListenableFuture<Long> result;
-        if (upsertById.items().size() > 1) {
-            try {
-                result = executeBulkShardProcessor().get(0);
-            } catch (Throwable throwable) {
-                rowReceiver.fail(throwable);
-                return;
-            }
-        } else {
-            assert upsertById.items().size() == 1 : "number of upsertById.items() must be 1";
-            try {
-                UpsertById.Item item = upsertById.items().get(0);
-                if (upsertById.isPartitionedTable() &&
-                    autoCreateIndex.shouldAutoCreate(item.index(), clusterService.state())) {
-                    result = createIndexAndExecuteUpsertRequest(item);
-                } else {
-                    result = executeUpsertRequest(item);
-                }
-            } catch (Throwable throwable) {
-                rowReceiver.fail(throwable);
-                return;
-            }
-        }
-        Futures.addCallback(result, new FutureCallback<Long>() {
-            @Override
-            public void onSuccess(@Nullable Long result) {
-                rowReceiver.setNextRow(new Row1(result));
-                rowReceiver.finish(RepeatHandle.UNSUPPORTED);
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                rowReceiver.fail(t);
-            }
-        });
-    }
-
-    private List<SettableFuture<Long>> executeBulkShardProcessor() throws Throwable {
-        List<SettableFuture<Long>> resultList = initializeBulkShardProcessor(settings);
+    private List<CompletableFuture<Long>> executeBulkShardProcessor() throws Throwable {
+        List<CompletableFuture<Long>> resultList = initializeBulkShardProcessor(settings);
         assert bulkShardProcessorContext != null : "bulkShardProcessorContext must not be null";
         createJobExecutionContext(bulkShardProcessorContext);
         assert jobExecutionContext != null : "jobExecutionContext must not be null";
@@ -153,34 +139,28 @@ public class UpsertByIdTask extends JobTask {
         return resultList;
     }
 
-
     @Override
-    public List<? extends ListenableFuture<Long>> executeBulk() {
+    public List<CompletableFuture<Long>> executeBulk() {
         try {
-            List<SettableFuture<Long>> resultList = executeBulkShardProcessor();
+            List<CompletableFuture<Long>> resultList = executeBulkShardProcessor();
             return resultList;
         } catch (Throwable throwable) {
-            return Collections.singletonList(Futures.immediateFailedFuture(throwable));
+            return Collections.singletonList(CompletableFutures.failedFuture(throwable));
         }
     }
 
-    private void executeUpsertRequest(final UpsertById.Item item, final SettableFuture<Long> future) {
-        final FutureCallback<Long> callback = new FutureCallback<Long>() {
-            @Override
-            public void onSuccess(@Nullable Long result) {
-                future.set(result);
+    private void executeUpsertRequest(final UpsertById.Item item, final CompletableFuture<Long> future) {
+        CompletableFuture<Long> f = executeUpsertRequest(item);
+        f.whenComplete((Long result, Throwable t) -> {
+            if (t == null) {
+                future.complete(result);
+            } else {
+                future.completeExceptionally(t);
             }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                future.setException(t);
-            }
-        };
-        ListenableFuture<Long> f = executeUpsertRequest(item);
-        Futures.addCallback(f, callback);
+        });
     }
 
-    private ListenableFuture<Long> executeUpsertRequest(final UpsertById.Item item) {
+    private CompletableFuture<Long> executeUpsertRequest(final UpsertById.Item item) {
         ShardId shardId;
         try {
             shardId = clusterService.operationRouting().indexShards(
@@ -192,9 +172,9 @@ public class UpsertByIdTask extends JobTask {
             ).shardId();
         } catch (IndexNotFoundException e) {
             if (PartitionName.isPartition(item.index())) {
-                return Futures.immediateFuture(0L);
+                return CompletableFuture.completedFuture(0L);
             } else {
-                return Futures.immediateFailedFuture(e);
+                return CompletableFutures.failedFuture(e);
             }
         }
 
@@ -218,7 +198,7 @@ public class UpsertByIdTask extends JobTask {
             createJobExecutionContext(upsertByIdContext);
             jobExecutionContext.start();
         } catch (Throwable throwable) {
-            return Futures.immediateFailedFuture(throwable);
+            return CompletableFutures.failedFuture(throwable);
         }
         return upsertByIdContext.resultFuture();
     }
@@ -230,7 +210,7 @@ public class UpsertByIdTask extends JobTask {
         jobExecutionContext = jobContextService.createContext(contextBuilder);
     }
 
-    private List<SettableFuture<Long>> initializeBulkShardProcessor(Settings settings) {
+    private List<CompletableFuture<Long>> initializeBulkShardProcessor(Settings settings) {
         assert upsertById.updateColumns() != null || upsertById.insertColumns() != null :
             "upsertById.updateColumns() or upsertById.insertColumns() must not be null";
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
@@ -259,24 +239,20 @@ public class UpsertByIdTask extends JobTask {
             upsertById.executionPhaseId(), bulkShardProcessor);
 
         if (upsertById.numBulkResponses() == 0) {
-            final SettableFuture<Long> futureResult = SettableFuture.create();
-            List<SettableFuture<Long>> resultList = new ArrayList<>(1);
+            final CompletableFuture<Long> futureResult = new CompletableFuture<>();
+            List<CompletableFuture<Long>> resultList = new ArrayList<>(1);
             resultList.add(futureResult);
-            Futures.addCallback(bulkShardProcessor.result(), new FutureCallback<BitSet>() {
-                @Override
-                public void onSuccess(@Nullable BitSet result) {
+            bulkShardProcessor.result().whenComplete((BitSet result, Throwable t) -> {
+                if (t == null) {
                     if (result == null) {
                         // unknown rowcount
-                        futureResult.set(Executor.ROWCOUNT_UNKNOWN);
+                        futureResult.complete(Executor.ROWCOUNT_UNKNOWN);
                     } else {
-                        futureResult.set((long) result.cardinality());
+                        futureResult.complete((long) result.cardinality());
                     }
                     bulkShardProcessorContext.close();
-                }
-
-                @Override
-                public void onFailure(@Nonnull Throwable t) {
-                    futureResult.setException(t);
+                } else {
+                    futureResult.completeExceptionally(t);
                     bulkShardProcessorContext.close();
                 }
             });
@@ -284,16 +260,15 @@ public class UpsertByIdTask extends JobTask {
         } else {
             final int numResults = upsertById.numBulkResponses();
             final Integer[] resultsRowCount = new Integer[numResults];
-            final List<SettableFuture<Long>> resultList = new ArrayList<>(numResults);
+            final List<CompletableFuture<Long>> resultList = new ArrayList<>(numResults);
             for (int i = 0; i < numResults; i++) {
-                resultList.add(SettableFuture.<Long>create());
+                resultList.add(new CompletableFuture<>());
             }
 
-            Futures.addCallback(bulkShardProcessor.result(), new FutureCallback<BitSet>() {
-                @Override
-                public void onSuccess(@Nullable BitSet result) {
+            bulkShardProcessor.result().whenComplete((BitSet result, Throwable t) -> {
+                if (t == null) {
                     if (result == null) {
-                        setAllToFailed(null);
+                        setAllToFailed(null, resultList);
                         return;
                     }
 
@@ -308,34 +283,19 @@ public class UpsertByIdTask extends JobTask {
                     }
 
                     for (int i = 0; i < numResults; i++) {
-                        SettableFuture<Long> future = resultList.get(i);
+                        CompletableFuture<Long> future = resultList.get(i);
                         Integer rowCount = resultsRowCount[i];
                         if (rowCount != null && rowCount >= 0) {
-                            future.set((long) rowCount);
+                            future.complete((long) rowCount);
                         } else {
                             // failure
-                            future.set(Executor.ROWCOUNT_ERROR);
+                            future.complete(Executor.ROWCOUNT_ERROR);
                         }
                     }
 
                     bulkShardProcessorContext.close();
-                }
-
-                private void setAllToFailed(@Nullable Throwable throwable) {
-                    if (throwable == null) {
-                        for (SettableFuture<Long> future : resultList) {
-                            future.set(Executor.ROWCOUNT_ERROR);
-                        }
-                    } else {
-                        for (SettableFuture<Long> future : resultList) {
-                            future.setException(throwable);
-                        }
-                    }
-                }
-
-                @Override
-                public void onFailure(@Nonnull Throwable t) {
-                    setAllToFailed(t);
+                } else {
+                    setAllToFailed(t, resultList);
                     bulkShardProcessorContext.close();
                 }
             });
@@ -343,9 +303,20 @@ public class UpsertByIdTask extends JobTask {
         }
     }
 
+    private void setAllToFailed(@Nullable Throwable throwable, List<CompletableFuture<Long>> futures) {
+        if (throwable == null) {
+            for (CompletableFuture<Long> future : futures) {
+                future.complete(Executor.ROWCOUNT_ERROR);
+            }
+        } else {
+            for (CompletableFuture<Long> future : futures) {
+                future.completeExceptionally(throwable);
+            }
+        }
+    }
 
-    private SettableFuture<Long> createIndexAndExecuteUpsertRequest(final UpsertById.Item item) {
-        final SettableFuture<Long> future = SettableFuture.create();
+    private CompletableFuture<Long> createIndexAndExecuteUpsertRequest(final UpsertById.Item item) {
+        final CompletableFuture<Long> future = new CompletableFuture<>();
         transportCreateIndexAction.execute(
             new CreateIndexRequest(item.index()).cause("upsert single item"),
             new ActionListener<CreateIndexResponse>() {
@@ -360,7 +331,7 @@ public class UpsertByIdTask extends JobTask {
                     if (e instanceof IndexAlreadyExistsException) {
                         executeUpsertRequest(item, future);
                     } else {
-                        future.setException(e);
+                        future.completeExceptionally(e);
                     }
 
                 }

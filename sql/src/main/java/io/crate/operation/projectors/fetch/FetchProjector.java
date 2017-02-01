@@ -28,9 +28,6 @@ import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
@@ -43,12 +40,11 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -183,29 +179,25 @@ public class FetchProjector extends AbstractProjector {
                 }
             } else {
                 final String nodeId = entry.getKey();
-                ListenableFuture<IntObjectMap<? extends Bucket>> future = fetchOperation.fetch(nodeId, toFetch, isLast);
-
-                Futures.addCallback(future, new FutureCallback<IntObjectMap<? extends Bucket>>() {
-                    @Override
-                    public void onSuccess(@Nullable IntObjectMap<? extends Bucket> result) {
-                        if (result != null) {
-                            for (IntObjectCursor<? extends Bucket> cursor : result) {
-                                ReaderBucket readerBucket = context.getReaderBucket(cursor.key);
-                                readerBucket.fetched(cursor.value);
+                CompletableFuture<IntObjectMap<? extends Bucket>> future = fetchOperation.fetch(nodeId, toFetch, isLast);
+                future.whenComplete((IntObjectMap<? extends Bucket> result, Throwable t) -> {
+                        if (t == null) {
+                            if (result != null) {
+                                for (IntObjectCursor<? extends Bucket> cursor : result) {
+                                    ReaderBucket readerBucket = context.getReaderBucket(cursor.key);
+                                    readerBucket.fetched(cursor.value);
+                                }
                             }
-                        }
-                        if (remainingRequests.decrementAndGet() == 0) {
-                            resultExecutor.execute(new SendToDownstreamRunnable(isLast));
+                            if (remainingRequests.decrementAndGet() == 0) {
+                                resultExecutor.execute(new SendToDownstreamRunnable(isLast));
+                            }
+                        } else {
+                            LOGGER.error("NodeFetchRequest failed on node {}", t, nodeId);
+                            remainingRequests.decrementAndGet();
+                            fail(t);
                         }
                     }
-
-                    @Override
-                    public void onFailure(@Nonnull Throwable t) {
-                        LOGGER.error("NodeFetchRequest failed on node {}", t, nodeId);
-                        remainingRequests.decrementAndGet();
-                        fail(t);
-                    }
-                });
+                );
             }
         }
     }

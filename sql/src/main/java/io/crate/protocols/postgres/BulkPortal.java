@@ -22,10 +22,6 @@
 
 package io.crate.protocols.postgres;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
@@ -47,6 +43,8 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 
 class BulkPortal extends AbstractPortal {
 
@@ -118,7 +116,7 @@ class BulkPortal extends AbstractPortal {
     }
 
     @Override
-    public ListenableFuture<?> sync(Planner planner, StatsTables statsTables) {
+    public CompletableFuture<?> sync(Planner planner, StatsTables statsTables) {
         List<Row> bulkParams = Rows.of(bulkArgs);
         Analysis analysis = portalContext.getAnalyzer().boundAnalyze(statement,
             sessionContext,
@@ -136,39 +134,51 @@ class BulkPortal extends AbstractPortal {
         return executeBulk(portalContext.getExecutor(), plan, jobId, statsTables);
     }
 
-    private ListenableFuture<Void> executeBulk(Executor executor, Plan plan, final UUID jobId,
-                             final StatsTables statsTables) {
-        final SettableFuture<Void> future = SettableFuture.create();
-        List<? extends ListenableFuture<Long>> futures = executor.executeBulk(plan);
-        ListenableFuture<List<Long>> allAsList = Futures.allAsList(futures);
-        Futures.addCallback(allAsList, new FutureCallback<List<Long>>() {
-                @Override
-                public void onSuccess(@Nullable List<Long> result) {
+    private CompletableFuture<Void> executeBulk(Executor executor, Plan plan, final UUID jobId,
+                                                final StatsTables statsTables) {
+        final CompletableFuture<Void> bulkCompleteFuture = new CompletableFuture<>();
+        List<CompletableFuture<Long>> futures = executor.executeBulk(plan);
+
+        AtomicInteger futureCount = new AtomicInteger(futures.size());
+        CompletableFuture<List<CompletableFuture<Long>>> collectAllResults = new CompletableFuture<>();
+
+        for (CompletableFuture<Long> future : futures) {
+            future.whenComplete((Long result, Throwable t) -> {
+                if (t != null) {
+                    collectAllResults.completeExceptionally(t);
+                } else {
+                    if (futureCount.decrementAndGet() == 0) {
+                        collectAllResults.complete(futures);
+                    }
+                }
+            });
+        }
+
+        collectAllResults.whenComplete((List<CompletableFuture<Long>> result, Throwable t) -> {
+                if (t == null) {
                     assert result != null && result.size() == resultReceivers.size()
                         : "number of result must match number of rowReceivers";
 
                     Long[] cells = new Long[1];
                     RowN row = new RowN(cells);
                     for (int i = 0; i < result.size(); i++) {
-                        cells[0] = result.get(i);
+                        CompletableFuture<Long> resultFuture = result.get(i);
+                        cells[0] = resultFuture.join();
                         ResultReceiver resultReceiver = resultReceivers.get(i);
                         resultReceiver.setNextRow(row);
                         resultReceiver.allFinished(false);
                     }
-                    future.set(null);
+                    bulkCompleteFuture.complete(null);
                     statsTables.logExecutionEnd(jobId, null);
-                }
-
-                @Override
-                public void onFailure(Throwable t) {
+                } else {
                     for (ResultReceiver resultReceiver : resultReceivers) {
                         resultReceiver.fail(t);
                     }
-                    future.setException(t);
+                    bulkCompleteFuture.completeExceptionally(t);
                     statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
-
                 }
-            });
-        return future;
+            }
+        );
+        return bulkCompleteFuture;
     }
 }

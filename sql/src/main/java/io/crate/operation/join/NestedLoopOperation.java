@@ -35,6 +35,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -143,7 +144,7 @@ public class NestedLoopOperation implements CompletionListenable {
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopOperation.class);
     private final boolean traceEnabled = LOGGER.isTraceEnabled();
 
-    private final SettableFuture<Void> completionFuture = SettableFuture.create();
+    private final CompletableFuture<Void> completionFuture = new CompletableFuture<>();
 
     private final LeftRowReceiver left;
     private final RightRowReceiver right;
@@ -160,7 +161,7 @@ public class NestedLoopOperation implements CompletionListenable {
 
 
     @Override
-    public ListenableFuture<?> completionFuture() {
+    public CompletableFuture<?> completionFuture() {
         return completionFuture;
     }
 
@@ -213,12 +214,12 @@ public class NestedLoopOperation implements CompletionListenable {
                     return false;
                 }
                 downstream.finish(RepeatHandle.UNSUPPORTED);
-                completionFuture.set(null);
+                completionFuture.complete(null);
                 left.finished.set(null);
                 right.finished.set(null);
             } else {
                 downstream.fail(upstreamFailure);
-                completionFuture.setException(upstreamFailure);
+                completionFuture.completeExceptionally(upstreamFailure);
                 left.finished.setException(upstreamFailure);
                 right.finished.setException(upstreamFailure);
             }
@@ -257,7 +258,7 @@ public class NestedLoopOperation implements CompletionListenable {
             }
             killBoth(throwable);
             downstream.kill(throwable);
-            completionFuture.setException(throwable);
+            completionFuture.completeExceptionally(throwable);
         }
     }
 

@@ -22,12 +22,12 @@
 
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.exceptions.JobKilledException;
 import org.elasticsearch.common.logging.ESLogger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
 
 public abstract class AbstractExecutionSubContext implements ExecutionSubContext {
 
@@ -126,7 +126,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     }
 
     @Override
-    public ListenableFuture<CompletionState> completionFuture() {
+    public CompletableFuture<CompletionState> completionFuture() {
         return future;
     }
 }

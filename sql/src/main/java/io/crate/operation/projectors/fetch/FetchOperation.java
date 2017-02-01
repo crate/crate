@@ -27,6 +27,8 @@ import com.carrotsearch.hppc.IntObjectMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Bucket;
 
+import java.util.concurrent.CompletableFuture;
+
 public interface FetchOperation {
 
     /**
@@ -34,7 +36,7 @@ public interface FetchOperation {
      * @param toFetch      a map from readerIds to docIds which should be fetched
      * @param closeContext indicate if context must be closed after fetch
      */
-    ListenableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId,
-                                                           IntObjectMap<? extends IntContainer> toFetch,
-                                                           boolean closeContext);
+    CompletableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId,
+                                                            IntObjectMap<? extends IntContainer> toFetch,
+                                                            boolean closeContext);
 }

@@ -21,12 +21,12 @@
 
 package io.crate.executor;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Row;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public interface Executor {
 
@@ -35,5 +35,5 @@ public interface Executor {
 
     void execute(Plan plan, RowReceiver rowReceiver, Row parameters);
 
-    List<? extends ListenableFuture<Long>> executeBulk(Plan plan);
+    List<CompletableFuture<Long>> executeBulk(Plan plan);
 }

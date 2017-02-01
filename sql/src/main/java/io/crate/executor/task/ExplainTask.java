@@ -22,7 +22,6 @@
 
 package io.crate.executor.task;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.Task;
@@ -33,6 +32,7 @@ import io.crate.planner.node.management.ExplainPlan;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public class ExplainTask implements Task {
 
@@ -54,7 +54,7 @@ public class ExplainTask implements Task {
     }
 
     @Override
-    public List<? extends ListenableFuture<Long>> executeBulk() {
+    public List<CompletableFuture<Long>> executeBulk() {
         throw new UnsupportedOperationException("ExplainTask cannot be executed as bulk operation");
     }
 }

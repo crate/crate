@@ -20,28 +20,22 @@
  * agreement.
  */
 
-package io.crate.action;
-
-import com.google.common.base.Function;
-import org.elasticsearch.action.ActionListener;
+package io.crate.concurrent;
 
 import java.util.concurrent.CompletableFuture;
 
-public class FutureActionListener<Response, Result> extends CompletableFuture<Result> implements ActionListener<Response> {
+public final class CompletableFutures {
 
-    private final Function<? super Response, ? extends Result> transformFunction;
-
-    public FutureActionListener(Function<? super Response, ? extends Result> transformFunction) {
-        this.transformFunction = transformFunction;
+    private CompletableFutures() {
     }
 
-    @Override
-    public void onResponse(Response response) {
-        complete(transformFunction.apply(response));
-    }
-
-    @Override
-    public void onFailure(Throwable e) {
-        completeExceptionally(e);
+    /**
+     * Creates a {@code CompletableFuture} which will throw the given exception on the invocations
+     * of get()
+     */
+    public static <T> CompletableFuture<T> failedFuture(Throwable t) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        future.completeExceptionally(t);
+        return future;
     }
 }

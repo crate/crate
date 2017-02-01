@@ -22,30 +22,45 @@
 
 package io.crate.concurrent;
 
-import javax.annotation.Nonnull;
-import java.util.concurrent.CompletableFuture;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 
 /**
- * A future acting as a FutureCallback. It is set when once numCalls have been made to the callback.
- * If a failure occurs the last failure will be used as exception. The result is always null.
+ * a BiConsumer that can be called multiple times and will call the consumer once numCalls has been made.
  */
-public class CountdownFutureCallback extends CompletableFuture<Void> implements BiConsumer<Object, Throwable> {
+public class MultiBiConsumer<T> implements BiConsumer<T, Throwable> {
 
     private final AtomicInteger counter;
+    private final List<T> results;
+    private final BiConsumer<List<T>, Throwable> finalConsumer;
     private final AtomicReference<Throwable> lastFailure = new AtomicReference<>();
 
-    public CountdownFutureCallback(int numCalls) {
+    public MultiBiConsumer(int numCalls, BiConsumer<List<T>, Throwable> finalConsumer) {
+        this.finalConsumer = finalConsumer;
+        results = new ArrayList<>(numCalls);
         counter = new AtomicInteger(numCalls);
     }
 
-    public void onSuccess() {
+    @Override
+    public void accept(T result, Throwable throwable) {
+        if (throwable == null) {
+            onSuccess(result);
+        } else {
+            onFailure(throwable);
+        }
+    }
+
+    private void onSuccess(T result) {
+        synchronized (results) {
+            results.add(result);
+        }
         countdown();
     }
 
-    public void onFailure(@Nonnull Throwable t) {
+    private void onFailure(Throwable t) {
         lastFailure.set(t);
         countdown();
     }
@@ -53,20 +68,7 @@ public class CountdownFutureCallback extends CompletableFuture<Void> implements 
     private void countdown() {
         if (counter.decrementAndGet() == 0) {
             Throwable throwable = lastFailure.get();
-            if (throwable == null) {
-                complete(null);
-            } else {
-                completeExceptionally(throwable);
-            }
-        }
-    }
-
-    @Override
-    public void accept(Object o, Throwable t) {
-        if (t == null) {
-            onSuccess();
-        } else {
-            onFailure(t);
+            finalConsumer.accept(results, throwable);
         }
     }
 }

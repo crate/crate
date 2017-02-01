@@ -23,8 +23,6 @@
 package io.crate.blob.v2;
 
 import com.google.common.base.Functions;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.FutureActionListener;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -39,6 +37,8 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRespons
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+
+import java.util.concurrent.CompletableFuture;
 
 import static io.crate.blob.v2.BlobIndex.fullIndexName;
 import static io.crate.blob.v2.BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED;
@@ -68,7 +68,7 @@ public class BlobAdminClient {
      * @param tableName     name of the blob table
      * @param indexSettings updated index settings
      */
-    public ListenableFuture<Void> alterBlobTable(String tableName, Settings indexSettings) {
+    public CompletableFuture<Void> alterBlobTable(String tableName, Settings indexSettings) {
         FutureActionListener<UpdateSettingsResponse, Void> listener =
             new FutureActionListener<>(Functions.<Void>constant(null));
 
@@ -77,29 +77,29 @@ public class BlobAdminClient {
         return listener;
     }
 
-    public ListenableFuture<Void> createBlobTable(String tableName, Settings indexSettings) {
+    public CompletableFuture<Void> createBlobTable(String tableName, Settings indexSettings) {
         Settings.Builder builder = Settings.builder();
         builder.put(indexSettings);
         builder.put(SETTING_INDEX_BLOBS_ENABLED, true);
 
-        final SettableFuture<Void> result = SettableFuture.create();
+        final CompletableFuture<Void> result = new CompletableFuture<>();
         createIndexAction.execute(new CreateIndexRequest(fullIndexName(tableName), builder.build()),
             new ActionListener<CreateIndexResponse>() {
                 @Override
                 public void onResponse(CreateIndexResponse createIndexResponse) {
                     assert createIndexResponse.isAcknowledged() : "createIndexResponse must be acknowledged";
-                    result.set(null);
+                    result.complete(null);
                 }
 
                 @Override
                 public void onFailure(Throwable e) {
-                    result.setException(e);
+                    result.completeExceptionally(e);
                 }
             });
         return result;
     }
 
-    public ListenableFuture<Void> dropBlobTable(final String tableName) {
+    public CompletableFuture<Void> dropBlobTable(final String tableName) {
         FutureActionListener<DeleteIndexResponse, Void> listener = new FutureActionListener<>(Functions.<Void>constant(null));
         deleteIndexAction.execute(new DeleteIndexRequest(fullIndexName(tableName)), listener);
         return listener;

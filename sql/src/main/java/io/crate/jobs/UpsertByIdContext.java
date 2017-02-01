@@ -21,7 +21,6 @@
 
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.PartitionName;
@@ -37,6 +36,7 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
 
 public class UpsertByIdContext extends AbstractExecutionSubContext {
 
@@ -44,7 +44,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
 
     private final ShardUpsertRequest request;
     private final UpsertById.Item item;
-    private final SettableFuture<Long> resultFuture = SettableFuture.create();
+    private final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
     private final BulkRequestExecutor transportShardUpsertActionDelegate;
 
     public UpsertByIdContext(int id,
@@ -58,7 +58,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
         assert !request.continueOnError() : "continueOnError flag is expected to be set to false for upsertById";
     }
 
-    public SettableFuture<Long> resultFuture() {
+    public CompletableFuture<Long> resultFuture() {
         return resultFuture;
     }
 
@@ -74,7 +74,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                     onFailure(updateResponse.failure());
                     return;
                 }
-                resultFuture.set(1L);
+                resultFuture.complete(1L);
                 close(null);
             }
 
@@ -88,15 +88,15 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                     && (e instanceof DocumentMissingException
                         || e instanceof VersionConflictEngineException)) {
                     // on updates, set affected row to 0 if document is not found or version conflicted
-                    resultFuture.set(0L);
+                    resultFuture.complete(0L);
                     close(null);
                 } else if (PartitionName.isPartition(request.index())
                            && e instanceof IndexNotFoundException) {
                     // index missing exception on a partition should never bubble, set affected row to 0
-                    resultFuture.set(0L);
+                    resultFuture.complete(0L);
                     close(null);
                 } else {
-                    resultFuture.setException(e);
+                    resultFuture.completeExceptionally(e);
                     close(e);
                 }
             }
@@ -115,7 +115,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
             if (t == null) {
                 resultFuture.cancel(false);
             } else {
-                resultFuture.setException(t);
+                resultFuture.completeExceptionally(t);
             }
         }
     }

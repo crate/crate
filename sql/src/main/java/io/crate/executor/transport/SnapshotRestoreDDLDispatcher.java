@@ -23,8 +23,6 @@
 package io.crate.executor.transport;
 
 import com.google.common.base.Functions;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
@@ -45,6 +43,8 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
 
+import java.util.concurrent.CompletableFuture;
+
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
@@ -60,8 +60,8 @@ public class SnapshotRestoreDDLDispatcher {
         this.transportActionProvider = transportActionProvider;
     }
 
-    public ListenableFuture<Long> dispatch(final DropSnapshotAnalyzedStatement statement) {
-        final SettableFuture<Long> future = SettableFuture.create();
+    public CompletableFuture<Long> dispatch(final DropSnapshotAnalyzedStatement statement) {
+        final CompletableFuture<Long> future = new CompletableFuture<>();
         final String repositoryName = statement.repository();
         final String snapshotName = statement.snapshot();
 
@@ -73,12 +73,12 @@ public class SnapshotRestoreDDLDispatcher {
                     if (!response.isAcknowledged()) {
                         LOGGER.info("delete snapshot '{}.{}' not acknowledged", repositoryName, snapshotName);
                     }
-                    future.set(1L);
+                    future.complete(1L);
                 }
 
                 @Override
                 public void onFailure(Throwable e) {
-                    future.setException(e);
+                    future.completeExceptionally(e);
                 }
             }
         );
@@ -86,8 +86,8 @@ public class SnapshotRestoreDDLDispatcher {
 
     }
 
-    public ListenableFuture<Long> dispatch(final CreateSnapshotAnalyzedStatement statement) {
-        final SettableFuture<Long> resultFuture = SettableFuture.create();
+    public CompletableFuture<Long> dispatch(final CreateSnapshotAnalyzedStatement statement) {
+        final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
 
         boolean waitForCompletion = statement.snapshotSettings().getAsBoolean(WAIT_FOR_COMPLETION.settingName(), WAIT_FOR_COMPLETION.defaultValue());
         boolean ignoreUnavailable = statement.snapshotSettings().getAsBoolean(IGNORE_UNAVAILABLE.settingName(), IGNORE_UNAVAILABLE.defaultValue());
@@ -110,29 +110,29 @@ public class SnapshotRestoreDDLDispatcher {
                 SnapshotInfo snapshotInfo = createSnapshotResponse.getSnapshotInfo();
                 if (snapshotInfo == null) {
                     // if wait_for_completion is false the snapshotInfo is null
-                    resultFuture.set(1L);
+                    resultFuture.complete(1L);
                 } else if (snapshotInfo.state() == SnapshotState.FAILED) {
                     // fail request if snapshot creation failed
                     String reason = createSnapshotResponse.getSnapshotInfo().reason()
                         .replaceAll("Index", "Table")
                         .replaceAll("Indices", "Tables");
-                    resultFuture.setException(
+                    resultFuture.completeExceptionally(
                         new CreateSnapshotException(statement.snapshotId(), reason)
                     );
                 } else {
-                    resultFuture.set(1L);
+                    resultFuture.complete(1L);
                 }
             }
 
             @Override
             public void onFailure(Throwable e) {
-                resultFuture.setException(e);
+                resultFuture.completeExceptionally(e);
             }
         });
         return resultFuture;
     }
 
-    public ListenableFuture<Long> dispatch(final RestoreSnapshotAnalyzedStatement analysis) {
+    public CompletableFuture<Long> dispatch(final RestoreSnapshotAnalyzedStatement analysis) {
         boolean waitForCompletion = analysis.settings().getAsBoolean(WAIT_FOR_COMPLETION.settingName(), WAIT_FOR_COMPLETION.defaultValue());
         boolean ignoreUnavailable = analysis.settings().getAsBoolean(IGNORE_UNAVAILABLE.settingName(), IGNORE_UNAVAILABLE.defaultValue());
 

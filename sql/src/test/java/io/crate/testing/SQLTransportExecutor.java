@@ -24,8 +24,6 @@ package io.crate.testing;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import io.crate.action.sql.*;
 import io.crate.analyze.symbol.Field;
 import io.crate.core.collections.Row;
@@ -95,11 +93,11 @@ public class SQLTransportExecutor {
         return exec(statement, params, REQUEST_TIMEOUT);
     }
 
-    public SQLBulkResponse execBulk(String statement, @Nullable  Object[][] bulkArgs) {
+    public SQLBulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs) {
         return executeBulk(statement, bulkArgs, REQUEST_TIMEOUT);
     }
 
-    public SQLBulkResponse execBulk(String statement, @Nullable  Object[][] bulkArgs, TimeValue timeout) {
+    public SQLBulkResponse execBulk(String statement, @Nullable Object[][] bulkArgs, TimeValue timeout) {
         return executeBulk(statement, bulkArgs, timeout);
     }
 
@@ -161,7 +159,7 @@ public class SQLTransportExecutor {
         ));
     }
 
-    public static ActionFuture<SQLResponse>  execute(String stmt, @Nullable Object[] args, SQLOperations.Session session) {
+    public static ActionFuture<SQLResponse> execute(String stmt, @Nullable Object[] args, SQLOperations.Session session) {
         final AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new TestTransportActionFuture<>();
         execute(stmt, args, actionFuture, session);
         return actionFuture;
@@ -187,7 +185,7 @@ public class SQLTransportExecutor {
         }
     }
 
-    private void execute(String stmt, @Nullable  Object[][] bulkArgs, final ActionListener<SQLBulkResponse> listener) {
+    private void execute(String stmt, @Nullable Object[][] bulkArgs, final ActionListener<SQLBulkResponse> listener) {
         SQLOperations.Session session = clientProvider.sqlOperations().createSession(
             null,
             Option.NONE,
@@ -214,16 +212,11 @@ public class SQLTransportExecutor {
                 throw new UnsupportedOperationException(
                     "Bulk operations for statements that return result sets is not supported");
             }
-            Futures.addCallback(session.sync(), new FutureCallback<Object>() {
-                @Override
-                public void onSuccess(@Nullable Object result) {
+            session.sync().whenComplete((Object result, Throwable t) -> {
+                if (t == null) {
                     listener.onResponse(new SQLBulkResponse(results));
-                }
-
-                @Override
-                public void onFailure(@Nonnull Throwable t) {
+                } else {
                     listener.onFailure(Exceptions.createSQLActionException(t));
-
                 }
             });
         } catch (Throwable t) {
@@ -534,7 +527,6 @@ public class SQLTransportExecutor {
     /**
      * Wrapper for testing issues. Creates a {@link SQLResponse} from
      * query results.
-     *
      */
     private static class ResultSetReceiver extends BaseResultReceiver {
 
@@ -543,7 +535,7 @@ public class SQLTransportExecutor {
         private final List<Field> outputFields;
 
         ResultSetReceiver(ActionListener<SQLResponse> listener,
-                                 List<Field> outputFields) {
+                          List<Field> outputFields) {
             this.listener = listener;
             this.outputFields = outputFields;
         }
@@ -589,7 +581,6 @@ public class SQLTransportExecutor {
     /**
      * Wrapper for testing issues. Creates a {@link SQLResponse} with
      * rowCount and duration of query execution.
-     *
      */
     private static class RowCountReceiver extends BaseResultReceiver {
 
@@ -629,7 +620,6 @@ public class SQLTransportExecutor {
 
     /**
      * Wraps results of bulk requests for testing.
-     *
      */
     private static class BulkRowCountReceiver extends BaseResultReceiver {
 

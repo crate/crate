@@ -20,28 +20,21 @@
  * agreement.
  */
 
-package io.crate.action;
+package io.crate.concurrent;
 
-import com.google.common.base.Function;
-import org.elasticsearch.action.ActionListener;
+import io.crate.test.integration.CrateUnitTest;
+import org.junit.Test;
 
 import java.util.concurrent.CompletableFuture;
 
-public class FutureActionListener<Response, Result> extends CompletableFuture<Result> implements ActionListener<Response> {
+import static org.hamcrest.Matchers.is;
 
-    private final Function<? super Response, ? extends Result> transformFunction;
+public class CompletableFuturesTest extends CrateUnitTest {
 
-    public FutureActionListener(Function<? super Response, ? extends Result> transformFunction) {
-        this.transformFunction = transformFunction;
-    }
-
-    @Override
-    public void onResponse(Response response) {
-        complete(transformFunction.apply(response));
-    }
-
-    @Override
-    public void onFailure(Throwable e) {
-        completeExceptionally(e);
+    @Test
+    public void failedFutureIsCompletedExceptionally() {
+        Exception exception = new Exception("failed future");
+        CompletableFuture<Object> failedFuture = CompletableFutures.failedFuture(exception);
+        assertThat(failedFuture.isCompletedExceptionally(), is(true));
     }
 }

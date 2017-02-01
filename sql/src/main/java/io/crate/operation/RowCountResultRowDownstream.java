@@ -21,7 +21,6 @@
 
 package io.crate.operation;
 
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Row;
 import io.crate.operation.projectors.*;
 
@@ -29,6 +28,7 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * RowDownstream that will set a TaskResultFuture once the result is ready.
@@ -36,11 +36,11 @@ import java.util.Set;
  */
 public class RowCountResultRowDownstream implements RowReceiver {
 
-    private final SettableFuture<Long> result;
+    private final CompletableFuture<Long> result;
     private final List<Object[]> rows = new ArrayList<>();
     private RowReceiver.Result nextRowResult = Result.CONTINUE;
 
-    public RowCountResultRowDownstream(SettableFuture<Long> result) {
+    public RowCountResultRowDownstream(CompletableFuture<Long> result) {
         this.result = result;
     }
 
@@ -56,13 +56,13 @@ public class RowCountResultRowDownstream implements RowReceiver {
 
     @Override
     public void finish(RepeatHandle repeatHandle) {
-        result.set((Long) rows.iterator().next()[0]);
+        result.complete((Long) rows.iterator().next()[0]);
     }
 
     @Override
     public void fail(@Nonnull Throwable t) {
         nextRowResult = Result.STOP;
-        result.setException(t);
+        result.completeExceptionally(t);
     }
 
     @Override

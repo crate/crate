@@ -22,16 +22,15 @@
 
 package io.crate.action.sql;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.core.collections.Row;
 
 import javax.annotation.Nonnull;
 import javax.annotation.OverridingMethodsMustInvokeSuper;
+import java.util.concurrent.CompletableFuture;
 
 public class BaseResultReceiver implements ResultReceiver {
 
-    private SettableFuture<Boolean> completionFuture = SettableFuture.create();
+    private CompletableFuture<Boolean> completionFuture = new CompletableFuture<>();
 
     @Override
     public void setNextRow(Row row) {
@@ -44,17 +43,17 @@ public class BaseResultReceiver implements ResultReceiver {
     @Override
     @OverridingMethodsMustInvokeSuper
     public void allFinished(boolean interrupted) {
-        completionFuture.set(interrupted);
+        completionFuture.complete(interrupted);
     }
 
     @Override
     @OverridingMethodsMustInvokeSuper
     public void fail(@Nonnull Throwable t) {
-        completionFuture.setException(t);
+        completionFuture.completeExceptionally(t);
     }
 
     @Override
-    public ListenableFuture<?> completionFuture() {
+    public CompletableFuture<?> completionFuture() {
         return completionFuture;
     }
 }

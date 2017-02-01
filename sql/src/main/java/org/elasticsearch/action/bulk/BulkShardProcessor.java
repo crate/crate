@@ -53,6 +53,7 @@ import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -83,7 +84,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
     private final AtomicInteger pending = new AtomicInteger(0);
     private final Semaphore executeLock = new Semaphore(1);
 
-    private final SettableFuture<BitSet> result;
+    private final CompletableFuture<BitSet> result;
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private final BitSet responses;
     private final Object responsesLock = new Object();
@@ -137,7 +138,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
         this.transportBulkCreateIndicesAction = transportBulkCreateIndicesAction;
         responses = new BitSet();
-        result = SettableFuture.create();
+        result = new CompletableFuture<>();
 
         this.requestExecutor = requestExecutor;
         this.requestBuilder = requestBuilder;
@@ -153,7 +154,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
         pending.incrementAndGet();
         Throwable throwable = failure.get();
         if (throwable != null) {
-            result.setException(throwable);
+            result.completeExceptionally(throwable);
             return false;
         }
 
@@ -181,7 +182,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
         pending.incrementAndGet();
         Throwable throwable = failure.get();
         if (throwable != null) {
-            result.setException(throwable);
+            result.completeExceptionally(throwable);
             return false;
         }
 
@@ -357,7 +358,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
     }
 
 
-    public ListenableFuture<BitSet> result() {
+    public CompletableFuture<BitSet> result() {
         return result;
     }
 
@@ -372,20 +373,20 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
     public void kill(@Nullable Throwable throwable) {
         failure.compareAndSet(null, throwable);
-        result.setException(new InterruptedException(JobKilledException.MESSAGE));
+        result.completeExceptionally(new InterruptedException(JobKilledException.MESSAGE));
     }
 
     private void setFailure(Throwable e) {
         failure.compareAndSet(null, e);
-        result.setException(e);
+        result.completeExceptionally(e);
     }
 
     private void setResult() {
         Throwable throwable = failure.get();
         if (throwable == null) {
-            result.set(responses);
+            result.complete(responses);
         } else {
-            result.setException(throwable);
+            result.completeExceptionally(throwable);
         }
     }
 

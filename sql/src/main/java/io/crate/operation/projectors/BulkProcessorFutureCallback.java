@@ -22,15 +22,15 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.util.concurrent.FutureCallback;
 import io.crate.core.collections.Row1;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.BitSet;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiConsumer;
 
-class BulkProcessorFutureCallback implements FutureCallback<BitSet> {
+class BulkProcessorFutureCallback implements BiConsumer<BitSet, Throwable> {
     private final AtomicBoolean failed;
     private final RowReceiver rowReceiver;
 
@@ -40,7 +40,15 @@ class BulkProcessorFutureCallback implements FutureCallback<BitSet> {
     }
 
     @Override
-    public void onSuccess(@Nullable BitSet result) {
+    public void accept(BitSet bitSet, Throwable t) {
+        if (t == null) {
+            onSuccess(bitSet);
+        } else {
+            onFailure(t);
+        }
+    }
+
+    private void onSuccess(@Nullable BitSet result) {
         if (!failed.get()) {
             long rowCount = result == null ? 0 : result.cardinality();
             rowReceiver.setNextRow(new Row1(rowCount));
@@ -48,8 +56,7 @@ class BulkProcessorFutureCallback implements FutureCallback<BitSet> {
         }
     }
 
-    @Override
-    public void onFailure(@Nonnull Throwable t) {
+    private void onFailure(@Nonnull Throwable t) {
         if (!failed.get()) {
             rowReceiver.fail(t);
         }

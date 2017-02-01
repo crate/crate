@@ -30,7 +30,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * a FutureCallback that can be called multiple times and will call the finalCallback once numCalls has been made.
+ *
+ * @Deprecated Guava's ListenableFuture is gradually being replaced by java.util.concurrent.CompletableFuture.
+ * Please use CompletableFuture and get feedback using whenComplete
  */
+@Deprecated
 public class MultiFutureCallback<T> implements FutureCallback<T> {
 
     private final AtomicInteger counter;

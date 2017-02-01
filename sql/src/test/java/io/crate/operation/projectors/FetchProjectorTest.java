@@ -26,8 +26,6 @@ import com.carrotsearch.hppc.*;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.symbol.FetchReference;
 import io.crate.analyze.symbol.InputColumn;
@@ -52,6 +50,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -196,7 +195,7 @@ public class FetchProjectorTest extends CrateUnitTest {
         int numFetches = 0;
 
         @Override
-        public ListenableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId, IntObjectMap<? extends IntContainer> toFetch, boolean closeContext) {
+        public CompletableFuture<IntObjectMap<? extends Bucket>> fetch(String nodeId, IntObjectMap<? extends IntContainer> toFetch, boolean closeContext) {
             numFetches++;
             IntObjectHashMap<Bucket> readerToBuckets = new IntObjectHashMap<>();
             for (IntObjectCursor<? extends IntContainer> cursor : toFetch) {
@@ -206,7 +205,7 @@ public class FetchProjectorTest extends CrateUnitTest {
                 }
                 readerToBuckets.put(cursor.key, new CollectionBucket(rows));
             }
-            return Futures.<IntObjectMap<? extends Bucket>>immediateFuture(readerToBuckets);
+            return CompletableFuture.completedFuture(readerToBuckets);
         }
     }
 }

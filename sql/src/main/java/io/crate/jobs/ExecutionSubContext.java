@@ -21,10 +21,10 @@
 
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.concurrent.CompletionListenable;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
 
 public interface ExecutionSubContext extends CompletionListenable {
 
@@ -56,5 +56,5 @@ public interface ExecutionSubContext extends CompletionListenable {
     void cleanup();
 
     @Override
-    ListenableFuture<CompletionState> completionFuture();
+    CompletableFuture<CompletionState> completionFuture();
 }

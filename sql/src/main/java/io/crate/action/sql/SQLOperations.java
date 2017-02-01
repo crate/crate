@@ -22,8 +22,6 @@
 
 package io.crate.action.sql;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Field;
@@ -48,6 +46,7 @@ import org.elasticsearch.transport.NodeDisconnectedException;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 
 @Singleton
@@ -272,11 +271,12 @@ public class SQLOperations {
             }
         }
 
-        public ListenableFuture<?> sync() {
+        public CompletableFuture<?> sync() {
+            LOGGER.debug("method=sync");
             switch (pendingExecutions.size()) {
                 case 0:
                     LOGGER.debug("method=sync pendingExecutions=0");
-                    return Futures.immediateFuture(null);
+                    return CompletableFuture.completedFuture(null);
                 case 1:
                     Portal portal = pendingExecutions.iterator().next();
                     LOGGER.debug("method=sync portal={}", portal);

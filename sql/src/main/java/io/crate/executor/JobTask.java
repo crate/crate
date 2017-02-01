@@ -21,10 +21,9 @@
 
 package io.crate.executor;
 
-import com.google.common.util.concurrent.ListenableFuture;
-
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public abstract class JobTask implements Task {
 
@@ -39,7 +38,7 @@ public abstract class JobTask implements Task {
     }
 
     @Override
-    public List<? extends ListenableFuture<Long>> executeBulk() {
+    public List<CompletableFuture<Long>> executeBulk() {
         throw new UnsupportedOperationException(
             this.getClass().getSimpleName() + " cannot be executed as bulk operation");
     }

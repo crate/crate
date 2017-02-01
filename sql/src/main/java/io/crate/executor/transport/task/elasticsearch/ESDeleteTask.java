@@ -21,12 +21,9 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.where.DocKeys;
+import io.crate.concurrent.CompletableFutures;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.exceptions.Exceptions;
@@ -45,15 +42,14 @@ import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 public class ESDeleteTask extends JobTask {
 
-    protected final List<SettableFuture<Long>> results;
+    protected final List<CompletableFuture<Long>> results;
     private final ESDelete esDelete;
     private final JobContextService jobContextService;
     protected JobExecutionContext.Builder builder;
@@ -67,7 +63,7 @@ public class ESDeleteTask extends JobTask {
 
         results = new ArrayList<>(esDelete.getBulkSize());
         for (int i = 0; i < esDelete.getBulkSize(); i++) {
-            SettableFuture<Long> result = SettableFuture.create();
+            CompletableFuture<Long> result = new CompletableFuture<>();
             results.add(result);
         }
 
@@ -84,14 +80,14 @@ public class ESDeleteTask extends JobTask {
                 request.version(docKey.version().get());
             }
             requests.add(request);
-            SettableFuture<Long> result = results.get(esDelete.getItemToBulkIdx().get(resultIdx));
+            CompletableFuture<Long> result = results.get(esDelete.getItemToBulkIdx().get(resultIdx));
             listeners.add(new DeleteResponseListener(result));
             resultIdx++;
         }
 
         for (int i = 0; i < results.size(); i++) {
             if (!esDelete.getItemToBulkIdx().values().contains(i)) {
-                results.get(i).set(0L);
+                results.get(i).complete(0L);
             }
         }
         createContextBuilder("delete", requests, listeners, transport);
@@ -115,21 +111,17 @@ public class ESDeleteTask extends JobTask {
 
     @Override
     public void execute(final RowReceiver rowReceiver, Row parameters) {
-        SettableFuture<Long> result = results.get(0);
+        CompletableFuture<Long> result = results.get(0);
         try {
             startContext();
         } catch (Throwable throwable) {
             rowReceiver.fail(throwable);
             return;
         }
-        Futures.addCallback(result, new FutureCallback<Long>() {
-            @Override
-            public void onSuccess(@Nullable Long result) {
-                RowReceivers.sendOneRow(rowReceiver, new Row1(result));
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
+        result.whenComplete((Long futureResult, Throwable t) -> {
+            if (t == null) {
+                RowReceivers.sendOneRow(rowReceiver, new Row1(futureResult));
+            } else {
                 rowReceiver.fail(t);
             }
         });
@@ -138,18 +130,18 @@ public class ESDeleteTask extends JobTask {
 
     private static class DeleteResponseListener implements ActionListener<DeleteResponse> {
 
-        private final SettableFuture<Long> result;
+        private final CompletableFuture<Long> result;
 
-        DeleteResponseListener(SettableFuture<Long> result) {
+        DeleteResponseListener(CompletableFuture<Long> result) {
             this.result = result;
         }
 
         @Override
         public void onResponse(DeleteResponse response) {
             if (!response.isFound()) {
-                result.set(0L);
+                result.complete(0L);
             } else {
-                result.set(1L);
+                result.complete(1L);
             }
         }
 
@@ -158,19 +150,19 @@ public class ESDeleteTask extends JobTask {
             e = Exceptions.unwrap(e); // unwrap to get rid of RemoteTransportException
             if (e instanceof VersionConflictEngineException) {
                 // treat version conflict as rows affected = 0
-                result.set(0L);
+                result.complete(0L);
             } else {
-                result.setException(e);
+                result.completeExceptionally(e);
             }
         }
     }
 
     @Override
-    public final List<? extends ListenableFuture<Long>> executeBulk() {
+    public final List<CompletableFuture<Long>> executeBulk() {
         try {
             startContext();
         } catch (Throwable throwable) {
-            return Collections.singletonList(Futures.immediateFailedFuture(throwable));
+		return Collections.singletonList(CompletableFutures.failedFuture(throwable));
         }
         return results;
     }

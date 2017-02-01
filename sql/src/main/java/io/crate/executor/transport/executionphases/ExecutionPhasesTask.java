@@ -26,11 +26,11 @@ import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.job.JobRequest;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.action.job.TransportJobAction;
+import io.crate.concurrent.CompletableFutures;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.JobTask;
@@ -51,6 +51,7 @@ import org.elasticsearch.indices.IndicesService;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 
 /**
@@ -145,7 +146,7 @@ public class ExecutionPhasesTask extends JobTask {
     }
 
     @Override
-    public List<? extends ListenableFuture<Long>> executeBulk() {
+    public List<CompletableFuture<Long>> executeBulk() {
         FluentIterable<NodeOperation> nodeOperations = FluentIterable.from(nodeOperationTrees)
             .transformAndConcat(new Function<NodeOperationTree, Iterable<? extends NodeOperation>>() {
                 @Nullable
@@ -158,9 +159,9 @@ public class ExecutionPhasesTask extends JobTask {
 
         List<ExecutionPhase> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
         List<RowReceiver> handlerReceivers = new ArrayList<>(nodeOperationTrees.size());
-        List<SettableFuture<Long>> results = new ArrayList<>(nodeOperationTrees.size());
+        List<CompletableFuture<Long>> results = new ArrayList<>(nodeOperationTrees.size());
         for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
-            SettableFuture<Long> result = SettableFuture.create();
+            CompletableFuture<Long> result = new CompletableFuture<>();
             results.add(result);
             handlerPhases.add(nodeOperationTree.leaf());
             handlerReceivers.add(new RowCountResultRowDownstream(result));
@@ -168,7 +169,7 @@ public class ExecutionPhasesTask extends JobTask {
         try {
             setupContext(operationByServer, handlerPhases, handlerReceivers);
         } catch (Throwable throwable) {
-            return Collections.singletonList(Futures.immediateFailedFuture(throwable));
+            return Collections.singletonList(CompletableFutures.failedFuture(throwable));
         }
         return results;
     }

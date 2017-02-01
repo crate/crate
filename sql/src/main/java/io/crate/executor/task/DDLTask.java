@@ -22,8 +22,6 @@
 package io.crate.executor.task;
 
 import com.google.common.base.Function;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.core.collections.Row;
@@ -34,6 +32,7 @@ import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class DDLTask extends JobTask {
 
@@ -48,14 +47,16 @@ public class DDLTask extends JobTask {
 
     @Override
     public void execute(final RowReceiver rowReceiver, Row parameters) {
-        ListenableFuture<Long> future = ddlStatementDispatcher.dispatch(analyzedStatement, jobId());
-        Futures.addCallback(future, new OneRowActionListener<>(rowReceiver, new Function<Long, Row>() {
+        CompletableFuture<Long> future = ddlStatementDispatcher.dispatch(analyzedStatement, jobId());
+
+        OneRowActionListener<Long> responseOneRowActionListener = new OneRowActionListener<>(rowReceiver, new Function<Long, Row>() {
             @Nullable
             @Override
             public Row apply(@Nullable Long input) {
                 return new Row1(input == null ? -1 : input);
             }
-        }));
+        });
+        future.whenComplete(responseOneRowActionListener);
     }
 
 }
