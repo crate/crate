@@ -467,6 +467,15 @@ def test_suite():
                                  encoding='utf-8')
         s.layer = crate_layer
         docs_suite.addTest(s)
+    for fn in ('sql/geo.txt',):
+        s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
+                                 setUp=setUpCountries,
+                                 tearDown=tearDownCountries,
+                                 optionflags=doctest.NORMALIZE_WHITESPACE |
+                                 doctest.ELLIPSIS,
+                                 encoding='utf-8')
+        s.layer = crate_layer
+        docs_suite.addTest(s)
     for fn in ('sql/joins.txt', 'sql/subselects.txt',):
         path = os.path.join('..', '..', fn)
         s = doctest.DocFileSuite(path,
