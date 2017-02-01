@@ -28,14 +28,18 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.core.collections.RowN;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.plugin.SQLPlugin;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -51,6 +55,11 @@ import static org.mockito.Mockito.*;
 
 public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
+    @Override
+    protected Collection<Setting<?>> additionalClusterSettings() {
+        return new SQLPlugin(Settings.EMPTY).getSettings();
+    }
+
     @Test
     public void testSettingsChanges() {
         // Initially disabled
@@ -60,7 +69,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             () -> mock(SQLOperations.class));
 
-        assertThat(statsService.lastRefreshInterval,
+        assertThat(statsService.refreshInterval,
             is(TimeValue.timeValueMinutes(0)));
         assertThat(statsService.refreshScheduledTask, is(nullValue()));
 
@@ -71,36 +80,34 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             () -> mock(SQLOperations.class));
 
-        assertThat(statsService.lastRefreshInterval,
+        assertThat(statsService.refreshInterval,
             is(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.defaultValue()));
         assertThat(statsService.refreshScheduledTask, is(notNullValue()));
 
-        fail("need to test this differently");
+        ClusterSettings clusterSettings = clusterService.getClusterSettings();
 
-        /*
         // Update setting
-        statsService.onRefreshSettings(Settings.builder()
+        clusterSettings.applySettings(Settings.builder()
             .put(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.settingName(), "10m").build());
 
-        assertThat(statsService.lastRefreshInterval, is(TimeValue.timeValueMinutes(10)));
+        assertThat(statsService.refreshInterval, is(TimeValue.timeValueMinutes(10)));
         assertThat(statsService.refreshScheduledTask,
             is(notNullValue()));
 
         // Disable
-        statsService.onRefreshSettings(Settings.builder()
+        clusterSettings.applySettings(Settings.builder()
             .put(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.settingName(), 0).build());
 
-        assertThat(statsService.lastRefreshInterval, is(TimeValue.timeValueMillis(0)));
+        assertThat(statsService.refreshInterval, is(TimeValue.timeValueMillis(0)));
         assertThat(statsService.refreshScheduledTask,
             is(nullValue()));
 
         // Reset setting
-        statsService.onRefreshSettings(Settings.builder().build());
+        clusterSettings.applySettings(Settings.builder().build());
 
-        assertThat(statsService.lastRefreshInterval,
+        assertThat(statsService.refreshInterval,
             is(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.defaultValue()));
         assertThat(statsService.refreshScheduledTask, is(notNullValue()));
-        */
     }
 
     @Test

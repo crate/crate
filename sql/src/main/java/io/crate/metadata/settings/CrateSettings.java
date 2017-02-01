@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.operation.collect.stats.StatsTablesService;
+import io.crate.planner.TableStatsService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -143,7 +144,7 @@ public class CrateSettings {
 
         @Override
         public TimeValue defaultValue() {
-            return StatsTablesService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY);
+            return TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY);
         }
 
         @Override
@@ -158,7 +159,7 @@ public class CrateSettings {
 
         @Override
         org.elasticsearch.common.settings.Setting<TimeValue> createESSetting() {
-            return StatsTablesService.STATS_SERVICE_REFRESH_INTERVAL_SETTING;
+            return TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING;
         }
     };
 
