@@ -80,7 +80,7 @@ public final class RowsTransformer {
         if (orderBy == null) {
             return rows;
         }
-        return sortRows(Iterables.transform(rows, Row.MATERIALIZE), collectPhase);
+        return sortRows(Iterables.transform(rows, Row::materialize), collectPhase);
     }
 
     public static Iterable<Row> sortRows(Iterable<Object[]> rows, RoutedCollectPhase collectPhase) {

@@ -93,7 +93,7 @@ public class TableFunctionCollectSource implements CollectSource {
         }
         OrderBy orderBy = phase.orderBy();
         if (orderBy != null) {
-            rows = RowsTransformer.sortRows(Iterables.transform(rows, Row.MATERIALIZE), phase);
+            rows = RowsTransformer.sortRows(Iterables.transform(rows, Row::materialize), phase);
         }
         RowsCollector rowsCollector = new RowsCollector(downstream, rows);
         return Collections.<CrateCollector>singletonList(rowsCollector);

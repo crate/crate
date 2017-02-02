@@ -21,8 +21,6 @@
 
 package io.crate.core.collections;
 
-import com.google.common.base.Function;
-
 public interface Row {
 
 
@@ -43,16 +41,6 @@ public interface Row {
         @Override
         public Object[] materialize() {
             return EMPTY_CELLS;
-        }
-    };
-
-    Function<Row, Object[]> MATERIALIZE = new Function<Row, Object[]>() {
-        @Override
-        public Object[] apply(Row input) {
-            if (input == null) {
-                return null;
-            }
-            return input.materialize();
         }
     };
 
