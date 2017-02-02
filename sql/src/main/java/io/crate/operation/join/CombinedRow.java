@@ -30,16 +30,16 @@ class CombinedRow implements Row {
     volatile Row innerRow;
 
     @Override
-    public int size() {
-        return outerRow.size() + innerRow.size();
+    public int numColumns() {
+        return outerRow.numColumns() + innerRow.numColumns();
     }
 
     @Override
     public Object get(int index) {
-        if (index < outerRow.size()) {
+        if (index < outerRow.numColumns()) {
             return outerRow.get(index);
         }
-        return innerRow.get(index - outerRow.size());
+        return innerRow.get(index - outerRow.numColumns());
     }
 
     @Override

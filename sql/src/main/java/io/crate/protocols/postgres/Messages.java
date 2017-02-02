@@ -288,15 +288,15 @@ class Messages {
      */
     static void sendDataRow(Channel channel, Row row, List<? extends DataType> columnTypes, @Nullable FormatCodes.FormatCode[] formatCodes) {
         int length = 4 + 2;
-        assert columnTypes.size() == row.size()
+        assert columnTypes.size() == row.numColumns()
             : "Number of columns in the row must match number of columnTypes. Row: " + row + " types: " + columnTypes;
 
         ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
         buffer.writeByte('D');
         buffer.writeInt(0); // will be set at the end
-        buffer.writeShort(row.size());
+        buffer.writeShort(row.numColumns());
 
-        for (int i = 0; i < row.size(); i++) {
+        for (int i = 0; i < row.numColumns(); i++) {
             DataType dataType = columnTypes.get(i);
             PGType pgType = PGTypes.get(dataType);
             Object value = row.get(i);

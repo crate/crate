@@ -38,7 +38,7 @@ public class RowN implements Row {
     }
 
     @Override
-    public int size() {
+    public int numColumns() {
         return size;
     }
 

@@ -37,7 +37,7 @@ public class FieldExtractorRow<T> implements Row {
     }
 
     @Override
-    public int size() {
+    public int numColumns() {
         return fieldExtractors.size();
     }
 

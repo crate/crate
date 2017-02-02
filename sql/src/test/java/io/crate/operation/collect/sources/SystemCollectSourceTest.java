@@ -73,7 +73,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             new UnassignedShard(new ShardId("foo", 1), mock(ClusterService.class), true, ShardRoutingState.UNASSIGNED)),
             false);
         Row next = rows.iterator().next();
-        assertThat(next.size(), is(1));
+        assertThat(next.numColumns(), is(1));
     }
 
     @Test

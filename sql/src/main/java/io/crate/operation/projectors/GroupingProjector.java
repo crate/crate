@@ -36,7 +36,6 @@ import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -215,7 +214,7 @@ public class GroupingProjector extends AbstractProjector {
                 downstream, Iterables.transform(result.entrySet(), new Function<Map.Entry<Object, Object[]>, Row>() {
 
                 RowN row = new RowN(1 + aggregators.length); // 1 for key
-                Object[] cells = new Object[row.size()];
+                Object[] cells = new Object[row.numColumns()];
 
                 @Nullable
                 @Override
@@ -314,7 +313,7 @@ public class GroupingProjector extends AbstractProjector {
                 downstream, Iterables.transform(result.entrySet(), new Function<Map.Entry<List<Object>, Object[]>, Row>() {
 
                 RowN row = new RowN(keyInputs.size() + aggregators.length);
-                Object[] cells = new Object[row.size()];
+                Object[] cells = new Object[row.numColumns()];
 
                 @Nullable
                 @Override

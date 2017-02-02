@@ -66,7 +66,7 @@ public class GroupingProjectorBenchmark {
         Object value;
 
         @Override
-        public int size() {
+        public int numColumns() {
             return 1;
         }
 
