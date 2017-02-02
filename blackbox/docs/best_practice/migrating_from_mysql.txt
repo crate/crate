@@ -12,18 +12,18 @@ This best practice example shows how to migrate your data without any hassle.
 
 We are assuming we have an existing table ``foo`` in MySQL with the following schema::
 
-  CREATE TABLE foo (
-    id integer primary key,
-    name varchar(255),
-    date datetime,
-    fruits set('apple', 'pear', 'banana')
-  ) CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+  cr> CREATE TABLE foo (
+  ...  id integer primary key,
+  ...  name varchar(255),
+  ...  date datetime,
+  ...  fruits set('apple', 'pear', 'banana')
+  ... ) CHARACTER SET utf8 COLLATE utf8_unicode_ci;
 
 Sampledata::
 
-  INSERT INTO foo (id, name, date, fruits)
-    VALUES (1, 'foo', '2014-10-31 09:22:56', 'apple,banana'),
-      (2, 'bar', null, 'pear');
+  cr> INSERT INTO foo (id, name, date, fruits)
+  ...  VALUES (1, 'foo', '2014-10-31 09:22:56', 'apple,banana'),
+  ...   (2, 'bar', null, 'pear');
 
 
 Exporting Data from MySQL
@@ -34,18 +34,20 @@ write to a file using the ``csv`` format.
 
 Example::
 
-  SELECT id, name
-    INTO OUTFILE '/tmp/dump.csv'
-      CHARACTER SET utf8
-      FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
-      LINES TERMINATED BY '\n'
-    FROM foo;
+  cr> SELECT id, name
+  ...  INTO OUTFILE '/tmp/dump.csv'
+  ...   CHARACTER SET utf8
+  ...   FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
+  ...   LINES TERMINATED BY '\n'
+  ...  FROM foo;
 
 Make sure fields are seperated by a comma (``,``), that values are quoted with a pair of ``"`` and that lines are terminated by the newline character ``\n``.
 
 Note that we specify ``utf8`` as encoding for writing into the outfile. This is important because Crate requires ``utf8`` encoding.
 
-You may need to set the character encoding of the client and ``mysqld`` in the ``my.cnf``, too::
+You may need to set the character encoding of the client and ``mysqld`` in the ``my.cnf``, too:
+
+.. code-block:: ini
 
   [client]
   default-character-set=utf8
@@ -66,16 +68,16 @@ The output of this function must be multiplied by ``1000`` (converting ``s`` to 
 
 ::
 
-  SELECT UNIX_TIMESTAMP(datetime_column)*1000 from table_name;
+  cr> SELECT UNIX_TIMESTAMP(datetime_column)*1000 from table_name;
 
 Final export query::
 
-  SELECT id, name, UNIX_TIMESTAMP(date)*1000, fruits
-    INTO OUTFILE '/tmp/dump.csv'
-      CHARACTER SET utf8
-      FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
-      LINES TERMINATED BY '\n'
-    FROM foo;
+  cr> SELECT id, name, UNIX_TIMESTAMP(date)*1000, fruits
+  ...  INTO OUTFILE '/tmp/dump.csv'
+  ...    CHARACTER SET utf8
+  ...    FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"'
+  ...    LINES TERMINATED BY '\n'
+  ...  FROM foo;
 
 Converting CSV to JSON
 ======================
@@ -112,14 +114,14 @@ For our example the usage looks like:
 
 .. code-block:: sh
 
-  $ cat /tmp/dump.csv | python mysql2crate.py - \
-        --columns id:int name:str date:timestamp fruits:array > /tmp/import.json
+  sh$ cat /tmp/dump.csv | python mysql2crate.py - \
+  ...     --columns id:int name:str date:timestamp fruits:array > /tmp/import.json
 
 For help use the ``-h`` option:
 
 .. code-block:: sh
 
-  $ python mysql2crate.py -h
+  sh$ python mysql2crate.py -h
 
 
 Importing Data into Crate
@@ -129,18 +131,18 @@ The column names need to match the names specified by the ``--columns`` argument
 
 ::
 
-  CREATE TABLE foo_imported (
-    id int,
-    name string,
-    date timestamp,
-    fruits array(string)
-  );
+  cr> CREATE TABLE foo_imported (
+  ...  id int,
+  ...  name string,
+  ...  date timestamp,
+  ...  fruits array(string)
+  ... );
 
 Finally use the ``COPY FROM`` statement to import your newly generated json file into Crate.
 
 ::
 
-  COPY foo_imported FROM '/tmp/import.json' WITH (bulk_size=1000);
+  cr> COPY foo_imported FROM '/tmp/import.json' WITH (bulk_size=1000);
 
 
 .. note::
@@ -159,7 +161,7 @@ The simplest way to do so is like this:
 
 .. code-block:: sh
 
-  $ csvsql --db crate://localhost:4200 --insert /tmp/dump.csv
+  sh$ csvsql --db crate://localhost:4200 --insert /tmp/dump.csv
 
 .. note::
 
