@@ -109,7 +109,6 @@ class GracefulStopTest(unittest.TestCase):
                 crate_path(),
                 port=GLOBAL_PORT_POOL.get(),
                 transport_port=GLOBAL_PORT_POOL.get(),
-                multicast=True,
                 cluster_name=self.__class__.__name__)
             client = Client(layer.crate_servers)
             self.crates.append(layer)

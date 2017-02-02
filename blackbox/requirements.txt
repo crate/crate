@@ -3,7 +3,7 @@ appdirs==1.4.0
 Babel==2.3.4
 colorama==0.3.7
 crash==0.20.0
-crate==0.16.3
+crate==0.18.0
 crate-docs-theme==0.5.16
 sphinx-csv-filter==0.1.0
 docutils==0.12
