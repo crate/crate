@@ -1,4 +1,4 @@
-.. highlight:: yaml
+.. highlight:: sh
 .. _crate_ami:
 
 =============================================
@@ -7,9 +7,9 @@ Launching EC2 Instances with the Crate AMI
 
 Crate provides custom public `AMI`_ s that can be launched by every EC2 user
 by using the AWS Management Console or `AWS CLI`_. The naming convention
-is as follows:
+is as follows::
 
-  ``crate-<VERSION>-<REVISION>-<AMI_REVISION>-<BASE_AMI>``
+    crate-<VERSION>-<REVISION>-<AMI_REVISION>-<BASE_AMI>
 
 ``<VERSION>-<REVISION>`` is the Crate version and its revision in the format
 ``w.x.y-z``, ``<AMI_REVISION>`` is the AMI build revision and ``<BASE_AMI>`` is
@@ -40,9 +40,9 @@ If you are using the `AWS CLI`_ you can find the public Crate AMI by using the
 ``AMI Name``. AMIs are listed in JSON-format and sorted by their creation date.
 The following command lists every available Crate AMI on the AWS platform.
 
-.. code-block:: bash
+::
 
-    $ aws ec2 describe-images --filters "Name=name,Values=crate-0.51.1-*"
+    sh$ aws ec2 describe-images --filters "Name=name,Values=crate-0.51.1-*"
 
 
 Launch the AMI
@@ -54,9 +54,9 @@ You can use the parameters of the command to configure its start-up behavior
 and hardware configuration. A valid key-pair is necessary to connect to the
 instances later.
 
-.. code-block:: bash
+::
 
-    $ aws ec2 run-instances --image-id <AMI-ID> --count <NR-OF-INSTANCES> --iam-instance-profile Name="<IAM-ROLE>" --instance-type <INSTANCE-TYPE> --user-data <USER-DATA>  --key-name <KEY-NAME>
+    sh$ aws ec2 run-instances --image-id <AMI-ID> --count <NR-OF-INSTANCES> --iam-instance-profile Name="<IAM-ROLE>" --instance-type <INSTANCE-TYPE> --user-data <USER-DATA>  --key-name <KEY-NAME>
 
 .. _cloud_init:
 
@@ -106,7 +106,7 @@ shows how to set the ``minimum_master_nodes`` and gateway configuration setting
 which are essential for a `multi node setup`_. This
 configuration is used when a cluster with 3 or more nodes is set up.
 
-.. code-block:: bash
+::
 
     #!/bin/bash
     echo "
@@ -130,9 +130,9 @@ mechanism. The following example shows how to run a single instance of type
 ``m3.medium``. The adapted Crate configuration is passed via ``user-data.sh``
 file.
 
-.. code-block:: bash
+::
 
-    $ aws ec2 run-instances --image-id ami-544c1923 --count 1 --iam-instance-profile Name="crate-ec2" --instance-type m3.medium --user-data $(base64 user-data.sh) --key-name my_key_pair
+    sh$ aws ec2 run-instances --image-id ami-544c1923 --count 1 --iam-instance-profile Name="crate-ec2" --instance-type m3.medium --user-data $(base64 user-data.sh) --key-name my_key_pair
 
 
 .. note::
@@ -165,9 +165,9 @@ In this case ``ephemeral1`` will be added as an instance store volume with the
 device name ``/dev/sdc``. For additional info see
 `device naming on linux instances`_.
 
-.. code-block:: bash
+::
 
-    $ aws ec2 run-instances --image-id ami-544c1923 --count 1 --instance-type m3.medium --block-device-mappings "[{\"DeviceName\": \"/dev/sdc\",\"VirtualName\":\"ephemeral1\"}]"
+    sh$ aws ec2 run-instances --image-id ami-544c1923 --count 1 --instance-type m3.medium --block-device-mappings "[{\"DeviceName\": \"/dev/sdc\",\"VirtualName\":\"ephemeral1\"}]"
 
 .. note::
     Note that the data stored on ephemeral disks is not permanent and only
