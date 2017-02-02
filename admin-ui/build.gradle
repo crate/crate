@@ -5,6 +5,7 @@ archivesBaseName = 'crate-admin-ui'
 dependencies {
     compile project(':core')
     testCompile project(':testing')
+    testCompile project(':es:es-transport')
 }
 
 ext {
