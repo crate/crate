@@ -62,8 +62,8 @@ public class Buckets {
     }
 
     public static Object[] materialize(Row row) {
-        Object[] res = new Object[row.size()];
-        for (int i = 0; i < row.size(); i++) {
+        Object[] res = new Object[row.numColumns()];
+        for (int i = 0; i < row.numColumns(); i++) {
             res[i] = row.get(i);
         }
         return res;

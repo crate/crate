@@ -56,9 +56,9 @@ public class ParameterContext implements Function<ParameterExpression, Symbol> {
     }
 
     private void validateBulkParams(List<Row> bulkParams) {
-        int length = bulkParams.get(0).size();
+        int length = bulkParams.get(0).numColumns();
         for (Row bulkParam : bulkParams) {
-            if (bulkParam.size() != length) {
+            if (bulkParam.numColumns() != length) {
                 throw new IllegalArgumentException("mixed number of arguments inside bulk arguments");
             }
         }
@@ -107,8 +107,8 @@ public class ParameterContext implements Function<ParameterExpression, Symbol> {
 
     public ParamTypeHints typeHints() {
         if (typeHints == null) {
-            List<DataType> types = new ArrayList<>(parameters.size());
-            for (int i = 0; i < parameters.size(); i++) {
+            List<DataType> types = new ArrayList<>(parameters.numColumns());
+            for (int i = 0; i < parameters.numColumns(); i++) {
                 types.add(guessTypeSafe(parameters.get(i)));
             }
             typeHints = new ParamTypeHints(types);

@@ -94,7 +94,7 @@ public class FetchProjector extends AbstractProjector {
         private Object[] cells;
 
         @Override
-        public int size() {
+        public int numColumns() {
             return cells.length;
         }
 

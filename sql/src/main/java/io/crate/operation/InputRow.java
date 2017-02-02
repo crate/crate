@@ -35,7 +35,7 @@ public class InputRow implements Row {
     }
 
     @Override
-    public int size() {
+    public int numColumns() {
         return inputs.size();
     }
 

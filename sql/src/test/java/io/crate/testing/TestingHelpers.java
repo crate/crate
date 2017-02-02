@@ -201,12 +201,12 @@ public class TestingHelpers {
         return new TypeSafeDiagnosingMatcher<Row>() {
             @Override
             protected boolean matchesSafely(Row item, Description mismatchDescription) {
-                if (item.size() != expected.size()) {
+                if (item.numColumns() != expected.size()) {
                     mismatchDescription.appendText("row size does not match: ")
-                        .appendValue(item.size()).appendText(" != ").appendValue(expected.size());
+                        .appendValue(item.numColumns()).appendText(" != ").appendValue(expected.size());
                     return false;
                 }
-                for (int i = 0; i < item.size(); i++) {
+                for (int i = 0; i < item.numColumns(); i++) {
                     Object actual = bytesRefToString.apply(item.get(i));
                     if (!Objects.equals(expected.get(i), actual)) {
                         mismatchDescription.appendText("value at pos ")

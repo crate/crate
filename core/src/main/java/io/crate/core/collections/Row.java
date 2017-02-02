@@ -29,7 +29,7 @@ public interface Row {
         private final Object[] EMPTY_CELLS = new Object[0];
 
         @Override
-        public int size() {
+        public int numColumns() {
             return 0;
         }
 
@@ -44,7 +44,7 @@ public interface Row {
         }
     };
 
-    int size();
+    int numColumns();
 
     /**
      * Returns the element at the specified column

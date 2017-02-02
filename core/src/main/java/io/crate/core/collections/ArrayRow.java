@@ -34,7 +34,7 @@ public class ArrayRow implements Row {
     private Object[] cells;
 
     @Override
-    public int size() {
+    public int numColumns() {
         return cells.length;
     }
 
