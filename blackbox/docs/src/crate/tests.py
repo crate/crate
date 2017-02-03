@@ -31,7 +31,6 @@ import tempfile
 import glob
 from functools import partial
 from . import process_test
-from .java_repl import JavaRepl
 from testutils.paths import crate_path, project_path
 from testutils.ports import GLOBAL_PORT_POOL
 from crate.crash.command import CrateCmd
@@ -58,12 +57,6 @@ class CrateTestCmd(CrateCmd):
             self.execute(stmt)
 
 cmd = CrateTestCmd(is_tty=False)
-jars = [project_path('blackbox', 'tmp')]
-jars += glob.glob(crate_path('lib', '*.jar'))
-java_repl = JavaRepl(
-    jars=jars,
-    port=GLOBAL_PORT_POOL.get()
-)
 
 
 def wait_for_schema_update(schema, table, column):
@@ -101,19 +94,11 @@ def crash_transform(s):
     return u'cmd.stmt({0})'.format(repr(s.strip().rstrip(';')))
 
 
-def java_transform(s):
-    s = s.replace(':4300', ':{0}'.format(CRATE_TRANSPORT_PORT))
-    return u'java_repl.execute({0})'.format(repr(s.strip()))
-
-
 bash_parser = zc.customdoctests.DocTestParser(
     ps1='sh\$', comment_prefix='#', transform=bash_transform)
 
 crash_parser = zc.customdoctests.DocTestParser(
     ps1='cr>', comment_prefix='#', transform=crash_transform)
-
-java_parser = zc.customdoctests.DocTestParser(
-    ps1='jv>', comment_prefix='//', transform=java_transform)
 
 
 class ConnectingCrateLayer(CrateLayer):
@@ -145,19 +130,6 @@ class ConnectingCrateLayer(CrateLayer):
         super(ConnectingCrateLayer, self).tearDown()
 
 
-class ConnectingAndJavaReplLayer(object):
-
-    def __init__(self, connecting_layer, javarepl_layer):
-        self.__bases__ = (connecting_layer, javarepl_layer)
-        self.__name__ = 'connecting_and_javarepl'
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-
 crate_layer = ConnectingCrateLayer(
     'crate',
     crate_home=crate_path(),
@@ -167,8 +139,6 @@ crate_layer = ConnectingCrateLayer(
         'cluster.routing.schedule': '30ms',
     }
 )
-
-crate_and_javarepl_layer = ConnectingAndJavaReplLayer(crate_layer, java_repl)
 
 
 def setUpLocations(test):
@@ -412,7 +382,6 @@ def setUpTutorials(test):
 
 def setUp(test):
     test.globs['cmd'] = cmd
-    test.globs['java_repl'] = java_repl
     test.globs['wait_for_schema_update'] = wait_for_schema_update
 
 
