@@ -655,39 +655,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new TableFunction(getIdentText(context.ident()), visit(context.parameterOrLiteral(), Expression.class));
     }
 
-    @Override
-    public Node visitOver(SqlBaseParser.OverContext context) {
-        return new Window(
-            visit(context.expr(), Expression.class),
-            visit(context.sortItem(), SortItem.class),
-            visitIfPresent(context.windowFrame(), WindowFrame.class));
-    }
-
-    @Override
-    public Node visitWindowFrame(SqlBaseParser.WindowFrameContext context) {
-        return new WindowFrame(
-            getFrameType(context.frameType),
-            (FrameBound) visit(context.start),
-            visitIfPresent(context.end, FrameBound.class));
-    }
-
-    @Override
-    public Node visitUnboundedFrame(SqlBaseParser.UnboundedFrameContext context) {
-        return new FrameBound(getUnboundedFrameBoundType(context.boundType));
-    }
-
-    @Override
-    public Node visitBoundedFrame(SqlBaseParser.BoundedFrameContext context) {
-        return new FrameBound(
-            getBoundedFrameBoundType(context.boundType),
-            visitIfPresent(context.expr(), Expression.class));
-    }
-
-    @Override
-    public Node visitCurrentRowBound(SqlBaseParser.CurrentRowBoundContext context) {
-        return new FrameBound(FrameBound.Type.CURRENT_ROW);
-    }
-
     // Boolean expressions
 
     @Override
@@ -1061,7 +1028,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     public Node visitFunctionCall(SqlBaseParser.FunctionCallContext context) {
         return new FunctionCall(
             getQualifiedName(context.qname()),
-            visitIfPresent(context.over(), Window.class).orElse(null),
             isDistinct(context.setQuant()),
             visit(context.expr(), Expression.class));
     }

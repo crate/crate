@@ -215,10 +215,6 @@ public final class ExpressionFormatter {
                 builder.append('(').append(arguments).append(')');
             }
 
-            if (node.getWindow().isPresent()) {
-                builder.append(" OVER ").append(visitWindow(node.getWindow().get(), null));
-            }
-
             return builder.toString();
         }
 

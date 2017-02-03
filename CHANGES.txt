@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed ``OVER`` support from SQL parser because the clause was completely
+   ignored when executing the query which led to misleading results.
+
  - Fix: Closing a connection via the Postgres Wire Protocol correctly closes the
    internal resources.
 

@@ -128,10 +128,6 @@ public abstract class DefaultTraversalVisitor<R, C>
             process(argument, context);
         }
 
-        if (node.getWindow().isPresent()) {
-            process(node.getWindow().get(), context);
-        }
-
         return null;
     }
 

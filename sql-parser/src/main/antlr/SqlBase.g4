@@ -213,9 +213,9 @@ valueExpression
 
 primaryExpression
     : parameterOrLiteral                                                             #defaultParamOrLiteral
-    | qname '(' ASTERISK ')' over?                                                   #functionCall
+    | qname '(' ASTERISK ')'                                                         #functionCall
     | ident                                                                          #columnReference
-    | qname '(' (setQuant? expr (',' expr)*)? ')' over?                              #functionCall
+    | qname '(' (setQuant? expr (',' expr)*)? ')'                                    #functionCall
     | subqueryExpression                                                             #subqueryExpressionDefault
     // This case handles a simple parenthesized expression.
     | '(' expr ')'                                                                   #nestedExpression
@@ -296,31 +296,6 @@ subscriptSafe
     : value=subscriptSafe '[' index=valueExpression']'
     | qname
     ;
-
-// not used in crate
-
-over
-    : OVER '('
-        (PARTITION BY partition+=expr (',' partition+=expr)*)?
-        (ORDER BY sortItem (',' sortItem)*)?
-        windowFrame?
-      ')'
-    ;
-
-windowFrame
-    : frameType=RANGE start=frameBound
-    | frameType=ROWS start=frameBound
-    | frameType=RANGE BETWEEN start=frameBound AND end=frameBound
-    | frameType=ROWS BETWEEN start=frameBound AND end=frameBound
-    ;
-
-frameBound
-    : UNBOUNDED boundType=PRECEDING                                                  #unboundedFrame
-    | UNBOUNDED boundType=FOLLOWING                                                  #unboundedFrame
-    | CURRENT ROW                                                                    #currentRowBound
-    | expr boundType=(PRECEDING | FOLLOWING)                                         #boundedFrame
-    ;
-//
 
 cmpOp
     : EQ | NEQ | LT | LTE | GT | GTE | REGEX_MATCH | REGEX_NO_MATCH | REGEX_MATCH_CI | REGEX_NO_MATCH_CI
