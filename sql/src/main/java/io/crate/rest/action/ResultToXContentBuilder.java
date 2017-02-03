@@ -38,7 +38,7 @@ class ResultToXContentBuilder {
     static final class FIELDS {
         static final String RESULTS = "results";
         static final String COLS = "cols";
-        static final String COLUMN_TYPES = "colTypes";
+        static final String COLUMN_TYPES = "col_types";
         static final String ROWS = "rows";
         static final String ROW_COUNT = "rowcount";
         static final String DURATION = "duration";
