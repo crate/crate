@@ -29,6 +29,7 @@ import shutil
 import re
 import tempfile
 import glob
+from functools import partial
 from . import process_test
 from .java_repl import JavaRepl
 from testutils.paths import crate_path, project_path
@@ -415,6 +416,12 @@ def setUp(test):
     test.globs['wait_for_schema_update'] = wait_for_schema_update
 
 
+
+docsuite = partial(doctest.DocFileSuite,
+                   optionflags=doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS,
+                   encoding='utf-8')
+
+
 def test_suite():
     suite = unittest.TestSuite()
 
@@ -424,22 +431,14 @@ def test_suite():
 
     # Documentation tests
     docs_suite = unittest.TestSuite()
-    s = doctest.DocFileSuite('../../blob.txt',
-                             parser=bash_parser,
-                             setUp=setUp,
-                             optionflags=doctest.NORMALIZE_WHITESPACE |
-                             doctest.ELLIPSIS,
-                             encoding='utf-8')
+    s = docsuite('../../blob.txt', parser=bash_parser, setUp=setUp)
     s.layer = crate_layer
     docs_suite.addTest(s)
     for fn in ('protocols/http.txt',):
-        s = doctest.DocFileSuite('../../' + fn,
-                                 parser=bash_parser,
-                                 setUp=setUpLocations,
-                                 tearDown=tearDownLocations,
-                                 optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
-                                 encoding='utf-8')
+        s = docsuite('../../' + fn,
+                     parser=bash_parser,
+                     setUp=setUpLocations,
+                     tearDown=tearDownLocations)
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('sql/ddl.txt',
@@ -459,71 +458,51 @@ def test_suite():
                'sql/queries.txt',
                'hello.txt',
                'protocols/postgres.txt'):
-        s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
-                                 setUp=setUpLocationsAndQuotes,
-                                 tearDown=tearDownLocationsAndQuotes,
-                                 optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
-                                 encoding='utf-8')
+        s = docsuite('../../' + fn, parser=crash_parser,
+                     setUp=setUpLocationsAndQuotes,
+                     tearDown=tearDownLocationsAndQuotes)
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('sql/geo.txt',):
-        s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
-                                 setUp=setUpCountries,
-                                 tearDown=tearDownCountries,
-                                 optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
-                                 encoding='utf-8')
+        s = docsuite('../../' + fn,
+                     parser=crash_parser,
+                     setUp=setUpCountries,
+                     tearDown=tearDownCountries)
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('sql/joins.txt', 'sql/subselects.txt',):
         path = os.path.join('..', '..', fn)
-        s = doctest.DocFileSuite(path,
-                                 parser=crash_parser,
-                                 setUp=setUpEmpDeptAndColourArticlesAndGeo,
-                                 tearDown=tearDownEmpDeptAndColourArticlesAndGeo,
-                                 optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
-                                 encoding='utf-8')
+        s = docsuite(path,
+                     parser=crash_parser,
+                     setUp=setUpEmpDeptAndColourArticlesAndGeo,
+                     tearDown=tearDownEmpDeptAndColourArticlesAndGeo)
         s.layer = crate_layer
         docs_suite.addTest(s)
 
 
     for fn in ('sql/dml.txt',):
-        s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
-                                 setUp=setUpLocationsQuotesAndUserVisits,
-                                 tearDown=tearDownLocationsQuotesAndUserVisits,
-                                 optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
-                                 encoding='utf-8')
+        s = docsuite('../../' + fn,
+                     parser=crash_parser,
+                     setUp=setUpLocationsQuotesAndUserVisits,
+                     tearDown=tearDownLocationsQuotesAndUserVisits)
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('best_practice/migrating_from_mongodb.txt',
-	       'best_practice/systables.txt'):
+               'best_practice/systables.txt'):
         path = os.path.join('..', '..', fn)
-        s = doctest.DocFileSuite(path, parser=crash_parser,
-                                 setUp=setUp,
-                                 optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
-                                 encoding='utf-8')
+        s = docsuite(path, parser=crash_parser, setUp=setUp)
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('data_import.txt', 'cluster_upgrade.txt'):
         path = os.path.join('..', '..', 'best_practice', fn)
-        s = doctest.DocFileSuite(path, parser=crash_parser,
-                                 setUp=setUpTutorials,
-                                 optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
-                                 encoding='utf-8')
+        s = docsuite(path, parser=crash_parser, setUp=setUpTutorials)
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('sql/snapshot_restore.txt',):
-        s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
-                                 setUp=setUpLocationsAndQuotes,
-                                 tearDown=tearDownLocationsAndQuotes,
-                                 optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
-                                 encoding='utf-8')
+        s = docsuite('../../' + fn,
+                     parser=crash_parser,
+                     setUp=setUpLocationsAndQuotes,
+                     tearDown=tearDownLocationsAndQuotes)
         s.layer = crate_layer
         docs_suite.addTest(s)
 
