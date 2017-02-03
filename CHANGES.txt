@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Return correct affected row count instead of throwing an exception
+   when trying to bulk insert values that don't match the column type(s).
+
  - Fixed an issue in the postgres protocol that could cause a StackOverflow
    exception due to connection errors or malfunctioning clients.
 
