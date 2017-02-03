@@ -1587,13 +1587,19 @@ The field data circuit breaker allows estimation of needed heap memory
 required for loading field data into memory. If a certain limit
 is reached an exception is raised.
 
-**indices.fielddata.breaker.limit**
+.. warning::
+
+    The settings **indices.fielddata.breaker.limit** and
+    **indices.fielddata.breaker.overhead** are deprecated. If used the settings
+    are exposed as follows in the ``sys.cluster`` table.
+
+**indices.breaker.fielddata.limit**
   | *Default:*   ``60%``
   | *Runtime:*  ``yes``
 
   Specifies the JVM heap limit for the fielddata breaker.
 
-**indices.fielddata.breaker.overhead**
+**indices.breaker.fielddata.overhead**
   | *Default:*   ``1.03``
   | *Runtime:*  ``yes``
 

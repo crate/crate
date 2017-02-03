@@ -95,6 +95,10 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
             this.values = values;
             this.initialSettings = initialSettings;
             applySettings(CrateSettings.SETTINGS, initialSettings);
+            applyNewSettingIfDeprecated(CrateSettings.INDICES_FIELDDATA_BREAKER_LIMIT,
+                CrateSettings.INDICES_BREAKER_FIELDDATA_LIMIT, initialSettings);
+            applyNewSettingIfDeprecated(CrateSettings.INDICES_FIELDDATA_BREAKER_OVERHEAD,
+                CrateSettings.INDICES_BREAKER_FIELDDATA_OVERHEAD, initialSettings);
         }
 
         @Override
@@ -112,7 +116,6 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
          */
         private void applySettings(List<Setting> clusterSettings, Settings newSettings) {
             for (Setting<?, ?> setting : clusterSettings) {
-
                 String name = setting.settingName();
                 Object newValue = setting.extract(newSettings);
                 if (newSettings.get(name) == null) {
@@ -123,6 +126,28 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
                         logger.info("updating [{}] from [{}] to [{}]", name, values.get(name), newValue);
                     }
                     values.put(name, newValue);
+                }
+            }
+        }
+
+        /**
+         * apply the new setting if a deprecated setting is provided
+         * if a the new setting is provided the deprecated setting will be ignored
+         *
+         * This will be removed in CrateDB v1.1
+         */
+        @Deprecated
+        private void applyNewSettingIfDeprecated(Setting deprecatedSetting, Setting newSetting, Settings providedSettings) {
+            if (providedSettings.get(deprecatedSetting.settingName()) != null &&
+                providedSettings.get(newSetting.settingName()) == null) {
+
+                Object newValue = deprecatedSetting.extract(providedSettings);
+                if (!newValue.equals(values.get(newSetting.settingName()))) {
+                    logger.info("updating [{}] from [{}] to [{}]",
+                        newSetting.settingName(),
+                        values.get(newSetting.settingName()),
+                        newValue);
+                    values.put(newSetting.settingName(), newValue);
                 }
             }
         }
