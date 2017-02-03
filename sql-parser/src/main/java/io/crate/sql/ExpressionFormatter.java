@@ -234,10 +234,6 @@ public final class ExpressionFormatter {
                 builder.append('(').append(arguments).append(')');
             }
 
-            if (node.getWindow().isPresent()) {
-                builder.append(" OVER ").append(visitWindow(node.getWindow().get(), null));
-            }
-
             return builder.toString();
         }
 
@@ -455,59 +451,6 @@ public final class ExpressionFormatter {
         @Override
         protected String visitInListExpression(InListExpression node, Void context) {
             return "(" + joinExpressions(node.getValues()) + ")";
-        }
-
-        // TODO: add tests for window clause formatting, as these are not really expressions
-        @Override
-        public String visitWindow(Window node, Void context) {
-            List<String> parts = new ArrayList<>();
-
-            if (!node.getPartitionBy().isEmpty()) {
-                parts.add("PARTITION BY " + joinExpressions(node.getPartitionBy()));
-            }
-            if (!node.getOrderBy().isEmpty()) {
-                parts.add("ORDER BY " + COMMA_JOINER.join(transform(node.getOrderBy(), orderByFormatterFunction())));
-            }
-            if (node.getFrame().isPresent()) {
-                parts.add(process(node.getFrame().get(), null));
-            }
-
-            return '(' + WHITESPACE_JOINER.join(parts) + ')';
-        }
-
-        @Override
-        public String visitWindowFrame(WindowFrame node, Void context) {
-            StringBuilder builder = new StringBuilder();
-
-            builder.append(node.getType().toString()).append(' ');
-
-            if (node.getEnd().isPresent()) {
-                builder.append("BETWEEN ")
-                    .append(process(node.getStart(), null))
-                    .append(" AND ")
-                    .append(process(node.getEnd().get(), null));
-            } else {
-                builder.append(process(node.getStart(), null));
-            }
-
-            return builder.toString();
-        }
-
-        @Override
-        public String visitFrameBound(FrameBound node, Void context) {
-            switch (node.getType()) {
-                case UNBOUNDED_PRECEDING:
-                    return "UNBOUNDED PRECEDING";
-                case PRECEDING:
-                    return process(node.getValue().get(), null) + " PRECEDING";
-                case CURRENT_ROW:
-                    return "CURRENT ROW";
-                case FOLLOWING:
-                    return process(node.getValue().get(), null) + " FOLLOWING";
-                case UNBOUNDED_FOLLOWING:
-                    return "UNBOUNDED FOLLOWING";
-            }
-            throw new IllegalArgumentException("unhandled type: " + node.getType());
         }
 
         @Override

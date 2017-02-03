@@ -5,10 +5,13 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed ``OVER`` support from SQL parser because the clause was completely
+   ignored when executing a query wich also led to misleading results.
+
  - Fixed an issue where ``indices.fielddata.breaker`` settings are not
    changeable during runtime. Their usage is deprecated but still supported
    as an alias to the new setting ``indices.breaker.fielddata``.
- 
+
  - Fix: Closing a connection via the Postgres Wire Protocol correctly closes the
    internal resources.
 

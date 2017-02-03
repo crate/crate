@@ -558,8 +558,8 @@ parameterOrSimpleLiteral
 
 qnameOrFunction
     : (qname -> qname)
-      ( ('(' '*' ')' over?                          -> ^(FUNCTION_CALL $qnameOrFunction over?))
-      | ('(' setQuant? expr? (',' expr)* ')' over?  -> ^(FUNCTION_CALL $qnameOrFunction over? setQuant? expr*))
+      ( ('(' '*' ')'                          -> ^(FUNCTION_CALL $qnameOrFunction))
+      | ('(' setQuant? expr? (',' expr)* ')'  -> ^(FUNCTION_CALL $qnameOrFunction setQuant? expr*))
       )?
     ;
 
@@ -638,35 +638,6 @@ whenClause
 
 elseClause
     : ELSE expr -> expr
-    ;
-
-over
-    : OVER '(' window ')' -> window
-    ;
-
-window
-    : p=windowPartition? o=orderClause? f=windowFrame? -> ^(WINDOW $p? $o ?$f?)
-    ;
-
-windowPartition
-    : PARTITION BY expr (',' expr)* -> ^(PARTITION_BY expr+)
-    ;
-
-windowFrame
-    : RANGE frameBound                        -> ^(RANGE frameBound)
-    | ROWS frameBound                         -> ^(ROWS frameBound)
-    | RANGE BETWEEN frameBound AND frameBound -> ^(RANGE frameBound frameBound)
-    | ROWS BETWEEN frameBound AND frameBound  -> ^(ROWS frameBound frameBound)
-    ;
-
-frameBound
-    : UNBOUNDED PRECEDING -> UNBOUNDED_PRECEDING
-    | UNBOUNDED FOLLOWING -> UNBOUNDED_FOLLOWING
-    | CURRENT ROW         -> CURRENT_ROW
-    | expr
-      ( PRECEDING -> ^(PRECEDING expr)
-      | FOLLOWING -> ^(FOLLOWING expr)
-      )
     ;
 
 explainStmt
