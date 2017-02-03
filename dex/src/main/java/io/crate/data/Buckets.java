@@ -23,9 +23,6 @@
 package io.crate.data;
 
 import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
-
-import java.util.Iterator;
 
 public class Buckets {
 
@@ -71,18 +68,6 @@ public class Buckets {
     }
 
     public static Bucket of(final Row row) {
-        return new Bucket() {
-            @Override
-            public Iterator<Row> iterator() {
-                return Iterators.singletonIterator(row);
-            }
-
-            @Override
-            public int size() {
-                return 1;
-            }
-        };
+        return new SingleRowBucket(row);
     }
-
-
 }
