@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.MemorySizeValue;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
