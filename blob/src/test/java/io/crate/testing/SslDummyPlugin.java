@@ -23,10 +23,10 @@
 package io.crate.testing;
 
 import io.crate.blob.BlobService;
-import io.crate.blob.exceptions.RedirectService;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.plugin.BlobPlugin;
+import org.elasticsearch.cluster.node.DiscoveryNodeService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
@@ -61,23 +61,20 @@ public class SslDummyPlugin extends BlobPlugin {
                                       NetworkService networkService,
                                       BigArrays bigArrays,
                                       BlobService blobService,
-                                      RedirectService redirectService,
-                                      BlobIndicesService blobIndicesService) {
-            super(settings, networkService, bigArrays, blobService, redirectService, blobIndicesService);
+                                      BlobIndicesService blobIndicesService,
+                                      DiscoveryNodeService discoveryNodeService) {
+            super(settings, networkService, bigArrays, blobService, blobIndicesService, discoveryNodeService);
         }
 
         @Override
         public ChannelPipelineFactory configureServerChannelPipelineFactory() {
-            return new SslChannelPipelineFactory(this, redirectService, true, detailedErrorsEnabled);
+            return new SslChannelPipelineFactory(this, true, detailedErrorsEnabled);
         }
 
         public static class SslChannelPipelineFactory extends CrateNettyHttpServerTransport.CrateHttpChannelPipelineFactory {
 
-            public SslChannelPipelineFactory(CrateNettyHttpServerTransport transport,
-                                             RedirectService redirectService,
-                                             boolean sslEnabled,
-                                             boolean detailedErrorsEnabled) {
-                super(transport, redirectService, sslEnabled, detailedErrorsEnabled);
+            public SslChannelPipelineFactory(CrateNettyHttpServerTransport transport, boolean sslEnabled, boolean detailedErrorsEnabled) {
+                super(transport, sslEnabled, detailedErrorsEnabled);
             }
         }
     }
