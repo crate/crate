@@ -22,7 +22,6 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Ordering;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Row;
 import io.crate.operation.Input;
@@ -30,6 +29,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.sorting.RowPriorityQueue;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.Set;
 
 public class SortingTopNProjector extends AbstractProjector {
@@ -55,7 +55,7 @@ public class SortingTopNProjector extends AbstractProjector {
     public SortingTopNProjector(Collection<? extends Input<?>> inputs,
                                 Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                                 int numOutputs,
-                                Ordering<Object[]> ordering,
+                                Comparator<Object[]> ordering,
                                 int limit,
                                 int offset) {
         Preconditions.checkArgument(limit > 0, "invalid limit %s, this projector only supports positive limits", limit);
