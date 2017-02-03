@@ -4,6 +4,7 @@ Changes for Crate
 
 Unreleased
 ==========
+ - this is a app-veyor test
 
  - Removed ``OVER`` support from SQL parser because the clause was completely
    ignored when executing the query which led to misleading results.
