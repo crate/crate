@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
@@ -41,24 +42,31 @@ import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.snapshots.InvalidSnapshotNameException;
 import org.elasticsearch.snapshots.SnapshotMissingException;
-import org.elasticsearch.transport.RemoteTransportException;
+import org.elasticsearch.transport.TransportException;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
 
 public class Exceptions {
 
     private final static ESLogger LOGGER = Loggers.getLogger(Exceptions.class);
+    private final static Predicate<Throwable> EXCEPTIONS_TO_UNWRAP = throwable ->
+        throwable instanceof TransportException ||
+        throwable instanceof UncheckedExecutionException ||
+        throwable instanceof UncategorizedExecutionException ||
+        throwable instanceof ExecutionException;
 
-    public static Throwable unwrap(@Nonnull Throwable t) {
+    public static Throwable unwrap(@Nonnull Throwable t, @Nullable Predicate<Throwable> additionalUnwrapCondition) {
         int counter = 0;
         Throwable result = t;
-        while (result instanceof RemoteTransportException ||
-               result instanceof UncheckedExecutionException ||
-               result instanceof UncategorizedExecutionException ||
-               result instanceof ExecutionException) {
+        Predicate<Throwable> unwrapCondition = EXCEPTIONS_TO_UNWRAP;
+        if (additionalUnwrapCondition != null) {
+            unwrapCondition = unwrapCondition.or(additionalUnwrapCondition);
+        }
+        while (unwrapCondition.test(result)) {
             Throwable cause = result.getCause();
             if (cause == null) {
                 return result;
@@ -74,6 +82,10 @@ public class Exceptions {
             result = cause;
         }
         return result;
+    }
+
+    public static Throwable unwrap(@Nonnull Throwable t) {
+        return unwrap(t, null);
     }
 
     public static String messageOf(@Nullable Throwable t) {
@@ -92,9 +104,9 @@ public class Exceptions {
 
 
     /**
-     * Create a {@link io.crate.action.sql.SQLActionException} out of a {@link java.lang.Throwable}.
-     * If concrete {@link org.elasticsearch.ElasticsearchException} is found, first transform it
-     * to a {@link io.crate.exceptions.CrateException}
+     * Create a {@link SQLActionException} out of a {@link Throwable}.
+     * If concrete {@link ElasticsearchException} is found, first transform it
+     * to a {@link CrateException}
      */
     public static SQLActionException createSQLActionException(Throwable e) {
         // ideally this method would be a static factory method in SQLActionException,

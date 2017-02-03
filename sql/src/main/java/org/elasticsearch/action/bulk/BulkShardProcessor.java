@@ -263,8 +263,17 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                     }
 
                     @Override
-                    public void onFailure(Throwable e) {
-                        processFailure(e, shardId, request, Optional.absent());
+                    public void onFailure(Throwable t) {
+                        t = Exceptions.unwrap(t, throwable -> throwable instanceof RuntimeException);
+                        if (t instanceof ClassCastException) {
+                            // this is caused by passing mixed argument types into a bulk upsert.
+                            // it can happen after an valid request already succeeded and data was written.
+                            // so never bubble, but rather mark all items of this request as failed.
+                            markItemsAsFailedAndReleaseRetryLock(request, Optional.absent());
+                            LOGGER.warn("ShardUpsert: {} items failed", t, request.items().size());
+                            return;
+                        }
+                        processFailure(t, shardId, request, Optional.absent());
                     }
                 });
                 it.remove();
@@ -440,19 +449,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
         // index missing exception on a partition should never bubble, mark all items as failed instead
         if (e instanceof IndexNotFoundException && PartitionName.isPartition(request.index())) {
             indicesDeleted.add(request.index());
-            int size = request.itemIndices().size();
-            for (int i = 0; i < request.itemIndices().size(); i++) {
-                int location = request.itemIndices().get(i);
-                synchronized (responsesLock) {
-                    responses.set(location, false);
-                }
-            }
-            setResultIfDone(size);
-
-            if (retryCoordinator.isPresent()) {
-                // release failed retry
-                retryCoordinator.get().releaseWriteLock();
-            }
+            markItemsAsFailedAndReleaseRetryLock(request, retryCoordinator);
             return;
         }
 
@@ -491,6 +488,23 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                 }
             }
             setFailure(e);
+        }
+    }
+
+    private void markItemsAsFailedAndReleaseRetryLock(final Request request,
+                                                      Optional<BulkRetryCoordinator> retryCoordinator) {
+        int size = request.itemIndices().size();
+        for (int i = 0; i < request.itemIndices().size(); i++) {
+            int location = request.itemIndices().get(i);
+            synchronized (responsesLock) {
+                responses.set(location, false);
+            }
+        }
+        setResultIfDone(size);
+
+        if (retryCoordinator.isPresent()) {
+            // release failed retry
+            retryCoordinator.get().releaseWriteLock();
         }
     }
 

@@ -5,12 +5,15 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Return correct affected row count instead of throwing an exception
+   when trying to bulk insert values that don't match the column type(s).
+
  - Fixed an issue in the postgres protocol that could cause a StackOverflow
    exception due to connection errors or malfunctioning clients.
 
  - BREAKING: Removed deprecated setting ``indices.fielddata.breaker`` that have
    been used as an alias for ``indices.breaker.fielddata``.
- 
+
  - Removed ``OVER`` support from SQL parser because the clause was completely
    ignored when executing the query which led to misleading results.
 

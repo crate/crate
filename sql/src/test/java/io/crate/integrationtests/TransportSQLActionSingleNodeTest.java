@@ -143,7 +143,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     }
 
     @Test
-    public void testInsertBulkDifferentTypes() throws Exception {
+    public void testInsertBulkDifferentTypesResultsInRemoteFailure() throws Exception {
         execute("create table foo (value integer) with (number_of_replicas=0)");
         ensureYellow();
         SQLBulkResponse response = execute("insert into foo (bar) values (?)",
