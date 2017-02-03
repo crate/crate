@@ -24,11 +24,13 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 
+@ESIntegTestCase.ClusterScope(numClientNodes = 0)
 public class SysNodesITest extends SQLTransportIntegrationTest {
 
     @Override
