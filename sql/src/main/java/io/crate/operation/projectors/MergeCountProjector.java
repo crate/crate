@@ -22,8 +22,8 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
+import io.crate.data.Row;
+import io.crate.data.Row1;
 
 public class MergeCountProjector extends AbstractProjector {
 

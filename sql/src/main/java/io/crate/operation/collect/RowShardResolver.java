@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;

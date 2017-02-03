@@ -24,7 +24,7 @@ package io.crate.operation;
 import com.google.common.base.Optional;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;

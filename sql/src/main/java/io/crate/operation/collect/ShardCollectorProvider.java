@@ -24,7 +24,7 @@ package io.crate.operation.collect;
 
 import io.crate.action.job.SharedShardContext;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.AbstractReferenceResolver;
 import io.crate.metadata.Functions;

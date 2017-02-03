@@ -23,7 +23,7 @@
 package io.crate.rest.action;
 
 import io.crate.analyze.symbol.Field;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import org.elasticsearch.common.xcontent.XContentBuilder;

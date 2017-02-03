@@ -22,7 +22,7 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.operation.collect.CollectExpression;
 import org.apache.lucene.util.BytesRef;

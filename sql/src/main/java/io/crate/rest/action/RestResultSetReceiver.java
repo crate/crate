@@ -24,7 +24,7 @@ package io.crate.rest.action;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.analyze.symbol.Field;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;

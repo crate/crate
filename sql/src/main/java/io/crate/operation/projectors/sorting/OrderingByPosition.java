@@ -23,7 +23,7 @@ package io.crate.operation.projectors.sorting;
 
 import com.google.common.collect.Ordering;
 import io.crate.analyze.OrderBy;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.dql.RoutedCollectPhase;

@@ -24,7 +24,7 @@ package io.crate.operation.tablefunctions
 
 import com.carrotsearch.randomizedtesting.RandomizedTest
 import io.crate.analyze.symbol.Literal
-import io.crate.core.collections.Bucket
+import io.crate.data.Bucket
 import io.crate.testing.TestingHelpers
 import io.crate.types.ArrayType
 import io.crate.types.DataTypes

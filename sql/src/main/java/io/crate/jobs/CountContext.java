@@ -26,7 +26,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
-import io.crate.core.collections.Row1;
+import io.crate.data.Row1;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;

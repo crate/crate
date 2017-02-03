@@ -26,7 +26,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Throwables;
 import io.crate.action.sql.*;
 import io.crate.analyze.symbol.Field;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.BytesRefUtils;
 import io.crate.protocols.postgres.types.PGType;

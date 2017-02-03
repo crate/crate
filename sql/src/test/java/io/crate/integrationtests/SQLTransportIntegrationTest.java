@@ -30,7 +30,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.executor.transport.TransportShardAction;
 import io.crate.executor.transport.TransportShardDeleteAction;

@@ -23,8 +23,8 @@ package io.crate.executor.transport.task;
 
 import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.AbstractShowAnalyzedStatement;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
+import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.executor.Task;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;

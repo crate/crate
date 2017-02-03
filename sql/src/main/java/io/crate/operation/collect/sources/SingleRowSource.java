@@ -23,7 +23,7 @@ package io.crate.operation.collect.sources;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.ReplaceMode;

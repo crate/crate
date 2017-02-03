@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.core.collections.*;
+import io.crate.data.*;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;

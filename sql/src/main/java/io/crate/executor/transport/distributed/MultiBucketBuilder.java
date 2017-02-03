@@ -21,8 +21,8 @@
 
 package io.crate.executor.transport.distributed;
 
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
 
 /**
  * Builder used to build one or more buckets

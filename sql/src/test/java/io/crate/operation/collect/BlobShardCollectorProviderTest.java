@@ -28,7 +28,7 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.WhereClause;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.integrationtests.SQLHttpIntegrationTest;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;

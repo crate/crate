@@ -24,8 +24,7 @@ package io.crate.operation.projectors.fetch;
 
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectMap;
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.Bucket;
+import io.crate.data.Bucket;
 
 import java.util.concurrent.CompletableFuture;
 

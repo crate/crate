@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.ObjectObjectHashMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.*;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.merge.PagingIterator;

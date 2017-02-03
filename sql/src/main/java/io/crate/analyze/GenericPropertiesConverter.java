@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;

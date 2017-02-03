@@ -23,9 +23,9 @@ package io.crate.operation.projectors;
 
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;

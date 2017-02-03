@@ -22,7 +22,7 @@
 
 package io.crate.metadata.tablefunctions;
 
-import io.crate.core.collections.Bucket;
+import io.crate.data.Bucket;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
 import io.crate.types.DataType;

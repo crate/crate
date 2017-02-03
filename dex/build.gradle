@@ -1,0 +1,12 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+
+dependencies {
+    compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    compile "com.google.guava:guava:${versions.guava}"
+}
+
+
+test {
+    testLogging.exceptionFormat = 'full'
+}

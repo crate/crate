@@ -20,26 +20,49 @@
  * agreement.
  */
 
-package io.crate.core.collections;
+package io.crate.data;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 
-public class Rows {
+public class RowN implements Row {
 
-    public static List<Row> of(Object[][] rows) {
-        List<Row> rowList = new ArrayList<>(rows.length);
-        for (Object[] row : rows) {
-            rowList.add(new RowN(row));
-        }
-        return rowList;
+    private final int size;
+    private Object[] cells;
+
+    public RowN(int size) {
+        this.size = size;
     }
 
-    public static List<Row> of(List<List<Object>> rows) {
-        List<Row> rowList = new ArrayList<>(rows.size());
-        for (List<Object> row : rows) {
-            rowList.add(new RowN(row.toArray(new Object[0])));
-        }
-        return rowList;
+    public RowN(Object[] cells) {
+        this(cells.length);
+        this.cells = cells;
+    }
+
+    @Override
+    public int numColumns() {
+        return size;
+    }
+
+    public void cells(Object[] cells) {
+        assert cells != null : "cells must not be null";
+        this.cells = cells;
+    }
+
+    @Override
+    public Object get(int index) {
+        assert cells != null : "cells must not be null";
+        return cells[index];
+    }
+
+    @Override
+    public Object[] materialize() {
+        Object[] result = new Object[size];
+        System.arraycopy(cells, 0, result, 0, size);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "RowN{" + Arrays.toString(cells) + '}';
     }
 }

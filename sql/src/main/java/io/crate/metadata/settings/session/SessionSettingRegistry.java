@@ -25,7 +25,7 @@ package io.crate.metadata.settings.session;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.sql.tree.Expression;
 
 import java.util.List;

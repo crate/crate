@@ -21,7 +21,7 @@
 
 package io.crate.operation.collect;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 
 public class InputCollectExpression implements CollectExpression<Row, Object> {
 

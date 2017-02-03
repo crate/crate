@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
-import io.crate.core.collections.Bucket;
+import io.crate.data.Bucket;
 import io.crate.exceptions.Exceptions;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;

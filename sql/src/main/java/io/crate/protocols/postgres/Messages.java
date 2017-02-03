@@ -23,7 +23,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.analyze.symbol.Field;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;

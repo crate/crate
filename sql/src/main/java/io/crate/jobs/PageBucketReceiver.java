@@ -23,7 +23,7 @@
 package io.crate.jobs;
 
 import io.crate.Streamer;
-import io.crate.core.collections.Bucket;
+import io.crate.data.Bucket;
 import io.crate.operation.PageResultListener;
 
 public interface PageBucketReceiver {

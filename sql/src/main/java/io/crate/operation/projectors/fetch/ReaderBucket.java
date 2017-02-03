@@ -24,8 +24,8 @@ package io.crate.operation.projectors.fetch;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;

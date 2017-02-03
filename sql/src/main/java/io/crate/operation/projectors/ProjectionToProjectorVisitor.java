@@ -30,7 +30,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.executor.transport.ShardDeleteRequest;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;

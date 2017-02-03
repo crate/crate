@@ -23,7 +23,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.metadata.*;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;

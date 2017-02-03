@@ -24,7 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;

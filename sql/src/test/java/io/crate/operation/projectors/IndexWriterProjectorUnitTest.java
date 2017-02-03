@@ -21,12 +21,11 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.collect.CollectExpression;

@@ -22,8 +22,8 @@
 
 package io.crate.analyze;
 
-import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.metadata.Schemas;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;

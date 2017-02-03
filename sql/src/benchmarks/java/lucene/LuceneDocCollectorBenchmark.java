@@ -31,7 +31,7 @@ import com.carrotsearch.randomizedtesting.ThreadFilter;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import com.carrotsearch.randomizedtesting.annotations.TimeoutSuite;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.RowReceiver;

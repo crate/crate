@@ -22,7 +22,7 @@
 
 package io.crate.metadata.settings;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.sql.tree.Expression;
 import org.elasticsearch.common.settings.Settings;
 

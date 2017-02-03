@@ -23,8 +23,8 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.StringLiteral;

@@ -22,7 +22,7 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.core.collections.Row1;
+import io.crate.data.Row1;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

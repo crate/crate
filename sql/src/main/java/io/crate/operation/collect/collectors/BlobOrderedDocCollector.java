@@ -22,7 +22,7 @@
 
 package io.crate.operation.collect.collectors;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.operation.merge.KeyIterable;
 import org.elasticsearch.index.shard.ShardId;
 

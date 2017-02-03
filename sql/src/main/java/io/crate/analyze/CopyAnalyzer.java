@@ -37,7 +37,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;

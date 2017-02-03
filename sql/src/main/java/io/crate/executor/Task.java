@@ -21,7 +21,7 @@
 
 package io.crate.executor;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.operation.projectors.RowReceiver;
 
 import java.util.List;

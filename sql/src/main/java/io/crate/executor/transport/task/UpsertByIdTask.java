@@ -23,8 +23,8 @@ package io.crate.executor.transport.task;
 
 import io.crate.Constants;
 import io.crate.concurrent.CompletableFutures;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
+import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.executor.Executor;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.ShardUpsertRequest;

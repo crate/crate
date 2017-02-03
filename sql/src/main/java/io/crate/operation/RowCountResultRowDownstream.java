@@ -21,7 +21,7 @@
 
 package io.crate.operation;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.operation.projectors.*;
 
 import javax.annotation.Nonnull;

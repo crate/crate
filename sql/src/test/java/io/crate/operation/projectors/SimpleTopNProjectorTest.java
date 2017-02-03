@@ -23,9 +23,9 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;

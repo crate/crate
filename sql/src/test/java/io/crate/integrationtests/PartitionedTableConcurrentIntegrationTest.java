@@ -23,7 +23,7 @@
 package io.crate.integrationtests;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.Bucket;
+import io.crate.data.Bucket;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;

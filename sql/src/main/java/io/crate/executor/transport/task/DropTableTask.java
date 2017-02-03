@@ -21,8 +21,8 @@
 
 package io.crate.executor.transport.task;
 
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
+import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.executor.JobTask;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;

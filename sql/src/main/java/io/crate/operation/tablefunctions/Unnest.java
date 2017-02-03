@@ -23,9 +23,9 @@
 package io.crate.operation.tablefunctions;
 
 import io.crate.analyze.WhereClause;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;

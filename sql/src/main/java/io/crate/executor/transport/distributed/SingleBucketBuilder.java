@@ -25,8 +25,8 @@ import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
 import io.crate.executor.transport.StreamBucket;
 import io.crate.operation.projectors.*;
 

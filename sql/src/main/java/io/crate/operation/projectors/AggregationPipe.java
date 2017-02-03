@@ -22,8 +22,8 @@
 package io.crate.operation.projectors;
 
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;

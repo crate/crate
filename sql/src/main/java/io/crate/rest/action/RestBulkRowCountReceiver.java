@@ -22,7 +22,7 @@
 package io.crate.rest.action;
 
 import io.crate.action.sql.BaseResultReceiver;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nonnull;

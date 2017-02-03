@@ -22,8 +22,8 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Function;
-import io.crate.core.collections.Buckets;
-import io.crate.core.collections.Row;
+import io.crate.data.Buckets;
+import io.crate.data.Row;
 
 import java.util.List;
 

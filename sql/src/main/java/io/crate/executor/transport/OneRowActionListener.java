@@ -23,7 +23,7 @@
 package io.crate.executor.transport;
 
 import com.google.common.base.Function;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.action.ActionListener;

@@ -25,7 +25,7 @@ package io.crate.planner;
 import com.carrotsearch.hppc.ObjectLongMap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
-import io.crate.core.collections.RowN;
+import io.crate.data.RowN;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.protocols.postgres.FormatCodes;

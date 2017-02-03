@@ -23,8 +23,8 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
-import io.crate.core.collections.CollectionBucket;
-import io.crate.core.collections.Row;
+import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 

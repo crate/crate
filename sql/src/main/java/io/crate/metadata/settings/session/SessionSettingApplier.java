@@ -23,7 +23,7 @@
 package io.crate.metadata.settings.session;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.sql.tree.Expression;
 
 import java.util.List;

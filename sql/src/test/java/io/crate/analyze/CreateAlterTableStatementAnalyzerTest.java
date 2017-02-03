@@ -24,7 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Joiner;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.exceptions.*;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;

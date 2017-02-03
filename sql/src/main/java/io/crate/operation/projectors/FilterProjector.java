@@ -22,7 +22,7 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Predicate;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 
 class FilterProjector extends AbstractProjector {
 

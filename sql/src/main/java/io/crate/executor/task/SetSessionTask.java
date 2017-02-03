@@ -23,7 +23,7 @@
 package io.crate.executor.task;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.executor.JobTask;
 import io.crate.metadata.settings.session.SessionSettingApplier;
 import io.crate.metadata.settings.session.SessionSettingRegistry;

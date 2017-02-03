@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.sql.tree.Expression;
 
 import java.util.Locale;

@@ -23,8 +23,8 @@ package io.crate.operation;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.*;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
+import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.operation.collect.CollectExpression;

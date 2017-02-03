@@ -22,13 +22,12 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.executor.Executor;
 import io.crate.executor.Task;
 import io.crate.executor.task.DDLTask;

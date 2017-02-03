@@ -28,7 +28,7 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.unassigned.UnassignedShard;

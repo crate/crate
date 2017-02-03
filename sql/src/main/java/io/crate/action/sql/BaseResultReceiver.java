@@ -22,7 +22,7 @@
 
 package io.crate.action.sql;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 
 import javax.annotation.Nonnull;
 import javax.annotation.OverridingMethodsMustInvokeSuper;

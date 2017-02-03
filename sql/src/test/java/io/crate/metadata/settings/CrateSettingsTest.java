@@ -23,7 +23,7 @@
 package io.crate.metadata.settings;
 
 import com.google.common.collect.Sets;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
 import io.crate.test.integration.CrateUnitTest;

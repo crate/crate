@@ -24,7 +24,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.Optional;
 import com.google.common.util.concurrent.MoreExecutors;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 
 import java.util.Iterator;
 import java.util.concurrent.Executor;

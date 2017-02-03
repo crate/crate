@@ -29,7 +29,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.types.DataType;

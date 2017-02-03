@@ -22,7 +22,7 @@
 package io.crate.testing;
 
 import com.google.common.util.concurrent.MoreExecutors;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.operation.projectors.ExecutorResumeHandle;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;

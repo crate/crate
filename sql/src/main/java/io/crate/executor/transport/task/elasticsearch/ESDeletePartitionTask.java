@@ -23,8 +23,8 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
+import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.operation.projectors.RowReceiver;

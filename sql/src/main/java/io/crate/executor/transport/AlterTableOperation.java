@@ -37,7 +37,7 @@ import io.crate.analyze.PartitionedTableParameterInfo;
 import io.crate.analyze.TableParameter;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.exceptions.AlterTableAliasException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;

@@ -23,8 +23,8 @@
 package io.crate.executor.transport.distributed;
 
 import io.crate.Streamer;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
 import io.crate.operation.projectors.*;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;

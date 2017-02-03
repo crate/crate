@@ -22,7 +22,7 @@
 
 package io.crate.action.sql;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.operation.projectors.ResumeHandle;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.test.integration.CrateUnitTest;

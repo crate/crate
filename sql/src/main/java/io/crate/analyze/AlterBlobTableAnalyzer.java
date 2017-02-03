@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;

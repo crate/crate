@@ -24,7 +24,7 @@ package io.crate.operation.collect.collectors;
 
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;

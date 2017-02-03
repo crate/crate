@@ -21,9 +21,9 @@
 
 package io.crate.testing;
 
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
-import io.crate.core.collections.SingleRowBucket;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.SingleRowBucket;
 import io.crate.operation.projectors.RepeatHandle;
 
 public class RowCountRowReceiver extends CollectingRowReceiver {

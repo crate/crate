@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.ParameterExpression;

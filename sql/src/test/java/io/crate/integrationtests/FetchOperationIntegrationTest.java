@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.core.collections.Bucket;
+import io.crate.data.Bucket;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;

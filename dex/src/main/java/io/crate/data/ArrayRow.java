@@ -20,31 +20,44 @@
  * agreement.
  */
 
-package io.crate.core.collections;
+package io.crate.data;
+
+import java.util.Arrays;
 
 /**
- * A {@link Row} implementation which returns null for every column index
+ * A Row that is similar to {@link RowN} in that is uses a backing array which can be changed.
+ * <p>
+ * The only difference is that size is always derived from the backing array and not changeable.
  */
-public class RowNull implements Row {
+public class ArrayRow implements Row {
 
-    final int size;
-
-    public RowNull(int size) {
-        this.size = size;
-    }
+    private Object[] cells;
 
     @Override
     public int numColumns() {
-        return size;
+        return cells.length;
     }
 
     @Override
     public Object get(int index) {
-        return null;
+        return cells[index];
     }
 
     @Override
     public Object[] materialize() {
-        return new Object[size];
+        Object[] copy = new Object[cells.length];
+        System.arraycopy(cells, 0, copy, 0, cells.length);
+        return copy;
+    }
+
+    public void cells(Object[] cells) {
+        this.cells = cells;
+    }
+
+    @Override
+    public String toString() {
+        return "ArrayRow{" +
+               "cells=" + Arrays.toString(cells) +
+               '}';
     }
 }

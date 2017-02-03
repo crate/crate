@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Reference;

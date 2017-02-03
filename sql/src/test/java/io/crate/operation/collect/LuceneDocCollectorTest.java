@@ -21,7 +21,7 @@
 
 package io.crate.operation.collect;
 
-import io.crate.core.collections.Bucket;
+import io.crate.data.Bucket;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.Paging;
 import io.crate.operation.projectors.RowReceiver;

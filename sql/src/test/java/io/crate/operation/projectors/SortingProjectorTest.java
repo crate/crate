@@ -24,8 +24,8 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Literal;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.sorting.OrderingByPosition;

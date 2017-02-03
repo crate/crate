@@ -26,7 +26,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.InputCondition;
 

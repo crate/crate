@@ -22,7 +22,7 @@
 
 package io.crate.action.sql;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.operation.projectors.*;
 
 import java.util.Set;

@@ -26,7 +26,7 @@ import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;

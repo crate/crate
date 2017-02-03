@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
-import io.crate.core.collections.ArrayBucket;
+import io.crate.data.ArrayBucket;
 import io.crate.operation.Paging;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;

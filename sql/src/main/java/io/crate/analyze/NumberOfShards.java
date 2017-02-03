@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.Expression;
 import org.elasticsearch.cluster.ClusterService;

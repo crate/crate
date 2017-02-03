@@ -24,7 +24,7 @@ package io.crate.operation.fetch;
 import io.crate.analyze.symbol.FetchReference;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.InputColumn;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;

@@ -21,7 +21,7 @@
 
 package io.crate.operation;
 
-import io.crate.core.collections.BucketPage;
+import io.crate.data.BucketPage;
 
 public interface PageDownstream {
 

@@ -23,8 +23,8 @@ package io.crate.jobs;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Row1;
-import io.crate.core.collections.SingleRowBucket;
+import io.crate.data.Row1;
+import io.crate.data.SingleRowBucket;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.PageResultListener;
 import io.crate.test.integration.CrateUnitTest;

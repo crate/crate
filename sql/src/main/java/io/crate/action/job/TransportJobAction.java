@@ -24,7 +24,7 @@ package io.crate.action.job;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.Bucket;
+import io.crate.data.Bucket;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;

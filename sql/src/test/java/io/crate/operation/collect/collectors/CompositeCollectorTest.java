@@ -22,9 +22,9 @@
 
 package io.crate.operation.collect.collectors;
 
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.CollectionBucket;
-import io.crate.core.collections.Row;
+import io.crate.data.Bucket;
+import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.projectors.RepeatHandle;

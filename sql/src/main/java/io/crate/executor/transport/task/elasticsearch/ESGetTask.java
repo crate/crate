@@ -31,7 +31,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.AbstractExecutionSubContext;

@@ -24,8 +24,8 @@ package io.crate.operation.projectors;
 
 import com.amazonaws.annotation.ThreadSafe;
 import com.google.common.collect.ImmutableList;
-import io.crate.core.collections.ArrayRow;
-import io.crate.core.collections.Row;
+import io.crate.data.ArrayRow;
+import io.crate.data.Row;
 import io.crate.operation.RowDownstream;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;

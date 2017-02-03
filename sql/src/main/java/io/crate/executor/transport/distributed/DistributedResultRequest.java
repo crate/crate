@@ -22,7 +22,7 @@
 package io.crate.executor.transport.distributed;
 
 import io.crate.Streamer;
-import io.crate.core.collections.Bucket;
+import io.crate.data.Bucket;
 import io.crate.executor.transport.StreamBucket;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;

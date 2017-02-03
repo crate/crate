@@ -26,7 +26,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.Bucket;
+import io.crate.data.Bucket;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.information.InformationSchemaInfo;

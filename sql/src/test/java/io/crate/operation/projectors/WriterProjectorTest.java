@@ -22,9 +22,9 @@
 package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableSet;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.collect.CollectExpression;

@@ -28,7 +28,7 @@ import io.crate.action.job.JobRequest;
 import io.crate.action.job.JobResponse;
 import io.crate.action.job.TransportJobAction;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;

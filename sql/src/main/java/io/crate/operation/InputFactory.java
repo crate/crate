@@ -29,7 +29,7 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;

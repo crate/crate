@@ -22,7 +22,7 @@
 package io.crate.executor.transport.merge;
 
 import io.crate.Streamer;
-import io.crate.core.collections.ArrayBucket;
+import io.crate.data.ArrayBucket;
 import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;

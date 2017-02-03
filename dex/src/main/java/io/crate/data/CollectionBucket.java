@@ -20,44 +20,45 @@
  * agreement.
  */
 
-package io.crate.core.collections;
+package io.crate.data;
 
-import java.util.Arrays;
+import com.google.common.base.Function;
+import com.google.common.base.MoreObjects;
+import com.google.common.collect.Iterators;
 
-/**
- * A Row that is similar to {@link RowN} in that is uses a backing array which can be changed.
- * <p>
- * The only difference is that size is always derived from the backing array and not changeable.
- */
-public class ArrayRow implements Row {
+import java.util.Collection;
+import java.util.Iterator;
 
-    private Object[] cells;
 
-    @Override
-    public int numColumns() {
-        return cells.length;
+public class CollectionBucket implements Bucket {
+
+    private final Collection<Object[]> rows;
+    private final Function<Object[], Row> arrayToRowFunction;
+
+    public CollectionBucket(Collection<Object[]> rows) {
+        this.rows = rows;
+        arrayToRowFunction = Buckets.arrayToRowFunction();
+    }
+
+    public CollectionBucket(Collection<Object[]> rows, int numColumns) {
+        this.rows = rows;
+        arrayToRowFunction = Buckets.arrayToRowFunction(numColumns);
     }
 
     @Override
-    public Object get(int index) {
-        return cells[index];
+    public int size() {
+        return rows.size();
     }
 
     @Override
-    public Object[] materialize() {
-        Object[] copy = new Object[cells.length];
-        System.arraycopy(cells, 0, copy, 0, cells.length);
-        return copy;
-    }
-
-    public void cells(Object[] cells) {
-        this.cells = cells;
+    public Iterator<Row> iterator() {
+        return Iterators.transform(rows.iterator(), arrayToRowFunction);
     }
 
     @Override
     public String toString() {
-        return "ArrayRow{" +
-               "cells=" + Arrays.toString(cells) +
-               '}';
+        return MoreObjects.toStringHelper(this)
+            .add("numRows", rows.size())
+            .toString();
     }
 }

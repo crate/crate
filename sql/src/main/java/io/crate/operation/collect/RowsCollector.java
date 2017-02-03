@@ -22,7 +22,7 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.operation.projectors.IterableRowEmitter;
 import io.crate.operation.projectors.RowReceiver;
 

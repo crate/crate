@@ -24,9 +24,9 @@ package io.crate.rest.action;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Field;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
-import io.crate.core.collections.RowN;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowN;
 import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;

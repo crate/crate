@@ -23,7 +23,7 @@
 package io.crate.action.sql;
 
 import io.crate.concurrent.CompletionListenable;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.executor.Executor;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;

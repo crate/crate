@@ -26,7 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.Reference;
 import io.crate.operation.Input;

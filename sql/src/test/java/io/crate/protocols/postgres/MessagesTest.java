@@ -22,7 +22,7 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.core.collections.RowN;
+import io.crate.data.RowN;
 import io.crate.types.DataTypes;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.channel.Channel;

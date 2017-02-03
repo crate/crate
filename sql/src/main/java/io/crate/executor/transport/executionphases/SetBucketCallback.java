@@ -23,7 +23,7 @@
 package io.crate.executor.transport.executionphases;
 
 import com.google.common.util.concurrent.FutureCallback;
-import io.crate.core.collections.Bucket;
+import io.crate.data.Bucket;
 import io.crate.jobs.PageBucketReceiver;
 
 import javax.annotation.Nonnull;

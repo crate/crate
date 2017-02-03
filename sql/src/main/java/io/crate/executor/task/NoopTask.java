@@ -21,7 +21,7 @@
 
 package io.crate.executor.task;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.executor.Task;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;

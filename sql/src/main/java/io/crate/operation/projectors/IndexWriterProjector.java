@@ -23,7 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.MoreObjects;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;

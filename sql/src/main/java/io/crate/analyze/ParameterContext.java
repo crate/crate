@@ -24,7 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

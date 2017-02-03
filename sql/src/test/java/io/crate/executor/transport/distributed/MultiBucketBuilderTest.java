@@ -22,8 +22,8 @@
 package io.crate.executor.transport.distributed;
 
 import io.crate.Streamer;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row1;
+import io.crate.data.Bucket;
+import io.crate.data.Row1;
 import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;

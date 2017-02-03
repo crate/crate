@@ -28,7 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.metadata.settings.CrateTableSettings;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.metadata.settings.SettingsAppliers;

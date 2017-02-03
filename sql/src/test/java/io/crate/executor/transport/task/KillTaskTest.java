@@ -21,7 +21,7 @@
 
 package io.crate.executor.transport.task;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.executor.transport.kill.KillAllRequest;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import io.crate.test.integration.CrateUnitTest;

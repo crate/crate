@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.QualifiedName;

@@ -25,7 +25,7 @@ package io.crate.metadata.settings;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import io.crate.analyze.expressions.*;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.types.BooleanType;

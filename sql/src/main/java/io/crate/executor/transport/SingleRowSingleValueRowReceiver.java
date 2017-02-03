@@ -23,7 +23,7 @@
 package io.crate.executor.transport;
 
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.operation.projectors.*;
 import io.crate.planner.Plan;
 

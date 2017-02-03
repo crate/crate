@@ -23,8 +23,8 @@ package io.crate.executor.transport.distributed;
 
 import com.google.common.base.Throwables;
 import io.crate.Streamer;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
 import io.crate.executor.transport.StreamBucket;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.StringHelper;

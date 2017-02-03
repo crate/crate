@@ -23,7 +23,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.BaseResultReceiver;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.types.DataType;
 import org.jboss.netty.channel.Channel;

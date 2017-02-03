@@ -27,7 +27,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;

@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.core.collections.CollectionBucket;
+import io.crate.data.CollectionBucket;
 import io.crate.exceptions.Exceptions;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.TestingHelpers;

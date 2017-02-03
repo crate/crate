@@ -22,9 +22,9 @@
 
 package io.crate.testing;
 
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
-import io.crate.core.collections.RowN;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowN;
 
 import java.util.ArrayList;
 import java.util.Iterator;

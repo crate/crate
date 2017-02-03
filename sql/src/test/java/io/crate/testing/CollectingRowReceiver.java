@@ -25,9 +25,9 @@ package io.crate.testing;
 import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.crate.core.collections.Bucket;
-import io.crate.core.collections.CollectionBucket;
-import io.crate.core.collections.Row;
+import io.crate.data.Bucket;
+import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
 import io.crate.operation.projectors.*;
 import org.elasticsearch.common.unit.TimeValue;
 

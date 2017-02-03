@@ -24,7 +24,7 @@ package io.crate.executor.transport.executionphases;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;

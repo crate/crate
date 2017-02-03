@@ -24,7 +24,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.logging.ESLogger;

@@ -24,7 +24,7 @@ package io.crate.operation.collect.collectors;
 
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Row;
+import io.crate.data.Row;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectionFinishedEarlyException;
