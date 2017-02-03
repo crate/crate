@@ -23,11 +23,21 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
 public class SysNodesITest extends SQLTransportIntegrationTest {
+
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return Settings.builder()
+            .put(super.nodeSettings(nodeOrdinal))
+            .put("http.enabled", true)
+            .build();
+    }
 
     @Test
     public void testNoMatchingNode() throws Exception {
@@ -40,6 +50,12 @@ public class SysNodesITest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(" / by zero");
         execute("select 1/0 from sys.nodes");
+    }
+
+    @Test
+    public void testRestUrl() throws Exception {
+        execute("select rest_url from sys.nodes");
+        assertThat((String) response.rows()[0][0], startsWith("127.0.0.1:"));
     }
 
 }

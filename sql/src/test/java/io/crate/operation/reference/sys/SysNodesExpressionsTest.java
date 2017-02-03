@@ -20,7 +20,6 @@
  */
 package io.crate.operation.reference.sys;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.net.InetAddresses;
 import io.crate.Build;
 import io.crate.Version;
@@ -162,10 +161,6 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
             TransportAddress transportAddress = new InetSocketTransportAddress(localhost, 44300);
             when(node.address()).thenReturn(transportAddress);
-            when(node.attributes()).thenReturn(
-                ImmutableMap.<String, String>builder().put("http_address", "http://localhost:44200").build()
-            );
-
 
             bind(NodeService.class).toInstance(nodeService);
 
@@ -264,14 +259,6 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         BytesRef hostname = expression.value();
         assertThat(hostname, notNullValue());
         assertThat(InetAddresses.isInetAddress(BytesRefs.toString(hostname)), is(false));
-    }
-
-    @Test
-    public void testRestUrl() throws Exception {
-        Reference refInfo = refInfo("sys.nodes.rest_url", DataTypes.STRING, RowGranularity.NODE);
-        @SuppressWarnings("unchecked") ReferenceImplementation<BytesRef> httpAddr =
-            (ReferenceImplementation<BytesRef>) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
-        assertEquals(new BytesRef("http://localhost:44200"), httpAddr.value());
     }
 
     @Test
