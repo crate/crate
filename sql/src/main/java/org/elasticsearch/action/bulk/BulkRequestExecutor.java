@@ -25,6 +25,8 @@ import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
 import org.elasticsearch.action.ActionListener;
 
+@FunctionalInterface
 public interface BulkRequestExecutor<Request extends ShardRequest> {
+
     void execute(Request request, ActionListener<ShardResponse> listener);
 }

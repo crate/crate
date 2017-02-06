@@ -246,7 +246,7 @@ public class TransportExecutor implements Executor {
                 clusterService,
                 indexNameExpressionResolver,
                 clusterService.state().metaData().settings(),
-                transportActionProvider.transportShardUpsertActionDelegate(),
+                transportActionProvider.transportShardUpsertAction()::execute,
                 transportActionProvider.transportCreateIndexAction(),
                 transportActionProvider.transportBulkCreateIndicesAction(),
                 bulkRetryCoordinatorPool,

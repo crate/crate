@@ -25,7 +25,6 @@ import com.google.common.base.MoreObjects;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -34,6 +33,8 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
+import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.client.Requests;
@@ -69,7 +70,8 @@ public class IndexWriterProjector extends AbstractProjector {
                                 Functions functions,
                                 IndexNameExpressionResolver indexNameExpressionResolver,
                                 Settings settings,
-                                TransportActionProvider transportActionProvider,
+                                TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
+                                BulkRequestExecutor<ShardUpsertRequest> shardUpsertAction,
                                 Supplier<String> indexNameResolver,
                                 BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                 Reference rawSourceReference,
@@ -107,14 +109,14 @@ public class IndexWriterProjector extends AbstractProjector {
 
         bulkShardProcessor = new BulkShardProcessor<>(
             clusterService,
-            transportActionProvider.transportBulkCreateIndicesAction(),
+            transportBulkCreateIndicesAction,
             indexNameExpressionResolver,
             settings,
             bulkRetryCoordinatorPool,
             autoCreateIndices,
             MoreObjects.firstNonNull(bulkActions, 100),
             builder,
-            transportActionProvider.transportShardUpsertActionDelegate(),
+            shardUpsertAction,
             jobId
         );
     }

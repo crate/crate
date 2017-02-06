@@ -23,7 +23,6 @@ package org.elasticsearch.action.bulk;
 
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
@@ -79,13 +78,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         expectedException.expectMessage("a random exception");
 
         final AtomicReference<ActionListener<ShardResponse>> ref = new AtomicReference<>();
-        BulkRequestExecutor<ShardUpsertRequest> transportShardBulkAction =
-            new BulkRequestExecutor<ShardUpsertRequest>() {
-                @Override
-                public void execute(ShardUpsertRequest request, ActionListener<ShardResponse> listener) {
-                    ref.set(listener);
-                }
-            };
+        BulkRequestExecutor<ShardUpsertRequest> transportShardBulkAction = (request, listener) -> ref.set(listener);
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(threadPool);
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
@@ -141,17 +134,10 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         final CountDownLatch listenerLatch = new CountDownLatch(2);
         final AtomicReference<ActionListener<ShardResponse>> ref = new AtomicReference<>();
 
-        BulkRequestExecutor<ShardUpsertRequest> transportShardBulkAction =
-            new BulkRequestExecutor<ShardUpsertRequest>() {
-                @Override
-                public void execute(ShardUpsertRequest request, ActionListener<ShardResponse> listener) {
-                    ref.set(listener);
-                    listenerLatch.countDown();
-                }
-            };
-
-        TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
-        when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardBulkAction);
+        BulkRequestExecutor<ShardUpsertRequest> transportShardBulkAction = (request, listener) -> {
+                ref.set(listener);
+                listenerLatch.countDown();
+        };
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(threadPool);
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);
@@ -222,16 +208,8 @@ public class BulkShardProcessorTest extends CrateUnitTest {
         when(clusterService.operationRouting()).thenReturn(operationRouting);
 
         final AtomicReference<ActionListener<ShardResponse>> ref = new AtomicReference<>();
-        BulkRequestExecutor<ShardUpsertRequest> transportShardBulkAction =
-            new BulkRequestExecutor<ShardUpsertRequest>() {
-                @Override
-                public void execute(ShardUpsertRequest request, ActionListener<ShardResponse> listener) {
-                    ref.set(listener);
-                }
-            };
+        BulkRequestExecutor<ShardUpsertRequest> transportShardBulkAction = (request, listener) -> ref.set(listener);
 
-        TransportActionProvider transportActionProvider = mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get());
-        when(transportActionProvider.transportShardUpsertActionDelegate()).thenReturn(transportShardBulkAction);
 
         BulkRetryCoordinator bulkRetryCoordinator = new BulkRetryCoordinator(threadPool);
         BulkRetryCoordinatorPool coordinatorPool = mock(BulkRetryCoordinatorPool.class);

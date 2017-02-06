@@ -37,9 +37,6 @@ import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.action.bulk.BulkRequestExecutor;
-import org.elasticsearch.action.bulk.TransportShardDeleteActionDelegate;
-import org.elasticsearch.action.bulk.TransportShardUpsertActionDelegate;
 import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.get.TransportMultiGetAction;
@@ -161,12 +158,12 @@ public class TransportActionProvider {
         return transportMultiGetActionProvider.get();
     }
 
-    public BulkRequestExecutor<ShardUpsertRequest> transportShardUpsertActionDelegate() {
-        return new TransportShardUpsertActionDelegate(transportShardUpsertActionProvider.get());
+    public TransportShardUpsertAction transportShardUpsertAction() {
+        return transportShardUpsertActionProvider.get();
     }
 
-    public BulkRequestExecutor<ShardDeleteRequest> transportShardDeleteActionDelegate() {
-        return new TransportShardDeleteActionDelegate(transportShardDeleteActionProvider.get());
+    public TransportShardDeleteAction transportShardDeleteAction() {
+        return transportShardDeleteActionProvider.get();
     }
 
     public TransportJobAction transportJobInitAction() {

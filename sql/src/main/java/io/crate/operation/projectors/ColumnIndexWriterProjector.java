@@ -112,7 +112,7 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
             autoCreateIndices,
             MoreObjects.firstNonNull(bulkActions, 100),
             builder,
-            transportActionProvider.transportShardUpsertActionDelegate(),
+            transportActionProvider.transportShardUpsertAction()::execute,
             jobId
         );
     }

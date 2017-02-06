@@ -26,7 +26,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.executor.transport.TransportActionProvider;
+import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
@@ -36,6 +36,7 @@ import io.crate.operation.collect.InputCollectExpression;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -71,7 +72,8 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             internalCluster().getInstance(Functions.class),
             new IndexNameExpressionResolver(Settings.EMPTY),
             Settings.EMPTY,
-            internalCluster().getInstance(TransportActionProvider.class),
+            internalCluster().getInstance(TransportBulkCreateIndicesAction.class),
+            internalCluster().getInstance(TransportShardUpsertAction.class)::execute,
             IndexNameResolver.forTable(new TableIdent(null, "bulk_import")),
             internalCluster().getInstance(BulkRetryCoordinatorPool.class),
             new Reference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING),
