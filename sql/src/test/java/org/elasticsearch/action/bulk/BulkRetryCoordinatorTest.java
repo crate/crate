@@ -25,7 +25,6 @@ package org.elasticsearch.action.bulk;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
-import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
@@ -57,12 +56,6 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
         new ReferenceIdent(charactersIdent, "bar"), RowGranularity.DOC, DataTypes.STRING);
     private static ShardId shardId = new ShardId("foo", 1);
 
-    abstract class MockShardUpsertActionDelegate extends TransportShardUpsertActionDelegate {
-        public MockShardUpsertActionDelegate() {
-            super(mock(TransportShardUpsertAction.class));
-        }
-    }
-
     @Before
     public void prepare() throws Exception {
     }
@@ -83,13 +76,9 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
         ThreadPool threadPool = mock(ThreadPool.class);
         BulkRetryCoordinator coordinator = new BulkRetryCoordinator(threadPool);
 
-        TransportShardUpsertActionDelegate executor = new MockShardUpsertActionDelegate() {
-            @Override
-            public void execute(ShardUpsertRequest request, ActionListener<ShardResponse> listener) {
-                listener.onFailure(new EsRejectedExecutionException("Dummy execution rejected"));
-            }
+        BulkRequestExecutor<ShardUpsertRequest> executor = (request, listener) -> {
+            listener.onFailure(new EsRejectedExecutionException("Dummy execution rejected"));
         };
-
         coordinator.retry(shardRequest(), executor, new ActionListener<ShardResponse>() {
             @Override
             public void onResponse(ShardResponse shardResponse) {
@@ -110,11 +99,8 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
         ThreadPool threadPool = mock(ThreadPool.class);
         BulkRetryCoordinator coordinator = new BulkRetryCoordinator(threadPool);
 
-        TransportShardUpsertActionDelegate executor = new MockShardUpsertActionDelegate() {
-            @Override
-            public void execute(ShardUpsertRequest request, ActionListener<ShardResponse> listener) {
-                listener.onFailure(new InterruptedException("Dummy execution failed"));
-            }
+        BulkRequestExecutor<ShardUpsertRequest> executor = (request, listener) -> {
+            listener.onFailure(new InterruptedException("Dummy execution failed"));
         };
 
         final SettableFuture<ShardResponse> future = SettableFuture.create();
@@ -139,11 +125,8 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
         ThreadPool threadPool = mock(ThreadPool.class);
         final BulkRetryCoordinator coordinator = new BulkRetryCoordinator(threadPool);
 
-        final TransportShardUpsertActionDelegate executor = new MockShardUpsertActionDelegate() {
-            @Override
-            public void execute(ShardUpsertRequest request, ActionListener<ShardResponse> listener) {
-                listener.onResponse(new ShardResponse());
-            }
+        final BulkRequestExecutor<ShardUpsertRequest> executor = (request, listener) -> {
+            listener.onResponse(new ShardResponse());
         };
 
         final CountDownLatch latch = new CountDownLatch(1000);

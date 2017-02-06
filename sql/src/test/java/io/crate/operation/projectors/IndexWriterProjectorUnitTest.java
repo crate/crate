@@ -26,7 +26,6 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
@@ -35,6 +34,8 @@ import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
+import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -75,7 +76,8 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
             TestingHelpers.getFunctions(),
             new IndexNameExpressionResolver(Settings.EMPTY),
             Settings.EMPTY,
-            mock(TransportActionProvider.class),
+            mock(TransportBulkCreateIndicesAction.class),
+            mock(BulkRequestExecutor.class),
             () -> "foo",
             mock(BulkRetryCoordinatorPool.class),
             rawSourceReference,
@@ -115,7 +117,8 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
             TestingHelpers.getFunctions(),
             new IndexNameExpressionResolver(Settings.EMPTY),
             Settings.EMPTY,
-            mock(TransportActionProvider.class),
+            mock(TransportBulkCreateIndicesAction.class),
+            mock(BulkRequestExecutor.class),
             () -> "foo",
             mock(BulkRetryCoordinatorPool.class, Answers.RETURNS_DEEP_STUBS.get()),
             rawSourceReference,

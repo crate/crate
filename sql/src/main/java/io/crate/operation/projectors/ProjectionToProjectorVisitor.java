@@ -289,7 +289,8 @@ public class ProjectionToProjectorVisitor
             functions,
             indexNameExpressionResolver,
             clusterService.state().metaData().settings(),
-            transportActionProvider,
+            transportActionProvider.transportBulkCreateIndicesAction(),
+            transportActionProvider.transportShardUpsertAction()::execute,
             indexNameResolver,
             bulkRetryCoordinatorPool,
             projection.rawSourceReference(),
@@ -368,7 +369,7 @@ public class ProjectionToProjectorVisitor
             false, // autoCreateIndices -> can only update existing things
             BulkShardProcessor.DEFAULT_BULK_SIZE,
             builder,
-            transportActionProvider.transportShardUpsertActionDelegate(),
+            transportActionProvider.transportShardUpsertAction()::execute,
             context.jobId
         );
 
@@ -396,7 +397,7 @@ public class ProjectionToProjectorVisitor
             false,
             BulkShardProcessor.DEFAULT_BULK_SIZE,
             builder,
-            transportActionProvider.transportShardDeleteActionDelegate(),
+            transportActionProvider.transportShardDeleteAction()::execute,
             context.jobId
         );
         return new DMLProjector<>(
