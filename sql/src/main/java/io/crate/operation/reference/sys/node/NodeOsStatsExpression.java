@@ -38,11 +38,10 @@ class NodeOsStatsExpression extends NestedNodeStatsExpression {
             }
         });
         childImplementations.put(TIMESTAMP, new SimpleNodeStatsExpression<Long>() {
-            final long ts = System.currentTimeMillis();
-
             @Override
             public Long innerValue() {
-                return ts;
+                assert this.row.timestamp() > 0 : "os timestamp must always be greater than 0.";
+                return this.row.timestamp();
             }
         });
         childImplementations.put(PROBE_TIMESTAMP, new SimpleNodeStatsExpression<Long>() {

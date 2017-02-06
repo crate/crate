@@ -75,7 +75,7 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
     @Override
     public void nodeOperation(NodeStatsRequest request, ActionListener<NodeStatsResponse> listener) {
         try {
-            NodeStatsContext context = nodeContextFieldsResolver.forColumns(request.columnIdents());
+            NodeStatsContext context = nodeContextFieldsResolver.forTopColumnIdents(request.columnIdents());
             listener.onResponse(new NodeStatsResponse(context));
         } catch (Throwable t) {
             listener.onFailure(t);

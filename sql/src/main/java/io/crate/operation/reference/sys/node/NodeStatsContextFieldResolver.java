@@ -41,7 +41,6 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.Consumer;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.node.service.NodeService;
@@ -54,6 +53,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 @Singleton
 public class NodeStatsContextFieldResolver {
@@ -85,19 +85,19 @@ public class NodeStatsContextFieldResolver {
         this.postgresNetty = postgresNetty;
     }
 
-    public NodeStatsContext forColumns(Collection<ColumnIdent> columns) {
+    public NodeStatsContext forTopColumnIdents(Collection<ColumnIdent> topColumnIdents) {
         NodeStatsContext context = NodeStatsContext.newInstance();
-        if (columns.isEmpty()) {
+        if (topColumnIdents.isEmpty()) {
             return context;
         }
 
-        for (ColumnIdent column : columns) {
-            consumerForColumnIdent(column).accept(context);
+        for (ColumnIdent column : topColumnIdents) {
+            consumerForTopColumnIdent(column).accept(context);
         }
         return context;
     }
 
-    private Consumer<NodeStatsContext> consumerForColumnIdent(ColumnIdent columnIdent) {
+    private Consumer<NodeStatsContext> consumerForTopColumnIdent(ColumnIdent columnIdent) {
         Consumer<NodeStatsContext> consumer = columnIdentToContext.get(columnIdent);
         if (consumer == null) {
             throw new IllegalArgumentException(
@@ -121,14 +121,11 @@ public class NodeStatsContextFieldResolver {
                     context.name(BytesRefs.toBytesRef(clusterService.localNode().name()));
                 }
             })
-            .put(SysNodesTableInfo.Columns.HOSTNAME, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    try {
-                        context.hostname(BytesRefs.toBytesRef(InetAddress.getLocalHost().getHostName()));
-                    } catch (UnknownHostException e) {
-                        LOGGER.warn("Cannot resolve the hostname.", e);
-                    }
+            .put(SysNodesTableInfo.Columns.HOSTNAME, context -> {
+                try {
+                    context.hostname(BytesRefs.toBytesRef(InetAddress.getLocalHost().getHostName()));
+                } catch (UnknownHostException e) {
+                    LOGGER.warn("Cannot resolve the hostname.", e);
                 }
             })
             .put(SysNodesTableInfo.Columns.REST_URL, new Consumer<NodeStatsContext>() {
@@ -184,12 +181,9 @@ public class NodeStatsContextFieldResolver {
                     context.jvmStats(jvmService.stats());
                 }
             })
-            .put(SysNodesTableInfo.Columns.VERSION, new Consumer<NodeStatsContext>() {
-                @Override
-                public void accept(NodeStatsContext context) {
-                    context.version(Version.CURRENT);
-                    context.build(Build.CURRENT);
-                }
+            .put(SysNodesTableInfo.Columns.VERSION, context -> {
+                context.version(Version.CURRENT);
+                context.build(Build.CURRENT);
             })
             .put(SysNodesTableInfo.Columns.THREAD_POOLS, new Consumer<NodeStatsContext>() {
                 @Override
@@ -206,6 +200,7 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.OS, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
+                    context.timestamp(System.currentTimeMillis());
                     context.extendedOsStats(extendedNodeInfo.osStats());
                 }
             })

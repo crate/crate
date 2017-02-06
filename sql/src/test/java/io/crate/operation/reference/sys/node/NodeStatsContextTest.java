@@ -46,8 +46,7 @@ import java.io.ByteArrayOutputStream;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 
 public class NodeStatsContextTest extends CrateUnitTest {
 
@@ -72,6 +71,7 @@ public class NodeStatsContextTest extends CrateUnitTest {
         ctx1.id(BytesRefs.toBytesRef("93c7ff92-52fa-11e6-aad8-3c15c2d3ad18"));
         ctx1.name(BytesRefs.toBytesRef("crate1"));
         ctx1.hostname(BytesRefs.toBytesRef("crate1.example.com"));
+        ctx1.timestamp(100L);
         ctx1.version(Version.CURRENT);
         ctx1.build(Build.CURRENT);
         ctx1.restUrl(BytesRefs.toBytesRef("10.0.0.1:4200"));
@@ -100,22 +100,23 @@ public class NodeStatsContextTest extends CrateUnitTest {
         NodeStatsContext ctx2 = new NodeStatsContext(true);
         ctx2.readFrom(in);
 
-        assertEquals(ctx1.id(), ctx2.id());
-        assertEquals(ctx1.name(), ctx2.name());
-        assertEquals(ctx1.hostname(), ctx2.hostname());
-        assertEquals(ctx1.version(), ctx2.version());
-        assertEquals(ctx1.build().hash(), ctx2.build().hash());
-        assertEquals(ctx1.restUrl(), ctx2.restUrl());
-        assertEquals(ctx1.port(), ctx2.port());
-        assertEquals(ctx1.jvmStats().getTimestamp(), ctx2.jvmStats().getTimestamp());
-        assertEquals(ctx1.osInfo().getArch(), ctx2.osInfo().getArch());
-        assertEquals(ctx1.processStats().getTimestamp(), ctx2.processStats().getTimestamp());
-        assertEquals(ctx1.osStats().getTimestamp(), ctx2.osStats().getTimestamp());
-        assertEquals(ctx1.extendedOsStats().uptime(), ctx2.extendedOsStats().uptime());
-        assertEquals(ctx1.networkStats().timestamp(), ctx2.networkStats().timestamp());
-        assertEquals(ctx1.extendedProcessCpuStats().percent(), ctx2.extendedProcessCpuStats().percent());
-        assertEquals(ctx1.extendedFsStats().size(), ctx2.extendedFsStats().size());
-        assertEquals(ctx1.threadPools(), ctx2.threadPools());
+        assertThat(ctx1.id(), is(ctx2.id()));
+        assertThat(ctx1.name(), is(ctx2.name()));
+        assertThat(ctx1.hostname(), is(ctx2.hostname()));
+        assertThat(ctx1.timestamp(), is(100L));
+        assertThat(ctx1.version(), is(ctx2.version()));
+        assertThat(ctx1.build().hash(), is(ctx2.build().hash()));
+        assertThat(ctx1.restUrl(), is(ctx2.restUrl()));
+        assertThat(ctx1.port(), is(ctx2.port()));
+        assertThat(ctx1.jvmStats().getTimestamp(), is(ctx2.jvmStats().getTimestamp()));
+        assertThat(ctx1.osInfo().getArch(), is(ctx2.osInfo().getArch()));
+        assertThat(ctx1.processStats().getTimestamp(), is(ctx2.processStats().getTimestamp()));
+        assertThat(ctx1.osStats().getTimestamp(), is(ctx2.osStats().getTimestamp()));
+        assertThat(ctx1.extendedOsStats().uptime(), is(ctx2.extendedOsStats().uptime()));
+        assertThat(ctx1.networkStats().timestamp(), is(ctx2.networkStats().timestamp()));
+        assertThat(ctx1.extendedProcessCpuStats().percent(), is(ctx2.extendedProcessCpuStats().percent()));
+        assertThat(ctx1.extendedFsStats().size(), is(ctx2.extendedFsStats().size()));
+        assertThat(ctx1.threadPools(), is(ctx2.threadPools()));
     }
 
     @Test
@@ -170,7 +171,7 @@ public class NodeStatsContextTest extends CrateUnitTest {
         ThreadPools pools2 = ThreadPools.newInstance();
         pools2.readFrom(in);
 
-        assertEquals(pools1, pools2);
+        assertThat(pools1, is(pools2));
     }
 
     @Test
@@ -187,7 +188,7 @@ public class NodeStatsContextTest extends CrateUnitTest {
         ThreadPools.ThreadPoolExecutorContext ctx2 = new ThreadPools.ThreadPoolExecutorContext();
         ctx2.readFrom(in);
 
-        assertEquals(ctx1, ctx2);
+        assertThat(ctx1, is(ctx2));
     }
 
     @Test

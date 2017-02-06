@@ -47,9 +47,9 @@ import java.io.IOException;
 import java.net.Inet4Address;
 
 import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class NodeStatsContextFieldResolverTest {
 
@@ -85,20 +85,26 @@ public class NodeStatsContextFieldResolverTest {
 
     @Test
     public void testEmptyColumnIdents() {
-        NodeStatsContext context = resolver.forColumns(ImmutableSet.<ColumnIdent>of());
+        NodeStatsContext context = resolver.forTopColumnIdents(ImmutableSet.of());
         assertDefaultDiscoveryContext(context);
     }
 
     @Test
     public void testColumnIdentsResolution() {
-        NodeStatsContext context = resolver.forColumns(ImmutableSet.of(
-            new ColumnIdent(SysNodesTableInfo.Columns.ID.name()),
-            new ColumnIdent(SysNodesTableInfo.Columns.NAME.name())
+        NodeStatsContext context = resolver.forTopColumnIdents(ImmutableSet.of(
+            SysNodesTableInfo.Columns.ID,
+            SysNodesTableInfo.Columns.NAME
         ));
         assertThat(context.isComplete(), is(true));
         assertThat(context.id(), is(notNullValue()));
         assertThat(context.name(), is(notNullValue()));
         assertThat(context.hostname(), is(nullValue()));
+    }
+
+    @Test
+    public void testNoteStatsContextTimestampResolvedCorrectly() {
+        NodeStatsContext context = resolver.forTopColumnIdents(ImmutableSet.of(SysNodesTableInfo.Columns.OS));
+        assertThat(context.timestamp(), greaterThan(0L));
     }
 
     @Test
@@ -113,9 +119,7 @@ public class NodeStatsContextFieldResolverTest {
         BoundTransportAddress boundAddress = new BoundTransportAddress(new TransportAddress[]{inetAddress}, inetAddress);
         when(postgresNetty.boundAddress()).thenReturn(boundAddress);
 
-        NodeStatsContext context = resolver.forColumns(ImmutableSet.of(
-            new ColumnIdent(SysNodesTableInfo.Columns.PORT.name())
-        ));
+        NodeStatsContext context = resolver.forTopColumnIdents(ImmutableSet.of(SysNodesTableInfo.Columns.PORT));
         assertThat(context.isComplete(), is(true));
         assertThat(context.port().get("psql"), is(5432));
     }
@@ -124,11 +128,7 @@ public class NodeStatsContextFieldResolverTest {
     public void testResolveForNonExistingColumnIdent() {
         thrown.expect(IllegalArgumentException.class);
         thrown.expectMessage("Cannot resolve NodeStatsContext field for \"dummy\" column ident.");
-
-        resolver.forColumns(ImmutableSet.of(
-            new ColumnIdent(SysNodesTableInfo.Columns.ID.name()),
-            new ColumnIdent("dummy"))
-        );
+        resolver.forTopColumnIdents(ImmutableSet.of(SysNodesTableInfo.Columns.ID, new ColumnIdent("dummy")));
     }
 
     private void assertDefaultDiscoveryContext(NodeStatsContext context) {

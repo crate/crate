@@ -48,6 +48,7 @@ public class NodeStatsContext implements Streamable {
     private BytesRef id;
     private BytesRef name;
     private BytesRef hostname;
+    private long timestamp;
     private Version version;
     private Build build;
     private BytesRef restUrl;
@@ -108,6 +109,10 @@ public class NodeStatsContext implements Streamable {
 
     public BytesRef hostname() {
         return hostname;
+    }
+
+    public long timestamp() {
+        return timestamp;
     }
 
     public Version version() {
@@ -202,6 +207,10 @@ public class NodeStatsContext implements Streamable {
         this.hostname = hostname;
     }
 
+    public void timestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
     public void version(Version version) {
         this.version = version;
     }
@@ -259,6 +268,7 @@ public class NodeStatsContext implements Streamable {
         id = DataTypes.STRING.readValueFrom(in);
         name = DataTypes.STRING.readValueFrom(in);
         hostname = DataTypes.STRING.readValueFrom(in);
+        timestamp = in.readLong();
         version = in.readBoolean() ? Version.readVersion(in) : null;
         build = in.readBoolean() ? Build.readBuild(in) : null;
         restUrl = DataTypes.STRING.readValueFrom(in);
@@ -295,6 +305,7 @@ public class NodeStatsContext implements Streamable {
         DataTypes.STRING.writeValueTo(out, id);
         DataTypes.STRING.writeValueTo(out, name);
         DataTypes.STRING.writeValueTo(out, hostname);
+        out.writeLong(timestamp);
         out.writeBoolean(version != null);
         if (version != null) {
             Version.writeVersionTo(version, out);
