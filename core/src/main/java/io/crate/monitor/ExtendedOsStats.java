@@ -34,9 +34,10 @@ public class ExtendedOsStats implements Streamable {
 
     private Cpu cpu;
 
-    private long timestamp;
+    private long probeTimestamp;
     private long uptime = -1;
     private double[] loadAverage = new double[0];
+    private long timestamp = -1;
 
     public static ExtendedOsStats readExtendedOsStat(StreamInput in) throws IOException {
         ExtendedOsStats stat = new ExtendedOsStats();
@@ -51,12 +52,12 @@ public class ExtendedOsStats implements Streamable {
         this.cpu = cpu;
     }
 
-    public long timestamp() {
-        return timestamp;
+    public long probeTimestamp() {
+        return probeTimestamp;
     }
 
-    public void timestamp(long timestamp) {
-        this.timestamp = timestamp;
+    public void probeTimestamp(long timestamp) {
+        this.probeTimestamp = timestamp;
     }
 
     public TimeValue uptime() {
@@ -85,6 +86,7 @@ public class ExtendedOsStats implements Streamable {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
+        probeTimestamp = in.readLong();
         timestamp = in.readLong();
         uptime = in.readLong();
         loadAverage = in.readDoubleArray();
@@ -93,10 +95,19 @@ public class ExtendedOsStats implements Streamable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        out.writeLong(probeTimestamp);
         out.writeLong(timestamp);
         out.writeLong(uptime);
         out.writeDoubleArray(loadAverage);
         out.writeOptionalStreamable(cpu);
+    }
+
+    public void updateTimestamp() {
+        this.timestamp = System.currentTimeMillis();
+    }
+
+    public long timestamp() {
+        return timestamp;
     }
 
     public static class Cpu implements Streamable {

@@ -159,7 +159,9 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
 
     @Override
     public ExtendedOsStats osStats() {
-        return osStatsCache.getOrRefresh();
+        ExtendedOsStats osStats = osStatsCache.getOrRefresh();
+        osStats.updateTimestamp();
+        return osStats;
     }
 
     private ExtendedOsStats osStatsProbe() {
@@ -180,8 +182,7 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
         }
 
         ExtendedOsStats stats = new ExtendedOsStats(cpu);
-        stats.timestamp(System.currentTimeMillis());
-
+        stats.probeTimestamp(System.currentTimeMillis());
         try {
             stats.loadAverage(sigar.getLoadAverage());
         } catch (SigarException e) {

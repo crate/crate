@@ -48,8 +48,7 @@ import java.net.Inet4Address;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class NodeStatsContextFieldResolverTest {
 
@@ -99,6 +98,16 @@ public class NodeStatsContextFieldResolverTest {
         assertThat(context.id(), is(notNullValue()));
         assertThat(context.name(), is(notNullValue()));
         assertThat(context.hostname(), is(nullValue()));
+    }
+
+    @Test
+    public void testNodeStatsContextIsNotResolvedForSubFields() {
+        resolver.forColumns(ImmutableSet.of(
+            new ColumnIdent(SysNodesTableInfo.Columns.OS.name()),
+            new ColumnIdent(SysNodesTableInfo.Columns.OS_TIMESTAMP.name()),
+            new ColumnIdent(SysNodesTableInfo.Columns.OS_CPU_USED.name())
+        ));
+        verify(extendedNodeInfo, times(1)).osStats();
     }
 
     @Test

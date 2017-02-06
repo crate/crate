@@ -79,15 +79,15 @@ public class NodeStatsCollectSource implements CollectSource {
             functions, RowGranularity.DOC, ReplaceMode.COPY, new NodeSysReferenceResolver(nodeSysExpression), null);
         collectPhase = collectPhase.normalize(normalizer, null);
         if (collectPhase.whereClause().noMatch()) {
-            return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
+            return ImmutableList.of(RowsCollector.empty(downstream));
         }
         Collection<DiscoveryNode> nodes = nodeIds(collectPhase.whereClause(),
             Lists.newArrayList(clusterService.state().getNodes().iterator()),
             functions);
         if (nodes.isEmpty()) {
-            return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
+            return ImmutableList.of(RowsCollector.empty(downstream));
         }
-        return ImmutableList.<CrateCollector>of(new NodeStatsCollector(
+        return ImmutableList.of(new NodeStatsCollector(
                 transportActionProvider.transportStatTablesActionProvider(),
                 downstream,
                 collectPhase,

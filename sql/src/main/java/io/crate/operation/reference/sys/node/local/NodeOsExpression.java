@@ -45,15 +45,8 @@ class NodeOsExpression extends NestedObjectExpression {
                 return uptime == -1000 ? -1 : uptime;
             }
         });
-        childImplementations.put(TIMESTAMP, new ReferenceImplementation<Long>() {
-            final long ts = System.currentTimeMillis();
-
-            @Override
-            public Long value() {
-                return ts;
-            }
-        });
-        childImplementations.put(PROBE_TIMESTAMP, extendedOsStats::timestamp);
+        childImplementations.put(TIMESTAMP, extendedOsStats::timestamp);
+        childImplementations.put(PROBE_TIMESTAMP, extendedOsStats::probeTimestamp);
         childImplementations.put(CPU, new NodeOsCpuExpression(extendedOsStats.cpu()));
     }
 }

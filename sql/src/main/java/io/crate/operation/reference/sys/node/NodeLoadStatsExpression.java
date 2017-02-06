@@ -37,7 +37,7 @@ class NodeLoadStatsExpression extends NestedNodeStatsExpression {
         childImplementations.put(PROBE_TIMESTAMP, new SimpleNodeStatsExpression<Long>() {
             @Override
             public Long innerValue() {
-                return this.row.extendedOsStats().timestamp();
+                return this.row.extendedOsStats().probeTimestamp();
             }
         });
     }

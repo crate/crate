@@ -23,7 +23,6 @@
 package io.crate.operation.reference.sys.node.local;
 
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Constants;
@@ -36,6 +35,7 @@ class NodeOsInfoExpression extends NestedObjectExpression {
     private static final String OS = "name";
     private static final String ARCH = "arch";
     private static final String VERSION = "version";
+    private static final String JVM = "jvm";
 
     private static final BytesRef OS_NAME = BytesRefs.toBytesRef(Constants.OS_NAME);
     private static final BytesRef OS_ARCH = BytesRefs.toBytesRef(Constants.OS_ARCH);
@@ -54,6 +54,6 @@ class NodeOsInfoExpression extends NestedObjectExpression {
         childImplementations.put(OS, OS_NAME_EXP);
         childImplementations.put(ARCH, OS_ARCH_EXP);
         childImplementations.put(VERSION, OS_VERSION_EXP);
-        childImplementations.put(SysNodesTableInfo.Columns.OS_INFO_JVM.name(), new NodeOsJvmExpression());
+        childImplementations.put(JVM, new NodeOsJvmExpression());
     }
 }
