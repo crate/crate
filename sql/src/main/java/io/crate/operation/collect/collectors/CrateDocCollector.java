@@ -24,24 +24,21 @@ package io.crate.operation.collect.collectors;
 
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.Row;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
-import io.crate.operation.collect.CollectionFinishedEarlyException;
-import io.crate.operation.collect.CollectionPauseException;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.ExecutorResumeHandle;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
+import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.Bits;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
@@ -50,6 +47,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Executor;
+import java.util.function.Predicate;
 
 public class CrateDocCollector implements CrateCollector, RepeatHandle {
 
@@ -60,11 +58,14 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
     private final IndexSearcher indexSearcher;
     private final Query query;
     private final RowReceiver rowReceiver;
-    private final Collection<? extends LuceneCollectorExpression<?>> expressions;
-    private final SimpleCollector luceneCollector;
+    private final LuceneCollectorExpression<?>[] expressions;
     private final State state = new State();
     private final ExecutorResumeHandle resumeable;
     private final boolean doScores;
+    private final RamAccountingContext ramAccountingContext;
+    private final InputRow inputRow;
+    private final Predicate<Scorer> filter;
+    private DocReaderConsumer docReaderConsumer;
 
     public static class Builder implements CrateCollector.Builder {
 
@@ -135,26 +136,32 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
         this.query = query;
         this.collectorContext = collectorContext;
         this.rowReceiver = rowReceiver;
-        this.expressions = expressions;
         this.doScores = doScores || minScore != null;
-        SimpleCollector collector = new LuceneDocCollector(
-            ramAccountingContext,
-            rowReceiver,
-            this.doScores,
-            new InputRow(inputs),
-            expressions
-        );
-        if (minScore != null) {
-            collector = new MinimumScoreCollector(collector, minScore);
-        }
-        luceneCollector = collector;
+        this.filter = createMinScorePredicate(minScore);
+        this.ramAccountingContext = ramAccountingContext;
+        this.inputRow = new InputRow(inputs);
+        this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
         this.resumeable = new ExecutorResumeHandle(executor, new Runnable() {
             @Override
             public void run() {
                 traceLog("resume collect");
-                innerCollect(state.collector, state.weight, state.leaveIt, state.bulkScorer, state.leaf);
+                innerCollect(state.weight, state.leaveIt, state.scorer, state.it, state.leaf);
             }
         });
+    }
+
+    private static Predicate<Scorer> createMinScorePredicate(Float minScore) {
+        if (minScore == null) {
+            return s -> true;
+        } else {
+            return s -> {
+                try {
+                    return s.score() >= minScore;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            };
+        }
     }
 
     private void debugLog(String message) {
@@ -175,11 +182,7 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }
-        SimpleCollector collector = luceneCollector;
-        if (collectorContext.visitor().required()) {
-            collector = new FieldVisitorCollector(collector, collectorContext.visitor());
-        }
-
+        docReaderConsumer = createOnDocFunction(collectorContext.visitor());
         Weight weight;
         Iterator<LeafReaderContext> leavesIt;
         try {
@@ -190,25 +193,63 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
             return;
         }
         // these won't change anymore, so safe the state once in case there is a pause or resume
-        state.collector = collector;
         state.weight = weight;
         state.leaveIt = leavesIt;
 
-        innerCollect(collector, weight, leavesIt, null, null);
+        innerCollect(weight, leavesIt, null, null, null);
     }
 
-    private void innerCollect(SimpleCollector collector, Weight weight, Iterator<LeafReaderContext> leavesIt,
-                              @Nullable BulkScorer scorer, @Nullable LeafReaderContext leaf) {
-        try {
-            if (collectLeaves(collector, weight, leavesIt, scorer, leaf) == RowReceiver.Result.PAUSE) {
-                traceLog("paused collect");
-            } else {
-                finishCollect();
+    private DocReaderConsumer createOnDocFunction(CollectorFieldsVisitor visitor) {
+        if (visitor.required()) {
+            return (doc, reader) -> {
+                checkCircuitBreaker();
+                visitor.reset();
+                reader.document(doc, visitor);
+                for (LuceneCollectorExpression<?> expression : expressions) {
+                    expression.setNextDocId(doc);
+                }
+            };
+        }
+        return (doc, reader) -> {
+            checkCircuitBreaker();
+            for (LuceneCollectorExpression<?> expression : expressions) {
+                expression.setNextDocId(doc);
             }
-        } catch (CollectionFinishedEarlyException e) {
-            finishCollect();
+        };
+    }
+
+    private void innerCollect(Weight weight,
+                              Iterator<LeafReaderContext> leavesIt,
+                              @Nullable Scorer scorer,
+                              @Nullable DocIdSetIterator it,
+                              @Nullable LeafReaderContext leaf) {
+        try {
+            RowReceiver.Result result;
+            if (scorer == null) {
+                result = consumeLeaves(weight, leavesIt);
+            } else {
+                result = consumeIterator(scorer, leaf, it);
+                if (result == RowReceiver.Result.CONTINUE) {
+                    result = consumeLeaves(weight, leavesIt);
+                }
+            }
+            pauseOrFinish(result);
         } catch (Throwable t) {
             fail(t);
+        }
+    }
+
+    private void pauseOrFinish(RowReceiver.Result result) {
+        switch (result) {
+            case PAUSE:
+                traceLog("paused collect");
+                rowReceiver.pauseProcessed(resumeable);
+                break;
+
+            case CONTINUE: // no more leaves to process
+            case STOP:
+                debugLog("finished collect");
+                rowReceiver.finish(this);
         }
     }
 
@@ -217,43 +258,69 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
         rowReceiver.fail(t);
     }
 
-    private void finishCollect() {
-        debugLog("finished collect");
-        rowReceiver.finish(this);
-    }
-
-    private RowReceiver.Result collectLeaves(SimpleCollector collector,
-                                             Weight weight,
-                                             Iterator<LeafReaderContext> leaves,
-                                             @Nullable BulkScorer bulkScorer,
-                                             @Nullable LeafReaderContext leaf) throws IOException {
-        if (bulkScorer != null) {
-            assert leaf != null : "leaf must not be null if bulkScorer isn't null";
-            if (processScorer(collector, leaf, bulkScorer)) return RowReceiver.Result.PAUSE;
-        }
+    private RowReceiver.Result consumeLeaves(Weight weight, Iterator<LeafReaderContext> leaves) throws IOException {
+        LeafReaderContext leaf;
+        Scorer scorer;
         while (leaves.hasNext()) {
             leaf = leaves.next();
-            LeafCollector leafCollector = collector.getLeafCollector(leaf);
-            Scorer scorer = weight.scorer(leaf);
+            scorer = weight.scorer(leaf);
             if (scorer == null) {
                 continue;
             }
-            bulkScorer = new DefaultBulkScorer(scorer);
-            if (processScorer(leafCollector, leaf, bulkScorer)) return RowReceiver.Result.PAUSE;
+            RowReceiver.Result result = consumeIterator(scorer, leaf, scorer.iterator());
+            if (result != RowReceiver.Result.CONTINUE) {
+                return result;
+            }
         }
         return RowReceiver.Result.CONTINUE;
     }
 
-    private boolean processScorer(LeafCollector leafCollector, LeafReaderContext leaf, BulkScorer scorer) throws IOException {
-        try {
-            scorer.score(leafCollector, leaf.reader().getLiveDocs());
-        } catch (CollectionPauseException e) {
-            state.leaf = leaf;
-            state.bulkScorer = scorer;
-            rowReceiver.pauseProcessed(resumeable);
-            return true;
+    private RowReceiver.Result consumeIterator(Scorer scorer, LeafReaderContext leaf, DocIdSetIterator it) throws IOException {
+        LeafReader reader = leaf.reader();
+        Bits liveDocs = reader.getLiveDocs();
+        for (LuceneCollectorExpression<?> expression : expressions) {
+            expression.setScorer(scorer);
+            expression.setNextReader(leaf);
         }
-        return false;
+        for (int doc = it.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = it.nextDoc()) {
+            if (docDeleted(liveDocs, doc)) {
+                continue;
+            }
+            docReaderConsumer.onDoc(doc, reader);
+            if (filter.test(scorer) == false) {
+                continue;
+            }
+            RowReceiver.Result result = rowReceiver.setNextRow(inputRow);
+            switch (result) {
+                case CONTINUE:
+                    continue;
+                case PAUSE:
+                    state.it = it;
+                    state.leaf = leaf;
+                    state.scorer = scorer;
+                    return RowReceiver.Result.PAUSE;
+                case STOP:
+                    return RowReceiver.Result.STOP;
+            }
+            throw new AssertionError("Unrecognized setNextRow result: " + result);
+        }
+        return RowReceiver.Result.CONTINUE;
+    }
+
+    private void checkCircuitBreaker() throws CircuitBreakingException {
+        if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
+            // stop collecting because breaker limit was reached
+            throw new CircuitBreakingException(
+                CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
+                    ramAccountingContext.limit()));
+        }
+    }
+
+    private static boolean docDeleted(@Nullable Bits liveDocs, int doc) {
+        if (liveDocs == null) {
+            return false;
+        }
+        return liveDocs.get(doc) == false;
     }
 
     @Override
@@ -266,115 +333,18 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
     public void repeat() {
         debugLog("repeat collect");
         Iterator<LeafReaderContext> iterator = indexSearcher.getTopReaderContext().leaves().iterator();
-        innerCollect(state.collector, state.weight, iterator, null, null);
+        innerCollect(state.weight, iterator, null, null, null);
+    }
+
+    interface DocReaderConsumer {
+        void onDoc(int doc, LeafReader reader) throws IOException;
     }
 
     static class State {
-        BulkScorer bulkScorer;
+        Scorer scorer;
+        DocIdSetIterator it;
         Iterator<LeafReaderContext> leaveIt;
-        SimpleCollector collector;
         Weight weight;
         LeafReaderContext leaf;
-    }
-
-    private static class LuceneDocCollector extends SimpleCollector {
-
-        private final RamAccountingContext ramAccountingContext;
-        private final RowReceiver rowReceiver;
-        private final boolean doScores;
-        private final Row inputRow;
-        private final LuceneCollectorExpression[] expressions;
-
-        LuceneDocCollector(RamAccountingContext ramAccountingContext,
-                           RowReceiver rowReceiver,
-                           boolean doScores,
-                           Row inputRow,
-                           Collection<? extends LuceneCollectorExpression<?>> expressions) {
-            this.ramAccountingContext = ramAccountingContext;
-            this.rowReceiver = rowReceiver;
-            this.doScores = doScores;
-            this.inputRow = inputRow;
-            this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
-        }
-
-
-        @Override
-        public boolean needsScores() {
-            return doScores;
-        }
-
-        @Override
-        public void setScorer(Scorer scorer) throws IOException {
-            for (LuceneCollectorExpression<?> expression : expressions) {
-                expression.setScorer(scorer);
-            }
-        }
-
-
-        @Override
-        public void collect(int doc) throws IOException {
-            checkCircuitBreaker();
-
-            for (LuceneCollectorExpression<?> expression : expressions) {
-                expression.setNextDocId(doc);
-            }
-            RowReceiver.Result result = rowReceiver.setNextRow(inputRow);
-            switch (result) {
-                case CONTINUE:
-                    return;
-                case PAUSE:
-                    throw CollectionPauseException.INSTANCE;
-                case STOP:
-                    throw CollectionFinishedEarlyException.INSTANCE;
-            }
-            throw new AssertionError("Unrecognized setNextRow result: " + result);
-        }
-
-        private void checkCircuitBreaker() throws CircuitBreakingException {
-            if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
-                // stop collecting because breaker limit was reached
-                throw new CircuitBreakingException(
-                    CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
-                        ramAccountingContext.limit()));
-            }
-        }
-
-        @Override
-        protected void doSetNextReader(LeafReaderContext context) throws IOException {
-            // trigger keep-alive here as well
-            // in case we have a long running query without actual matches
-            for (LuceneCollectorExpression<?> expression : expressions) {
-                expression.setNextReader(context);
-            }
-        }
-    }
-
-    private static class DefaultBulkScorer extends BulkScorer {
-
-        private final Scorer scorer;
-        private final DocIdSetIterator iterator;
-
-        DefaultBulkScorer(Scorer scorer) {
-            this.scorer = scorer;
-            this.iterator = scorer.iterator();
-        }
-
-        @Override
-        public int score(LeafCollector collector, Bits acceptDocs, int min, int max) throws IOException {
-            // TODO: figure out if min/max can be used to optimize this and still work correctly with pause/resume
-            // and also check if twoPhaseIterator can be used
-            collector.setScorer(scorer);
-            for (int doc = iterator.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = iterator.nextDoc()) {
-                if (acceptDocs == null || acceptDocs.get(doc)) {
-                    collector.collect(doc);
-                }
-            }
-            return DocIdSetIterator.NO_MORE_DOCS;
-        }
-
-        @Override
-        public long cost() {
-            return iterator.cost();
-        }
     }
 }
