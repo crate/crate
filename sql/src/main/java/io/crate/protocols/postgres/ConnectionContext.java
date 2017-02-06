@@ -246,18 +246,23 @@ class ConnectionContext {
             ChannelBuffer buffer = (ChannelBuffer) m;
             final Channel channel = ctx.getChannel();
 
+            try {
+                dispatchState(buffer, channel);
+            } catch (Throwable t) {
+                ignoreTillSync = true;
+                try {
+                    Messages.sendErrorResponse(channel, t);
+                } catch (Throwable ti) {
+                    LOGGER.error("Error trying to send error to client: {}", t, ti);
+                }
+            }
+        }
+
+        private void dispatchState(ChannelBuffer buffer, Channel channel) {
             switch (state) {
                 case SSL_NEG:
                     state = STARTUP_HEADER;
-                    buffer.readInt(); // sslCode
-                    ChannelBuffer channelBuffer = ChannelBuffers.buffer(1);
-                    channelBuffer.writeByte('N');
-                    channel.write(channelBuffer).addListener(new ChannelFutureListener() {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception {
-                            LOGGER.trace("sent SSL neg: N");
-                        }
-                    });
+                    handleStartupHeader(buffer, channel);
                     return;
                 case STARTUP_HEADER:
                 case MSG_HEADER:
@@ -265,14 +270,7 @@ class ConnectionContext {
 
                 case STARTUP_BODY:
                     state = State.MSG_HEADER;
-                    session = readStartupMessage(buffer);
-                    Messages.sendAuthenticationOK(channel);
-
-                    Messages.sendParameterStatus(channel, "server_version", "9.5.0");
-                    Messages.sendParameterStatus(channel, "server_encoding", "UTF8");
-                    Messages.sendParameterStatus(channel, "client_encoding", "UTF8");
-                    Messages.sendParameterStatus(channel, "datestyle", "ISO");
-                    Messages.sendReadyForQuery(channel);
+                    handleStartupBody(buffer, channel);
                     return;
                 case MSG_BODY:
                     state = State.MSG_HEADER;
@@ -282,42 +280,46 @@ class ConnectionContext {
                         buffer.readBytes(msgLength);
                         return;
                     }
-                    switch (msgType) {
-                        case 'Q': // Query (simple)
-                            handleSimpleQuery(buffer, channel);
-                            return;
-                        case 'P':
-                            handleParseMessage(buffer, channel);
-                            return;
-                        case 'B':
-                            handleBindMessage(buffer, channel);
-                            return;
-                        case 'D':
-                            handleDescribeMessage(buffer, channel);
-                            return;
-                        case 'E':
-                            handleExecute(buffer, channel);
-                            return;
-                        case 'H':
-                            handleFlush(channel);
-                            return;
-                        case 'S':
-                            handleSync(channel);
-                            return;
-                        case 'C':
-                            handleClose(buffer, channel);
-                            return;
-                        case 'X': // Terminate (called when jdbc connection is closed)
-                            closeSession();
-                            channel.close();
-                            return;
-                        default:
-                            Messages.sendErrorResponse(channel, new UnsupportedOperationException(
-                                "Unsupported messageType: " + msgType));
-                            return;
-                    }
+                    dispatchMessage(buffer, channel);
+                    return;
             }
             throw new IllegalStateException("Illegal state: " + state);
+        }
+
+        private void dispatchMessage(ChannelBuffer buffer, Channel channel) {
+            switch (msgType) {
+                case 'Q': // Query (simple)
+                    handleSimpleQuery(buffer, channel);
+                    return;
+                case 'P':
+                    handleParseMessage(buffer, channel);
+                    return;
+                case 'B':
+                    handleBindMessage(buffer, channel);
+                    return;
+                case 'D':
+                    handleDescribeMessage(buffer, channel);
+                    return;
+                case 'E':
+                    handleExecute(buffer, channel);
+                    return;
+                case 'H':
+                    handleFlush(channel);
+                    return;
+                case 'S':
+                    handleSync(channel);
+                    return;
+                case 'C':
+                    handleClose(buffer, channel);
+                    return;
+                case 'X': // Terminate (called when jdbc connection is closed)
+                    closeSession();
+                    channel.close();
+                    return;
+                default:
+                    Messages.sendErrorResponse(channel,
+                        new UnsupportedOperationException("Unsupported messageType: " + msgType));
+            }
         }
 
         private void closeSession() {
@@ -329,20 +331,7 @@ class ConnectionContext {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
-            ignoreTillSync = true;
-            try {
-                Messages.sendErrorResponse(ctx.getChannel(), e.getCause());
-            } catch (Throwable t) {
-                try {
-                    LOGGER.error("Error trying to send error to client", t);
-                } catch (Throwable ti) {
-                    try {
-                        ti.printStackTrace(System.err);
-                    } catch (Throwable tx) {
-                        // prevent infinite exceptionCaught loop
-                    }
-                }
-            }
+            LOGGER.error("Uncaught exception: ", e.getCause());
         }
 
         @Override
@@ -350,6 +339,27 @@ class ConnectionContext {
             LOGGER.trace("channelDisconnected");
             closeSession();
             super.channelDisconnected(ctx, e);
+        }
+    }
+
+    private void handleStartupBody(ChannelBuffer buffer, Channel channel) {
+        session = readStartupMessage(buffer);
+        Messages.sendAuthenticationOK(channel);
+
+        Messages.sendParameterStatus(channel, "server_version", "9.5.0");
+        Messages.sendParameterStatus(channel, "server_encoding", "UTF8");
+        Messages.sendParameterStatus(channel, "client_encoding", "UTF8");
+        Messages.sendParameterStatus(channel, "datestyle", "ISO");
+        Messages.sendReadyForQuery(channel);
+    }
+
+    private void handleStartupHeader(ChannelBuffer buffer, Channel channel) {
+        buffer.readInt(); // sslCode
+        ChannelBuffer channelBuffer = ChannelBuffers.buffer(1);
+        channelBuffer.writeByte('N');
+        ChannelFuture channelFuture = channel.write(channelBuffer);
+        if (LOGGER.isTraceEnabled()) {
+            channelFuture.addListener(future -> LOGGER.trace("sent SSL neg: N"));
         }
     }
 

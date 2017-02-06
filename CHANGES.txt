@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue in the postgres protocol that could cause a StackOverflow
+   exception due to connection errors or malfunctioning clients.
+
  - BREAKING: Removed deprecated setting ``indices.fielddata.breaker`` that have
    been used as an alias for ``indices.breaker.fielddata``.
  
