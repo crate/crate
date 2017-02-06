@@ -29,7 +29,6 @@ import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.shade.org.postgresql.util.PSQLState;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;

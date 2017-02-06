@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue in the postgres protocol that could cause a StackOverflow
+   exception due to connection errors or malfunctioning clients.
+
  - Removed ``OVER`` support from SQL parser because the clause was completely
    ignored when executing a query wich also led to misleading results.
 
