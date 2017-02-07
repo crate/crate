@@ -38,7 +38,6 @@ import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.operation.reference.sys.check.SysNodeCheck;
 import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
-import io.crate.operation.reference.sys.node.SysNodesExpressionFactories;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
 import io.crate.operation.reference.sys.repositories.SysRepository;
@@ -81,7 +80,6 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
         tableFactories.put(InformationTablesTableInfo.IDENT, InformationSchemaExpressionFactories.tablesFactories());
         tableFactories.put(InformationSqlFeaturesTableInfo.IDENT, InformationSchemaExpressionFactories.sqlFeaturesFactories());
 
-        tableFactories.put(SysNodesTableInfo.IDENT, SysNodesExpressionFactories.getSysNodesTableInfoFactories());
         tableFactories.put(SysShardsTableInfo.IDENT, UnassignedShardsExpressionFactories.getSysShardsTableInfoFactories());
 
         tableFactories.put(PgTypeTable.IDENT, PgCatalogTables.pgTypeExpressions());

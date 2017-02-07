@@ -24,14 +24,12 @@ package io.crate.operation.reference.sys.node.local;
 
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RowCollectExpression;
-import io.crate.metadata.RowGranularity;
+import io.crate.metadata.*;
 import io.crate.monitor.DummyExtendedNodeInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
+import io.crate.operation.reference.sys.node.SysNodeStatsReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -52,6 +50,7 @@ import org.mockito.stubbing.Answer;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -65,7 +64,7 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings("unchecked")
 public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
-    private final RowContextReferenceResolver resolver = RowContextReferenceResolver.INSTANCE;
+    private final SysNodeStatsReferenceResolver resolver = SysNodeStatsReferenceResolver.newInstance();
     private static final NodeStatsContext CONTEXT = NodeStatsContext.newInstance();
 
     private CollectExpression collectExpression;
@@ -361,5 +360,21 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
         collectExpression = (CollectExpression) resolver.getImplementation(refInfo);
         collectExpression.setNextRow(CONTEXT);
         assertThat(collectExpression.value(), Matchers.<Object>is(new BytesRef(versionNumber)));
+    }
+
+    @Test
+    public void testSysNodeStatsResolverCachesChildExpressions() {
+        NodeStatsContext ctx = mock(NodeStatsContext.class);
+        Reference os = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
+        Reference timestamp = new Reference(
+            new ReferenceIdent(new TableIdent("sys", "nodes"), "os", Arrays.asList("timestamp")),
+            RowGranularity.NODE, DataTypes.LONG
+        );
+
+        RowCollectExpression osExpr = resolver.getImplementation(os);
+        RowCollectExpression tsExpr = resolver.getImplementation(timestamp);
+
+        // assert that the object references are equal, therefore expressions were cached
+        assertThat(osExpr.getChildImplementation("timestamp") == tsExpr, is(true));
     }
 }
