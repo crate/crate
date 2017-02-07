@@ -23,10 +23,8 @@
 package io.crate.operation.merge;
 
 import com.carrotsearch.hppc.IntArrayList;
-import com.google.common.base.Function;
 import com.google.common.collect.*;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 import static com.google.common.collect.Iterators.peekingIterator;
@@ -36,13 +34,6 @@ import static com.google.common.collect.Iterators.peekingIterator;
  */
 class RecordingSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow> implements SortedMergeIterator<TKey, TRow> {
 
-    private final Function<Iterable<TRow>, Iterator<TRow>> TO_ITERATOR = new Function<Iterable<TRow>, Iterator<TRow>>() {
-        @Nullable
-        @Override
-        public Iterator<TRow> apply(Iterable<TRow> input) {
-            return input.iterator();
-        }
-    };
     private final Queue<Indexed<TKey, PeekingIterator<TRow>>> queue;
     private Indexed<TKey, PeekingIterator<TRow>> lastUsedIter = null;
     private boolean leastExhausted = false;
@@ -123,13 +114,7 @@ class RecordingSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow
     }
 
     public Iterable<TRow> repeat() {
-        // TODO: make defensive copies?
-        return new Iterable<TRow>() {
-            @Override
-            public Iterator<TRow> iterator() {
-                return new ReplayingIterator<>(sortRecording.buffer, Iterables.transform(storedIterables, TO_ITERATOR));
-            }
-        };
+        return () -> new ReplayingIterator<>(sortRecording.buffer, Iterables.transform(storedIterables, Iterable::iterator));
     }
 
     static class ReplayingIterator<T> extends AbstractIterator<T> {
