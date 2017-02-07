@@ -46,7 +46,6 @@ import io.crate.monitor.MonitorModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.collect.CollectOperationModule;
 import io.crate.operation.collect.files.FileCollectModule;
-import io.crate.operation.merge.MergeOperationModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.reference.sys.check.SysChecksModule;
@@ -127,7 +126,6 @@ public class SQLPlugin extends Plugin {
         modules.add(new JobModule());
         modules.add(new CollectOperationModule());
         modules.add(new FileCollectModule());
-        modules.add(new MergeOperationModule());
         modules.add(new MetaDataModule());
         modules.add(new MetaDataSysModule());
         modules.add(new MetaDataBlobModule());

@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
@@ -34,11 +35,12 @@ import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.BucketPage;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
-import io.crate.metadata.RowGranularity;
+import io.crate.metadata.*;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
+import io.crate.operation.merge.IteratorPageDownstream;
+import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.ProjectorChain;
+import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.MergePhase;
@@ -70,7 +72,7 @@ import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.mock;
 
-public class PageDownstreamFactoryTest extends CrateUnitTest {
+public class IteratorPageDownstreamTest extends CrateUnitTest {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
@@ -78,13 +80,24 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
     private GroupProjection groupProjection;
     private Functions functions;
     private ThreadPool threadPool;
+    private ProjectorFactory projectorFactory;
 
     @Before
     @SuppressWarnings("unchecked")
     public void prepare() {
         threadPool = new ThreadPool("testing");
         functions = getFunctions();
-
+        projectorFactory = new ProjectionToProjectorVisitor(
+            mock(ClusterService.class),
+            functions,
+            new IndexNameExpressionResolver(Settings.EMPTY),
+            threadPool,
+            Settings.EMPTY,
+            mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
+            mock(BulkRetryCoordinatorPool.class),
+            new InputFactory(functions),
+            EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY)
+        );
         FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.asList(DataTypes.DOUBLE));
         FunctionInfo minAggInfo = new FunctionInfo(minAggIdent, DataTypes.DOUBLE);
 
@@ -124,17 +137,8 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         }
         Bucket rows = new ArrayBucket(objs);
         BucketPage page = new BucketPage(Futures.immediateFuture(rows));
-        final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
-            mock(ClusterService.class),
-            new IndexNameExpressionResolver(Settings.EMPTY),
-            threadPool,
-            Settings.EMPTY,
-            mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
-            mock(BulkRetryCoordinatorPool.class),
-            functions
-        );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        final PageDownstream pageDownstream = getPageDownstream(mergePhase, pageDownstreamFactory, rowReceiver);
+        final PageDownstream pageDownstream = getPageDownstream(mergePhase, rowReceiver);
         final SettableFuture<?> future = SettableFuture.create();
         pageDownstream.nextPage(page, new PageConsumeListener() {
             @Override
@@ -157,15 +161,18 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         ));
     }
 
-    private PageDownstream getPageDownstream(MergePhase mergePhase,
-                                             PageDownstreamFactory pageDownstreamFactory,
-                                             CollectingRowReceiver rowReceiver) {
-        return pageDownstreamFactory.createMergeNodePageDownstream(
-            mergePhase,
-            rowReceiver,
-            randomBoolean(),
-            RAM_ACCOUNTING_CONTEXT,
-            Optional.absent());
+    private PageDownstream getPageDownstream(MergePhase mergePhase, CollectingRowReceiver rowReceiver) {
+        return new IteratorPageDownstream(
+            ProjectorChain.prependProjectors(
+                rowReceiver,
+                mergePhase.projections(),
+                mergePhase.jobId(),
+                RAM_ACCOUNTING_CONTEXT,
+                projectorFactory
+            ),
+            PagingIterators.create(mergePhase.numUpstreams(), randomBoolean(), mergePhase.orderByPositions()),
+            Optional.absent()
+        );
     }
 
     @Test
@@ -180,17 +187,8 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
             Arrays.<Projection>asList(groupProjection),
             DistributionInfo.DEFAULT_BROADCAST,
             null);
-        final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
-            mock(ClusterService.class),
-            new IndexNameExpressionResolver(Settings.EMPTY),
-            threadPool,
-            Settings.EMPTY,
-            mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
-            mock(BulkRetryCoordinatorPool.class),
-            functions
-        );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        final PageDownstream pageDownstream = getPageDownstream(mergePhase, pageDownstreamFactory, rowReceiver);
+        final PageDownstream pageDownstream = getPageDownstream(mergePhase, rowReceiver);
 
         Bucket rows = new ArrayBucket(new Object[][]{{0, 100.0d}});
         BucketPage page1 = new BucketPage(Futures.immediateFuture(rows));

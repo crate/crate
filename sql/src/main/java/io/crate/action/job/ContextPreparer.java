@@ -33,13 +33,16 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
+import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
 import io.crate.jobs.*;
 import io.crate.metadata.Functions;
+import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.Routing;
 import io.crate.operation.*;
 import io.crate.operation.collect.JobCollectContext;
@@ -47,9 +50,8 @@ import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.fetch.FetchContext;
 import io.crate.operation.join.NestedLoopOperation;
-import io.crate.operation.projectors.DistributingDownstreamFactory;
-import io.crate.operation.projectors.ProjectorChain;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.merge.IteratorPageDownstream;
+import io.crate.operation.projectors.*;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
@@ -63,9 +65,10 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.types.DataTypes;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -78,7 +81,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.BitSet;
-import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -92,12 +94,10 @@ public class ContextPreparer extends AbstractComponent {
     private final CountOperation countOperation;
     private final ThreadPool threadPool;
     private final CircuitBreaker circuitBreaker;
-    private final CircuitBreaker noopCircuitBreaker;
-    private final PageDownstreamFactory pageDownstreamFactory;
     private final DistributingDownstreamFactory distributingDownstreamFactory;
     private final InnerPreparer innerPreparer;
     private final InputFactory inputFactory;
-
+    private final ProjectorFactory projectorFactory;
 
     @Inject
     public ContextPreparer(Settings settings,
@@ -106,8 +106,10 @@ public class ContextPreparer extends AbstractComponent {
                            CrateCircuitBreakerService breakerService,
                            CountOperation countOperation,
                            ThreadPool threadPool,
-                           PageDownstreamFactory pageDownstreamFactory,
                            DistributingDownstreamFactory distributingDownstreamFactory,
+                           TransportActionProvider transportActionProvider,
+                           IndexNameExpressionResolver indexNameExpressionResolver,
+                           BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                            Functions functions) {
         super(settings);
         nlContextLogger = Loggers.getLogger(NestedLoopContext.class, settings);
@@ -117,11 +119,21 @@ public class ContextPreparer extends AbstractComponent {
         this.countOperation = countOperation;
         this.threadPool = threadPool;
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
-        noopCircuitBreaker = new NoopCircuitBreaker(CrateCircuitBreakerService.QUERY);
-        this.pageDownstreamFactory = pageDownstreamFactory;
         this.distributingDownstreamFactory = distributingDownstreamFactory;
         innerPreparer = new InnerPreparer();
         inputFactory = new InputFactory(functions);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
+        this.projectorFactory = new ProjectionToProjectorVisitor(
+            clusterService,
+            functions,
+            indexNameExpressionResolver,
+            threadPool,
+            settings,
+            transportActionProvider,
+            bulkRetryCoordinatorPool,
+            inputFactory,
+            normalizer
+        );
     }
 
     public List<ListenableFuture<Bucket>> prepareOnRemote(Iterable<? extends NodeOperation> nodeOperations,
@@ -472,28 +484,23 @@ public class ContextPreparer extends AbstractComponent {
             int pageSize = Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.nodeIds().size());
             RowReceiver rowReceiver = context.getRowReceiver(phase, pageSize);
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+            rowReceiver = ProjectorChain.prependProjectors(
+                rowReceiver,
+                phase.projections(),
+                phase.jobId(),
+                ramAccountingContext,
+                projectorFactory
+            );
 
             if (upstreamOnSameNode) {
-                rowReceiver = ProjectorChain.prependProjectors(
-                    rowReceiver,
-                    phase.projections(),
-                    phase.jobId(),
-                    ramAccountingContext,
-                    pageDownstreamFactory.projectorFactory()
-                );
                 context.registerRowReceiver(phase.phaseId(), rowReceiver);
                 return false;
             }
 
-            PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
-                phase,
+            PageDownstream pageDownstream = new IteratorPageDownstream(
                 rowReceiver,
-                false,
-                ramAccountingContext,
-                // no separate executor because TransportDistributedResultAction already runs in a threadPool
-                Optional.<Executor>absent());
-
-
+                PagingIterators.create(phase.numUpstreams(), false, phase.orderByPositions()),
+                Optional.absent());
             context.registerSubContext(new PageDownstreamContext(
                 pageDownstreamContextLogger,
                 nodeName(),
@@ -568,7 +575,7 @@ public class ContextPreparer extends AbstractComponent {
             RowReceiver lastRR = context.getRowReceiver(phase, Paging.PAGE_SIZE);
 
             RowReceiver firstRR = ProjectorChain.prependProjectors(
-                lastRR, phase.projections(), phase.jobId(), ramAccountingContext, pageDownstreamFactory.projectorFactory());
+                lastRR, phase.projections(), phase.jobId(), ramAccountingContext, projectorFactory);
             Predicate<Row> joinCondition = RowFilter.create(inputFactory, phase.joinCondition());
 
             NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(
@@ -620,11 +627,12 @@ public class ContextPreparer extends AbstractComponent {
                 ctx.phaseIdToRowReceivers.put(toKey(nlPhaseId, inputId), downstream);
                 return null;
             }
-            PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
-                mergePhase,
+            downstream = ProjectorChain.prependProjectors(
+                downstream, mergePhase.projections(), mergePhase.jobId(), ramAccountingContext, projectorFactory);
+
+            PageDownstream pageDownstream = new IteratorPageDownstream(
                 downstream,
-                true,
-                ramAccountingContext,
+                PagingIterators.create(mergePhase.numUpstreams(), true, mergePhase.orderByPositions()),
                 Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
             );
             return new PageDownstreamContext(

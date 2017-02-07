@@ -21,9 +21,8 @@
 
 package io.crate.operation.merge;
 
-import com.google.common.collect.Ordering;
-
 import java.util.Collections;
+import java.util.Comparator;
 
 /**
  * A pagingIterator that sorts on consumption
@@ -37,16 +36,16 @@ public class SortedPagingIterator<TKey, TRow> implements PagingIterator<TKey, TR
     private boolean ignoreLeastExhausted = false;
 
     /**
-     * @param ordering    determining how the items are sorted
+     * @param comparator    determining how the items are sorted
      * @param needsRepeat if true additional internal state is kept in order to be able to repeat this iterator.
      *                    If this is false a call to {@link #repeat()} might result in an excaption, at best the behaviour is undefined.
      */
-    public SortedPagingIterator(Ordering<TRow> ordering, boolean needsRepeat) {
+    public SortedPagingIterator(Comparator<TRow> comparator, boolean needsRepeat) {
         if (needsRepeat) {
-            mergingIterator = new RecordingSortedMergeIterator<>(Collections.<KeyIterable<TKey, TRow>>emptyList(), ordering);
+            mergingIterator = new RecordingSortedMergeIterator<>(Collections.<KeyIterable<TKey, TRow>>emptyList(), comparator);
         } else {
             // does not support repeat !!!
-            mergingIterator = new PlainSortedMergeIterator<>(Collections.<KeyIterable<TKey, TRow>>emptyList(), ordering);
+            mergingIterator = new PlainSortedMergeIterator<>(Collections.<KeyIterable<TKey, TRow>>emptyList(), comparator);
         }
     }
 
