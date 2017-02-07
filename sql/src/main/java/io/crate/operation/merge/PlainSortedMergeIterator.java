@@ -37,21 +37,14 @@ import static com.google.common.collect.Iterators.peekingIterator;
  */
 class PlainSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow> implements SortedMergeIterator<TKey, TRow> {
 
-    final Queue<NumberedPeekingIterator<TKey, TRow>> queue;
-    NumberedPeekingIterator<TKey, TRow> lastUsedIter = null;
-    boolean leastExhausted = false;
+    private final Queue<NumberedPeekingIterator<TKey, TRow>> queue;
+    private NumberedPeekingIterator<TKey, TRow> lastUsedIter = null;
+    private boolean leastExhausted = false;
     private TKey exhausted;
 
-    public PlainSortedMergeIterator(Iterable<? extends KeyIterable<TKey, TRow>> iterables, final Comparator<? super TRow> itemComparator) {
-
-        Comparator<PeekingIterator<TRow>> heapComparator = new Comparator<PeekingIterator<TRow>>() {
-            @Override
-            public int compare(PeekingIterator<TRow> o1, PeekingIterator<TRow> o2) {
-                return itemComparator.compare(o1.peek(), o2.peek());
-            }
-        };
+    PlainSortedMergeIterator(final Comparator<? super TRow> itemComparator) {
+        Comparator<PeekingIterator<TRow>> heapComparator = (o1, o2) -> itemComparator.compare(o1.peek(), o2.peek());
         queue = new PriorityQueue<>(2, heapComparator);
-        addIterators(iterables);
     }
 
     private void addIterators(Iterable<? extends KeyIterable<TKey, TRow>> iterables) {
@@ -119,7 +112,7 @@ class PlainSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow> im
         private final TKey key;
         private final PeekingIterator<TRow> peekingIterator;
 
-        public NumberedPeekingIterator(TKey key, PeekingIterator<TRow> peekingIterator) {
+        NumberedPeekingIterator(TKey key, PeekingIterator<TRow> peekingIterator) {
             this.key = key;
             this.peekingIterator = peekingIterator;
         }

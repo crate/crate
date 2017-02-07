@@ -42,16 +42,11 @@ class RecordingSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow
     private final List<Iterable<TRow>> storedIterables = new ArrayList<>();
     private TKey exhausted;
 
-    public RecordingSortedMergeIterator(Iterable<? extends KeyIterable<TKey, TRow>> iterables, final Comparator<? super TRow> itemComparator) {
-        Comparator<Indexed<?, PeekingIterator<TRow>>> heapComparator = new Comparator<Indexed<?, PeekingIterator<TRow>>>() {
-            @Override
-            public int compare(Indexed<?, PeekingIterator<TRow>> o1, Indexed<?, PeekingIterator<TRow>> o2) {
-                return itemComparator.compare(o1.val.peek(), o2.val.peek());
-            }
+    RecordingSortedMergeIterator(final Comparator<? super TRow> itemComparator) {
+        Comparator<Indexed<?, PeekingIterator<TRow>>> heapComparator = (o1, o2) -> {
+            return itemComparator.compare(o1.val.peek(), o2.val.peek());
         };
         queue = new PriorityQueue<>(2, heapComparator);
-
-        addIterators(iterables);
     }
 
     @Override
@@ -82,7 +77,7 @@ class RecordingSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow
         return lastUsedIter.val.next();
     }
 
-    void addIterators(Iterable<? extends KeyIterable<TKey, TRow>> iterables) {
+    private void addIterators(Iterable<? extends KeyIterable<TKey, TRow>> iterables) {
         for (KeyIterable<TKey, TRow> rowIterable : iterables) {
             Iterator<TRow> rowIterator = rowIterable.iterator();
             if (rowIterator.hasNext()) {
@@ -154,7 +149,7 @@ class RecordingSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow
         private final TKey key;
 
 
-        public Indexed(int i, TKey key, TVal val) {
+        Indexed(int i, TKey key, TVal val) {
             this.i = i;
             this.key = key;
             this.val = val;

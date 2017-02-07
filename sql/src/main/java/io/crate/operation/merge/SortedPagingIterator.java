@@ -21,7 +21,6 @@
 
 package io.crate.operation.merge;
 
-import java.util.Collections;
 import java.util.Comparator;
 
 /**
@@ -42,10 +41,10 @@ public class SortedPagingIterator<TKey, TRow> implements PagingIterator<TKey, TR
      */
     public SortedPagingIterator(Comparator<TRow> comparator, boolean needsRepeat) {
         if (needsRepeat) {
-            mergingIterator = new RecordingSortedMergeIterator<>(Collections.<KeyIterable<TKey, TRow>>emptyList(), comparator);
+            mergingIterator = new RecordingSortedMergeIterator<>(comparator);
         } else {
             // does not support repeat !!!
-            mergingIterator = new PlainSortedMergeIterator<>(Collections.<KeyIterable<TKey, TRow>>emptyList(), comparator);
+            mergingIterator = new PlainSortedMergeIterator<>(comparator);
         }
     }
 
