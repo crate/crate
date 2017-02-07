@@ -71,7 +71,6 @@ public class TransportActionProvider {
     private final Provider<TransportCreateSnapshotAction> transportCreateSnapshotActionProvider;
     private final Provider<TransportDeleteSnapshotAction> transportDeleteSnapshotActionProvider;
     private final Provider<TransportRestoreSnapshotAction> transportRestoreSnapshotActionProvider;
-    private final Provider<TransportNodeStatsAction> transportStatTablesActionProvider;
 
     @Inject
     public TransportActionProvider(Provider<TransportFetchNodeAction> transportFetchNodeActionProvider,
@@ -95,8 +94,7 @@ public class TransportActionProvider {
                                    Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider,
                                    Provider<TransportDeleteSnapshotAction> transportDeleteSnapshotActionProvider,
                                    Provider<TransportCreateSnapshotAction> transportCreateSnapshotActionProvider,
-                                   Provider<TransportRestoreSnapshotAction> transportRestoreSnapshotActionProvider,
-                                   Provider<TransportNodeStatsAction> transportStatTablesActionProvider) {
+                                   Provider<TransportRestoreSnapshotAction> transportRestoreSnapshotActionProvider) {
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportPutIndexTemplateActionProvider = transportPutIndexTemplateActionProvider;
@@ -119,7 +117,6 @@ public class TransportActionProvider {
         this.transportDeleteSnapshotActionProvider = transportDeleteSnapshotActionProvider;
         this.transportCreateSnapshotActionProvider = transportCreateSnapshotActionProvider;
         this.transportRestoreSnapshotActionProvider = transportRestoreSnapshotActionProvider;
-        this.transportStatTablesActionProvider = transportStatTablesActionProvider;
     }
 
     public TransportCreateIndexAction transportCreateIndexAction() {
@@ -208,9 +205,5 @@ public class TransportActionProvider {
 
     public TransportRestoreSnapshotAction transportRestoreSnapshotAction() {
         return transportRestoreSnapshotActionProvider.get();
-    }
-
-    public TransportNodeStatsAction transportStatTablesActionProvider() {
-        return transportStatTablesActionProvider.get();
     }
 }

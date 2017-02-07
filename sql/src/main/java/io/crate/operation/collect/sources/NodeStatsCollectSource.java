@@ -27,7 +27,7 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.executor.transport.TransportActionProvider;
+import io.crate.executor.transport.TransportNodeStatsAction;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.InputFactory;
@@ -54,18 +54,18 @@ import java.util.List;
 @Singleton
 public class NodeStatsCollectSource implements CollectSource {
 
-    private final TransportActionProvider transportActionProvider;
+    private final TransportNodeStatsAction nodeStatsAction;
     private final NodeSysExpression nodeSysExpression;
     private final ClusterService clusterService;
     private final Functions functions;
     private final InputFactory inputFactory;
 
     @Inject
-    public NodeStatsCollectSource(TransportActionProvider transportActionProvider,
+    public NodeStatsCollectSource(TransportNodeStatsAction nodeStatsAction,
                                   NodeSysExpression nodeSysExpression,
                                   ClusterService clusterService,
                                   Functions functions) {
-        this.transportActionProvider = transportActionProvider;
+        this.nodeStatsAction = nodeStatsAction;
         this.nodeSysExpression = nodeSysExpression;
         this.clusterService = clusterService;
         this.inputFactory = new InputFactory(functions);
@@ -87,8 +87,8 @@ public class NodeStatsCollectSource implements CollectSource {
         if (nodes.isEmpty()) {
             return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
         }
-        return ImmutableList.<CrateCollector>of(new NodeStatsCollector(
-                transportActionProvider.transportStatTablesActionProvider(),
+        return ImmutableList.of(new NodeStatsCollector(
+                nodeStatsAction,
                 downstream,
                 collectPhase,
                 nodes,
