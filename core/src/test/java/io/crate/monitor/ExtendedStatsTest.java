@@ -47,7 +47,8 @@ public class ExtendedStatsTest {
     public void testExtendedOsStatsSerialization() throws IOException {
         ExtendedOsStats statOut = new ExtendedOsStats();
         statOut.loadAverage(new double[]{1.1, 2.3});
-        statOut.timestamp(1L);
+        statOut.probeTimestamp(1L);
+        statOut.updateTimestamp();
         statOut.uptime(2L);
         statOut.cpu(new ExtendedOsStats.Cpu((short) 1, (short) 2, (short) 3, (short) 4));
         statOut.writeTo(out);
@@ -56,6 +57,7 @@ public class ExtendedStatsTest {
         ExtendedOsStats statIn = ExtendedOsStats.readExtendedOsStat(in);
 
         assertThat(statOut.uptime(), is(statIn.uptime()));
+        assertThat(statOut.probeTimestamp(), is(statIn.probeTimestamp()));
         assertThat(statOut.timestamp(), is(statIn.timestamp()));
         assertThat(Arrays.equals(statIn.loadAverage(), statIn.loadAverage()), is(true));
         assertThat(statOut.cpu().idle(), is(statIn.cpu().idle()));

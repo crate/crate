@@ -37,7 +37,7 @@ public class NodeLoadExpression extends NestedObjectExpression {
         childImplementations.put(ONE, new LoadExpression(os, 0));
         childImplementations.put(FIVE, new LoadExpression(os, 1));
         childImplementations.put(FIFTEEN, new LoadExpression(os, 2));
-        childImplementations.put(PROBE_TIMESTAMP, os::timestamp);
+        childImplementations.put(PROBE_TIMESTAMP, os::probeTimestamp);
     }
 
     private static class LoadExpression implements ReferenceImplementation<Double> {

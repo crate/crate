@@ -30,7 +30,7 @@ public class ZeroExtendedNodeInfo implements ExtendedNodeInfo {
     private static final ExtendedNetworkInfo NETWORK_INFO = new ExtendedNetworkInfo(ExtendedNetworkInfo.NA_INTERFACE);
     private static final ExtendedFsStats FS_STATS = new ExtendedFsStats(new ExtendedFsStats.Info());
     private static final ExtendedOsStats OS_STATS = new ExtendedOsStats(new ExtendedOsStats.Cpu());
-    private static final ExtendedOsInfo OS_INFO = new ExtendedOsInfo(Collections.<String, Object>emptyMap());
+    private static final ExtendedOsInfo OS_INFO = new ExtendedOsInfo(Collections.emptyMap());
     private static final ExtendedProcessCpuStats PROCESS_CPU_STATS = new ExtendedProcessCpuStats();
 
     @Override
@@ -50,6 +50,7 @@ public class ZeroExtendedNodeInfo implements ExtendedNodeInfo {
 
     @Override
     public ExtendedOsStats osStats() {
+        OS_STATS.updateTimestamp();
         return OS_STATS;
     }
 
