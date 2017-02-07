@@ -32,8 +32,8 @@ import io.crate.operation.merge.IteratorPageDownstream;
 import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.merge.SortedPagingIterator;
-import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.ProjectorChain;
 import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
@@ -86,16 +86,13 @@ public class PageDownstreamFactory {
                                                         boolean requiresRepeatSupport,
                                                         RamAccountingContext ramAccountingContext,
                                                         Optional<Executor> executorOptional) {
-        if (!mergePhase.projections().isEmpty()) {
-            FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(
-                projectionToProjectorVisitor,
-                ramAccountingContext,
-                mergePhase.projections(),
-                downstream,
-                mergePhase.jobId()
-            );
-            downstream = projectorChain.firstProjector();
-        }
+        downstream = ProjectorChain.prependProjectors(
+            downstream,
+            mergePhase.projections(),
+            mergePhase.jobId(),
+            ramAccountingContext,
+            projectionToProjectorVisitor
+        );
 
         PagingIterator<Void, Row> pagingIterator;
         PositionalOrderBy positionalOrderBy = mergePhase.orderByPositions();
@@ -106,7 +103,7 @@ public class PageDownstreamFactory {
             );
         } else {
             pagingIterator = requiresRepeatSupport ?
-                PassThroughPagingIterator.<Void, Row>repeatable() : PassThroughPagingIterator.<Void, Row>oneShot();
+                PassThroughPagingIterator.repeatable() : PassThroughPagingIterator.oneShot();
         }
         return new IteratorPageDownstream(downstream, pagingIterator, executorOptional);
     }

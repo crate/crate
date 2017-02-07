@@ -31,8 +31,8 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.shard.RecoveryShardReferenceResolver;
-import io.crate.operation.InputFactory;
 import io.crate.operation.Input;
+import io.crate.operation.InputFactory;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.*;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -135,16 +135,13 @@ public abstract class ShardCollectorProvider {
         if (shardProjections.isEmpty()) {
             return builder;
         } else {
-            final FlatProjectorChain.Builder chainBuilder = new FlatProjectorChain.Builder(
+            return rowReceiver -> builder.build(ProjectorChain.prependProjectors(
+                rowReceiver,
+                shardProjections,
                 normalizedCollectNode.jobId(),
                 jobCollectContext.queryPhaseRamAccountingContext(),
-                projectorFactory,
-                shardProjections
-            );
-            return rowReceiver -> {
-                FlatProjectorChain chain = chainBuilder.build(rowReceiver);
-                return builder.build(chain.firstProjector());
-            };
+                projectorFactory
+            ));
         }
     }
 

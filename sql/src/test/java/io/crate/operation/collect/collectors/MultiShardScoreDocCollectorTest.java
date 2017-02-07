@@ -28,7 +28,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.operation.merge.KeyIterable;
-import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
@@ -61,12 +60,11 @@ public class MultiShardScoreDocCollectorTest {
         collectors.add(mockedCollector(new ShardId("p1", 1), 10, singleColRows(3, 3)));
 
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withLimit(6);
-        FlatProjectorChain projectorChain = FlatProjectorChain.withReceivers(Collections.singletonList(rowReceiver));
 
         MultiShardScoreDocCollector docCollector = new MultiShardScoreDocCollector(
             collectors,
             rowOrdering,
-            projectorChain,
+            rowReceiver,
             executor
         );
         docCollector.doCollect();

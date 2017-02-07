@@ -22,7 +22,6 @@
 package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Function;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.Constants;
 import io.crate.analyze.EvaluatingNormalizer;
@@ -122,11 +121,10 @@ public class ESGetTask extends JobTask {
 
         @Override
         protected void innerPrepare() throws Exception {
-            FlatProjectorChain projectorChain = getFlatProjectorChain(downstream);
-            downstream = projectorChain.firstProjector();
+            downstream = prependProjectors(downstream);
         }
 
-        private FlatProjectorChain getFlatProjectorChain(RowReceiver downstream) {
+        private RowReceiver prependProjectors(RowReceiver downstream) {
             if (task.esGet.limit() > TopN.NO_LIMIT || task.esGet.offset() > 0 || !task.esGet.sortSymbols().isEmpty()) {
                 List<Symbol> orderBySymbols = new ArrayList<>(task.esGet.sortSymbols().size());
                 for (Symbol symbol : task.esGet.sortSymbols()) {
@@ -151,15 +149,15 @@ public class ESGetTask extends JobTask {
                         task.esGet.nullsFirst()
                     );
                 }
-                return FlatProjectorChain.withAttachedDownstream(
-                    task.projectorFactory,
-                    null,
-                    ImmutableList.of(projection),
+                return ProjectorChain.prependProjectors(
                     downstream,
-                    task.jobId()
+                    Collections.singletonList(projection),
+                    task.jobId(),
+                    null,
+                    task.projectorFactory
                 );
             } else {
-                return FlatProjectorChain.withReceivers(ImmutableList.of(downstream));
+                return downstream;
             }
         }
 

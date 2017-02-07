@@ -230,25 +230,25 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         String localNodeId = clusterService.localNode().getId();
 
 
-        FlatProjectorChain chain = FlatProjectorChain.withAttachedDownstream(
-            sharedProjectorFactory,
-            jobCollectContext.queryPhaseRamAccountingContext(),
-            Projections.nodeProjections(normalizedPhase.projections()),
+        RowReceiver firstNodeRR = ProjectorChain.prependProjectors(
             lastRR,
-            collectPhase.jobId());
-
+            Projections.nodeProjections(normalizedPhase.projections()),
+            collectPhase.jobId(),
+            jobCollectContext.queryPhaseRamAccountingContext(),
+            sharedProjectorFactory
+        );
         if (normalizedPhase.maxRowGranularity() == RowGranularity.SHARD) {
             // it's possible to use FlatProjectorChain instead of ShardProjectorChain as a shortcut because
             // the rows are "pre-created" on a shard level.
             // The getShardsCollector method always only uses a single RowReceiver and not one per shard)
             return Collections.singletonList(
-                getShardsCollector(collectPhase, normalizedPhase, localNodeId, chain));
+                getShardsCollector(collectPhase, normalizedPhase, localNodeId, firstNodeRR));
         }
         OrderBy orderBy = normalizedPhase.orderBy();
         if (normalizedPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
             return ImmutableList.of(createMultiShardScoreDocCollector(
                 normalizedPhase,
-                chain,
+                firstNodeRR,
                 jobCollectContext,
                 localNodeId)
             );
@@ -266,7 +266,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 getDocCollectors(jobCollectContext, normalizedPhase, lastRR.requirements(), indexShards));
         }
 
-        RowReceiver firstNodeRR = chain.firstProjector();
         switch (builders.size()) {
             case 0:
                 return Collections.singletonList(RowsCollector.empty(firstNodeRR));
@@ -292,7 +291,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     }
 
     private CrateCollector createMultiShardScoreDocCollector(RoutedCollectPhase collectPhase,
-                                                             FlatProjectorChain flatProjectorChain,
+                                                             RowReceiver rowReceiver,
                                                              JobCollectContext jobCollectContext,
                                                              String localNodeId) {
 
@@ -312,7 +311,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     orderedDocCollectors.add(shardCollectorProvider.getOrderedCollector(collectPhase,
                         context,
                         jobCollectContext,
-                        flatProjectorChain.firstProjector().requirements().contains(Requirement.REPEAT)));
+                        rowReceiver.requirements().contains(Requirement.REPEAT)));
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     throw e;
                 } catch (IndexNotFoundException e) {
@@ -335,7 +334,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 orderBy.reverseFlags(),
                 orderBy.nullsFirst()
             ),
-            flatProjectorChain,
+            rowReceiver,
             executor
         );
     }
@@ -396,7 +395,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private CrateCollector getShardsCollector(RoutedCollectPhase collectPhase,
                                               RoutedCollectPhase normalizedPhase,
                                               String localNodeId,
-                                              FlatProjectorChain flatProjectorChain) {
+                                              RowReceiver rowReceiver) {
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         List<UnassignedShard> unassignedShards = new ArrayList<>();
         List<Object[]> rows = new ArrayList<>();
@@ -444,7 +443,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         }
 
         return new RowsCollector(
-            flatProjectorChain.firstProjector(),
+            rowReceiver,
             Iterables.transform(rows, Buckets.arrayToRowFunction()));
     }
 

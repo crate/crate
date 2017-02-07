@@ -61,20 +61,20 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
 
     public MultiShardScoreDocCollector(final List<OrderedDocCollector> orderedDocCollectors,
                                        Ordering<Row> rowOrdering,
-                                       FlatProjectorChain flatProjectorChain,
+                                       RowReceiver rowReceiver,
                                        ListeningExecutorService executor) {
         assert orderedDocCollectors.size() > 0 : "must have at least one shardContext";
         this.directExecutor = MoreExecutors.newDirectExecutorService();
         this.executor = executor;
-        rowReceiver = flatProjectorChain.firstProjector();
+        this.rowReceiver = rowReceiver;
         this.orderedDocCollectors = orderedDocCollectors;
         singleShard = orderedDocCollectors.size() == 1;
 
         boolean needsRepeat = rowReceiver.requirements().contains(Requirement.REPEAT);
         if (singleShard) {
             pagingIterator = needsRepeat ?
-                PassThroughPagingIterator.<ShardId, Row>repeatable() :
-                PassThroughPagingIterator.<ShardId, Row>oneShot();
+                PassThroughPagingIterator.repeatable() :
+                PassThroughPagingIterator.oneShot();
             orderedCollectorsMap = null;
             futureCallback = null;
         } else {

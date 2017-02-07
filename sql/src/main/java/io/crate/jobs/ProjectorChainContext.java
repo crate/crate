@@ -62,14 +62,13 @@ public class ProjectorChainContext extends AbstractExecutionSubContext {
                 ProjectorChainContext.this.close(t);
             }
         });
-        FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(
-            projectorFactory,
-            ramAccountingContext,
-            projections,
+        this.rowReceiver = ProjectorChain.prependProjectors(
             listenableRowReceiver,
-            jobId
+            projections,
+            jobId,
+            ramAccountingContext,
+            projectorFactory
         );
-        this.rowReceiver = projectorChain.firstProjector();
     }
 
     @Override

@@ -48,7 +48,7 @@ import io.crate.operation.count.CountOperation;
 import io.crate.operation.fetch.FetchContext;
 import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.DistributingDownstreamFactory;
-import io.crate.operation.projectors.FlatProjectorChain;
+import io.crate.operation.projectors.ProjectorChain;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -573,25 +573,15 @@ public class ContextPreparer extends AbstractComponent {
         @Override
         public Boolean visitNestedLoopPhase(NestedLoopPhase phase, PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
-            RowReceiver downstreamRowReceiver = context.getRowReceiver(phase, Paging.PAGE_SIZE);
+            RowReceiver lastRR = context.getRowReceiver(phase, Paging.PAGE_SIZE);
 
-            FlatProjectorChain flatProjectorChain;
-            if (!phase.projections().isEmpty()) {
-                flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
-                    pageDownstreamFactory.projectorFactory(),
-                    ramAccountingContext,
-                    phase.projections(),
-                    downstreamRowReceiver,
-                    phase.jobId()
-                );
-            } else {
-                flatProjectorChain = FlatProjectorChain.withReceivers(Collections.singletonList(downstreamRowReceiver));
-            }
+            RowReceiver firstRR = ProjectorChain.prependProjectors(
+                lastRR, phase.projections(), phase.jobId(), ramAccountingContext, pageDownstreamFactory.projectorFactory());
             Predicate<Row> joinCondition = RowFilter.create(inputFactory, phase.joinCondition());
 
             NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(
                 phase.phaseId(),
-                flatProjectorChain.firstProjector(),
+                firstRR,
                 joinCondition,
                 phase.joinType(),
                 phase.numLeftOutputs(),
@@ -656,6 +646,7 @@ public class ContextPreparer extends AbstractComponent {
                 mergePhase.numUpstreams());
         }
     }
+
 
     private static long toKey(int phaseId, byte inputId) {
         long l = (long) phaseId;
