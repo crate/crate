@@ -23,7 +23,6 @@
 package io.crate.operation.collect.collectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import io.crate.action.job.JobRequest;
 import io.crate.action.job.JobResponse;
 import io.crate.action.job.TransportJobAction;
@@ -37,7 +36,6 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.merge.IteratorPageDownstream;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.RowReceiver;
@@ -50,7 +48,6 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.UUID;
-import java.util.concurrent.Executor;
 
 public class RemoteCollector implements CrateCollector {
 
@@ -156,7 +153,7 @@ public class RemoteCollector implements CrateCollector {
     private JobExecutionContext.Builder createPageDownstreamContext() {
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNode);
 
-        PassThroughPagingIterator<Void, Row> pagingIterator;
+        PassThroughPagingIterator<Integer, Row> pagingIterator;
         if (rowReceiver.requirements().contains(Requirement.REPEAT)) {
             pagingIterator = PassThroughPagingIterator.repeatable();
         } else {
@@ -167,7 +164,9 @@ public class RemoteCollector implements CrateCollector {
             localNode,
             RECEIVER_PHASE_ID,
             "remoteCollectReceiver",
-            new IteratorPageDownstream(rowReceiver, pagingIterator, Optional.<Executor>absent()),
+            java.util.Optional.empty(),
+            rowReceiver,
+            pagingIterator,
             DataTypes.getStreamers(collectPhase.outputTypes()),
             ramAccountingContext,
             1

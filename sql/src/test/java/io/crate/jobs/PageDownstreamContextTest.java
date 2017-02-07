@@ -23,65 +23,70 @@ package io.crate.jobs;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.Row1;
-import io.crate.data.SingleRowBucket;
-import io.crate.operation.PageDownstream;
+import io.crate.data.*;
 import io.crate.operation.PageResultListener;
+import io.crate.operation.merge.PagingIterator;
+import io.crate.operation.merge.PassThroughPagingIterator;
+import io.crate.operation.merge.SortedPagingIterator;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.logging.Loggers;
-import org.hamcrest.Matchers;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
+import java.util.Comparator;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.mockito.Matchers.notNull;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
 
 public class PageDownstreamContextTest extends CrateUnitTest {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
+    private PageDownstreamContext getPageDownstreamContext(CollectingRowReceiver rowReceiver,
+                                                           PagingIterator<Integer, Row> pagingIterator,
+                                                           int numBuckets) {
+        return new PageDownstreamContext(
+            Loggers.getLogger(PageDownstreamContext.class),
+            "n1",
+            1,
+            "dummy",
+            Optional.empty(),
+            rowReceiver,
+            pagingIterator,
+            new Streamer[0],
+            RAM_ACCOUNTING_CONTEXT,
+            numBuckets
+        );
+    }
+
     @Test
     public void testCantSetSameBucketTwiceWithoutReceivingFullPage() throws Exception {
-        final AtomicReference<Throwable> ref = new AtomicReference<>();
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
 
-        PageDownstream pageDownstream = mock(PageDownstream.class);
-        doAnswer(new Answer() {
-            @Override
-            public Void answer(InvocationOnMock invocation) throws Throwable {
-                ref.set((Throwable) invocation.getArguments()[0]);
-                return null;
-            }
-        }).when(pageDownstream).fail((Throwable) notNull());
-
-        PageBucketReceiver ctx = new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",
-            1, "dummy", pageDownstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3);
+        PageBucketReceiver ctx = getPageDownstreamContext(rowReceiver, PassThroughPagingIterator.oneShot(), 3);
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
         ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
 
-        Throwable t = ref.get();
-        assertThat(t, instanceOf(IllegalStateException.class));
-        assertThat(t.getMessage(), is("Same bucket of a page set more than once. node=n1 method=setBucket phaseId=1 bucket=1"));
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage("Same bucket of a page set more than once. node=n1 method=setBucket phaseId=1 bucket=1");
+        rowReceiver.result();
     }
 
     @Test
     public void testKillCallsDownstream() throws Exception {
-        PageDownstream downstream = mock(PageDownstream.class);
-
-        PageDownstreamContext ctx = new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",
-            1, "dummy", downstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        PageDownstreamContext ctx = getPageDownstreamContext(rowReceiver, PassThroughPagingIterator.oneShot(), 3);
 
         final AtomicReference<Throwable> throwable = new AtomicReference<>();
-
         ctx.completionFuture().whenComplete((r, t) -> {
             if (t != null) {
                 assertTrue(throwable.compareAndSet(null, t));
@@ -91,7 +96,54 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         });
 
         ctx.kill(null);
-        assertThat(throwable.get(), Matchers.instanceOf(InterruptedException.class));
-        verify(downstream, times(1)).kill(any(InterruptedException.class));
+        assertThat(throwable.get(), instanceOf(InterruptedException.class));
+
+        expectedException.expectCause(instanceOf(InterruptedException.class));
+        rowReceiver.result();
+    }
+
+    @Test
+    public void testPagingWithSortedPagingIterator() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        PageDownstreamContext ctx = getPageDownstreamContext(
+            rowReceiver,
+            new SortedPagingIterator<>(Comparator.comparingInt(r -> (int)r.get(0)), false),
+            2
+        );
+
+        Bucket b1 = new ArrayBucket(new Object[][]{
+            new Object[]{1},
+            new Object[]{1},
+        });
+        Bucket b11 = new ArrayBucket(new Object[][]{
+            new Object[]{2},
+            new Object[]{2},
+        });
+        ctx.setBucket(0, b1, false, new PageResultListener() {
+            @Override
+            public void needMore(boolean needMore) {
+                if (needMore) {
+                    ctx.setBucket(0, b11, true, mock(PageResultListener.class));
+                }
+            }
+
+            @Override
+            public int buckedIdx() {
+                return 0;
+            }
+        });
+        Bucket b2 = new ArrayBucket(new Object[][] {
+            new Object[] { 4 }
+        });
+        ctx.setBucket(1, b2, true, mock(PageResultListener.class));
+
+
+        Bucket result = rowReceiver.result();
+        assertThat(TestingHelpers.printedTable(result),
+            is("1\n" +
+               "1\n" +
+               "2\n" +
+               "2\n" +
+               "4\n"));
     }
 }

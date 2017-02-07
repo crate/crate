@@ -25,7 +25,6 @@ import com.carrotsearch.hppc.*;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
@@ -50,7 +49,6 @@ import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.fetch.FetchContext;
 import io.crate.operation.join.NestedLoopOperation;
-import io.crate.operation.merge.IteratorPageDownstream;
 import io.crate.operation.projectors.*;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -496,17 +494,14 @@ public class ContextPreparer extends AbstractComponent {
                 context.registerRowReceiver(phase.phaseId(), rowReceiver);
                 return false;
             }
-
-            PageDownstream pageDownstream = new IteratorPageDownstream(
-                rowReceiver,
-                PagingIterators.create(phase.numUpstreams(), false, phase.orderByPositions()),
-                Optional.absent());
             context.registerSubContext(new PageDownstreamContext(
                 pageDownstreamContextLogger,
                 nodeName(),
                 phase.phaseId(),
                 phase.name(),
-                pageDownstream,
+                java.util.Optional.empty(),
+                rowReceiver,
+                PagingIterators.create(phase.numUpstreams(), false, phase.orderByPositions()),
                 DataTypes.getStreamers(phase.inputTypes()),
                 ramAccountingContext,
                 phase.numUpstreams()));
@@ -629,18 +624,14 @@ public class ContextPreparer extends AbstractComponent {
             }
             downstream = ProjectorChain.prependProjectors(
                 downstream, mergePhase.projections(), mergePhase.jobId(), ramAccountingContext, projectorFactory);
-
-            PageDownstream pageDownstream = new IteratorPageDownstream(
-                downstream,
-                PagingIterators.create(mergePhase.numUpstreams(), true, mergePhase.orderByPositions()),
-                Optional.of(threadPool.executor(ThreadPool.Names.SEARCH))
-            );
             return new PageDownstreamContext(
                 pageDownstreamContextLogger,
                 nodeName(),
                 mergePhase.phaseId(),
                 mergePhase.name(),
-                pageDownstream,
+                java.util.Optional.of(threadPool.executor(ThreadPool.Names.SEARCH)),
+                downstream,
+                PagingIterators.create(mergePhase.numUpstreams(), true, mergePhase.orderByPositions()),
                 StreamerVisitor.streamersFromOutputs(mergePhase),
                 ramAccountingContext,
                 mergePhase.numUpstreams());

@@ -33,9 +33,9 @@ import javax.annotation.Nullable;
 public class PagingIterators {
 
 
-    public static PagingIterator<Void, Row> create(int numUpstreams,
-                                                   boolean requiresRepeat,
-                                                   @Nullable PositionalOrderBy orderBy) {
+    public static PagingIterator<Integer, Row> create(int numUpstreams,
+                                                      boolean requiresRepeat,
+                                                      @Nullable PositionalOrderBy orderBy) {
         if (numUpstreams == 1 || orderBy == null) {
             if (requiresRepeat) {
                 return PassThroughPagingIterator.repeatable();
