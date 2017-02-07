@@ -471,28 +471,20 @@ public class ContextPreparer extends AbstractComponent {
 
             int pageSize = Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.nodeIds().size());
             RowReceiver rowReceiver = context.getRowReceiver(phase, pageSize);
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
 
             if (upstreamOnSameNode) {
-                if (!phase.projections().isEmpty()) {
-                    RamAccountingContext noopRamAccountingContext = RamAccountingContext.forExecutionPhase(noopCircuitBreaker, phase);
-                    ProjectorChainContext projectorChainContext = new ProjectorChainContext(
-                        phase.phaseId(),
-                        phase.name(),
-                        context.jobId(),
-                        pageDownstreamFactory.projectorFactory(),
-                        phase.projections(),
-                        rowReceiver,
-                        noopRamAccountingContext);
-                    context.registerRowReceiver(phase.phaseId(), projectorChainContext.rowReceiver());
-                    context.registerSubContext(projectorChainContext);
-                    return true;
-                }
-
+                rowReceiver = ProjectorChain.prependProjectors(
+                    rowReceiver,
+                    phase.projections(),
+                    phase.jobId(),
+                    ramAccountingContext,
+                    pageDownstreamFactory.projectorFactory()
+                );
                 context.registerRowReceiver(phase.phaseId(), rowReceiver);
                 return false;
             }
 
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
             PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
                 phase,
                 rowReceiver,
