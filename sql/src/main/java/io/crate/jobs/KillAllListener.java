@@ -25,7 +25,7 @@ import java.util.UUID;
 
 public interface KillAllListener {
 
-    void killAllJobs(long timestamp);
+    void killAllJobs();
 
     void killJob(UUID job);
 }

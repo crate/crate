@@ -41,7 +41,8 @@ import java.util.UUID;
 import java.util.concurrent.*;
 
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class RamAccountingQueueSinkTest extends CrateUnitTest {
 
@@ -53,10 +54,7 @@ public class RamAccountingQueueSinkTest extends CrateUnitTest {
     private static class NoopLog implements ContextLog {
         NoopLog() {
         }
-        @Override
-        public long started() {
-            return 0;
-        }
+
         @Override
         public long ended() {
             return 0;

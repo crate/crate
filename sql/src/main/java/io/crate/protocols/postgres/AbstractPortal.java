@@ -29,9 +29,9 @@ import io.crate.executor.Executor;
 abstract class AbstractPortal implements Portal {
 
     protected final String name;
-    protected final PortalContext portalContext;
+    final PortalContext portalContext;
     final SessionContext sessionContext;
-    protected boolean synced = false;
+    boolean synced = false;
 
     AbstractPortal(String name, Analyzer analyzer, Executor executor, boolean isReadOnly, SessionContext sessionContext) {
         this.name = name;
@@ -43,11 +43,6 @@ abstract class AbstractPortal implements Portal {
         this.name = name;
         this.portalContext = portalContext;
         this.sessionContext = sessionContext;
-    }
-
-    @Override
-    public String name() {
-        return name;
     }
 
     @Override

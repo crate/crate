@@ -56,7 +56,6 @@ public class JobContextLog implements ContextLog {
         return jobContext.stmt;
     }
 
-    @Override
     public long started() {
         return jobContext.started;
     }

@@ -52,7 +52,6 @@ public class OperationContextLog implements ContextLog {
         return operationContext.name;
     }
 
-    @Override
     public long started() {
         return operationContext.started;
     }

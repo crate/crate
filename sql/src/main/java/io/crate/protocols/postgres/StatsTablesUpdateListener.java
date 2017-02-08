@@ -25,8 +25,6 @@ package io.crate.protocols.postgres;
 import io.crate.exceptions.Exceptions;
 import io.crate.operation.collect.stats.StatsTables;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 
@@ -43,17 +41,9 @@ public class StatsTablesUpdateListener implements BiConsumer<Object, Throwable> 
     @Override
     public void accept(Object o, Throwable t) {
         if (t == null) {
-            onSuccess(o);
+            statsTables.logExecutionEnd(jobId, null);
         } else {
-            onFailure(t);
+            statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
         }
-    }
-
-    private void onSuccess(@Nullable Object result) {
-        statsTables.logExecutionEnd(jobId, null);
-    }
-
-    private void onFailure(@Nonnull Throwable t) {
-        statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
     }
 }

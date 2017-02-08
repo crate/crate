@@ -35,7 +35,7 @@ class SQLBulkArgsParseElement extends SQLArgsParseElement implements SQLParseEle
         XContentParser.Token token = parser.currentToken();
 
         if (token != XContentParser.Token.START_ARRAY) {
-            throw new SQLParseSourceException(context, "Field [" + parser.currentName() + "] has an invalid value");
+            throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
         }
 
         Object[][] params = parseSubArrays(context, parser);
@@ -49,7 +49,7 @@ class SQLBulkArgsParseElement extends SQLArgsParseElement implements SQLParseEle
             if (token == XContentParser.Token.START_ARRAY) {
                 list.add(parseSubArray(context, parser));
             } else {
-                throw new SQLParseSourceException(context, "Field [" + parser.currentName() + "] has an invalid value");
+                throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
             }
         }
         return list.toArray(new Object[list.size()][]);

@@ -59,7 +59,7 @@ public class SQLXContentSourceParser {
 
     private void validate() throws SQLParseSourceException {
         if (context.stmt() == null) {
-            throw new SQLParseSourceException(context, "Field [stmt] was not defined");
+            throw new SQLParseSourceException("Field [stmt] was not defined");
         }
     }
 

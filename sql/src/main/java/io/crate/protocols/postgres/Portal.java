@@ -35,8 +35,6 @@ import java.util.concurrent.CompletableFuture;
 
 public interface Portal {
 
-    String name();
-
     FormatCodes.FormatCode[] getLastResultFormatCodes();
 
     List<? extends DataType> getLastOutputTypes();

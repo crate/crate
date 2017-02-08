@@ -21,7 +21,6 @@
 
 package io.crate.jobs;
 
-import com.google.common.base.Throwables;
 import io.crate.Streamer;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.breaker.RamAccountingContext;
@@ -35,12 +34,10 @@ import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.IntegerType;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.UUID;
@@ -145,28 +142,5 @@ public class JobExecutionContextTest extends CrateUnitTest {
         int size = ((ConcurrentMap<Integer, ExecutionSubContext>) subContexts.get(jobExecutionContext)).size();
 
         assertThat(size, is(0));
-    }
-
-    private static class SlowKillExecutionSubContext extends AbstractExecutionSubContext {
-
-        private static final ESLogger LOGGER = Loggers.getLogger(SlowKillExecutionSubContext.class);
-
-        public SlowKillExecutionSubContext() {
-            super(1, LOGGER);
-        }
-
-        @Override
-        public void innerKill(@Nonnull Throwable throwable) {
-            try {
-                Thread.sleep(200);
-            } catch (InterruptedException e) {
-                throw Throwables.propagate(e);
-            }
-        }
-
-        @Override
-        public String name() {
-            return "SlowKilLExecutionSubContext";
-        }
     }
 }
