@@ -359,7 +359,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testResolveExpressionUnknownColumn() {
+    public void testResolveExpressionForUnknownColumnIdent() {
         Reference ref = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE, "ts");
         assertThat(resolver.getImplementation(ref), is(nullValue()));
     }
