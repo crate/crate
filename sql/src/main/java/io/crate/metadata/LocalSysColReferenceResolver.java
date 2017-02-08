@@ -22,7 +22,7 @@
 
 package io.crate.metadata;
 
-import io.crate.operation.reference.sys.node.SysNodeStatsExpressions;
+import io.crate.operation.reference.sys.node.SysNodesExpressionFactories;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -35,7 +35,8 @@ public class LocalSysColReferenceResolver implements NestedReferenceResolver {
 
     public LocalSysColReferenceResolver(List<ColumnIdent> localAvailable) {
         for (ColumnIdent ident : localAvailable) {
-            RowContextCollectorExpression expr = (RowContextCollectorExpression) SysNodeStatsExpressions.getSysNodeStatsExpressions().get(ident);
+            RowContextCollectorExpression expr =
+                (RowContextCollectorExpression) SysNodesExpressionFactories.getSysNodesTableInfoFactories().get(ident).create();
             expressionMap.put(ident, expr);
         }
     }

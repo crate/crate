@@ -25,6 +25,7 @@ package io.crate.operation.reference.sys.node;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.operation.reference.ReferenceResolver;
 
 import java.util.HashMap;
@@ -32,8 +33,8 @@ import java.util.Map;
 
 public class SysNodeStatsReferenceResolver implements ReferenceResolver<RowCollectExpression<?, ?>> {
 
-    private static Map<ColumnIdent, RowCollectExpression> sysNodeStatsExpressions
-        = SysNodeStatsExpressions.getSysNodeStatsExpressions();
+    private static Map<ColumnIdent, RowCollectExpressionFactory> sysNodeStatsExpressions
+        = SysNodesExpressionFactories.getSysNodesTableInfoFactories();
 
     private final Map<ColumnIdent, RowCollectExpression> cachedRowCollectExpressions;
 
@@ -54,10 +55,11 @@ public class SysNodeStatsReferenceResolver implements ReferenceResolver<RowColle
             return cachedRowCollectExpression;
         }
 
-        RowCollectExpression rowCollectExpression = sysNodeStatsExpressions.get(columnIdent);
-        if (rowCollectExpression != null) {
-            cachedRowCollectExpressions.put(columnIdent, rowCollectExpression);
-            return rowCollectExpression;
+        RowCollectExpressionFactory rowCollectExpressionFactory = sysNodeStatsExpressions.get(columnIdent);
+        if (rowCollectExpressionFactory != null) {
+            RowCollectExpression collectExpression = rowCollectExpressionFactory.create();
+            cachedRowCollectExpressions.put(columnIdent, collectExpression);
+            return collectExpression;
         }
 
         if (columnIdent.isColumn()) {
@@ -71,10 +73,11 @@ public class SysNodeStatsReferenceResolver implements ReferenceResolver<RowColle
 
         RowCollectExpression rowCollectExpression = cachedRowCollectExpressions.get(root);
         if (rowCollectExpression == null) {
-            rowCollectExpression = sysNodeStatsExpressions.get(root);
-            if (rowCollectExpression == null) {
+            RowCollectExpressionFactory collectExpressionFactory = sysNodeStatsExpressions.get(root);
+            if (collectExpressionFactory == null) {
                 return null;
             }
+            rowCollectExpression = collectExpressionFactory.create();
             cachedRowCollectExpressions.put(root, rowCollectExpression);
         }
 

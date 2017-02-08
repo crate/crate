@@ -24,7 +24,9 @@ package io.crate.operation.reference.sys.node.local;
 
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.metadata.*;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.RowGranularity;
 import io.crate.monitor.DummyExtendedNodeInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.operation.collect.CollectExpression;
@@ -50,7 +52,6 @@ import org.mockito.stubbing.Answer;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -58,6 +59,7 @@ import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -364,17 +366,22 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
     @Test
     public void testSysNodeStatsResolverCachesChildExpressions() {
-        NodeStatsContext ctx = mock(NodeStatsContext.class);
         Reference os = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
-        Reference timestamp = new Reference(
-            new ReferenceIdent(new TableIdent("sys", "nodes"), "os", Arrays.asList("timestamp")),
-            RowGranularity.NODE, DataTypes.LONG
-        );
+        Reference timestamp = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE, "timestamp");
 
         RowCollectExpression osExpr = resolver.getImplementation(os);
+        osExpr.setNextRow(CONTEXT);
         RowCollectExpression tsExpr = resolver.getImplementation(timestamp);
+        tsExpr.setNextRow(CONTEXT);
 
+        assertThat(osExpr.getChildImplementation("timestamp").value(), is(tsExpr.value()));
         // assert that the object references are equal, therefore expressions were cached
         assertThat(osExpr.getChildImplementation("timestamp") == tsExpr, is(true));
+    }
+
+    @Test
+    public void testResolveExpressionUnknownColumn() {
+        Reference ref = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE, "ts");
+        assertThat(resolver.getImplementation(ref), is(nullValue()));
     }
 }
