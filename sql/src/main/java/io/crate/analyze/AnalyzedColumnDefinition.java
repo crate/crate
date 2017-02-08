@@ -101,11 +101,6 @@ public class AnalyzedColumnDefinition {
         this.analyzer = analyzer;
     }
 
-    @Nullable
-    public String analyzer() {
-        return this.analyzer;
-    }
-
     void indexConstraint(String index) {
         this.index = index;
     }

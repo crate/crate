@@ -42,7 +42,9 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.Answers;
+import org.mockito.Matchers;
+import org.mockito.Mock;
 
 import java.util.UUID;
 import java.util.concurrent.*;
@@ -62,9 +64,6 @@ public class BulkShardProcessorTest extends CrateUnitTest {
 
     Reference fooRef = new Reference(
         new ReferenceIdent(charactersIdent, "foo"), RowGranularity.DOC, DataTypes.STRING);
-
-    @Captor
-    private ArgumentCaptor<ActionListener<BulkShardResponse>> bulkShardResponseListener;
 
     @Mock(answer = Answers.RETURNS_MOCKS)
     ClusterService clusterService;

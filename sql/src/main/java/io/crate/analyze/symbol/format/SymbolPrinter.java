@@ -380,7 +380,6 @@ public class SymbolPrinter {
         public static final String NULL_LOWER = "null";
         public static final String WS = " ";
         public static final String DOT = ".";
-        public static final String IN = "IN";
         public static final String ANY = "ANY";
     }
 }

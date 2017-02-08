@@ -25,13 +25,11 @@ import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Rule;
@@ -60,11 +58,6 @@ public class SchemasTest {
     @Mock
     public MetaData metaData;
 
-    @Mock
-    public Functions functions;
-
-    @Mock
-    public Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider;
 
     @Before
     public void setUp() throws Exception {

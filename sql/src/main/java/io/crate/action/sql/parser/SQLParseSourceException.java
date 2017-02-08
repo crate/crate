@@ -28,7 +28,7 @@ import org.elasticsearch.ElasticsearchException;
  */
 class SQLParseSourceException extends ElasticsearchException {
 
-    SQLParseSourceException(SQLXContentSourceContext context, String msg) {
+    SQLParseSourceException(String msg) {
         super("Parse Failure [" + msg + "]");
     }
 }

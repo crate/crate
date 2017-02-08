@@ -35,8 +35,6 @@ import java.io.IOException;
 
 public class NodeFetchResponse extends TransportResponse {
 
-    static final NodeFetchResponse EMPTY = new NodeFetchResponse(null, null);
-
     private final IntObjectMap<Streamer[]> streamers;
 
     @Nullable

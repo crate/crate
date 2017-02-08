@@ -72,7 +72,7 @@ public class Id {
     /**
      * generates a function which can be used to generate an id and apply null validation.
      * <p>
-     * This variant doesn't handle the pk = _id case. Use {@link #compile(List, ColumnIdent)} if it should be handled
+     * This variant doesn't handle the pk = _id case.
      */
     private static Function<List<BytesRef>, String> compileWithNullValidation(final int numPks,
                                                                               final int clusteredByPosition) {
@@ -99,7 +99,7 @@ public class Id {
     /**
      * generates a function which can be used to generate an id.
      * <p>
-     * This variant doesn't handle the pk = _id case. Use {@link #compile(List, ColumnIdent)} if it should be handled
+     * This variant doesn't handle the pk = _id case.
      */
     public static Function<List<BytesRef>, String> compile(final int numPks, final int clusteredByPosition) {
         if (numPks == 1) {
@@ -119,16 +119,6 @@ public class Id {
         return compileWithNullValidation(numPks, pkColumns.indexOf(clusteredBy));
     }
 
-    /**
-     * returns a function which can be used to generate an id.
-     */
-    public static Function<List<BytesRef>, String> compile(final List<ColumnIdent> pkColumns, final ColumnIdent clusteredBy) {
-        final int numPks = pkColumns.size();
-        if (numPks == 1 && getOnlyElement(pkColumns).equals(DocSysColumns.ID)) {
-            return RANDOM_ID;
-        }
-        return compile(numPks, pkColumns.indexOf(clusteredBy));
-    }
 
     @Nonnull
     private static BytesRef ensureNonNull(@Nullable BytesRef pkValue) throws IllegalArgumentException {

@@ -24,7 +24,5 @@ package io.crate.operation.reference.sys.job;
 
 public interface ContextLog {
 
-    long started();
     long ended();
-
 }

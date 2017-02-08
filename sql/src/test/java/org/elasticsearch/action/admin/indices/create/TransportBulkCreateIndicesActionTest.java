@@ -23,7 +23,6 @@ package org.elasticsearch.action.admin.indices.create;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -32,7 +31,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
@@ -43,9 +41,6 @@ import static org.hamcrest.Matchers.is;
 public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegrationTest {
 
     TransportBulkCreateIndicesAction action;
-
-    @Mock
-    public ActionListener<BulkCreateIndicesResponse> responseActionListener;
 
     @Before
     public void prepare() {

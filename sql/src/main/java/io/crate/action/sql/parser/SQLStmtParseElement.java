@@ -37,11 +37,11 @@ class SQLStmtParseElement implements SQLParseElement {
         XContentParser.Token token = parser.currentToken();
 
         if (!token.isValue()) {
-            throw new SQLParseSourceException(context, "Field [" + parser.currentName() + "] has an invalid value");
+            throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
         }
         String stmt = parser.text();
         if (stmt == null || stmt.length() == 0) {
-            throw new SQLParseSourceException(context, "Field [" + parser.currentName() + "] has no value");
+            throw new SQLParseSourceException("Field [" + parser.currentName() + "] has no value");
         }
         context.stmt(parser.text());
     }

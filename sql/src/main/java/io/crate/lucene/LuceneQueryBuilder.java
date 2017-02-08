@@ -417,7 +417,7 @@ public class LuceneQueryBuilder {
                 BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
                 for (Object value : toIterable(arrayLiteral.value())) {
                     andLikeQueries.add(
-                        LikeQueryBuilder.like(reference.valueType(), fieldType, value, context.indexCache.query()),
+                        LikeQueryBuilder.like(reference.valueType(), fieldType, value),
                         BooleanClause.Occur.MUST);
                 }
                 return Queries.not(andLikeQueries.build());
@@ -459,8 +459,7 @@ public class LuceneQueryBuilder {
                 return LikeQueryBuilder.like(
                     dataType,
                     context.getFieldTypeOrNull(reference.ident().columnIdent().fqn()),
-                    value,
-                    context.indexCache.query()
+                    value
                 );
             }
         }
@@ -657,7 +656,6 @@ public class LuceneQueryBuilder {
                 // 1 < ANY (array_col) --> array_col > 1
                 return rangeQuery.toQuery(
                     arrayReference,
-                    ((CollectionType) arrayReference.valueType()).innerType(),
                     literal.value(),
                     context::getFieldTypeOrNull
                 );
@@ -670,7 +668,7 @@ public class LuceneQueryBuilder {
                 booleanQuery.setMinimumNumberShouldMatch(1);
                 for (Object value : toIterable(arrayLiteral.value())) {
                     booleanQuery.add(
-                        inverseRangeQuery.toQuery(reference, reference.valueType(), value, context::getFieldTypeOrNull),
+                        inverseRangeQuery.toQuery(reference, value, context::getFieldTypeOrNull),
                         BooleanClause.Occur.SHOULD);
                 }
                 return booleanQuery.build();
@@ -731,10 +729,10 @@ public class LuceneQueryBuilder {
                 if (tuple == null) {
                     return null;
                 }
-                return toQuery(tuple.v1(), tuple.v1().valueType(), tuple.v2().value(), context::getFieldTypeOrNull);
+                return toQuery(tuple.v1(), tuple.v2().value(), context::getFieldTypeOrNull);
             }
 
-            public Query toQuery(Reference reference, DataType type, Object value, FieldTypeLookup fieldTypeLookup) {
+            public Query toQuery(Reference reference, Object value, FieldTypeLookup fieldTypeLookup) {
                 String columnName = reference.ident().columnIdent().fqn();
                 MappedFieldType fieldType = fieldTypeLookup.get(columnName);
                 if (fieldType == null) {
@@ -845,7 +843,7 @@ public class LuceneQueryBuilder {
 
         static class RegexpMatchQuery extends CmpQuery {
 
-            private Query toLuceneRegexpQuery(String fieldName, BytesRef value, Context context) {
+            private Query toLuceneRegexpQuery(String fieldName, BytesRef value) {
                 return new ConstantScoreQuery(
                     new RegexpQuery(new Term(fieldName, value), RegExp.ALL));
             }
@@ -866,7 +864,7 @@ public class LuceneQueryBuilder {
                 if (isPcrePattern(pattern.utf8ToString())) {
                     return new CrateRegexQuery(new Term(fieldName, pattern));
                 } else {
-                    return toLuceneRegexpQuery(fieldName, pattern, context);
+                    return toLuceneRegexpQuery(fieldName, pattern);
                 }
             }
         }
@@ -956,11 +954,11 @@ public class LuceneQueryBuilder {
                 if (geometry.isRectangle()) {
                     return getBoundingBoxQuery(shape, fieldData);
                 } else {
-                    return getPolygonQuery(context, geometry, fieldData);
+                    return getPolygonQuery(geometry, fieldData);
                 }
             }
 
-            private Query getPolygonQuery(Context context, Geometry geometry, IndexGeoPointFieldData fieldData) {
+            private Query getPolygonQuery(Geometry geometry, IndexGeoPointFieldData fieldData) {
                 Coordinate[] coordinates = geometry.getCoordinates();
                 GeoPoint[] points = new GeoPoint[coordinates.length];
                 for (int i = 0; i < coordinates.length; i++) {

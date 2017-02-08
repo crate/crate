@@ -147,10 +147,9 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
      * are completed and never fails.
      */
     public ListenableFuture<Integer> killAll() {
-        long now = System.nanoTime();
         for (KillAllListener killAllListener : killAllListeners) {
             try {
-                killAllListener.killAllJobs(now);
+                killAllListener.killAllJobs();
             } catch (Throwable t) {
                 logger.error("Failed to call killAllJobs on listener {}", t, killAllListener);
             }

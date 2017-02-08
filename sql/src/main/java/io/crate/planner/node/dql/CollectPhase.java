@@ -23,9 +23,7 @@
 package io.crate.planner.node.dql;
 
 import com.google.common.base.Function;
-import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
 
@@ -41,8 +39,6 @@ public interface CollectPhase extends UpstreamPhase {
     List<Projection> projections();
 
     void addProjection(Projection projection);
-
-    CollectPhase normalize(EvaluatingNormalizer phase, TransactionContext transactionContext);
 
     void replaceSymbols(Function<Symbol, Symbol> replaceFunction);
 }

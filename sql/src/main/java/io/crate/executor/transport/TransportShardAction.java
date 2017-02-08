@@ -116,7 +116,7 @@ public abstract class TransportShardAction<R extends ShardRequest>
     }
 
     @Override
-    public void killAllJobs(long timestamp) {
+    public void killAllJobs() {
         synchronized (activeOperations) {
             for (KillableCallable callable : activeOperations.values()) {
                 callable.kill();
