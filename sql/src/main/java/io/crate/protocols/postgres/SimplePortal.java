@@ -166,9 +166,6 @@ public class SimplePortal extends AbstractPortal {
             statsTables.logPreExecutionFailure(jobId, query, Exceptions.messageOf(t));
             throw t;
         }
-        statsTables.logExecutionStart(jobId, query);
-        StatsTablesUpdateListener statsTablesUpdateListener = new StatsTablesUpdateListener(jobId, statsTables);
-        resultReceiver.completionFuture().whenComplete(statsTablesUpdateListener);
 
         if (!analysis.analyzedStatement().isWriteOperation()) {
             resultReceiver = new ResultReceiverRetryWrapper(
@@ -180,12 +177,17 @@ public class SimplePortal extends AbstractPortal {
                 jobId,
                 sessionContext);
         }
+
+        statsTables.logExecutionStart(jobId, query);
+        StatsTablesUpdateListener statsTablesUpdateListener = new StatsTablesUpdateListener(jobId, statsTables);
+        CompletableFuture completableFuture = resultReceiver.completionFuture().whenComplete(statsTablesUpdateListener);
+
         if (!resumeIfSuspended()) {
             rowReceiver = new RowReceiverToResultReceiver(resultReceiver, maxRows);
             portalContext.getExecutor().execute(plan, rowReceiver, this.rowParams);
         }
         synced = true;
-        return resultReceiver.completionFuture();
+        return completableFuture;
     }
 
     @Override
