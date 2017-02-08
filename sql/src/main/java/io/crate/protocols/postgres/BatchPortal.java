@@ -139,8 +139,9 @@ class BatchPortal extends AbstractPortal {
             statsTables.logExecutionStart(jobId, stmt);
             StatsTablesUpdateListener statsTablesUpdateListener = new StatsTablesUpdateListener(jobId, statsTables);
 
-            resultReceiver.completionFuture().whenComplete(statsTablesUpdateListener);
-            resultReceiver.completionFuture().whenComplete(completionCallback);
+            resultReceiver.completionFuture()
+                .whenComplete(statsTablesUpdateListener)
+                .whenComplete(completionCallback);
 
             RowReceiver rowReceiver = new RowReceiverToResultReceiver(resultReceiver, 0);
             portalContext.getExecutor().execute(plan, rowReceiver, new RowN(batchParams.toArray()));
