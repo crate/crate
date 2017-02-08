@@ -23,7 +23,6 @@
 package io.crate.monitor;
 
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.env.NodeEnvironment;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -39,7 +38,6 @@ public class DummyExtendedNodeInfo implements ExtendedNodeInfo {
 
     private final NodeEnvironment nodeEnvironment;
 
-    @Inject
     public DummyExtendedNodeInfo(NodeEnvironment nodeEnvironment) {
         this.nodeEnvironment = nodeEnvironment;
     }

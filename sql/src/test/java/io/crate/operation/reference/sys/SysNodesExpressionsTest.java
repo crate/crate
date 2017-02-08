@@ -160,10 +160,10 @@ public class SysNodesExpressionsTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> v = mem.value();
 
         assertThat((long) v.get("free"), greaterThan(10L));
-        assertThat((short) v.get("free_percent"), greaterThan((short) 1));
+        assertThat((short) v.get("free_percent"), greaterThan((short) -1)); // assert that it's not the default value -1
 
         assertThat((long) v.get("used"), greaterThan(10L));
-        assertThat((short) v.get("used_percent"), greaterThan((short) 1));
+        assertThat((short) v.get("used_percent"), greaterThan((short) -1)); // assert that it's not the default value -1
     }
 
     @Test
