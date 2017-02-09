@@ -79,16 +79,6 @@ cu -> u: cleanup();
 public interface BatchConsumer extends BiConsumer<BatchCursor, Throwable> {
 
     /**
-     * Prepends projectors to the consumer.
-     *
-     * @param projectors a List of {@link BatchProjector} instances to be prepended
-     * @return a new consumer which calls the original consumer with the projected cursor when called
-     */
-    default BatchConsumer projected(List<BatchProjector> projectors){
-        return new ProjectedBatchConsumer(projectors, this);
-    }
-
-    /**
      * Accepts the given cursor and performs some operation on it. When this method is called, the given cursor is
      * required to be ready for use. It might also be the case that the consumer consumes the whole cursors synchronously.
      * The given cursor must be kept valid until {@link BatchCursor#close()} is called by the consumer, therefore
