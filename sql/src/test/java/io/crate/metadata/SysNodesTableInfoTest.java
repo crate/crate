@@ -23,12 +23,10 @@
 package io.crate.metadata;
 
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.operation.reference.sys.RowContextReferenceResolver;
+import io.crate.operation.reference.sys.node.SysNodeStatsReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.ClusterService;
 import org.junit.Test;
-
-import java.util.Iterator;
 
 import static org.mockito.Mockito.mock;
 
@@ -42,10 +40,9 @@ public class SysNodesTableInfoTest extends CrateUnitTest {
     @Test
     public void testRegistered() {
         SysNodesTableInfo info = new SysNodesTableInfo(clusterService);
-        RowContextReferenceResolver referenceResolver = RowContextReferenceResolver.INSTANCE;
-        Iterator<Reference> iter = info.iterator();
-        while (iter.hasNext()) {
-            assertNotNull(referenceResolver.getImplementation(iter.next()));
+        SysNodeStatsReferenceResolver referenceResolver = SysNodeStatsReferenceResolver.newInstance();
+        for (Reference anInfo : info) {
+            assertNotNull(referenceResolver.getImplementation(anInfo));
         }
     }
 }

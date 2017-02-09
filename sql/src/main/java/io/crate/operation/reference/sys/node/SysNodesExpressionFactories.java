@@ -37,9 +37,6 @@ import java.util.Map;
 
 public class SysNodesExpressionFactories {
 
-    public SysNodesExpressionFactories() {
-    }
-
     private static Map<ColumnIdent, RowCollectExpressionFactory> sysNodeTableInfoFactories = ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
         .put(SysNodesTableInfo.Columns.ID, new RowCollectExpressionFactory() {
             @Override

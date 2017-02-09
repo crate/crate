@@ -35,7 +35,7 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.RowsTransformer;
 import io.crate.operation.projectors.IterableRowEmitter;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.reference.sys.RowContextReferenceResolver;
+import io.crate.operation.reference.sys.node.SysNodeStatsReferenceResolver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.action.ActionListener;
@@ -123,7 +123,7 @@ public class NodeStatsCollector implements CrateCollector {
     private void emmitRows(List<NodeStatsContext> rows) {
         new IterableRowEmitter(
             rowReceiver,
-            RowsTransformer.toRowsIterable(inputFactory, RowContextReferenceResolver.INSTANCE, collectPhase, rows)
+            RowsTransformer.toRowsIterable(inputFactory, SysNodeStatsReferenceResolver.newInstance(), collectPhase, rows)
         ).run();
     }
 

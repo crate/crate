@@ -35,7 +35,8 @@ public class LocalSysColReferenceResolver implements NestedReferenceResolver {
 
     public LocalSysColReferenceResolver(List<ColumnIdent> localAvailable) {
         for (ColumnIdent ident : localAvailable) {
-            RowContextCollectorExpression expr = (RowContextCollectorExpression) SysNodesExpressionFactories.getSysNodesTableInfoFactories().get(ident).create();
+            RowContextCollectorExpression expr =
+                (RowContextCollectorExpression) SysNodesExpressionFactories.getSysNodesTableInfoFactories().get(ident).create();
             expressionMap.put(ident, expr);
         }
     }
