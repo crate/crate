@@ -739,6 +739,15 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testHavingGroupByOnScalar() throws Exception {
+        this.setup.groupBySetup("integer");
+        execute("select date_trunc('week', birthdate) from characters group by 1" +
+                " having date_trunc('week', birthdate) > 0" +
+                " order by date_trunc('week', birthdate)");
+        assertEquals(2L, response.rowCount());
+    }
+
+    @Test
     public void testHavingOnSameAggregate() throws Exception {
         this.setup.groupBySetup("integer");
         execute("select avg(birthdate) from characters group by gender\n" +
