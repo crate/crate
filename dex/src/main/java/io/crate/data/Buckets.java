@@ -66,8 +66,4 @@ public class Buckets {
         }
         return res;
     }
-
-    public static Bucket of(final Row row) {
-        return new SingleRowBucket(row);
-    }
 }

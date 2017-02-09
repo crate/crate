@@ -21,10 +21,11 @@
 
 package io.crate.testing;
 
+import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.data.SingleRowBucket;
 import io.crate.operation.projectors.RepeatHandle;
+
+import java.util.Collections;
 
 public class RowCountRowReceiver extends CollectingRowReceiver {
 
@@ -38,7 +39,7 @@ public class RowCountRowReceiver extends CollectingRowReceiver {
 
     @Override
     public void finish(RepeatHandle repeatHandle) {
-        resultFuture.set(new SingleRowBucket(new Row1(rowCount)));
+        resultFuture.set(new CollectionBucket(Collections.singletonList(new Object[] { rowCount })));
         numFailOrFinish++;
     }
 }

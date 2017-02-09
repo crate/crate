@@ -23,7 +23,10 @@ package io.crate.jobs;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.*;
+import io.crate.data.ArrayBucket;
+import io.crate.data.Bucket;
+import io.crate.data.CollectionBucket;
+import io.crate.data.Row;
 import io.crate.operation.PageResultListener;
 import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.merge.PassThroughPagingIterator;
@@ -36,6 +39,7 @@ import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.logging.Loggers;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -73,8 +77,9 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         PageBucketReceiver ctx = getPageDownstreamContext(rowReceiver, PassThroughPagingIterator.oneShot(), 3);
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
-        ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
-        ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
+        Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
+        ctx.setBucket(1, bucket, false, pageResultListener);
+        ctx.setBucket(1, bucket, false, pageResultListener);
 
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("Same bucket of a page set more than once. node=n1 method=setBucket phaseId=1 bucket=1");
