@@ -336,7 +336,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     private HavingClause analyzeHaving(Optional<Expression> having,
-                                       List<Symbol> groupBy,
+                                       @Nullable List<Symbol> groupBy,
                                        ExpressionAnalyzer expressionAnalyzer,
                                        ExpressionAnalysisContext expressionAnalysisContext) {
         if (having.isPresent()) {
