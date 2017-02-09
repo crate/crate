@@ -23,6 +23,7 @@ package io.crate.executor;
 
 import com.google.common.base.Joiner;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.BytesRefUtils;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
