@@ -69,30 +69,45 @@ public class NodeStatsCollector implements CrateCollector {
 
     @Override
     public void doCollect() {
-        AtomicInteger remainingRequests = new AtomicInteger(nodes.size());
-        final List<NodeStatsContext> rows = Collections.synchronizedList(new ArrayList<NodeStatsContext>());
         Set<ColumnIdent> toCollect = TopLevelColumnIdentExtractor.extractColumns(collectPhase.toCollect());
-        // check if toCollect only contains id and name, then it's not necessary to perform a request
-        boolean emitDirectly = false;
+        // If only ID or NAME are required it's possible to avoid collecting data from other nodes as everything
+        // is available locally
+        boolean emitDirectly = isEmitDirectlyPossible(toCollect);
+        if (emitDirectly) {
+            emitAllFromLocalState();
+        } else {
+            retrieveRemoteStateAndEmit(toCollect);
+        }
+    }
+
+    /**
+     * @return true if all required column can be provided from the local state.
+     */
+    private boolean isEmitDirectlyPossible(Set<ColumnIdent> toCollect) {
         switch (toCollect.size()) {
             case 1:
-                emitDirectly = toCollect.contains(SysNodesTableInfo.Columns.ID) ||
-                               toCollect.contains(SysNodesTableInfo.Columns.NAME);
-                break;
+                return toCollect.contains(SysNodesTableInfo.Columns.ID) ||
+                       toCollect.contains(SysNodesTableInfo.Columns.NAME);
             case 2:
-                emitDirectly = toCollect.contains(SysNodesTableInfo.Columns.ID) &&
-                               toCollect.contains(SysNodesTableInfo.Columns.NAME);
-                break;
+                return toCollect.contains(SysNodesTableInfo.Columns.ID) &&
+                       toCollect.contains(SysNodesTableInfo.Columns.NAME);
         }
+        return false;
+    }
+
+    private void emitAllFromLocalState() {
+        List<NodeStatsContext> rows = new ArrayList<>(nodes.size());
+        for (DiscoveryNode node : nodes) {
+            rows.add(new NodeStatsContext(node.getId(), node.name()));
+        }
+        emmitRows(rows);
+    }
+
+    private void retrieveRemoteStateAndEmit(Set<ColumnIdent> toCollect) {
+        final AtomicInteger remainingRequests = new AtomicInteger(nodes.size());
+        final List<NodeStatsContext> rows = Collections.synchronizedList(new ArrayList<NodeStatsContext>(nodes.size()));
         for (final DiscoveryNode node : nodes) {
             final String nodeId = node.getId();
-            if (emitDirectly) {
-                rows.add(new NodeStatsContext(nodeId, node.name()));
-                if (remainingRequests.decrementAndGet() == 0) {
-                    emmitRows(rows);
-                }
-                continue;
-            }
             final NodeStatsRequest request = new NodeStatsRequest(toCollect);
             transportStatTablesAction.execute(nodeId, request, new ActionListener<NodeStatsResponse>() {
                 @Override
