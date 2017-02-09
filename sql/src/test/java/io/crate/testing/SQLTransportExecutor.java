@@ -28,7 +28,6 @@ import io.crate.action.sql.*;
 import io.crate.analyze.symbol.Field;
 import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
-import io.crate.executor.BytesRefUtils;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.shade.org.postgresql.util.PGobject;
