@@ -24,9 +24,6 @@ package io.crate.operation.collect;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.AbstractExecutionSubContext;
@@ -79,17 +76,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
         this.sharedShardContexts = sharedShardContexts;
 
         listenableRowReceiver = RowReceivers.listenableRowReceiver(rowReceiver);
-        Futures.addCallback(listenableRowReceiver.finishFuture(), new FutureCallback<Void>() {
-            @Override
-            public void onSuccess(@Nullable Void result) {
-                close();
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                closeDueToFailure(t);
-            }
-        });
+        listenableRowReceiver.finishFuture().whenComplete((result, ex) -> close(ex));
         this.rowReceiver = listenableRowReceiver;
         this.threadPoolName = threadPoolName(collectPhase, localNodeId);
     }
@@ -183,13 +170,10 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     private void measureCollectTime() {
         final StopWatch stopWatch = new StopWatch(collectPhase.phaseId() + ": " + collectPhase.name());
         stopWatch.start("starting collectors");
-        listenableRowReceiver.finishFuture().addListener(new Runnable() {
-            @Override
-            public void run() {
-                stopWatch.stop();
-                logger.trace("Collectors finished: {}", stopWatch.shortSummary());
-            }
-        }, MoreExecutors.directExecutor());
+        listenableRowReceiver.finishFuture().whenComplete((result, ex) -> {
+            stopWatch.stop();
+            logger.trace("Collectors finished: {}", stopWatch.shortSummary());
+        });
     }
 
     public RamAccountingContext queryPhaseRamAccountingContext() {
