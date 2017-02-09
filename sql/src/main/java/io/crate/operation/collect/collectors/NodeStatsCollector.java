@@ -54,8 +54,6 @@ public class NodeStatsCollector implements CrateCollector {
     private final RoutedCollectPhase collectPhase;
     private final Collection<DiscoveryNode> nodes;
     private final InputFactory inputFactory;
-    private final TopLevelColumnIdentVisitor topLevelColumnIdentVisitor = TopLevelColumnIdentVisitor.INSTANCE;
-    private final AtomicInteger remainingRequests = new AtomicInteger();
 
     public NodeStatsCollector(TransportNodeStatsAction transportStatTablesAction,
                               RowReceiver rowReceiver,
@@ -71,9 +69,9 @@ public class NodeStatsCollector implements CrateCollector {
 
     @Override
     public void doCollect() {
-        remainingRequests.set(nodes.size());
+        AtomicInteger remainingRequests = new AtomicInteger(nodes.size());
         final List<NodeStatsContext> rows = Collections.synchronizedList(new ArrayList<NodeStatsContext>());
-        Set<ColumnIdent> toCollect = topLevelColumnIdentVisitor.process(collectPhase.toCollect());
+        Set<ColumnIdent> toCollect = TopLevelColumnIdentExtractor.extractColumns(collectPhase.toCollect());
         // check if toCollect only contains id and name, then it's not necessary to perform a request
         boolean emitDirectly = false;
         switch (toCollect.size()) {
@@ -131,34 +129,21 @@ public class NodeStatsCollector implements CrateCollector {
     public void kill(@Nullable Throwable throwable) {
     }
 
-    private static class TopLevelColumnIdentVisitor extends DefaultTraversalSymbolVisitor<TopLevelColumnIdentVisitor.Context, Void> {
+    private static class TopLevelColumnIdentExtractor extends DefaultTraversalSymbolVisitor<Set<ColumnIdent>, Void> {
 
-        static final TopLevelColumnIdentVisitor INSTANCE = new TopLevelColumnIdentVisitor();
+        static final TopLevelColumnIdentExtractor INSTANCE = new TopLevelColumnIdentExtractor();
 
-        static class Context {
-
-            private final Set<ColumnIdent> columnIdents = new HashSet<>();
-
-            void add(ColumnIdent columnIdent) {
-                columnIdents.add(columnIdent);
-            }
-
-            Set<ColumnIdent> columnIdents() {
-                return columnIdents;
-            }
-        }
-
-        Set<ColumnIdent> process(Collection<? extends Symbol> symbols) {
-            Context context = new Context();
+        static Set<ColumnIdent> extractColumns(Iterable<? extends Symbol> symbols) {
+            Set<ColumnIdent> columns = new HashSet<>();
             for (Symbol symbol : symbols) {
-                process(symbol, context);
+                INSTANCE.process(symbol, columns);
             }
-            return context.columnIdents();
+            return columns;
         }
 
         @Override
-        public Void visitReference(Reference symbol, Context context) {
-            context.add(symbol.ident().columnReferenceIdent().columnIdent());
+        public Void visitReference(Reference symbol, Set<ColumnIdent> context) {
+            context.add(symbol.ident().columnIdent().getRoot());
             return null;
         }
     }
