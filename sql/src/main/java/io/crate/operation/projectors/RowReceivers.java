@@ -22,11 +22,10 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.data.Row;
 
 import javax.annotation.ParametersAreNonnullByDefault;
+import java.util.concurrent.CompletableFuture;
 
 public class RowReceivers {
 
@@ -40,7 +39,7 @@ public class RowReceivers {
     @ParametersAreNonnullByDefault
     private static class SettableFutureRowReceiver extends ForwardingRowReceiver implements ListenableRowReceiver {
 
-        private final SettableFuture<Void> finishedFuture = SettableFuture.create();
+        private final CompletableFuture<Void> finishedFuture = new CompletableFuture<>();
 
         SettableFutureRowReceiver(RowReceiver rowReceiver) {
             super(rowReceiver);
@@ -49,17 +48,17 @@ public class RowReceivers {
         @Override
         public void finish(RepeatHandle repeatHandle) {
             super.finish(repeatHandle);
-            finishedFuture.set(null);
+            finishedFuture.complete(null);
         }
 
         @Override
         public void fail(Throwable throwable) {
             super.fail(throwable);
-            finishedFuture.setException(throwable);
+            finishedFuture.completeExceptionally(throwable);
         }
 
         @Override
-        public ListenableFuture<Void> finishFuture() {
+        public CompletableFuture<?> finishFuture() {
             return finishedFuture;
         }
     }

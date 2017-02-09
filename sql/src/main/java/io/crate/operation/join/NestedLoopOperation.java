@@ -23,8 +23,6 @@ package io.crate.operation.join;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -195,7 +193,7 @@ public class NestedLoopOperation implements CompletionListenable {
 
     private abstract class AbstractRowReceiver implements ListenableRowReceiver {
 
-        final SettableFuture<Void> finished = SettableFuture.create();
+        final CompletableFuture<Void> finished = new CompletableFuture<>();
         final AtomicReference<ResumeHandle> resumeable = new AtomicReference<>(ResumeHandle.INVALID);
         boolean upstreamFinished = false;
         boolean firstCall = true;
@@ -215,13 +213,13 @@ public class NestedLoopOperation implements CompletionListenable {
                 }
                 downstream.finish(RepeatHandle.UNSUPPORTED);
                 completionFuture.complete(null);
-                left.finished.set(null);
-                right.finished.set(null);
+                left.finished.complete(null);
+                right.finished.complete(null);
             } else {
                 downstream.fail(upstreamFailure);
                 completionFuture.completeExceptionally(upstreamFailure);
-                left.finished.setException(upstreamFailure);
-                right.finished.setException(upstreamFailure);
+                left.finished.completeExceptionally(upstreamFailure);
+                right.finished.completeExceptionally(upstreamFailure);
             }
             return true;
         }
@@ -246,7 +244,7 @@ public class NestedLoopOperation implements CompletionListenable {
         }
 
         @Override
-        public ListenableFuture<Void> finishFuture() {
+        public CompletableFuture<?> finishFuture() {
             return finished;
         }
 
@@ -268,8 +266,8 @@ public class NestedLoopOperation implements CompletionListenable {
         right.resumeable.set(ResumeHandle.NOOP);
 
         stop = true;
-        left.finished.setException(throwable);
-        right.finished.setException(throwable);
+        left.finished.completeExceptionally(throwable);
+        right.finished.completeExceptionally(throwable);
     }
 
     private class LeftRowReceiver extends AbstractRowReceiver {

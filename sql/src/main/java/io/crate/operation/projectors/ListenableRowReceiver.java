@@ -22,9 +22,9 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import java.util.concurrent.CompletableFuture;
 
 public interface ListenableRowReceiver extends RowReceiver {
 
-    ListenableFuture<Void> finishFuture();
+    CompletableFuture<?> finishFuture();
 }
