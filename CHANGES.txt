@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed limitation which didn't allow ordering on partitioned columns in
+   GROUP BY query
+
  - Selecting ``os['timestamp'] from ``sys.nodes`` returns the actual timestamp
    of each node clock at the time of collecting the metric instead of the
    timestamp on the handler node.

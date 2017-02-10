@@ -116,8 +116,6 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
             collectOutputs.addAll(groupKeys);
             collectOutputs.addAll(splitPoints.aggregates());
 
-            table.tableRelation().validateOrderBy(querySpec.orderBy());
-
             List<Projection> projections = new ArrayList<>();
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                 splitPoints.leaves(),

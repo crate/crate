@@ -629,4 +629,15 @@ public class GroupByPlannerTest extends CrateUnitTest {
         assertThat(plan, instanceOf(Merge.class));
         assertThat(((Merge) plan).subPlan(), instanceOf(DistributedGroupBy.class));
     }
+
+    @Test
+    public void testGroupByOrderByPartitionedClolumn() throws Exception {
+        Merge plan = e.plan("select date from clustered_parted group by date order by date");
+        DistributedGroupBy distributedGroupBy = (DistributedGroupBy)plan.subPlan();
+        OrderedTopNProjection topNProjection = (OrderedTopNProjection)distributedGroupBy.reducerMergeNode().projections().get(1);
+
+        Symbol orderBy = topNProjection.orderBy().get(0);
+        assertThat(orderBy, instanceOf(InputColumn.class));
+        assertThat(orderBy.valueType(), is(DataTypes.TIMESTAMP));
+    }
 }
