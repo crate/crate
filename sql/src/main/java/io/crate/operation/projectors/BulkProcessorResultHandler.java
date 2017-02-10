@@ -23,42 +23,33 @@
 package io.crate.operation.projectors;
 
 import io.crate.data.Row1;
+import io.crate.exceptions.Exceptions;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.BitSet;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BiConsumer;
+import java.util.concurrent.CompletableFuture;
 
-class BulkProcessorFutureCallback implements BiConsumer<BitSet, Throwable> {
-    private final AtomicBoolean failed;
-    private final RowReceiver rowReceiver;
+final class BulkProcessorResultHandler {
 
-    public BulkProcessorFutureCallback(AtomicBoolean failed, RowReceiver rowReceiver) {
-        this.failed = failed;
-        this.rowReceiver = rowReceiver;
+    private BulkProcessorResultHandler() {
     }
 
-    @Override
-    public void accept(BitSet bitSet, Throwable t) {
-        if (t == null) {
-            onSuccess(bitSet);
-        } else {
-            onFailure(t);
-        }
+
+    public static void registerHandler(CompletableFuture<BitSet> bulkShardProcessorResultFuture,
+                                       CompletableFuture<RepeatHandle> upstreamFinishedFuture,
+                                       RowReceiver downstream) {
+
+        bulkShardProcessorResultFuture.thenAcceptBoth(upstreamFinishedFuture, (resultBitSet, repeatHandle) -> {
+            emitRowCount(resultBitSet, repeatHandle, downstream);
+        }).exceptionally(t -> {
+            downstream.fail(Exceptions.unwrap(t));
+            return null;
+        });
     }
 
-    private void onSuccess(@Nullable BitSet result) {
-        if (!failed.get()) {
-            long rowCount = result == null ? 0 : result.cardinality();
-            rowReceiver.setNextRow(new Row1(rowCount));
-            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
-        }
-    }
-
-    private void onFailure(@Nonnull Throwable t) {
-        if (!failed.get()) {
-            rowReceiver.fail(t);
-        }
+    private static void emitRowCount(@Nullable BitSet resultBitSet, RepeatHandle repeatHandle, RowReceiver downstream) {
+        long rowCount = resultBitSet == null ? 0 : resultBitSet.cardinality();
+        downstream.setNextRow(new Row1(rowCount));
+        downstream.finish(repeatHandle);
     }
 }

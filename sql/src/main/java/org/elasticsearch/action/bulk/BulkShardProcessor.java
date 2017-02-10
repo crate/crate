@@ -380,7 +380,10 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
     public void kill(@Nullable Throwable throwable) {
         failure.compareAndSet(null, throwable);
-        result.completeExceptionally(new InterruptedException(JobKilledException.MESSAGE));
+        if (throwable == null) {
+            throwable = new InterruptedException(JobKilledException.MESSAGE);
+        }
+        result.completeExceptionally(throwable);
     }
 
     private void setFailure(Throwable e) {
