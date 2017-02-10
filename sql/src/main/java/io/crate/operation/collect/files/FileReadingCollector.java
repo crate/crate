@@ -218,6 +218,7 @@ public class FileReadingCollector implements BatchCursor {
         fileInputsIterator = null;
         currentInputIterator = null;
         currentInput = null;
+        currentUri = null;
     }
 
     @Override
