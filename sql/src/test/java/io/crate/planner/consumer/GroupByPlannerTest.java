@@ -23,6 +23,7 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.Iterables;
+import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
@@ -48,7 +49,10 @@ import static org.hamcrest.Matchers.*;
 
 public class GroupByPlannerTest extends CrateUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService())
+        .enableDefaultTables()
+        .addDocTable(TableDefinitions.CLUSTERED_PARTED)
+        .build();
 
     @Test
     public void testGroupByWithAggregationStringLiteralArguments() {
@@ -521,5 +525,16 @@ public class GroupByPlannerTest extends CrateUnitTest {
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+    }
+
+    @Test
+    public void testGroupByOrderByPartitionedClolumn() throws Exception {
+        Merge plan = e.plan("select date from clustered_parted group by date order by date");
+        DistributedGroupBy distributedGroupBy = (DistributedGroupBy)plan.subPlan();
+        OrderedTopNProjection topNProjection = (OrderedTopNProjection)distributedGroupBy.reducerMergeNode().projections().get(1);
+
+        Symbol orderBy = topNProjection.orderBy().get(0);
+        assertThat(orderBy, instanceOf(InputColumn.class));
+        assertThat(orderBy.valueType(), is(DataTypes.TIMESTAMP));
     }
 }

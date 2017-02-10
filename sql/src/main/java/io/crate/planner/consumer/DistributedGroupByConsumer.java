@@ -134,8 +134,6 @@ class DistributedGroupByConsumer implements Consumer {
                 RowGranularity.CLUSTER)
             );
 
-            table.tableRelation().validateOrderBy(querySpec.orderBy());
-
             Optional<HavingClause> havingClause = querySpec.having();
             if (havingClause.isPresent()) {
                 HavingClause having = havingClause.get();

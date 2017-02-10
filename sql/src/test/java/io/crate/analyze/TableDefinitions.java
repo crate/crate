@@ -45,6 +45,12 @@ public final class TableDefinitions {
         .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
         .map());
 
+    private static final Routing CLUSTERED_PARTED_ROUTING = new Routing(
+        TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g", Arrays.asList(1, 2)).map())
+            .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g", Arrays.asList(3)).map())
+            .map());
+
     public static final TableIdent USER_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
 
     public static final DocTableInfo USER_TABLE_INFO = TestingTableInfo.builder(USER_TABLE_IDENT, SHARD_ROUTING)
@@ -197,6 +203,17 @@ public final class TableDefinitions {
         .clusteredBy("name")
         .build();
 
+    public static final TableIdent CLUSTERED_PARTED_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "clustered_parted");
+    public static final DocTableInfo CLUSTERED_PARTED = new TestingTableInfo.Builder(
+        CLUSTERED_PARTED_IDENT, CLUSTERED_PARTED_ROUTING)
+        .add("id", DataTypes.INTEGER, null)
+        .add("date", DataTypes.TIMESTAMP, null, true)
+        .add("city", DataTypes.STRING, null)
+        .clusteredBy("city")
+        .addPartitions(
+            new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+            new PartitionName("clustered_parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
+        .build();
 
     static TestingBlobTableInfo createBlobTable(TableIdent ident, ClusterService clusterService) {
         return new TestingBlobTableInfo(

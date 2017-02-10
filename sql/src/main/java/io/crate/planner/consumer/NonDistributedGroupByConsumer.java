@@ -142,8 +142,6 @@ class NonDistributedGroupByConsumer implements Consumer {
             collectOutputs.addAll(groupKeys);
             collectOutputs.addAll(splitPoints.aggregates());
 
-            table.tableRelation().validateOrderBy(querySpec.orderBy());
-
             List<Projection> mergeProjections = new ArrayList<>();
             mergeProjections.add(projectionBuilder.groupProjection(
                 collectOutputs,

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed limitation which didn't allow ordering on partitioned columns in
+   GROUP BY query
+
 2017/02/10 1.0.3
 ================
 
