@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to ``1.0.4`` which includes the following change:
+
+    - Fixed getting started display issue on very wide screens.
+
  - Fix: Allow scalar functions on the `HAVING` clause if the scalar
    function is used as a `GROUP BY` symbol.
 
