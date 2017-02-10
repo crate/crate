@@ -304,29 +304,35 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             Statement statement = conn.createStatement()) {
             statement.execute("SET GLOBAL stats.enabled = TRUE");
         }
-        try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties)) {
-            conn.setAutoCommit(false);
-            try (Statement statement = conn.createStatement()) {
-                statement.setFetchSize(2);
-                try (ResultSet resultSet = statement.executeQuery("select mountain from sys.summits")) {
-                    resultSet.next();
-                    resultSet.next();
+        try {
+            try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties)) {
+                conn.setAutoCommit(false);
+                try (Statement statement = conn.createStatement()) {
+                    statement.setFetchSize(2);
+                    try (ResultSet resultSet = statement.executeQuery("select mountain from sys.summits")) {
+                        resultSet.next();
+                        resultSet.next();
+                    }
                 }
             }
-        }
-        try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties);
-            Statement statement = conn.createStatement()) {
-            String q = "SELECT j.stmt, o.name FROM sys.operations AS o, sys.jobs AS j WHERE o.job_id = j.id";
-            ResultSet rs = statement.executeQuery(q);
-            int rowCount = 0;
-            while (rs.next()) {
-                String stmt = rs.getString(1);
-                if (!q.equals(stmt)) {
-                    rowCount++;
+            try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties);
+                 Statement statement = conn.createStatement()) {
+                String q = "SELECT j.stmt, o.name FROM sys.operations AS o, sys.jobs AS j WHERE o.job_id = j.id";
+                ResultSet rs = statement.executeQuery(q);
+                int rowCount = 0;
+                while (rs.next()) {
+                    String stmt = rs.getString(1);
+                    if (!q.equals(stmt)) {
+                        rowCount++;
+                    }
                 }
+                assertThat(rowCount, is(0));
             }
-            assertThat(rowCount, is(0));
-            statement.execute("RESET GLOBAL stats.enabled");
+        } finally {
+            try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties);
+                Statement statement = conn.createStatement()) {
+                statement.execute("RESET GLOBAL stats.enabled");
+            }
         }
     }
 
