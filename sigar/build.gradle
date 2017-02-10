@@ -29,4 +29,4 @@ jar {
         }
     }
 }
-jar.dependsOn(getVersion)
+jar.dependsOn('getVersion')

@@ -55,41 +55,47 @@ dependencies {
     compileNotTransitive project(':es:es-cloud-aws')
 }
 
-task release(dependsOn: 'distTar') << {
-    logger.info("released version: " + project(':core').getVersion.version);
+task release(dependsOn: 'distTar') {
+    doLast {
+        logger.info("released version: " + project(':core').getVersion.version)
+    }
 }
 
-task nightly(dependsOn: 'distTar') << {
-    logger.info("nightly version: " + project(':core').getVersion.version);
+task nightly(dependsOn: 'distTar') {
+    doLast {
+        logger.info("nightly version: " + project(':core').getVersion.version)
+    }
 }
 
-task writeBuildInfo(dependsOn: [':core:getVersion']) << {
-    def hash = "git rev-parse HEAD".execute().in.text.trim()
+task writeBuildInfo(dependsOn: [':core:getVersion']) {
+    doLast {
+        def hash = "git rev-parse HEAD".execute().in.text.trim()
 
-    def file = new File(project.projectDir.path + "/src/main/resources/crate-build.properties");
-    if (!file.isFile()) {
-        def parentDir = new File(file.parent);
-        if (!parentDir.isDirectory()) {
-            parentDir.mkdirs();
+        def file = new File(project.projectDir.path + "/src/main/resources/crate-build.properties")
+        if (!file.isFile()) {
+            def parentDir = new File(file.parent)
+            if (!parentDir.isDirectory()) {
+                parentDir.mkdirs()
+            }
+            file.createNewFile()
         }
-        file.createNewFile();
-    }
 
-    copy {
-        into('src/main/dist/bin')
-        from('src/bin') {
-            filter(ReplaceTokens, tokens: [version: project(':core').getVersion.version])
+        copy {
+            into('src/main/dist/bin')
+            from('src/bin') {
+                filter(ReplaceTokens, tokens: [version: project(':core').getVersion.version])
+            }
         }
-    }
 
-    ant.propertyfile(file: file.path, comment: 'Build Properties') {
-        ant.entry(key: 'hash', value: hash)
-        ant.entry(key: 'timestamp', value: System.currentTimeMillis())
+        ant.propertyfile(file: file.path, comment: 'Build Properties') {
+            ant.entry(key: 'hash', value: hash)
+            ant.entry(key: 'timestamp', value: System.currentTimeMillis())
+        }
     }
 }
 
 
-processResources.dependsOn writeBuildInfo
+processResources.dependsOn('writeBuildInfo')
 
 task dist {
     dependsOn ':blackbox:itest', distTar, distZip
@@ -113,10 +119,12 @@ task javadocJar(type: Jar, dependsOn: [myJavadocs]) {
     }
 }
 
-task buildJavadocJar(dependsOn: [':core:getVersion', myJavadocs]) << {
-    ext.version = project(':core').getVersion.version
-    project.version = ext.version
-    tasks.javadocJar.execute()
+task buildJavadocJar(dependsOn: [':core:getVersion', myJavadocs]) {
+    doLast {
+        ext.version = project(':core').getVersion.version
+        project.version = ext.version
+        tasks.javadocJar.execute()
+    }
 }
 
 task sourceJar(type: Jar) {
@@ -132,10 +140,12 @@ task sourceJar(type: Jar) {
     }
 }
 
-task buildSourceJar(dependsOn: [':core:getVersion']) << {
-    ext.version = project(':core').getVersion.version
-    project.version = ext.version
-    tasks.sourceJar.execute()
+task buildSourceJar(dependsOn: [':core:getVersion']) {
+    doLast {
+        ext.version = project(':core').getVersion.version
+        project.version = ext.version
+        tasks.sourceJar.execute()
+    }
 }
 
 artifacts {
@@ -336,47 +346,49 @@ jar {
 }
 
 task downloadPlugins(
-        dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip', ':azure-discovery:jar']) << {
+        dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip', ':azure-discovery:jar']) {
+    doLast {
+        copy {
+            from(zipTree(project(':es-repository-hdfs').tasks.distZip.archivePath))
+            into 'plugins/elasticsearch-repository-hdfs'
+        }
 
-    copy {
-        from(zipTree(project(':es-repository-hdfs').tasks.distZip.archivePath))
-        into 'plugins/elasticsearch-repository-hdfs'
-    }
+        copy {
+            // jar file
+            from(project(':azure-discovery').tasks.jar.archivePath)
+            // generated plugin-descriptor.properties
+            from(project(':azure-discovery').buildDir.path + '/tmp/plugin-descriptor.properties')
+            into 'plugins/crate-azure-discovery'
+        }
 
-    copy {
-        // jar file
-        from(project(':azure-discovery').tasks.jar.archivePath)
-        // generated plugin-descriptor.properties
-        from(project(':azure-discovery').buildDir.path + '/tmp/plugin-descriptor.properties')
-        into 'plugins/crate-azure-discovery'
-    }
+        copy {
+            from(project(':admin-ui').buildDir.path + '/crate-admin')
+            into 'plugins/crate-admin'
+        }
 
-    copy {
-        from(project(':admin-ui').buildDir.path + '/crate-admin')
-        into 'plugins/crate-admin'
-    }
-
-    // copy sigar jar
-    copy {
-        from(project(':sigar').tasks.jar.archivePath)
-        into 'plugins/sigar'
-    }
-    copy {
-        from(project(':sigar').projectDir.path + "/lib")
-        into 'plugins/sigar/lib'
+        // copy sigar jar
+        copy {
+            from(project(':sigar').tasks.jar.archivePath)
+            into 'plugins/sigar'
+        }
+        copy {
+            from(project(':sigar').projectDir.path + "/lib")
+            into 'plugins/sigar/lib'
+        }
     }
 }
 
-downloadPlugins.outputs.file files('plugins')
+downloadPlugins.outputs.file ('plugins')
 
 
 
-task downloadCrash << {
-    def dest = download(
-            downloadDir,
-            "https://cdn.crate.io/downloads/releases/crash_standalone_${crash_version}",
-            "crash_standalone"
-    )
+task downloadCrash {
+    doLast {
+        download(
+                downloadDir,
+                "https://cdn.crate.io/downloads/releases/crash_standalone_${crash_version}",
+                "crash_standalone")
+    }
 }
 
 processResources.dependsOn(downloadPlugins, downloadCrash)
@@ -414,4 +426,4 @@ sourceSets {
     }
 }
 
-clean.dependsOn(cleanDownloadPlugins)
+clean.dependsOn('cleanDownloadPlugins')

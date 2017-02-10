@@ -37,7 +37,7 @@ test {
     classpath = sourceSets.main.output + sourceSets.test.output + configurations.testCompile
 }
 
-clean.dependsOn(cleanTest)
+clean.dependsOn('cleanTest')
 
 sourceSets {
     test {

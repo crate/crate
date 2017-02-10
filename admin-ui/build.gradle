@@ -28,31 +28,35 @@ def extractTopfolder(File src, String trg) {
     }
 }
 
-task writePropertiesFile << {
-    def file = new File("${buildDir}/crate-admin/plugin-descriptor.properties");
-    if (!file.isFile()) {
-        def parentDir = new File(file.parent);
-        if (!parentDir.isDirectory()) {
-            parentDir.mkdirs();
+task writePropertiesFile {
+    doLast {
+        def file = new File("${buildDir}/crate-admin/plugin-descriptor.properties")
+        if (!file.isFile()) {
+            def parentDir = new File(file.parent)
+            if (!parentDir.isDirectory()) {
+                parentDir.mkdirs()
+            }
+            file.createNewFile()
         }
-        file.createNewFile();
-    }
-    ant.propertyfile(file: file.path, comment: 'Plugin Descriptor') {
-        ant.entry(key: 'name', value: project.archivesBaseName)
-        ant.entry(key: 'description', value: project.description)
-        ant.entry(key: 'version', value: plugin_crateadmin_version)
-        ant.entry(key: 'site', value: true)
+        ant.propertyfile(file: file.path, comment: 'Plugin Descriptor') {
+            ant.entry(key: 'name', value: project.archivesBaseName)
+            ant.entry(key: 'description', value: project.description)
+            ant.entry(key: 'version', value: plugin_crateadmin_version)
+            ant.entry(key: 'site', value: true)
+        }
     }
 }
 
 
-task downloadPlugin(dependsOn: [writePropertiesFile]) << {
-    def dest = download(
-            downloadDir,
-            "https://cdn.crate.io/downloads/releases/crate-admin-${plugin_crateadmin_version}.tar.gz",
-            "crate-admin-${plugin_crateadmin_version}.tar.gz"
-    )
-    extractTopfolder(dest, "${buildDir}/crate-admin/_site")
+task downloadPlugin(dependsOn: [writePropertiesFile]) {
+    doLast {
+        def dest = download(
+                downloadDir,
+                "https://cdn.crate.io/downloads/releases/crate-admin-${plugin_crateadmin_version}.tar.gz",
+                "crate-admin-${plugin_crateadmin_version}.tar.gz"
+        )
+        extractTopfolder(dest, "${buildDir}/crate-admin/_site")
+    }
 }
 
 sourceSets {

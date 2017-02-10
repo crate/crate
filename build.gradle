@@ -22,7 +22,7 @@ def download(File downloadDir, String url, String name) {
             skipexisting: true,
             dest: dest
     )
-    return dest;
+    return dest
 }
 
 apply from: 'gradle/dependencies.gradle'
@@ -113,9 +113,11 @@ allprojects {
         }
     }
 
-    if (!it.name.equals('es')) {
-        task cleanIdeaBuild << {
-            tasks.clean.execute()
+    if (it.name != 'es') {
+        task cleanIdeaBuild {
+            doLast {
+                tasks.clean.execute()
+            }
         }
     }
 }
@@ -153,7 +155,7 @@ project.gradle.addListener(new TestListener() {
                 print e
             }
             result.getExceptions().each { e ->
-                e.printStackTrace();
+                e.printStackTrace()
             }
         }
         testOutputs.remove(test)
@@ -268,5 +270,5 @@ idea {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '3.1'
+    gradleVersion = '3.3'
 }

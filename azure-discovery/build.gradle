@@ -3,19 +3,21 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 archivesBaseName = 'crate-azure-discovery'
 group = 'io.crate'
 
-task writePropertiesFile << {
-    copy {
-        from "src/main/resources/"
-        into "${buildDir}/tmp"
-        include "plugin-descriptor.properties"
-        expand(version: project.version,
-                esVersion: versions.elasticsearch,
-                jmvCompatibility: project.targetCompatibility,
-                name: project.name)
+task writePropertiesFile {
+    doLast {
+        copy {
+            from "src/main/resources/"
+            into "${buildDir}/tmp"
+            include "plugin-descriptor.properties"
+            expand(version: project.version,
+                    esVersion: versions.elasticsearch,
+                    jmvCompatibility: project.targetCompatibility,
+                    name: project.name)
+        }
     }
 }
 
-jar.dependsOn(writePropertiesFile)
+jar.dependsOn('writePropertiesFile')
 
 dependencies {
     compileOnly project(':core')

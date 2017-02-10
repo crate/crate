@@ -23,8 +23,10 @@ dependencies {
     testCompile "junit:junit:${versions.junit}"
 }
 
-task antlrOutputDir << {
-    mkdir(antlr.output)
+task antlrOutputDir {
+    doLast {
+        mkdir(antlr.output)
+    }
 }
 
 task generateGrammarSource(dependsOn: antlrOutputDir, type: JavaExec) {
@@ -53,7 +55,7 @@ test {
 }
 
 tasks.withType(JavaCompile) {
-    it.dependsOn generateGrammarSource
+    it.dependsOn('generateGrammarSource')
 }
 
 clean {

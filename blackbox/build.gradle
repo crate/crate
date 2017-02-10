@@ -12,30 +12,36 @@ task bootstrap(type: Exec) {
     commandLine 'sh', "$projectDir/bootstrap.sh"
 }
 
-task unpackDistTar(dependsOn: [project(':app').distTar]) << {
-    copy {
-        includeEmptyDirs = false
-        from(tarTree(project(':app').distTar.archivePath)) {
-            eachFile { details ->
-                details.path =
-                        details.path.substring(details.relativePath.segments[0].length())
+task unpackDistTar(dependsOn: [project(':app').distTar]) {
+    doLast {
+        copy {
+            includeEmptyDirs = false
+            from(tarTree(project(':app').distTar.archivePath)) {
+                eachFile { details ->
+                    details.path =
+                            details.path.substring(details.relativePath.segments[0].length())
+                }
             }
+            into crateDist
         }
-        into crateDist
     }
 }
 
-task lessLogging(dependsOn: unpackDistTar) << {
-    def file = new File("$projectDir/tmp/crate/config/logging.yml")
-    file.write(file.text.replaceAll('rootLogger: INFO', 'rootLogger: WARN'))
+task lessLogging(dependsOn: unpackDistTar) {
+    doLast {
+        def file = new File("$projectDir/tmp/crate/config/logging.yml")
+        file.write(file.text.replaceAll('rootLogger: INFO', 'rootLogger: WARN'))
+    }
 }
 
-task ignoreDiskThreshold(dependsOn: unpackDistTar) << {
-    def file = new File("$projectDir/tmp/crate/config/crate.yml")
-    file.write(file.text.replaceAll(
-            '# cluster.routing.allocation.disk.threshold_enabled: true',
-            'cluster.routing.allocation.disk.threshold_enabled: false')
-    )
+task ignoreDiskThreshold(dependsOn: unpackDistTar) {
+    doLast {
+        def file = new File("$projectDir/tmp/crate/config/crate.yml")
+        file.write(file.text.replaceAll(
+                '# cluster.routing.allocation.disk.threshold_enabled: true',
+                'cluster.routing.allocation.disk.threshold_enabled: false')
+        )
+    }
 }
 
 task hdfsTest(type: Exec) {
@@ -69,16 +75,18 @@ itest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 gtest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 logicTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 
-task cleanDocs << {
-    FileCollection toDelete = files(
-            crateDist,
-            "$projectDir/docs/out/text",
-            "$projectDir/docs/out/html",
-            "$projectDir/docs/clients/out/text",
-            "$projectDir/docs/clients/out/html"
-    )
-    toDelete.each {
-        File file -> delete file
+task cleanDocs {
+    doLast {
+        FileCollection toDelete = files(
+                crateDist,
+                "$projectDir/docs/out/text",
+                "$projectDir/docs/out/html",
+                "$projectDir/docs/clients/out/text",
+                "$projectDir/docs/clients/out/html"
+        )
+        toDelete.each {
+            File file -> delete file
+        }
     }
 }
 clean.dependsOn([cleanDocs, cleanBootstrap])
