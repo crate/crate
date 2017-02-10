@@ -23,7 +23,6 @@ package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
@@ -397,8 +396,9 @@ public class SysClusterTableInfo extends StaticTableInfo {
                 .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.UDC.name(),
                     CrateSettings.UDC_INTERVAL.name()))
                 .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.UDC.name(),
-                    CrateSettings.UDC_URL.name())),
-            Collections.<ColumnIdent>emptyList());
+                    CrateSettings.UDC_URL.name()))
+                .register(ClusterSettingsExpression.NAME, DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.ENTERPRISE.name())),
+            Collections.emptyList());
         this.clusterService = clusterService;
     }
 

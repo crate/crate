@@ -120,5 +120,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
             CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.defaultValue());
         assertEquals(gateway.get(CrateSettings.GATEWAY_EXPECTED_NODES.name()),
             CrateSettings.GATEWAY_EXPECTED_NODES.defaultValue());
+
+        assertThat(settings.get(CrateSettings.ENTERPRISE.name()), is(CrateSettings.ENTERPRISE.defaultValue()));
     }
 }
