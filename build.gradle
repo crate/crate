@@ -60,7 +60,7 @@ allprojects {
     }
 
     jacoco {
-        toolVersion = "0.7.1.201405082137"
+        toolVersion = "0.7.9"
     }
 
     group = 'io.crate'
