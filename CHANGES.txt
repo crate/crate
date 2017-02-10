@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2017/02/10 1.0.3
+================
+
  - Updated crate-admin to ``1.0.4`` which includes the following change:
 
     - Fixed getting started display issue on very wide screens.
