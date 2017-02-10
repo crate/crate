@@ -38,5 +38,7 @@ public interface FunctionImplementation {
      *                This will only be present if normalizeSymbol is called on the handler node.
      *                normalizeSymbol calls during execution won't receive a StmtCtx
      */
-    Symbol normalizeSymbol(Function function, @Nullable TransactionContext transactionContext);
+    default Symbol normalizeSymbol(Function function, @Nullable TransactionContext transactionContext){
+        return function;
+    }
 }

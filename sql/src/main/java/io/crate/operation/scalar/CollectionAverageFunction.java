@@ -22,12 +22,9 @@
 package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.TransactionContext;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -77,10 +74,5 @@ public class CollectionAverageFunction extends Scalar<Double, Set<Number>> {
     @Override
     public FunctionInfo info() {
         return info;
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function function, TransactionContext transactionContext) {
-        return function;
     }
 }

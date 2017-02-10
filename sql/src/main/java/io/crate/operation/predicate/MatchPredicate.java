@@ -24,12 +24,9 @@ package io.crate.operation.predicate;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.ElasticsearchParseException;
@@ -118,10 +115,5 @@ public class MatchPredicate implements FunctionImplementation {
     @Override
     public FunctionInfo info() {
         return INFO;
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function function, TransactionContext transactionContext) {
-        return function;
     }
 }

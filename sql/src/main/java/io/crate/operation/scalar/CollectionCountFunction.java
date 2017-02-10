@@ -22,8 +22,6 @@
 package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
@@ -60,11 +58,6 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
     @Override
     public FunctionInfo info() {
         return info;
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function function, TransactionContext transactionContext) {
-        return function;
     }
 
     static class CollectionCountResolver implements FunctionResolver {
