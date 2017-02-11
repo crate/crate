@@ -99,7 +99,7 @@ public class ReferenceIdent implements Streamable {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        columnIdent = ColumnIdent.fromStream(in);
+        columnIdent = new ColumnIdent(in);
         tableIdent = TableIdent.fromStream(in);
     }
 

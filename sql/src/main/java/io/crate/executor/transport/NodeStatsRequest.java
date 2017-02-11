@@ -52,7 +52,7 @@ public class NodeStatsRequest extends TransportRequest {
         columns = new HashSet<>();
         int columnIdentsSize = in.readVInt();
         for (int i = 0; i < columnIdentsSize; i++) {
-            columns.add(ColumnIdent.fromStream(in));
+            columns.add(new ColumnIdent(in));
         }
     }
 
