@@ -81,7 +81,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     }
 
     protected AbstractIndexWriterProjection(StreamInput in) throws IOException {
-        tableIdent = TableIdent.fromStream(in);
+        tableIdent = new TableIdent(in);
 
         partitionIdent = in.readOptionalString();
         idSymbols = Symbols.listFromStream(in);

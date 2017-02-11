@@ -24,20 +24,20 @@ package io.crate.metadata;
 import com.google.common.base.Objects;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 
-public class ReferenceIdent implements Streamable {
+public class ReferenceIdent {
 
-    private TableIdent tableIdent;
-    private ColumnIdent columnIdent;
+    private final TableIdent tableIdent;
+    private final ColumnIdent columnIdent;
 
-    public ReferenceIdent() {
-
+    public ReferenceIdent(StreamInput in) throws IOException {
+        columnIdent = new ColumnIdent(in);
+        tableIdent = new TableIdent(in);
     }
 
     public ReferenceIdent(TableIdent tableIdent, ColumnIdent columnIdent) {
@@ -97,13 +97,6 @@ public class ReferenceIdent implements Streamable {
         return String.format(Locale.ENGLISH, "<RefIdent: %s->%s>", tableIdent, columnIdent);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        columnIdent = new ColumnIdent(in);
-        tableIdent = TableIdent.fromStream(in);
-    }
-
-    @Override
     public void writeTo(StreamOutput out) throws IOException {
         columnIdent.writeTo(out);
         tableIdent.writeTo(out);

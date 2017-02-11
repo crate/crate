@@ -81,8 +81,7 @@ public class Reference extends Symbol {
     private boolean nullable = true;
 
     public Reference(StreamInput in) throws IOException {
-        ident = new ReferenceIdent();
-        ident.readFrom(in);
+        ident = new ReferenceIdent(in);
         type = DataTypes.fromStream(in);
         granularity = RowGranularity.fromStream(in);
 
