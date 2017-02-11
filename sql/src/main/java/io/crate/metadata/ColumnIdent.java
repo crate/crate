@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Objects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ComparisonChain;
@@ -32,7 +31,6 @@ import io.crate.core.StringUtils;
 import io.crate.sql.Identifiers;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -41,23 +39,26 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
-
+public class ColumnIdent implements Path, Comparable<ColumnIdent> {
 
     public static final Predicate<CharSequence> INVALID_COLUMN_NAME_PREDICATE = Predicates.contains(Pattern.compile("[\\[\\'\\]\\.]"));
 
     private static final Ordering<Iterable<String>> ordering = Ordering.<String>natural().lexicographical();
 
-    private String name;
-    private List<String> path;
+    private final String name;
+    private final List<String> path;
 
-    private ColumnIdent() {
-    }
-
-    public static ColumnIdent fromStream(StreamInput in) throws IOException {
-        ColumnIdent columnIdent = new ColumnIdent();
-        columnIdent.readFrom(in);
-        return columnIdent;
+    public ColumnIdent(StreamInput in) throws IOException {
+        name = in.readString();
+        int numParts = in.readVInt();
+        if (numParts > 0) {
+            path = new ArrayList<>(numParts);
+            for (int i = 0; i < numParts; i++) {
+                path.add(in.readString());
+            }
+        } else {
+            path = ImmutableList.of();
+        }
     }
 
     public ColumnIdent(String name) {
@@ -70,8 +71,8 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
     }
 
     public ColumnIdent(String name, @Nullable List<String> path) {
-        this(name);
-        this.path = MoreObjects.firstNonNull(path, ImmutableList.<String>of());
+        this.name = name;
+        this.path = MoreObjects.firstNonNull(path, ImmutableList.of());
     }
 
     public static ColumnIdent fromPath(@Nullable String path) {
@@ -220,22 +221,20 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if ((obj == null) || (getClass() != obj.getClass())) {
-            return false;
-        }
-        ColumnIdent o = (ColumnIdent) obj;
-        return Objects.equal(name, o.name) &&
-               Objects.equal(path, o.path);
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        ColumnIdent that = (ColumnIdent) o;
+
+        if (!name.equals(that.name)) return false;
+        return path.equals(that.path);
     }
 
     @Override
     public int hashCode() {
         int result = name.hashCode();
-        result = 31 * result + (path != null ? path.hashCode() : 0);
+        result = 31 * result + path.hashCode();
         return result;
     }
 
@@ -252,23 +251,6 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
             .result();
     }
 
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        name = in.readString();
-        int numParts = in.readVInt();
-        if (numParts > 0) {
-            path = new ArrayList<>(numParts);
-            for (int i = 0; i < numParts; i++) {
-                path.add(in.readString());
-            }
-        } else {
-            path = ImmutableList.of();
-        }
-
-    }
-
-    @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
         out.writeVInt(path.size());

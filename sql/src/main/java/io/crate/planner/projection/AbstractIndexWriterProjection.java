@@ -89,7 +89,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         int numPks = in.readVInt();
         primaryKeys = new ArrayList<>(numPks);
         for (int i = 0; i < numPks; i++) {
-            primaryKeys.add(ColumnIdent.fromStream(in));
+            primaryKeys.add(new ColumnIdent(in));
         }
 
         partitionedBySymbols = Symbols.listFromStream(in);
@@ -99,7 +99,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
             clusteredBySymbol = null;
         }
         if (in.readBoolean()) {
-            clusteredByColumn = ColumnIdent.fromStream(in);
+            clusteredByColumn = new ColumnIdent(in);
         }
         bulkActions = in.readVInt();
         autoCreateIndices = in.readBoolean();
