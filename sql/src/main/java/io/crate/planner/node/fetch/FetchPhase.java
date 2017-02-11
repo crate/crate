@@ -118,7 +118,7 @@ public class FetchPhase implements ExecutionPhase {
         n = in.readVInt();
         tableIndices = HashMultimap.create(n, 1);
         for (int i = 0; i < n; i++) {
-            TableIdent ti = TableIdent.fromStream(in);
+            TableIdent ti = new TableIdent(in);
             int nn = in.readVInt();
             for (int j = 0; j < nn; j++) {
                 tableIndices.put(ti, in.readString());
