@@ -32,9 +32,9 @@ import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.symbol.Aggregations;
+import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
@@ -43,10 +43,7 @@ import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
-import io.crate.metadata.Functions;
-import io.crate.metadata.Path;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.Operation;
@@ -465,15 +462,16 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             null
         );
 
-        List<Symbol> arguments = new ArrayList<>(node.arguments().size());
-        for (Expression expression : node.arguments()) {
-            Symbol symbol = expressionAnalyzer.convert(expression, context.expressionAnalysisContext());
-            arguments.add(symbol);
+        Function function = (Function) expressionAnalyzer.convert(node.functionCall(), context.expressionAnalysisContext());
+        FunctionImplementation functionImplementation = functions.getSafe(function.info().ident());
+        if (functionImplementation.info().type() != FunctionInfo.Type.TABLE) {
+            throw new UnsupportedFeatureException(
+                "Non table function " + function.info().ident().name() + " is not supported in from clause");
         }
-        TableFunctionImplementation tableFunction = functions.getTableFunctionSafe(node.name());
-        TableInfo tableInfo = tableFunction.createTableInfo(clusterService, Symbols.extractTypes(arguments));
+        TableFunctionImplementation tableFunction = (TableFunctionImplementation) functionImplementation;
+        TableInfo tableInfo = tableFunction.createTableInfo(clusterService);
         Operation.blockedRaiseException(tableInfo, statementContext.currentOperation());
-        TableRelation tableRelation = new TableFunctionRelation(tableInfo, node.name(), arguments);
+        TableRelation tableRelation = new TableFunctionRelation(tableInfo, tableFunction, function);
         context.addSourceRelation(node.name(), tableRelation);
         return tableRelation;
     }

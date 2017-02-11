@@ -45,7 +45,7 @@ public interface ExecutionPhase extends Streamable {
         MERGE(MergePhase.FACTORY),
         FETCH(FetchPhase.FACTORY),
         NESTED_LOOP(NestedLoopPhase.FACTORY),
-        TABLE_FUNCTION_COLLECT(TableFunctionCollectPhase.FACTORY);
+        TABLE_FUNCTION_COLLECT(null); // no streaming implemented
 
         private final ExecutionPhaseFactory factory;
 

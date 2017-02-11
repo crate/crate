@@ -26,8 +26,14 @@ import io.crate.analyze.symbol.Symbol;
 
 import javax.annotation.Nullable;
 
+/**
+ * Base interface for function implementations.
+ */
 public interface FunctionImplementation {
 
+    /**
+     * Provides meta information about this function implementation.
+     */
     FunctionInfo info();
 
     /**

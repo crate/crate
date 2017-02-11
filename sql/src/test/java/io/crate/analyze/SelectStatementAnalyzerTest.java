@@ -1910,16 +1910,9 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testSelectStarFromUnnestWithInvalidArguments() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("unnest expects arguments of type array. Got an argument of type 'long' at position 0 instead.");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: unnest(long, string)");
         analyze("select * from unnest(1, 'foo')");
-    }
-
-    @Test
-    public void testSelectStarFromUnnestWithNoArguments() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("unnest expects at least 1 argument of type array. Got 0");
-        analyze("select * from unnest()");
     }
 
     @Test
@@ -1945,5 +1938,19 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     public void testNegationOfNonNumericLiteralsShouldFail() throws Exception {
         expectedException.expectMessage("Cannot negate 'foo'. You may need to add explicit type casts");
         analyze("select - 'foo'");
+    }
+
+    @Test
+    public void testSelectFromTableFunctionInSelectList() throws Exception {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("Table functions are not supported in select list");
+        analyze("select unnest([1, 2])");
+    }
+
+    @Test
+    public void testSelectFromNonTableFunction() throws Exception {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("Non table function abs is not supported in from clause");
+        analyze("select * from abs(1)");
     }
 }

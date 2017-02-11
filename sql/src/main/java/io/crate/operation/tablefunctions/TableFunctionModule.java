@@ -23,30 +23,12 @@
 package io.crate.operation.tablefunctions;
 
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
+import io.crate.operation.AbstractFunctionModule;
 
-import java.util.HashMap;
-import java.util.Map;
-
-public class TableFunctionModule extends AbstractModule {
-
-    private Map<String, TableFunctionImplementation> functions = new HashMap<>();
+public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImplementation> {
 
     @Override
-    protected void configure() {
+    public void configureFunctions() {
         Unnest.register(this);
-        MapBinder<String, TableFunctionImplementation> functionBinder =
-            MapBinder.newMapBinder(binder(), String.class, TableFunctionImplementation.class);
-
-        for (Map.Entry<String, TableFunctionImplementation> entry : functions.entrySet()) {
-            functionBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
-        }
-        functions.clear();
-        functions = null;
-    }
-
-    public void register(String name, TableFunctionImplementation tableFunctionImplementation) {
-        functions.put(name, tableFunctionImplementation);
     }
 }

@@ -23,31 +23,30 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Function;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
-
-import java.util.List;
+import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 
 public class TableFunctionRelation extends TableRelation {
 
-    private final String name;
-    private final List<? extends Symbol> arguments;
+    private final TableFunctionImplementation functionImplementation;
+    private final Function function;
 
-    public TableFunctionRelation(TableInfo tableInfo, String name, List<? extends Symbol> arguments) {
+    public TableFunctionRelation(TableInfo tableInfo, TableFunctionImplementation functionImplementation, Function function) {
         super(tableInfo);
-        this.name = name;
-        this.arguments = arguments;
+        this.functionImplementation = functionImplementation;
+        this.function = function;
     }
 
-    public String functionName() {
-        return name;
+    public Function function() {
+        return function;
     }
 
-    public List<? extends Symbol> arguments() {
-        return arguments;
+    public TableFunctionImplementation functionImplementation() {
+        return functionImplementation;
     }
 
     @Override

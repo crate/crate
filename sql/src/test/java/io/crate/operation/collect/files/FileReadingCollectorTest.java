@@ -32,7 +32,6 @@ import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.external.S3ClientHelper;
 import io.crate.metadata.*;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.operation.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.projectors.RowReceiver;
@@ -103,8 +102,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     public void prepare() throws Exception {
         Functions functions = new Functions(
             ImmutableMap.<FunctionIdent, FunctionImplementation>of(),
-            ImmutableMap.<String, FunctionResolver>of(),
-            Collections.<String, TableFunctionImplementation>emptyMap()
+            ImmutableMap.<String, FunctionResolver>of()
         );
         inputFactory = new InputFactory(functions);
     }

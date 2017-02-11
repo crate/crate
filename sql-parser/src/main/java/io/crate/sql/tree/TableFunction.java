@@ -22,25 +22,24 @@
 
 package io.crate.sql.tree;
 
-import java.util.List;
+import com.google.common.base.MoreObjects;
+
 import java.util.Objects;
 
 public class TableFunction extends QueryBody {
 
-    private final String name;
-    private final List<Expression> arguments;
+    private final FunctionCall functionCall;
 
-    public TableFunction(String name, List<Expression> arguments) {
-        this.name = name;
-        this.arguments = arguments;
+    public TableFunction(FunctionCall functionCall) {
+        this.functionCall = functionCall;
     }
 
     public String name() {
-        return name;
+        return functionCall.getName().toString();
     }
 
-    public List<Expression> arguments() {
-        return arguments;
+    public FunctionCall functionCall() {
+        return functionCall;
     }
 
     @Override
@@ -48,20 +47,19 @@ public class TableFunction extends QueryBody {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         TableFunction that = (TableFunction) o;
-        return Objects.equals(name, that.name) &&
-               Objects.equals(arguments, that.arguments);
+        return Objects.equals(functionCall, that.functionCall);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, arguments);
+        return Objects.hash(functionCall);
     }
 
     @Override
     public String toString() {
-        return "TableFunction{" + name + '\'' +
-               ", args=" + arguments +
-               '}';
+        return MoreObjects.toStringHelper(this)
+            .add("functionCall", functionCall)
+            .toString();
     }
 
     @Override

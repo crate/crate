@@ -23,17 +23,35 @@
 package io.crate.metadata.tablefunctions;
 
 import io.crate.data.Bucket;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
-import io.crate.types.DataType;
 import org.elasticsearch.cluster.ClusterService;
 
 import java.util.Collection;
-import java.util.List;
 
-public interface TableFunctionImplementation {
+/**
+ * Interface which needs to be implemented by functions returning whole tables as result.
+ */
+public interface TableFunctionImplementation extends FunctionImplementation {
 
+    /**
+     * Executes the function.
+     *
+     * @param arguments the argument values
+     * @return the resulting table rows as bucket
+     */
     Bucket execute(Collection<? extends Input> arguments);
 
-    TableInfo createTableInfo(ClusterService clusterService, List<? extends DataType> argumentTypes);
+    /**
+     * Creates the metadata for the table that is generated upon execution of this function. This is the actual return
+     * type of the table function.
+     * <p>
+     * Note: The result type of the {@link io.crate.metadata.FunctionInfo} that is returned by {@link #info()}
+     * is ignored for table functions.
+     *
+     * @param clusterService the cluster service implementation for retrieving cluster state information
+     * @return a table info object representing the actual return type of the function.
+     */
+    TableInfo createTableInfo(ClusterService clusterService);
 }

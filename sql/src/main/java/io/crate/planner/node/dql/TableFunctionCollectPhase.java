@@ -23,11 +23,11 @@
 package io.crate.planner.node.dql;
 
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -39,46 +39,29 @@ import java.util.UUID;
 
 public class TableFunctionCollectPhase extends RoutedCollectPhase implements CollectPhase {
 
-    public static final ExecutionPhaseFactory FACTORY = new ExecutionPhaseFactory() {
-        @Override
-        public ExecutionPhase create() {
-            return new TableFunctionCollectPhase();
-        }
-    };
-    private String functionName;
-    private List<? extends Symbol> arguments;
+    private final TableFunctionRelation relation;
 
-    public TableFunctionCollectPhase(UUID jobId,
-                                     int phaseId,
-                                     Routing routing,
-                                     String functionName,
-                                     List<? extends Symbol> arguments,
-                                     List<Projection> projections,
-                                     List<Symbol> outputs,
-                                     WhereClause whereClause) {
+    TableFunctionCollectPhase(UUID jobId,
+                              int phaseId,
+                              Routing routing,
+                              TableFunctionRelation relation,
+                              List<Projection> projections,
+                              List<Symbol> outputs,
+                              WhereClause whereClause) {
         super(jobId,
             phaseId,
-            functionName,
+            relation.function().info().ident().name(),
             routing,
             RowGranularity.DOC,
             outputs,
             projections,
             whereClause,
             DistributionInfo.DEFAULT_BROADCAST);
-        this.arguments = arguments;
-        this.functionName = functionName;
+        this.relation = relation;
     }
 
-    // empty ctor for serialization
-    private TableFunctionCollectPhase() {
-    }
-
-    public String functionName() {
-        return functionName;
-    }
-
-    public List<? extends Symbol> arguments() {
-        return arguments;
+    public TableFunctionRelation relation() {
+        return relation;
     }
 
     @Override

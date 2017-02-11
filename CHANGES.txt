@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - BREAKING: The TableFunctionImplementation interface was streamlined
+   with other function implementation semantics. This requires
+   function implementation plugins to be adapted to the new interface.
+
  - It is now supported to order and group by predicate functions in general
    with the exception of the `match` predicate.
 

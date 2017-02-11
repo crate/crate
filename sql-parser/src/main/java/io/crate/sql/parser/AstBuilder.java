@@ -652,7 +652,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         if (context.qname() != null) {
             return new Table(getQualifiedName(context.qname()), visit(context.parameterOrLiteral(), Assignment.class));
         }
-        return new TableFunction(getIdentText(context.ident()), visit(context.parameterOrLiteral(), Expression.class));
+        FunctionCall fc = new FunctionCall(
+            getQualifiedName(context.ident()), visit(context.parameterOrLiteral(), Expression.class));
+        return new TableFunction(fc);
     }
 
     // Boolean expressions
@@ -1172,6 +1174,10 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     private QualifiedName getQualifiedName(SqlBaseParser.QnameContext context) {
         return QualifiedName.of(identsToStrings(context.ident()));
+    }
+
+    private QualifiedName getQualifiedName(SqlBaseParser.IdentContext context) {
+        return QualifiedName.of(getIdentText(context));
     }
 
     private List<String> identsToStrings(List<SqlBaseParser.IdentContext> idents) {

@@ -144,7 +144,8 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
 
     public enum Type {
         SCALAR,
-        AGGREGATE
+        AGGREGATE,
+        TABLE
     }
 
     public enum Feature {
@@ -160,7 +161,7 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
          * <p>
          * col > 10.5
          * <p>
-         * then a function f, for which comparions are replaceable, can be applied so
+         * then a function f, for which comparisons are replaceable, can be applied so
          * that:
          * <p>
          * f(col) > f(10.5)

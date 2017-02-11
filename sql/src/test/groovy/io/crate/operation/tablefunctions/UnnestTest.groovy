@@ -25,6 +25,7 @@ package io.crate.operation.tablefunctions
 import com.carrotsearch.randomizedtesting.RandomizedTest
 import io.crate.analyze.symbol.Literal
 import io.crate.data.Bucket
+import io.crate.operation.Input
 import io.crate.testing.TestingHelpers
 import io.crate.types.ArrayType
 import io.crate.types.DataTypes
@@ -40,17 +41,25 @@ class UnnestTest extends RandomizedTest {
     Unnest unnest
 
     @Before
-    public void setUp() throws Exception {
+    void setUp() throws Exception {
         unnest = new Unnest();
         stringArray = new ArrayType(DataTypes.STRING);
         longArray = new ArrayType(DataTypes.LONG);
+    }
+
+    private Bucket executeUnnest(Literal... args){
+        def types = args.collect { arg ->
+            arg.valueType();
+        }
+        def impl = unnest.getForTypes(types)
+        impl.execute(Arrays.<Input>asList(args));
     }
 
     @Test
     void testExecute() {
         Literal numbers = of(longArray, $(1L, 2L))
         Literal names = of(stringArray, $("Marvin", "Trillian"))
-        Bucket bucket = unnest.execute([numbers, names])
+        Bucket bucket = executeUnnest(numbers, names)
 
         assert TestingHelpers.printedTable(bucket) == "1| Marvin\n" +
                 "2| Trillian\n"
@@ -61,7 +70,7 @@ class UnnestTest extends RandomizedTest {
         Literal numbers = of(longArray, $(1L))
         Literal names = of(stringArray, $("Marvin", "Trillian"))
 
-        Bucket bucket = unnest.execute([numbers, names])
+        Bucket bucket = executeUnnest(numbers, names)
         def table = TestingHelpers.printedTable(bucket)
         assert table == "1| Marvin\nNULL| Trillian\n"
     }
@@ -71,7 +80,7 @@ class UnnestTest extends RandomizedTest {
         Literal numbers = of(longArray, $(1L, 2L, 3L))
         Literal names = of(stringArray, $("Marvin"))
 
-        Bucket bucket = unnest.execute([numbers, names])
+        Bucket bucket = executeUnnest(numbers, names)
         def table = TestingHelpers.printedTable(bucket)
         assert table == "1| Marvin\n2| NULL\n3| NULL\n"
     }

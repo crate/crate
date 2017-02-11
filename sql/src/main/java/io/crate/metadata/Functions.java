@@ -25,7 +25,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UndefinedType;
@@ -38,14 +37,11 @@ import java.util.*;
 public class Functions {
 
     private final Map<String, FunctionResolver> functionResolvers;
-    private final Map<String, TableFunctionImplementation> tableFunctionImplementationMap;
 
     @Inject
     public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
-                     Map<String, FunctionResolver> functionResolvers,
-                     Map<String, TableFunctionImplementation> tableFunctionImplementationMap) {
+                     Map<String, FunctionResolver> functionResolvers) {
         this.functionResolvers = Maps.newHashMap(functionResolvers);
-        this.tableFunctionImplementationMap = tableFunctionImplementationMap;
         generateFunctionResolvers(functionImplementations);
     }
 
@@ -162,17 +158,6 @@ public class Functions {
             newArgumentTypes.add(dt);
         }
         return newArgumentTypes;
-    }
-
-    /**
-     * @throws UnsupportedOperationException if the function is unknown
-     */
-    public TableFunctionImplementation getTableFunctionSafe(String name) {
-        TableFunctionImplementation tableFunctionImplementation = tableFunctionImplementationMap.get(name);
-        if (tableFunctionImplementation == null) {
-            throw new UnsupportedOperationException("unknown table function: " + name);
-        }
-        return tableFunctionImplementation;
     }
 
     private static class GeneratedFunctionResolver implements FunctionResolver {

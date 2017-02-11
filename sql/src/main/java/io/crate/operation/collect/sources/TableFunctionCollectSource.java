@@ -26,7 +26,6 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -52,13 +51,11 @@ import java.util.List;
 public class TableFunctionCollectSource implements CollectSource {
 
     private final ClusterService clusterService;
-    private final Functions functions;
     private final InputFactory inputFactory;
 
     @Inject
     public TableFunctionCollectSource(ClusterService clusterService, Functions functions) {
         this.clusterService = clusterService;
-        this.functions = functions;
         inputFactory = new InputFactory(functions);
     }
 
@@ -71,10 +68,12 @@ public class TableFunctionCollectSource implements CollectSource {
         if (whereClause.noMatch()) {
             return Collections.singletonList(RowsCollector.empty(downstream));
         }
-        TableFunctionImplementation tableFunctionSafe = functions.getTableFunctionSafe(phase.functionName());
-        TableInfo tableInfo = tableFunctionSafe.createTableInfo(clusterService, Symbols.extractTypes(phase.arguments()));
+
+        TableFunctionImplementation functionImplementation = phase.relation().functionImplementation();
+        TableInfo tableInfo = functionImplementation.createTableInfo(clusterService);
+
         //noinspection unchecked  Only literals can be passed to table functions. Anything else is invalid SQL
-        List<Input<?>> inputs = (List<Input<?>>) (List) phase.arguments();
+        List<Input<?>> inputs = (List<Input<?>>) (List) phase.relation().function().arguments();
         List<Reference> columns = new ArrayList<>(tableInfo.columns());
 
         List<Input<?>> topLevelInputs = new ArrayList<>(phase.toCollect().size());
@@ -85,7 +84,7 @@ public class TableFunctionCollectSource implements CollectSource {
         }
 
         Iterable<Row> rows = Iterables.transform(
-            tableFunctionSafe.execute(inputs),
+            functionImplementation.execute(inputs),
             new ValueAndInputRow<>(topLevelInputs, ctx.expressions()));
         if (whereClause.hasQuery()) {
             Input<Boolean> condition = (Input<Boolean>) ctx.add(whereClause.query());
@@ -96,6 +95,6 @@ public class TableFunctionCollectSource implements CollectSource {
             rows = RowsTransformer.sortRows(Iterables.transform(rows, Row::materialize), phase);
         }
         RowsCollector rowsCollector = new RowsCollector(downstream, rows);
-        return Collections.<CrateCollector>singletonList(rowsCollector);
+        return Collections.singletonList(rowsCollector);
     }
 }
