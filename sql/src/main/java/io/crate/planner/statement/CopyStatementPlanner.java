@@ -86,7 +86,7 @@ public class CopyStatementPlanner {
 
             if (table.isPartitioned()) {
                 partitionedByNames = Lists.newArrayList(
-                    Lists.transform(table.partitionedBy(), ColumnIdent.GET_FQN_NAME_FUNCTION));
+                    Lists.transform(table.partitionedBy(), ColumnIdent::fqn));
             } else {
                 partitionedByNames = Collections.emptyList();
             }
@@ -116,7 +116,7 @@ public class CopyStatementPlanner {
             table.isPartitioned() // autoCreateIndices
         );
         List<Projection> projections = Collections.<Projection>singletonList(sourceIndexWriterProjection);
-        partitionedByNames.removeAll(Lists.transform(table.primaryKey(), ColumnIdent.GET_FQN_NAME_FUNCTION));
+        partitionedByNames.removeAll(Lists.transform(table.primaryKey(), ColumnIdent::fqn));
         int referencesSize = table.primaryKey().size() + partitionedByNames.size() + 1;
         referencesSize = clusteredByPrimaryKeyIdx == -1 ? referencesSize + 1 : referencesSize;
 

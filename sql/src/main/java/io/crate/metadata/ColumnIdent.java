@@ -21,7 +21,10 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.*;
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ComparisonChain;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
@@ -42,17 +45,6 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
 
 
     public static final Predicate<CharSequence> INVALID_COLUMN_NAME_PREDICATE = Predicates.contains(Pattern.compile("[\\[\\'\\]\\.]"));
-
-    public static final Function<ColumnIdent, String> GET_FQN_NAME_FUNCTION = new com.google.common.base.Function<ColumnIdent, String>() {
-        @Nullable
-        @Override
-        public String apply(@Nullable ColumnIdent input) {
-            if (input != null) {
-                return input.fqn();
-            }
-            return null;
-        }
-    };
 
     private static final Ordering<Iterable<String>> ordering = Ordering.<String>natural().lexicographical();
 
