@@ -22,6 +22,7 @@
 
 package io.crate.metadata;
 
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.sys.node.SysNodesExpressionFactories;
 
 import java.util.Collection;
@@ -29,7 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LocalSysColReferenceResolver implements NestedReferenceResolver {
+public class LocalSysColReferenceResolver implements ReferenceResolver<RowContextCollectorExpression<?, ?>> {
 
     private final Map<ColumnIdent, RowContextCollectorExpression> expressionMap = new HashMap<>();
 
@@ -41,11 +42,12 @@ public class LocalSysColReferenceResolver implements NestedReferenceResolver {
     }
 
     @Override
-    public ReferenceImplementation<?> getImplementation(Reference ref) {
+    public RowContextCollectorExpression<?, ?> getImplementation(Reference ref) {
         return expressionMap.get(ref.ident().columnIdent());
     }
 
     public Collection<RowContextCollectorExpression> expressions() {
         return expressionMap.values();
     }
+
 }

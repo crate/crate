@@ -21,7 +21,7 @@
 
 package io.crate.operation.reference.sys.check.cluster;
 
-import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -46,7 +46,7 @@ import static org.mockito.Mockito.when;
 public class SysChecksTest extends CrateUnitTest {
 
     private final ClusterService clusterService = mock(ClusterService.class);
-    private final NestedReferenceResolver referenceResolver = mock(NestedReferenceResolver.class);
+    private final ClusterReferenceResolver referenceResolver = mock(ClusterReferenceResolver.class);
     private final Iterator docSchemaInfoItr = mock(Iterator.class);
     private final SchemaInfo docSchemaInfo = mock(DocSchemaInfo.class);
     private final DocTableInfo docTableInfo = mock(DocTableInfo.class);

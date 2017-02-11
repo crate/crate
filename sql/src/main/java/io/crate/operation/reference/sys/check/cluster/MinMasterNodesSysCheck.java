@@ -23,7 +23,7 @@ package io.crate.operation.reference.sys.check.cluster;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
-import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
@@ -40,7 +40,7 @@ import org.elasticsearch.common.inject.Singleton;
 public class MinMasterNodesSysCheck extends AbstractSysCheck {
 
     private final ClusterService clusterService;
-    private final NestedReferenceResolver nestedReferenceResolver;
+    private final ClusterReferenceResolver clusterReferenceResolver;
 
     private static final int ID = 1;
     private static final String DESCRIPTION = "The setting 'discovery.zen.minimum_master_nodes' " +
@@ -58,16 +58,16 @@ public class MinMasterNodesSysCheck extends AbstractSysCheck {
     );
 
     @Inject
-    public MinMasterNodesSysCheck(ClusterService clusterService, NestedReferenceResolver nestedReferenceResolver) {
+    public MinMasterNodesSysCheck(ClusterService clusterService, ClusterReferenceResolver clusterReferenceResolver) {
         super(ID, DESCRIPTION, Severity.HIGH);
         this.clusterService = clusterService;
-        this.nestedReferenceResolver = nestedReferenceResolver;
+        this.clusterReferenceResolver = clusterReferenceResolver;
     }
 
     @Override
     public boolean validate() {
         return validate(clusterService.state().nodes().masterNodes().size(),
-            (Integer) nestedReferenceResolver.getImplementation(MIN_MASTER_NODES_REFERENCE_INFO).value());
+            (Integer) clusterReferenceResolver.getImplementation(MIN_MASTER_NODES_REFERENCE_INFO).value());
     }
 
     protected boolean validate(int masterNodes, int minMasterNodes) {

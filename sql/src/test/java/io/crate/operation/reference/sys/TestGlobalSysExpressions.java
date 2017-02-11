@@ -22,8 +22,7 @@
 package io.crate.operation.reference.sys;
 
 
-import io.crate.metadata.GlobalReferenceResolver;
-import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.settings.CrateSettings;
@@ -49,7 +48,7 @@ import static org.hamcrest.Matchers.is;
 
 public class TestGlobalSysExpressions extends CrateUnitTest {
 
-    private NestedReferenceResolver resolver;
+    private ClusterReferenceResolver resolver;
 
     @Before
     public void prepare() throws Exception {
@@ -59,9 +58,9 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
                 binder.bind(ClusterService.class).toInstance(new NoopClusterService());
                 binder.bind(Settings.class).toInstance(Settings.EMPTY);
                 binder.bind(ClusterName.class).toInstance(new ClusterName("cluster"));
-                binder.bind(NestedReferenceResolver.class).to(GlobalReferenceResolver.class).asEagerSingleton();
+                binder.bind(ClusterReferenceResolver.class).asEagerSingleton();
             }).createInjector();
-        resolver = injector.getInstance(NestedReferenceResolver.class);
+        resolver = injector.getInstance(ClusterReferenceResolver.class);
     }
 
     @Test

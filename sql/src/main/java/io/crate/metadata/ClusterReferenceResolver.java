@@ -25,11 +25,10 @@ import org.elasticsearch.common.inject.Inject;
 
 import java.util.Map;
 
-public class GlobalReferenceResolver extends AbstractReferenceResolver {
+public class ClusterReferenceResolver extends AbstractReferenceResolver {
 
     @Inject
-    public GlobalReferenceResolver(Map<ReferenceIdent, ReferenceImplementation> implementations) {
+    public ClusterReferenceResolver(Map<ReferenceIdent, ReferenceImplementation> implementations) {
         this.implementations.putAll(implementations);
     }
-
 }

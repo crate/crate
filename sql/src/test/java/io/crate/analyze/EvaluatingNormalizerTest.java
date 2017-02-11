@@ -27,7 +27,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class EvaluatingNormalizerTest extends CrateUnitTest {
 
-    private NestedReferenceResolver referenceResolver;
+    private ClusterReferenceResolver referenceResolver;
     private Functions functions;
     private Reference dummyLoadInfo;
 
@@ -42,7 +42,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
 
         referenceImplementationMap.put(dummyLoadIdent, new LiteralReferenceImplementation<>(0.08d));
         functions = getFunctions();
-        referenceResolver = new GlobalReferenceResolver(referenceImplementationMap);
+        referenceResolver = new ClusterReferenceResolver(referenceImplementationMap);
     }
 
     /**

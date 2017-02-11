@@ -22,16 +22,16 @@
 
 package io.crate.operation.reference.sys.node.local;
 
-import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.operation.reference.ReferenceResolver;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class NodeSysReferenceResolver implements NestedReferenceResolver {
+public class NodeSysReferenceResolver implements ReferenceResolver<ReferenceImplementation<?>> {
 
     private final NodeSysExpression nodeSysExpression;
     private final Map<String, ReferenceImplementation> expressionCache;

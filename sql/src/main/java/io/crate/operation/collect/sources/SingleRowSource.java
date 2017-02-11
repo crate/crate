@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
-import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.InputFactory;
@@ -49,7 +49,7 @@ public class SingleRowSource implements CollectSource {
     private final EvaluatingNormalizer clusterNormalizer;
 
     @Inject
-    public SingleRowSource(Functions functions, NestedReferenceResolver clusterRefResolver) {
+    public SingleRowSource(Functions functions, ClusterReferenceResolver clusterRefResolver) {
         this.functions = functions;
         clusterNormalizer = new EvaluatingNormalizer(
             functions, RowGranularity.CLUSTER, ReplaceMode.COPY, clusterRefResolver, null);

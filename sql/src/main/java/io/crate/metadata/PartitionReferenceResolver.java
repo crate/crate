@@ -21,13 +21,14 @@
 
 package io.crate.metadata;
 
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.partitioned.PartitionExpression;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class PartitionReferenceResolver implements NestedReferenceResolver {
+public class PartitionReferenceResolver implements ReferenceResolver<PartitionExpression> {
 
     private final Map<ReferenceIdent, PartitionExpression> expressionMap;
     private final List<PartitionExpression> partitionExpressions;
@@ -41,7 +42,7 @@ public class PartitionReferenceResolver implements NestedReferenceResolver {
     }
 
     @Override
-    public ReferenceImplementation getImplementation(Reference ref) {
+    public PartitionExpression getImplementation(Reference ref) {
         PartitionExpression expression = expressionMap.get(ref.ident());
         assert expression != null : "granularity < PARTITION should have been resolved already";
         return expression;
