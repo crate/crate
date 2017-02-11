@@ -23,31 +23,31 @@
 package io.crate.metadata;
 
 import io.crate.operation.reference.ReferenceResolver;
+import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.operation.reference.sys.node.SysNodesExpressionFactories;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-public class LocalSysColReferenceResolver implements ReferenceResolver<RowContextCollectorExpression<?, ?>> {
+public class LocalSysColReferenceResolver implements ReferenceResolver<RowCollectExpression<NodeStatsContext, ?>> {
 
-    private final Map<ColumnIdent, RowContextCollectorExpression> expressionMap = new HashMap<>();
+    private final Map<ColumnIdent, RowCollectExpression<NodeStatsContext, ?>> expressionMap = new HashMap<>();
 
-    public LocalSysColReferenceResolver(List<ColumnIdent> localAvailable) {
+    public LocalSysColReferenceResolver(Iterable<ColumnIdent> localAvailable) {
         for (ColumnIdent ident : localAvailable) {
-            RowContextCollectorExpression expr = (RowContextCollectorExpression) SysNodesExpressionFactories.getSysNodesTableInfoFactories().get(ident).create();
-            expressionMap.put(ident, expr);
+            expressionMap.put(
+                ident,
+                SysNodesExpressionFactories.getNodeStatsContextExpressions().get(ident).create());
         }
     }
 
     @Override
-    public RowContextCollectorExpression<?, ?> getImplementation(Reference ref) {
+    public RowCollectExpression<NodeStatsContext, ?> getImplementation(Reference ref) {
         return expressionMap.get(ref.ident().columnIdent());
     }
 
-    public Collection<RowContextCollectorExpression> expressions() {
+    public Collection<RowCollectExpression<NodeStatsContext, ?>> expressions() {
         return expressionMap.values();
     }
-
 }

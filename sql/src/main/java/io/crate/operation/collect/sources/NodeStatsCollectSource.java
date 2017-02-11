@@ -109,8 +109,7 @@ public class NodeStatsCollectSource implements CollectSource {
         List<DiscoveryNode> newNodes = new ArrayList<>();
         for (DiscoveryNode node : nodes) {
             String nodeId = node.getId();
-            for (RowCollectExpression expression : localSysColReferenceResolver.expressions()) {
-                //noinspection unchecked
+            for (RowCollectExpression<NodeStatsContext, ?> expression : localSysColReferenceResolver.expressions()) {
                 expression.setNextRow(new NodeStatsContext(nodeId, node.name()));
             }
             Symbol normalized = normalizer.normalize(whereClause.query(), null);

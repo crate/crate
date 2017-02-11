@@ -57,7 +57,7 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
 
     public static final RowContextReferenceResolver INSTANCE = new RowContextReferenceResolver();
 
-    private final Map<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> tableFactories = new HashMap<>();
+    private final Map<TableIdent, Map<ColumnIdent, ? extends RowCollectExpressionFactory>> tableFactories = new HashMap<>();
 
     /**
      * This is a singleton Use the static INSTANCE attribute
@@ -81,7 +81,7 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
         tableFactories.put(InformationTablesTableInfo.IDENT, InformationSchemaExpressionFactories.tablesFactories());
         tableFactories.put(InformationSqlFeaturesTableInfo.IDENT, InformationSchemaExpressionFactories.sqlFeaturesFactories());
 
-        tableFactories.put(SysNodesTableInfo.IDENT, SysNodesExpressionFactories.getSysNodesTableInfoFactories());
+        tableFactories.put(SysNodesTableInfo.IDENT, SysNodesExpressionFactories.getNodeStatsContextExpressions());
         tableFactories.put(SysShardsTableInfo.IDENT, UnassignedShardsExpressionFactories.getSysShardsTableInfoFactories());
 
         tableFactories.put(PgTypeTable.IDENT, PgCatalogTables.pgTypeExpressions());
@@ -702,10 +702,10 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
     }
 
     private static RowCollectExpression<?, ?> rowCollectExpressionFromFactoryMap(
-        Map<TableIdent, Map<ColumnIdent, RowCollectExpressionFactory>> factoryMap,
+        Map<TableIdent, Map<ColumnIdent, ? extends RowCollectExpressionFactory>> factoryMap,
         Reference info) {
 
-        Map<ColumnIdent, RowCollectExpressionFactory> innerFactories = factoryMap.get(info.ident().tableIdent());
+        Map<ColumnIdent, ? extends RowCollectExpressionFactory> innerFactories = factoryMap.get(info.ident().tableIdent());
         if (innerFactories == null) {
             return null;
         }
@@ -721,7 +721,7 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
     }
 
     private static RowCollectExpression<?, ?> getImplementationByRootTraversal(
-        Map<ColumnIdent, RowCollectExpressionFactory> innerFactories,
+        Map<ColumnIdent, ? extends RowCollectExpressionFactory> innerFactories,
         ColumnIdent columnIdent) {
 
         RowCollectExpressionFactory factory = innerFactories.get(columnIdent.getRoot());

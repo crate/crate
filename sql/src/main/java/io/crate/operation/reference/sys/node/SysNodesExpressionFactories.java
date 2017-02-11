@@ -40,203 +40,90 @@ public class SysNodesExpressionFactories {
     public SysNodesExpressionFactories() {
     }
 
-    private static Map<ColumnIdent, RowCollectExpressionFactory> sysNodeTableInfoFactories = ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
-        .put(SysNodesTableInfo.Columns.ID, new RowCollectExpressionFactory() {
+    private final static Map<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>> EXPRESSION_FACTORIES_BY_COLUMN =
+        ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>>builder()
+
+        .put(SysNodesTableInfo.Columns.ID, () -> new RowContextCollectorExpression<NodeStatsContext, BytesRef>() {
             @Override
-            public RowCollectExpression create() {
-                return new RowContextCollectorExpression<NodeStatsContext, BytesRef>() {
-                    @Override
-                    public BytesRef value() {
-                        return row.id();
-                    }
-                };
+            public BytesRef value() {
+                return row.id();
             }
         })
-        .put(SysNodesTableInfo.Columns.NAME, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.NAME, () -> new RowContextCollectorExpression<NodeStatsContext, BytesRef>() {
             @Override
-            public RowCollectExpression create() {
-                return new RowContextCollectorExpression<NodeStatsContext, BytesRef>() {
-                    @Override
-                    public BytesRef value() {
-                        return row.name();
-                    }
-                };
+            public BytesRef value() {
+                return row.name();
             }
         })
-        .put(SysNodesTableInfo.Columns.HOSTNAME, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.HOSTNAME, () -> new SimpleNodeStatsExpression<BytesRef>() {
             @Override
-            public RowCollectExpression create() {
-                return new SimpleNodeStatsExpression<BytesRef>() {
-                    @Override
-                    public BytesRef innerValue() {
-                        return row.hostname();
-                    }
-                };
+            public BytesRef innerValue() {
+                return row.hostname();
             }
         })
-        .put(SysNodesTableInfo.Columns.REST_URL, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.REST_URL, () -> new SimpleNodeStatsExpression<BytesRef>() {
             @Override
-            public RowCollectExpression create() {
-                return new SimpleNodeStatsExpression<BytesRef>() {
-                    @Override
-                    public BytesRef innerValue() {
-                        return row.restUrl();
-                    }
-                };
+            public BytesRef innerValue() {
+                return row.restUrl();
             }
         })
-        .put(SysNodesTableInfo.Columns.PORT, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.PORT, NodePortStatsExpression::new)
+        .put(SysNodesTableInfo.Columns.LOAD, NodeLoadStatsExpression::new)
+        .put(SysNodesTableInfo.Columns.MEM, NodeMemoryStatsExpression::new)
+        .put(SysNodesTableInfo.Columns.HEAP, NodeHeapStatsExpression::new)
+        .put(SysNodesTableInfo.Columns.VERSION, NodeVersionStatsExpression::new)
+        .put(SysNodesTableInfo.Columns.THREAD_POOLS, NodeThreadPoolsExpression::new)
+        .put(SysNodesTableInfo.Columns.THREAD_POOLS_NAME, () -> new NodeStatsThreadPoolExpression<String>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodePortStatsExpression();
+            protected String valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                return input.getKey();
             }
         })
-        .put(SysNodesTableInfo.Columns.LOAD, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.THREAD_POOLS_ACTIVE, () -> new NodeStatsThreadPoolExpression<Integer>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeLoadStatsExpression();
+            protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                return input.getValue().activeCount();
             }
         })
-        .put(SysNodesTableInfo.Columns.MEM, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.THREAD_POOLS_REJECTED, () -> new NodeStatsThreadPoolExpression<Long>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeMemoryStatsExpression();
+            protected Long valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                return input.getValue().rejectedCount();
             }
         })
-        .put(SysNodesTableInfo.Columns.HEAP, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.THREAD_POOLS_LARGEST, () -> new NodeStatsThreadPoolExpression<Integer>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeHeapStatsExpression();
+            protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                return input.getValue().largestPoolSize();
             }
         })
-        .put(SysNodesTableInfo.Columns.VERSION, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.THREAD_POOLS_COMPLETED, () -> new NodeStatsThreadPoolExpression<Long>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeVersionStatsExpression();
+            protected Long valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                return input.getValue().completedTaskCount();
             }
         })
-        .put(SysNodesTableInfo.Columns.THREAD_POOLS, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.THREAD_POOLS_THREADS, () -> new NodeStatsThreadPoolExpression<Integer>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeThreadPoolsExpression();
+            protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                return input.getValue().poolSize();
             }
         })
-        .put(SysNodesTableInfo.Columns.THREAD_POOLS_NAME, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.THREAD_POOLS_QUEUE, () -> new NodeStatsThreadPoolExpression<Integer>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeStatsThreadPoolExpression<String>() {
-                    @Override
-                    protected String valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
-                        return input.getKey();
-                    }
-                };
+            protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                return input.getValue().queueSize();
             }
         })
-        .put(SysNodesTableInfo.Columns.THREAD_POOLS_ACTIVE, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.NETWORK, NodeNetworkStatsExpression::new)
+        .put(SysNodesTableInfo.Columns.OS, NodeOsStatsExpression::new)
+        .put(SysNodesTableInfo.Columns.OS_INFO, NodeOsInfoStatsExpression::new)
+        .put(SysNodesTableInfo.Columns.PROCESS, NodeProcessStatsExpression::new)
+        .put(SysNodesTableInfo.Columns.FS, NodeFsStatsExpression::new)
+        .put(SysNodesTableInfo.Columns.FS_TOTAL, NodeFsTotalStatsExpression::new)
+        .put(SysNodesTableInfo.Columns.FS_TOTAL_SIZE, new RowCollectExpressionFactory<NodeStatsContext>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeStatsThreadPoolExpression<Integer>() {
-                    @Override
-                    protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
-                        return input.getValue().activeCount();
-                    }
-                };
-            }
-        })
-        .put(SysNodesTableInfo.Columns.THREAD_POOLS_REJECTED, new RowCollectExpressionFactory() {
-            @Override
-            public RowCollectExpression create() {
-                return new NodeStatsThreadPoolExpression<Long>() {
-                    @Override
-                    protected Long valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
-                        return input.getValue().rejectedCount();
-                    }
-                };
-            }
-        })
-        .put(SysNodesTableInfo.Columns.THREAD_POOLS_LARGEST, new RowCollectExpressionFactory() {
-            @Override
-            public RowCollectExpression create() {
-                return new NodeStatsThreadPoolExpression<Integer>() {
-                    @Override
-                    protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
-                        return input.getValue().largestPoolSize();
-                    }
-                };
-            }
-        })
-        .put(SysNodesTableInfo.Columns.THREAD_POOLS_COMPLETED, new RowCollectExpressionFactory() {
-            @Override
-            public RowCollectExpression create() {
-                return new NodeStatsThreadPoolExpression<Long>() {
-                    @Override
-                    protected Long valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
-                        return input.getValue().completedTaskCount();
-                    }
-                };
-            }
-        })
-        .put(SysNodesTableInfo.Columns.THREAD_POOLS_THREADS, new RowCollectExpressionFactory() {
-            @Override
-            public RowCollectExpression create() {
-                return new NodeStatsThreadPoolExpression<Integer>() {
-                    @Override
-                    protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
-                        return input.getValue().poolSize();
-                    }
-                };
-            }
-        })
-        .put(SysNodesTableInfo.Columns.THREAD_POOLS_QUEUE, new RowCollectExpressionFactory() {
-            @Override
-            public RowCollectExpression create() {
-                return new NodeStatsThreadPoolExpression<Integer>() {
-                    @Override
-                    protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
-                        return input.getValue().queueSize();
-                    }
-                };
-            }
-        })
-        .put(SysNodesTableInfo.Columns.NETWORK, new RowCollectExpressionFactory() {
-            @Override
-            public RowCollectExpression create() {
-                return new NodeNetworkStatsExpression();
-            }
-        })
-        .put(SysNodesTableInfo.Columns.OS, new RowCollectExpressionFactory() {
-            @Override
-            public RowCollectExpression create() {
-                return new NodeOsStatsExpression();
-            }
-        })
-        .put(SysNodesTableInfo.Columns.OS_INFO, new RowCollectExpressionFactory() {
-            @Override
-            public RowCollectExpression create() {
-                return new NodeOsInfoStatsExpression();
-            }
-        })
-        .put(SysNodesTableInfo.Columns.PROCESS, new RowCollectExpressionFactory() {
-            @Override
-            public RowCollectExpression create() {
-                return new NodeProcessStatsExpression();
-            }
-        })
-        .put(SysNodesTableInfo.Columns.FS, new RowCollectExpressionFactory() {
-            @Override
-            public RowCollectExpression create() {
-                return new NodeFsStatsExpression();
-            }
-        })
-        .put(SysNodesTableInfo.Columns.FS_TOTAL, new RowCollectExpressionFactory() {
-            @Override
-            public RowCollectExpression create() {
-                return new NodeFsTotalStatsExpression();
-            }
-        })
-        .put(SysNodesTableInfo.Columns.FS_TOTAL_SIZE, new RowCollectExpressionFactory() {
-            @Override
-            public RowCollectExpression create() {
+            public RowCollectExpression<NodeStatsContext, ?> create() {
                 return new SimpleNodeStatsExpression<Long>() {
                     @Override
                     public Long innerValue() {
@@ -245,9 +132,9 @@ public class SysNodesExpressionFactories {
                 };
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_TOTAL_USED, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_TOTAL_USED, new RowCollectExpressionFactory<NodeStatsContext>() {
             @Override
-            public RowCollectExpression create() {
+            public RowCollectExpression<NodeStatsContext, ?> create() {
                 return new SimpleNodeStatsExpression<Long>() {
                     @Override
                     public Long innerValue() {
@@ -256,9 +143,9 @@ public class SysNodesExpressionFactories {
                 };
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_TOTAL_AVAILABLE, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_TOTAL_AVAILABLE, new RowCollectExpressionFactory<NodeStatsContext>() {
             @Override
-            public RowCollectExpression create() {
+            public RowCollectExpression<NodeStatsContext, ?> create() {
                 return new SimpleNodeStatsExpression<Long>() {
                     @Override
                     public Long innerValue() {
@@ -267,9 +154,9 @@ public class SysNodesExpressionFactories {
                 };
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_TOTAL_READS, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_TOTAL_READS, new RowCollectExpressionFactory<NodeStatsContext>() {
             @Override
-            public RowCollectExpression create() {
+            public RowCollectExpression<NodeStatsContext, ?> create() {
                 return new SimpleNodeStatsExpression<Long>() {
                     @Override
                     public Long innerValue() {
@@ -278,9 +165,9 @@ public class SysNodesExpressionFactories {
                 };
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_TOTAL_BYTES_READ, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_TOTAL_BYTES_READ, new RowCollectExpressionFactory<NodeStatsContext>() {
             @Override
-            public RowCollectExpression create() {
+            public RowCollectExpression<NodeStatsContext, ?> create() {
                 return new SimpleNodeStatsExpression<Long>() {
                     @Override
                     public Long innerValue() {
@@ -289,9 +176,9 @@ public class SysNodesExpressionFactories {
                 };
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_TOTAL_WRITES, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_TOTAL_WRITES, new RowCollectExpressionFactory<NodeStatsContext>() {
             @Override
-            public RowCollectExpression create() {
+            public RowCollectExpression<NodeStatsContext, ?> create() {
                 return new SimpleNodeStatsExpression<Long>() {
                     @Override
                     public Long innerValue() {
@@ -300,9 +187,9 @@ public class SysNodesExpressionFactories {
                 };
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_TOTAL_BYTES_WRITTEN, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_TOTAL_BYTES_WRITTEN, new RowCollectExpressionFactory<NodeStatsContext>() {
             @Override
-            public RowCollectExpression create() {
+            public RowCollectExpression<NodeStatsContext, ?> create() {
                 return new SimpleNodeStatsExpression<Long>() {
                     @Override
                     public Long innerValue() {
@@ -311,132 +198,71 @@ public class SysNodesExpressionFactories {
                 };
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_DISKS, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_DISKS, NodeStatsFsDisksExpression::new)
+        .put(SysNodesTableInfo.Columns.FS_DISKS_DEV, () -> new NodeStatsFsArrayExpression<BytesRef>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeStatsFsDisksExpression();
+            protected BytesRef valueForItem(ExtendedFsStats.Info input) {
+                return input.dev();
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_DISKS_DEV, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_DISKS_SIZE, () -> new NodeStatsFsArrayExpression<Long>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeStatsFsArrayExpression<BytesRef>() {
-                    @Override
-                    protected BytesRef valueForItem(ExtendedFsStats.Info input) {
-                        return input.dev();
-                    }
-                };
+            protected Long valueForItem(ExtendedFsStats.Info input) {
+                return input.total();
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_DISKS_SIZE, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_DISKS_USED, () -> new NodeStatsFsArrayExpression<Long>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeStatsFsArrayExpression<Long>() {
-                    @Override
-                    protected Long valueForItem(ExtendedFsStats.Info input) {
-                        return input.total();
-                    }
-                };
+            protected Long valueForItem(ExtendedFsStats.Info input) {
+                return input.used();
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_DISKS_USED, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_DISKS_AVAILABLE, () -> new NodeStatsFsArrayExpression<Long>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeStatsFsArrayExpression<Long>() {
-                    @Override
-                    protected Long valueForItem(ExtendedFsStats.Info input) {
-                        return input.used();
-                    }
-                };
+            protected Long valueForItem(ExtendedFsStats.Info input) {
+                return input.available();
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_DISKS_AVAILABLE, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_DISKS_READS, () -> new NodeStatsFsArrayExpression<Long>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeStatsFsArrayExpression<Long>() {
-                    @Override
-                    protected Long valueForItem(ExtendedFsStats.Info input) {
-                        return input.available();
-                    }
-                };
+            protected Long valueForItem(ExtendedFsStats.Info input) {
+                return input.diskReads();
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_DISKS_READS, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_DISKS_BYTES_READ, () -> new NodeStatsFsArrayExpression<Long>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeStatsFsArrayExpression<Long>() {
-                    @Override
-                    protected Long valueForItem(ExtendedFsStats.Info input) {
-                        return input.diskReads();
-                    }
-                };
+            protected Long valueForItem(ExtendedFsStats.Info input) {
+                return input.diskReadSizeInBytes();
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_DISKS_BYTES_READ, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_DISKS_WRITES, () -> new NodeStatsFsArrayExpression<Long>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeStatsFsArrayExpression<Long>() {
-                    @Override
-                    protected Long valueForItem(ExtendedFsStats.Info input) {
-                        return input.diskReadSizeInBytes();
-                    }
-                };
+            protected Long valueForItem(ExtendedFsStats.Info input) {
+                return input.diskWrites();
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_DISKS_WRITES, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_DISKS_BYTES_WRITTEN, () -> new NodeStatsFsArrayExpression<Long>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeStatsFsArrayExpression<Long>() {
-                    @Override
-                    protected Long valueForItem(ExtendedFsStats.Info input) {
-                        return input.diskWrites();
-                    }
-                };
+            protected Long valueForItem(ExtendedFsStats.Info input) {
+                return input.diskWriteSizeInBytes();
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_DISKS_BYTES_WRITTEN, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_DATA, NodeStatsFsDataExpression::new)
+        .put(SysNodesTableInfo.Columns.FS_DATA_DEV, () -> new NodeStatsFsArrayExpression<BytesRef>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeStatsFsArrayExpression<Long>() {
-                    @Override
-                    protected Long valueForItem(ExtendedFsStats.Info input) {
-                        return input.diskWriteSizeInBytes();
-                    }
-                };
+            protected BytesRef valueForItem(ExtendedFsStats.Info input) {
+                return input.dev();
             }
         })
-        .put(SysNodesTableInfo.Columns.FS_DATA, new RowCollectExpressionFactory() {
+        .put(SysNodesTableInfo.Columns.FS_DATA_PATH, () -> new NodeStatsFsArrayExpression<BytesRef>() {
             @Override
-            public RowCollectExpression create() {
-                return new NodeStatsFsDataExpression();
-            }
-        })
-        .put(SysNodesTableInfo.Columns.FS_DATA_DEV, new RowCollectExpressionFactory() {
-            @Override
-            public RowCollectExpression create() {
-                return new NodeStatsFsArrayExpression<BytesRef>() {
-                    @Override
-                    protected BytesRef valueForItem(ExtendedFsStats.Info input) {
-                        return input.dev();
-                    }
-                };
-            }
-        })
-        .put(SysNodesTableInfo.Columns.FS_DATA_PATH, new RowCollectExpressionFactory() {
-            @Override
-            public RowCollectExpression create() {
-                return new NodeStatsFsArrayExpression<BytesRef>() {
-                    @Override
-                    protected BytesRef valueForItem(ExtendedFsStats.Info input) {
-                        return input.path();
-                    }
-                };
+            protected BytesRef valueForItem(ExtendedFsStats.Info input) {
+                return input.path();
             }
         })
         .build();
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory> getSysNodesTableInfoFactories() {
-        return sysNodeTableInfoFactories;
+    public static Map<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>> getNodeStatsContextExpressions() {
+        return EXPRESSION_FACTORIES_BY_COLUMN;
     }
-
 }

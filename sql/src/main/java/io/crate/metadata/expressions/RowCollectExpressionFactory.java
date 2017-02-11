@@ -23,7 +23,7 @@ package io.crate.metadata.expressions;
 
 import io.crate.metadata.RowCollectExpression;
 
-public interface RowCollectExpressionFactory {
+public interface RowCollectExpressionFactory<T> {
 
-    RowCollectExpression create();
+    RowCollectExpression<T, ?> create();
 }
