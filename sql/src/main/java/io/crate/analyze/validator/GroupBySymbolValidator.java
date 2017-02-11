@@ -57,9 +57,6 @@ public class GroupBySymbolValidator {
                     break;
                 case AGGREGATE:
                     throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
-                case PREDICATE:
-                    throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                        "%s predicate cannot be used in a GROUP BY clause", symbol.info().ident().name()));
                 default:
                     throw new UnsupportedOperationException(
                         String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", symbol.info().type()));

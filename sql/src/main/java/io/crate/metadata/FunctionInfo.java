@@ -144,8 +144,7 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
 
     public enum Type {
         SCALAR,
-        AGGREGATE,
-        PREDICATE
+        AGGREGATE
     }
 
     public enum Feature {

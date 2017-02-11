@@ -212,40 +212,6 @@ For custom date types, or defined date formats in the object mapping
 the corresponding format should be used for a comparison. Otherwise
 the operation may fail.
 
-.. _predicates:
-
-Predicates
-..........
-
-Predicates are expressions that evaluate to boolean.
-
-While scalar functions that evaluate to boolean can be used in place of a predicate, the
-semantics of a predicate usually differ from function semantics.
-
-e.g. A function is resolved by its name and the type of its arguments.
-A reference can be interchanged with the value it evaluates to (given as a literal)
-in a function argument and the function resolves to the same value.
-Predicates can bear different semantics, e.g. enforce the usage of a column reference.
-
-The following predicates extend the range of possible conditions to use in the where clause.
-
-    ==========================  ===========================================================
-    Predicate                   Description
-    ==========================  ===========================================================
-    :ref:`predicates_not_null`  field is not null and not missing
-    :ref:`predicates_is_null`   field is null or missing
-    :ref:`predicates_match`     Perform a search on an indexed column.
-                                See :ref:`sql_dql_fulltext_search`
-                                or :ref:`sql_dql_geo_search` for usage.
-    ==========================  ===========================================================
-
-.. note::
-
-    Not all predicates can utilize the index efficiently. For example ``is
-    null`` can't use the index at all and will therefor perform worse than
-    other operators.
-
-
 .. _sql_ddl_regexp:
 
 Regular Expressions
@@ -466,7 +432,7 @@ value from a right-hand set equals left-hand operand. Returns ``false`` otherwis
 
 
 
-.. _predicates_is_null:
+.. _sql_dql_is_null:
 
 IS NULL
 -------
@@ -511,7 +477,7 @@ does always return ``NULL`` when comparing ``NULL``.
     SELECT 1 row in set (... sec)
 
 
-.. _predicates_not_null:
+.. _sql_dql_is_not_null:
 
 IS NOT NULL
 -----------
@@ -1137,17 +1103,3 @@ The having clause supports the same operators as the :ref:`sql_dql_where_clause`
     between           ``a BETWEEN x and y``:
                       shortcut for ``a >= x AND a <= y``
     ================  ==================================
-
-Predicates
-~~~~~~~~~~
-
-The having supports almost the same predicates as the :ref:`sql_dql_where_clause`
-excpet the `match` predicate, which is not supported.
-The following :ref:`predicates` are supported:
-
-    ==========================  ===========================================================
-    Predicate                   Description
-    ==========================  ===========================================================
-    :ref:`predicates_not_null`  value is not null and not missing
-    :ref:`predicates_is_null`   value is null or missing
-    ==========================  ===========================================================

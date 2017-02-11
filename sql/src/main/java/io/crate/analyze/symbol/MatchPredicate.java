@@ -30,10 +30,6 @@ import java.util.Map;
 
 public class MatchPredicate extends Symbol {
 
-    public static final SymbolFactory FACTORY = (SymbolFactory) (in) -> {
-        throw new UnsupportedOperationException("Streaming a MatchPredicate is not supported");
-    };
-
     private final Map<Field, Symbol> identBoostMap;
     private final Symbol queryTerm;
     private final String matchType;

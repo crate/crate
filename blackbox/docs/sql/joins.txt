@@ -192,10 +192,6 @@ Example with ``within`` scalar function::
     +--------------+---------+
     SELECT 2 rows in set (... sec)
 
-.. note::
-
-    :ref:`predicates` are **not** supported as join conditions.
-
 However, there are no specific optimisations for certain join conditions such
 as ``=`` (equals) yet. The JOIN operation is implemented as a generic nested loop
 that invokes the operation on every record of the left table with every record

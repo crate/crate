@@ -23,7 +23,6 @@ package io.crate.analyze.validator;
 
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolPrinter;
-import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataTypes;
 
 import java.util.Locale;
@@ -60,10 +59,6 @@ public class SemanticSortValidator {
                         SymbolPrinter.INSTANCE.printSimple(symbol),
                         symbol.valueType())
                 );
-            }
-            if (symbol.info().type() == FunctionInfo.Type.PREDICATE) {
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "%s predicate cannot be used in an ORDER BY clause", symbol.info().ident().name()));
             }
             try {
                 context.inFunction = true;

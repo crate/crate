@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - It is now supported to order and group by predicate functions in general
+   with the exception of the `match` predicate.
+
  - Removed limitation which didn't allow ordering on partitioned columns in
    GROUP BY query
 

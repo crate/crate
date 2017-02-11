@@ -44,10 +44,10 @@ import java.util.Set;
  */
 public class MatchPredicate implements FunctionImplementation {
 
-    public static final Set<DataType> SUPPORTED_TYPES = ImmutableSet.<DataType>of(DataTypes.STRING, DataTypes.GEO_SHAPE);
+    public static final Set<DataType> SUPPORTED_TYPES = ImmutableSet.of(DataTypes.STRING, DataTypes.GEO_SHAPE);
 
     private static final String DEFAULT_MATCH_TYPE_STRING = MultiMatchQueryBuilder.Type.BEST_FIELDS.toString().toLowerCase(Locale.ENGLISH);
-    private static final Map<DataType, String> DATA_TYPE_TO_DEFAULT_MATCH_TYPE = ImmutableMap.<DataType, String>of(
+    private static final Map<DataType, String> DATA_TYPE_TO_DEFAULT_MATCH_TYPE = ImmutableMap.of(
         DataTypes.STRING, DEFAULT_MATCH_TYPE_STRING,
         DataTypes.GEO_SHAPE, "intersects"
     );
@@ -56,10 +56,10 @@ public class MatchPredicate implements FunctionImplementation {
     public static final String NAME = "match";
     public static final FunctionIdent IDENT = new FunctionIdent(
         NAME,
-        Arrays.<DataType>asList(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT)
+        Arrays.asList(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT)
     );
 
-    public static final FunctionInfo INFO = new FunctionInfo(IDENT, DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE);
+    public static final FunctionInfo INFO = new FunctionInfo(IDENT, DataTypes.BOOLEAN);
 
 
     private static String defaultMatchType(DataType dataType) {
@@ -109,7 +109,7 @@ public class MatchPredicate implements FunctionImplementation {
         module.register(new MatchPredicate());
     }
 
-    public MatchPredicate() {
+    private MatchPredicate() {
     }
 
     @Override

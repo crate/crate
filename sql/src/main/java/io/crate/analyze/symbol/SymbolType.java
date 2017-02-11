@@ -41,7 +41,7 @@ public enum SymbolType {
     INPUT_COLUMN(InputColumn::new),
     DYNAMIC_REFERENCE(DynamicReference::new),
     VALUE(Value::new),
-    MATCH_PREDICATE(MatchPredicate.FACTORY),
+    MATCH_PREDICATE(null),
     FETCH_REFERENCE(null),
     RELATION_COLUMN(RelationColumn::new),
     INDEX_REFERENCE(IndexReference::new),

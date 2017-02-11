@@ -46,7 +46,6 @@ public class SelectSymbolValidator {
             switch (symbol.info().type()) {
                 case SCALAR:
                 case AGGREGATE:
-                case PREDICATE:
                     break;
                 default:
                     throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
