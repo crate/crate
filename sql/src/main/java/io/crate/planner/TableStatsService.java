@@ -51,7 +51,7 @@ import java.util.function.Consumer;
 @Singleton
 public class TableStatsService extends AbstractComponent implements NodeSettingsService.Listener, Runnable {
 
-    static final String UNNAMED = "";
+    static final String TABLE_STATS = "table_stats";
     static final int DEFAULT_SOFT_LIMIT = 10_000;
     static final String STMT =
         "select cast(sum(num_docs) as long), schema_name, table_name from sys.shards group by 2, 3";
@@ -59,9 +59,10 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final TableStatsResultReceiver resultReceiver;
+    private final SQLOperations.Session session;
 
     private TimeValue initialRefreshInterval;
-    private final SQLOperations sqlOperations;
+
     @VisibleForTesting
     ThreadPool.Cancellable refreshScheduledTask = null;
     @VisibleForTesting
@@ -78,11 +79,12 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         initialRefreshInterval = extractRefreshInterval(settings);
-        this.sqlOperations = sqlOperations;
         lastRefreshInterval = initialRefreshInterval;
         refreshScheduledTask = scheduleRefresh(initialRefreshInterval);
         resultReceiver = new TableStatsResultReceiver(tableStats::updateTableStats);
         nodeSettingsService.addListener(this);
+        session = sqlOperations.createSession("sys", Option.NONE, DEFAULT_SOFT_LIMIT);
+        session.parse(TABLE_STATS, STMT, Collections.emptyList());
     }
 
     @Override
@@ -100,12 +102,10 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
             return;
         }
 
-        SQLOperations.Session session = sqlOperations.createSession("sys", Option.NONE, DEFAULT_SOFT_LIMIT);
         try {
-            session.parse(UNNAMED, STMT, Collections.emptyList());
-            session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
-            session.execute(UNNAMED, 0, resultReceiver);
-            session.sync();
+            session.bind(TABLE_STATS, TABLE_STATS, Collections.emptyList(), null);
+            session.execute(TABLE_STATS, 0, resultReceiver);
+            session.sync().thenAccept(ignored -> session.close((byte) 'P', TABLE_STATS));
         } catch (Throwable t) {
             logger.error("error retrieving table stats", t);
         }

@@ -40,6 +40,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 import org.mockito.Mockito;
 
 import java.util.Collections;
@@ -51,7 +52,6 @@ import java.util.concurrent.TimeoutException;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.IsNull.notNullValue;
-import static org.mockito.Matchers.anyByte;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -81,7 +81,7 @@ public class TableStatsServiceTest extends CrateUnitTest {
             clusterService,
             new TableStats(),
             new NodeSettingsService(Settings.EMPTY),
-            mock(SQLOperations.class));
+            mock(SQLOperations.class, Answers.RETURNS_MOCKS.get()));
 
         assertThat(statsService.lastRefreshInterval,
             is(TimeValue.timeValueMinutes(0)));
@@ -94,7 +94,7 @@ public class TableStatsServiceTest extends CrateUnitTest {
             clusterService,
             new TableStats(),
             new NodeSettingsService(Settings.EMPTY),
-            mock(SQLOperations.class));
+            mock(SQLOperations.class, Answers.RETURNS_MOCKS.get()));
 
         assertThat(statsService.lastRefreshInterval,
             is(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.defaultValue()));
@@ -160,16 +160,16 @@ public class TableStatsServiceTest extends CrateUnitTest {
         statsService.run();
 
         verify(session, times(1)).parse(
-            eq(TableStatsService.UNNAMED),
+            eq(TableStatsService.TABLE_STATS),
             eq(TableStatsService.STMT),
             eq(Collections.<DataType>emptyList()));
         verify(session, times(1)).bind(
-            eq(TableStatsService.UNNAMED),
-            eq(TableStatsService.UNNAMED),
+            eq(TableStatsService.TABLE_STATS),
+            eq(TableStatsService.TABLE_STATS),
             eq(Collections.emptyList()),
             isNull(FormatCodes.FormatCode[].class));
         verify(session, times(1)).execute(
-            eq(TableStatsService.UNNAMED),
+            eq(TableStatsService.TABLE_STATS),
             eq(0),
             any(TableStatsService.TableStatsResultReceiver.class));
         verify(session, times(1)).sync();
@@ -179,7 +179,10 @@ public class TableStatsServiceTest extends CrateUnitTest {
     public void testNoUpdateIfLocalNodeNotAvailable() throws Exception {
         final ClusterService clusterService = mock(ClusterService.class);
         when(clusterService.localNode()).thenReturn(null);
-        final SQLOperations sqlOperations = mock(SQLOperations.class);
+        SQLOperations sqlOperations = mock(SQLOperations.class);
+        SQLOperations.Session session = mock(SQLOperations.Session.class);
+        when(sqlOperations.createSession(anyString(), any(), anyInt())).thenReturn(session);
+
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
@@ -191,6 +194,6 @@ public class TableStatsServiceTest extends CrateUnitTest {
         );
 
         statsService.run();
-        Mockito.verify(sqlOperations, times(0)).createSession(anyString(), anySetOf(Option.class), anyByte());
+        Mockito.verify(session, times(0)).sync();
     }
 }
