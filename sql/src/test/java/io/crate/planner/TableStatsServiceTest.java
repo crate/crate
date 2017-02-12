@@ -33,7 +33,6 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.node.settings.NodeSettingsService;
@@ -80,8 +79,9 @@ public class TableStatsServiceTest extends CrateUnitTest {
             Settings.builder().put(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.settingName(), 0).build(),
             threadPool,
             clusterService,
+            new TableStats(),
             new NodeSettingsService(Settings.EMPTY),
-            () -> mock(SQLOperations.class));
+            mock(SQLOperations.class));
 
         assertThat(statsService.lastRefreshInterval,
             is(TimeValue.timeValueMinutes(0)));
@@ -92,8 +92,9 @@ public class TableStatsServiceTest extends CrateUnitTest {
             Settings.EMPTY,
             threadPool,
             clusterService,
+            new TableStats(),
             new NodeSettingsService(Settings.EMPTY),
-            () -> mock(SQLOperations.class));
+            mock(SQLOperations.class));
 
         assertThat(statsService.lastRefreshInterval,
             is(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.defaultValue()));
@@ -152,13 +153,10 @@ public class TableStatsServiceTest extends CrateUnitTest {
             Settings.EMPTY,
             threadPool,
             clusterService,
+            new TableStats(),
             new NodeSettingsService(Settings.EMPTY),
-            new Provider<SQLOperations>() {
-                @Override
-                public SQLOperations get() {
-                    return sqlOperations;
-                }
-            });
+            sqlOperations
+        );
         statsService.run();
 
         verify(session, times(1)).parse(
@@ -187,13 +185,10 @@ public class TableStatsServiceTest extends CrateUnitTest {
             Settings.EMPTY,
             threadPool,
             clusterService,
+            new TableStats(),
             new NodeSettingsService(Settings.EMPTY),
-            new Provider<SQLOperations>() {
-                @Override
-                public SQLOperations get() {
-                    return sqlOperations;
-                }
-            });
+            sqlOperations
+        );
 
         statsService.run();
         Mockito.verify(sqlOperations, times(0)).createSession(anyString(), anySetOf(Option.class), anyByte());

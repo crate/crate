@@ -21,6 +21,8 @@
 
 package io.crate.planner.consumer;
 
+import com.carrotsearch.hppc.ObjectLongHashMap;
+import com.carrotsearch.hppc.ObjectLongMap;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
@@ -59,9 +61,7 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class NestedLoopConsumerTest extends CrateUnitTest {
 
@@ -76,11 +76,11 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
     @Before
     public void initPlanner() throws Exception {
-        TableStatsService statsService = getTableStatsService();
         ClusterService clusterService = new NoopClusterService();
+        TableStats tableStats = getTableStats();
         e = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .setTableStatsService(statsService)
+            .setTableStats(tableStats)
             .addDocTable(emptyRoutingTable)
             .build();
         Functions functions = e.functions();
@@ -89,21 +89,22 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
             e.planner,
             clusterService,
             UUID.randomUUID(),
-            new ConsumingPlanner(clusterService, functions, statsService),
+            new ConsumingPlanner(clusterService, functions, tableStats),
             normalizer,
             new TransactionContext(SessionContext.SYSTEM_SESSION),
             0,
             0);
-        consumer = new NestedLoopConsumer(clusterService, functions, statsService);
+        consumer = new NestedLoopConsumer(clusterService, functions, tableStats);
     }
 
-    private TableStatsService getTableStatsService() {
-        TableStatsService statsService;
-        statsService = mock(TableStatsService.class);
-        when(statsService.numDocs(eq(TableDefinitions.USER_TABLE_IDENT))).thenReturn(10L);
-        when(statsService.numDocs(eq(TableDefinitions.USER_TABLE_IDENT_MULTI_PK))).thenReturn(5000L);
-        when(statsService.numDocs(eq(emptyRoutingTable.ident()))).thenReturn(0L);
-        return statsService;
+    private TableStats getTableStats() {
+        ObjectLongMap<TableIdent> stats = new ObjectLongHashMap<>(3);
+        stats.put(TableDefinitions.USER_TABLE_IDENT, 10L);
+        stats.put(TableDefinitions.USER_TABLE_IDENT_MULTI_PK, 5000L);
+        stats.put(emptyRoutingTable.ident(), 0L);
+        TableStats tableStats = new TableStats();
+        tableStats.updateTableStats(stats);
+        return tableStats;
     }
 
     public <T extends Plan> T plan(String statement) {

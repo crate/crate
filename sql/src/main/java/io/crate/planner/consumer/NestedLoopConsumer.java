@@ -52,10 +52,8 @@ class NestedLoopConsumer implements Consumer {
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopConsumer.class);
     private final Visitor visitor;
 
-    NestedLoopConsumer(ClusterService clusterService,
-                       Functions functions,
-                       TableStatsService tableStatsService) {
-        visitor = new Visitor(clusterService, functions, tableStatsService);
+    NestedLoopConsumer(ClusterService clusterService, Functions functions, TableStats tableStats) {
+        visitor = new Visitor(clusterService, functions, tableStats);
     }
 
     @Override
@@ -80,14 +78,12 @@ class NestedLoopConsumer implements Consumer {
 
         private final ClusterService clusterService;
         private final Functions functions;
-        private final TableStatsService tableStatsService;
+        private final TableStats tableStats;
 
-        public Visitor(ClusterService clusterService,
-                       Functions functions,
-                       TableStatsService tableStatsService) {
+        public Visitor(ClusterService clusterService, Functions functions, TableStats tableStats) {
             this.clusterService = clusterService;
             this.functions = functions;
-            this.tableStatsService = tableStatsService;
+            this.tableStats = tableStats;
         }
 
         @Override
@@ -322,8 +318,8 @@ class NestedLoopConsumer implements Consumer {
         }
 
         private boolean isLeftSmallerThanRight(TableIdent leftIdent, TableIdent rightIdent) {
-            long leftNumDocs = tableStatsService.numDocs(leftIdent);
-            long rightNumDocs = tableStatsService.numDocs(rightIdent);
+            long leftNumDocs = tableStats.numDocs(leftIdent);
+            long rightNumDocs = tableStats.numDocs(rightIdent);
 
             if (leftNumDocs < rightNumDocs) {
                 LOGGER.debug("Right table is larger with {} docs (left has {}. Will change left plan to broadcast its result",

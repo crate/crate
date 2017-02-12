@@ -39,9 +39,7 @@ public class ConsumingPlanner {
 
     private final List<Consumer> consumers = new ArrayList<>();
 
-    public ConsumingPlanner(ClusterService clusterService,
-                            Functions functions,
-                            TableStatsService tableStatsService) {
+    public ConsumingPlanner(ClusterService clusterService, Functions functions, TableStats tableStats) {
         consumers.add(new NonDistributedGroupByConsumer(functions));
         consumers.add(new ReduceOnCollectorGroupByConsumer(functions));
         consumers.add(new DistributedGroupByConsumer(functions));
@@ -51,7 +49,7 @@ public class ConsumingPlanner {
         consumers.add(new QueryAndFetchConsumer());
         consumers.add(new MultiSourceAggregationConsumer(functions));
         consumers.add(new ManyTableConsumer());
-        consumers.add(new NestedLoopConsumer(clusterService, functions, tableStatsService));
+        consumers.add(new NestedLoopConsumer(clusterService, functions, tableStats));
     }
 
     @Nullable
