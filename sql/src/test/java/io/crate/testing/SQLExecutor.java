@@ -46,9 +46,9 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
+import io.crate.planner.TableStats;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.planner.TableStatsService;
 import io.crate.sql.parser.SqlParser;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
@@ -85,7 +85,7 @@ public class SQLExecutor {
         private final Map<TableIdent, BlobTableInfo> blobTables = new HashMap<>();
         private final Functions functions;
 
-        private TableStatsService tableStatsService = mock(TableStatsService.class);
+        private TableStats tableStats = new TableStats();
 
         public Builder(ClusterService clusterService) {
             this.clusterService = clusterService;
@@ -150,7 +150,7 @@ public class SQLExecutor {
                 new Planner(
                     clusterService,
                     functions,
-                    tableStatsService
+                    tableStats
                 )
             );
         }
@@ -174,8 +174,8 @@ public class SQLExecutor {
             return this;
         }
 
-        public Builder setTableStatsService(TableStatsService tableStatsService) {
-            this.tableStatsService = tableStatsService;
+        public Builder setTableStats(TableStats tableStats) {
+            this.tableStats = tableStats;
             return this;
         }
     }

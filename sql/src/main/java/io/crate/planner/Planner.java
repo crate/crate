@@ -359,12 +359,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Inject
-    public Planner(ClusterService clusterService,
-                   Functions functions,
-                   TableStatsService tableStatsService) {
+    public Planner(ClusterService clusterService, Functions functions, TableStats tableStats) {
         this.clusterService = clusterService;
         this.updateConsumer = new UpdateConsumer();
-        this.consumingPlanner = new ConsumingPlanner(clusterService, functions, tableStatsService);
+        this.consumingPlanner = new ConsumingPlanner(clusterService, functions, tableStats);
         this.copyStatementPlanner = new CopyStatementPlanner(clusterService);
         this.selectStatementPlanner = new SelectStatementPlanner(consumingPlanner);
         normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);

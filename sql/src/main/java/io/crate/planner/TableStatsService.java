@@ -32,11 +32,9 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.data.Row;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.types.DataType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -59,11 +57,11 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
         "select cast(sum(num_docs) as long), schema_name, table_name from sys.shards group by 2, 3";
 
     private final ClusterService clusterService;
-    private final Provider<SQLOperations> sqlOperationsProvider;
     private final ThreadPool threadPool;
     private final TableStatsResultReceiver resultReceiver;
-    private volatile ObjectLongMap<TableIdent> tableStats = null;
+
     private TimeValue initialRefreshInterval;
+    private final SQLOperations sqlOperations;
     @VisibleForTesting
     ThreadPool.Cancellable refreshScheduledTask = null;
     @VisibleForTesting
@@ -73,16 +71,17 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
     public TableStatsService(Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
+                             TableStats tableStats,
                              NodeSettingsService nodeSettingsService,
-                             Provider<SQLOperations> sqlOperationsProvider) {
+                             SQLOperations sqlOperations) {
         super(settings);
         this.threadPool = threadPool;
         this.clusterService = clusterService;
-        this.sqlOperationsProvider = sqlOperationsProvider;
         initialRefreshInterval = extractRefreshInterval(settings);
+        this.sqlOperations = sqlOperations;
         lastRefreshInterval = initialRefreshInterval;
         refreshScheduledTask = scheduleRefresh(initialRefreshInterval);
-        resultReceiver = new TableStatsResultReceiver(this::setTableStats);
+        resultReceiver = new TableStatsResultReceiver(tableStats::updateTableStats);
         nodeSettingsService.addListener(this);
     }
 
@@ -101,20 +100,15 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
             return;
         }
 
-        SQLOperations.Session session =
-            sqlOperationsProvider.get().createSession("sys", Option.NONE, DEFAULT_SOFT_LIMIT);
+        SQLOperations.Session session = sqlOperations.createSession("sys", Option.NONE, DEFAULT_SOFT_LIMIT);
         try {
-            session.parse(UNNAMED, STMT, Collections.<DataType>emptyList());
+            session.parse(UNNAMED, STMT, Collections.emptyList());
             session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
             session.execute(UNNAMED, 0, resultReceiver);
             session.sync();
         } catch (Throwable t) {
             logger.error("error retrieving table stats", t);
         }
-    }
-
-    private void setTableStats(ObjectLongMap<TableIdent> newTableStats) {
-        tableStats = newTableStats;
     }
 
     static class TableStatsResultReceiver extends BaseResultReceiver {
@@ -124,7 +118,7 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
         private final Consumer<ObjectLongMap<TableIdent>> tableStatsConsumer;
         private ObjectLongMap<TableIdent> newStats = new ObjectLongHashMap<>();
 
-        public TableStatsResultReceiver(Consumer<ObjectLongMap<TableIdent>> tableStatsConsumer) {
+        TableStatsResultReceiver(Consumer<ObjectLongMap<TableIdent>> tableStatsConsumer) {
             this.tableStatsConsumer = tableStatsConsumer;
         }
 
@@ -146,22 +140,6 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
             LOGGER.error("error retrieving table stats", t);
             super.fail(t);
         }
-    }
-
-    /**
-     * Returns the number of docs a table has.
-     * <p>
-     * <p>
-     * The returned number isn't an accurate real-time value but a cached value that is periodically updated
-     * </p>
-     * Returns -1 if the table isn't in the cache
-     */
-    public long numDocs(TableIdent tableIdent) {
-        ObjectLongMap<TableIdent> stats = tableStats;
-        if (stats != null && stats.containsKey(tableIdent)) {
-            return stats.get(tableIdent);
-        }
-        return -1;
     }
 
     @Override
