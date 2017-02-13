@@ -22,6 +22,10 @@ default, the refresh interval is set to 1000 milliseconds. The refresh interval
 of a table can be changed with the table parameter ``refresh_interval`` (see
 :ref:`sql_ref_refresh_interval`).
 
+.. seealso::
+
+ :doc:`Optimistic Concurrency Control <occ>`
+
 
 Multiple Table Refresh
 ======================
