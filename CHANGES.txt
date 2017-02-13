@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - UDC: add the ``enterprise`` field to the ``UDC`` ping.
+   The field identifies whether a user runs an enterprise version of CrateDB.
+
  - Selecting ``os['timestamp'] from ``sys.nodes`` returns the actual timestamp
    of each node clock at the time of collecting the metric instead of the
    timestamp on the handler node.
