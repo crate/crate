@@ -44,7 +44,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicInteger;
 
 class BulkPortal extends AbstractPortal {
 
@@ -136,49 +135,31 @@ class BulkPortal extends AbstractPortal {
 
     private CompletableFuture<Void> executeBulk(Executor executor, Plan plan, final UUID jobId,
                                                 final StatsTables statsTables) {
-        final CompletableFuture<Void> bulkCompleteFuture = new CompletableFuture<>();
         List<CompletableFuture<Long>> futures = executor.executeBulk(plan);
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+        return allFutures
+            .exceptionally(t -> null) // swallow exception - failures are set per item in emitResults
+            .thenAccept(ignored -> emitResults(jobId, statsTables, futures));
+    }
 
-        AtomicInteger futureCount = new AtomicInteger(futures.size());
-        CompletableFuture<List<CompletableFuture<Long>>> collectAllResults = new CompletableFuture<>();
+    private void emitResults(UUID jobId, StatsTables statsTables, List<CompletableFuture<Long>> completedResultFutures) {
+        assert completedResultFutures.size() == resultReceivers.size()
+            : "number of result must match number of rowReceivers";
 
-        for (CompletableFuture<Long> future : futures) {
-            future.whenComplete((Long result, Throwable t) -> {
-                if (t != null) {
-                    collectAllResults.completeExceptionally(t);
-                } else {
-                    if (futureCount.decrementAndGet() == 0) {
-                        collectAllResults.complete(futures);
-                    }
-                }
-            });
-        }
-
-        collectAllResults.whenComplete((List<CompletableFuture<Long>> result, Throwable t) -> {
-                if (t == null) {
-                    assert result != null && result.size() == resultReceivers.size()
-                        : "number of result must match number of rowReceivers";
-
-                    Long[] cells = new Long[1];
-                    RowN row = new RowN(cells);
-                    for (int i = 0; i < result.size(); i++) {
-                        CompletableFuture<Long> resultFuture = result.get(i);
-                        cells[0] = resultFuture.join();
-                        ResultReceiver resultReceiver = resultReceivers.get(i);
-                        resultReceiver.setNextRow(row);
-                        resultReceiver.allFinished(false);
-                    }
-                    bulkCompleteFuture.complete(null);
-                    statsTables.logExecutionEnd(jobId, null);
-                } else {
-                    for (ResultReceiver resultReceiver : resultReceivers) {
-                        resultReceiver.fail(t);
-                    }
-                    bulkCompleteFuture.completeExceptionally(t);
-                    statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
-                }
+        Long[] cells = new Long[1];
+        RowN row = new RowN(cells);
+        for (int i = 0; i < completedResultFutures.size(); i++) {
+            CompletableFuture<Long> completedResultFuture = completedResultFutures.get(i);
+            ResultReceiver resultReceiver = resultReceivers.get(i);
+            try {
+                Long rowCount = completedResultFuture.join();
+                cells[0] = rowCount == null ? Executor.ROWCOUNT_ERROR : rowCount;
+            } catch (Throwable t) {
+                cells[0] = Executor.ROWCOUNT_ERROR;
             }
-        );
-        return bulkCompleteFuture;
+            resultReceiver.setNextRow(row);
+            resultReceiver.allFinished(false);
+        }
+        statsTables.logExecutionEnd(jobId, null);
     }
 }
