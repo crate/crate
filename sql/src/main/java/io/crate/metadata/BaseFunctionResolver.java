@@ -20,15 +20,27 @@
  * agreement.
  */
 
-package io.crate.operation.tablefunctions;
+package io.crate.metadata;
 
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.operation.AbstractFunctionModule;
+import io.crate.types.DataType;
 
-public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImplementation> {
+import javax.annotation.Nullable;
+import java.util.List;
 
+/**
+ * A base class for implementing a function resolver which takes the signature operator as constructor argument.
+ */
+public abstract class BaseFunctionResolver implements FunctionResolver {
+
+    private final Signature.SignatureOperator signatureOperator;
+
+    protected BaseFunctionResolver(Signature.SignatureOperator signatureOperator) {
+        this.signatureOperator = signatureOperator;
+    }
+
+    @Nullable
     @Override
-    public void configureFunctions() {
-        UnnestFunction.register(this);
+    public List<DataType> getSignature(List<DataType> dataTypes) {
+        return signatureOperator.apply(dataTypes);
     }
 }

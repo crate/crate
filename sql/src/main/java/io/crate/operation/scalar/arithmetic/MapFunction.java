@@ -22,17 +22,15 @@
 
 package io.crate.operation.scalar.arithmetic;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.types.AnyType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.StringType;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -49,21 +47,25 @@ public class MapFunction extends Scalar<Object, Object> {
 
     public final static String NAME = "_map";
 
-    private final static List<Signature> SIGNATURES = ImmutableList.<Signature>builder()
-        .add(new Signature()) // allow empty map
-        .add(new Signature(0, StringType.INSTANCE, AnyType.INSTANCE))
-        .build();
+    private final static FunctionResolver RESOLVER = new BaseFunctionResolver(
+        // emtpy args or (string, any) pairs
+        Signature.ofIterable(() -> new Iterator<Signature.ArgMatcher>() {
+            private int pos = 0;
 
-    private final static FunctionResolver RESOLVER = new FunctionResolver() {
+            @Override
+            public boolean hasNext() {
+                return true;
+            }
+
+            @Override
+            public Signature.ArgMatcher next() {
+                return pos++ % 2 == 0 ? Signature.ArgMatcher.STRING : Signature.ArgMatcher.ANY;
+            }
+        }).preCondition(dt -> dt.size() % 2 == 0)) {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             return new MapFunction(createInfo(dataTypes));
-        }
-
-        @Override
-        public List<Signature> signatures() {
-            return SIGNATURES;
         }
     };
 

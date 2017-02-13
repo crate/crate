@@ -24,7 +24,6 @@ package io.crate.operation.scalar;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
@@ -127,8 +126,8 @@ class ArrayDifferenceFunction extends Scalar<Object[], Object> {
 
     private static class Resolver implements FunctionResolver {
 
-        private static final List<Signature> SIGNATURES = ImmutableList.of(
-            new Signature(DataTypes.ANY_ARRAY, DataTypes.ANY_ARRAY));
+        private static final Signature.SignatureOperator SIGNATURE =
+            Signature.of(Signature.ArgMatcher.ANY_ARRAY, Signature.ArgMatcher.ANY_ARRAY);
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
@@ -154,9 +153,10 @@ class ArrayDifferenceFunction extends Scalar<Object[], Object> {
             return new ArrayDifferenceFunction(createInfo(dataTypes), null);
         }
 
+        @javax.annotation.Nullable
         @Override
-        public List<Signature> signatures() {
-            return SIGNATURES;
+        public List<DataType> getSignature(List<DataType> dataTypes) {
+            return SIGNATURE.apply(dataTypes);
         }
     }
 }

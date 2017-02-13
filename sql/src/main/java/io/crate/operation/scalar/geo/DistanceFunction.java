@@ -21,7 +21,6 @@
 
 package io.crate.operation.scalar.geo;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -41,13 +40,19 @@ import java.util.List;
 public class DistanceFunction extends Scalar<Double, Object> {
 
     public static final String NAME = "distance";
+    private final static Signature.ArgMatcher ALLOWED_TYPE = Signature.ArgMatcher.of(
+        DataTypes.STRING, DataTypes.GEO_POINT, new ArrayType(DataTypes.DOUBLE));
 
     private final FunctionInfo info;
-    private final static FunctionInfo geoPointInfo =
-        genInfo(Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT));
+    private final static FunctionInfo geoPointInfo = genInfo(Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_POINT));
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
+        module.register(NAME, new BaseFunctionResolver(Signature.of(ALLOWED_TYPE, ALLOWED_TYPE)) {
+            @Override
+            public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+                return new DistanceFunction(genInfo(dataTypes));
+            }
+        });
     }
 
     private static FunctionInfo genInfo(List<DataType> argumentTypes) {
@@ -152,23 +157,6 @@ public class DistanceFunction extends Scalar<Double, Object> {
         if (!dataType.equals(DataTypes.GEO_POINT)) {
             throw new IllegalArgumentException(SymbolFormatter.format(
                 "Cannot convert %s to a geo point", symbol));
-        }
-    }
-
-    static class Resolver implements FunctionResolver {
-
-        private final static List<DataType> ALLOWED_TYPES = ImmutableList.of(
-            DataTypes.STRING, DataTypes.GEO_POINT, new ArrayType(DataTypes.DOUBLE));
-        private static final List<Signature> SIGNATURES = Signature.pairedCombinationsOf(ALLOWED_TYPES);
-
-        @Override
-        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return new DistanceFunction(genInfo(dataTypes));
-        }
-
-        @Override
-        public List<Signature> signatures() {
-            return SIGNATURES;
         }
     }
 }

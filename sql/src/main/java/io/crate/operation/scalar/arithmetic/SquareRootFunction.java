@@ -28,6 +28,7 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public abstract class SquareRootFunction extends Scalar<Number, Number> {
@@ -74,11 +75,10 @@ public abstract class SquareRootFunction extends Scalar<Number, Number> {
             return new DoubleSquareRootFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.DOUBLE));
         }
 
+        @Nullable
         @Override
-        public List<Signature> signatures() {
-            return Signature.SIGNATURES_SINGLE_NUMERIC;
+        public List<DataType> getSignature(List<DataType> dataTypes) {
+            return Signature.SIGNATURES_SINGLE_NUMERIC.apply(dataTypes);
         }
     }
-
-
 }

@@ -21,7 +21,6 @@
 
 package io.crate.operation.scalar.regex;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -33,16 +32,12 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class ReplaceFunction extends Scalar<BytesRef, Object> implements FunctionResolver {
 
     public static final String NAME = "regexp_replace";
-
-    private static final List<Signature> SIGNATURES = ImmutableList.<Signature>builder()
-        .add(new Signature(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING))
-        .add(new Signature(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING, DataTypes.STRING))
-        .build();
 
     private static FunctionInfo createInfo(List<DataType> types) {
         return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
@@ -163,8 +158,12 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Functio
         return new ReplaceFunction(createInfo(dataTypes));
     }
 
+    @Nullable
     @Override
-    public List<Signature> signatures() {
-        return SIGNATURES;
+    public List<DataType> getSignature(List<DataType> dataTypes) {
+        if (dataTypes.size() < 3 || dataTypes.size() > 4){
+            return null;
+        }
+        return Signature.SIGNATURES_ALL_OF_SAME.apply(dataTypes);
     }
 }

@@ -21,7 +21,6 @@
 
 package io.crate.operation.scalar.arithmetic;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.metadata.*;
 import io.crate.types.DataType;
@@ -71,17 +70,13 @@ abstract class ArithmeticFunction extends Scalar<Number, Number> {
         return false;
     }
 
-    static abstract class ArithmeticFunctionResolver implements FunctionResolver {
+    static abstract class ArithmeticFunctionResolver extends BaseFunctionResolver {
 
-        private final static List<DataType> ALLOWED_TYPES = ImmutableList.<DataType>builder()
-            .addAll(DataTypes.NUMERIC_PRIMITIVE_TYPES)
-            .add(DataTypes.TIMESTAMP)
-            .build();
-        private static final List<Signature> SIGNATURES = Signature.pairedCombinationsOf(ALLOWED_TYPES);
+        private static final Signature.ArgMatcher ARITHMETIC_TYPE = Signature.ArgMatcher.of(
+            DataTypes.NUMERIC_PRIMITIVE_TYPES::contains, DataTypes.TIMESTAMP::equals);
 
-        @Override
-        public List<Signature> signatures() {
-            return SIGNATURES;
+        ArithmeticFunctionResolver() {
+            super(Signature.of(ARITHMETIC_TYPE, ARITHMETIC_TYPE));
         }
     }
 }

@@ -22,23 +22,18 @@
 
 package io.crate.operation.scalar.arithmetic;
 
-import io.crate.core.collections.Collectors;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class ArrayFunction extends Scalar<Object, Object> {
 
     public final static String NAME = "_array";
-    private static final List<Signature> SIGNATURES = Signature.SIGNATURES_SINGLE_ALL.stream()
-        .map(dt -> new Signature(0, dt))
-        .collect(Collectors.toImmutableList());
-
-
     private final FunctionInfo info;
 
     public static FunctionInfo createInfo(List<DataType> argumentTypes) {
@@ -52,9 +47,10 @@ public class ArrayFunction extends Scalar<Object, Object> {
             return new ArrayFunction(createInfo(dataTypes));
         }
 
+        @Nullable
         @Override
-        public List<Signature> signatures() {
-            return SIGNATURES;
+        public List<DataType> getSignature(List<DataType> dataTypes) {
+            return Signature.SIGNATURES_ALL_OF_SAME.apply(dataTypes);
         }
     };
 

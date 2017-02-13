@@ -58,12 +58,11 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         mod.register(NAME, new CountAggregationFunctionResolver());
     }
 
-    private static class CountAggregationFunctionResolver implements FunctionResolver {
+    private static class CountAggregationFunctionResolver extends BaseFunctionResolver {
 
-        private static List<Signature> SIGNATURES = ImmutableList.<Signature>builder()
-            .add(new Signature())
-            .addAll(Signature.SIGNATURES_SINGLE_ALL)
-            .build();
+        CountAggregationFunctionResolver() {
+            super(Signature.numArgs(0, 1));
+        }
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
@@ -74,11 +73,6 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
                     new FunctionInfo(new FunctionIdent(NAME, dataTypes),
                         DataTypes.LONG, FunctionInfo.Type.AGGREGATE), true);
             }
-        }
-
-        @Override
-        public List<Signature> signatures() {
-            return SIGNATURES;
         }
     }
 

@@ -22,7 +22,6 @@
 package io.crate.operation.scalar;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.ArrayType;
@@ -80,10 +79,12 @@ class ArrayCatFunction extends Scalar<Object[], Object> {
     }
 
 
-    private static class Resolver implements FunctionResolver {
+    private static class Resolver extends BaseFunctionResolver {
 
-        private static final List<Signature> SIGNATURES = ImmutableList.of(
-            new Signature(DataTypes.ANY_ARRAY, DataTypes.ANY_ARRAY));
+        protected Resolver() {
+            // inner type differences are handled in getForTypes, so not strict varArgs
+            super(Signature.numArgs(2).and(Signature.withLenientVarArgs(Signature.ArgMatcher.ANY_ARRAY)));
+        }
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
@@ -107,11 +108,6 @@ class ArrayCatFunction extends Scalar<Object[], Object> {
             }
 
             return new ArrayCatFunction(createInfo(dataTypes));
-        }
-
-        @Override
-        public List<Signature> signatures() {
-            return SIGNATURES;
         }
     }
 }

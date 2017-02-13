@@ -29,6 +29,7 @@ import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.*;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -66,9 +67,10 @@ public abstract class NegateFunction<TOut, TIn> extends Scalar<TOut, TIn> {
             throw new IllegalArgumentException("Cannot negate values of type " + dataType.getName());
         }
 
+        @Nullable
         @Override
-        public List<Signature> signatures() {
-            return Signature.SIGNATURES_SINGLE_NUMERIC;
+        public List<DataType> getSignature(List<DataType> dataTypes) {
+            return Signature.SIGNATURES_SINGLE_NUMERIC.apply(dataTypes);
         }
     };
 

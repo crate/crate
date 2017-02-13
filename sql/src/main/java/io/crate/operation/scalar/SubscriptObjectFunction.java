@@ -22,7 +22,6 @@
 
 package io.crate.operation.scalar;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
@@ -33,24 +32,21 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import java.util.List;
 import java.util.Map;
 
-public class SubscriptObjectFunction extends Scalar<Object, Map> implements FunctionResolver {
+public class SubscriptObjectFunction extends Scalar<Object, Map> {
 
     public static final String NAME = "subscript_obj";
-
-    private static final List<Signature> SIGNATURES = ImmutableList.of(
-        new Signature(DataTypes.OBJECT, DataTypes.STRING));
-
-    private static FunctionInfo createInfo(List<DataType> argumentTypes, DataType returnType) {
-        return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), returnType);
-    }
-
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new SubscriptObjectFunction());
-    }
-
     private FunctionInfo info;
 
-    private SubscriptObjectFunction() {
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME,
+            new BaseFunctionResolver(Signature.of(Signature.ArgMatcher.OBJECT, Signature.ArgMatcher.STRING)) {
+                @Override
+                public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+                    return new SubscriptObjectFunction(
+                        new FunctionInfo(new FunctionIdent(NAME, dataTypes.subList(0, 2)), DataTypes.UNDEFINED));
+                }
+            }
+        );
     }
 
     private SubscriptObjectFunction(FunctionInfo info) {
@@ -61,7 +57,6 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> implements Func
     public FunctionInfo info() {
         return info;
     }
-
 
     @Override
     public Object evaluate(Input[] args) {
@@ -77,15 +72,5 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> implements Func
         assert key instanceof BytesRef : "second argument must be of type BytesRef";
 
         return ((Map) element).get(BytesRefs.toString(key));
-    }
-
-    @Override
-    public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        return new SubscriptObjectFunction(createInfo(dataTypes.subList(0, 2), DataTypes.UNDEFINED));
-    }
-
-    @Override
-    public List<Signature> signatures() {
-        return SIGNATURES;
     }
 }

@@ -24,7 +24,6 @@ package io.crate.operation.scalar.conditional;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import io.crate.core.collections.Collectors;
 import io.crate.metadata.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -57,16 +56,13 @@ abstract class ConditionalFunction extends Scalar<Object, Object> {
         return new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.tryFindNotNullType(dataTypes));
     }
 
-    static class ConditionalFunctionResolver implements FunctionResolver {
-
-        private static final List<Signature> SIGNATURES = Signature.SIGNATURES_SINGLE_ALL.stream()
-            .map(dt -> new Signature(0, dt))
-            .collect(Collectors.toImmutableList());
+    static class ConditionalFunctionResolver extends BaseFunctionResolver {
 
         private final String name;
         private final Function<FunctionInfo, FunctionImplementation> fn;
 
         ConditionalFunctionResolver(String name, Function<FunctionInfo, FunctionImplementation> fn) {
+            super(Signature.SIGNATURES_ALL_OF_SAME);
             this.name = name;
             this.fn = fn;
         }
@@ -74,11 +70,6 @@ abstract class ConditionalFunction extends Scalar<Object, Object> {
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             return fn.apply(createInfo(name, dataTypes));
-        }
-
-        @Override
-        public List<Signature> signatures() {
-            return SIGNATURES;
         }
     }
 }
