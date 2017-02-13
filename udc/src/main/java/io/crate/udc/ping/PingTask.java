@@ -29,6 +29,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
 
@@ -56,6 +57,7 @@ public class PingTask extends TimerTask {
     private final ClusterIdService clusterIdService;
     private final ExtendedNodeInfo extendedNodeInfo;
     private final String pingUrl;
+    private final Settings settings;
 
     private AtomicLong successCounter = new AtomicLong(0);
     private AtomicLong failCounter = new AtomicLong(0);
@@ -63,11 +65,13 @@ public class PingTask extends TimerTask {
     public PingTask(ClusterService clusterService,
                     ClusterIdService clusterIdService,
                     ExtendedNodeInfo extendedNodeInfo,
-                    String pingUrl) {
+                    String pingUrl,
+                    Settings settings) {
         this.clusterService = clusterService;
         this.clusterIdService = clusterIdService;
         this.extendedNodeInfo = extendedNodeInfo;
         this.pingUrl = pingUrl;
+        this.settings = settings;
     }
 
     @SuppressWarnings("unchecked")
@@ -91,6 +95,10 @@ public class PingTask extends TimerTask {
 
     public Boolean isMasterNode() {
         return clusterService.localNode().isMasterNode();
+    }
+
+    String isEnterprise() {
+        return settings.get("licence.enterprise", "false");
     }
 
     public Map<String, Object> getCounters() {
@@ -122,6 +130,7 @@ public class PingTask extends TimerTask {
         queryMap.put("cluster_id", getClusterId()); // block until clusterId is available
         queryMap.put("kernel", XContentFactory.jsonBuilder().map(getKernelData()).string());
         queryMap.put("master", isMasterNode().toString());
+        queryMap.put("enterprise", isEnterprise());
         queryMap.put("ping_count", XContentFactory.jsonBuilder().map(getCounters()).string());
         queryMap.put("hardware_address", getHardwareAddress());
         queryMap.put("crate_version", getCrateVersion());
