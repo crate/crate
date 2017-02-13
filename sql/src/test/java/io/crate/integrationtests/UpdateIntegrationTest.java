@@ -38,6 +38,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static com.google.common.collect.Maps.newHashMap;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNot.not;
 
 @UseJdbc
 public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
@@ -744,6 +745,23 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("select day, name from generated_column");
         assertThat((Long) response.rows()[0][0], is(1447891200000L));
         assertThat((String) response.rows()[0][1], is("zoobar"));
+    }
+
+    @Test
+    public void testGeneratedColumnWithoutRefsToOtherColumnsComputedOnUpdate() throws Exception {
+        execute("create table generated_column (" +
+                " \"inserted\" TIMESTAMP GENERATED ALWAYS AS current_timestamp(3), " +
+                " \"message\" STRING" +
+                ")");
+        ensureYellow();
+        execute("insert into generated_column (message) values (?)", new Object[]{"str"});
+        refresh();
+        execute("select inserted from generated_column");
+        long ts = (long) response.rows()[0][0];
+        execute("update generated_column set message = ?", new Object[]{"test"});
+        refresh();
+        execute("select inserted from generated_column");
+        assertThat(response.rows()[0][0], not(ts));
     }
 
     @Test

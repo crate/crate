@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix an issue which prevented generated columns without any referenced
+   columns in it, e.g. when it contanins only ``CURRENT_TIMESTAMP``, from
+   computing a new value on ``UPDATE``.
+
  - Fixed global aggregations on JOINs with 3 or more tables.
 
  - BREAKING: The TableFunctionImplementation interface was streamlined
