@@ -160,11 +160,13 @@ public class FileReadingCollector implements BatchCursor, CrateCollector {
                 }
                 return moveNext();
             } else {
+                releaseCursorState();
                 return false;
             }
         } catch (IOException e) {
             rethrowUnchecked(e);
         }
+        releaseCursorState();
         return false;
     }
 
@@ -222,6 +224,10 @@ public class FileReadingCollector implements BatchCursor, CrateCollector {
     @Override
     public void close() {
         closeCurrentReader();
+        releaseCursorState();
+    }
+
+    private void releaseCursorState() {
         fileInputsIterator = null;
         currentInputIterator = null;
         currentInput = null;
