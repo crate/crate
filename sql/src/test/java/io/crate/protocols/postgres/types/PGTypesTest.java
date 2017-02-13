@@ -45,6 +45,12 @@ public class PGTypesTest extends CrateUnitTest {
         assertThat(PGTypes.get(DataTypes.LONG), instanceOf(BigIntType.class));
         assertThat(PGTypes.get(DataTypes.FLOAT), instanceOf(RealType.class));
         assertThat(PGTypes.get(DataTypes.DOUBLE), instanceOf(DoubleType.class));
+        assertThat("Crate IP type is mapped to PG varchar", PGTypes.get(DataTypes.IP),
+            instanceOf(VarCharType.class));
+        assertThat("Crate array type is mapped to PGArray", PGTypes.get(new ArrayType(DataTypes.BYTE)),
+            instanceOf(PGArray.class));
+        assertThat("Crate set type is mapped to PGArray", PGTypes.get(new SetType(DataTypes.BYTE)),
+            instanceOf(PGArray.class));
     }
 
     @Test
@@ -57,6 +63,8 @@ public class PGTypesTest extends CrateUnitTest {
         assertThat(PGTypes.fromOID(BigIntType.OID), instanceOf(LongType.class));
         assertThat(PGTypes.fromOID(RealType.OID), instanceOf(FloatType.class));
         assertThat(PGTypes.fromOID(DoubleType.OID), instanceOf(io.crate.types.DoubleType.class));
+        assertThat("PG array is mapped to Crate Array", PGTypes.fromOID(PGArray.CHAR_ARRAY.oid()),
+            instanceOf(io.crate.types.ArrayType.class));
     }
 
     private static class Entry {
@@ -85,10 +93,12 @@ public class PGTypesTest extends CrateUnitTest {
             new Entry(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value(-999999999999999L)),
             new Entry(DataTypes.IP, TestingHelpers.bytesRef("192.168.1.1", random())),
             new Entry(DataTypes.BYTE, (byte) 20),
-            new Entry(new ArrayType(DataTypes.INTEGER), new Integer[] {10, null, 20}),
+            new Entry(new ArrayType(DataTypes.INTEGER), new Integer[]{10, null, 20}),
             new Entry(new ArrayType(DataTypes.INTEGER), new Integer[0]),
-            new Entry(new ArrayType(DataTypes.INTEGER), new Integer[] {null, null}),
-            new Entry(new ArrayType(DataTypes.INTEGER), new Integer[][] { new Integer[] {10, null, 20}, new Integer[] { 1, 2, 3}})
+            new Entry(new ArrayType(DataTypes.INTEGER), new Integer[]{null, null}),
+            new Entry(new ArrayType(DataTypes.INTEGER), new Integer[][]{new Integer[]{10, null, 20}, new Integer[]{1, 2, 3}}),
+            new Entry(new SetType(DataTypes.STRING), new Object[]{TestingHelpers.bytesRef("test", random())}),
+            new Entry(new SetType(DataTypes.INTEGER), new Integer[]{10, null, 20})
         )) {
 
             PGType pgType = PGTypes.get(entry.type);
