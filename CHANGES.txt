@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could cause UPDATE or DELETE bulk operations to get
+   stuck if the bulk_size was big.
+   Now the response will contain a list of results where each individual result
+   will contain `-2` as row count do indicate an error.
+
  - Removed limitation which didn't allow ordering on partitioned columns in
    GROUP BY query
 

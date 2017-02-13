@@ -148,7 +148,8 @@ class BulkPortal extends AbstractPortal {
                     Long[] cells = new Long[1];
                     RowN row = new RowN(cells);
                     for (int i = 0; i < result.size(); i++) {
-                        cells[0] = result.get(i);
+                        Long rowCount = result.get(i);
+                        cells[0] = rowCount == null ? Executor.ROWCOUNT_ERROR : rowCount;
                         ResultReceiver resultReceiver = resultReceivers.get(i);
                         resultReceiver.setNextRow(row);
                         resultReceiver.allFinished(false);

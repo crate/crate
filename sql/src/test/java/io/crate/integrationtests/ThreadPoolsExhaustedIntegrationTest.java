@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
@@ -35,6 +36,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static org.hamcrest.Matchers.is;
+
 @ESIntegTestCase.ClusterScope(maxNumDataNodes = 2)
 @UseJdbc
 public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegrationTest {
@@ -45,7 +48,29 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
             .put(super.nodeSettings(nodeOrdinal))
             .put("threadpool.search.size", 2)
             .put("threadpool.search.queue_size", 2)
+            .put("threadpool.bulk.size", 2)
+            .put("threadpool.bulk.queue_size", 2)
             .build();
+    }
+
+    @Test
+    public void testFailingUpdateBulkOperation() throws Exception {
+        execute("create table t (x int) with (number_of_replicas = 0)");
+        ensureYellow();
+        bulkInsert(2);
+        // fails because of too small bulk size / queue_size
+        SQLBulkResponse resp = execute("update t set x = ? where x = ?", new Object[][]{
+            new Object[]{1, 1},
+            new Object[]{2, 2},
+            new Object[]{3, 3},
+            new Object[]{4, 4},
+            new Object[]{5, 5},
+            new Object[]{6, 6},
+        });
+        assertThat(resp.results().length, is(6));
+        for (SQLBulkResponse.Result result : resp.results()) {
+            assertThat(result.rowCount(), is(-2L));
+        }
     }
 
     @Test
@@ -82,6 +107,9 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
         for (int i = 0; i < docCount; i++) {
             bulkArgs[i][0] = i;
         }
-        execute("insert into t (x) values (?)", bulkArgs);
+        SQLBulkResponse response = execute("insert into t (x) values (?)", bulkArgs);
+        for (SQLBulkResponse.Result result : response.results()) {
+            assertThat(result.rowCount(), is(1L));
+        }
     }
 }
