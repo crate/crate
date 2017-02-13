@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - UDC: add the ``enterprise`` field to the ``UDC`` ping.
+   The field identifies whether a user uses the enterprise version.
+
  - Fixed an issue which caused restoring a whole partitioned table from a
    snapshot to fail.
 
