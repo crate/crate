@@ -78,7 +78,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
     }
 
     public ColumnIdent(String name, @Nullable List<String> path) {
-        this(name);
+        this.name = name;
         this.path = MoreObjects.firstNonNull(path, ImmutableList.<String>of());
     }
 

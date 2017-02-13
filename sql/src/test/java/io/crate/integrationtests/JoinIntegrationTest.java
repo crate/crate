@@ -664,4 +664,20 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                 "   on l.col1 = r.col1 " +
                 "where r.col1 > 1");
     }
+
+    @Test
+    public void testGlobalAggregateMultiTableJoin() throws Exception {
+        execute("create table t1 (id int primary key, t2 int, val float)");
+        execute("create table t2 (id int primary key, t3 int)");
+        execute("create table t3 (id int primary key)");
+        ensureYellow();
+
+        execute("insert into t3 (id) values (1), (2)");
+        execute("insert into t2 (id, t3) values (1, 1), (2, 1), (3, 2), (3, 4)");
+        execute("insert into t1 (id, t2, val) values (1, 1, 0.12), (2, 2, 1.23), (3, 3, 2.34), (4, 4, 3.45)");
+
+        refresh();
+        execute("select sum(t1.val), avg(t2.id), min(t3.id) from t1 inner join t2 on t1.t2 = t2.id inner join t3 on t2.t3 = t3.id");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("3.689999930560589| 2.0| 1\n"));
+    }
 }

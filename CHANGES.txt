@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed global aggregations on JOINs with 3 or more tables.
+
  - Fixed an issue that could cause UPDATE or DELETE bulk operations to get
    stuck if the bulk_size was big.
    Now the response will contain a list of results where each individual result
