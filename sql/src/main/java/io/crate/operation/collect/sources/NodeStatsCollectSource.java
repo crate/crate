@@ -37,8 +37,6 @@ import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.collect.collectors.NodeStatsCollector;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
-import io.crate.operation.reference.sys.node.local.NodeSysExpression;
-import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.cluster.ClusterService;
@@ -55,18 +53,15 @@ import java.util.List;
 public class NodeStatsCollectSource implements CollectSource {
 
     private final TransportNodeStatsAction nodeStatsAction;
-    private final NodeSysExpression nodeSysExpression;
     private final ClusterService clusterService;
     private final Functions functions;
     private final InputFactory inputFactory;
 
     @Inject
     public NodeStatsCollectSource(TransportNodeStatsAction nodeStatsAction,
-                                  NodeSysExpression nodeSysExpression,
                                   ClusterService clusterService,
                                   Functions functions) {
         this.nodeStatsAction = nodeStatsAction;
-        this.nodeSysExpression = nodeSysExpression;
         this.clusterService = clusterService;
         this.inputFactory = new InputFactory(functions);
         this.functions = functions;
@@ -75,17 +70,14 @@ public class NodeStatsCollectSource implements CollectSource {
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.DOC, ReplaceMode.COPY, new NodeSysReferenceResolver(nodeSysExpression), null);
-        collectPhase = collectPhase.normalize(normalizer, null);
         if (collectPhase.whereClause().noMatch()) {
-            return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
+            return ImmutableList.of(RowsCollector.empty(downstream));
         }
         Collection<DiscoveryNode> nodes = nodeIds(collectPhase.whereClause(),
             Lists.newArrayList(clusterService.state().getNodes().iterator()),
             functions);
         if (nodes.isEmpty()) {
-            return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
+            return ImmutableList.of(RowsCollector.empty(downstream));
         }
         return ImmutableList.of(new NodeStatsCollector(
                 nodeStatsAction,
@@ -118,6 +110,7 @@ public class NodeStatsCollectSource implements CollectSource {
         for (DiscoveryNode node : nodes) {
             String nodeId = node.getId();
             for (RowCollectExpression expression : localSysColReferenceResolver.expressions()) {
+                //noinspection unchecked
                 expression.setNextRow(new NodeStatsContext(nodeId, node.name()));
             }
             Symbol normalized = normalizer.normalize(whereClause.query(), null);
