@@ -241,6 +241,8 @@ class NestedLoopConsumer implements Consumer {
                 InputCreatingVisitor.Context inputVisitorContext = new InputCreatingVisitor.Context(nlOutputs);
                 joinCondition = InputCreatingVisitor.INSTANCE.process(joinCondition, inputVisitorContext);
                 assert joinCondition instanceof Function : "Only function symbols are valid join conditions";
+                boolean hasRelCol = SymbolVisitors.any(s -> s instanceof RelationColumn, joinCondition);
+                assert  !hasRelCol : "RelationColumns are not valid join condition arguments";
             }
 
             List<Symbol> postNLOutputs = Lists.newArrayList(querySpec.outputs());

@@ -27,19 +27,19 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.RelationSource;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.JoinPair;
+import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.collections.Lists2;
 import io.crate.metadata.Functions;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.ListIterator;
-import java.util.Optional;
+import java.util.*;
 
 class MultiSourceAggregationConsumer implements Consumer {
 
@@ -52,6 +52,16 @@ class MultiSourceAggregationConsumer implements Consumer {
     @Override
     public Plan consume(AnalyzedRelation relation, ConsumerContext context) {
         return visitor.process(relation, context);
+    }
+
+    private static final JoinConditionFieldCollector FIELD_COLLECTOR = new JoinConditionFieldCollector();
+
+    private static class JoinConditionFieldCollector extends DefaultTraversalSymbolVisitor<List<Field>, Void> {
+        @Override
+        public Void visitField(Field symbol, List<Field> context) {
+            context.add(symbol);
+            return null;
+        }
     }
 
     private static class Visitor extends RelationPlanningVisitor {
@@ -83,7 +93,8 @@ class MultiSourceAggregationConsumer implements Consumer {
 
     private static void removeAggregationsAndLimitsFromMSS(MultiSourceSelect mss, SplitPoints splitPoints) {
         QuerySpec querySpec = mss.querySpec();
-        querySpec.outputs(new ArrayList<>(splitPoints.toCollect()));
+        List<Symbol> outputs = Lists2.concatUnique(splitPoints.toCollect(), extractFieldsFromJoinConditions(mss));
+        querySpec.outputs(outputs);
         querySpec.hasAggregates(false);
         // Limit & offset must be applied after the aggregation, so remove it from mss and sources.
         // OrderBy can be ignored because it's also applied after aggregation but there is always only 1 row so it
@@ -101,6 +112,14 @@ class MultiSourceAggregationConsumer implements Consumer {
             Symbol output = outputsIt.next();
             fieldsIt.set(new Field(field.relation(), field.path(), output.valueType()));
         }
+    }
+
+    private static List<Field> extractFieldsFromJoinConditions(MultiSourceSelect statement) {
+        List<Field> outputs = new ArrayList<>();
+        for (JoinPair pair : statement.joinPairs()) {
+            FIELD_COLLECTOR.process(pair.condition(), outputs);
+        }
+        return outputs;
     }
 
     private static void removeLimitOffsetAndOrder(QuerySpec querySpec) {
