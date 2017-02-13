@@ -81,8 +81,10 @@ public class FileReadingCollector implements BatchCursor, CrateCollector {
     private volatile URI currentUri;
     private volatile BufferedReader currentReader = null;
     private volatile long currentLineNumber;
+    private volatile boolean allLoaded = false;
     private LineContext lineContext;
     private BatchConsumer consumer;
+    private volatile Status status = Status.OFF_ROW;
 
     public FileReadingCollector(Collection<String> fileUris,
                                 List<Input<?>> inputs,
@@ -124,6 +126,7 @@ public class FileReadingCollector implements BatchCursor, CrateCollector {
     @Override
     public boolean moveFirst() {
         initCollectorState();
+        status = Status.ON_ROW;
         return moveNext();
     }
 
@@ -228,37 +231,53 @@ public class FileReadingCollector implements BatchCursor, CrateCollector {
     }
 
     private void releaseCursorState() {
+        status = Status.OFF_ROW;
         fileInputsIterator = null;
         currentInputIterator = null;
         currentInput = null;
         currentUri = null;
     }
 
+    public boolean onRow() {
+        return status == Status.ON_ROW;
+    }
+
     @Override
-    public CompletableFuture<?> loadNextBatch() {
-        return CompletableFuture.completedFuture(null);
+    public CompletableFuture<Status> loadNextBatch() {
+        if (status != Status.OFF_ROW) {
+            throw new IllegalStateException("Expected cursor status OFF_ROW but is " + status);
+        }
+        moveFirst();
+        allLoaded = true;
+        return CompletableFuture.completedFuture(Status.ON_ROW);
     }
 
     @Override
     public boolean allLoaded() {
-        return true;
+        return allLoaded;
     }
 
     @Override
     public int numColumns() {
-        Objects.requireNonNull(currentInput, "Not on a row");
+        if (!onRow()) {
+            throw new IllegalArgumentException("Not on a row");
+        }
         return row.numColumns();
     }
 
     @Override
     public Object get(int index) {
-        Objects.requireNonNull(currentInput, "Not on a row");
+        if (!onRow()) {
+            throw new IllegalArgumentException("Not on a row");
+        }
         return row.get(index);
     }
 
     @Override
     public Object[] materialize() {
-        Objects.requireNonNull(currentInput, "Not on a row");
+        if (!onRow()) {
+            throw new IllegalArgumentException("Not on a row");
+        }
         return row.materialize();
     }
 

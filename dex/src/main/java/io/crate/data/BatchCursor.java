@@ -57,12 +57,17 @@ public interface BatchCursor extends Row {
      *
      * @return a future which will be completed once the loading is done.
      */
-    CompletableFuture<?> loadNextBatch();
+    CompletableFuture<Status> loadNextBatch();
 
     /**
      * @return true if all underlying data is already loaded
      */
     boolean allLoaded();
 
+    boolean onRow();
 
+    enum Status {
+        OFF_ROW,
+        ON_ROW
+    }
 }

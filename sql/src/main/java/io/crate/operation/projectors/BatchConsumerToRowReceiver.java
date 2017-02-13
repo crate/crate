@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 
 import io.crate.data.BatchConsumer;
 import io.crate.data.BatchCursor;
+import io.crate.data.BatchCursor.Status;
 
 import java.util.Objects;
 
@@ -46,35 +47,40 @@ public class BatchConsumerToRowReceiver implements BatchConsumer {
     }
 
     private void consumeCursor(BatchCursor cursor) {
-        while (cursor.moveNext()) {
-            RowReceiver.Result result = rowReceiver.setNextRow(cursor);
-            switch (result) {
-                case CONTINUE:
-                    break;
-                case STOP:
-                    rowReceiver.finish(RepeatHandle.UNSUPPORTED);
-                    cursor.close();
-                    return;
-                case PAUSE:
-                    rowReceiver.pauseProcessed(async -> consumeCursor(cursor));
-                    return;
-            }
-        }
-
-        if (cursor.allLoaded()) {
-            cursor.close();
-            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
-        } else {
-            cursor.loadNextBatch().whenComplete(
-                (r, e) -> {
-                    if (e != null) {
-                        rowReceiver.fail(e);
-                        cursor.close();
-                    } else {
-                        consumeCursor(cursor);
+        if (!cursor.onRow()) {
+            if (!cursor.allLoaded()) {
+                cursor.loadNextBatch().whenComplete(
+                    (Status r, Throwable e) -> {
+                        if (e != null) {
+                            rowReceiver.fail(e);
+                            cursor.close();
+                        } else if (r == Status.ON_ROW) {
+                            consumeCursor(cursor);
+                        }
                     }
+                );
+            } else {
+                // off row and all loaded, we're done
+                cursor.close();
+                rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+            }
+        } else {
+            // cursor on row
+            do {
+                RowReceiver.Result result = rowReceiver.setNextRow(cursor);
+                switch (result) {
+                    case CONTINUE:
+                        break;
+                    case STOP:
+                        rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+                        cursor.close();
+                        return;
+                    case PAUSE:
+                        rowReceiver.pauseProcessed(async -> consumeCursor(cursor));
+                        return;
                 }
-            );
+            } while (cursor.moveNext());
+            consumeCursor(cursor);
         }
     }
 }
