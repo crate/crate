@@ -25,9 +25,13 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
+import io.crate.data.BatchConsumer;
 import io.crate.data.BatchCursor;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
+import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.projectors.BatchConsumerToRowReceiver;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.file.LineContext;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.ElasticsearchParseException;
@@ -54,7 +58,7 @@ import java.util.zip.GZIPInputStream;
 
 import static io.crate.exceptions.Exceptions.rethrowUnchecked;
 
-public class FileReadingCollector implements BatchCursor {
+public class FileReadingCollector implements BatchCursor, CrateCollector {
 
     private static final ESLogger LOGGER = Loggers.getLogger(FileReadingCollector.class);
     public static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
@@ -78,10 +82,12 @@ public class FileReadingCollector implements BatchCursor {
     private volatile BufferedReader currentReader = null;
     private volatile long currentLineNumber;
     private LineContext lineContext;
+    private BatchConsumer consumer;
 
     public FileReadingCollector(Collection<String> fileUris,
                                 List<Input<?>> inputs,
                                 Iterable<LineCollectorExpression<?>> collectorExpressions,
+                                RowReceiver downstream,
                                 String compression,
                                 Map<String, FileInputFactory> fileInputFactories,
                                 Boolean shared,
@@ -95,6 +101,7 @@ public class FileReadingCollector implements BatchCursor {
         this.readerNumber = readerNumber;
         this.urisWithGlob = getUrisWithGlob(fileUris);
         this.collectorExpressions = collectorExpressions;
+        this.consumer = new BatchConsumerToRowReceiver(downstream);
     }
 
     private void initCollectorState() {
@@ -247,6 +254,16 @@ public class FileReadingCollector implements BatchCursor {
     public Object[] materialize() {
         Objects.requireNonNull(currentInput, "Not on a row");
         return row.materialize();
+    }
+
+    @Override
+    public void doCollect() {
+        consumer.accept(this, null);
+    }
+
+    @Override
+    public void kill(@Nullable Throwable throwable) {
+        close();
     }
 
     private static class UriWithGlob {
