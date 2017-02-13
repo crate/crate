@@ -136,6 +136,7 @@ currently applied cluster settings.
     | settings['discovery']['zen']['minimum_master_nodes']                              | integer      |
     | settings['discovery']['zen']['ping_timeout']                                      | string       |
     | settings['discovery']['zen']['publish_timeout']                                   | string       |
+    | settings['enterprise']                                                            | boolean      |
     | settings['gateway']                                                               | object       |
     | settings['gateway']['expected_nodes']                                             | integer      |
     | settings['gateway']['recover_after_nodes']                                        | integer      |

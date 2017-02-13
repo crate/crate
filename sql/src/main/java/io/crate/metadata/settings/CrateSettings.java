@@ -1430,6 +1430,8 @@ public class CrateSettings {
         }
     };
 
+    public static final BoolSetting ENTERPRISE = new BoolSetting("enterprise", false, false);
+
     public static final NestedSetting UDC = new NestedSetting() {
         @Override
         public String name() {
@@ -1535,7 +1537,7 @@ public class CrateSettings {
     );
 
     public static final List<Setting> SETTINGS = ImmutableList.<Setting>of(
-        STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC, PSQL);
+        STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC, PSQL, ENTERPRISE);
 
     private static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
         .put(CrateSettings.STATS.settingName(),

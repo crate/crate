@@ -163,6 +163,14 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testDefaultEnterpriseSetting() {
+        execute("select settings from sys.cluster");
+        assertEquals(1L, response.rowCount());
+        Map<String, Object> settings = (Map<String, Object>) response.rows()[0][0];
+        assertThat(settings.get(CrateSettings.ENTERPRISE.name()), is(false));
+    }
+
+    @Test
     public void testStaticGatewayDefaultSettings() {
         execute("select settings from sys.cluster");
         assertEquals(1L, response.rowCount());
