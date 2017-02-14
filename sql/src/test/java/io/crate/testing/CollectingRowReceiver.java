@@ -23,7 +23,6 @@
 package io.crate.testing;
 
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
@@ -35,6 +34,7 @@ import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CollectingRowReceiver implements RowReceiver {
 
     public final List<Object[]> rows = new ArrayList<>();
-    final SettableFuture<Bucket> resultFuture = SettableFuture.create();
+    final CompletableFuture<Bucket> resultFuture = new CompletableFuture<>();
     int numFailOrFinish = 0;
     private AtomicInteger numPauseProcessed = new AtomicInteger(0);
     private ResumeHandle resumeable;
@@ -68,7 +68,8 @@ public class CollectingRowReceiver implements RowReceiver {
     public CollectingRowReceiver() {
     }
 
-    public SettableFuture<Bucket> resultFuture() {
+    @Override
+    public CompletableFuture<Bucket> completionFuture() {
         return resultFuture;
     }
 
@@ -86,9 +87,9 @@ public class CollectingRowReceiver implements RowReceiver {
     @Override
     public void kill(Throwable throwable) {
         if (throwable == null) {
-            resultFuture().cancel(false);
+            completionFuture().cancel(false);
         } else {
-            resultFuture.setException(throwable);
+            resultFuture.completeExceptionally(throwable);
         }
     }
 
@@ -101,7 +102,7 @@ public class CollectingRowReceiver implements RowReceiver {
     @Override
     public void finish(RepeatHandle repeatHandle) {
         this.repeatHandle = repeatHandle;
-        resultFuture.set(new CollectionBucket(rows));
+        resultFuture.complete(new CollectionBucket(rows));
         numFailOrFinish++;
     }
 
@@ -115,7 +116,7 @@ public class CollectingRowReceiver implements RowReceiver {
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        resultFuture.setException(throwable);
+        resultFuture.completeExceptionally(throwable);
         numFailOrFinish++;
     }
 

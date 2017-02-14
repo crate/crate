@@ -218,7 +218,7 @@ public class ContextPreparer extends AbstractComponent {
             if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
                 Streamer<?>[] streamers = StreamerVisitor.streamersFromOutputs(nodeOperation.executionPhase());
                 SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers);
-                preparerContext.directResponseFutures.add(bucketBuilder.result());
+                preparerContext.directResponseFutures.add(bucketBuilder.completionFuture());
                 preparerContext.registerRowReceiver(nodeOperation.downstreamExecutionPhaseId(), bucketBuilder);
             }
         }

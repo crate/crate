@@ -31,6 +31,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -75,6 +76,11 @@ public class MultiUpstreamRowReceiver implements RowReceiver, RowDownstream {
 
     public MultiUpstreamRowReceiver(RowReceiver delegate) {
         this.delegate = delegate;
+    }
+
+    @Override
+    public CompletableFuture<?> completionFuture() {
+        return delegate.completionFuture();
     }
 
     @Override

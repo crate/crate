@@ -28,10 +28,8 @@ import io.crate.action.job.SharedShardContexts;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.metadata.RowGranularity;
-import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.StopWatch;
@@ -58,7 +56,6 @@ public class JobCollectContext extends AbstractExecutionSubContext {
 
     private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
     private final Object subContextLock = new Object();
-    private final ListenableRowReceiver listenableRowReceiver;
     private final String threadPoolName;
 
     private Collection<CrateCollector> collectors;
@@ -74,10 +71,8 @@ public class JobCollectContext extends AbstractExecutionSubContext {
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
         this.sharedShardContexts = sharedShardContexts;
-
-        listenableRowReceiver = RowReceivers.listenableRowReceiver(rowReceiver);
-        listenableRowReceiver.finishFuture().whenComplete((result, ex) -> close(ex));
-        this.rowReceiver = listenableRowReceiver;
+        this.rowReceiver = rowReceiver;
+        rowReceiver.completionFuture().whenComplete((result, ex) -> close(ex));
         this.threadPoolName = threadPoolName(collectPhase, localNodeId);
     }
 
@@ -97,10 +92,6 @@ public class JobCollectContext extends AbstractExecutionSubContext {
                     "ShardCollectContext for %d already added", searcherId));
             }
         }
-    }
-
-    public void closeDueToFailure(Throwable throwable) {
-        close(throwable);
     }
 
     @Override
@@ -170,7 +161,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     private void measureCollectTime() {
         final StopWatch stopWatch = new StopWatch(collectPhase.phaseId() + ": " + collectPhase.name());
         stopWatch.start("starting collectors");
-        listenableRowReceiver.finishFuture().whenComplete((result, ex) -> {
+        rowReceiver.completionFuture().whenComplete((result, ex) -> {
             stopWatch.stop();
             logger.trace("Collectors finished: {}", stopWatch.shortSummary());
         });

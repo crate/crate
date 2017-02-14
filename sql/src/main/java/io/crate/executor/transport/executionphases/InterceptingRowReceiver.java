@@ -39,6 +39,7 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -50,6 +51,7 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
     private final UUID jobId;
     private final RowReceiver rowReceiver;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
+    private final CompletableFuture<Void> rowReceiverUpstreamFinished = new CompletableFuture<>();
     private final AtomicBoolean rowReceiverDone = new AtomicBoolean(false);
     private Throwable failure;
 
@@ -64,10 +66,20 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
     }
 
     @Override
-    public void fail(Throwable throwable) {
+    public void fail(@Nullable Throwable throwable) {
         if (rowReceiverDone.compareAndSet(false, true)) {
+            if (throwable == null) {
+                rowReceiverUpstreamFinished.complete(null);
+            } else {
+                rowReceiverUpstreamFinished.completeExceptionally(throwable);
+            }
             tryForwardResult(throwable);
         }
+    }
+
+    @Override
+    public void finish(RepeatHandle repeatHandle) {
+        fail(null);
     }
 
     @Override
@@ -81,6 +93,11 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
     }
 
     @Override
+    public CompletableFuture<?> completionFuture() {
+        return rowReceiverUpstreamFinished;
+    }
+
+    @Override
     public Result setNextRow(Row row) {
         return rowReceiver.setNextRow(row);
     }
@@ -88,11 +105,6 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
     @Override
     public void pauseProcessed(ResumeHandle resumeable) {
         rowReceiver.pauseProcessed(resumeable);
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        fail(null);
     }
 
     @Override

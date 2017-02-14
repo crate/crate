@@ -43,6 +43,11 @@ public class SingleBucketBuilder implements RowReceiver {
     }
 
     @Override
+    public CompletableFuture<Bucket> completionFuture() {
+        return bucketFuture;
+    }
+
+    @Override
     public Result setNextRow(Row row) {
         try {
             bucketBuilder.add(row);
@@ -54,10 +59,6 @@ public class SingleBucketBuilder implements RowReceiver {
 
     @Override
     public void pauseProcessed(ResumeHandle resumeable) {
-    }
-
-    public CompletableFuture<Bucket> result() {
-        return bucketFuture;
     }
 
     @Override

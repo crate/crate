@@ -22,9 +22,11 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Row;
 
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 public abstract class AbstractProjector implements Projector {
 
@@ -38,6 +40,11 @@ public abstract class AbstractProjector implements Projector {
     public void downstream(RowReceiver rowReceiver) {
         assert rowReceiver != null : "rowReceiver must not be null";
         this.downstream = rowReceiver;
+    }
+
+    @Override
+    public CompletableFuture<?> completionFuture() {
+        return downstream.completionFuture();
     }
 
     @Override
@@ -58,6 +65,11 @@ public abstract class AbstractProjector implements Projector {
     private static class StateCheckReceiver implements RowReceiver {
 
         private static final String STATE_ERROR = "downstream not set";
+
+        @Override
+        public CompletableFuture<?> completionFuture() {
+            return CompletableFutures.failedFuture(new IllegalStateException(STATE_ERROR));
+        }
 
         @Override
         public Result setNextRow(Row row) {

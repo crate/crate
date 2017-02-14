@@ -33,6 +33,7 @@ import org.elasticsearch.common.logging.Loggers;
 import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -100,7 +101,7 @@ public class DistributingDownstream implements RowReceiver {
     private final AtomicReference<ResumeHandle> resumeHandleRef = new AtomicReference<>(ResumeHandle.INVALID);
     private volatile boolean stop = false;
     private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
-
+    private final CompletableFuture<?> finishFuture = new CompletableFuture<>();
 
     public DistributingDownstream(ESLogger logger,
                                   UUID jobId,
@@ -130,6 +131,11 @@ public class DistributingDownstream implements RowReceiver {
             i++;
         }
         traceEnabled = logger.isTraceEnabled();
+    }
+
+    @Override
+    public CompletableFuture<?> completionFuture() {
+        return finishFuture;
     }
 
     @Override
@@ -172,6 +178,10 @@ public class DistributingDownstream implements RowReceiver {
         traceLog("action=finish");
         upstreamFinished = true;
         trySendRequests();
+
+        // even if there are still requests pending we can trigger the future because
+        // the resources of the upstream are no longer required
+        finishFuture.complete(null);
     }
 
     @Override
@@ -181,6 +191,8 @@ public class DistributingDownstream implements RowReceiver {
         failure.compareAndSet(null, throwable);
         upstreamFinished = true;
         trySendRequests();
+
+        finishFuture.completeExceptionally(throwable);
     }
 
     private void trySendRequests() {

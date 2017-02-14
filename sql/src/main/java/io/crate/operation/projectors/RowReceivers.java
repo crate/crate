@@ -24,44 +24,7 @@ package io.crate.operation.projectors;
 
 import io.crate.data.Row;
 
-import javax.annotation.ParametersAreNonnullByDefault;
-import java.util.concurrent.CompletableFuture;
-
 public class RowReceivers {
-
-    public static ListenableRowReceiver listenableRowReceiver(RowReceiver rowReceiver) {
-        if (rowReceiver instanceof ListenableRowReceiver) {
-            return (ListenableRowReceiver) rowReceiver;
-        }
-        return new SettableFutureRowReceiver(rowReceiver);
-    }
-
-    @ParametersAreNonnullByDefault
-    private static class SettableFutureRowReceiver extends ForwardingRowReceiver implements ListenableRowReceiver {
-
-        private final CompletableFuture<Void> finishedFuture = new CompletableFuture<>();
-
-        SettableFutureRowReceiver(RowReceiver rowReceiver) {
-            super(rowReceiver);
-        }
-
-        @Override
-        public void finish(RepeatHandle repeatHandle) {
-            super.finish(repeatHandle);
-            finishedFuture.complete(null);
-        }
-
-        @Override
-        public void fail(Throwable throwable) {
-            super.fail(throwable);
-            finishedFuture.completeExceptionally(throwable);
-        }
-
-        @Override
-        public CompletableFuture<?> finishFuture() {
-            return finishedFuture;
-        }
-    }
 
     public static void sendOneRow(RowReceiver receiver, Row row) {
         receiver.setNextRow(row);

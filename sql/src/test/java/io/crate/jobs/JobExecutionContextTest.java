@@ -30,7 +30,6 @@ import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.merge.PassThroughPagingIterator;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
@@ -114,12 +113,13 @@ public class JobExecutionContextTest extends CrateUnitTest {
         JobExecutionContext.Builder builder =
             new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptyList(), mock(JobsLogs.class));
 
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         JobCollectContext jobCollectContext = new JobCollectContext(
             collectPhase,
             mock(MapSideDataCollectOperation.class),
             localNodeId,
             mock(RamAccountingContext.class),
-            mock(RowReceiver.class),
+            rowReceiver,
             mock(SharedShardContexts.class));
         PageDownstreamContext pageDownstreamContext = spy(new PageDownstreamContext(
             Loggers.getLogger(PageDownstreamContext.class),
@@ -137,7 +137,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
         JobExecutionContext jobExecutionContext = builder.build();
 
         Exception failure = new Exception("failure!");
-        jobCollectContext.closeDueToFailure(failure);
+        jobCollectContext.close(failure);
         // other contexts must be killed with same failure
         verify(pageDownstreamContext, times(1)).innerKill(failure);
 

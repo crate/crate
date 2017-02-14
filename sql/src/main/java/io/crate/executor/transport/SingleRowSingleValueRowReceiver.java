@@ -85,6 +85,7 @@ class SingleRowSingleValueRowReceiver implements RowReceiver {
         return Requirements.NO_REQUIREMENTS;
     }
 
+    @Override
     public CompletableFuture<?> completionFuture() {
         return completionFuture;
     }

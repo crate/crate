@@ -22,17 +22,25 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.concurrent.CompletionListenable;
 import io.crate.data.Row;
 
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
-public interface RowReceiver {
+public interface RowReceiver extends CompletionListenable {
 
     enum Result {
         CONTINUE,
         PAUSE,
         STOP
     }
+
+    /**
+     * Future that is triggered once a RowReceiver finishes execution.
+     */
+    @Override
+    CompletableFuture<?> completionFuture();
 
     /**
      * Feed the downstream with the next input row.

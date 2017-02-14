@@ -22,7 +22,6 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.data.Bucket;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
@@ -45,7 +44,9 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -178,7 +179,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
 
         PlanForNode plan = plan(stmt);
         execute("delete from t");
-        return execute(plan).resultFuture().get(500, TimeUnit.MILLISECONDS);
+        return execute(plan).completionFuture().get(500, TimeUnit.MILLISECONDS);
     }
 
     @Test
@@ -210,7 +211,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         PlanForNode plan = plan("refresh table t"); // create a plan in which the partitions exist
         execute("delete from t");
 
-        ListenableFuture<Bucket> future = execute(plan).resultFuture(); // execute now that the partitions are gone
+        CompletableFuture<Bucket> future = execute(plan).completionFuture(); // execute now that the partitions are gone
         // shouldn't throw an exception:
         future.get(500, TimeUnit.MILLISECONDS);
     }
@@ -224,7 +225,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         PlanForNode plan = plan("optimize table t"); // create a plan in which the partitions exist
         execute("delete from t");
 
-        ListenableFuture<Bucket> future = execute(plan).resultFuture(); // execute now that the partitions are gone
+        Future<Bucket> future = execute(plan).completionFuture(); // execute now that the partitions are gone
         // shouldn't throw an exception:
         future.get(500, TimeUnit.MILLISECONDS);
     }

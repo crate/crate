@@ -45,6 +45,11 @@ public class RowCountResultRowDownstream implements RowReceiver {
     }
 
     @Override
+    public CompletableFuture<?> completionFuture() {
+        return result;
+    }
+
+    @Override
     public RowReceiver.Result setNextRow(Row row) {
         rows.add(row.materialize());
         return nextRowResult;

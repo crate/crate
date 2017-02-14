@@ -183,15 +183,15 @@ public class NestedLoopOperation implements CompletionListenable {
         }
     }
 
-    public ListenableRowReceiver leftRowReceiver() {
+    public RowReceiver leftRowReceiver() {
         return left;
     }
 
-    public ListenableRowReceiver rightRowReceiver() {
+    public RowReceiver rightRowReceiver() {
         return right;
     }
 
-    private abstract class AbstractRowReceiver implements ListenableRowReceiver {
+    private abstract class AbstractRowReceiver implements RowReceiver {
 
         final CompletableFuture<Void> finished = new CompletableFuture<>();
         final AtomicReference<ResumeHandle> resumeable = new AtomicReference<>(ResumeHandle.INVALID);
@@ -244,7 +244,7 @@ public class NestedLoopOperation implements CompletionListenable {
         }
 
         @Override
-        public CompletableFuture<?> finishFuture() {
+        public CompletableFuture<?> completionFuture() {
             return finished;
         }
 

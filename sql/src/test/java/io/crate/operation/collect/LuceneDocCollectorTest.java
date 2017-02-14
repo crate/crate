@@ -51,8 +51,6 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     // use higher value here to be sure multiple segment reader exists during collect (not only 1)
     private final static Integer NUMBER_OF_DOCS = 10_000;
 
-    private CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-
     private LuceneDocCollectorProvider collectorProvider;
 
     @Rule
@@ -98,6 +96,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testLimitWithoutOrder() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         CrateCollector docCollector = createDocCollector("select \"countryName\" from countries limit 15", rowReceiver);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(15));
@@ -105,6 +104,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOrderedWithLimit() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         CrateCollector docCollector = createDocCollector(
             "select \"countryName\" from countries order by \"countryName\" asc nulls last limit 15", rowReceiver);
         docCollector.doCollect();
@@ -223,6 +223,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOrderedWithLimitHigherThanPageSize() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         CrateCollector docCollector = createDocCollector("select \"countryName\" from countries order by 1 limit ?", rowReceiver,
             NODE_PAGE_SIZE_HINT + 5);
         docCollector.doCollect();
@@ -244,6 +245,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
             TimeValue.timeValueSeconds(1));
         execute("insert into nulls_table (foo) values (1)");
         refresh();
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         CrateCollector docCollector = createDocCollector("select * from nulls_table order by foo desc nulls last limit ?", rowReceiver,
             NODE_PAGE_SIZE_HINT + 5);
         docCollector.doCollect();
@@ -252,6 +254,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOrderedWithoutLimit() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         CrateCollector docCollector = createDocCollector("select \"countryName\" from countries order by 1", rowReceiver);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(NUMBER_OF_DOCS));
@@ -263,6 +266,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOrderedNullsFirstWithoutLimit() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         CrateCollector docCollector = createDocCollector("select \"countryName\" from countries order by 1 nulls first", rowReceiver);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(NUMBER_OF_DOCS));
@@ -276,6 +280,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOrderedDescendingWithoutLimit() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         CrateCollector docCollector = createDocCollector("select \"countryName\" from countries order by 1 desc nulls last", rowReceiver);
         docCollector.doCollect();
 
@@ -290,6 +295,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOrderedDescendingNullsFirstWithoutLimit() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         CrateCollector docCollector = createDocCollector("select \"countryName\" from countries order by 1 desc nulls first", rowReceiver);
         docCollector.doCollect();
 
@@ -304,6 +310,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOrderForNonSelected() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         CrateCollector docCollector = createDocCollector("select \"countryName\" from countries order by population desc nulls first", rowReceiver);
         docCollector.doCollect();
 
@@ -319,6 +326,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOrderByScalar() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         CrateCollector docCollector = createDocCollector("select population from countries order by population * -1", rowReceiver);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(NUMBER_OF_DOCS));
@@ -343,6 +351,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
             });
         execute("refresh table test");
 
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         CrateCollector collector = createDocCollector("select x, y from test order by x, y", rowReceiver);
         collector.doCollect();
         collectorProvider.close();
@@ -379,13 +388,14 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testMinScoreQuery() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         CrateCollector docCollector = createDocCollector("select _score from countries where _score >= 1.1", rowReceiver);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(0));
         collectorProvider.close();
 
         // where _score = 1.0
-        rowReceiver.rows.clear();
+        rowReceiver = new CollectingRowReceiver();
         docCollector = createDocCollector("select _score from countries where _score >= 1.0", rowReceiver);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(NUMBER_OF_DOCS));
@@ -393,6 +403,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOrderByFieldVisitorExpressions() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         CrateCollector docCollector = createDocCollector("select _raw, _id from countries order by 1, 2 limit 2", rowReceiver);
         docCollector.doCollect();
 

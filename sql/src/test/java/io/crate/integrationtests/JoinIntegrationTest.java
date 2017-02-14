@@ -599,7 +599,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
         expectedException.expect(IndexNotFoundException.class);
         try {
-            execute(plan).resultFuture().get(1, TimeUnit.SECONDS);
+            execute(plan).completionFuture().get(1, TimeUnit.SECONDS);
         } catch (Throwable t) {
             throw Exceptions.unwrap(t);
         }

@@ -31,7 +31,10 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.operation.Input;
 import io.crate.operation.collect.InputCollectExpression;
-import io.crate.operation.projectors.*;
+import io.crate.operation.projectors.RepeatHandle;
+import io.crate.operation.projectors.ResumeHandle;
+import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.SimpleTopNProjector;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
@@ -302,7 +305,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
     @Test
     public void testFailIsOnlyForwardedOnce() throws Exception {
         CollectingRowReceiver receiver = new CollectingRowReceiver();
-        List<ListenableRowReceiver> listenableRowReceivers = getRandomLeftAndRightRowReceivers(receiver);
+        List<RowReceiver> listenableRowReceivers = getRandomLeftAndRightRowReceivers(receiver);
 
         listenableRowReceivers.get(0).fail(new IllegalStateException("dummy1"));
         listenableRowReceivers.get(1).fail(new IllegalStateException("dummy2"));
@@ -316,7 +319,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
     @Test
     public void testFailAndFinishResultsInFailure() throws Exception {
         CollectingRowReceiver receiver = new CollectingRowReceiver();
-        List<ListenableRowReceiver> listenableRowReceivers = getRandomLeftAndRightRowReceivers(receiver);
+        List<RowReceiver> listenableRowReceivers = getRandomLeftAndRightRowReceivers(receiver);
 
         listenableRowReceivers.get(0).fail(new IllegalStateException("dummy1"));
         listenableRowReceivers.get(1).finish(RepeatHandle.UNSUPPORTED);
@@ -332,8 +335,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         CollectingRowReceiver receiver = new CollectingRowReceiver();
 
         NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, receiver);
-        ListenableRowReceiver left = nestedLoopOperation.leftRowReceiver();
-        ListenableRowReceiver right = nestedLoopOperation.rightRowReceiver();
+        RowReceiver left = nestedLoopOperation.leftRowReceiver();
+        RowReceiver right = nestedLoopOperation.rightRowReceiver();
 
         List<Row> leftRows = singleColRows(1, 2, 3);
         RowSender rsLeft = new RowSender(leftRows, left, executorService);
@@ -356,8 +359,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         CollectingRowReceiver receiver = new CollectingRowReceiver();
 
         NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, receiver);
-        ListenableRowReceiver left = nestedLoopOperation.leftRowReceiver();
-        ListenableRowReceiver right = nestedLoopOperation.rightRowReceiver();
+        RowReceiver left = nestedLoopOperation.leftRowReceiver();
+        RowReceiver right = nestedLoopOperation.rightRowReceiver();
 
         List<Row> rightRows = singleColRows(1, 2, 3);
         RowSender rsLeft = RowSender.withFailure(left, executorService); // fail immediately
@@ -380,8 +383,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         CollectingRowReceiver receiver = CollectingRowReceiver.withFailure();
 
         NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, receiver);
-        ListenableRowReceiver left = nestedLoopOperation.leftRowReceiver();
-        ListenableRowReceiver right = nestedLoopOperation.rightRowReceiver();
+        RowReceiver left = nestedLoopOperation.leftRowReceiver();
+        RowReceiver right = nestedLoopOperation.rightRowReceiver();
 
         List<Row> leftRows = singleColRows(1, 2);
         List<Row> rightRows = singleColRows(1, 2);
@@ -405,8 +408,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         CollectingRowReceiver receiver = CollectingRowReceiver.withFailure();
 
         NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, receiver);
-        ListenableRowReceiver left = nestedLoopOperation.leftRowReceiver();
-        ListenableRowReceiver right = nestedLoopOperation.rightRowReceiver();
+        RowReceiver left = nestedLoopOperation.leftRowReceiver();
+        RowReceiver right = nestedLoopOperation.rightRowReceiver();
 
         List<Row> leftRows = singleColRows(1, 2);
         List<Row> rightRows = singleColRows(1, 2);
@@ -431,8 +434,8 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
         NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(
             0, receiver, COL0_EQ_COL1, JoinType.LEFT, 1, 1);
-        ListenableRowReceiver left = nestedLoopOperation.leftRowReceiver();
-        ListenableRowReceiver right = nestedLoopOperation.rightRowReceiver();
+        RowReceiver left = nestedLoopOperation.leftRowReceiver();
+        RowReceiver right = nestedLoopOperation.rightRowReceiver();
 
         List<Row> leftRows = singleColRows(1, 2);
         List<Row> rightRows = singleColRows(2, 3);
@@ -454,12 +457,12 @@ public class NestedLoopOperationTest extends CrateUnitTest {
     @Test
     public void testFutureIsTriggeredOnKill() throws Exception {
         CollectingRowReceiver receiver = new CollectingRowReceiver();
-        List<ListenableRowReceiver> listenableRowReceivers = getRandomLeftAndRightRowReceivers(receiver);
-        ListenableRowReceiver receiver1 = listenableRowReceivers.get(0);
+        List<RowReceiver> listenableRowReceivers = getRandomLeftAndRightRowReceivers(receiver);
+        RowReceiver receiver1 = listenableRowReceivers.get(0);
         receiver1.kill(new InterruptedException());
 
         expectedException.expectCause(isA(InterruptedException.class));
-        listenableRowReceivers.get(1).finishFuture().get(1, TimeUnit.SECONDS);
+        listenableRowReceivers.get(1).completionFuture().get(1, TimeUnit.SECONDS);
     }
 
     @Test
@@ -568,10 +571,10 @@ public class NestedLoopOperationTest extends CrateUnitTest {
                "NULL| 3\n"));
     }
 
-    private static List<ListenableRowReceiver> getRandomLeftAndRightRowReceivers(CollectingRowReceiver receiver) {
+    private static List<RowReceiver> getRandomLeftAndRightRowReceivers(CollectingRowReceiver receiver) {
         NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, receiver);
 
-        List<ListenableRowReceiver> listenableRowReceivers =
+        List<RowReceiver> listenableRowReceivers =
             Arrays.asList(nestedLoopOperation.rightRowReceiver(), nestedLoopOperation.leftRowReceiver());
         Collections.shuffle(listenableRowReceivers, getRandom());
         return listenableRowReceivers;

@@ -26,6 +26,7 @@ import io.crate.data.Row;
 import io.crate.operation.projectors.*;
 
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 public class RowReceiverToResultReceiver implements RowReceiver {
 
@@ -33,12 +34,18 @@ public class RowReceiverToResultReceiver implements RowReceiver {
     private int maxRows;
     private long rowCount = 0;
     private volatile boolean interrupted = false;
+    private final CompletableFuture<Void> finishFuture = new CompletableFuture<>();
 
     private ResumeHandle resumeHandle = null;
 
     public RowReceiverToResultReceiver(ResultReceiver resultReceiver, int maxRows) {
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
+    }
+
+    @Override
+    public CompletableFuture<?> completionFuture() {
+        return finishFuture;
     }
 
     @Override
@@ -65,11 +72,13 @@ public class RowReceiverToResultReceiver implements RowReceiver {
     @Override
     public void finish(RepeatHandle repeatable) {
         resultReceiver.allFinished(interrupted);
+        finishFuture.complete(null);
     }
 
     @Override
     public void fail(Throwable throwable) {
         resultReceiver.fail(throwable);
+        finishFuture.completeExceptionally(throwable);
     }
 
     @Override

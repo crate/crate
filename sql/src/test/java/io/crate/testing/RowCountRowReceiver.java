@@ -39,7 +39,7 @@ public class RowCountRowReceiver extends CollectingRowReceiver {
 
     @Override
     public void finish(RepeatHandle repeatHandle) {
-        resultFuture.set(new CollectionBucket(Collections.singletonList(new Object[] { rowCount })));
+        resultFuture.complete(new CollectionBucket(Collections.singletonList(new Object[] { rowCount })));
         numFailOrFinish++;
     }
 }

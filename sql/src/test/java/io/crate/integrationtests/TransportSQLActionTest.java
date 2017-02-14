@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.data.Bucket;
@@ -49,6 +48,7 @@ import javax.annotation.Nullable;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
@@ -92,7 +92,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         PlanForNode plan = plan("select * from t");
         execute("drop table t");
-        ListenableFuture<Bucket> future = execute(plan).resultFuture();
+        Future<Bucket> future = execute(plan).completionFuture();
         try {
             future.get(5, TimeUnit.SECONDS);
         } catch (Throwable t) {
@@ -109,7 +109,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         PlanForNode plan = plan("delete from parted_table where day='2016-06-07'");
         execute("delete from parted_table where day='2016-06-07'");
-        ListenableFuture<Bucket> future = execute(plan).resultFuture();
+        Future<Bucket> future = execute(plan).completionFuture();
         try {
             future.get(5, TimeUnit.SECONDS);
         } catch (Throwable t) {
@@ -337,7 +337,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
      * to lowercase which is the same behaviour as in postgres
      * see also http://www.thenextage.com/wordpress/postgresql-case-sensitivity-part-1-the-ddl/
      *
-     * @throws Exception
      */
     @Test
     public void testColsAreCaseSensitive() throws Exception {

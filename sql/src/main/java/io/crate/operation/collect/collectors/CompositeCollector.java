@@ -34,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -109,6 +110,11 @@ public class CompositeCollector implements CrateCollector {
 
         private Receiver(int size) {
             repeatHandles = new RepeatHandle[size];
+        }
+
+        @Override
+        public CompletableFuture<?> completionFuture() {
+            return downstream.completionFuture();
         }
 
         @Override
