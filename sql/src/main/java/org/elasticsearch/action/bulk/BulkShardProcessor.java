@@ -175,7 +175,11 @@ public class BulkShardProcessor<Request extends ShardRequest> {
         return true;
     }
 
-    public boolean addForExistingShard(ShardId shardId, Request.Item item, @Nullable String routing) {
+    /**
+     * Try to add a new item that has already been sharded
+     * @return false if a previous async operation failed and the caller should abort its operation. Otherwise true
+     */
+    public boolean tryAddForExistingShard(ShardId shardId, Request.Item item, @Nullable String routing) {
         assert item != null : "item must not be null";
         pending.incrementAndGet();
         Throwable throwable = failure.get();
