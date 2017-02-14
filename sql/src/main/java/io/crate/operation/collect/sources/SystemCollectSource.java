@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.data.Row;
+import io.crate.data.RowsBatchIterator;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
@@ -35,9 +36,9 @@ import io.crate.metadata.pg_catalog.PgCatalogTables;
 import io.crate.metadata.pg_catalog.PgTypeTable;
 import io.crate.metadata.sys.*;
 import io.crate.operation.InputFactory;
+import io.crate.operation.collect.BatchIteratorCollector;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
-import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.collect.RowsTransformer;
 import io.crate.operation.collect.files.SummitsIterable;
 import io.crate.operation.collect.stats.JobsLogs;
@@ -137,9 +138,9 @@ public class SystemCollectSource implements CollectSource {
         String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
         Supplier<Iterable<?>> iterableGetter = iterableGetters.get(table);
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";
-        return ImmutableList.<CrateCollector>of(
-            new RowsCollector(downstream, toRowsIterable(collectPhase, iterableGetter.get(),
-                downstream.requirements().contains(Requirement.REPEAT))));
+        Iterable<Row> rows = toRowsIterable(
+            collectPhase, iterableGetter.get(), downstream.requirements().contains(Requirement.REPEAT));
+        return ImmutableList.of(new BatchIteratorCollector(RowsBatchIterator.newInstance(rows), downstream));
     }
 
     /**
