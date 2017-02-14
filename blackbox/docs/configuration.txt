@@ -862,6 +862,20 @@ information about its usage.
 
 .. _conf_graceful_stop:
 
+CrateDB licensing
+-----------------
+
+The CrateDB licensing information.
+
+.. _license_enterprise:
+
+**license.enterprise**
+  | *Default:*  ``false``
+  | *Runtime:*  ``no``
+
+  The ``enterprise`` setting indicates whether the enterprise version of
+  CrateDB is used.
+
 Graceful Stop
 -------------
 

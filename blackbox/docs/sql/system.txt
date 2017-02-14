@@ -167,6 +167,8 @@ currently applied cluster settings.
     | settings['indices']['store']['throttle']                                          | object       |
     | settings['indices']['store']['throttle']['max_bytes_per_sec']                     | string       |
     | settings['indices']['store']['throttle']['type']                                  | string       |
+    | settings['license']                                                               | object       |
+    | settings['license']['enterprise']                                                 | boolean      |
     | settings['logger']                                                                | object_array |
     | settings['logger']['level']                                                       | string       |
     | settings['logger']['name']                                                        | string       |

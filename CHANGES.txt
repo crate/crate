@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added the ``licence.enterprise`` setting to the cluster settings.
+
  - Fixed the low/high disk-based shard allocation watermark settings. When
    a percentage value is provided for either of settings, it won't be converted
    to an absolute byte value.
