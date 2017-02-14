@@ -32,7 +32,7 @@ public interface WritableExpression<TRow, TValue> {
 
     /**
      * @param row The current row to which the given value should be applied
-     *            This isn't of type {@link io.crate.core.collections.Row} but the untransformed "raw value"
+     *            This isn't of type {@link io.crate.data.Row} but the untransformed "raw value"
      */
     void updateValue(TRow row, TValue value);
 }
