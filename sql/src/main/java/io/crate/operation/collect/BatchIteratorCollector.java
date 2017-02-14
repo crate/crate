@@ -20,44 +20,31 @@
  * agreement.
  */
 
-package io.crate.data;
+package io.crate.operation.collect;
 
-public interface Row {
+import io.crate.data.BatchIterator;
+import io.crate.operation.projectors.BatchConsumerToRowReceiver;
+import io.crate.operation.projectors.RowReceiver;
 
-    Row EMPTY = new Row() {
+import javax.annotation.Nullable;
 
-        private final Object[] EMPTY_CELLS = new Object[0];
+public class BatchIteratorCollector implements CrateCollector {
 
-        @Override
-        public int numColumns() {
-            return 0;
-        }
+    private final BatchIterator batchIterator;
+    private final BatchConsumerToRowReceiver consumer;
 
-        @Override
-        public Object get(int index) {
-            throw new IndexOutOfBoundsException("EMPTY row has no cells");
-        }
+    public BatchIteratorCollector(BatchIterator batchIterator, RowReceiver rowReceiver) {
+        this.batchIterator = batchIterator;
+        this.consumer = new BatchConsumerToRowReceiver(rowReceiver);
+    }
 
-        @Override
-        public Object[] materialize() {
-            return EMPTY_CELLS;
-        }
-    };
+    @Override
+    public void doCollect() {
+        consumer.accept(batchIterator, null);
+    }
 
-    int numColumns();
-
-    /**
-     * Returns the element at the specified column
-     *
-     * @param index index of the column to return
-     * @return the value at the specified position in this list
-     * @throws IndexOutOfBoundsException if the index is out of range
-     *                                   (<tt>index &lt; 0 || index &gt;= size()</tt>)
-     */
-    Object get(int index);
-
-    /**
-     * Returns a materialized view of this row.
-     */
-    Object[] materialize();
+    @Override
+    public void kill(@Nullable Throwable throwable) {
+        batchIterator.close();
+    }
 }
