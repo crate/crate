@@ -22,28 +22,24 @@
 
 package io.crate.executor.transport.executionphases;
 
-import com.google.common.util.concurrent.FutureCallback;
 import io.crate.data.Bucket;
 import io.crate.jobs.PageBucketReceiver;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.BiConsumer;
 
-class SetBucketCallback extends SetBucketAction implements FutureCallback<List<Bucket>> {
+class SetBucketCallback extends SetBucketAction implements BiConsumer<List<Bucket>, Throwable> {
 
     SetBucketCallback(List<PageBucketReceiver> pageBucketReceivers, int bucketIdx, InitializationTracker initializationTracker) {
         super(pageBucketReceivers, bucketIdx, initializationTracker);
     }
 
     @Override
-    public void onSuccess(@Nullable List<Bucket> result) {
-        assert result != null : "result must not be null";
-        setBuckets(result);
-    }
-
-    @Override
-    public void onFailure(@Nonnull Throwable t) {
-        failed(t);
+    public void accept(List<Bucket> buckets, Throwable throwable) {
+        if (throwable == null) {
+            setBuckets(buckets);
+        } else {
+            failed(throwable);
+        }
     }
 }

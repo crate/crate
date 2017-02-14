@@ -22,7 +22,10 @@
 
 package io.crate.concurrent;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public final class CompletableFutures {
 
@@ -37,5 +40,12 @@ public final class CompletableFutures {
         CompletableFuture<T> future = new CompletableFuture<>();
         future.completeExceptionally(t);
         return future;
+    }
+
+    public static <T> CompletableFuture<List<T>> allAsList(Collection<? extends CompletableFuture<? extends T>> futures) {
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+            .thenApply(aVoid -> futures.stream()
+                .map(CompletableFuture::join)
+                .collect(Collectors.toList()));
     }
 }

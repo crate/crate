@@ -24,8 +24,6 @@ package io.crate.executor.transport.executionphases;
 
 import com.google.common.base.Function;
 import com.google.common.collect.FluentIterable;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.job.JobRequest;
 import io.crate.action.job.SharedShardContexts;
@@ -191,7 +189,7 @@ public class ExecutionPhasesTask extends JobTask {
             handlerPhases, handlerReceivers, initializationTracker);
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId(), localNodeId, operationByServer.keySet());
-        List<ListenableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnHandler(
+        List<CompletableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnHandler(
             localNodeOperations, builder, handlerPhaseAndReceiver, new SharedShardContexts(indicesService));
         JobExecutionContext localJobContext = jobContextService.createContext(builder);
 
@@ -206,8 +204,8 @@ public class ExecutionPhasesTask extends JobTask {
          * Seed: CC456FF5004F35D3 - testFailureOfJoinDownstream
          */
         if (!localNodeOperations.isEmpty() && !directResponseFutures.isEmpty()) {
-            Futures.addCallback(Futures.allAsList(directResponseFutures),
-                new SetBucketCallback(pageBucketReceivers, bucketIdx, initializationTracker));
+            CompletableFutures.allAsList(directResponseFutures)
+                .whenComplete(new SetBucketCallback(pageBucketReceivers, bucketIdx, initializationTracker));
             bucketIdx++;
             try {
                 // initializationTracker for localNodeOperations is triggered via SetBucketCallback

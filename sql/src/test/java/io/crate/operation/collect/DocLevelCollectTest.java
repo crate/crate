@@ -22,7 +22,6 @@
 package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.WhereClause;
@@ -51,6 +50,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isRow;
@@ -216,7 +216,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         NodeOperation nodeOperation = NodeOperation.withDownstream(collectNode, mock(ExecutionPhase.class), (byte) 0,
             "remoteNode");
 
-        List<ListenableFuture<Bucket>> results = contextPreparer.prepareOnRemote(
+        List<CompletableFuture<Bucket>> results = contextPreparer.prepareOnRemote(
             ImmutableList.of(nodeOperation), builder, sharedShardContexts);
         JobExecutionContext context = contextService.createContext(builder);
         context.start();

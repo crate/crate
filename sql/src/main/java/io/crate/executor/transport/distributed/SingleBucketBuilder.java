@@ -22,8 +22,6 @@
 package io.crate.executor.transport.distributed;
 
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
@@ -32,12 +30,13 @@ import io.crate.operation.projectors.*;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 
 public class SingleBucketBuilder implements RowReceiver {
 
     private final StreamBucket.Builder bucketBuilder;
-    private final SettableFuture<Bucket> bucketFuture = SettableFuture.create();
+    private final CompletableFuture<Bucket> bucketFuture = new CompletableFuture<>();
 
     public SingleBucketBuilder(Streamer<?>[] streamers) {
         bucketBuilder = new StreamBucket.Builder(streamers);
@@ -57,27 +56,27 @@ public class SingleBucketBuilder implements RowReceiver {
     public void pauseProcessed(ResumeHandle resumeable) {
     }
 
-    public ListenableFuture<Bucket> result() {
+    public CompletableFuture<Bucket> result() {
         return bucketFuture;
     }
 
     @Override
     public void finish(RepeatHandle repeatHandle) {
         try {
-            bucketFuture.set(bucketBuilder.build());
+            bucketFuture.complete(bucketBuilder.build());
         } catch (IOException e) {
-            bucketFuture.setException(e);
+            bucketFuture.completeExceptionally(e);
         }
     }
 
     @Override
     public void fail(Throwable throwable) {
-        bucketFuture.setException(throwable);
+        bucketFuture.completeExceptionally(throwable);
     }
 
     @Override
     public void kill(Throwable throwable) {
-        bucketFuture.setException(throwable);
+        bucketFuture.completeExceptionally(throwable);
     }
 
     @Override

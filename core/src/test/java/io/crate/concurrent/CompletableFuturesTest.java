@@ -25,9 +25,12 @@ package io.crate.concurrent;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 public class CompletableFuturesTest extends CrateUnitTest {
 
@@ -36,5 +39,31 @@ public class CompletableFuturesTest extends CrateUnitTest {
         Exception exception = new Exception("failed future");
         CompletableFuture<Object> failedFuture = CompletableFutures.failedFuture(exception);
         assertThat(failedFuture.isCompletedExceptionally(), is(true));
+    }
+
+    @Test
+    public void testAllAsListFailurePropagation() throws Exception {
+        CompletableFuture<Integer> f1 = new CompletableFuture<>();
+        CompletableFuture<Integer> f2 = new CompletableFuture<>();
+        CompletableFuture<List<Integer>> all = CompletableFutures.allAsList(Arrays.asList(f1, f2));
+
+        f1.completeExceptionally(new IllegalStateException("dummy"));
+        assertThat("future must wait for all subFutures", all.isDone(), is(false));
+
+        f2.complete(2);
+        expectedException.expectCause(instanceOf(IllegalStateException.class));
+        all.get(10, TimeUnit.SECONDS);
+    }
+
+    @Test
+    public void testAllAsListResultContainsListOfResults() throws Exception {
+        CompletableFuture<Integer> f1 = new CompletableFuture<>();
+        CompletableFuture<Integer> f2 = new CompletableFuture<>();
+        CompletableFuture<List<Integer>> all = CompletableFutures.allAsList(Arrays.asList(f1, f2));
+
+        f1.complete(10);
+        f2.complete(20);
+
+        assertThat(all.get(10, TimeUnit.SECONDS), contains(10, 20));
     }
 }

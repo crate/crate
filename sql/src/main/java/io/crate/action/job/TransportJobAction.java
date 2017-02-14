@@ -21,9 +21,7 @@
 
 package io.crate.action.job;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Bucket;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
@@ -38,8 +36,8 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nonnull;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
@@ -83,7 +81,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(request.jobId(), request.coordinatorNodeId());
 
         SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
-        List<ListenableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnRemote(
+        List<CompletableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnRemote(
             request.nodeOperations(), contextBuilder, sharedShardContexts);
 
         try {
@@ -97,14 +95,10 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         if (directResponseFutures.size() == 0) {
             actionListener.onResponse(new JobResponse());
         } else {
-            Futures.addCallback(Futures.allAsList(directResponseFutures), new FutureCallback<List<Bucket>>() {
-                @Override
-                public void onSuccess(List<Bucket> buckets) {
+            CompletableFutures.allAsList(directResponseFutures).whenComplete((buckets, t) -> {
+                if (t == null) {
                     actionListener.onResponse(new JobResponse(buckets));
-                }
-
-                @Override
-                public void onFailure(@Nonnull Throwable t) {
+                } else {
                     actionListener.onFailure(t);
                 }
             });

@@ -30,7 +30,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.CrateCircuitBreakerService;
@@ -79,6 +78,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.BitSet;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -134,7 +134,7 @@ public class ContextPreparer extends AbstractComponent {
         );
     }
 
-    public List<ListenableFuture<Bucket>> prepareOnRemote(Iterable<? extends NodeOperation> nodeOperations,
+    public List<CompletableFuture<Bucket>> prepareOnRemote(Iterable<? extends NodeOperation> nodeOperations,
                                                           JobExecutionContext.Builder contextBuilder,
                                                           SharedShardContexts sharedShardContexts) {
         ContextPreparer.PreparerContext preparerContext = new PreparerContext(
@@ -155,10 +155,10 @@ public class ContextPreparer extends AbstractComponent {
         return preparerContext.directResponseFutures;
     }
 
-    public List<ListenableFuture<Bucket>> prepareOnHandler(Iterable<? extends NodeOperation> nodeOperations,
-                                                           JobExecutionContext.Builder contextBuilder,
-                                                           List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
-                                                           SharedShardContexts sharedShardContexts) {
+    public List<CompletableFuture<Bucket>> prepareOnHandler(Iterable<? extends NodeOperation> nodeOperations,
+                                                            JobExecutionContext.Builder contextBuilder,
+                                                            List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
+                                                            SharedShardContexts sharedShardContexts) {
         ContextPreparer.PreparerContext preparerContext = new PreparerContext(
             clusterService.localNode().getId(),
             contextBuilder,
@@ -359,7 +359,7 @@ public class ContextPreparer extends AbstractComponent {
         @Nullable
         private final SharedShardContexts sharedShardContexts;
 
-        private final List<ListenableFuture<Bucket>> directResponseFutures = new ArrayList<>();
+        private final List<CompletableFuture<Bucket>> directResponseFutures = new ArrayList<>();
         private final NodeOperationCtx opCtx;
         private final JobExecutionContext.Builder contextBuilder;
         private final ESLogger logger;
