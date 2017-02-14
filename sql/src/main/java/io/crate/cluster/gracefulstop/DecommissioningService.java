@@ -26,7 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import io.crate.action.sql.SQLOperations;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -63,7 +63,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     static final String DECOMMISSION_PREFIX = "crate.internal.decommission.";
 
     private final ClusterService clusterService;
-    private final StatsTables statsTables;
+    private final JobsLogs jobsLogs;
     private final ThreadPool threadPool;
     private final SQLOperations sqlOperations;
     private final TransportClusterHealthAction healthAction;
@@ -77,7 +77,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     @Inject
     public DecommissioningService(Settings settings,
                                   final ClusterService clusterService,
-                                  StatsTables statsTables,
+                                  JobsLogs jobsLogs,
                                   ThreadPool threadPool,
                                   NodeSettingsService nodeSettingsService,
                                   SQLOperations sqlOperations,
@@ -85,7 +85,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                                   final TransportClusterUpdateSettingsAction updateSettingsAction) {
         super(settings);
         this.clusterService = clusterService;
-        this.statsTables = statsTables;
+        this.jobsLogs = jobsLogs;
         this.threadPool = threadPool;
         this.sqlOperations = sqlOperations;
         this.healthAction = healthAction;
@@ -145,7 +145,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         // fail on new requests so that clients don't use this node anymore
         sqlOperations.disable();
 
-        /**
+        /*
          * setting this setting will cause the {@link DecommissionAllocationDecider} to prevent allocations onto this node
          *
          * nodeIds are part of the key to prevent conflicts if other nodes are being decommissioned in parallel
@@ -202,7 +202,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     }
 
     void exitIfNoActiveRequests(final long startTime) {
-        if (statsTables.activeRequests() == 0L) {
+        if (jobsLogs.activeRequests() == 0L) {
             exit();
             return;
         }

@@ -36,7 +36,7 @@ import io.crate.metadata.sys.*;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.*;
 import io.crate.operation.collect.files.SummitsIterable;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
@@ -76,7 +76,7 @@ public class SystemCollectSource implements CollectSource {
     public SystemCollectSource(ClusterService clusterService,
                                Functions functions,
                                NodeSysExpression nodeSysExpression,
-                               StatsTables statsTables,
+                               JobsLogs jobsLogs,
                                InformationSchemaIterables informationSchemaIterables,
                                Set<SysCheck> sysChecks,
                                Set<SysNodeCheck> sysNodeChecks,
@@ -96,10 +96,10 @@ public class SystemCollectSource implements CollectSource {
             .put(InformationTableConstraintsTableInfo.IDENT.fqn(), informationSchemaIterables::constraints)
             .put(InformationRoutinesTableInfo.IDENT.fqn(), informationSchemaIterables::routines)
             .put(InformationSqlFeaturesTableInfo.IDENT.fqn(), informationSchemaIterables::features)
-            .put(SysJobsTableInfo.IDENT.fqn(), statsTables::jobsGetter)
-            .put(SysJobsLogTableInfo.IDENT.fqn(), statsTables::jobsLogGetter)
-            .put(SysOperationsTableInfo.IDENT.fqn(), statsTables::operationsGetter)
-            .put(SysOperationsLogTableInfo.IDENT.fqn(), statsTables::operationsLogGetter)
+            .put(SysJobsTableInfo.IDENT.fqn(), jobsLogs::jobsGetter)
+            .put(SysJobsLogTableInfo.IDENT.fqn(), jobsLogs::jobsLogGetter)
+            .put(SysOperationsTableInfo.IDENT.fqn(), jobsLogs::operationsGetter)
+            .put(SysOperationsLogTableInfo.IDENT.fqn(), jobsLogs::operationsLogGetter)
             .put(SysChecksTableInfo.IDENT.fqn(), new SysChecker<>(sysChecks)::checksGetter)
             .put(SysNodeChecksTableInfo.IDENT.fqn(), new SysChecker<>(sysNodeChecks)::checksGetter)
             .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositoriesService::repositoriesGetter)

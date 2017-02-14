@@ -53,7 +53,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import static org.hamcrest.core.Is.is;
 
-public class StatsTablesTest extends CrateUnitTest {
+public class JobsLogsTest extends CrateUnitTest {
 
     private ScheduledExecutorService scheduler;
     private static CrateCircuitBreakerService breakerService;
@@ -80,7 +80,7 @@ public class StatsTablesTest extends CrateUnitTest {
 
     @Test
     public void testDefaultSettings() {
-        StatsTablesService stats = new StatsTablesService(Settings.EMPTY, nodeSettingsService, scheduler, breakerService);
+        JobsLogService stats = new JobsLogService(Settings.EMPTY, nodeSettingsService, scheduler, breakerService);
 
         assertThat(stats.isEnabled(), is(false));
         assertThat(stats.lastJobsLogSize, is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
@@ -101,7 +101,7 @@ public class StatsTablesTest extends CrateUnitTest {
             .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 100)
             .build();
 
-        StatsTablesService stats = new StatsTablesService(settings, nodeSettingsService, scheduler, breakerService);
+        JobsLogService stats = new JobsLogService(settings, nodeSettingsService, scheduler, breakerService);
         stats.listener.onRefreshSettings(Settings.builder()
             .put(CrateSettings.STATS_ENABLED.settingName(), true)
             .build());
@@ -121,7 +121,7 @@ public class StatsTablesTest extends CrateUnitTest {
             .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 100)
             .build();
 
-        StatsTablesService stats = new StatsTablesService(settings, nodeSettingsService, scheduler, breakerService);
+        JobsLogService stats = new JobsLogService(settings, nodeSettingsService, scheduler, breakerService);
 
         // sinks are still of type QueueSink
         assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
@@ -186,7 +186,7 @@ public class StatsTablesTest extends CrateUnitTest {
     public void testLogsArentWipedOnSizeChange() {
         Settings settings = Settings.builder()
             .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
-        StatsTablesService stats = new StatsTablesService(settings, nodeSettingsService, scheduler, breakerService);
+        JobsLogService stats = new JobsLogService(settings, nodeSettingsService, scheduler, breakerService);
 
         stats.jobsLogSink.add(new JobContextLog(new JobContext(UUID.randomUUID(), "select 1", 1L), null));
 
@@ -210,30 +210,30 @@ public class StatsTablesTest extends CrateUnitTest {
 
     @Test
     public void testUniqueOperationIdsInOperationsTable() {
-        StatsTables statsTables = new StatsTables(() -> true);
+        JobsLogs jobsLogs = new JobsLogs(() -> true);
         Queue<OperationContextLog> q = new BlockingEvictingQueue(10);
-        statsTables.updateOperationsLog(new QueueSink<>(q, ramAccountingContext::close));
+        jobsLogs.updateOperationsLog(new QueueSink<>(q, ramAccountingContext::close));
 
         OperationContext ctxA = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L);
-        statsTables.operationStarted(ctxA.id, ctxA.jobId, ctxA.name);
+        jobsLogs.operationStarted(ctxA.id, ctxA.jobId, ctxA.name);
 
         OperationContext ctxB = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L);
-        statsTables.operationStarted(ctxB.id, ctxB.jobId, ctxB.name);
+        jobsLogs.operationStarted(ctxB.id, ctxB.jobId, ctxB.name);
 
-        statsTables.operationFinished(ctxB.id, ctxB.jobId, null, -1);
-        List<OperationContextLog> entries = ImmutableList.copyOf(statsTables.operationsLog.get().iterator());
+        jobsLogs.operationFinished(ctxB.id, ctxB.jobId, null, -1);
+        List<OperationContextLog> entries = ImmutableList.copyOf(jobsLogs.operationsLog.get().iterator());
 
         assertTrue(entries.contains(new OperationContextLog(ctxB, null)));
         assertFalse(entries.contains(new OperationContextLog(ctxA, null)));
 
-        statsTables.operationFinished(ctxA.id, ctxA.jobId, null, -1);
-        entries = ImmutableList.copyOf(statsTables.operationsLog.get());
+        jobsLogs.operationFinished(ctxA.id, ctxA.jobId, null, -1);
+        entries = ImmutableList.copyOf(jobsLogs.operationsLog.get());
         assertTrue(entries.contains(new OperationContextLog(ctxA, null)));
     }
 
     @Test
     public void testLowerBoundScheduler() throws NoSuchMethodException {
-        StatsTablesService stats = new StatsTablesService(Settings.EMPTY, nodeSettingsService, scheduler, breakerService);
+        JobsLogService stats = new JobsLogService(Settings.EMPTY, nodeSettingsService, scheduler, breakerService);
         assertThat(stats.clearInterval(TimeValue.timeValueMillis(1L)), is(1000L));
         assertThat(stats.clearInterval(TimeValue.timeValueSeconds(8L)), is(1000L));
         assertThat(stats.clearInterval(TimeValue.timeValueSeconds(10L)), is(1000L));

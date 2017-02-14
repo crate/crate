@@ -37,7 +37,7 @@ import io.crate.data.RowN;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.executor.Executor;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.projectors.ResumeHandle;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -157,13 +157,13 @@ public class SimplePortal extends AbstractPortal {
     }
 
     @Override
-    public CompletableFuture<?> sync(Planner planner, StatsTables statsTables) {
+    public CompletableFuture<?> sync(Planner planner, JobsLogs jobsLogs) {
         UUID jobId = UUID.randomUUID();
         Plan plan;
         try {
             plan = planner.plan(analysis, jobId, defaultLimit, maxRows);
         } catch (Throwable t) {
-            statsTables.logPreExecutionFailure(jobId, query, Exceptions.messageOf(t));
+            jobsLogs.logPreExecutionFailure(jobId, query, Exceptions.messageOf(t));
             throw t;
         }
 
@@ -178,9 +178,9 @@ public class SimplePortal extends AbstractPortal {
                 sessionContext);
         }
 
-        statsTables.logExecutionStart(jobId, query);
-        StatsTablesUpdateListener statsTablesUpdateListener = new StatsTablesUpdateListener(jobId, statsTables);
-        CompletableFuture completableFuture = resultReceiver.completionFuture().whenComplete(statsTablesUpdateListener);
+        jobsLogs.logExecutionStart(jobId, query);
+        JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
+        CompletableFuture completableFuture = resultReceiver.completionFuture().whenComplete(jobsLogsUpdateListener);
 
         if (!resumeIfSuspended()) {
             rowReceiver = new RowReceiverToResultReceiver(resultReceiver, maxRows);

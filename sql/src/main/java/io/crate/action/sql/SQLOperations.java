@@ -27,7 +27,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.Executor;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.Portal;
@@ -62,7 +62,7 @@ public class SQLOperations {
     private final Analyzer analyzer;
     private final Planner planner;
     private final Provider<Executor> executorProvider;
-    private final StatsTables statsTables;
+    private final JobsLogs jobsLogs;
     private final ClusterService clusterService;
     private final boolean isReadOnly;
     private volatile boolean disabled;
@@ -71,13 +71,13 @@ public class SQLOperations {
     public SQLOperations(Analyzer analyzer,
                          Planner planner,
                          Provider<Executor> executorProvider,
-                         StatsTables statsTables,
+                         JobsLogs jobsLogs,
                          Settings settings,
                          ClusterService clusterService) {
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
-        this.statsTables = statsTables;
+        this.jobsLogs = jobsLogs;
         this.clusterService = clusterService;
         this.isReadOnly = settings.getAsBoolean(NODE_READ_ONLY_SETTING, false);
     }
@@ -175,7 +175,7 @@ public class SQLOperations {
                 if ("".equals(query)) {
                     statement = EMPTY_STMT;
                 } else {
-                    statsTables.logPreExecutionFailure(UUID.randomUUID(), query, Exceptions.messageOf(t));
+                    jobsLogs.logPreExecutionFailure(UUID.randomUUID(), query, Exceptions.messageOf(t));
                     throw Exceptions.createSQLActionException(t);
                 }
             }
@@ -201,7 +201,7 @@ public class SQLOperations {
                     portal.close();
                 }
             } catch (Throwable t) {
-                statsTables.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), Exceptions.messageOf(t));
+                jobsLogs.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), Exceptions.messageOf(t));
                 throw Exceptions.createSQLActionException(t);
             }
         }
@@ -263,7 +263,7 @@ public class SQLOperations {
             Portal portal = getSafePortal(portalName);
             portal.execute(resultReceiver, maxRows);
             if (portal.getLastQuery().equalsIgnoreCase("BEGIN")) {
-                portal.sync(planner, statsTables);
+                portal.sync(planner, jobsLogs);
                 clearState();
             } else {
                 // delay execution to be able to bundle bulk operations
@@ -282,7 +282,7 @@ public class SQLOperations {
                     LOGGER.debug("method=sync portal={}", portal);
                     pendingExecutions.clear();
                     clearState();
-                    return portal.sync(planner, statsTables);
+                    return portal.sync(planner, jobsLogs);
             }
             throw new IllegalStateException(
                 "Shouldn't have more than 1 pending execution. Got: " + pendingExecutions);

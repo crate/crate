@@ -25,7 +25,7 @@ package io.crate.protocols.postgres;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.executor.Executor;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -58,12 +58,12 @@ public class ConnectionContextTest {
 
     @Before
     public void setUp() throws Exception {
-        StatsTables statsTables = new StatsTables(() -> true);
+        JobsLogs jobsLogs = new JobsLogs(() -> true);
         sqlOperations = new SQLOperations(
             e.analyzer,
             e.planner,
             () -> mock(Executor.class),
-            statsTables,
+            jobsLogs,
             Settings.EMPTY,
             clusterService
         ) {

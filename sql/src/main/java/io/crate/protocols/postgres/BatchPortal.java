@@ -35,7 +35,7 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.ReadOnlyException;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -123,7 +123,7 @@ class BatchPortal extends AbstractPortal {
     }
 
     @Override
-    public CompletableFuture<Void> sync(Planner planner, StatsTables statsTables) {
+    public CompletableFuture<Void> sync(Planner planner, JobsLogs jobsLogs) {
         CountdownFutureCallback completionCallback = new CountdownFutureCallback(analysis.size());
         for (int i = 0; i < analysis.size(); i++) {
             UUID jobId = UUID.randomUUID();
@@ -132,15 +132,15 @@ class BatchPortal extends AbstractPortal {
             try {
                 plan = planner.plan(analysis.get(i), jobId, 0, 0);
             } catch (Throwable t) {
-                statsTables.logPreExecutionFailure(jobId, stmt, Exceptions.messageOf(t));
+                jobsLogs.logPreExecutionFailure(jobId, stmt, Exceptions.messageOf(t));
                 throw t;
             }
             ResultReceiver resultReceiver = resultReceivers.get(i);
-            statsTables.logExecutionStart(jobId, stmt);
-            StatsTablesUpdateListener statsTablesUpdateListener = new StatsTablesUpdateListener(jobId, statsTables);
+            jobsLogs.logExecutionStart(jobId, stmt);
+            JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
 
             resultReceiver.completionFuture()
-                .whenComplete(statsTablesUpdateListener)
+                .whenComplete(jobsLogsUpdateListener)
                 .whenComplete(completionCallback);
 
             RowReceiver rowReceiver = new RowReceiverToResultReceiver(resultReceiver, 0);

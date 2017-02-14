@@ -28,7 +28,7 @@ import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.DummySubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -53,7 +53,7 @@ import static org.mockito.Mockito.*;
 public class NodeDisconnectJobMonitorServiceTest extends CrateUnitTest {
 
     private JobContextService jobContextService() throws Exception {
-        return new JobContextService(Settings.EMPTY, new NoopClusterService(), new StatsTables(() -> true));
+        return new JobContextService(Settings.EMPTY, new NoopClusterService(), new JobsLogs(() -> true));
     }
 
     @Test

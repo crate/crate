@@ -24,7 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.ResultReceiver;
 import io.crate.analyze.symbol.Field;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
@@ -52,7 +52,7 @@ public interface Portal {
 
     void execute(ResultReceiver resultReceiver, int maxRows);
 
-    CompletableFuture<?> sync(Planner planner, StatsTables statsTables);
+    CompletableFuture<?> sync(Planner planner, JobsLogs jobsLogs);
 
     void close();
 

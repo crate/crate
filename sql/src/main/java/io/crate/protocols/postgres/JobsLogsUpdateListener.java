@@ -23,27 +23,27 @@
 package io.crate.protocols.postgres;
 
 import io.crate.exceptions.Exceptions;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 
 import java.util.UUID;
 import java.util.function.BiConsumer;
 
-public class StatsTablesUpdateListener implements BiConsumer<Object, Throwable> {
+public class JobsLogsUpdateListener implements BiConsumer<Object, Throwable> {
 
     private final UUID jobId;
-    private final StatsTables statsTables;
+    private final JobsLogs jobsLogs;
 
-    public StatsTablesUpdateListener(UUID jobId, StatsTables statsTables) {
+    public JobsLogsUpdateListener(UUID jobId, JobsLogs jobsLogs) {
         this.jobId = jobId;
-        this.statsTables = statsTables;
+        this.jobsLogs = jobsLogs;
     }
 
     @Override
     public void accept(Object o, Throwable t) {
         if (t == null) {
-            statsTables.logExecutionEnd(jobId, null);
+            jobsLogs.logExecutionEnd(jobId, null);
         } else {
-            statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
+            jobsLogs.logExecutionEnd(jobId, Exceptions.messageOf(t));
         }
     }
 }

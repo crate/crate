@@ -28,7 +28,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -55,7 +55,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
     @Test
     public void testAddTheSameContextTwiceThrowsAnError() throws Exception {
         JobExecutionContext.Builder builder =
-            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptyList(), mock(StatsTables.class));
+            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptyList(), mock(JobsLogs.class));
         builder.addSubContext(new AbstractExecutionSubContextTest.TestingExecutionSubContext());
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("ExecutionSubContext for 0 already added");
@@ -66,7 +66,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
     @Test
     public void testKillPropagatesToSubContexts() throws Exception {
         JobExecutionContext.Builder builder =
-            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptyList(), mock(StatsTables.class));
+            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptyList(), mock(JobsLogs.class));
 
 
         AbstractExecutionSubContextTest.TestingExecutionSubContext ctx1 = new AbstractExecutionSubContextTest.TestingExecutionSubContext(1);
@@ -85,9 +85,9 @@ public class JobExecutionContextTest extends CrateUnitTest {
 
     @Test
     public void testErrorMessageIsIncludedInStatsTableOnFailure() throws Exception {
-        StatsTables statsTables = mock(StatsTables.class);
+        JobsLogs jobsLogs = mock(JobsLogs.class);
         JobExecutionContext.Builder builder =
-            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptyList(), statsTables);
+            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptyList(), jobsLogs);
 
         ExecutionSubContext executionSubContext = new AbstractExecutionSubContext(0, logger) {
             @Override
@@ -99,7 +99,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
         builder.build();
 
         executionSubContext.kill(new IllegalStateException("dummy"));
-        verify(statsTables).operationFinished(anyInt(), any(UUID.class), eq("dummy"), anyLong());
+        verify(jobsLogs).operationFinished(anyInt(), any(UUID.class), eq("dummy"), anyLong());
     }
 
     @Test
@@ -112,7 +112,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
 
         JobExecutionContext.Builder builder =
-            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptyList(), mock(StatsTables.class));
+            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, Collections.emptyList(), mock(JobsLogs.class));
 
         JobCollectContext jobCollectContext = new JobCollectContext(
             collectPhase,

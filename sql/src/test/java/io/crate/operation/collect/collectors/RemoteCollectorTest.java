@@ -34,7 +34,7 @@ import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
@@ -94,8 +94,8 @@ public class RemoteCollectorTest {
         transportKillJobsNodeAction = mock(TransportKillJobsNodeAction.class);
         rowReceiver = new CollectingRowReceiver();
 
-        StatsTables statsTables = new StatsTables(() -> true);
-        JobContextService jobContextService = new JobContextService(Settings.EMPTY, new NoopClusterService(), statsTables);
+        JobsLogs jobsLogs = new JobsLogs(() -> true);
+        JobContextService jobContextService = new JobContextService(Settings.EMPTY, new NoopClusterService(), jobsLogs);
         remoteCollector = new RemoteCollector(
             jobId,
             "localNode",

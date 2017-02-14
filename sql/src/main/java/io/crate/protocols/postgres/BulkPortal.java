@@ -33,7 +33,7 @@ import io.crate.data.Rows;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.executor.Executor;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
@@ -115,7 +115,7 @@ class BulkPortal extends AbstractPortal {
     }
 
     @Override
-    public CompletableFuture<?> sync(Planner planner, StatsTables statsTables) {
+    public CompletableFuture<?> sync(Planner planner, JobsLogs jobsLogs) {
         List<Row> bulkParams = Rows.of(bulkArgs);
         Analysis analysis = portalContext.getAnalyzer().boundAnalyze(statement,
             sessionContext,
@@ -125,24 +125,24 @@ class BulkPortal extends AbstractPortal {
         try {
             plan = planner.plan(analysis, jobId, 0, maxRows);
         } catch (Throwable t) {
-            statsTables.logPreExecutionFailure(jobId, query, Exceptions.messageOf(t));
+            jobsLogs.logPreExecutionFailure(jobId, query, Exceptions.messageOf(t));
             throw t;
         }
-        statsTables.logExecutionStart(jobId, query);
+        jobsLogs.logExecutionStart(jobId, query);
         synced = true;
-        return executeBulk(portalContext.getExecutor(), plan, jobId, statsTables);
+        return executeBulk(portalContext.getExecutor(), plan, jobId, jobsLogs);
     }
 
     private CompletableFuture<Void> executeBulk(Executor executor, Plan plan, final UUID jobId,
-                                                final StatsTables statsTables) {
+                                                final JobsLogs jobsLogs) {
         List<CompletableFuture<Long>> futures = executor.executeBulk(plan);
         CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
         return allFutures
             .exceptionally(t -> null) // swallow exception - failures are set per item in emitResults
-            .thenAccept(ignored -> emitResults(jobId, statsTables, futures));
+            .thenAccept(ignored -> emitResults(jobId, jobsLogs, futures));
     }
 
-    private void emitResults(UUID jobId, StatsTables statsTables, List<CompletableFuture<Long>> completedResultFutures) {
+    private void emitResults(UUID jobId, JobsLogs jobsLogs, List<CompletableFuture<Long>> completedResultFutures) {
         assert completedResultFutures.size() == resultReceivers.size()
             : "number of result must match number of rowReceivers";
 
@@ -160,6 +160,6 @@ class BulkPortal extends AbstractPortal {
             resultReceiver.setNextRow(row);
             resultReceiver.allFinished(false);
         }
-        statsTables.logExecutionEnd(jobId, null);
+        jobsLogs.logExecutionEnd(jobId, null);
     }
 }

@@ -27,7 +27,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
 import io.crate.jobs.JobContextService;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.fetch.NodeFetchOperation;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
@@ -52,10 +52,10 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
     public TransportFetchNodeAction(TransportService transportService,
                                     Transports transports,
                                     ThreadPool threadPool,
-                                    StatsTables statsTables,
+                                    JobsLogs jobsLogs,
                                     JobContextService jobContextService) {
         this.transports = transports;
-        this.nodeFetchOperation = new NodeFetchOperation(threadPool, statsTables, jobContextService);
+        this.nodeFetchOperation = new NodeFetchOperation(threadPool, jobsLogs, jobContextService);
 
         transportService.registerRequestHandler(TRANSPORT_ACTION,
             NodeFetchRequest.class,

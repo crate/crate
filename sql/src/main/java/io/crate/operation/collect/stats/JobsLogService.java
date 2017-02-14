@@ -36,7 +36,6 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -46,20 +45,20 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
 /**
- * The StatsTablesService is available on each node and holds the meta data of the cluster, such as active jobs and operations.
- * This data is exposed via the StatsTables.
+ * The JobsLogService is available on each node and holds the meta data of the cluster, such as active jobs and operations.
+ * This data is exposed via the JobsLogs.
  * <p>
  * It is injected via guice instead of using static so that if two nodes run
  * in the same jvm the memoryTables aren't shared between the nodes.
  */
 @Singleton
-public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesService> implements Provider<StatsTables> {
+public class JobsLogService extends AbstractLifecycleComponent<JobsLogService> implements Provider<JobsLogs> {
 
     protected final NodeSettingsService.Listener listener = new NodeSettingListener();
     private final ScheduledExecutorService scheduler;
     private final CrateCircuitBreakerService breakerService;
 
-    private StatsTables statsTables;
+    private JobsLogs jobsLogs;
     LogSink<JobContextLog> jobsLogSink = NoopLogSink.instance();
     LogSink<OperationContextLog> operationsLogSink = NoopLogSink.instance();
 
@@ -69,28 +68,28 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
     private final int initialOperationsLogSize;
     private final TimeValue initialOperationsLogExpiration;
 
-    volatile boolean lastIsEnabled;
+    private volatile boolean lastIsEnabled;
     volatile int lastJobsLogSize;
     volatile TimeValue lastJobsLogExpiration;
     volatile int lastOperationsLogSize;
     volatile TimeValue lastOperationsLogExpiration;
 
-    static final JobContextLogSizeEstimator JOB_CONTEXT_LOG_ESTIMATOR = new JobContextLogSizeEstimator();
-    static final OperationContextLogSizeEstimator OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR = new OperationContextLogSizeEstimator();
+    private static final JobContextLogSizeEstimator JOB_CONTEXT_LOG_ESTIMATOR = new JobContextLogSizeEstimator();
+    private static final OperationContextLogSizeEstimator OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR = new OperationContextLogSizeEstimator();
 
     @Inject
-    public StatsTablesService(Settings settings,
-                              NodeSettingsService nodeSettingsService,
-                              ThreadPool threadPool,
-                              CrateCircuitBreakerService breakerService) {
+    public JobsLogService(Settings settings,
+                          NodeSettingsService nodeSettingsService,
+                          ThreadPool threadPool,
+                          CrateCircuitBreakerService breakerService) {
         this(settings, nodeSettingsService, threadPool.scheduler(), breakerService);
     }
 
     @VisibleForTesting
-    StatsTablesService(Settings settings,
-                       NodeSettingsService nodeSettingsService,
-                       ScheduledExecutorService scheduledExecutorService,
-                       CrateCircuitBreakerService breakerService) {
+    JobsLogService(Settings settings,
+                   NodeSettingsService nodeSettingsService,
+                   ScheduledExecutorService scheduledExecutorService,
+                   CrateCircuitBreakerService breakerService) {
         super(settings);
         scheduler = scheduledExecutorService;
         this.breakerService = breakerService;
@@ -115,7 +114,7 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
         lastOperationsLogSize = operationsLogSize;
         lastOperationsLogExpiration = operationsLogExpiration;
 
-        statsTables = new StatsTables(this::isEnabled);
+        jobsLogs = new JobsLogs(this::isEnabled);
         if (isEnabled()) {
             setJobsLogSink(lastJobsLogSize, lastJobsLogExpiration);
             setOperationsLogSink(lastOperationsLogSize, lastOperationsLogExpiration);
@@ -138,7 +137,7 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
         LogSink<JobContextLog> oldSink = jobsLogSink;
         newSink.addAll(oldSink);
         jobsLogSink = newSink;
-        statsTables.updateJobsLog(jobsLogSink);
+        jobsLogs.updateJobsLog(jobsLogSink);
         oldSink.close();
     }
 
@@ -185,7 +184,7 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
         LogSink<OperationContextLog> oldSink = operationsLogSink;
         newSink.addAll(oldSink);
         operationsLogSink = newSink;
-        statsTables.updateOperationsLog(operationsLogSink);
+        jobsLogs.updateOperationsLog(operationsLogSink);
         oldSink.close();
     }
 
@@ -231,12 +230,12 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
         return CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.extractTimeValue(settings, initialOperationsLogExpiration);
     }
 
-    public StatsTables statsTables() {
-        return statsTables;
+    private JobsLogs statsTables() {
+        return jobsLogs;
     }
 
     @Override
-    public StatsTables get() {
+    public JobsLogs get() {
         return statsTables();
     }
 

@@ -23,7 +23,7 @@
 package io.crate.cluster.gracefulstop;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.cluster.ClusterService;
@@ -45,7 +45,7 @@ import static org.mockito.Mockito.*;
 
 public class DecommissioningServiceTest {
 
-    private StatsTables statsTables;
+    private JobsLogs jobsLogs;
     private TestableDecommissioningService decommissioningService;
     private ThreadPool threadPool;
     private SQLOperations sqlOperations;
@@ -55,12 +55,12 @@ public class DecommissioningServiceTest {
         NodeSettingsService settingsService = new NodeSettingsService(Settings.EMPTY);
 
         threadPool = mock(ThreadPool.class, Answers.RETURNS_MOCKS.get());
-        statsTables = new StatsTables(() -> true);
+        jobsLogs = new JobsLogs(() -> true);
         sqlOperations = mock(SQLOperations.class, Answers.RETURNS_MOCKS.get());
         decommissioningService = new TestableDecommissioningService(
             Settings.EMPTY,
             new NoopClusterService(),
-            statsTables,
+            jobsLogs,
             threadPool,
             settingsService,
             sqlOperations,
@@ -78,7 +78,7 @@ public class DecommissioningServiceTest {
 
     @Test
     public void testNoExitIfRequestAreActive() throws Exception {
-        statsTables.logExecutionEnd(UUID.randomUUID(), null);
+        jobsLogs.logExecutionEnd(UUID.randomUUID(), null);
         decommissioningService.exitIfNoActiveRequests(System.nanoTime());
         assertThat(decommissioningService.exited, is(false));
         assertThat(decommissioningService.forceStopOrAbortCalled, is(false));
@@ -87,7 +87,7 @@ public class DecommissioningServiceTest {
 
     @Test
     public void testAbortOrForceStopIsCalledOnTimeout() throws Exception {
-        statsTables.logExecutionEnd(UUID.randomUUID(), null);
+        jobsLogs.logExecutionEnd(UUID.randomUUID(), null);
         decommissioningService.exitIfNoActiveRequests(System.nanoTime() - TimeValue.timeValueHours(3).nanos());
         assertThat(decommissioningService.forceStopOrAbortCalled, is(true));
         verify(sqlOperations, times(1)).enable();
@@ -100,13 +100,13 @@ public class DecommissioningServiceTest {
 
         TestableDecommissioningService(Settings settings,
                                        ClusterService clusterService,
-                                       StatsTables statsTables,
+                                       JobsLogs jobsLogs,
                                        ThreadPool threadPool,
                                        NodeSettingsService nodeSettingsService,
                                        SQLOperations sqlOperations,
                                        TransportClusterHealthAction healthAction,
                                        TransportClusterUpdateSettingsAction updateSettingsAction) {
-            super(settings, clusterService, statsTables, threadPool, nodeSettingsService,
+            super(settings, clusterService, jobsLogs, threadPool, nodeSettingsService,
                 sqlOperations, healthAction, updateSettingsAction);
 
         }

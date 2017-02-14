@@ -38,12 +38,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
 /**
- * StatsTables is responsible for adding jobs and operations of that node.
+ * JobsLogs is responsible for adding jobs and operations of that node.
  * It also provides the functionality to expose that data for system tables,
  * such as sys.jobs, sys.jobs_log, sys.operations and sys.operations_log;
  */
 @ThreadSafe
-public class StatsTables {
+public class JobsLogs {
 
     private final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
     private final Map<Tuple<Integer, UUID>, OperationContext> operationsTable = new ConcurrentHashMap<>();
@@ -54,7 +54,7 @@ public class StatsTables {
     private final LongAdder activeRequests = new LongAdder();
     private final BooleanSupplier enabled;
 
-    public StatsTables(BooleanSupplier enabled) {
+    public JobsLogs(BooleanSupplier enabled) {
         this.enabled = enabled;
     }
 

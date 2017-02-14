@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.exceptions.Exceptions;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -53,7 +53,7 @@ public class JobExecutionContext implements CompletionListenable {
     private final IntArrayList orderedContextIds;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final String coordinatorNodeId;
-    private final StatsTables statsTables;
+    private final JobsLogs jobsLogs;
     private final CompletableFuture<Void> finishedFuture = new CompletableFuture();
     private final AtomicBoolean killSubContextsOngoing = new AtomicBoolean(false);
     private final Collection<String> participatedNodes;
@@ -64,15 +64,15 @@ public class JobExecutionContext implements CompletionListenable {
 
         private final UUID jobId;
         private final String coordinatorNode;
-        private final StatsTables statsTables;
+        private final JobsLogs jobsLogs;
         private final List<ExecutionSubContext> subContexts = new ArrayList<>();
         private final Collection<String> participatingNodes;
 
-        Builder(UUID jobId, String coordinatorNode, Collection<String> participatingNodes, StatsTables statsTables) {
+        Builder(UUID jobId, String coordinatorNode, Collection<String> participatingNodes, JobsLogs jobsLogs) {
             this.jobId = jobId;
             this.coordinatorNode = coordinatorNode;
             this.participatingNodes = participatingNodes;
-            this.statsTables = statsTables;
+            this.jobsLogs = jobsLogs;
         }
 
         public void addSubContext(ExecutionSubContext subContext) {
@@ -88,7 +88,7 @@ public class JobExecutionContext implements CompletionListenable {
         }
 
         JobExecutionContext build() throws Exception {
-            return new JobExecutionContext(jobId, coordinatorNode, participatingNodes, statsTables, subContexts);
+            return new JobExecutionContext(jobId, coordinatorNode, participatingNodes, jobsLogs, subContexts);
         }
     }
 
@@ -96,13 +96,13 @@ public class JobExecutionContext implements CompletionListenable {
     private JobExecutionContext(UUID jobId,
                                 String coordinatorNodeId,
                                 Collection<String> participatingNodes,
-                                StatsTables statsTables,
+                                JobsLogs jobsLogs,
                                 List<ExecutionSubContext> orderedContexts) throws Exception {
         this.coordinatorNodeId = coordinatorNodeId;
         this.participatedNodes = participatingNodes;
         orderedContextIds = new IntArrayList(orderedContexts.size());
         this.jobId = jobId;
-        this.statsTables = statsTables;
+        this.jobsLogs = jobsLogs;
 
         subContexts = new ConcurrentHashMap<>(orderedContexts.size());
         numSubContexts = new AtomicInteger(orderedContexts.size());
@@ -141,7 +141,7 @@ public class JobExecutionContext implements CompletionListenable {
         for (int i = 0; i < orderedContextIds.size(); i++) {
             int id = orderedContextIds.get(i);
             ExecutionSubContext subContext = orderedContexts.get(i);
-            statsTables.operationStarted(id, jobId, subContext.name());
+            jobsLogs.operationStarted(id, jobId, subContext.name());
             try {
                 subContext.prepare();
             } catch (Exception e) {
@@ -149,7 +149,7 @@ public class JobExecutionContext implements CompletionListenable {
                     id = orderedContextIds.get(i);
                     subContext = orderedContexts.get(i);
                     subContext.cleanup();
-                    statsTables.operationFinished(id, jobId, "Prepare: " + Exceptions.messageOf(e), -1);
+                    jobsLogs.operationFinished(id, jobId, "Prepare: " + Exceptions.messageOf(e), -1);
                 }
                 throw e;
             }
@@ -249,13 +249,13 @@ public class JobExecutionContext implements CompletionListenable {
 
         public void onSuccess(@Nullable CompletionState state) {
             assert state != null : "state must not be null";
-            statsTables.operationFinished(id, jobId, null, state.bytesUsed());
+            jobsLogs.operationFinished(id, jobId, null, state.bytesUsed());
             remove();
         }
 
         public void onFailure(@Nonnull Throwable t) {
             failure = t;
-            statsTables.operationFinished(id, jobId, Exceptions.messageOf(t), -1);
+            jobsLogs.operationFinished(id, jobId, Exceptions.messageOf(t), -1);
             if (remove() == RemoveSubContextPosition.LAST) {
                 return;
             }

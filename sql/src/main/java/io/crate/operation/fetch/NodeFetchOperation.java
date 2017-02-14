@@ -37,7 +37,7 @@ import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
@@ -56,7 +56,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class NodeFetchOperation {
 
     private final Executor executor;
-    private final StatsTables statsTables;
+    private final JobsLogs jobsLogs;
     private final JobContextService jobContextService;
 
     private static class TableFetchInfo {
@@ -88,9 +88,9 @@ public class NodeFetchOperation {
         }
     }
 
-    public NodeFetchOperation(ThreadPool threadPool, StatsTables statsTables, JobContextService jobContextService) {
+    public NodeFetchOperation(ThreadPool threadPool, JobsLogs jobsLogs, JobContextService jobContextService) {
         executor = threadPool.executor(ThreadPool.Names.SEARCH);
-        this.statsTables = statsTables;
+        this.jobsLogs = jobsLogs;
         this.jobContextService = jobContextService;
     }
 
@@ -122,16 +122,16 @@ public class NodeFetchOperation {
     }
 
     private void logStartAndSetupLogFinished(final UUID jobId, final int phaseId, ListenableFuture<?> resultFuture) {
-        statsTables.operationStarted(phaseId, jobId, "fetch");
+        jobsLogs.operationStarted(phaseId, jobId, "fetch");
         Futures.addCallback(resultFuture, new FutureCallback<Object>() {
         @Override
             public void onSuccess(@Nullable Object result) {
-                statsTables.operationFinished(phaseId, jobId, null, 0);
+                jobsLogs.operationFinished(phaseId, jobId, null, 0);
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                statsTables.operationFinished(phaseId, jobId, Exceptions.messageOf(t), 0);
+                jobsLogs.operationFinished(phaseId, jobId, Exceptions.messageOf(t), 0);
             }
         });
     }

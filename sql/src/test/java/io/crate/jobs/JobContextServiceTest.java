@@ -22,7 +22,7 @@
 package io.crate.jobs;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.cluster.NoopClusterService;
@@ -48,8 +48,8 @@ public class JobContextServiceTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        StatsTables statsTables = new StatsTables(() -> true);
-        jobContextService = new JobContextService(Settings.EMPTY, new NoopClusterService(), statsTables);
+        JobsLogs jobsLogs = new JobsLogs(() -> true);
+        jobContextService = new JobContextService(Settings.EMPTY, new NoopClusterService(), jobsLogs);
     }
 
     @After
