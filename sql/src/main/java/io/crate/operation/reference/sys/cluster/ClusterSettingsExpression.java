@@ -173,6 +173,9 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
             CrateSettings.UDC.name(),
             new NestedSettingExpression(CrateSettings.UDC, values));
         childImplementations.put(
+            CrateSettings.LICENCE.name(),
+            new NestedSettingExpression(CrateSettings.LICENCE, values));
+        childImplementations.put(
             ClusterLoggingOverridesExpression.NAME,
             new ClusterLoggingOverridesExpression(clusterService));
     }

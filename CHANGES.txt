@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added the ``licence.enterprise`` setting to the cluster settings.
+
  - Fix an issue which prevented generated columns without any referenced
    columns in it, e.g. when it contanins only ``CURRENT_TIMESTAMP``, from
    computing a new value on ``UPDATE``.

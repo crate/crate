@@ -1528,14 +1528,38 @@ public class CrateSettings {
         }
     };
 
-    public static final List<Setting<?, ?>> CRATE_SETTINGS = ImmutableList.<Setting<?, ?>>of(
+    public static final List<Setting<?, ?>> CRATE_SETTINGS = ImmutableList.of(
         STATS,
         BULK,
         GRACEFUL_STOP
     );
 
-    public static final List<Setting> SETTINGS = ImmutableList.<Setting>of(
-        STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC, PSQL);
+    public static final NestedSetting LICENCE = new NestedSetting() {
+        @Override
+        public String name() {
+            return "licence";
+        }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.of(LICENCE_ENTERPRISE);
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return false;
+        }
+    };
+
+    public static final BoolSetting LICENCE_ENTERPRISE = new BoolSetting("enterprise", false, false) {
+        @Override
+        public Setting parent() {
+            return LICENCE;
+        }
+    };
+
+    public static final List<Setting> SETTINGS = ImmutableList.of(
+        STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC, PSQL, LICENCE);
 
     private static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
         .put(CrateSettings.STATS.settingName(),
