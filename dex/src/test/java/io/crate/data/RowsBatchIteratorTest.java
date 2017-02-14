@@ -22,42 +22,23 @@
 
 package io.crate.data;
 
-public interface Row {
+import io.crate.testing.BatchIteratorTester;
+import org.junit.Test;
 
-    Row EMPTY = new Row() {
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Supplier;
 
-        private final Object[] EMPTY_CELLS = new Object[0];
+public class RowsBatchIteratorTest {
 
-        @Override
-        public int numColumns() {
-            return 0;
-        }
-
-        @Override
-        public Object get(int index) {
-            throw new IndexOutOfBoundsException("EMPTY row has no cells");
-        }
-
-        @Override
-        public Object[] materialize() {
-            return EMPTY_CELLS;
-        }
-    };
-
-    int numColumns();
-
-    /**
-     * Returns the element at the specified column
-     *
-     * @param index index of the column to return
-     * @return the value at the specified position in this list
-     * @throws IndexOutOfBoundsException if the index is out of range
-     *                                   (<tt>index &lt; 0 || index &gt;= size()</tt>)
-     */
-    Object get(int index);
-
-    /**
-     * Returns a materialized view of this row.
-     */
-    Object[] materialize();
+    @Test
+    public void testCollectRows() throws Exception {
+        List<Row> rows = Arrays.asList(new Row1(10), new Row1(20));
+        Supplier<BatchIterator> batchIteratorSupplier = () -> RowsBatchIterator.newInstance(rows);
+        BatchIteratorTester tester = new BatchIteratorTester(
+            batchIteratorSupplier,
+            Arrays.asList(new Object[] { 10 }, new Object[] { 20 })
+        );
+        tester.run();
+    }
 }

@@ -2,11 +2,27 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 
 archivesBaseName = 'crate-dex'
 
+configurations {
+    // export of test so that other modules can use the utilities there as well.
+    testOutput
+}
+
 dependencies {
     compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
     compile "com.google.guava:guava:${versions.guava}"
+    compile project(':shared')
+
+    testCompile "junit:junit:${versions.junit}"
 }
 
+task jarTest (type: Jar) {
+    from sourceSets.test.output
+    classifier = 'dex-testing'
+}
+
+artifacts {
+    testOutput jarTest
+}
 
 test {
     testLogging.exceptionFormat = 'full'
