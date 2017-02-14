@@ -408,7 +408,7 @@ public class TransportExecutor implements Executor {
     static class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationTreeGenerator.NodeOperationTreeContext, Void> {
 
         private static class Branch {
-            private final Stack<ExecutionPhase> phases = new Stack<>();
+            private final Deque<ExecutionPhase> phases = new ArrayDeque<>();
             private final byte inputId;
 
             Branch(byte inputId) {
@@ -420,7 +420,7 @@ public class TransportExecutor implements Executor {
             private final String localNodeId;
             private final List<NodeOperation> nodeOperations = new ArrayList<>();
 
-            private final Stack<Branch> branches = new Stack<>();
+            private final Deque<Branch> branches = new ArrayDeque<>();
             private final Branch root;
             private Branch currentBranch;
 
@@ -459,10 +459,10 @@ public class TransportExecutor implements Executor {
                 byte inputId;
                 ExecutionPhase previousPhase;
                 if (currentBranch.phases.isEmpty()) {
-                    previousPhase = branches.peek().phases.lastElement();
+                    previousPhase = branches.peekLast().phases.getLast();
                     inputId = currentBranch.inputId;
                 } else {
-                    previousPhase = currentBranch.phases.lastElement();
+                    previousPhase = currentBranch.phases.getLast();
                     // same branch, so use the default input id
                     inputId = 0;
                 }
@@ -493,7 +493,7 @@ public class TransportExecutor implements Executor {
             }
 
             void leaveBranch() {
-                currentBranch = branches.pop();
+                currentBranch = branches.pollLast();
             }
 
             Collection<NodeOperation> nodeOperations() {
@@ -505,7 +505,7 @@ public class TransportExecutor implements Executor {
             NodeOperationTreeContext nodeOperationTreeContext = new NodeOperationTreeContext(localNodeId);
             process(plan, nodeOperationTreeContext);
             return new NodeOperationTree(nodeOperationTreeContext.nodeOperations(),
-                nodeOperationTreeContext.root.phases.firstElement());
+                nodeOperationTreeContext.root.phases.getFirst());
         }
 
         @Override
