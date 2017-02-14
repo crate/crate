@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.data.Row;
+import io.crate.data.RowsBatchIterator;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
@@ -35,9 +36,9 @@ import io.crate.metadata.pg_catalog.PgCatalogTables;
 import io.crate.metadata.pg_catalog.PgTypeTable;
 import io.crate.metadata.sys.*;
 import io.crate.operation.InputFactory;
+import io.crate.operation.collect.BatchIteratorCollector;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
-import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.collect.RowsTransformer;
 import io.crate.operation.collect.files.SummitsIterable;
 import io.crate.operation.collect.stats.JobsLogs;
@@ -141,16 +142,20 @@ public class SystemCollectSource implements CollectSource {
 
     Function<Iterable, Iterable<? extends Row>> toRowsIterableTransformation(RoutedCollectPhase collectPhase,
                                                                              boolean requiresRepeat) {
-        return objects -> {
-            if (requiresRepeat) {
-                objects = ImmutableList.copyOf(objects);
-            }
-            return RowsTransformer.toRowsIterable(
-                inputFactory,
-                RowContextReferenceResolver.INSTANCE,
-                collectPhase,
-                objects);
-        };
+        return objects -> dataIterableToRowsIterable(collectPhase, requiresRepeat, objects);
+    }
+
+    private Iterable<? extends Row> dataIterableToRowsIterable(RoutedCollectPhase collectPhase,
+                                                               boolean requiresRepeat,
+                                                               Iterable<?> data) {
+        if (requiresRepeat) {
+            data = ImmutableList.copyOf(data);
+        }
+        return RowsTransformer.toRowsIterable(
+            inputFactory,
+            RowContextReferenceResolver.INSTANCE,
+            collectPhase,
+            data);
     }
 
     @Override
@@ -161,19 +166,20 @@ public class SystemCollectSource implements CollectSource {
         // sys.operations can contain a _node column - these refs need to be normalized into literals
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions, RowGranularity.DOC, ReplaceMode.COPY, new NodeSysReferenceResolver(nodeSysExpression), null);
-        collectPhase = collectPhase.normalize(normalizer, null);
+        final RoutedCollectPhase routedCollectPhase = collectPhase.normalize(normalizer, null);
 
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
         Supplier<CompletableFuture<? extends Iterable<?>>> iterableGetter = iterableGetters.get(table);
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";
+        boolean requiresRepeat = downstream.requirements().contains(Requirement.REPEAT);
         return ImmutableList.of(
-            new RowsCollector(
-                downstream,
-                iterableGetter,
-                toRowsIterableTransformation(
-                    collectPhase,
-                    downstream.requirements().contains(Requirement.REPEAT))));
+            new BatchIteratorCollector(
+                () -> iterableGetter.get().thenApply(dataIterable -> RowsBatchIterator.newInstance(
+                    dataIterableToRowsIterable(routedCollectPhase, requiresRepeat, dataIterable))),
+                downstream
+            )
+        );
     }
 
     /**
