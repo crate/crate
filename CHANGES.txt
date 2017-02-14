@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - UDC: add the ``enterprise`` field to the ``UDC`` ping.
+   The field identifies whether a user uses an enterprise version of CrateDB.
+
+ - Added the ``licence.enterprise`` setting to the cluster settings.
+
  - Fixed validation of known configuration file settings. The settings are also
    validated upon start-up.
 

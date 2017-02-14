@@ -115,9 +115,13 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
         Map gateway = (Map) settings.get(CrateSettings.GATEWAY.name());
         assertThat(gateway.get(CrateSettings.GATEWAY_RECOVER_AFTER_TIME.name()),
             is(CrateSettings.GATEWAY_RECOVER_AFTER_TIME.defaultValue().toString()));
-        assertEquals(gateway.get(CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.name()),
-            CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.defaultValue());
-        assertEquals(gateway.get(CrateSettings.GATEWAY_EXPECTED_NODES.name()),
-            CrateSettings.GATEWAY_EXPECTED_NODES.defaultValue());
+        assertThat(gateway.get(CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.name()),
+            is(CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.defaultValue()));
+        assertThat(gateway.get(CrateSettings.GATEWAY_EXPECTED_NODES.name()),
+            is(CrateSettings.GATEWAY_EXPECTED_NODES.defaultValue()));
+
+        Map licence = (Map) settings.get(CrateSettings.LICENSE.name());
+        assertThat(licence.get(CrateSettings.LICENSE_ENTERPRISE.name()),
+            is(CrateSettings.LICENSE_ENTERPRISE.defaultValue()));
     }
 }

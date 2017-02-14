@@ -441,7 +441,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(368, response.rowCount());
+        assertEquals(370, response.rowCount());
     }
 
     @Test
@@ -569,7 +569,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select max(ordinal_position) from information_schema.columns");
         assertEquals(1, response.rowCount());
 
-        short max_ordinal = 103;
+        short max_ordinal = 105;
         assertEquals(max_ordinal, response.rows()[0][0]);
 
         execute("create table t1 (id integer, col1 string)");
@@ -579,7 +579,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
         max_ordinal = 2;
         assertEquals(max_ordinal, response.rows()[0][0]);
-
     }
 
     @Test
@@ -987,7 +986,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("select table_name from information_schema.tables where 'date' = ANY (partitioned_by)");
         assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("any1"));
+        assertThat(response.rows()[0][0], is("any1"));
     }
 
     @Test
@@ -1033,8 +1032,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select distinct table_schema from information_schema.tables " +
                 "where table_schema ~ '[a-z]+o[a-z]' order by table_schema");
         assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][0], is("blob"));
-        assertThat((String) response.rows()[1][0], is("doc"));
+        assertThat(response.rows()[0][0], is("blob"));
+        assertThat(response.rows()[1][0], is("doc"));
     }
 
     @Test
@@ -1074,7 +1073,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
         execute("select feature_id, feature_name from information_schema.sql_features where feature_id='E011'");
         assertThat(response.rowCount(), is(7L));
-        assertThat((String) response.rows()[0][1], is("Numeric data types"));
+        assertThat(response.rows()[0][1], is("Numeric data types"));
     }
 
     @Test

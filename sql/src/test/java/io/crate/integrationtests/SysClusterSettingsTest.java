@@ -198,4 +198,13 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
                 CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.defaultValue(),
                 CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.settingName()).toString()));
     }
+
+    @Test
+    public void testDefaultEnterpriseSetting() {
+        execute("select settings from sys.cluster");
+        assertEquals(1L, response.rowCount());
+        Map<String, Object> settings = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> licence = (Map<String, Object>) settings.get(CrateSettings.LICENSE.name());
+        assertThat(licence.get(CrateSettings.LICENSE_ENTERPRISE.name()), is(false));
+    }
 }
