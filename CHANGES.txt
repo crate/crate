@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added the ``licence.enterprise`` setting to the cluster settings.
+
  - Fixed low/high disk-based shard allocation watermark checks. The checks
    treated the disk watermark settings as non-runtime. Therefore, new values
    for these settings were ignored.
