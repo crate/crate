@@ -27,9 +27,12 @@ import io.crate.sql.tree.Expression;
 import org.elasticsearch.common.settings.Settings;
 
 public interface SettingsApplier {
+
     void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression);
 
     void applyValue(Settings.Builder settingsBuilder, Object value);
+
+    Object validate(Object value);
 
     Settings getDefault();
 }

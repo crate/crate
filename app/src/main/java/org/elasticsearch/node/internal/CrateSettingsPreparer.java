@@ -22,6 +22,8 @@
 package org.elasticsearch.node.internal;
 
 import io.crate.Constants;
+import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.settings.SettingsApplier;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.cli.Terminal;
 import org.elasticsearch.common.settings.Settings;
@@ -29,6 +31,8 @@ import org.elasticsearch.env.Environment;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
+import java.util.Map;
 
 import static org.elasticsearch.common.Strings.cleanPath;
 import static org.elasticsearch.common.settings.Settings.settingsBuilder;
@@ -59,6 +63,7 @@ public class CrateSettingsPreparer {
         InternalSettingsPreparer.initializeSettings(output, input, false);
         InternalSettingsPreparer.finalizeSettings(output, terminal, environment.configFile());
 
+        validateKnownSettings(output);
         applyCrateDefaults(output);
 
         environment = new Environment(output.build());
@@ -69,7 +74,21 @@ public class CrateSettingsPreparer {
         return new Environment(output.build());
     }
 
-    static void applyCrateDefaults(Settings.Builder settingsBuilder) {
+    static void validateKnownSettings(Settings.Builder settings) {
+        for (Map.Entry<String, String> setting : settings.internalMap().entrySet()) {
+            try {
+                SettingsApplier applier = CrateSettings.SUPPORTED_SETTINGS.get(setting.getKey());
+                if (applier != null) {
+                    applier.validate(setting.getValue());
+                }
+            } catch (IllegalArgumentException e) {
+                throw new RuntimeException(String.format(Locale.ENGLISH,
+                    "Invalid value [%s] for the [%s] setting.", setting.getValue(), setting.getKey()), e);
+            }
+        }
+    }
+
+    private static void applyCrateDefaults(Settings.Builder settingsBuilder) {
         // read also from crate.yml by default if no other config path has been set
         // if there is also a elasticsearch.yml file this file will be read first and the settings in crate.yml
         // will overwrite them.

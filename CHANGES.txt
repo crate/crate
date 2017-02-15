@@ -5,11 +5,14 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed validation of known configuration file settings. The settings are also
+   validated upon start-up.
+
  - Fix: Index columns based on string arrays are correctly populated with values.
 
  - Updated crate-admin to ``1.1.1`` which includes the following changes:
 
-    - Fixed a console results issue that caused the results table not to be 
+    - Fixed a console results issue that caused the results table not to be
       displayed after horizontal scrolling.
 
     - Fixed an issue that caused the admin-ui to load only one plugin.
@@ -17,7 +20,7 @@ Unreleased
     - Display warning in the console view when the query result contains
       an unsafe integer.
 
-    - Relocated the help resources section to be underneath the tweet 
+    - Relocated the help resources section to be underneath the tweet
       import tutorial.
 
     - Show loading indicator when `Execute Query ` is in progress.

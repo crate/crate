@@ -31,10 +31,7 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
 import javax.annotation.Nonnull;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class CrateSettings {
@@ -1537,7 +1534,7 @@ public class CrateSettings {
     public static final List<Setting> SETTINGS = ImmutableList.<Setting>of(
         STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC, PSQL);
 
-    private static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
+    public static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
         .put(CrateSettings.STATS.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS))
         .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(),

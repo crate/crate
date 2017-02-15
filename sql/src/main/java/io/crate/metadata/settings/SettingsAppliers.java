@@ -69,7 +69,7 @@ public class SettingsAppliers {
         }
 
         @VisibleForTesting
-        Object validate(Object value) {
+        public Object validate(Object value) {
             return value;
         }
 
@@ -189,7 +189,7 @@ public class SettingsAppliers {
         }
 
         @Override
-        protected Object validate(Object value) {
+        public Object validate(Object value) {
             return BooleanType.INSTANCE.value(value);
         }
     }
@@ -202,7 +202,7 @@ public class SettingsAppliers {
 
         @Override
         @VisibleForTesting
-        Object validate(Object value) {
+        public Object validate(Object value) {
             Integer convertedValue = IntegerType.INSTANCE.value(value);
             IntSetting setting = (IntSetting) this.setting;
             if (convertedValue < setting.minValue() || convertedValue > setting.maxValue()) {
@@ -220,7 +220,7 @@ public class SettingsAppliers {
 
         @Override
         @VisibleForTesting
-        Object validate(Object value) {
+        public Object validate(Object value) {
             Float convertedValue = FloatType.INSTANCE.value(value);
             FloatSetting setting = (FloatSetting) this.setting;
             if (convertedValue < setting.minValue() || convertedValue > setting.maxValue()) {
@@ -238,7 +238,7 @@ public class SettingsAppliers {
 
         @Override
         @VisibleForTesting
-        Object validate(Object value) {
+        public Object validate(Object value) {
             Double convertedValue = DoubleType.INSTANCE.value(value);
             DoubleSetting setting = (DoubleSetting) this.setting;
             if (convertedValue < setting.minValue() || convertedValue > setting.maxValue()) {
@@ -318,7 +318,7 @@ public class SettingsAppliers {
 
         @Override
         @VisibleForTesting
-        Object validate(Object value) {
+        public Object validate(Object value) {
             String validation = this.setting.validate((String) value);
             if (validation != null) {
                 throw new InvalidSettingValueContentException(validation);
