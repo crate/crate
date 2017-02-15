@@ -121,7 +121,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
             is(CrateSettings.GATEWAY_EXPECTED_NODES.defaultValue()));
 
         Map licence = (Map) settings.get(CrateSettings.LICENCE.name());
-        assertThat(licence.get(CrateSettings.LICENCE_ENTERPRISE.name()),
-            is(CrateSettings.LICENCE_ENTERPRISE.defaultValue()));
+        assertThat(licence.get(CrateSettings.LICENCE_TYPE.name()),
+            is(CrateSettings.LICENCE_TYPE.defaultValue()));
     }
 }
