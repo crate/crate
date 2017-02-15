@@ -24,6 +24,7 @@ package io.crate.metadata.doc.array;
 import com.google.common.base.Joiner;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.test.CauseMatcher;
+import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
@@ -45,6 +46,8 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 
@@ -527,5 +530,47 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .bytes());
         assertThat(doc.docs().get(0).getField("new_array_field"), is(nullValue()));
         assertThat(mapper.mappers().smartNameFieldMapper("new_array_field"), is(nullValue()));
+    }
+
+    @Test
+    public void testCopyToFieldsOfInnerMapping() throws Exception {
+        // @formatter:off
+        String mapping = XContentFactory.jsonBuilder()
+            .startObject().startObject("type").startObject("properties")
+                .startObject("string_array")
+                    .field("type", ArrayMapper.CONTENT_TYPE)
+                    .startObject(ArrayMapper.INNER)
+                        .field("type", "string")
+                        .field("index", "analyzed")
+                        .field("copy_to", "string_array_ft")
+                    .endObject()
+                .endObject()
+            .endObject().endObject().endObject()
+            .string();
+        // @formatter:on
+
+        DocumentMapper mapper = mapper(INDEX, TYPE, mapping);
+        FieldMapper arrayMapper = mapper.mappers().getMapper("string_array");
+        assertThat(arrayMapper, is(instanceOf(ArrayMapper.class)));
+        assertThat(arrayMapper.copyTo().copyToFields(), contains("string_array_ft"));
+
+        // @formatter:on
+        ParsedDocument doc = mapper.parse(INDEX, TYPE, "1", XContentFactory.jsonBuilder()
+            .startObject()
+                .startArray("string_array")
+                    .value("foo")
+                    .value("bar")
+                .endArray()
+            .endObject()
+        .bytes());
+        // @formatter:off
+
+        List<String> copyValues = new ArrayList<>();
+        for (IndexableField field : doc.docs().get(0).getFields()) {
+            if (field.name().equals("string_array_ft")) {
+                copyValues.add(field.stringValue());
+            }
+        }
+        assertThat(copyValues, containsInAnyOrder("foo", "bar"));
     }
 }

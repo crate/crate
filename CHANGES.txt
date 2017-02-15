@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Index columns based on string arrays are correctly populated with values.
+
  - Updated crate-admin to ``1.1.1`` which includes the following changes:
 
     - Fixed a console results issue that caused the results table not to be 

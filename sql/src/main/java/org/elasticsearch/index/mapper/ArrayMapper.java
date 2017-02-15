@@ -80,7 +80,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
     ArrayMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
                           Settings indexSettings, MultiFields multiFields, CopyTo copyTo, Mapper innerMapper) {
-        super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
+        super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, null);
         this.innerMapper = innerMapper;
     }
 
@@ -281,6 +281,9 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         Mapper update;
         if (innerMapper instanceof FieldMapper) {
             update = ((FieldMapper) innerMapper).parse(context);
+            if (copyTo() != null) {
+                DocumentParser.parseCopyFields(context, (FieldMapper) innerMapper, copyTo().copyToFields());
+            }
         } else {
             assert innerMapper instanceof ObjectMapper : "innerMapper must be a FieldMapper or an ObjectMapper";
             context.path().add(simpleName());
@@ -312,6 +315,13 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         return DocumentParser.createBuilderFromDynamicValue(parseContext, token, fieldName);
     }
 
+    @Override
+    public CopyTo copyTo() {
+        if (innerMapper instanceof FieldMapper) {
+            return ((FieldMapper) innerMapper).copyTo();
+        }
+        return null;
+    }
 
     @Override
     protected void parseCreateField(ParseContext context, List<Field> fields) throws IOException {
