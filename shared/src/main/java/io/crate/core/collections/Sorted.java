@@ -22,7 +22,6 @@
 
 package io.crate.core.collections;
 
-import com.google.common.collect.Lists;
 
 import java.util.*;
 
@@ -34,7 +33,7 @@ public class Sorted {
 
     public static LinkedHashMap<String, Object> sortRecursive(Map<String, Object> map, boolean sortOnlyMaps) {
         LinkedHashMap<String, Object> sortedMap = new LinkedHashMap<>(map.size(), 1.0f);
-        ArrayList<String> sortedKeys = Lists.newArrayList(map.keySet());
+        ArrayList<String> sortedKeys = new ArrayList<>(map.keySet());
         Collections.sort(sortedKeys);
         for (String sortedKey : sortedKeys) {
             Object o = map.get(sortedKey);
@@ -65,7 +64,7 @@ public class Sorted {
             return sortedList;
         }
 
-        ArrayList sortedList = Lists.newArrayList(collection);
+        ArrayList sortedList = new ArrayList(collection);
         Collections.sort(sortedList);
         return sortedList;
     }
