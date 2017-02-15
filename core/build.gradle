@@ -5,7 +5,7 @@ archivesBaseName = 'crate-core'
 
 dependencies {
     compile project(':es:es-core')
-    testCompile project(':testing')
+    testCompile project(':integration-testing')
 }
 
 test {

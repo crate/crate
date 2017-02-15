@@ -10,7 +10,7 @@ dependencies {
     // we add the sigar libs as system dep since it is checked in
     compile fileTree(dir: 'lib/', include: '*.jar')
 
-    testCompile project(':testing')
+    testCompile project(':integration-testing')
 }
 
 // get version and set it on the project, so it gets appended to the jar name

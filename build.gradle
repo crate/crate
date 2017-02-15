@@ -169,6 +169,7 @@ def jacocoProjects() {
           'es-testing',
           'es-discovery-multicast',
           'es-cloud-aws',
+          'integration-testing',
           'testing'].contains(it.name)
     }
 }

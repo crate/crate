@@ -22,23 +22,28 @@
 
 package io.crate.concurrent;
 
-import io.crate.test.integration.CrateUnitTest;
+import org.hamcrest.Matchers;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertThat;
 
-public class CompletableFuturesTest extends CrateUnitTest {
+public class CompletableFuturesTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void failedFutureIsCompletedExceptionally() {
         Exception exception = new Exception("failed future");
         CompletableFuture<Object> failedFuture = CompletableFutures.failedFuture(exception);
-        assertThat(failedFuture.isCompletedExceptionally(), is(true));
+        assertThat(failedFuture.isCompletedExceptionally(), Matchers.is(true));
     }
 
     @Test
@@ -48,10 +53,10 @@ public class CompletableFuturesTest extends CrateUnitTest {
         CompletableFuture<List<Integer>> all = CompletableFutures.allAsList(Arrays.asList(f1, f2));
 
         f1.completeExceptionally(new IllegalStateException("dummy"));
-        assertThat("future must wait for all subFutures", all.isDone(), is(false));
+        assertThat("future must wait for all subFutures", all.isDone(), Matchers.is(false));
 
         f2.complete(2);
-        expectedException.expectCause(instanceOf(IllegalStateException.class));
+        expectedException.expectCause(Matchers.instanceOf(IllegalStateException.class));
         all.get(10, TimeUnit.SECONDS);
     }
 
@@ -64,6 +69,6 @@ public class CompletableFuturesTest extends CrateUnitTest {
         f1.complete(10);
         f2.complete(20);
 
-        assertThat(all.get(10, TimeUnit.SECONDS), contains(10, 20));
+        assertThat(all.get(10, TimeUnit.SECONDS), Matchers.contains(10, 20));
     }
 }

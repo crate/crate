@@ -4,7 +4,7 @@ archivesBaseName = 'crate-blob'
 
 dependencies {
     compile project(':core')
-    testCompile project(':testing')
+    testCompile project(':integration-testing')
 }
 
 test {

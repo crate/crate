@@ -9,13 +9,14 @@ configurations {
 }
 
 dependencies {
+    compile project(':shared')
     compile project(':core')
     compile project(':dex')
     compile project(':blob')
     compile project(':sql-parser')
     compile "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
     compile "org.apache.commons:commons-math3:${versions.commonsmath}"
-    testCompile project(':testing')
+    testCompile project(':integration-testing')
     testCompile 'org.skyscreamer:jsonassert:1.3.0'
     testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
     testCompile('io.crate:crate-jdbc:2.1.5') {
