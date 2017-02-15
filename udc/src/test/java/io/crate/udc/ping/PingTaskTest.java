@@ -33,6 +33,7 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -77,17 +78,40 @@ public class PingTaskTest extends CrateUnitTest {
 
         extendedNodeInfo = mock(ExtendedNodeInfo.class);
         when(extendedNodeInfo.networkInfo()).thenReturn(new ExtendedNetworkInfo(ExtendedNetworkInfo.NA_INTERFACE));
-        when(extendedNodeInfo.osInfo()).thenReturn(new ExtendedOsInfo(Collections.<String, Object>emptyMap()));
+        when(extendedNodeInfo.osInfo()).thenReturn(new ExtendedOsInfo(Collections.emptyMap()));
     }
 
     @Test
     public void testGetHardwareAddressMacAddrNull() throws Exception {
         PingTask pingTask = new PingTask(
-            mock(ClusterService.class),
-            mock(ClusterIdService.class),
+            clusterService,
+            clusterIdService,
             extendedNodeInfo,
-            "http://dummy");
+            "http://dummy",
+            Settings.EMPTY
+        );
         assertThat(pingTask.getHardwareAddress(), Matchers.nullValue());
+    }
+
+    @Test
+    public void testIsEnterpriseField() throws Exception {
+        PingTask pingTask = new PingTask(
+            clusterService,
+            clusterIdService,
+            extendedNodeInfo,
+            "http://dummy",
+            Settings.EMPTY
+        );
+        assertThat(pingTask.isEnterprise(), is("false"));
+
+        pingTask = new PingTask(
+            clusterService,
+            clusterIdService,
+            extendedNodeInfo,
+            "http://dummy",
+            Settings.settingsBuilder().put("licence.enterprise", true).build()
+        );
+        assertThat(pingTask.isEnterprise(), is("true"));
     }
 
     @Test
@@ -96,7 +120,7 @@ public class PingTaskTest extends CrateUnitTest {
         testServer.run();
 
         PingTask task = new PingTask(
-            clusterService, clusterIdService, extendedNodeInfo, "http://localhost:18080/");
+            clusterService, clusterIdService, extendedNodeInfo, "http://localhost:18080/", Settings.EMPTY);
         task.run();
         assertThat(testServer.responses.size(), is(1));
         task.run();
@@ -143,7 +167,7 @@ public class PingTaskTest extends CrateUnitTest {
         testServer = new HttpTestServer(18081, true);
         testServer.run();
         PingTask task = new PingTask(
-            clusterService, clusterIdService, extendedNodeInfo, "http://localhost:18081/");
+            clusterService, clusterIdService, extendedNodeInfo, "http://localhost:18081/", Settings.EMPTY);
         task.run();
         assertThat(testServer.responses.size(), is(1));
         task.run();

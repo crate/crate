@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - UDC: add the ``enterprise`` field to the ``UDC`` ping.
+   The field identifies whether a user uses an enterprise version of CrateDB.
+
  - Fix an issue which prevented generated columns without any referenced
    columns in it, e.g. when it contanins only ``CURRENT_TIMESTAMP``, from
    computing a new value on ``UPDATE``.
