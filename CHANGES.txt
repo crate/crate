@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue which caused restoring a whole partitioned table from a
+   snapshot to fail.
+
  - Added the ``licence.enterprise`` setting to the cluster settings.
 
  - Fixed low/high disk-based shard allocation watermark checks. The checks

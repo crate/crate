@@ -23,33 +23,36 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.TableIdent;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
 
 public class RestoreSnapshotAnalyzedStatement implements DDLStatement {
 
-    private static final List<String> ALL_INDICES = ImmutableList.of();
+    private static final List<RestoreTableInfo> ALL_TABLES = ImmutableList.of();
 
     private final String snapshotName;
     private final String repositoryName;
     private final Settings settings;
 
-    private final List<String> indices;
+    private final List<RestoreTableInfo> tables;
 
-    private RestoreSnapshotAnalyzedStatement(String snapshotName, String repositoryName, Settings settings, List<String> indices) {
+    private RestoreSnapshotAnalyzedStatement(String snapshotName, String repositoryName, Settings settings, List<RestoreTableInfo> restoreTables) {
         this.snapshotName = snapshotName;
         this.repositoryName = repositoryName;
         this.settings = settings;
-        this.indices = indices;
+        this.tables = restoreTables;
     }
 
-    public static RestoreSnapshotAnalyzedStatement forTables(String snapshotName, String repositoryName, Settings settings, List<String> restoreIndices) {
-        return new RestoreSnapshotAnalyzedStatement(snapshotName, repositoryName, settings, restoreIndices);
+    public static RestoreSnapshotAnalyzedStatement forTables(String snapshotName, String repositoryName, Settings settings, List<RestoreTableInfo> restoreTables) {
+        return new RestoreSnapshotAnalyzedStatement(snapshotName, repositoryName, settings, restoreTables);
     }
 
     public static RestoreSnapshotAnalyzedStatement all(String snapshotName, String repositoryName, Settings settings) {
-        return new RestoreSnapshotAnalyzedStatement(snapshotName, repositoryName, settings, ALL_INDICES);
+        return new RestoreSnapshotAnalyzedStatement(snapshotName, repositoryName, settings, ALL_TABLES);
     }
 
     public String snapshotName() {
@@ -64,16 +67,40 @@ public class RestoreSnapshotAnalyzedStatement implements DDLStatement {
         return settings;
     }
 
-    public List<String> indices() {
-        return indices;
+    public List<RestoreTableInfo> restoreTables() {
+        return tables;
     }
 
     public boolean restoreAll() {
-        return indices == ALL_INDICES;
+        return tables == ALL_TABLES;
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
         return visitor.visitRestoreSnapshotAnalyzedStatement(this, context);
+    }
+
+    public static class RestoreTableInfo {
+
+        private final TableIdent tableIdent;
+        private final PartitionName partitionName;
+
+        public RestoreTableInfo(TableIdent tableIdent, @Nullable PartitionName partitionName) {
+            this.tableIdent = tableIdent;
+            this.partitionName = partitionName;
+        }
+
+        public TableIdent tableIdent() {
+            return tableIdent;
+        }
+
+        @Nullable
+        public PartitionName partitionName() {
+            return partitionName;
+        }
+
+        public boolean hasPartitionInfo() {
+            return partitionName != null;
+        }
     }
 }

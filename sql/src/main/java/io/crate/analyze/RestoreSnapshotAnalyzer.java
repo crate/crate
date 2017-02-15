@@ -70,12 +70,12 @@ class RestoreSnapshotAnalyzer {
         repositoryService.failIfRepositoryDoesNotExist(repositoryName);
 
         // validate and extract settings
-        Settings.Builder builder = GenericPropertiesConverter.settingsFromProperties(
-            node.properties(), analysis.parameterContext(), SETTINGS);
+        Settings settings = GenericPropertiesConverter.settingsFromProperties(
+            node.properties(), analysis.parameterContext(), SETTINGS).build();
 
         if (node.tableList().isPresent()) {
             List<Table> tableList = node.tableList().get();
-            Set<String> restoreIndices = new HashSet<>(tableList.size());
+            Set<RestoreSnapshotAnalyzedStatement.RestoreTableInfo> restoreTables = new HashSet<>(tableList.size());
             for (Table table : tableList) {
                 TableIdent tableIdent = TableIdent.of(table, analysis.sessionContext().defaultSchema());
                 boolean tableExists = schemas.tableExists(tableIdent);
@@ -99,20 +99,18 @@ class RestoreSnapshotAnalyzer {
                     if (docTableInfo.partitions().contains(partitionName)) {
                         throw new PartitionAlreadyExistsException(partitionName);
                     }
-                    restoreIndices.add(partitionName.asIndexName());
+                    restoreTables.add(new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(tableIdent, partitionName));
                 } else {
                     if (table.partitionProperties().isEmpty()) {
-                        // add a partitions wildcard
-                        // to match all partitions if a partitioned table was meant
-                        restoreIndices.add(PartitionName.templateName(tableIdent.schema(), tableIdent.name()) + "*");
-                        // add index name
-                        restoreIndices.add(tableIdent.indexName());
+                        restoreTables.add(new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(tableIdent, null));
                     } else {
-                        restoreIndices.add(PartitionPropertiesAnalyzer.toPartitionName(
+                        PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
                             tableIdent,
                             null,
                             table.partitionProperties(),
-                            analysis.parameterContext().parameters()).asIndexName());
+                            analysis.parameterContext().parameters());
+                        restoreTables.add(new RestoreSnapshotAnalyzedStatement.RestoreTableInfo(
+                            tableIdent, partitionName));
                     }
                 }
             }
@@ -120,10 +118,10 @@ class RestoreSnapshotAnalyzer {
             return RestoreSnapshotAnalyzedStatement.forTables(
                 nameParts.get(1),
                 repositoryName,
-                builder.build(),
-                ImmutableList.copyOf(restoreIndices));
+                settings,
+                ImmutableList.copyOf(restoreTables));
         } else {
-            return RestoreSnapshotAnalyzedStatement.all(nameParts.get(1), repositoryName, builder.build());
+            return RestoreSnapshotAnalyzedStatement.all(nameParts.get(1), repositoryName, settings);
         }
     }
 }

@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.*;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.apache.lucene.util.BytesRef;
@@ -242,8 +243,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateUnitTest {
     public void testRestoreSnapshotSingleTable() throws Exception {
         RestoreSnapshotAnalyzedStatement statement = analyze(
             "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.restoreme");
-        String template = PartitionName.templateName("custom", "restoreme") + "*";
-        assertThat(statement.indices(), containsInAnyOrder("custom.restoreme", template));
+        assertThat(statement.restoreTables().get(0).tableIdent(), is(new TableIdent("custom", "restoreme")));
+        assertThat(statement.restoreTables().get(0).partitionName(), is(nullValue()));
         assertThat(statement.settings().getAsMap(),
             allOf(
                 hasEntry("wait_for_completion", "false"),
@@ -269,16 +270,20 @@ public class SnapshotRestoreAnalyzerTest extends CrateUnitTest {
     public void testRestoreSinglePartition() throws Exception {
         RestoreSnapshotAnalyzedStatement statement = analyze(
             "RESTORE SNAPSHOT my_repo.my_snapshot TABLE parted PARTITION (date=123)");
-        String partition = new PartitionName("parted", ImmutableList.of(new BytesRef("123"))).asIndexName();
-        assertThat(statement.indices(), contains(partition));
+        PartitionName partition = new PartitionName("parted", ImmutableList.of(new BytesRef("123")));
+        assertThat(statement.restoreTables().size(), is(1));
+        assertThat(statement.restoreTables().get(0).partitionName(), is(partition));
+        assertThat(statement.restoreTables().get(0).tableIdent(), is(new TableIdent(null, "parted")));
     }
 
     @Test
     public void testRestoreSinglePartitionToUnknownTable() throws Exception {
         RestoreSnapshotAnalyzedStatement statement = analyze(
             "RESTORE SNAPSHOT my_repo.my_snapshot TABLE unknown_parted PARTITION (date=123)");
-        String partition = new PartitionName("unknown_parted", ImmutableList.of(new BytesRef("123"))).asIndexName();
-        assertThat(statement.indices(), contains(partition));
+        PartitionName partitionName = new PartitionName("unknown_parted", ImmutableList.of(new BytesRef("123")));
+        assertThat(statement.restoreTables().size(), is(1));
+        assertThat(statement.restoreTables().get(0).partitionName(), is(partitionName));
+        assertThat(statement.restoreTables().get(0).tableIdent(), is(new TableIdent(null, "unknown_parted")));
     }
 
     @Test

@@ -22,17 +22,25 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
+import com.google.common.collect.ImmutableList;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.exceptions.CreateSnapshotException;
+import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotResponse;
+import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
+import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsResponse;
+import org.elasticsearch.action.admin.cluster.snapshots.get.TransportGetSnapshotsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotResponse;
 import org.elasticsearch.action.support.IndicesOptions;
@@ -43,6 +51,10 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
@@ -138,16 +150,107 @@ public class SnapshotRestoreDDLDispatcher {
 
         // ignore_unavailable as set by statement
         IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());
-
-        RestoreSnapshotRequest request = new RestoreSnapshotRequest(analysis.repositoryName(), analysis.snapshotName())
-            .indices(analysis.indices())
-            .indicesOptions(indicesOptions)
-            .settings(analysis.settings())
-            .waitForCompletion(waitForCompletion)
-            .includeGlobalState(false)
-            .includeAliases(true);
         FutureActionListener<RestoreSnapshotResponse, Long> listener = new FutureActionListener<>(Functions.constant(1L));
-        transportActionProvider.transportRestoreSnapshotAction().execute(request, listener);
+        resolveIndexNames(analysis.restoreTables(), ignoreUnavailable, transportActionProvider.transportGetSnapshotsAction(), analysis.repositoryName())
+            .whenComplete((List<String> indexNames, Throwable t) -> {
+                if (t == null) {
+                    RestoreSnapshotRequest request = new RestoreSnapshotRequest(analysis.repositoryName(), analysis.snapshotName())
+                        .indices(indexNames)
+                        .indicesOptions(indicesOptions)
+                        .settings(analysis.settings())
+                        .waitForCompletion(waitForCompletion)
+                        .includeGlobalState(false)
+                        .includeAliases(true);
+                    transportActionProvider.transportRestoreSnapshotAction().execute(request, listener);
+                } else {
+                    listener.onFailure(t);
+                }
+            });
         return listener;
+    }
+
+    @VisibleForTesting
+    static CompletableFuture<List<String>> resolveIndexNames(List<RestoreSnapshotAnalyzedStatement.RestoreTableInfo> restoreTables, boolean ignoreUnavailable,
+                                                             TransportGetSnapshotsAction getSnapshotsAction, String repositoryName) {
+        Collection<String> resolvedIndices = new HashSet<>();
+        List<RestoreSnapshotAnalyzedStatement.RestoreTableInfo> toResolveFromSnapshot = new ArrayList<>();
+        for (RestoreSnapshotAnalyzedStatement.RestoreTableInfo table : restoreTables) {
+            if (table.hasPartitionInfo()) {
+                resolvedIndices.add(table.partitionName().asIndexName());
+            } else if (ignoreUnavailable) {
+                // If ignoreUnavailable is true, it's cheaper to simply return indexName and the partitioned wildcard instead
+                // checking if it's a partitioned table or not
+                resolvedIndices.add(table.tableIdent().indexName());
+                resolvedIndices.add(PartitionName.templateName(table.tableIdent().schema(), table.tableIdent().name()) + "*");
+            } else {
+                // index name needs to be resolved from snapshot
+                toResolveFromSnapshot.add(table);
+            }
+        }
+        if (toResolveFromSnapshot.isEmpty()) {
+            return CompletableFuture.completedFuture(ImmutableList.copyOf(resolvedIndices));
+        }
+        final CompletableFuture<List<String>> f = new CompletableFuture<>();
+        getSnapshotsAction.execute(
+            new GetSnapshotsRequest(repositoryName),
+            new ResolveFromSnapshotActionListener(f, toResolveFromSnapshot, resolvedIndices)
+        );
+        return f;
+    }
+
+    @VisibleForTesting
+    static class ResolveFromSnapshotActionListener implements ActionListener<GetSnapshotsResponse> {
+
+        private final CompletableFuture<List<String>> returnFuture;
+        private final Collection<String> resolvedIndices;
+        private final List<RestoreSnapshotAnalyzedStatement.RestoreTableInfo> toResolve;
+
+        public ResolveFromSnapshotActionListener(CompletableFuture<List<String>> returnFuture,
+                                                 List<RestoreSnapshotAnalyzedStatement.RestoreTableInfo> toResolve,
+                                                 Collection<String> resolvedIndices) {
+            this.returnFuture = returnFuture;
+            this.resolvedIndices = resolvedIndices;
+            this.toResolve = toResolve;
+        }
+
+        @Override
+        public void onResponse(GetSnapshotsResponse getSnapshotsResponse) {
+            List<SnapshotInfo> snapshots = getSnapshotsResponse.getSnapshots();
+            for (RestoreSnapshotAnalyzedStatement.RestoreTableInfo table : toResolve) {
+                try {
+                    resolvedIndices.add(resolveIndexNameFromSnapshot(table.tableIdent(), snapshots));
+                } catch (TableUnknownException e) {
+                    returnFuture.completeExceptionally(e);
+                }
+            }
+            returnFuture.complete(ImmutableList.copyOf(resolvedIndices));
+        }
+
+        @VisibleForTesting
+        public static String resolveIndexNameFromSnapshot(TableIdent tableIdent, List<SnapshotInfo> snapshots) throws TableUnknownException{
+            String indexName = tableIdent.indexName();
+            for (SnapshotInfo snapshot : snapshots) {
+                for (String index : snapshot.indices()) {
+                    if (indexName.equals(index)) {
+                        return indexName;
+                    } else if(isIndexPartitionOfTable(index, tableIdent)) {
+                        // add a partitions wildcard
+                        // to match all partitions if a partitioned table was meant
+                        return PartitionName.templateName(tableIdent.schema(), tableIdent.name()) + "*";
+                    }
+                }
+            }
+            throw new TableUnknownException(tableIdent);
+        }
+
+        private static boolean isIndexPartitionOfTable(String index, TableIdent tableIdent) {
+            return PartitionName.isPartition(index) &&
+                   PartitionName.fromIndexOrTemplate(index).tableIdent().equals(tableIdent);
+        }
+
+        @Override
+        public void onFailure(Throwable e) {
+            returnFuture.completeExceptionally(e);
+        }
     }
 }
