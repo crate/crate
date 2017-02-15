@@ -5,6 +5,21 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to ``1.0.5`` which includes the following change:
+
+    - Fixed a console results issue that caused the results table not to be 
+      displayed after horizontal scrolling.
+
+    - Fixed an issue that caused the admin-ui to load only one plugin.
+
+    - Display warning in the console view when the query result contains
+      an unsafe integer.
+
+    - Relocated the help resources section to be underneath the tweet 
+      import tutorial.
+
+    - Show loading indicator when `Execute Query ` is in progress.
+
  - Fix an issue which prevented generated columns without any referenced
    columns in it, e.g. when it contanins only ``CURRENT_TIMESTAMP``, from
    computing a new value on ``UPDATE``.
