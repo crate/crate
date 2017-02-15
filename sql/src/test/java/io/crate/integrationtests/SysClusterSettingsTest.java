@@ -205,6 +205,6 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
         Map<String, Object> settings = (Map<String, Object>) response.rows()[0][0];
         Map<String, Object> licence = (Map<String, Object>) settings.get(CrateSettings.LICENCE.name());
-        assertThat(licence.get(CrateSettings.LICENCE_ENTERPRISE.name()), is(false));
+        assertThat(licence.get(CrateSettings.LICENCE_TYPE.name()), is("opensource"));
     }
 }

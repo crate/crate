@@ -23,6 +23,7 @@ package io.crate.metadata.settings;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.crate.breaker.CrateCircuitBreakerService;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -1542,7 +1543,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.of(LICENCE_ENTERPRISE);
+            return ImmutableList.of(LICENCE_TYPE);
         }
 
         @Override
@@ -1551,12 +1552,13 @@ public class CrateSettings {
         }
     };
 
-    public static final BoolSetting LICENCE_ENTERPRISE = new BoolSetting("enterprise", false, false) {
-        @Override
-        public Setting parent() {
-            return LICENCE;
-        }
-    };
+    public static final StringSetting LICENCE_TYPE = new StringSetting(
+        "type",
+        ImmutableSet.of("enterprise, opensource"),
+        false,
+        "opensource",
+        LICENCE
+    );
 
     public static final List<Setting> SETTINGS = ImmutableList.of(
         STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC, PSQL, LICENCE);
