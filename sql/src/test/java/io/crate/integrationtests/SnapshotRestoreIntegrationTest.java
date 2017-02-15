@@ -378,7 +378,6 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         execute("drop table my_parted_2");
 
         execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE my_parted_1 with (" +
-                "ignore_unavailable=true, " +
                 "wait_for_completion=true)");
 
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema='doc'");
