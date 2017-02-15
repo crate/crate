@@ -27,9 +27,8 @@ Unreleased
        human-readable timestamps, Google Maps link on geo-point
        results & lazy loading on result sets larger than 100 rows.
 
- - Fix an issue which prevented generated columns without any referenced
-   columns in it, e.g. when it contanins only ``CURRENT_TIMESTAMP``, from
-   computing a new value on ``UPDATE``.
+ - Fixed evaluation on ``UPDATE`` of generated columns without referenced
+   columns, e.g. generated columns with a ``CURRENT_TIMESTAMP`` expression.
 
  - Fixed global aggregations on JOINs with 3 or more tables.
 

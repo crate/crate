@@ -317,9 +317,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         // Currently the validation is done only for generated columns.
         processGeneratedColumns(tableInfo, pathsToUpdate, updatedGeneratedColumns, true, getResult);
 
-        // compute generated columns which doesn't have any references to other columns
-        processGeneratedColumnsWithoutReferencedRefs(tableInfo.generatedColumns(), pathsToUpdate, updatedGeneratedColumns);
-
         updateSourceByPaths(updatedSourceAsMap, pathsToUpdate);
 
         try {
@@ -328,20 +325,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             return new SourceAndVersion(builder.bytes(), getResult.getVersion());
         } catch (IOException e) {
             throw new ElasticsearchGenerationException("Failed to generate [" + updatedSourceAsMap + "]", e);
-        }
-    }
-
-    private void processGeneratedColumnsWithoutReferencedRefs(List<GeneratedReference> generatedColumns,
-                                                            Map<String, Object> pathsToUpdate,
-                                                            Map<String, Object> updatedGeneratedColumns) {
-        SymbolToFieldExtractorContext ctx = new SymbolToFieldExtractorContext(functions, new Object[]{});
-        for (GeneratedReference reference : generatedColumns) {
-            String columnPath = reference.ident().columnIdent().fqn();
-            if (!updatedGeneratedColumns.containsKey(columnPath) && reference.referencedReferences().isEmpty()) {
-                Object value = SYMBOL_TO_FIELD_EXTRACTOR.convert(reference.generatedExpression(), ctx).apply(null);
-                ConstraintsValidator.validate(value, reference);
-                pathsToUpdate.put(columnPath, value);
-            }
         }
     }
 
@@ -571,18 +554,23 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
     }
 
+    /**
+     * Evaluation is needed either if expression contains no reference at all
+     * or if a referenced column value has changed.
+     */
     private boolean generatedExpressionEvaluationNeeded(List<Reference> referencedReferences,
                                                         Collection<String> updatedColumns) {
+        boolean evalNeeded = referencedReferences.isEmpty();
         for (Reference reference : referencedReferences) {
             for (String columnName : updatedColumns) {
                 if (reference.ident().columnIdent().fqn().equals(columnName)
                     || reference.ident().columnIdent().isChildOf(ColumnIdent.fromPath(columnName))) {
-                    return true;
+                    evalNeeded = true;
+                    break;
                 }
             }
         }
-
-        return false;
+        return evalNeeded;
     }
 
     /**
