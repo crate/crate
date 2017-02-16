@@ -102,8 +102,8 @@ public class BatchIteratorTester {
 
     }
 
-    private void testMoveNextAfterMoveNextReturnedFalse(BatchIterator it) {
-        CollectingBatchConsumer.moveToEnd(it);
+    private void testMoveNextAfterMoveNextReturnedFalse(BatchIterator it) throws Exception {
+        CollectingBatchConsumer.moveToEnd(it).toCompletableFuture().get(10, TimeUnit.SECONDS);
         assertThat(it.moveNext(), is(false));
     }
 
