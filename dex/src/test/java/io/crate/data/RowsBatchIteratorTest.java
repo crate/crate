@@ -23,11 +23,15 @@
 package io.crate.data;
 
 import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.RowGenerator;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 public class RowsBatchIteratorTest {
 
@@ -38,6 +42,27 @@ public class RowsBatchIteratorTest {
         BatchIteratorTester tester = new BatchIteratorTester(
             batchIteratorSupplier,
             Arrays.asList(new Object[] { 10 }, new Object[] { 20 })
+        );
+        tester.run();
+    }
+
+    @Test
+    public void testCollectRowsWithSimulatedBatches() throws Exception {
+        Iterable<Row> rows = RowGenerator.range(0, 50);
+        Supplier<BatchIterator> batchIteratorSupplier = () -> {
+            return new CloseAssertingBatchIterator(
+                new BatchSimulatingIterator(
+                    RowsBatchIterator.newInstance(rows),
+                    10,
+                    5
+                )
+            );
+        };
+        BatchIteratorTester tester = new BatchIteratorTester(
+            batchIteratorSupplier,
+            StreamSupport.stream(rows.spliterator(), false)
+                .map(Row::materialize)
+                .collect(Collectors.toList())
         );
         tester.run();
     }
