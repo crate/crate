@@ -30,17 +30,18 @@ import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 class DMLProjector<Request extends ShardRequest> extends AbstractProjector {
 
     private final ShardId shardId;
     private final CollectExpression<Row, ?> collectUidExpression;
-    private final AtomicBoolean failed = new AtomicBoolean(false);
 
     private final BulkShardProcessor<Request> bulkShardProcessor;
     private final Function<String, ShardRequest.Item> itemFactory;
+
+    private final CompletableFuture<RepeatHandle> upstreamFinishedFuture = new CompletableFuture<>();
 
     DMLProjector(ShardId shardId,
                  CollectExpression<Row, ?> collectUidExpression,
@@ -65,31 +66,25 @@ class DMLProjector<Request extends ShardRequest> extends AbstractProjector {
     @Override
     public void finish(RepeatHandle repeatHandle) {
         bulkShardProcessor.close();
+        upstreamFinishedFuture.complete(repeatHandle);
     }
 
     @Override
     public void downstream(RowReceiver rowReceiver) {
         super.downstream(rowReceiver);
-        BulkProcessorFutureCallback bulkProcessorFutureCallback = new BulkProcessorFutureCallback(failed, rowReceiver);
-        bulkShardProcessor.result().whenComplete(bulkProcessorFutureCallback);
+        BulkProcessorResultHandler.registerHandler(bulkShardProcessor.result(), upstreamFinishedFuture, rowReceiver);
     }
 
     @Override
     public void fail(Throwable throwable) {
-        failed.set(true);
-        downstream.fail(throwable);
-
-        if (throwable instanceof InterruptedException) {
-            bulkShardProcessor.kill(throwable);
-        } else {
-            bulkShardProcessor.close();
-        }
+        upstreamFinishedFuture.completeExceptionally(throwable);
+        bulkShardProcessor.kill(throwable);
     }
 
     @Override
     public void kill(Throwable throwable) {
-        failed.set(true);
         super.kill(throwable);
         bulkShardProcessor.kill(throwable);
+        upstreamFinishedFuture.completeExceptionally(throwable);
     }
 }

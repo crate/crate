@@ -54,7 +54,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 public class IndexWriterProjector extends AbstractProjector {
@@ -64,7 +64,7 @@ public class IndexWriterProjector extends AbstractProjector {
     private final Supplier<String> indexNameResolver;
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
     private final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor;
-    private final AtomicBoolean failed = new AtomicBoolean(false);
+    private final CompletableFuture<RepeatHandle> upstreamFinished = new CompletableFuture<>();
 
     public IndexWriterProjector(ClusterService clusterService,
                                 Functions functions,
@@ -124,8 +124,7 @@ public class IndexWriterProjector extends AbstractProjector {
     @Override
     public void downstream(RowReceiver rowReceiver) {
         super.downstream(rowReceiver);
-        BulkProcessorFutureCallback bulkProcessorFutureCallback = new BulkProcessorFutureCallback(failed, rowReceiver);
-        bulkShardProcessor.result().whenComplete(bulkProcessorFutureCallback);
+        BulkProcessorResultHandler.registerHandler(bulkShardProcessor.result(), upstreamFinished, rowReceiver);
     }
 
     @Override
@@ -145,19 +144,19 @@ public class IndexWriterProjector extends AbstractProjector {
     @Override
     public void finish(RepeatHandle repeatHandle) {
         bulkShardProcessor.close();
+        upstreamFinished.complete(repeatHandle);
     }
 
     @Override
     public void fail(Throwable throwable) {
-        failed.set(true);
-        downstream.fail(throwable);
+        upstreamFinished.completeExceptionally(throwable);
         bulkShardProcessor.kill(throwable);
     }
 
     @Override
     public void kill(Throwable throwable) {
-        failed.set(true);
         super.kill(throwable);
+        upstreamFinished.completeExceptionally(throwable);
         bulkShardProcessor.kill(throwable);
     }
 
