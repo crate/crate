@@ -621,7 +621,8 @@ public class DocIndexMetaData {
         PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
             .mapping(Constants.DEFAULT_MAPPING_TYPE, md.defaultMappingMap)
             .create(false)
-            .settings(updateSettings)
+            .settings(updateSettings.filter(s ->
+                s.equals(IndexMetaData.SETTING_VERSION_CREATED) == false))
             .template(templateName + "*");
         for (String alias : md.aliases()) {
             request = request.alias(new Alias(alias));
