@@ -27,25 +27,23 @@ import io.crate.data.BatchIterator;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 
 public class CollectingBatchConsumer implements BatchConsumer {
 
     private final List<Object[]> rows = new ArrayList<>();
     private final CompletableFuture<List<Object[]>> result = new CompletableFuture<>();
 
-    public static void moveToEnd(BatchIterator it) {
+    public static CompletionStage<?> moveToEnd(BatchIterator it) {
         //noinspection StatementWithEmptyBody
         while (it.moveNext()) {
             // nothing
         }
-
         if (it.allLoaded() == false) {
-            it.loadNextBatch().thenAccept(ignored -> moveToEnd(it));
+            CompletionStage<?> completionStage = it.loadNextBatch();
+            return completionStage.thenCompose(i -> moveToEnd(it));
         }
+        return CompletableFuture.completedFuture(null);
     }
 
     @Override
