@@ -29,7 +29,7 @@ import java.util.concurrent.CompletionStage;
 public class CloseAssertingBatchIterator implements BatchIterator {
 
     private final BatchIterator delegate;
-    private volatile boolean closed = false;
+    private boolean closed = false;
 
     public CloseAssertingBatchIterator(BatchIterator delegate) {
         this.delegate = delegate;
