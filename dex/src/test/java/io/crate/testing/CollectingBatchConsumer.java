@@ -35,41 +35,22 @@ public class CollectingBatchConsumer implements BatchConsumer {
     private final CompletableFuture<List<Object[]>> result = new CompletableFuture<>();
 
     public static CompletionStage<?> moveToEnd(BatchIterator it) {
-        //noinspection StatementWithEmptyBody
-        while (it.moveNext()) {
-            // nothing
-        }
-        if (it.allLoaded() == false) {
-            CompletionStage<?> completionStage = it.loadNextBatch();
-            return completionStage.thenCompose(i -> moveToEnd(it));
-        }
-        return CompletableFuture.completedFuture(null);
+        return BatchRowVisitor.visitRows(it, r -> {});
     }
 
     @Override
     public void accept(BatchIterator it, Throwable failure) {
-        result.whenComplete((ignored, t) -> it.close());
         if (failure == null) {
-            consumeCursor(it);
-        } else {
-            result.completeExceptionally(failure);
-        }
-    }
-
-    private void consumeCursor(BatchIterator it) {
-        while (it.moveNext()) {
-            rows.add(it.currentRow().materialize());
-        }
-        if (it.allLoaded()) {
-            result.complete(rows);
-        } else {
-            it.loadNextBatch().whenComplete((r, t) -> {
+            BatchRowVisitor.visitRows(it, r -> rows.add(r.materialize())).whenComplete((r, t) -> {
                 if (t == null) {
-                    consumeCursor(it);
+                    result.complete(rows);
                 } else {
                     result.completeExceptionally(t);
                 }
+                it.close();
             });
+        } else {
+            result.completeExceptionally(failure);
         }
     }
 
