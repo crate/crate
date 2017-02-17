@@ -34,7 +34,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.executor.Executor;
 import io.crate.operation.collect.stats.JobsLogs;
@@ -163,7 +163,7 @@ public class SimplePortal extends AbstractPortal {
         try {
             plan = planner.plan(analysis, jobId, defaultLimit, maxRows);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(jobId, query, Exceptions.messageOf(t));
+            jobsLogs.logPreExecutionFailure(jobId, query, SQLExceptions.messageOf(t));
             throw t;
         }
 
@@ -269,7 +269,7 @@ public class SimplePortal extends AbstractPortal {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            if (attempt <= Constants.MAX_SHARD_MISSING_RETRIES && Exceptions.isShardFailure(t)) {
+            if (attempt <= Constants.MAX_SHARD_MISSING_RETRIES && SQLExceptions.isShardFailure(t)) {
                 attempt += 1;
                 retry();
             } else {
