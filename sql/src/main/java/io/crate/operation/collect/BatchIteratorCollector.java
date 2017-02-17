@@ -32,9 +32,11 @@ public class BatchIteratorCollector implements CrateCollector {
 
     private final BatchIterator batchIterator;
     private final BatchConsumerToRowReceiver consumer;
+    private final RowReceiver rowReceiver;
 
     public BatchIteratorCollector(BatchIterator batchIterator, RowReceiver rowReceiver) {
         this.batchIterator = batchIterator;
+        this.rowReceiver = rowReceiver;
         this.consumer = new BatchConsumerToRowReceiver(rowReceiver);
     }
 
@@ -45,6 +47,6 @@ public class BatchIteratorCollector implements CrateCollector {
 
     @Override
     public void kill(@Nullable Throwable throwable) {
-        batchIterator.close();
+        rowReceiver.kill(throwable);
     }
 }
