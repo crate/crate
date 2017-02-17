@@ -169,20 +169,10 @@ public class FileReadingIterator implements BatchIterator {
                     return true;
                 }
             } else if (currentInputIterator != null && currentInputIterator.hasNext()) {
-                currentUri = currentInputIterator.next();
-                initCurrentReader(currentInput.v1(), currentUri);
+                advanceToNextUri(currentInput.v1());
                 return moveNext();
             } else if (fileInputsIterator != null && fileInputsIterator.hasNext()) {
-                currentInput = fileInputsIterator.next();
-                FileInput fileInput = currentInput.v1();
-                UriWithGlob fileUri = currentInput.v2();
-                Predicate<URI> uriPredicate = generateUriPredicate(fileInput, fileUri.globPredicate);
-                List<URI> uris = getUris(fileInput, fileUri.uri, fileUri.preGlobUri, uriPredicate);
-                if (uris.size() > 0) {
-                    currentInputIterator = uris.iterator();
-                    currentUri = currentInputIterator.next();
-                    initCurrentReader(fileInput, currentUri);
-                }
+                advanceToNextFileInput();
                 return moveNext();
             } else {
                 releaseBatchIteratorState();
@@ -195,6 +185,23 @@ public class FileReadingIterator implements BatchIterator {
 
         currentRow = OFF_ROW;
         return false;
+    }
+
+    private void advanceToNextUri(FileInput fileInput) throws IOException {
+        currentUri = currentInputIterator.next();
+        initCurrentReader(fileInput, currentUri);
+    }
+
+    private void advanceToNextFileInput() throws IOException {
+        currentInput = fileInputsIterator.next();
+        FileInput fileInput = currentInput.v1();
+        UriWithGlob fileUri = currentInput.v2();
+        Predicate<URI> uriPredicate = generateUriPredicate(fileInput, fileUri.globPredicate);
+        List<URI> uris = getUris(fileInput, fileUri.uri, fileUri.preGlobUri, uriPredicate);
+        if (uris.size() > 0) {
+            currentInputIterator = uris.iterator();
+            advanceToNextUri(fileInput);
+        }
     }
 
     @Override
