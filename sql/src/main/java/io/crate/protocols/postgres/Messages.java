@@ -24,7 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.analyze.symbol.Field;
 import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
@@ -197,7 +197,7 @@ class Messages {
      * See https://www.postgresql.org/docs/9.2/static/protocol-error-fields.html for a list of error codes
      */
     static void sendErrorResponse(Channel channel, Throwable throwable) {
-        final String message = Exceptions.messageOf(throwable);
+        final String message = SQLExceptions.messageOf(throwable);
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
         byte[] severity = "ERROR".getBytes(StandardCharsets.UTF_8);
         byte[] lineNumber = null;

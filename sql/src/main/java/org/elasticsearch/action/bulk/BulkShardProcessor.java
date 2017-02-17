@@ -30,7 +30,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
 import io.crate.Constants;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.JobKilledException;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
@@ -265,7 +265,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
                     @Override
                     public void onFailure(Throwable t) {
-                        t = Exceptions.unwrap(t, throwable -> throwable instanceof RuntimeException);
+                        t = SQLExceptions.unwrap(t, throwable -> throwable instanceof RuntimeException);
                         if (t instanceof ClassCastException || t instanceof NotSerializableExceptionWrapper) {
                             // this is caused by passing mixed argument types into a bulk upsert.
                             // it can happen after an valid request already succeeded and data was written.
@@ -445,7 +445,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                                 final Request request,
                                 Optional<BulkRetryCoordinator> retryCoordinator) {
         trace("execute failure");
-        e = Exceptions.unwrap(e);
+        e = SQLExceptions.unwrap(e);
 
         // index missing exception on a partition should never bubble, mark all items as failed instead
         if (e instanceof IndexNotFoundException && PartitionName.isPartition(request.index())) {
