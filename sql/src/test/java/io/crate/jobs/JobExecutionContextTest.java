@@ -40,7 +40,6 @@ import org.mockito.Mockito;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
@@ -125,7 +124,6 @@ public class JobExecutionContextTest extends CrateUnitTest {
             Loggers.getLogger(PageDownstreamContext.class),
             "n1",
             2, "dummy",
-            Optional.empty(),
             new CollectingRowReceiver(),
             PassThroughPagingIterator.oneShot(),
             new Streamer[]{IntegerType.INSTANCE.streamer()},
