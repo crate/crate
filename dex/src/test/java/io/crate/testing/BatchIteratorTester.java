@@ -25,6 +25,7 @@ package io.crate.testing;
 import io.crate.data.BatchIterator;
 import org.hamcrest.Matchers;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
@@ -56,6 +57,18 @@ public class BatchIteratorTester {
         testMoveNextAfterMoveNextReturnedFalse(it.get());
         testAccessRowAfterMoveNextReturnedFalse(it.get());
         testIllegalStateIsRaisedIfMoveIsCalledWhileLoadingNextBatch(it.get());
+        testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(it.get());
+    }
+
+    private void testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(BatchIterator it) throws Exception {
+        List<Object[]> firstResult = new ArrayList<>();
+        BatchRowVisitor.visitRows(it, r -> firstResult.add(r.materialize())).get(10, TimeUnit.SECONDS);
+
+        it.moveToStart();
+
+        List<Object[]> secondResult = new ArrayList<>();
+        BatchRowVisitor.visitRows(it, r -> secondResult.add(r.materialize())).get(10, TimeUnit.SECONDS);
+        assertThat(firstResult, Matchers.contains(secondResult.toArray(new Object[0][])));
     }
 
     private void testIllegalStateIsRaisedIfMoveIsCalledWhileLoadingNextBatch(BatchIterator it) {
@@ -76,11 +89,9 @@ public class BatchIteratorTester {
         }
     }
 
-    private void testCurrentRowIsInvalidAfterMoveToFirst(BatchIterator it) {
-        it.moveNext();
-        it.moveNext();
+    private void testCurrentRowIsInvalidAfterMoveToFirst(BatchIterator it) throws Exception {
+        CollectingBatchConsumer.moveToEnd(it).toCompletableFuture().get(10, TimeUnit.SECONDS);
         it.moveToStart();
-
         assertMaterializeFails(it);
     }
 
@@ -119,11 +130,11 @@ public class BatchIteratorTester {
         ExecutorService executor = Executors.newFixedThreadPool(3);
         try {
             CompletableFuture<Object[]> firstRow = CompletableFuture.supplyAsync(() -> {
-                it.moveNext();
+                assertThat("it should have at least two rows, first missing", it.moveNext(), is(true));
                 return it.currentRow().materialize();
             }, executor);
             CompletableFuture<Object[]> secondRow = firstRow.thenApplyAsync(row -> {
-                it.moveNext();
+                assertThat("it should have at least two rows", it.moveNext(), is(true));
                 return it.currentRow().materialize();
             }, executor);
 
