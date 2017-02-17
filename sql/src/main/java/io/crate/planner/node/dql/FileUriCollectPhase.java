@@ -26,7 +26,6 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.TransactionContext;
-import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.projection.Projection;

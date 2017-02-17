@@ -31,13 +31,13 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class ExceptionsTest {
+public class SQLExceptionsTest {
 
     @Test
     public void testUnwrap() {
         String msg = "cannot cast";
         Throwable t = new UncheckedExecutionException(new ExecutionException(new ClassCastException(msg)));
-        Throwable unwrapped = Exceptions.unwrap(t);
+        Throwable unwrapped = SQLExceptions.unwrap(t);
         assertThat(unwrapped, instanceOf(ClassCastException.class));
         assertThat(unwrapped.getMessage(), is(msg));
     }

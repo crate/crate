@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.data.CollectionBucket;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -601,7 +601,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         try {
             execute(plan).completionFuture().get(1, TimeUnit.SECONDS);
         } catch (Throwable t) {
-            throw Exceptions.unwrap(t);
+            throw SQLExceptions.unwrap(t);
         }
     }
 

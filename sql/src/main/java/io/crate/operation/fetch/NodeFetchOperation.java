@@ -31,7 +31,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.StreamBucket;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
@@ -131,7 +131,7 @@ public class NodeFetchOperation {
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                jobsLogs.operationFinished(phaseId, jobId, Exceptions.messageOf(t), 0);
+                jobsLogs.operationFinished(phaseId, jobId, SQLExceptions.messageOf(t), 0);
             }
         });
     }

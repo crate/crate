@@ -27,18 +27,14 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.data.Bucket;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.search.SearchRequest;
-import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
@@ -96,7 +92,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         try {
             future.get(5, TimeUnit.SECONDS);
         } catch (Throwable t) {
-            throw Exceptions.unwrap(t);
+            throw SQLExceptions.unwrap(t);
         }
     }
 
@@ -113,7 +109,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         try {
             future.get(5, TimeUnit.SECONDS);
         } catch (Throwable t) {
-            throw Exceptions.unwrap(t);
+            throw SQLExceptions.unwrap(t);
         }
     }
 

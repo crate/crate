@@ -22,7 +22,7 @@
 package org.elasticsearch.action.bulk;
 
 import io.crate.action.LimitedExponentialBackoff;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
 import org.elasticsearch.action.ActionListener;
@@ -161,7 +161,7 @@ public class BulkRetryCoordinator {
 
         @Override
         public void onFailure(Throwable e) {
-            e = Exceptions.unwrap(e);
+            e = SQLExceptions.unwrap(e);
             if (e instanceof EsRejectedExecutionException && operation.delay.hasNext()) {
                 threadPool.schedule(operation.delay.next(), ThreadPool.Names.SAME, new Runnable() {
                     @Override

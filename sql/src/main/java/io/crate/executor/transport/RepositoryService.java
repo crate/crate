@@ -25,7 +25,7 @@ package io.crate.executor.transport;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.analyze.DropRepositoryAnalyzedStatement;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.RepositoryUnknownException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
@@ -152,7 +152,7 @@ public class RepositoryService {
 
     @VisibleForTesting
     static Throwable convertRepositoryException(Throwable e) {
-        e = Exceptions.unwrap(e);
+        e = SQLExceptions.unwrap(e);
         Throwable cause = e.getCause();
 
         /**

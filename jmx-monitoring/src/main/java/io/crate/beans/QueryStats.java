@@ -23,7 +23,7 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -173,7 +173,7 @@ public class QueryStats implements QueryStatsMBean {
             session.sync();
             return metrics.getOrDefault(queryUID, .0);
         } catch (Throwable t) {
-            throw Exceptions.createSQLActionException(t);
+            throw SQLExceptions.createSQLActionException(t);
         }
     }
 

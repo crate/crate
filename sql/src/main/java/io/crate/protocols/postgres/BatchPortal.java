@@ -33,7 +33,7 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.projectors.RowReceiver;
@@ -132,7 +132,7 @@ class BatchPortal extends AbstractPortal {
             try {
                 plan = planner.plan(analysis.get(i), jobId, 0, 0);
             } catch (Throwable t) {
-                jobsLogs.logPreExecutionFailure(jobId, stmt, Exceptions.messageOf(t));
+                jobsLogs.logPreExecutionFailure(jobId, stmt, SQLExceptions.messageOf(t));
                 throw t;
             }
             ResultReceiver resultReceiver = resultReceivers.get(i);

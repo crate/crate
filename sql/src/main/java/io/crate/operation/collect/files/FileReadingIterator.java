@@ -24,15 +24,17 @@ package io.crate.operation.collect.files;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import io.crate.concurrent.CompletableFutures;
+import io.crate.data.BatchIterator;
+import io.crate.data.CloseAssertingBatchIterator;
 import io.crate.data.Input;
+import io.crate.data.Row;
 import io.crate.operation.InputRow;
-import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.file.LineContext;
+import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -48,50 +50,235 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 
-public class FileReadingCollector implements CrateCollector {
+import static io.crate.exceptions.Exceptions.rethrowUnchecked;
 
-    private static final ESLogger LOGGER = Loggers.getLogger(FileReadingCollector.class);
+public class FileReadingIterator implements BatchIterator {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(FileReadingIterator.class);
     public static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
     private final Map<String, FileInputFactory> fileInputFactories;
     private final Boolean shared;
     private final int numReaders;
     private final int readerNumber;
-    private final InputRow row;
-    private final RowReceiver downstream;
+    private final InputRow inputRow;
     private final boolean compressed;
-    private final Iterable<LineCollectorExpression<?>> collectorExpressions;
 
     private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("(.*)[^\\\\]\\*.*");
-    private static final Predicate<URI> MATCH_ALL_PREDICATE = new Predicate<URI>() {
-        @Override
-        public boolean apply(@Nullable URI input) {
-            return true;
-        }
-    };
-    private final List<UriWithGlob> fileUris;
+    private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI input) -> true;
 
-    public FileReadingCollector(Collection<String> fileUris,
+    private Row currentRow = BatchIterator.OFF_ROW;
+    private final List<UriWithGlob> urisWithGlob;
+    private final Iterable<LineCollectorExpression<?>> collectorExpressions;
+    private List<Tuple<FileInput, UriWithGlob>> fileInputs;
+    private Iterator<Tuple<FileInput, UriWithGlob>> fileInputsIterator = null;
+    private Tuple<FileInput, UriWithGlob> currentInput = null;
+    private Iterator<URI> currentInputIterator = null;
+    private URI currentUri;
+    private BufferedReader currentReader = null;
+    private long currentLineNumber;
+    private LineContext lineContext;
+
+    private FileReadingIterator(Collection<String> fileUris,
                                 List<Input<?>> inputs,
                                 Iterable<LineCollectorExpression<?>> collectorExpressions,
-                                RowReceiver downstream,
                                 String compression,
                                 Map<String, FileInputFactory> fileInputFactories,
                                 Boolean shared,
                                 int numReaders,
                                 int readerNumber) {
-        this.fileUris = getUrisWithGlob(fileUris);
-        this.downstream = downstream;
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
-        this.row = new InputRow(inputs);
-        this.collectorExpressions = collectorExpressions;
+        this.inputRow = new InputRowExceptionHandlingProxy(inputs);
         this.fileInputFactories = fileInputFactories;
         this.shared = shared;
         this.numReaders = numReaders;
         this.readerNumber = readerNumber;
+        this.urisWithGlob = getUrisWithGlob(fileUris);
+        this.collectorExpressions = collectorExpressions;
+        initCollectorState();
+    }
+
+    private class InputRowExceptionHandlingProxy extends InputRow {
+
+        public InputRowExceptionHandlingProxy(List<Input<?>> inputs) {
+            super(inputs);
+        }
+
+        @Override
+        public Object get(int index) {
+            try {
+                return super.get(index);
+            } catch (ElasticsearchParseException e) {
+                throw new ElasticsearchParseException(String.format(Locale.ENGLISH,
+                    "Failed to parse JSON in line: %d in file: \"%s\"%n" +
+                    "Original error message: %s", currentLineNumber, currentUri, e.getMessage()), e);
+            }
+        }
+    }
+
+    public static BatchIterator newInstance(Collection<String> fileUris,
+                                            List<Input<?>> inputs,
+                                            Iterable<LineCollectorExpression<?>> collectorExpressions,
+                                            String compression,
+                                            Map<String, FileInputFactory> fileInputFactories,
+                                            Boolean shared,
+                                            int numReaders,
+                                            int readerNumber) {
+        return new CloseAssertingBatchIterator(new FileReadingIterator(fileUris, inputs, collectorExpressions,
+            compression, fileInputFactories, shared, numReaders, readerNumber));
+    }
+
+    private void initCollectorState() {
+        lineContext = new LineContext();
+        for (LineCollectorExpression<?> collectorExpression : collectorExpressions) {
+            collectorExpression.startCollect(lineContext);
+        }
+        fileInputs = new ArrayList<>(urisWithGlob.size());
+        for (UriWithGlob fileUri : urisWithGlob) {
+            try {
+                FileInput fileInput = getFileInput(fileUri.uri);
+                fileInputs.add(new Tuple<>(fileInput, fileUri));
+            } catch (IOException e) {
+                rethrowUnchecked(e);
+            }
+        }
+        fileInputsIterator = fileInputs.iterator();
+    }
+
+    @Override
+    public void moveToStart() {
+        initCollectorState();
+        currentRow = OFF_ROW;
+    }
+
+    @Override
+    public boolean moveNext() {
+        try {
+            if (currentReader != null) {
+                String line = getLine(currentReader, currentLineNumber, 0);
+                if (line == null) {
+                    closeCurrentReader();
+                    return moveNext();
+                } else {
+                    lineContext.rawSource(line.getBytes(StandardCharsets.UTF_8));
+                    currentRow = inputRow;
+                    return true;
+                }
+            } else if (currentInputIterator != null && currentInputIterator.hasNext()) {
+                advanceToNextUri(currentInput.v1());
+                return moveNext();
+            } else if (fileInputsIterator != null && fileInputsIterator.hasNext()) {
+                advanceToNextFileInput();
+                return moveNext();
+            } else {
+                releaseBatchIteratorState();
+                currentRow = OFF_ROW;
+                return false;
+            }
+        } catch (IOException e) {
+            rethrowUnchecked(e);
+        }
+
+        currentRow = OFF_ROW;
+        return false;
+    }
+
+    private void advanceToNextUri(FileInput fileInput) throws IOException {
+        currentUri = currentInputIterator.next();
+        initCurrentReader(fileInput, currentUri);
+    }
+
+    private void advanceToNextFileInput() throws IOException {
+        currentInput = fileInputsIterator.next();
+        FileInput fileInput = currentInput.v1();
+        UriWithGlob fileUri = currentInput.v2();
+        Predicate<URI> uriPredicate = generateUriPredicate(fileInput, fileUri.globPredicate);
+        List<URI> uris = getUris(fileInput, fileUri.uri, fileUri.preGlobUri, uriPredicate);
+        if (uris.size() > 0) {
+            currentInputIterator = uris.iterator();
+            advanceToNextUri(fileInput);
+        }
+    }
+
+    @Override
+    public Row currentRow() {
+        return currentRow;
+    }
+
+    private void initCurrentReader(FileInput fileInput, URI uri) throws IOException {
+        InputStream stream = fileInput.getStream(uri);
+        if (stream != null) {
+            currentReader = createBufferedReader(stream);
+            currentLineNumber = 0;
+        }
+    }
+
+    private void closeCurrentReader() {
+        if (currentReader != null) {
+            IOUtils.closeWhileHandlingException(currentReader);
+            currentReader = null;
+        }
+    }
+
+    private String getLine(BufferedReader reader, long startFrom, int retry) throws IOException {
+        String line = null;
+        try {
+            while ((line = reader.readLine()) != null) {
+                currentLineNumber++;
+                if (currentLineNumber < startFrom) {
+                    continue;
+                }
+                if (line.length() == 0) {
+                    continue;
+                }
+                break;
+            }
+        } catch (SocketTimeoutException e) {
+            if (retry > MAX_SOCKET_TIMEOUT_RETRIES) {
+                URI uri = currentInput.v2().uri;
+                LOGGER.info("Timeout during COPY FROM '{}' after {} retries", e, uri.toString(), retry);
+                throw e;
+            } else {
+                long startLine = currentLineNumber + 1;
+                closeCurrentReader();
+                initCurrentReader(currentInput.v1(), currentUri);
+                return getLine(currentReader, startLine, retry + 1);
+            }
+        } catch (Exception e) {
+            URI uri = currentInput.v2().uri;
+            // it's nice to know which exact file/uri threw an error
+            // when COPY FROM returns less rows than expected
+            LOGGER.info("Error during COPY FROM '{}'", e, uri.toString());
+            rethrowUnchecked(e);
+        }
+        return line;
+    }
+
+    @Override
+    public void close() {
+        closeCurrentReader();
+        releaseBatchIteratorState();
+    }
+
+    private void releaseBatchIteratorState() {
+        fileInputsIterator = null;
+        currentInputIterator = null;
+        currentInput = null;
+        currentUri = null;
+    }
+
+    @Override
+    public CompletableFuture<?> loadNextBatch() {
+        return CompletableFutures.failedFuture(new IllegalStateException("All batches already loaded"));
+    }
+
+    @Override
+    public boolean allLoaded() {
+        return true;
     }
 
     private static class UriWithGlob {
@@ -151,7 +338,7 @@ public class FileReadingCollector implements CrateCollector {
         return uris;
     }
 
-    private static URI toURI(String fileUri) {
+    private URI toURI(String fileUri) {
         if (fileUri.startsWith("/")) {
             // using Paths.get().toUri instead of new URI(...) as it also encodes umlauts and other special characters
             return Paths.get(fileUri).toUri();
@@ -176,100 +363,7 @@ public class FileReadingCollector implements CrateCollector {
         return new URLFileInput(fileUri);
     }
 
-    @Override
-    public void doCollect() {
-        LineContext context = new LineContext();
-        for (LineCollectorExpression<?> collectorExpression : collectorExpressions) {
-            collectorExpression.startCollect(context);
-        }
-
-        fileUriLoop:
-        for (UriWithGlob fileUri : fileUris) {
-            FileInput fileInput;
-            try {
-                fileInput = getFileInput(fileUri.uri);
-            } catch (IOException e) {
-                downstream.fail(e);
-                return;
-            }
-
-            Predicate<URI> uriPredicate = generateUriPredicate(fileInput, fileUri.globPredicate);
-            List<URI> uris;
-            try {
-                uris = getUris(fileInput, fileUri.uri, fileUri.preGlobUri, uriPredicate);
-                for (URI uri : uris) {
-                    if (!readLines(fileInput, context, uri, 0, 0)) {
-                        // break out nested loop and finish normally
-                        break fileUriLoop;
-                    }
-                }
-            } catch (Throwable e) {
-                downstream.fail(e);
-                return;
-            }
-        }
-        downstream.finish(RepeatHandle.UNSUPPORTED);
-    }
-
-    @Override
-    public void kill(@Nullable Throwable throwable) {
-        downstream.kill(throwable);
-    }
-
-    private boolean readLines(FileInput fileInput,
-                              LineContext lineContext,
-                              URI uri,
-                              long startLine,
-                              int retry) throws IOException {
-        InputStream inputStream = fileInput.getStream(uri);
-        if (inputStream == null) {
-            return true;
-        }
-
-        String line;
-        long linesRead = 0L;
-        try (BufferedReader reader = createReader(inputStream)) {
-            while ((line = reader.readLine()) != null) {
-                linesRead++;
-                if (linesRead < startLine) {
-                    continue;
-                }
-                if (line.length() == 0) { // skip empty lines
-                    continue;
-                }
-                lineContext.rawSource(line.getBytes(StandardCharsets.UTF_8));
-                RowReceiver.Result result = downstream.setNextRow(row);
-                switch (result) {
-                    case CONTINUE:
-                        continue;
-                    case PAUSE:
-                        throw new UnsupportedOperationException("FileReadingCollector doesn't support pause");
-                    case STOP:
-                        return false;
-                }
-                throw new AssertionError("Unrecognized setNextRow result: " + result);
-            }
-        } catch (SocketTimeoutException e) {
-            if (retry > MAX_SOCKET_TIMEOUT_RETRIES) {
-                LOGGER.info("Timeout during COPY FROM '{}' after {} retries", e, uri.toString(), retry);
-                throw e;
-            } else {
-                return readLines(fileInput, lineContext, uri, linesRead + 1, retry + 1);
-            }
-        } catch (ElasticsearchParseException e) {
-            throw new ElasticsearchParseException(String.format(Locale.ENGLISH,
-                "Failed to parse JSON in line: %d in file: \"%s\"%n" +
-                "Original error message: %s", linesRead, uri, e.getMessage()), e);
-        } catch (Exception e) {
-            // it's nice to know which exact file/uri threw an error
-            // when COPY FROM returns less rows than expected
-            LOGGER.info("Error during COPY FROM '{}'", e, uri.toString());
-            throw Throwables.propagate(e);
-        }
-        return true;
-    }
-
-    private BufferedReader createReader(InputStream inputStream) throws IOException {
+    private BufferedReader createBufferedReader(InputStream inputStream) throws IOException {
         BufferedReader reader;
         if (compressed) {
             reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(inputStream),

@@ -22,10 +22,9 @@
 package io.crate.executor.transport;
 
 import com.google.common.base.Joiner;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.CreateTableAnalyzedStatement;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.ActionListener;
@@ -134,7 +133,7 @@ public class TableCreator {
 
 
     private void setException(CompletableFuture<Long> result, Throwable e, CreateTableAnalyzedStatement statement) {
-        e = Exceptions.unwrap(e);
+        e = SQLExceptions.unwrap(e);
         String message = e.getMessage();
         if ("mapping [default]".equals(message) && e.getCause() != null) {
             // this is a generic mapping parse exception,
