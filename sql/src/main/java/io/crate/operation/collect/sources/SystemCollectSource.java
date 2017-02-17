@@ -36,7 +36,7 @@ import io.crate.metadata.pg_catalog.PgCatalogTables;
 import io.crate.metadata.pg_catalog.PgTypeTable;
 import io.crate.metadata.sys.*;
 import io.crate.operation.InputFactory;
-import io.crate.operation.collect.BatchIteratorCollector;
+import io.crate.operation.collect.BatchIteratorCollectorBridge;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsTransformer;
@@ -174,7 +174,7 @@ public class SystemCollectSource implements CollectSource {
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";
         boolean requiresRepeat = downstream.requirements().contains(Requirement.REPEAT);
         return ImmutableList.of(
-            new BatchIteratorCollector(
+            BatchIteratorCollectorBridge.newInstance(
                 () -> iterableGetter.get().thenApply(dataIterable -> RowsBatchIterator.newInstance(
                     dataIterableToRowsIterable(routedCollectPhase, requiresRepeat, dataIterable))),
                 downstream
