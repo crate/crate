@@ -28,21 +28,18 @@ import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -50,23 +47,11 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
-public class FileReadingIteratorTest {
+public class FileReadingIteratorTest extends CrateUnitTest {
 
-    private static File tmpFile;
     private InputFactory inputFactory;
-
-    @BeforeClass
-    public static void setUpClass() throws Exception {
-        Path copy_from = Files.createTempDirectory("copy_from");
-        tmpFile = File.createTempFile("fileReadingCollector", ".json", copy_from.toFile());
-        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
-            writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
-            writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
-        }
-    }
+    private Path tempFilePath;
 
     @Before
     public void prepare() throws Exception {
@@ -75,16 +60,18 @@ public class FileReadingIteratorTest {
             ImmutableMap.<String, FunctionResolver>of()
         );
         inputFactory = new InputFactory(functions);
-    }
 
-    @AfterClass
-    public static void tearDownClass() throws Exception {
-        assertThat(tmpFile.delete(), is(true));
+        tempFilePath = createTempFile();
+        File tmpFile = tempFilePath.toFile();
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
+            writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
+            writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
+        }
     }
 
     @Test
     public void testIteratorContract() throws Exception {
-        String fileUri = Paths.get(tmpFile.getParentFile().toURI()).toUri().toString() + "file*.json";
+        String fileUri = tempFilePath.toUri().toString();
         Supplier<BatchIterator> batchIteratorSupplier = () -> createBatchIterator(
             Collections.singletonList(fileUri), null
         );
