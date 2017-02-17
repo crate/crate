@@ -20,30 +20,25 @@
  * agreement.
  */
 
-package io.crate.protocols.postgres;
+package io.crate.exceptions;
 
-import io.crate.exceptions.SQLExceptions;
-import io.crate.operation.collect.stats.JobsLogs;
+public final class Exceptions {
 
-import java.util.UUID;
-import java.util.function.BiConsumer;
-
-public class JobsLogsUpdateListener implements BiConsumer<Object, Throwable> {
-
-    private final UUID jobId;
-    private final JobsLogs jobsLogs;
-
-    public JobsLogsUpdateListener(UUID jobId, JobsLogs jobsLogs) {
-        this.jobId = jobId;
-        this.jobsLogs = jobsLogs;
+    private Exceptions() {
     }
 
-    @Override
-    public void accept(Object o, Throwable t) {
-        if (t == null) {
-            jobsLogs.logExecutionEnd(jobId, null);
-        } else {
-            jobsLogs.logExecutionEnd(jobId, SQLExceptions.messageOf(t));
-        }
+    /**
+     * Rethrow an {@link java.lang.Throwable} preserving the stack trace but making it unchecked.
+     *
+     * @param ex to be rethrown and unchecked.
+     */
+    public static void rethrowUnchecked(final Throwable ex) {
+        Exceptions.<RuntimeException>rethrow(ex);
     }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void rethrow(final Throwable t) throws T {
+        throw (T) t;
+    }
+
 }

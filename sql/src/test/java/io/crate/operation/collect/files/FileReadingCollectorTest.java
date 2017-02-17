@@ -28,12 +28,14 @@ import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.ImmutableMap;
+import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.external.S3ClientHelper;
 import io.crate.metadata.*;
-import io.crate.data.Input;
 import io.crate.operation.InputFactory;
+import io.crate.operation.collect.BatchIteratorCollectorBridge;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
@@ -65,7 +67,6 @@ import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-
 public class FileReadingCollectorTest extends CrateUnitTest {
 
     private static File tmpFile;
@@ -83,7 +84,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         tmpFileEmptyLine = File.createTempFile("emptyLine", ".json", copy_from_empty.toFile());
         try (BufferedWriter writer =
                  new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(tmpFileGz)),
-                                    StandardCharsets.UTF_8))) {
+                     StandardCharsets.UTF_8))) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
@@ -144,13 +145,15 @@ public class FileReadingCollectorTest extends CrateUnitTest {
 
     @Test
     public void testCollectFromUriWithGlob() throws Throwable {
-        CollectingRowReceiver projector = getObjects(Paths.get(tmpFile.getParentFile().toURI()).toUri().toString() + "file*.json");
+        CollectingRowReceiver projector = getObjects(
+            Paths.get(tmpFile.getParentFile().toURI()).toUri().toString() + "file*.json");
         assertCorrectResult(projector.result());
     }
 
     @Test
     public void testCollectFromDirectory() throws Throwable {
-        CollectingRowReceiver projector = getObjects(Paths.get(tmpFile.getParentFile().toURI()).toUri().toString() + "*");
+        CollectingRowReceiver projector = getObjects(
+            Paths.get(tmpFile.getParentFile().toURI()).toUri().toString() + "*");
         assertCorrectResult(projector.result());
     }
 
@@ -245,47 +248,45 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     }
 
     private void getObjects(Collection<String> fileUris, String compression, final S3ObjectInputStream s3InputStream, RowReceiver rowReceiver) throws Throwable {
+        BatchIterator iterator = createBatchIterator(fileUris, compression, s3InputStream);
+        BatchIteratorCollectorBridge.newInstance(iterator, rowReceiver).doCollect();
+    }
+
+    private BatchIterator createBatchIterator(Collection<String> fileUris, String compression, final S3ObjectInputStream s3InputStream) {
         Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);
         List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
-        FileReadingCollector collector = new FileReadingCollector(
+        return FileReadingIterator.newInstance(
             fileUris,
             inputs,
             ctx.expressions(),
-            rowReceiver,
             compression,
             ImmutableMap.of(
                 LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory(),
-                S3FileInputFactory.NAME, new FileInputFactory() {
+                S3FileInputFactory.NAME, () -> new S3FileInput(new S3ClientHelper() {
                     @Override
-                    public FileInput create() throws IOException {
-                        return new S3FileInput(new S3ClientHelper() {
-                            @Override
-                            protected AmazonS3 initClient(String accessKey, String secretKey) throws IOException {
-                                AmazonS3 client = mock(AmazonS3Client.class);
-                                ObjectListing objectListing = mock(ObjectListing.class);
-                                S3ObjectSummary summary = mock(S3ObjectSummary.class);
-                                S3Object s3Object = mock(S3Object.class);
+                    protected AmazonS3 initClient(String accessKey, String secretKey) throws IOException {
+                        AmazonS3 client = mock(AmazonS3Client.class);
+                        ObjectListing objectListing = mock(ObjectListing.class);
+                        S3ObjectSummary summary = mock(S3ObjectSummary.class);
+                        S3Object s3Object = mock(S3Object.class);
 
 
-                                when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
-                                when(objectListing.getObjectSummaries()).thenReturn(Arrays.asList(summary));
-                                when(summary.getKey()).thenReturn("foo");
-                                when(client.getObject("fakebucket", "foo")).thenReturn(s3Object);
-                                when(s3Object.getObjectContent()).thenReturn(s3InputStream);
-                                when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
-                                when(objectListing.isTruncated()).thenReturn(false);
-                                return client;
-                            }
-                        });
+                        when(client.listObjects(anyString(), anyString())).thenReturn(objectListing);
+                        when(objectListing.getObjectSummaries()).thenReturn(Arrays.asList(summary));
+                        when(summary.getKey()).thenReturn("foo");
+                        when(client.getObject("fakebucket", "foo")).thenReturn(s3Object);
+                        when(s3Object.getObjectContent()).thenReturn(s3InputStream);
+                        when(client.listNextBatchOfObjects(any(ObjectListing.class))).thenReturn(objectListing);
+                        when(objectListing.isTruncated()).thenReturn(false);
+                        return client;
                     }
-                }),
+                })),
             false,
             1,
             0
         );
-        collector.doCollect();
     }
 
     private static class WriteBufferAnswer implements Answer<Integer> {

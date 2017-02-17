@@ -26,7 +26,7 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.JobTask;
 import io.crate.jobs.ESJobContext;
 import io.crate.jobs.JobContextService;
@@ -147,7 +147,7 @@ public class ESDeleteTask extends JobTask {
 
         @Override
         public void onFailure(Throwable e) {
-            e = Exceptions.unwrap(e); // unwrap to get rid of RemoteTransportException
+            e = SQLExceptions.unwrap(e); // unwrap to get rid of RemoteTransportException
             if (e instanceof VersionConflictEngineException) {
                 // treat version conflict as rows affected = 0
                 result.complete(0L);
