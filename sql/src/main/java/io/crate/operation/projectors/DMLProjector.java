@@ -58,8 +58,10 @@ class DMLProjector<Request extends ShardRequest> extends AbstractProjector {
         collectUidExpression.setNextRow(row);
         Uid uid = Uid.createUid(((BytesRef) collectUidExpression.value()).utf8ToString());
         // routing is already resolved
-        bulkShardProcessor.addForExistingShard(shardId, itemFactory.apply(uid.id()), null);
-        return Result.CONTINUE;
+        if (bulkShardProcessor.tryAddForExistingShard(shardId, itemFactory.apply(uid.id()), null)) {
+            return Result.CONTINUE;
+        }
+        return Result.STOP;
     }
 
     @Override
