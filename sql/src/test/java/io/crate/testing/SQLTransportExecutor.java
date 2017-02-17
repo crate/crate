@@ -27,7 +27,7 @@ import com.google.common.base.Throwables;
 import io.crate.action.sql.*;
 import io.crate.analyze.symbol.Field;
 import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.shade.org.postgresql.util.PGobject;
@@ -180,7 +180,7 @@ public class SQLTransportExecutor {
             }
             session.sync();
         } catch (Throwable t) {
-            listener.onFailure(Exceptions.createSQLActionException(t));
+            listener.onFailure(SQLExceptions.createSQLActionException(t));
         }
     }
 
@@ -215,11 +215,11 @@ public class SQLTransportExecutor {
                 if (t == null) {
                     listener.onResponse(new SQLBulkResponse(results));
                 } else {
-                    listener.onFailure(Exceptions.createSQLActionException(t));
+                    listener.onFailure(SQLExceptions.createSQLActionException(t));
                 }
             });
         } catch (Throwable t) {
-            listener.onFailure(Exceptions.createSQLActionException(t));
+            listener.onFailure(SQLExceptions.createSQLActionException(t));
         }
     }
 
@@ -552,7 +552,7 @@ public class SQLTransportExecutor {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            listener.onFailure(Exceptions.createSQLActionException(t));
+            listener.onFailure(SQLExceptions.createSQLActionException(t));
             super.fail(t);
         }
 
@@ -611,7 +611,7 @@ public class SQLTransportExecutor {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            listener.onFailure(Exceptions.createSQLActionException(t));
+            listener.onFailure(SQLExceptions.createSQLActionException(t));
             super.fail(t);
         }
     }
@@ -644,7 +644,7 @@ public class SQLTransportExecutor {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            results[resultIdx] = new SQLBulkResponse.Result(Exceptions.messageOf(t), rowCount);
+            results[resultIdx] = new SQLBulkResponse.Result(SQLExceptions.messageOf(t), rowCount);
             super.fail(t);
         }
     }
