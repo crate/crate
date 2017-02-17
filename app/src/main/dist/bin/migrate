@@ -1,0 +1,123 @@
+#!/bin/sh
+
+# OPTIONS:
+#   -c <filename>: provide an alternative configuration file
+#   --all-tables: migrate all tables, cannot be used together with --tables
+#   --tables <list_of_tables>: one ore more tables separated with a comma, cannot be used together with --all-tables
+#   --dry-run: run all the validations but don't migrate anything
+#   --verbose: increase the verbosity level of the tool's output
+#   -h: print usage information
+
+CDPATH=""
+SCRIPT="$0"
+
+# SCRIPT may be an arbitrarily deep series of symlinks. Loop until we have the concrete path.
+while [ -h "$SCRIPT" ] ; do
+  ls=`ls -ld "$SCRIPT"`
+  # Drop everything prior to ->
+  link=`expr "$ls" : '.*-> \(.*\)$'`
+  if expr "$link" : '/.*' > /dev/null; then
+    SCRIPT="$link"
+  else
+    SCRIPT=`dirname "$SCRIPT"`/"$link"
+  fi
+done
+
+# determine crate home
+CRATE_HOME=`dirname "$SCRIPT"`/..
+
+# make CRATE_HOME absolute
+CRATE_HOME=`cd "$CRATE_HOME"; pwd`
+
+# set the classpath
+CRATE_CLASSPATH=$CRATE_HOME/lib/crate-app-1.1.0-SNAPSHOT-b219356b9.jar:$CRATE_HOME/lib/*
+
+# set java executable path
+if [ -x "$JAVA_HOME/bin/java" ]; then
+    JAVA="$JAVA_HOME/bin/java"
+else
+    JAVA=java
+fi
+
+# Special-case path variables.
+case `uname` in
+    CYGWIN*)
+        CRATE_CLASSPATH=`cygpath -p -w "$CRATE_CLASSPATH"`
+        CRATE_HOME=`cygpath -p -w "$CRATE_HOME"`
+    ;;
+esac
+
+print_usage()
+{
+    echo "Migration tool to upgrade indexes created with Crate >= 0.46 Crate <= 0.55"
+    echo ""
+    echo "  Usage: $(basename $0) [OPTION]..."
+    echo "         starts the migration tool"
+    echo ""
+    echo "General options:"
+    echo "  -c <filename>              provide an alternative configuration file"
+    echo "  --all-tables               migrate all tables, cannot be used together with --tables"
+    echo "  --tables <list_of_tables>  one ore more tables separated with a comma, cannot be used together with --all-tables"
+    echo "  --dry-run                  run all the validations but don't migrate anything"
+    echo "  --verbose                  increase the verbosity level of the tool's output"
+    echo "  -h                         print usage information"
+}
+
+# Parse any command line options.
+# eval set -- "`getopt $@`"
+ALL_TABLES=false
+TABLES=false
+
+eval set -- "`getopt -o hc: -l all-tables,verbose,dry-run,tables: -- $@`"
+while true; do
+    case $1 in
+        -h)
+            print_usage
+            exit 0
+        ;;
+        --all-tables)
+            ALL_TABLES=true
+            properties="$properties $1"
+            shift
+        ;;
+        --tables)
+            TABLES=true
+            properties="$properties $1"
+            shift
+        ;;
+        --)
+            shift
+            break
+        ;;
+        *)
+            properties="$properties $1"
+            shift
+        ;;
+    esac
+done
+
+if [ "x$properties" = "x" ]; then
+    echo "Wrong number of arguments" >&2
+    echo "" >&2
+    print_usage
+    exit 1
+fi
+
+if [ $ALL_TABLES = false -a $TABLES = false ]; then
+    echo "One of --all-tables or --tables <list_of_tables> must be provided" >&2
+    echo "" >&2
+    print_usage
+    exit 1
+fi
+
+
+if [ $ALL_TABLES = true -a $TABLES = true ]; then
+    echo "--all-tables and --tables options cannot be used together" >&2
+    echo "" >&2
+    print_usage
+    exit 1
+fi
+
+# Start the tool
+exec "$JAVA" -Des.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" io.crate.migration.MigrationTool $properties
+exit $?
