@@ -27,6 +27,7 @@ evaluationDependsOn(':sql-parser')
 evaluationDependsOn(':blob')
 evaluationDependsOn(':udc')
 evaluationDependsOn(':dns-discovery')
+evaluationDependsOn(':migration')
 
 dependencies {
     compile project(':sql')
@@ -35,6 +36,7 @@ dependencies {
     compile project(':udc')
     compile project(':azure-discovery')
     compile project(':dns-discovery')
+    compile project(':migration')
     compile project(':es:es-discovery-multicast')
     compile project(':es:es-cloud-aws')
     compile('org.apache.xbean:xbean-finder:4.5') {
@@ -51,6 +53,7 @@ dependencies {
     compileNotTransitive project(':blob')
     compileNotTransitive project(':udc')
     compileNotTransitive project(':dns-discovery')
+    compileNotTransitive project(':migration')
     compileNotTransitive project(':es:es-discovery-multicast')
     compileNotTransitive project(':es:es-cloud-aws')
 }
