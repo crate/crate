@@ -30,7 +30,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.Rows;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.Executor;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.planner.Plan;
@@ -121,7 +121,7 @@ class BulkPortal extends AbstractPortal {
         try {
             plan = planner.plan(analysis, jobId, 0, maxRows);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(jobId, query, Exceptions.messageOf(t));
+            jobsLogs.logPreExecutionFailure(jobId, query, SQLExceptions.messageOf(t));
             throw t;
         }
         jobsLogs.logExecutionStart(jobId, query);

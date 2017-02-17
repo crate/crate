@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.SQLActionException;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.plugin.SQLPlugin;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
@@ -100,7 +100,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
             try {
                 future.get(10, TimeUnit.SECONDS);
             } catch (Throwable exception) {
-                exception = Exceptions.unwrap(exception); // wrapped in ExecutionException
+                exception = SQLExceptions.unwrap(exception); // wrapped in ExecutionException
                 assertThat(exception, instanceOf(SQLActionException.class));
                 assertThat(exception.toString(), anyOf(
                     containsString("Job killed"), // CancellationException
