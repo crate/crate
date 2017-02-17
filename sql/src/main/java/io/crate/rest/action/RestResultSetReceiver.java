@@ -36,7 +36,7 @@ import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.List;
 
-import static io.crate.exceptions.Exceptions.createSQLActionException;
+import static io.crate.exceptions.SQLExceptions.createSQLActionException;
 
 class RestResultSetReceiver extends BaseResultReceiver {
 

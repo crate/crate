@@ -25,7 +25,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.ContextMissingException;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.operation.collect.stats.JobsLogs;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -149,7 +149,7 @@ public class JobExecutionContext implements CompletionListenable {
                     id = orderedContextIds.get(i);
                     subContext = orderedContexts.get(i);
                     subContext.cleanup();
-                    jobsLogs.operationFinished(id, jobId, "Prepare: " + Exceptions.messageOf(e), -1);
+                    jobsLogs.operationFinished(id, jobId, "Prepare: " + SQLExceptions.messageOf(e), -1);
                 }
                 throw e;
             }
@@ -255,7 +255,7 @@ public class JobExecutionContext implements CompletionListenable {
 
         public void onFailure(@Nonnull Throwable t) {
             failure = t;
-            jobsLogs.operationFinished(id, jobId, Exceptions.messageOf(t), -1);
+            jobsLogs.operationFinished(id, jobId, SQLExceptions.messageOf(t), -1);
             if (remove() == RemoveSubContextPosition.LAST) {
                 return;
             }
