@@ -25,7 +25,7 @@ package io.crate.executor.transport.executionphases;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
@@ -119,7 +119,7 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
 
     private void tryForwardResult(Throwable throwable) {
         if (throwable != null && (failure == null || failure instanceof InterruptedException)) {
-            failure = Exceptions.unwrap(throwable);
+            failure = SQLExceptions.unwrap(throwable);
         }
         if (upstreams.decrementAndGet() > 0) {
             return;
