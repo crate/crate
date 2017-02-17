@@ -41,7 +41,6 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -61,7 +60,6 @@ public class PageDownstreamContextTest extends CrateUnitTest {
             "n1",
             1,
             "dummy",
-            Optional.empty(),
             rowReceiver,
             pagingIterator,
             new Streamer[0],
