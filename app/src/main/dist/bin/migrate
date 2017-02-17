@@ -1,0 +1,51 @@
+#!/bin/sh
+
+# OPTIONS:
+#   -h: print usage information
+#   -c <filename>: provide an alternative configuration file
+#   --tables <list_of_tables>: one ore more tables separated with a comma
+#   --dry-run: run all the validations but don't migrate anything
+#   --verbose: increase the verbosity level of the tool's output
+
+CDPATH=""
+SCRIPT="$0"
+
+# SCRIPT may be an arbitrarily deep series of symlinks. Loop until we have the concrete path.
+while [ -h "$SCRIPT" ] ; do
+  ls=`ls -ld "$SCRIPT"`
+  # Drop everything prior to ->
+  link=`expr "$ls" : '.*-> \(.*\)$'`
+  if expr "$link" : '/.*' > /dev/null; then
+    SCRIPT="$link"
+  else
+    SCRIPT=`dirname "$SCRIPT"`/"$link"
+  fi
+done
+
+# determine crate home
+CRATE_HOME=`dirname "$SCRIPT"`/..
+
+# make CRATE_HOME absolute
+CRATE_HOME=`cd "$CRATE_HOME"; pwd`
+
+# set the classpath
+CRATE_CLASSPATH=$CRATE_HOME/lib/crate-app-1.1.0-SNAPSHOT-b219356b9.jar:$CRATE_HOME/lib/*
+
+# set java executable path
+if [ -x "$JAVA_HOME/bin/java" ]; then
+    JAVA="$JAVA_HOME/bin/java"
+else
+    JAVA=java
+fi
+
+# Special-case path variables.
+case `uname` in
+    CYGWIN*)
+        CRATE_CLASSPATH=`cygpath -p -w "$CRATE_CLASSPATH"`
+        CRATE_HOME=`cygpath -p -w "$CRATE_HOME"`
+    ;;
+esac
+
+# Start the tool
+exec "$JAVA" -Des.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" io.crate.migration.MigrationTool $@
+exit $?
