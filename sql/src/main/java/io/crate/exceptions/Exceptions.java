@@ -202,4 +202,18 @@ public class Exceptions {
         }
         return e;
     }
+
+    /**
+     * Rethrow an {@link java.lang.Throwable} preserving the stack trace but making it unchecked.
+     *
+     * @param ex to be rethrown and unchecked.
+     */
+    public static void rethrowUnchecked(final Throwable ex) {
+        Exceptions.<RuntimeException>rethrow(ex);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void rethrow(final Throwable t) throws T {
+        throw (T) t;
+    }
 }
