@@ -24,23 +24,25 @@ package io.crate.jobs;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.operation.PageResultListener;
+import io.crate.operation.merge.BatchPagingIterator;
 import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.merge.PagingIterator;
-import io.crate.operation.merge.PagingIteratorEmitter;
+import io.crate.operation.projectors.BatchConsumerToRowReceiver;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.common.logging.ESLogger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.*;
-import java.util.concurrent.Executor;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Locale;
 
 public class PageDownstreamContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext, PageBucketReceiver {
 
@@ -48,7 +50,6 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final Object lock = new Object();
     private final String nodeName;
     private final boolean traceEnabled;
-    private final RowReceiver rowReceiver;
     private final Streamer<?>[] streamers;
     private final RamAccountingContext ramAccountingContext;
     private final int numBuckets;
@@ -56,15 +57,17 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final PagingIterator<Integer, Row> pagingIterator;
     private final IntObjectHashMap<PageResultListener> listenersByBucketIdx;
     private final IntObjectHashMap<Bucket> bucketsByIdx;
-    private final PagingIteratorEmitter emitter;
+    private final BatchConsumerToRowReceiver consumer;
+    private final BatchPagingIterator batchIterator;
+    private final RowReceiver rowReceiver;
 
     private Throwable lastThrowable = null;
+    private boolean receivingFirstPage = true;
 
     public PageDownstreamContext(ESLogger logger,
                                  String nodeName,
                                  int id,
                                  String name,
-                                 Optional<Executor> executor,
                                  RowReceiver rowReceiver,
                                  PagingIterator<Integer, Row> pagingIterator,
                                  Streamer<?>[] streamers,
@@ -73,22 +76,34 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         super(id, logger);
         this.nodeName = nodeName;
         this.name = name;
-        this.rowReceiver = rowReceiver;
         this.streamers = streamers;
         this.ramAccountingContext = ramAccountingContext;
         this.numBuckets = numBuckets;
+        this.rowReceiver = rowReceiver;
         traceEnabled = logger.isTraceEnabled();
         this.exhausted = new BitSet(numBuckets);
         this.pagingIterator = pagingIterator;
         this.bucketsByIdx = new IntObjectHashMap<>(numBuckets);
         this.listenersByBucketIdx = new IntObjectHashMap<>(numBuckets);
-        this.emitter = new PagingIteratorEmitter<>(
+        this.consumer = new BatchConsumerToRowReceiver(rowReceiver);
+        this.batchIterator = new BatchPagingIterator(
             pagingIterator,
-            rowReceiver,
             this::fetchMore,
-            this::releaseListenersAndCloseContext,
-            executor.orElse(MoreExecutors.directExecutor())
+            this::allUpstreamsExhausted,
+            this::releaseListenersAndCloseContext
         );
+    }
+
+    private void releaseListenersAndCloseContext() {
+        for (ObjectCursor<PageResultListener> cursor : listenersByBucketIdx.values()) {
+            cursor.value.needMore(false);
+        }
+        listenersByBucketIdx.clear();
+        close();
+    }
+
+    private boolean allUpstreamsExhausted() {
+        return exhausted.cardinality() == numBuckets;
     }
 
     @Override
@@ -110,27 +125,32 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
                 exhausted.set(bucketIdx);
             }
             if (bucketsByIdx.size() == numBuckets) {
-                if (lastThrowable == null) {
-                    mergeBucketsAndEmit();
-                } else {
-                    rowReceiver.fail(lastThrowable);
-                    releaseListenersAndCloseContext(lastThrowable);
-                }
+                triggerConsumption();
             }
         }
     }
 
-    private void mergeBucketsAndEmit() {
+    private void triggerConsumption() {
+        mergeBuckets();
+        if (allUpstreamsExhausted()) {
+            pagingIterator.finish();
+        }
+        if (receivingFirstPage) {
+            consumer.accept(batchIterator, lastThrowable);
+            receivingFirstPage = false;
+        } else {
+            batchIterator.completeLoad(lastThrowable);
+        }
+    }
+
+    private void mergeBuckets() {
         List<KeyIterable<Integer, Row>> buckets = new ArrayList<>(numBuckets);
         for (IntObjectCursor<Bucket> cursor : bucketsByIdx) {
             buckets.add(new KeyIterable<>(cursor.key, cursor.value));
         }
         bucketsByIdx.clear();
         pagingIterator.merge(buckets);
-
-        emitter.consumeItAndFetchMore();
     }
-
 
     private boolean fetchMore(Integer exhaustedBucket) {
         if (exhausted.cardinality() == numBuckets) {
@@ -163,14 +183,6 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
                 resultListener.needMore(true);
             }
         }
-    }
-
-    private void releaseListenersAndCloseContext(@Nullable Throwable t) {
-        for (ObjectCursor<PageResultListener> cursor : listenersByBucketIdx.values()) {
-            cursor.value.needMore(false);
-        }
-        listenersByBucketIdx.clear();
-        close(t);
     }
 
     private void traceLog(String msg, int bucketIdx) {
@@ -218,7 +230,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         exhausted.set(bucketIdx);
         if (bucketsByIdx.size() == numBuckets) {
             rowReceiver.fail(throwable);
-            releaseListenersAndCloseContext(throwable);
+            releaseListenersAndCloseContext();
         } else {
             lastThrowable = throwable;
         }
