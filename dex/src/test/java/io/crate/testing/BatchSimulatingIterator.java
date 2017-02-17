@@ -64,7 +64,7 @@ public class BatchSimulatingIterator implements BatchIterator {
         this.numBatches = maxAdditionalFakeBatches;
         this.batchSize = batchSize;
 
-        this.loadNextDelays = new Random(System.currentTimeMillis()).longs(0, 300).iterator();
+        this.loadNextDelays = new Random(System.currentTimeMillis()).longs(0, 100).iterator();
         this.executor = ForkJoinPool.commonPool();
     }
 
@@ -74,6 +74,7 @@ public class BatchSimulatingIterator implements BatchIterator {
             throw new IllegalStateException("Must not call moveToStart during loadNextBatch");
         }
         currentRow = OFF_ROW;
+        currentBatch = 0;
         delegate.moveToStart();
         numSuccessMoveNextCallsInBatch = 0;
     }
