@@ -36,9 +36,12 @@ import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 
@@ -56,7 +59,23 @@ public class NodeSettingsTest {
     protected Client client;
     private boolean loggingConfigured = false;
 
-    private final String CRATE_CONFIG_PATH = Paths.get(getClass().getResource("/crate").toURI()).toString();
+    private String createConfigPath() throws IOException {
+        File home = tmp.newFolder("crate");
+        File config = tmp.newFolder("crate", "config");
+
+        Settings pathSettings = Settings.builder()
+            .put("path.work", tmp.newFolder("crate", "work").getPath())
+            .put("path.data", tmp.newFolder("crate", "data").getPath())
+            .put("path.logs", tmp.newFolder("crate", "logs").getPath())
+            .build();
+
+        try (Writer writer = new FileWriter(Paths.get(config.getPath(), "crate.yml").toFile())) {
+            Yaml yaml = new Yaml();
+            yaml.dump(pathSettings.getAsMap(), writer);
+        }
+
+        return home.getPath();
+    }
 
     public NodeSettingsTest() throws URISyntaxException {
     }
@@ -77,7 +96,7 @@ public class NodeSettingsTest {
             .put("index.store.type", "default")
             .put("index.store.fs.memory.enabled", "true")
             .put("gateway.type", "default")
-            .put("path.home", CRATE_CONFIG_PATH)
+            .put("path.home", createConfigPath())
             .put("index.number_of_shards", "1")
             .put("index.number_of_replicas", "0")
             .put("cluster.routing.schedule", "50ms")
@@ -166,7 +185,7 @@ public class NodeSettingsTest {
         Settings.Builder builder = Settings.settingsBuilder()
             .put("discovery.zen.ping.multicast.enabled", false)
             .put("discovery.zen.ping.unicast.hosts", "nonexistinghost:4300")
-            .put("path.home", CRATE_CONFIG_PATH);
+            .put("path.home", createConfigPath());
         Terminal terminal = Terminal.DEFAULT;
         Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal);
 
