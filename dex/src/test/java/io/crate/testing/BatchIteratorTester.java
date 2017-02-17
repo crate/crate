@@ -26,10 +26,7 @@ import io.crate.data.BatchIterator;
 import org.hamcrest.Matchers;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Supplier;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -119,18 +116,23 @@ public class BatchIteratorTester {
         if (expectedResult.size() < 2) {
             return;
         }
-        ForkJoinPool executor = ForkJoinPool.commonPool();
-        CompletableFuture<Object[]> firstRow = CompletableFuture.supplyAsync(() -> {
-            it.moveNext();
-            return it.currentRow().materialize();
-        }, executor);
-        CompletableFuture<Object[]> secondRow = firstRow.thenApplyAsync(row -> {
-            it.moveNext();
-            return it.currentRow().materialize();
-        }, executor);
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+        try {
+            CompletableFuture<Object[]> firstRow = CompletableFuture.supplyAsync(() -> {
+                it.moveNext();
+                return it.currentRow().materialize();
+            }, executor);
+            CompletableFuture<Object[]> secondRow = firstRow.thenApplyAsync(row -> {
+                it.moveNext();
+                return it.currentRow().materialize();
+            }, executor);
 
-        assertThat(firstRow.get(10, TimeUnit.SECONDS), is(expectedResult.get(0)));
-        assertThat(secondRow.get(10, TimeUnit.SECONDS), is(expectedResult.get(1)));
+            assertThat(firstRow.get(10, TimeUnit.SECONDS), is(expectedResult.get(0)));
+            assertThat(secondRow.get(10, TimeUnit.SECONDS), is(expectedResult.get(1)));
+        } finally {
+            executor.shutdownNow();
+            executor.awaitTermination(5, TimeUnit.SECONDS);
+        }
     }
 
     private void testFailsIfClosed(BatchIterator it) {

@@ -25,7 +25,7 @@ package io.crate.action.sql;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Field;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.Executor;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.planner.Planner;
@@ -193,8 +193,8 @@ public class SQLOperations {
                 if ("".equals(query)) {
                     statement = EMPTY_STMT;
                 } else {
-                    jobsLogs.logPreExecutionFailure(UUID.randomUUID(), query, Exceptions.messageOf(t));
-                    throw Exceptions.createSQLActionException(t);
+                    jobsLogs.logPreExecutionFailure(UUID.randomUUID(), query, SQLExceptions.messageOf(t));
+                    throw SQLExceptions.createSQLActionException(t);
                 }
             }
             preparedStatements.put(statementName, new PreparedStmt(statement, query, paramTypes));
@@ -219,8 +219,8 @@ public class SQLOperations {
                     portal.close();
                 }
             } catch (Throwable t) {
-                jobsLogs.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), Exceptions.messageOf(t));
-                throw Exceptions.createSQLActionException(t);
+                jobsLogs.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), SQLExceptions.messageOf(t));
+                throw SQLExceptions.createSQLActionException(t);
             }
         }
 
@@ -263,7 +263,7 @@ public class SQLOperations {
                             analyzedRelation = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
                             preparedStmt.relation(analyzedRelation);
                         } catch (Throwable t) {
-                            throw Exceptions.createSQLActionException(t);
+                            throw SQLExceptions.createSQLActionException(t);
                         }
                     }
                     if (analyzedRelation == null) {

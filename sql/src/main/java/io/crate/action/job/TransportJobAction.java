@@ -23,7 +23,7 @@ package io.crate.action.job;
 
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Bucket;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
@@ -100,7 +100,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
                 if (t == null) {
                     actionListener.onResponse(new JobResponse(buckets));
                 } else {
-                    actionListener.onFailure(Exceptions.unwrap(t));
+                    actionListener.onFailure(SQLExceptions.unwrap(t));
                 }
             });
         }

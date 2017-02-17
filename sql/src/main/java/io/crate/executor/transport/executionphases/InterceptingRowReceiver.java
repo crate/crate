@@ -23,7 +23,7 @@
 package io.crate.executor.transport.executionphases;
 
 import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
@@ -112,7 +112,7 @@ class InterceptingRowReceiver implements RowReceiver, BiConsumer<Object, Throwab
 
     private void tryForwardResult(Throwable throwable) {
         if (throwable != null && (failure == null || failure instanceof InterruptedException)) {
-            failure = Exceptions.unwrap(throwable);
+            failure = SQLExceptions.unwrap(throwable);
         }
         if (upstreams.decrementAndGet() > 0) {
             return;
