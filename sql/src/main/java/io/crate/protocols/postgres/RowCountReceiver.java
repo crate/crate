@@ -24,7 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.data.Row;
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import org.jboss.netty.channel.Channel;
 
 import javax.annotation.Nonnull;
@@ -60,7 +60,7 @@ class RowCountReceiver extends BaseResultReceiver {
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        Messages.sendErrorResponse(channel, Exceptions.createSQLActionException(throwable));
+        Messages.sendErrorResponse(channel, SQLExceptions.createSQLActionException(throwable));
         super.fail(throwable);
     }
 }
