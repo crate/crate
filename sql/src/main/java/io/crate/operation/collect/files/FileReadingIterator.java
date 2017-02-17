@@ -75,12 +75,12 @@ public class FileReadingIterator implements BatchIterator {
     private final List<UriWithGlob> urisWithGlob;
     private final Iterable<LineCollectorExpression<?>> collectorExpressions;
     private List<Tuple<FileInput, UriWithGlob>> fileInputs;
-    private volatile Iterator<Tuple<FileInput, UriWithGlob>> fileInputsIterator = null;
-    private volatile Tuple<FileInput, UriWithGlob> currentInput = null;
-    private volatile Iterator<URI> currentInputIterator = null;
-    private volatile URI currentUri;
-    private volatile BufferedReader currentReader = null;
-    private volatile long currentLineNumber;
+    private Iterator<Tuple<FileInput, UriWithGlob>> fileInputsIterator = null;
+    private Tuple<FileInput, UriWithGlob> currentInput = null;
+    private Iterator<URI> currentInputIterator = null;
+    private URI currentUri;
+    private BufferedReader currentReader = null;
+    private long currentLineNumber;
     private LineContext lineContext;
 
     private FileReadingIterator(Collection<String> fileUris,
