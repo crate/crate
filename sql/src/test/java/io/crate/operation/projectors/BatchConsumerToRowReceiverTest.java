@@ -23,150 +23,98 @@
 package io.crate.operation.projectors;
 
 import io.crate.data.BatchIterator;
+import io.crate.data.CloseAssertingBatchIterator;
+import io.crate.data.Row1;
+import io.crate.data.RowsBatchIterator;
+import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.CollectingRowReceiver;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.concurrent.CompletableFuture;
+import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
-import static org.mockito.Mockito.*;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class BatchConsumerToRowReceiverTest {
 
-    private RowReceiver rowReceiver;
-    private CompletableFuture rowReceiverCompletionFuture;
+    private BatchIterator iterator;
 
     @Before
     public void setUp() throws Exception {
-        rowReceiver = mock(RowReceiver.class);
-        rowReceiverCompletionFuture = new CompletableFuture<>();
-        when(rowReceiver.completionFuture()).thenReturn(rowReceiverCompletionFuture);
+        iterator = RowsBatchIterator.newInstance(Arrays.asList(new Row1(1), new Row1(2)));
     }
 
     @Test
     public void failReceiverIfConsumerFails() {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         BatchConsumerToRowReceiver adapter = new BatchConsumerToRowReceiver(rowReceiver);
-
-        BatchIterator cursor = mock(BatchIterator.class);
         Exception failure = new Exception();
-        adapter.accept(cursor, failure);
 
-        verify(rowReceiver).fail(failure);
+        adapter.accept(iterator, failure);
+        assertThat(rowReceiver.completionFuture().isCompletedExceptionally(), is(true));
+        assertThat(rowReceiver.getNumFailOrFinishCalls(), is(1));
     }
 
     @Test
     public void cursorIsClosedAfterAllIsConsumed() {
-        BatchIterator cursor = mock(BatchIterator.class);
-        when(cursor.allLoaded()).thenReturn(true);
-        when(cursor.moveNext())
-            .thenReturn(true)
-            .thenReturn(false);
-
-        when(rowReceiver.setNextRow(cursor.currentRow()))
-            .thenReturn(RowReceiver.Result.CONTINUE);
-
+        RowReceiver rowReceiver = new CollectingRowReceiver();
         BatchConsumerToRowReceiver adapter = new BatchConsumerToRowReceiver(rowReceiver);
-        adapter.accept(cursor, null);
 
-        verify(rowReceiver).setNextRow(cursor.currentRow());
-        rowReceiverCompletionFuture.complete(null);
-        verify(cursor).close();
+        adapter.accept(iterator, null);
+        assertIteratorIsClosed();
+    }
+
+    private void assertIteratorIsClosed() {
+        try {
+            iterator.moveNext();
+            fail("Iterator should not be allowed to move forward after it's consumed");
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage().contains("is closed"), is(true));
+        }
     }
 
     @Test
     public void cursorIsClosedWhenReceiverFails() {
-        BatchIterator cursor = mock(BatchIterator.class);
-        when(cursor.allLoaded()).thenReturn(true);
-        when(cursor.moveNext())
-            .thenReturn(true)
-            .thenReturn(false);
+        CollectingRowReceiver failingRowReceiver = CollectingRowReceiver.withFailure();
+        BatchConsumerToRowReceiver adapter = new BatchConsumerToRowReceiver(failingRowReceiver);
 
-        when(rowReceiver.setNextRow(cursor.currentRow()))
-            .thenReturn(RowReceiver.Result.CONTINUE);
-
-        BatchConsumerToRowReceiver adapter = new BatchConsumerToRowReceiver(rowReceiver);
-        adapter.accept(cursor, null);
-
-        rowReceiverCompletionFuture.completeExceptionally(new Exception("RowReceiver failure"));
-        verify(cursor).close();
+        adapter.accept(iterator, null);
+        assertThat(failingRowReceiver.getNumFailOrFinishCalls(), is(1));
+        assertIteratorIsClosed();
     }
 
     @Test
-    public void finishReceiverAndCloseCursorWhenNextRowYieldsStop() {
-        BatchIterator cursor = mock(BatchIterator.class);
-        when(cursor.allLoaded()).thenReturn(true);
-        when(cursor.moveNext())
-            .thenReturn(true)
-            .thenReturn(true);
+    public void finishReceiverWhenNextRowYieldsStop() {
+        CollectingRowReceiver stoppingRowReceiver = CollectingRowReceiver.withLimit(1);
+        BatchConsumerToRowReceiver adapter = new BatchConsumerToRowReceiver(stoppingRowReceiver);
 
-        when(rowReceiver.setNextRow(cursor.currentRow()))
-            .thenReturn(RowReceiver.Result.STOP);
-
-        BatchConsumerToRowReceiver adapter = new BatchConsumerToRowReceiver(rowReceiver);
-        adapter.accept(cursor, null);
-
-        rowReceiverCompletionFuture.complete(null);
-        verify(cursor).close();
-        verify(rowReceiver).finish(any());
+        adapter.accept(iterator, null);
+        assertThat(stoppingRowReceiver.completionFuture().isDone(), is(true));
+        assertThat(stoppingRowReceiver.getNumFailOrFinishCalls(), is(1));
     }
 
     @Test
     public void pauseReceiverWhenNextRowYieldsPause() {
-        BatchIterator cursor = mock(BatchIterator.class);
-        when(cursor.allLoaded()).thenReturn(true);
-        when(cursor.moveNext())
-            .thenReturn(true)
-            .thenReturn(true);
+        CollectingRowReceiver pausingReceiver = CollectingRowReceiver.withPauseAfter(1);
+        BatchConsumerToRowReceiver adapter = new BatchConsumerToRowReceiver(pausingReceiver);
+        adapter.accept(iterator, null);
 
-        when(rowReceiver.setNextRow(cursor.currentRow()))
-            .thenReturn(RowReceiver.Result.PAUSE);
-
-        BatchConsumerToRowReceiver adapter = new BatchConsumerToRowReceiver(rowReceiver);
-        adapter.accept(cursor, null);
-
-        verify(cursor, times(0)).close();
-        verify(rowReceiver).pauseProcessed(any(ResumeHandle.class));
+        assertThat(pausingReceiver.numPauseProcessed(), is(1));
     }
 
     @Test
-    public void nextBatchIsLoadedAndConsumed() {
-        BatchIterator cursor = mock(BatchIterator.class);
-        when(cursor.allLoaded())
-            .thenReturn(false)
-            .thenReturn(true);
+    public void nextBatchIsLoadedAndConsumed() throws Exception {
+        BatchIterator batchIterator = new CloseAssertingBatchIterator(
+            new BatchSimulatingIterator(iterator, 2, 1));
+        CollectingRowReceiver collectingRowReceiver = new CollectingRowReceiver();
+        BatchConsumerToRowReceiver adapter = new BatchConsumerToRowReceiver(collectingRowReceiver);
 
-        when(cursor.loadNextBatch()).thenReturn(CompletableFuture.completedFuture(null));
+        adapter.accept(batchIterator, null);
 
-        when(cursor.moveNext())
-            .thenReturn(false)
-            .thenReturn(true)
-            .thenReturn(true)
-            .thenReturn(false);
-
-        when(rowReceiver.setNextRow(cursor.currentRow()))
-            .thenReturn(RowReceiver.Result.CONTINUE);
-
-        BatchConsumerToRowReceiver adapter = new BatchConsumerToRowReceiver(rowReceiver);
-        adapter.accept(cursor, null);
-
-        verify(rowReceiver, times(2)).setNextRow(cursor.currentRow());
+        collectingRowReceiver.completionFuture().get(10, TimeUnit.SECONDS);
+        assertThat(collectingRowReceiver.isFinished(), is(true));
     }
-
-    @Test
-    public void failReceiverIfLoadingNextBatchFails() {
-        BatchIterator cursor = mock(BatchIterator.class);
-        when(cursor.allLoaded()).thenReturn(false);
-        when(cursor.moveNext())
-            .thenReturn(false);
-
-        CompletableFuture failedFuture = new CompletableFuture();
-        Exception loadNextBatchException = new Exception();
-        failedFuture.completeExceptionally(loadNextBatchException);
-        when(cursor.loadNextBatch()).thenReturn(failedFuture);
-
-        BatchConsumerToRowReceiver adapter = new BatchConsumerToRowReceiver(rowReceiver);
-        adapter.accept(cursor, null);
-
-        verify(rowReceiver).fail(loadNextBatchException);
-    }
-
 }
