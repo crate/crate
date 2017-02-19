@@ -17,5 +17,6 @@ include 'es',
         'es-repository-hdfs',
         'sigar',
         'app',
-        'blackbox'
+        'blackbox',
+        'jmx-monitoring'
 
