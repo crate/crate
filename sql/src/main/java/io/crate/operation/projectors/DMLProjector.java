@@ -27,7 +27,6 @@ import io.crate.executor.transport.ShardRequest;
 import io.crate.operation.collect.CollectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
-import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -36,29 +35,28 @@ import java.util.function.Function;
 class DMLProjector<Request extends ShardRequest> extends AbstractProjector {
 
     private final ShardId shardId;
-    private final CollectExpression<Row, ?> collectUidExpression;
+    private final CollectExpression<Row, ?> collectIdExpression;
     private final AtomicBoolean failed = new AtomicBoolean(false);
 
     private final BulkShardProcessor<Request> bulkShardProcessor;
     private final Function<String, ShardRequest.Item> itemFactory;
 
     DMLProjector(ShardId shardId,
-                 CollectExpression<Row, ?> collectUidExpression,
+                 CollectExpression<Row, ?> collectIdExpression,
                  BulkShardProcessor<Request> bulkShardProcessor,
                  Function<String, ShardRequest.Item> itemFactory) {
         this.shardId = shardId;
-        this.collectUidExpression = collectUidExpression;
+        this.collectIdExpression = collectIdExpression;
         this.bulkShardProcessor = bulkShardProcessor;
         this.itemFactory = itemFactory;
     }
 
     @Override
     public Result setNextRow(Row row) {
-        // resolve the Uid
-        collectUidExpression.setNextRow(row);
-        Uid uid = Uid.createUid(((BytesRef) collectUidExpression.value()).utf8ToString());
-        // routing is already resolved
-        bulkShardProcessor.addForExistingShard(shardId, itemFactory.apply(uid.id()), null);
+        // resolve the id
+        collectIdExpression.setNextRow(row);
+        BytesRef id = (BytesRef) collectIdExpression.value();
+        bulkShardProcessor.addForExistingShard(shardId, itemFactory.apply(id.utf8ToString()), null);
         return Result.CONTINUE;
     }
 
