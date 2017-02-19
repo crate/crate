@@ -1,0 +1,33 @@
+CrateDB JMX monitoring Enterprise Module
+Copyright 2013-2017 Crate.io Inc. ("Crate.io")
+
+
+Third party dependencies:
+
+=========================================================================
+
+Lucene
+http://lucene.apache.org/
+developed by The Apache Software Foundation
+License: Apache License v2 (http://www.apache.org/licenses)
+
+=========================================================================
+
+Elasticsearch
+http://www.elasticsearch.org/
+developed by Elastic and Shay Banon
+License: Apache License v2 (http://www.apache.org/licenses)
+
+=========================================================================
+
+Presto (SQL Parser)
+http://prestodb.io
+developed by Facebook (https://github.com/facebook/presto)
+License: Apache License v2 (http://www.apache.org/licenses)
+
+=========================================================================
+
+Netty
+http://netty.io
+developed by The Netty Project
+License: Apache License v2 (http://www.apache.org/licenses)

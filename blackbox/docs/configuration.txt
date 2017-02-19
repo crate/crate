@@ -1933,12 +1933,10 @@ running on it.
 Enterprise Features
 ===================
 
-CrateDB Licensing
------------------
+.. _conf_enterprise_license:
 
-The CrateDB licensing information.
-
-.. _license_enterprise:
+Enterprise License
+------------------
 
 **license.enterprise**
   | *Default:*  ``false``

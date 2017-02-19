@@ -48,6 +48,10 @@ task hdfsTest(type: Exec) {
     commandLine "$projectDir/bin/hdfs-test"
 }
 
+task monitoringTest(type: Exec) {
+    commandLine "$projectDir/bin/monitoring-test"
+}
+
 task sigarTest(type: Exec) {
     commandLine "$projectDir/bin/sigar-test"
 }
@@ -71,6 +75,7 @@ task buildDocs(type: Exec, dependsOn: bootstrap) {
 
 hdfsTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold, project(':es-repository-hdfs').distZipHadoop2)
 sigarTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
+monitoringTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 itest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 gtest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 logicTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)

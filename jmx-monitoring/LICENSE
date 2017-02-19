@@ -1,0 +1,19 @@
+CrateDB JMX Monitoring Enterprise Module
+Copyright 2013-2017 Crate.io Inc. ("Crate.io")
+
+This module contains proprietary Enterprise Features.
+
+Licensed to Crate.io Inc. ("Crate.io") under one or more contributor license
+agreements.  See the NOTICE file distributed with this work for additional
+information regarding copyright ownership.
+
+Unauthorized copying, via any medium is strictly prohibited.
+
+To enable or use any of the enterprise features, Crate.io must have given you
+permission to enable and use the Enterprise Edition of CrateDB and you must
+have a valid Enterprise or Subscription Agreement with Crate.io.  If you
+enable or use features that are part of the Enterprise Edition, you represent
+and warrant that you have a valid Enterprise or Subscription Agreement with
+Crate.io.  Your use of features of the Enterprise Edition is governed by the
+terms and conditions of your Enterprise or Subscription Agreement with
+Crate.io.

@@ -1,0 +1,14 @@
+.. _enterprise_features:
+
+===================
+Enterprise Features
+===================
+
+The `Enterprise Edition`_ of CrateDB provides the following features:
+
+.. toctree::
+    :maxdepth: 1
+
+    monitoring
+
+.. _`enterprise edition`: https://crate.io/enterprise/
