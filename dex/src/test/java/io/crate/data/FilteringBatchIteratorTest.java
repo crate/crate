@@ -22,45 +22,30 @@
 
 package io.crate.data;
 
-import java.util.concurrent.CompletionStage;
+import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.RowGenerator;
+import org.junit.Test;
 
-/**
- * Base class for BatchIterator implementations which mostly forward to another BatchIterator.
- */
-public abstract class ForwardingBatchIterator implements BatchIterator {
+import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
-    protected ForwardingBatchIterator() {
-    }
+public class FilteringBatchIteratorTest {
 
-    protected abstract BatchIterator delegate();
+    private Iterable<Row> rows = RowGenerator.range(0, 20);
+    private Predicate<Row> evenRow = r -> (long) r.get(0) % 2 == 0;
+    private List<Object[]> expectedResult = StreamSupport.stream(rows.spliterator(), false)
+        .filter(evenRow)
+        .map(Row::materialize)
+        .collect(Collectors.toList());
 
-    @Override
-    public void moveToStart() {
-        delegate().moveToStart();
-    }
-
-    @Override
-    public boolean moveNext() {
-        return delegate().moveNext();
-    }
-
-    @Override
-    public Row currentRow() {
-        return delegate().currentRow();
-    }
-
-    @Override
-    public void close() {
-        delegate().close();
-    }
-
-    @Override
-    public CompletionStage<?> loadNextBatch() {
-        return delegate().loadNextBatch();
-    }
-
-    @Override
-    public boolean allLoaded() {
-        return delegate().allLoaded();
+    @Test
+    public void testFilteringBatchIterator() throws Exception {
+        BatchIteratorTester tester = new BatchIteratorTester(
+            () -> new FilteringBatchIterator(RowsBatchIterator.newInstance(rows), evenRow),
+            expectedResult
+        );
+        tester.run();
     }
 }
