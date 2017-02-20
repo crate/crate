@@ -47,7 +47,7 @@ public class RowsBatchIteratorBenchmark {
     private BatchIterator it = new RowsBatchIterator(rows);
 
     private BatchIterator itCloseAsserting = new CloseAssertingBatchIterator(it);
-    private BatchIterator skippingIt = SkippingBatchIterator.newInstance(it, 100);
+    private BatchIterator skippingIt = new SkippingBatchIterator(it, 100);
 
     @Benchmark
     public void testConsumeBatchIterator(Blackhole blackhole) throws Exception {
