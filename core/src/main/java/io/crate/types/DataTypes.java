@@ -21,7 +21,6 @@
 
 package io.crate.types;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -45,7 +44,6 @@ public final class DataTypes {
     /**
      * If you add types here make sure to update the SizeEstimatorFactory in the SQL module.
      */
-    public final static AnyType ANY = AnyType.INSTANCE;
     public final static UndefinedType UNDEFINED = UndefinedType.INSTANCE;
     public final static NotSupportedType NOT_SUPPORTED = NotSupportedType.INSTANCE;
 
@@ -68,13 +66,11 @@ public final class DataTypes {
     public final static GeoPointType GEO_POINT = GeoPointType.INSTANCE;
     public final static GeoShapeType GEO_SHAPE = GeoShapeType.INSTANCE;
 
-    public final static DataType ANY_ARRAY = new ArrayType(ANY);
     public final static DataType DOUBLE_ARRAY = new ArrayType(DOUBLE);
     public final static DataType OBJECT_ARRAY = new ArrayType(OBJECT);
 
-    public final static DataType ANY_SET = new SetType(ANY);
 
-    public final static ImmutableList<DataType> PRIMITIVE_TYPES = ImmutableList.<DataType>of(
+    public final static ImmutableList<DataType> PRIMITIVE_TYPES = ImmutableList.of(
         BYTE,
         BOOLEAN,
         STRING,
@@ -86,7 +82,8 @@ public final class DataTypes {
         LONG,
         TIMESTAMP
     );
-    public final static ImmutableList<DataType> NUMERIC_PRIMITIVE_TYPES = ImmutableList.<DataType>of(
+
+    public final static ImmutableList<DataType> NUMERIC_PRIMITIVE_TYPES = ImmutableList.of(
         DOUBLE,
         FLOAT,
         BYTE,
@@ -95,23 +92,8 @@ public final class DataTypes {
         LONG
     );
 
-    public static final ImmutableList<DataType> ALL_TYPES = ImmutableList.<DataType>builder()
-        .addAll(PRIMITIVE_TYPES)
-        .add(ANY_ARRAY)
-        .add(OBJECT)
-        .add(GEO_POINT)
-        .add(GEO_SHAPE)
-        .build();
-
-    private static final ImmutableList<DataType> ANY_TYPES = ImmutableList.of(
-        ANY,
-        ANY_ARRAY,
-        ANY_SET
-    );
-
     /**
-     * Type registry list contains no member of {@link #ANY_TYPES} with intent, {@link #ANY_TYPES} are only used for
-     * {@code Signature} matching and do not support streaming.
+     * Type registry mapping type ids to the according data type instance.
      */
     private static final Map<Integer, DataTypeFactory> TYPE_REGISTRY = new MapBuilder<Integer, DataTypeFactory>()
         .put(UndefinedType.ID, UNDEFINED)
@@ -129,18 +111,9 @@ public final class DataTypes {
         .put(ObjectType.ID, OBJECT)
         .put(GeoPointType.ID, GEO_POINT)
         .put(GeoShapeType.ID, GEO_SHAPE)
-        .put(ArrayType.ID, new DataTypeFactory() {
-            @Override
-            public DataType<?> create() {
-                return new ArrayType();
-            }
-        })
-        .put(SetType.ID, new DataTypeFactory() {
-            @Override
-            public DataType<?> create() {
-                return new SetType();
-            }
-        }).map();
+        .put(ArrayType.ID, ArrayType::new)
+        .put(SetType.ID, SetType::new).map();
+
 
     private static final Set<DataType> NUMBER_CONVERSIONS = ImmutableSet.<DataType>builder()
         .addAll(NUMERIC_PRIMITIVE_TYPES)
@@ -149,14 +122,14 @@ public final class DataTypes {
         .build();
     // allowed conversion from key to one of the value types
     // the key type itself does not need to be in the value set
-    public static final ImmutableMap<Integer, Set<DataType>> ALLOWED_CONVERSIONS = ImmutableMap.<Integer, Set<DataType>>builder()
+    static final ImmutableMap<Integer, Set<DataType>> ALLOWED_CONVERSIONS = ImmutableMap.<Integer, Set<DataType>>builder()
         .put(BYTE.id(), NUMBER_CONVERSIONS)
         .put(SHORT.id(), NUMBER_CONVERSIONS)
         .put(INTEGER.id(), NUMBER_CONVERSIONS)
         .put(LONG.id(), NUMBER_CONVERSIONS)
         .put(FLOAT.id(), NUMBER_CONVERSIONS)
         .put(DOUBLE.id(), NUMBER_CONVERSIONS)
-        .put(BOOLEAN.id(), ImmutableSet.<DataType>of(STRING))
+        .put(BOOLEAN.id(), ImmutableSet.of(STRING))
         .put(STRING.id(), ImmutableSet.<DataType>builder()
             .addAll(NUMBER_CONVERSIONS)
             .add(GEO_SHAPE)
@@ -164,13 +137,13 @@ public final class DataTypes {
             .add(BOOLEAN)
             .add(OBJECT)
             .build())
-        .put(IP.id(), ImmutableSet.<DataType>of(STRING))
-        .put(TIMESTAMP.id(), ImmutableSet.<DataType>of(LONG))
-        .put(UNDEFINED.id(), ImmutableSet.<DataType>of()) // actually convertible to every type, see NullType
-        .put(GEO_POINT.id(), ImmutableSet.<DataType>of(new ArrayType(DOUBLE)))
-        .put(OBJECT.id(), ImmutableSet.<DataType>of(GEO_SHAPE))
-        .put(ArrayType.ID, ImmutableSet.<DataType>of()) // convertability handled in ArrayType
-        .put(SetType.ID, ImmutableSet.<DataType>of()) // convertability handled in SetType
+        .put(IP.id(), ImmutableSet.of(STRING))
+        .put(TIMESTAMP.id(), ImmutableSet.of(LONG))
+        .put(UNDEFINED.id(), ImmutableSet.of()) // actually convertible to every type, see NullType
+        .put(GEO_POINT.id(), ImmutableSet.of(new ArrayType(DOUBLE)))
+        .put(OBJECT.id(), ImmutableSet.of(GEO_SHAPE))
+        .put(ArrayType.ID, ImmutableSet.of()) // convertability handled in ArrayType
+        .put(SetType.ID, ImmutableSet.of()) // convertability handled in SetType
         .build();
 
     public static boolean isCollectionType(DataType type) {
@@ -321,31 +294,11 @@ public final class DataTypes {
         return streamer;
     }
 
-    private static final Predicate<DataType> NOT_NULL_TYPE_FILTER = new Predicate<DataType>() {
-        @Override
-        public boolean apply(DataType input) {
-            return input != UNDEFINED;
-        }
-    };
-
     /**
      * Returns the first data type that is not {@link UndefinedType}, or {@code UNDEFINED} if none found.
      */
     public static DataType tryFindNotNullType(Iterable<? extends DataType> dataTypes) {
-        return Iterables.find(dataTypes, NOT_NULL_TYPE_FILTER, UNDEFINED);
+        return Iterables.find(dataTypes, input -> input != UNDEFINED, UNDEFINED);
     }
 
-    /**
-     * Returns true if the ID of the given data type matches one of the {@link #ANY_TYPES} id's.
-     * A {@link List#contains(Object)} call would always return true because the {@link AnyType#equals(Object)} method
-     * matches on any {@link DataType} for correct {@code Signature} matching.
-     */
-    public static boolean isAnyOrAnyCollection(DataType givenType) {
-        for (DataType dt : ANY_TYPES) {
-            if (dt.id() == givenType.id()) {
-                return true;
-            }
-        }
-        return false;
-    }
 }

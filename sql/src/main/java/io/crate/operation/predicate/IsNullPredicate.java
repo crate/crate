@@ -31,6 +31,7 @@ import io.crate.operation.Input;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 
@@ -102,9 +103,10 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFo
             return new IsNullPredicate<>(generateInfo(dataTypes));
         }
 
+        @Nullable
         @Override
-        public List<Signature> signatures() {
-            return Signature.SIGNATURES_SINGLE_ANY;
+        public List<DataType> getSignature(List<DataType> dataTypes) {
+            return Signature.SIGNATURES_SINGLE_ANY.apply(dataTypes);
         }
     }
 }

@@ -21,7 +21,6 @@
 
 package io.crate.operation.scalar;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
@@ -60,9 +59,11 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
         return info;
     }
 
-    static class CollectionCountResolver implements FunctionResolver {
+    static class CollectionCountResolver extends BaseFunctionResolver {
 
-        private static final List<Signature> SIGNATURES = ImmutableList.of(new Signature(DataTypes.ANY_SET));
+        CollectionCountResolver() {
+            super(Signature.of(Signature.ArgMatcher.ANY_SET));
+        }
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
@@ -70,11 +71,6 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
                 new FunctionIdent(NAME, dataTypes),
                 DataTypes.LONG
             ));
-        }
-
-        @Override
-        public List<Signature> signatures() {
-            return SIGNATURES;
         }
     }
 }

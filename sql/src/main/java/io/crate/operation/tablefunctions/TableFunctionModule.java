@@ -29,6 +29,6 @@ public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImp
 
     @Override
     public void configureFunctions() {
-        Unnest.register(this);
+        UnnestFunction.register(this);
     }
 }

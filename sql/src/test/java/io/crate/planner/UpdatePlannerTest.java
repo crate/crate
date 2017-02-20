@@ -72,7 +72,7 @@ public class UpdatePlannerTest extends CrateUnitTest {
         assertThat(collectPhase.projections().get(0), instanceOf(UpdateProjection.class));
         assertThat(collectPhase.toCollect().size(), is(1));
         assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
-        assertThat(((Reference) collectPhase.toCollect().get(0)).ident().columnIdent().fqn(), is("_uid"));
+        assertThat(((Reference) collectPhase.toCollect().get(0)).ident().columnIdent().fqn(), is("_id"));
 
         UpdateProjection updateProjection = (UpdateProjection) collectPhase.projections().get(0);
         assertThat(updateProjection.uidSymbol(), instanceOf(InputColumn.class));

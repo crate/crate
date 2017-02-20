@@ -21,7 +21,6 @@
 
 package io.crate.operation.operator.any;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.core.collections.MapComparator;
 import io.crate.metadata.*;
@@ -30,7 +29,6 @@ import io.crate.operation.operator.Operator;
 import io.crate.types.BooleanType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
 import java.util.*;
 
@@ -124,12 +122,11 @@ public abstract class AnyOperator extends Operator<Object> {
         }
     }
 
-    public abstract static class AnyResolver implements FunctionResolver {
+    public abstract static class AnyResolver extends BaseFunctionResolver {
 
-        private static final List<Signature> SIGNATURES = ImmutableList.<Signature>builder()
-            .add(new Signature(DataTypes.ANY, DataTypes.ANY_ARRAY))
-            .add(new Signature(DataTypes.ANY, DataTypes.ANY_SET))
-            .build();
+        AnyResolver() {
+            super(Signature.of(Signature.ArgMatcher.ANY, Signature.ArgMatcher.ANY_COLLECTION));
+        }
 
         public abstract FunctionImplementation newInstance(FunctionInfo info);
 
@@ -140,11 +137,6 @@ public abstract class AnyOperator extends Operator<Object> {
             checkArgument(((CollectionType) dataTypes.get(1)).innerType().equals(dataTypes.get(0)),
                 "The inner type of the array/set passed to ANY must match its left expression");
             return newInstance(new FunctionInfo(new FunctionIdent(name(), dataTypes), BooleanType.INSTANCE));
-        }
-
-        @Override
-        public List<Signature> signatures() {
-            return SIGNATURES;
         }
     }
 }

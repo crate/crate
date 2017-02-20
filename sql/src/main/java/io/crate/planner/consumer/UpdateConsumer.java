@@ -35,6 +35,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Merge;
@@ -47,7 +48,6 @@ import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.MergeCountProjection;
-import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SysUpdateProjection;
 import io.crate.planner.projection.UpdateProjection;
 import io.crate.types.DataTypes;
@@ -176,7 +176,7 @@ public class UpdateConsumer implements Consumer {
             routing,
             tableRelation.tableInfo().rowGranularity(),
             toCollect,
-            Collections.<Projection>singletonList(updateProjection),
+            Collections.singletonList(updateProjection),
             nestedStatement.whereClause(),
             DistributionInfo.DEFAULT_BROADCAST
         );
@@ -213,9 +213,8 @@ public class UpdateConsumer implements Consumer {
         }
 
         if (!whereClause.noMatch() || !(tableInfo.isPartitioned() && whereClause.partitions().isEmpty())) {
-            // for updates, we always need to collect the `_uid`
-            Reference uidReference = new Reference(
-                new ReferenceIdent(tableInfo.ident(), "_uid"), RowGranularity.DOC, DataTypes.STRING);
+            // for updates, we always need to collect the `_id`
+            Reference idReference = tableInfo.getReference(DocSysColumns.ID);
 
             Tuple<String[], Symbol[]> assignments = Assignments.convert(nestedAnalysis.assignments());
 
@@ -237,8 +236,8 @@ public class UpdateConsumer implements Consumer {
                 "collect",
                 routing,
                 tableInfo.rowGranularity(),
-                ImmutableList.<Symbol>of(uidReference),
-                ImmutableList.<Projection>of(updateProjection),
+                ImmutableList.of(idReference),
+                ImmutableList.of(updateProjection),
                 whereClause,
                 DistributionInfo.DEFAULT_BROADCAST
             );

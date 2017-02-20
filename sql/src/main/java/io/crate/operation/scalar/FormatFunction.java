@@ -22,7 +22,6 @@
 package io.crate.operation.scalar;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
@@ -32,32 +31,22 @@ import org.apache.lucene.util.BytesRef;
 import java.util.List;
 import java.util.Locale;
 
-public class FormatFunction extends Scalar<BytesRef, Object> implements FunctionResolver {
+public class FormatFunction extends Scalar<BytesRef, Object> {
 
     public static final String NAME = "format";
-
-    private static final List<Signature> SIGNATURES = ImmutableList.of(
-        new Signature(1, DataTypes.STRING, DataTypes.ANY));
-
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new FormatFunction());
-    }
-
-    private static FunctionInfo createInfo(List<DataType> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
-    }
-
     private FunctionInfo info;
 
-    private FormatFunction() {
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new Resolver());
     }
 
     private FormatFunction(FunctionInfo info) {
         this.info = info;
     }
 
+    @SafeVarargs
     @Override
-    public BytesRef evaluate(Input<Object>... args) {
+    public final BytesRef evaluate(Input<Object>... args) {
         assert args.length > 1 : "number of args must be > 1";
         Object arg0Value = args[0].value();
         assert arg0Value != null : "1st argument must not be null";
@@ -72,8 +61,7 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements Function
             }
         }
 
-        Object formatString = arg0Value;
-        return new BytesRef(String.format(Locale.ENGLISH, ((BytesRef) formatString).utf8ToString(), values));
+        return new BytesRef(String.format(Locale.ENGLISH, ((BytesRef) arg0Value).utf8ToString(), values));
     }
 
     @Override
@@ -81,14 +69,20 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements Function
         return info;
     }
 
-    @Override
-    public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        Preconditions.checkArgument(dataTypes.size() > 1 && dataTypes.get(0) == DataTypes.STRING);
-        return new FormatFunction(createInfo(dataTypes));
-    }
+    private static class Resolver extends BaseFunctionResolver {
 
-    @Override
-    public List<Signature> signatures() {
-        return SIGNATURES;
+        protected Resolver() {
+            super(Signature.withLenientVarArgs(Signature.ArgMatcher.STRING, Signature.ArgMatcher.ANY));
+        }
+
+        private static FunctionInfo createInfo(List<DataType> types) {
+            return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
+        }
+
+        @Override
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            Preconditions.checkArgument(dataTypes.size() > 1 && dataTypes.get(0) == DataTypes.STRING);
+            return new FormatFunction(createInfo(dataTypes));
+        }
     }
 }

@@ -26,8 +26,6 @@ import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.UndefinedType;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 
@@ -93,76 +91,17 @@ public class Functions {
         FunctionResolver dynamicResolver = functionResolvers.get(ident.name());
         if (dynamicResolver != null) {
             List<DataType> argumentTypes = ident.argumentTypes();
-            Signature signature = getMatchingSignature(argumentTypes, dynamicResolver);
+            List<DataType> signature = dynamicResolver.getSignature(argumentTypes);
             if (signature != null) {
-                return dynamicResolver.getForTypes(replaceUndefinedDataTypesIfPossible(argumentTypes, signature));
+                return dynamicResolver.getForTypes(signature);
             }
         }
         return null;
-    }
-
-    /**
-     * Returns a possible matching {@link Signature} provided by a given {@link FunctionResolver}
-     */
-    @Nullable
-    private Signature getMatchingSignature(List<DataType> argumentTypes, FunctionResolver resolver) {
-        for (Signature signature : resolver.signatures()) {
-            if (signature.matches(argumentTypes)) {
-                return signature;
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Replace possible {@link UndefinedType} elements with corresponding element at the matching signature.
-     * This will ensure, a function will be resolved with correct types.
-     *
-     * <p><strong>Note that if the corresponding element at the signature is an ANY type, it won't be used as a
-     * replacement for the {@link UndefinedType} as ANY types must only be used for signature matching.</strong></p>
-     */
-    private List<DataType> replaceUndefinedDataTypesIfPossible(List<DataType> argTypes, Signature matchingSignature) {
-        ListIterator<DataType> argsIt = argTypes.listIterator();
-        int signatureSize = matchingSignature.size();
-        boolean replacementNeeded = false;
-
-        // detect if any replacement is needed
-        while (argsIt.hasNext()) {
-            int i = argsIt.nextIndex();
-            DataType dt = argsIt.next();
-            if (i < signatureSize && dt.id() == UndefinedType.ID) {
-                DataType replacedDt = matchingSignature.get(i);
-                if (!DataTypes.isAnyOrAnyCollection(replacedDt)) {
-                    replacementNeeded = true;
-                    break;
-                }
-            }
-        }
-        if (!replacementNeeded) {
-            return argTypes;
-        }
-
-        // do the replacement. we must create a new list here, as we can't be sure the incoming list is mutable
-        List<DataType> newArgumentTypes = new ArrayList<>(argTypes.size());
-        argsIt = argTypes.listIterator();
-        while (argsIt.hasNext()) {
-            int i = argsIt.nextIndex();
-            DataType dt = argsIt.next();
-            if (i < signatureSize && dt.id() == UndefinedType.ID) {
-                DataType replacedDt = matchingSignature.get(i);
-                if (!DataTypes.isAnyOrAnyCollection(replacedDt)) {
-                    newArgumentTypes.add(replacedDt);
-                    continue;
-                }
-            }
-            newArgumentTypes.add(dt);
-        }
-        return newArgumentTypes;
     }
 
     private static class GeneratedFunctionResolver implements FunctionResolver {
 
-        private final List<Signature> signatures;
+        private final List<Signature.SignatureOperator> signatures;
         private final Map<List<DataType>, FunctionImplementation> functions;
 
         GeneratedFunctionResolver(Collection<Tuple<FunctionIdent, FunctionImplementation>> functionTuples) {
@@ -170,7 +109,7 @@ public class Functions {
             functions = new HashMap<>(functionTuples.size());
             for (Tuple<FunctionIdent, FunctionImplementation> functionTuple : functionTuples) {
                 List<DataType> argumentTypes = functionTuple.v1().argumentTypes();
-                signatures.add(new Signature(argumentTypes));
+                signatures.add(Signature.of(argumentTypes));
                 functions.put(argumentTypes, functionTuple.v2());
             }
         }
@@ -180,9 +119,16 @@ public class Functions {
             return functions.get(dataTypes);
         }
 
+        @Nullable
         @Override
-        public List<Signature> signatures() {
-            return signatures;
+        public List<DataType> getSignature(List<DataType> dataTypes) {
+            for (Signature.SignatureOperator signature : signatures) {
+                List<DataType> sig = signature.apply(dataTypes);
+                if (sig != null) {
+                    return sig;
+                }
+            }
+            return null;
         }
     }
 }

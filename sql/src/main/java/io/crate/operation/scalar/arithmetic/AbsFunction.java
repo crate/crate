@@ -27,6 +27,7 @@ import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class AbsFunction extends Scalar<Number, Number> {
@@ -66,9 +67,10 @@ public class AbsFunction extends Scalar<Number, Number> {
             return new AbsFunction(dataTypes.get(0));
         }
 
+        @Nullable
         @Override
-        public List<Signature> signatures() {
-            return Signature.SIGNATURES_SINGLE_NUMERIC;
+        public List<DataType> getSignature(List<DataType> dataTypes) {
+            return Signature.SIGNATURES_SINGLE_NUMERIC.apply(dataTypes);
         }
     }
 }

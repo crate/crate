@@ -40,14 +40,10 @@ import org.elasticsearch.cluster.ClusterService;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class Unnest implements FunctionResolver {
+public class UnnestFunction {
 
     private final static String NAME = "unnest";
     private static final TableIdent TABLE_IDENT = new TableIdent(null, NAME);
-
-
-    private static final List<Signature> SIGNATURES = Collections.singletonList(
-        new Signature(0, DataTypes.ANY_ARRAY));
 
     static class UnnestTableFunctionImplementation implements TableFunctionImplementation {
 
@@ -114,7 +110,7 @@ public class Unnest implements FunctionResolver {
                         @Override
                         public void remove() {
                             throw new UnsupportedOperationException("remove is not supported for " +
-                                                                    Unnest.class.getSimpleName() + "$iterator");
+                                                                    UnnestFunction.class.getSimpleName() + "$iterator");
                         }
                     };
                 }
@@ -166,17 +162,14 @@ public class Unnest implements FunctionResolver {
     }
 
     public static void register(TableFunctionModule module){
-        module.register(NAME, new Unnest());
-    }
+        module.register(NAME, new BaseFunctionResolver(
+            Signature.withLenientVarArgs(Signature.ArgMatcher.ANY_ARRAY)) {
 
-    @Override
-    public TableFunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        return new UnnestTableFunctionImplementation(
-            new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.OBJECT, FunctionInfo.Type.TABLE));
-    }
-
-    @Override
-    public List<Signature> signatures() {
-        return SIGNATURES;
+            @Override
+            public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+                return new UnnestTableFunctionImplementation(
+                    new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.OBJECT, FunctionInfo.Type.TABLE));
+            }
+        });
     }
 }

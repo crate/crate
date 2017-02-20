@@ -22,7 +22,6 @@
 package io.crate.operation.scalar;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -124,10 +123,11 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
         }
     }
 
-    private static class Resolver implements FunctionResolver {
+    private static class Resolver extends BaseFunctionResolver {
 
-        private static final List<Signature> SIGNATURES = ImmutableList.of(
-            new Signature(1, DataTypes.ANY, DataTypes.ANY));
+        protected Resolver() {
+            super(Signature.withLenientVarArgs(Signature.ArgMatcher.ANY, Signature.ArgMatcher.ANY));
+        }
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
@@ -161,11 +161,6 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
                 }
                 return new GenericConcatFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.STRING));
             }
-        }
-
-        @Override
-        public List<Signature> signatures() {
-            return SIGNATURES;
         }
     }
 }

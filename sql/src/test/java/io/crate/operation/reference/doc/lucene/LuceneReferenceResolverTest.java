@@ -28,6 +28,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.elasticsearch.index.mapper.core.StringFieldMapper;
 import org.junit.Test;
 
@@ -42,14 +43,14 @@ public class LuceneReferenceResolverTest extends CrateUnitTest {
         Reference arrayRef = new Reference(new ReferenceIdent(
             new TableIdent("s", "t"), "a"),
             RowGranularity.DOC,
-            DataTypes.ANY_ARRAY);
+            DataTypes.DOUBLE_ARRAY);
         assertThat(luceneReferenceResolver.getImplementation(arrayRef),
             instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
 
         Reference setRef = new Reference(new ReferenceIdent(
             new TableIdent("s", "t"), "a"),
             RowGranularity.DOC,
-            DataTypes.ANY_SET);
+            new SetType(DataTypes.DOUBLE));
         assertThat(luceneReferenceResolver.getImplementation(setRef),
             instanceOf(DocCollectorExpression.ChildDocCollectorExpression.class));
     }

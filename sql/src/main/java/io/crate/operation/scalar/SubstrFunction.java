@@ -22,7 +22,6 @@
 package io.crate.operation.scalar;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
@@ -33,38 +32,19 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public class SubstrFunction extends Scalar<BytesRef, Object> implements FunctionResolver {
+public class SubstrFunction extends Scalar<BytesRef, Object> {
 
     public static final String NAME = "substr";
     private static final BytesRef EMPTY_BYTES_REF = new BytesRef("");
-    private static final List<Signature> SIGNATURES = buildSignatures();
-
-    private static List<Signature> buildSignatures() {
-        ImmutableList.Builder<Signature> builder = ImmutableList.builder();
-        for (DataType firstNumber : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            builder.add(new Signature(DataTypes.STRING, firstNumber));
-            for (DataType secondNumber : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-                builder.add(new Signature(DataTypes.STRING, firstNumber, secondNumber));
-            }
-        }
-        return builder.build();
-    }
 
     private FunctionInfo info;
-
-    private SubstrFunction() {
-    }
 
     private SubstrFunction(FunctionInfo info) {
         this.info = info;
     }
 
     public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new SubstrFunction());
-    }
-
-    private static FunctionInfo createInfo(List<DataType> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
+        module.register(NAME, new Resolver());
     }
 
     @Override
@@ -164,13 +144,20 @@ public class SubstrFunction extends Scalar<BytesRef, Object> implements Function
         return new BytesRef(bytes, posBegin, pos - posBegin);
     }
 
-    @Override
-    public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        return new SubstrFunction(createInfo(dataTypes));
-    }
+    private static class Resolver extends BaseFunctionResolver {
 
-    @Override
-    public List<Signature> signatures() {
-        return SIGNATURES;
+        protected Resolver() {
+            super(Signature.numArgs(2, 3).and(
+                Signature.withLenientVarArgs(Signature.ArgMatcher.STRING, Signature.ArgMatcher.NUMERIC)));
+        }
+
+        private static FunctionInfo createInfo(List<DataType> types) {
+            return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
+        }
+
+        @Override
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            return new SubstrFunction(createInfo(dataTypes));
+        }
     }
 }

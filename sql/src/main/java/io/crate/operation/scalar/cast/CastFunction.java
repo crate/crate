@@ -110,12 +110,13 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         return true;
     }
 
-    private static class Resolver implements FunctionResolver {
+    private static class Resolver extends BaseFunctionResolver {
 
         private final String name;
         private final DataType targetType;
 
         protected Resolver(DataType targetType, String name) {
+            super(Signature.SIGNATURES_SINGLE_ANY);
             this.name = name;
             this.targetType = targetType;
         }
@@ -131,11 +132,6 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             checkPreconditions(dataTypes);
             return new CastFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), targetType));
-        }
-
-        @Override
-        public List<Signature> signatures() {
-            return Signature.SIGNATURES_SINGLE_ANY;
         }
     }
 

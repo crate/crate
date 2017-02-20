@@ -43,12 +43,13 @@ public class TryCastScalarFunction extends CastFunction {
         }
     }
 
-    private static class Resolver implements FunctionResolver {
+    private static class Resolver extends BaseFunctionResolver {
 
         private final String name;
         private final DataType dataType;
 
         protected Resolver(DataType dataType, String name) {
+            super(Signature.SIGNATURES_SINGLE_ANY);
             this.name = name;
             this.dataType = dataType;
         }
@@ -56,11 +57,6 @@ public class TryCastScalarFunction extends CastFunction {
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             return new TryCastScalarFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), dataType));
-        }
-
-        @Override
-        public List<Signature> signatures() {
-            return Signature.SIGNATURES_SINGLE_ALL;
         }
     }
 

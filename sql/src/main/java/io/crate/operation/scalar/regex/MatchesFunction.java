@@ -21,7 +21,6 @@
 
 package io.crate.operation.scalar.regex;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -36,28 +35,26 @@ import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 
-public class MatchesFunction extends Scalar<BytesRef[], Object> implements FunctionResolver {
+public class MatchesFunction extends Scalar<BytesRef[], Object> {
 
     public static final String NAME = "regexp_matches";
-
     private static final DataType ARRAY_STRING_TYPE = new ArrayType(DataTypes.STRING);
-    private static final List<Signature> SIGNATURES = ImmutableList.<Signature>builder()
-        .add(new Signature(DataTypes.STRING, DataTypes.STRING))
-        .add(new Signature(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING))
-        .build();
-
-    private static FunctionInfo createInfo(List<DataType> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), new ArrayType(types.get(0)));
-    }
-
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new MatchesFunction());
-    }
 
     private FunctionInfo info;
     private RegexMatcher regexMatcher;
 
-    private MatchesFunction() {
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME,
+            new BaseFunctionResolver(
+                Signature.numArgs(2, 3).and(
+                    Signature.withLenientVarArgs(Signature.ArgMatcher.STRING))) {
+
+                @Override
+                public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+                    return new MatchesFunction(
+                        new FunctionInfo(new FunctionIdent(NAME, dataTypes), new ArrayType(dataTypes.get(0))));
+                }
+            });
     }
 
     private MatchesFunction(FunctionInfo info) {
@@ -157,15 +154,5 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Funct
             return matcher.groups();
         }
         return null;
-    }
-
-    @Override
-    public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        return new MatchesFunction(createInfo(dataTypes));
-    }
-
-    @Override
-    public List<Signature> signatures() {
-        return SIGNATURES;
     }
 }

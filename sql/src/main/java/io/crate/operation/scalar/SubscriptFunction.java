@@ -21,32 +21,20 @@
 
 package io.crate.operation.scalar;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
-import io.crate.types.*;
+import io.crate.types.CollectionType;
+import io.crate.types.DataType;
 
 import java.util.List;
 
-public class SubscriptFunction extends Scalar<Object, Object[]> implements FunctionResolver {
+public class SubscriptFunction extends Scalar<Object, Object[]> {
 
     public static final String NAME = "subscript";
-
-    private static final List<Signature> SIGNATURES = ImmutableList.of(
-        new Signature(DataTypes.ANY_ARRAY, DataTypes.INTEGER)
-    );
-
-    private static FunctionInfo createInfo(List<DataType> argumentTypes, DataType returnType) {
-        return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), returnType);
-    }
-
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new SubscriptFunction());
-    }
-
     private FunctionInfo info;
 
-    private SubscriptFunction() {
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new Resolver());
     }
 
     private SubscriptFunction(FunctionInfo info) {
@@ -57,7 +45,6 @@ public class SubscriptFunction extends Scalar<Object, Object[]> implements Funct
     public FunctionInfo info() {
         return info;
     }
-
 
     @Override
     public Object evaluate(Input[] args) {
@@ -85,14 +72,20 @@ public class SubscriptFunction extends Scalar<Object, Object[]> implements Funct
         }
     }
 
-    @Override
-    public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        DataType returnType = ((CollectionType) dataTypes.get(0)).innerType();
-        return new SubscriptFunction(createInfo(dataTypes, returnType));
-    }
+    private static class Resolver extends BaseFunctionResolver {
 
-    @Override
-    public List<Signature> signatures() {
-        return SIGNATURES;
+        private static FunctionInfo createInfo(List<DataType> argumentTypes, DataType returnType) {
+            return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), returnType);
+        }
+
+        protected Resolver() {
+            super(Signature.of(Signature.ArgMatcher.ANY_ARRAY, Signature.ArgMatcher.INTEGER));
+        }
+
+        @Override
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            DataType returnType = ((CollectionType) dataTypes.get(0)).innerType();
+            return new SubscriptFunction(createInfo(dataTypes, returnType));
+        }
     }
 }
