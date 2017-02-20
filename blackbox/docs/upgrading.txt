@@ -1,0 +1,160 @@
+.. highlight:: sh
+
+=========
+Upgrading
+=========
+
+Some versions of CrateDB require version-specific upgrade steps.
+
+Please see the section that corresponds to the version you are upgrading to for
+instructions.
+
+Upgrading to 1.1
+================
+
+CrateDB 1.1 introduces a new internal table format that is backwards
+incompatible with previous table formats. Future versions of CrateDB will only
+support this new table format. CrateDB 1.1 will be the only release that can
+read all older table formats *and* the new table format.
+
+CrateDB 1.1 includes new cluster checks that will tell you which tables need
+migrating or reindexing if you plan to use future releases of CrateDB. Once
+this has been done, your tables will be forward compatible with future releases.
+
+To get started, upgrade your cluster like normal. When CrateDB 1.1 is running,
+you may now see that your cluster checks are yellow rather than green in the
+status bar at the top of your `admin console`_. Select the status checks icon
+for more information.
+
+Depending on your situation, you may then be told that you should either
+migrate or reindex some of your tables.
+
+.. figure:: _static/upgrade-cluster-checks.png
+   :align: center
+
+   *Figure 1*: Both cluster checks are failing in this example.
+
+If your cluster checks are green, there is nothing for you to do. Otherwise,
+continue to the section `Preparation`_.
+
+Preparation
+------------
+
+It is recommended that you make backups for safety before attempting to migrate
+or reindex any tables. (See :ref:`snapshot-restore`.)
+
+Reindex Tables
+--------------
+
+For tables that need reindexing, use :ref:`ref-show-create-table` to get the
+SQL statement needed to restore the table, like so::
+
+  cr> SHOW CREATE TABLE table_ident;
+
+Here, ``table_ident`` is the name of the table you want to reindex.
+
+Copy the output of this command to somewhere safe. You will need it to recreate the table.
+
+Next, use :ref:`copy_to` to export the table data to a file.
+
+One way of doing that is like so::
+
+ cr> COPY table_ident TO DIRECTORY '/data/backups';
+
+This will create several JSON files with names like ``table_ident_0_.json`` in
+the ``/data/backups`` directory on your local node. (The directory you use for
+data export is up to you, but it must be writable by CrateDB.)
+
+:ref:`copy_to` also includes support for Amazon S3, gzip output, and more.
+See the command documentation for the full range of usage options.
+
+Once you have both the table schema and table data export, you can use
+:ref:`drop-table` to drop the table::
+
+  cr> DROP TABLE table_ident;
+
+Now, recreate the table by executing the ``CREATE TABLE`` command you previously copied.
+
+Once created, re-import your data using :ref:`copy_from`.
+
+If you exported your table like in the previous example, you could then import
+your data one file at a time, like so::
+
+  cr> COPY table_ident FROM '/data/backups/table_ident_0_.json';
+
+See the :ref:`copy_from` command documentation for more information.
+
+When all tables that needed reindexing have been exported, dropped, recreated,
+and reimported, you can move on.
+
+If you have tables you need to migrate, continue to the `Migrate Tables`_ section.
+Otherwise, skip to the `Verify Upgrade`_ section.
+
+Migrate Tables
+--------------
+
+To migrate your tables, you must first shut down your cluster.
+
+Once your cluster is shut down, you must run the CrateDB migration tool on each
+of your nodes. The CrateDB migration tool is bundled with the CrateDB
+distribution, and can be found at ``bin/upcrater``. (If the ``crate`` command
+is on your command ``PATH``, the ``upcrater`` command should be also.)
+
+Test that the tool is working and is able to automatically pick up your local
+configuration by running this::
+
+    sh$ bin/upcrater --dry-run
+
+The dry run will produce a summary of what will be done when the tool is run
+normally. If this command produces errors and you need more information to fix
+them, you can run ``bin/upcrater --verbose --dry-run``.
+
+If you want to migrate specific tables (for example, in case some tables have
+already been migrated) you can use the ``--tables`` option.
+
+Run ``bin/upcrater -h`` for the full command reference.
+
+When the dry run looks okay, you can run the actual migration like so::
+
+    sh$ bin/upcrater
+
+You must run ``bin/upcrater`` on every node in your cluster.
+
+When ``bin/upcrater`` has finished, it will produce a summary of what was done.
+
+.. TIP::
+
+   If you run ``bin/upcrater`` simultaneously on all nodes it will speed up the
+   overall migration process.
+
+The ``bin/upcrater`` command can be stopped and re-run at any time. Tables that
+have already been migrated will not be re-migrated.
+
+Once ``bin/upcrater`` has been run on every node in your cluster, you can start
+your cluster back up.
+
+.. WARNING::
+
+   Do not start your cluster back up until all tables have been migrated.
+
+When your cluster starts back up, check your node logs (configured via
+:ref:`conf-node-attributes`) for any important messages.
+
+Verify Upgrade
+--------------
+
+Open your CrateDB `admin console`_ and verify that your cluster checks are
+green. This indicates that all your tables have been successfully upgraded.
+
+If your cluster checks are not green, you may have missed some tables. Please go
+back to the `Preparation`_ section.
+
+Create New Snapshots
+--------------------
+
+Snapshots of your tables created prior to them being upgraded will not work
+with future versions of CrateDB. For this reason, you should create a new
+snapshot for each of your tables. (See
+:ref:`snapshot-restore`.)
+
+.. _admin console: https://crate.io/docs/connect/admin_ui/
