@@ -23,7 +23,18 @@
 package io.crate.operation.projectors;
 
 
+import io.crate.data.BatchIterator;
+import org.elasticsearch.common.collect.Tuple;
+
+import javax.annotation.Nullable;
+import java.util.function.Function;
+
 public interface Projector extends RowReceiver {
 
     void downstream(RowReceiver rowDownstreamHandle);
+
+    @Nullable
+    default Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
+        return null;
+    }
 }
