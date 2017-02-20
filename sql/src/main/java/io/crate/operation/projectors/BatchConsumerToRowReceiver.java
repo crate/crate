@@ -40,12 +40,22 @@ public class BatchConsumerToRowReceiver implements BatchConsumer {
     public void accept(BatchIterator iterator, Throwable failure) {
         rowReceiver.completionFuture().whenComplete((ignored, t) -> iterator.close());
         if (failure == null) {
-            consumeIterator(iterator);
+            safeConsumeIterator(iterator);
         } else {
             rowReceiver.fail(failure);
         }
     }
 
+    private void safeConsumeIterator(BatchIterator it) {
+        try {
+            consumeIterator(it);
+        } catch (IllegalStateException e) {
+            if (!rowReceiver.completionFuture().isDone()) {
+                throw e;
+            }
+            // swallow exception; rowReceiver got killed from outside which triggered the cursor-close callback
+        }
+    }
     private void consumeIterator(BatchIterator iterator) {
         try {
             while (iterator.moveNext()) {
@@ -74,7 +84,7 @@ public class BatchConsumerToRowReceiver implements BatchConsumer {
                     if (e != null) {
                         rowReceiver.fail(e);
                     } else {
-                        consumeIterator(iterator);
+                        safeConsumeIterator(iterator);
                     }
                 }
             );
