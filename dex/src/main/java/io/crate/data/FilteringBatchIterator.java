@@ -22,45 +22,30 @@
 
 package io.crate.data;
 
-import java.util.concurrent.CompletionStage;
+import java.util.function.Predicate;
 
-/**
- * Base class for BatchIterator implementations which mostly forward to another BatchIterator.
- */
-public abstract class ForwardingBatchIterator implements BatchIterator {
+public class FilteringBatchIterator extends ForwardingBatchIterator {
 
-    protected ForwardingBatchIterator() {
+    private final BatchIterator delegate;
+    private final Predicate<Row> filter;
+
+    public FilteringBatchIterator(BatchIterator delegate, Predicate<Row> filter) {
+        this.delegate = delegate;
+        this.filter = filter;
     }
 
-    protected abstract BatchIterator delegate();
-
     @Override
-    public void moveToStart() {
-        delegate().moveToStart();
+    protected BatchIterator delegate() {
+        return delegate;
     }
 
     @Override
     public boolean moveNext() {
-        return delegate().moveNext();
-    }
-
-    @Override
-    public Row currentRow() {
-        return delegate().currentRow();
-    }
-
-    @Override
-    public void close() {
-        delegate().close();
-    }
-
-    @Override
-    public CompletionStage<?> loadNextBatch() {
-        return delegate().loadNextBatch();
-    }
-
-    @Override
-    public boolean allLoaded() {
-        return delegate().allLoaded();
+        while (delegate.moveNext()) {
+            if (filter.test(currentRow())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
