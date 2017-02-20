@@ -33,7 +33,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
-import io.crate.operation.collect.collectors.CrateDocCollector;
+import io.crate.operation.collect.collectors.CrateDocCollectorBuilder;
 import io.crate.operation.collect.collectors.LuceneOrderedDocCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.Requirement;
@@ -53,13 +53,11 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Set;
-import java.util.concurrent.Executor;
 
 public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
     private static final ESLogger LOGGER = Loggers.getLogger(LuceneShardCollectorProvider.class);
 
-    private final ThreadPool threadPool;
     private final String localNodeId;
     private final LuceneQueryBuilder luceneQueryBuilder;
     private final IndexShard indexShard;
@@ -80,7 +78,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             indexNameExpressionResolver, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool,
             indexShard);
         this.luceneQueryBuilder = luceneQueryBuilder;
-        this.threadPool = threadPool;
         this.indexShard = indexShard;
         this.localNodeId = clusterService.localNode().getId();
         fieldTypeLookup = indexShard.mapperService()::smartNameFieldType;
@@ -104,14 +101,11 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             jobCollectContext.addSearcher(sharedShardContext.readerId(), searcher);
             InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
                 docInputFactory.extractImplementations(collectPhase);
-            Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
 
-            return new CrateDocCollector.Builder(
-                indexShard.shardId(),
+            return new CrateDocCollectorBuilder(
                 searcher.searcher(),
                 queryContext.query(),
                 queryContext.minScore(),
-                executor,
                 Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
                 getCollectorContext(sharedShardContext.readerId(), docCtx),
                 jobCollectContext.queryPhaseRamAccountingContext(),

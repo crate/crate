@@ -58,7 +58,6 @@ public class SQLExceptions {
         throwable instanceof TransportException ||
         throwable instanceof UncheckedExecutionException ||
         throwable instanceof UncategorizedExecutionException ||
-        throwable instanceof CompletionException ||
         throwable instanceof ExecutionException;
 
     public static Throwable unwrap(@Nonnull Throwable t, @Nullable Predicate<Throwable> additionalUnwrapCondition) {
