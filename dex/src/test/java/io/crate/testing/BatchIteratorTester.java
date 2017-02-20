@@ -23,6 +23,7 @@
 package io.crate.testing;
 
 import io.crate.data.BatchIterator;
+import io.crate.exceptions.Exceptions;
 import org.hamcrest.Matchers;
 
 import java.util.ArrayList;
@@ -130,11 +131,11 @@ public class BatchIteratorTester {
         ExecutorService executor = Executors.newFixedThreadPool(3);
         try {
             CompletableFuture<Object[]> firstRow = CompletableFuture.supplyAsync(() -> {
-                assertThat("it should have at least two rows, first missing", it.moveNext(), is(true));
+                assertThat("it should have at least two rows, first missing", getBatchAwareMoveNext(it), is(true));
                 return it.currentRow().materialize();
             }, executor);
             CompletableFuture<Object[]> secondRow = firstRow.thenApplyAsync(row -> {
-                assertThat("it should have at least two rows", it.moveNext(), is(true));
+                assertThat("it should have at least two rows", getBatchAwareMoveNext(it), is(true));
                 return it.currentRow().materialize();
             }, executor);
 
@@ -144,6 +145,27 @@ public class BatchIteratorTester {
             executor.shutdownNow();
             executor.awaitTermination(5, TimeUnit.SECONDS);
         }
+    }
+
+    private static boolean getBatchAwareMoveNext(BatchIterator it) {
+        try {
+            return batchAwareMoveNext(it).get(10, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            Exceptions.rethrowUnchecked(e);
+            return false;
+        }
+    }
+
+    private static CompletableFuture<Boolean> batchAwareMoveNext(BatchIterator it) {
+        if (it.moveNext()) {
+            return CompletableFuture.completedFuture(true);
+        }
+        if (it.allLoaded()) {
+            return CompletableFuture.completedFuture(false);
+        }
+        return it.loadNextBatch()
+            .thenCompose(r -> batchAwareMoveNext(it))
+            .toCompletableFuture();
     }
 
     private void testFailsIfClosed(BatchIterator it) {
