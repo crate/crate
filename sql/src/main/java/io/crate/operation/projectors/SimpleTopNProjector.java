@@ -22,11 +22,13 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
-import io.crate.data.Row;
-import io.crate.data.Input;
+import io.crate.data.*;
 import io.crate.operation.collect.CollectExpression;
+import org.elasticsearch.common.collect.Tuple;
 
+import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Function;
 
 public class SimpleTopNProjector extends InputRowProjector {
 
@@ -66,5 +68,16 @@ public class SimpleTopNProjector extends InputRowProjector {
                 return Result.STOP;
         }
         throw new AssertionError("Unrecognized setNextRow result: " + result);
+    }
+
+    @Nullable
+    @Override
+    public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
+        return it -> {
+            if (remainingOffset > 0) {
+                it = SkippingBatchIterator.newInstance(it, remainingOffset);
+            }
+            return new Tuple<>(LimitingBatchIterator.newInstance(it, toCollect), downstream);
+        };
     }
 }
