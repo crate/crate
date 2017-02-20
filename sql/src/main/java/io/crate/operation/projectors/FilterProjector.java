@@ -21,8 +21,9 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Predicate;
 import io.crate.data.Row;
+
+import java.util.function.Predicate;
 
 class FilterProjector extends AbstractProjector {
 
@@ -34,7 +35,7 @@ class FilterProjector extends AbstractProjector {
 
     @Override
     public Result setNextRow(Row row) {
-        if (rowFilterPredicate.apply(row)) {
+        if (rowFilterPredicate.test(row)) {
             return downstream.setNextRow(row);
         }
         return Result.CONTINUE;

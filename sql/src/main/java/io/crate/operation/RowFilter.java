@@ -22,15 +22,13 @@
 
 package io.crate.operation;
 
-import com.google.common.base.Objects;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.InputCondition;
 
 import javax.annotation.Nullable;
+import java.util.function.Predicate;
 
 public class RowFilter implements Predicate<Row> {
 
@@ -39,7 +37,7 @@ public class RowFilter implements Predicate<Row> {
 
     public static Predicate<Row> create(InputFactory inputFactory, @Nullable Symbol filterSymbol) {
         if (filterSymbol == null) {
-            return Predicates.alwaysTrue();
+            return i -> true;
         }
         return new RowFilter(inputFactory, filterSymbol);
     }
@@ -52,7 +50,7 @@ public class RowFilter implements Predicate<Row> {
     }
 
     @Override
-    public boolean apply(@Nullable Row row) {
+    public boolean test(@Nullable Row row) {
         for (CollectExpression<Row, ?> collectExpression : filterCollectExpressions) {
             collectExpression.setNextRow(row);
         }
@@ -63,13 +61,17 @@ public class RowFilter implements Predicate<Row> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+
         RowFilter rowFilter = (RowFilter) o;
-        return Objects.equal(filterCondition, rowFilter.filterCondition) &&
-               Objects.equal(filterCollectExpressions, rowFilter.filterCollectExpressions);
+
+        if (!filterCondition.equals(rowFilter.filterCondition)) return false;
+        return filterCollectExpressions.equals(rowFilter.filterCollectExpressions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(filterCondition, filterCollectExpressions);
+        int result = filterCondition.hashCode();
+        result = 31 * result + filterCollectExpressions.hashCode();
+        return result;
     }
 }
