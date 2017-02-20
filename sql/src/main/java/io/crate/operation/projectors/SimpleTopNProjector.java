@@ -75,7 +75,7 @@ public class SimpleTopNProjector extends InputRowProjector {
     public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
         return it -> {
             if (remainingOffset > 0) {
-                it = SkippingBatchIterator.newInstance(it, remainingOffset);
+                it = new SkippingBatchIterator(it, remainingOffset);
             }
             return new Tuple<>(LimitingBatchIterator.newInstance(it, toCollect), downstream);
         };

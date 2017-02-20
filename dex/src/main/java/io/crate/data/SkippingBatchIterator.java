@@ -22,59 +22,31 @@
 
 package io.crate.data;
 
-import java.util.concurrent.CompletionStage;
+public class SkippingBatchIterator extends ForwardingBatchIterator {
 
-public class SkippingBatchIterator implements BatchIterator {
-
-    private final BatchIterator delegate;
     private final int offset;
-
     private int skipped = 0;
 
-    public static BatchIterator newInstance(BatchIterator delegate, int offset) {
-        return new CloseAssertingBatchIterator(new SkippingBatchIterator(delegate, offset));
-    }
-
-    private SkippingBatchIterator(BatchIterator delegate, int offset) {
-        this.delegate = delegate;
+    public SkippingBatchIterator(BatchIterator delegate, int offset) {
+        super(delegate);
         this.offset = offset;
     }
 
     @Override
     public void moveToStart() {
+        super.moveToStart();
         skipped = 0;
-        delegate.moveToStart();
     }
 
     @Override
     public boolean moveNext() {
         if (skipped < offset) {
             for (; skipped < offset; skipped++) {
-                if (delegate.moveNext() == false) {
+                if (super.moveNext() == false) {
                     return false;
                 }
             }
         }
-        return delegate.moveNext();
-    }
-
-    @Override
-    public Row currentRow() {
-        return delegate.currentRow();
-    }
-
-    @Override
-    public void close() {
-        delegate.close();
-    }
-
-    @Override
-    public CompletionStage<?> loadNextBatch() {
-        return delegate.loadNextBatch();
-    }
-
-    @Override
-    public boolean allLoaded() {
-        return delegate.allLoaded();
+        return super.moveNext();
     }
 }
