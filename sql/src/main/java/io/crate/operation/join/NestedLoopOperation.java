@@ -21,7 +21,6 @@
 
 package io.crate.operation.join;
 
-import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.Row;
@@ -36,6 +35,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Predicate;
 
 
 /**
@@ -436,7 +436,7 @@ public class NestedLoopOperation implements CompletionListenable {
             combinedRow.innerRow = row;
 
             // Check join condition
-            if (!joinPredicate.apply(combinedRow)) {
+            if (!joinPredicate.test(combinedRow)) {
                 return Result.CONTINUE;
             }
             matchedJoinPredicate = true;
@@ -627,7 +627,7 @@ public class NestedLoopOperation implements CompletionListenable {
                 combinedRow.innerRow = row;
 
                 // Check join condition
-                if (!joinPredicate.apply(combinedRow)) {
+                if (!joinPredicate.test(combinedRow)) {
                     return Result.CONTINUE;
                 }
                 matchedJoinPredicate = true;

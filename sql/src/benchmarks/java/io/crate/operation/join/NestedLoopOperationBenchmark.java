@@ -28,7 +28,6 @@ import com.carrotsearch.junitbenchmarks.annotation.AxisRange;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkHistoryChart;
 import com.carrotsearch.junitbenchmarks.annotation.BenchmarkMethodChart;
 import com.carrotsearch.junitbenchmarks.annotation.LabelType;
-import com.google.common.base.Predicates;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.operation.projectors.RowReceiver;
@@ -126,7 +125,7 @@ public class NestedLoopOperationBenchmark {
 
         RowCountRowReceiver receiver = new RowCountRowReceiver();
         NestedLoopOperation operation = new NestedLoopOperation(
-            0, receiver, Predicates.<Row>alwaysTrue(), JoinType.CROSS, 0, 0);
+            0, receiver, r -> true, JoinType.CROSS, 0, 0);
         RowReceiver leftSide = operation.leftRowReceiver();
         RowReceiver rightSide = operation.rightRowReceiver();
 

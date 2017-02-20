@@ -22,8 +22,6 @@
 package io.crate.operation.join;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.data.Bucket;
 import io.crate.data.Buckets;
@@ -45,7 +43,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -54,6 +51,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 import static io.crate.testing.RowGenerator.singleColRows;
 import static org.hamcrest.Matchers.instanceOf;
@@ -65,12 +63,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
     private ExecutorService executorService;
 
-    private static final Predicate<Row> COL0_EQ_COL1 = new Predicate<Row>() {
-        @Override
-        public boolean apply(@Nullable Row input) {
-            return input != null && input.get(0) == input.get(1);
-        }
-    };
+    private static final Predicate<Row> COL0_EQ_COL1 = r -> r.get(0) == r.get(1);
 
     @Before
     public void setupExecutor() throws Exception {
@@ -85,7 +78,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
     private Bucket executeNestedLoop(List<Row> leftRows, List<Row> rightRows) throws Exception {
         return executeNestedLoop(
-            leftRows, rightRows, Predicates.<Row>alwaysTrue(), JoinType.CROSS, 0, 0);
+            leftRows, rightRows, r -> true, JoinType.CROSS, 0, 0);
     }
 
     private Bucket executeNestedLoop(List<Row> leftRows,
@@ -107,7 +100,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
     private static NestedLoopOperation unfilteredNestedLoopOperation(int phaseId, RowReceiver rowReceiver) {
         return new NestedLoopOperation(
-            phaseId, rowReceiver, Predicates.<Row>alwaysTrue(), JoinType.CROSS, 0, 0);
+            phaseId, rowReceiver, r -> true, JoinType.CROSS, 0, 0);
     }
 
     @Test
@@ -220,7 +213,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
     public void testNestedDoesStopOnceDownstreamStops() throws Exception {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withLimit(1);
         final NestedLoopOperation op = new NestedLoopOperation(
-            0, rowReceiver, Predicates.<Row>alwaysTrue(), JoinType.INNER, 1, 1);
+            0, rowReceiver, r -> true, JoinType.INNER, 1, 1);
 
         // the left RR immediately pauses, since the op changes to right
         assertThat(op.leftRowReceiver().setNextRow(new Row1(1)), is(RowReceiver.Result.PAUSE));
