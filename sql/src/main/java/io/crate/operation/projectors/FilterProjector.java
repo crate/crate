@@ -21,8 +21,13 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.data.BatchIterator;
+import io.crate.data.FilteringBatchIterator;
 import io.crate.data.Row;
+import org.elasticsearch.common.collect.Tuple;
 
+import javax.annotation.Nullable;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 class FilterProjector extends AbstractProjector {
@@ -49,5 +54,11 @@ class FilterProjector extends AbstractProjector {
     @Override
     public void fail(Throwable throwable) {
         downstream.fail(throwable);
+    }
+
+    @Nullable
+    @Override
+    public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
+        return bi -> new Tuple<>(new FilteringBatchIterator(bi, rowFilterPredicate), downstream);
     }
 }
