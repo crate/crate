@@ -24,12 +24,18 @@ package io.crate.data;
 
 public class SkippingBatchIterator extends ForwardingBatchIterator {
 
+    private final BatchIterator delegate;
     private final int offset;
     private int skipped = 0;
 
     public SkippingBatchIterator(BatchIterator delegate, int offset) {
-        super(delegate);
+        this.delegate = delegate;
         this.offset = offset;
+    }
+
+    @Override
+    protected BatchIterator delegate() {
+        return delegate;
     }
 
     @Override
@@ -40,13 +46,11 @@ public class SkippingBatchIterator extends ForwardingBatchIterator {
 
     @Override
     public boolean moveNext() {
-        if (skipped < offset) {
-            for (; skipped < offset; skipped++) {
-                if (super.moveNext() == false) {
-                    return false;
-                }
+        for (; skipped < offset; skipped++) {
+            if (delegate.moveNext() == false) {
+                return false;
             }
         }
-        return super.moveNext();
+        return delegate.moveNext();
     }
 }
