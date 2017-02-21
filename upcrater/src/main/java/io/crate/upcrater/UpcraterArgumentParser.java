@@ -20,16 +20,16 @@
  * agreement.
  */
 
-package io.crate.migration;
+package io.crate.upcrater;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Utility class to parse the command line arguments of the {@link MigrationTool}
+ * Utility class to parse the command line arguments of the {@link Upcrater}
  */
-final class MigrationToolArgumentParser {
+final class UpcraterArgumentParser {
 
     private static final String DRY_RUN = "--dry-run";
     private static final String CONFIG_FILE_FLAG = "-c";
@@ -37,10 +37,10 @@ final class MigrationToolArgumentParser {
     private static final String VERBOSE_FLAG = "--verbose";
     private static final String SPECIFIC_TABLES_FLAG = "--tables";
 
-    private MigrationToolArgumentParser() {
+    private UpcraterArgumentParser() {
     }
 
-    static MigrationToolConfiguration parseArgs(String[] args) throws IllegalArgumentException {
+    static UpcraterConfiguration parseArgs(String[] args) throws IllegalArgumentException {
         boolean validateOnly = false;
         boolean printHelp = false;
         boolean verbose = false;
@@ -85,6 +85,6 @@ final class MigrationToolArgumentParser {
         if (printHelp) {
             return null;
         }
-        return new MigrationToolConfiguration(validateOnly, verbose, tableNames, configFileName);
+        return new UpcraterConfiguration(validateOnly, verbose, tableNames, configFileName);
     }
 }

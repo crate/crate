@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.migration;
+package io.crate.upcrater;
 
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.internal.MigrationToolSettingsPreparer;
@@ -28,9 +28,9 @@ import org.elasticsearch.node.internal.MigrationToolSettingsPreparer;
 import java.util.Set;
 
 /**
- * Holds the necessary configuration for the {@link MigrationTool}
+ * Holds the necessary configuration for the {@link Upcrater}
  */
-class MigrationToolConfiguration {
+class UpcraterConfiguration {
 
     private boolean dryrun;
     private boolean verbose;
@@ -38,7 +38,7 @@ class MigrationToolConfiguration {
     private String configFileName;
     private Environment environment;
 
-    MigrationToolConfiguration(boolean dryrun, boolean verbose, Set<String> tableNames, String configFileName) {
+    UpcraterConfiguration(boolean dryrun, boolean verbose, Set<String> tableNames, String configFileName) {
         this.dryrun = dryrun;
         this.verbose = verbose;
         this.tableNames = tableNames;

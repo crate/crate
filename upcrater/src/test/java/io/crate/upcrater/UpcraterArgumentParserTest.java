@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.migration;
+package io.crate.upcrater;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,7 +31,7 @@ import java.nio.file.Paths;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 
-public class MigrationToolArgumentParserTest {
+public class UpcraterArgumentParserTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -40,20 +40,20 @@ public class MigrationToolArgumentParserTest {
     public void testParseArgsNoConfigFile() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("ERROR: missing value for -c option.");
-        MigrationToolArgumentParser.parseArgs(new String[] {"-c"});
+        UpcraterArgumentParser.parseArgs(new String[] {"-c"});
     }
 
     @Test
     public void testParseArgsNeitherAllTablesAndTables() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("ERROR: Wrong argument provided: foo");
-        MigrationToolArgumentParser.parseArgs(new String[] {"foo"});
+        UpcraterArgumentParser.parseArgs(new String[] {"foo"});
     }
 
     @Test
     public void testParseHelpArg() {
         System.setProperty("es.path.home", "foo");
-        MigrationToolConfiguration configuration = MigrationToolArgumentParser.parseArgs(
+        UpcraterConfiguration configuration = UpcraterArgumentParser.parseArgs(
             new String[] {"-c", "crate.yml", "-h", "--dry-run"});
         assertThat(configuration, nullValue());
     }
@@ -61,7 +61,7 @@ public class MigrationToolArgumentParserTest {
     @Test
     public void testParseArgsAllTables() {
         System.setProperty("es.path.home", "foo");
-        MigrationToolConfiguration configuration = MigrationToolArgumentParser.parseArgs(
+        UpcraterConfiguration configuration = UpcraterArgumentParser.parseArgs(
             new String[] {"-c", "crate.yml", "--dry-run"});
         assertThat(configuration, notNullValue());
         assertThat(configuration.isDryrun(), is(true));
@@ -74,7 +74,7 @@ public class MigrationToolArgumentParserTest {
     @Test
     public void testParseArgsSpecificTables() {
         System.setProperty("es.path.home", "foo");
-        MigrationToolConfiguration configuration = MigrationToolArgumentParser.parseArgs(
+        UpcraterConfiguration configuration = UpcraterArgumentParser.parseArgs(
             new String[] {"--verbose", "--tables", "   table1,table2,", "  table3 ", " , " + "table4"});
         assertThat(configuration, notNullValue());
         assertThat(configuration.isDryrun(), is(false));
@@ -88,6 +88,6 @@ public class MigrationToolArgumentParserTest {
     public void testParseArgsSpecificTablesMissingArg() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("ERROR: missing value for --tables option.");
-        MigrationToolArgumentParser.parseArgs(new String[] {"--tables"});
+        UpcraterArgumentParser.parseArgs(new String[] {"--tables"});
     }
 }

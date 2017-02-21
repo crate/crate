@@ -20,32 +20,32 @@
  * agreement.
  */
 
-package io.crate.migration;
+package io.crate.upcrater;
 
 import java.util.*;
 
 /**
- * Holds information for summary statistics printed at the end of the migration process
+ * Holds information for summary statistics printed at the end of the upgrade process
  */
 class SummaryStats {
 
     private SortedMap<Table, List<Integer>> successful = new TreeMap<>();
     private SortedMap<Table, List<Integer>> failed = new TreeMap<>();
     private SortedMap<Table, List<Integer>> reindexRequired = new TreeMap<>();
-    private SortedMap<Table, List<Integer>> alreadyMigrated = new TreeMap<>();
+    private SortedMap<Table, List<Integer>> alreadyUpgraded = new TreeMap<>();
 
-    void addStatusForTable(Table table, int node, Set<MigrationStatus> statuses) {
+    void addStatusForTable(Table table, int node, Set<UpcrationStatus> statuses) {
         Map<Table, List<Integer>> map = null;
-        if (statuses.contains(MigrationStatus.FAILED)) {
+        if (statuses.contains(UpcrationStatus.FAILED)) {
             map = failed;
-        } else if (statuses.contains(MigrationStatus.REINDEX_REQUIRED)) {
+        } else if (statuses.contains(UpcrationStatus.REINDEX_REQUIRED)) {
             map = reindexRequired;
-        } else if (statuses.contains(MigrationStatus.SUCCESSFUL)) {
+        } else if (statuses.contains(UpcrationStatus.SUCCESSFUL)) {
             map = successful;
-        } else if (statuses.contains(MigrationStatus.ALREADY_MIGRATED)) {
-            map = alreadyMigrated;
+        } else if (statuses.contains(UpcrationStatus.ALREADY_MIGRATED)) {
+            map = alreadyUpgraded;
         }
-        assert map != null : "Status must be one of: " + Arrays.toString(MigrationStatus.values());
+        assert map != null : "Status must be one of: " + Arrays.toString(UpcrationStatus.values());
         List<Integer> nodes = map.computeIfAbsent(table, k -> new ArrayList<>());
         nodes.add(node);
     }
@@ -57,23 +57,23 @@ class SummaryStats {
         sb.append("-- SUMMARY --").append(System.lineSeparator());
         sb.append("-------------").append(System.lineSeparator()).append(System.lineSeparator());
         if (!reindexRequired.isEmpty()) {
-            sb.append("Tables that require reindexing: ");
+            sb.append("Tables that require re-indexing: ");
             appendStats(sb, reindexRequired);
         }
         if (!successful.isEmpty()) {
             if (dryRun) {
-                sb.append("Tables to be migrated: ");
+                sb.append("Tables to be upgraded: ");
             } else {
-                sb.append("Tables successfully migrated: ");
+                sb.append("Tables successfully upgraded: ");
             }
             appendStats(sb, successful);
         }
-        if (!alreadyMigrated.isEmpty()) {
-            sb.append("Tables already migrated: ");
-            appendStats(sb, alreadyMigrated);
+        if (!alreadyUpgraded.isEmpty()) {
+            sb.append("Tables already upgraded: ");
+            appendStats(sb, alreadyUpgraded);
         }
         if (!failed.isEmpty()) {
-            sb.append("Tables errored while migrating (pls check error logs for details): ");
+            sb.append("Tables errored while upgrading (pls check error logs for details): ");
             appendStats(sb, failed);
         }
         return sb.toString();

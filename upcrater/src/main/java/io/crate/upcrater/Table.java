@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.migration;
+package io.crate.upcrater;
 
 import io.crate.metadata.TableIdent;
 

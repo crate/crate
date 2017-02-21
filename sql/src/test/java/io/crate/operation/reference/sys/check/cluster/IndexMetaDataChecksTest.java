@@ -72,7 +72,7 @@ public class IndexMetaDataChecksTest extends CrateUnitTest {
 
     @Test
     public void testIndexAlreadyMigrated() throws IOException {
-        Path zippedIndexDir = getDataPath("/indices/cluster_checks/index_already_migrated-crate0.53.0-es1.7.3.zip");
+        Path zippedIndexDir = getDataPath("/indices/cluster_checks/index_already_upgraded-crate0.53.0-es1.7.3.zip");
         Path dataDir = prepareIndexDir(zippedIndexDir);
         IndexMetaData indexMetaData = IndexMetaDataChecks.loadIndexESMetadata(dataDir, LOGGER);
         assertThat(IndexMetaDataChecks.checkReindexIsRequired(indexMetaData), is(false));

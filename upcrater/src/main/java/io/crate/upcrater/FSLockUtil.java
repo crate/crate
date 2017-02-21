@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.migration;
+package io.crate.upcrater;
 
 import org.apache.lucene.store.*;
 import org.apache.lucene.util.IOUtils;

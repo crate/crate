@@ -1,5 +1,5 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
-archivesBaseName = 'crate-migration-tool'
+archivesBaseName = 'crate-upcrater'
 
 dependencies {
     compile project(":es:es-core")
