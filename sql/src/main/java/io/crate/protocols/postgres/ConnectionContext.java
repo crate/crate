@@ -517,25 +517,17 @@ class ConnectionContext {
             Messages.sendEmptyQueryResponse(channel);
             return;
         }
-        ResultReceiver resultReceiver = createResultReceiver(
-            channel,
-            query,
-            session.getOutputTypes(portalName),
-            session.getResultFormatCodes(portalName));
-        session.execute(portalName, maxRows, resultReceiver);
-    }
-
-    private static ResultReceiver createResultReceiver(Channel channel,
-                                                       String query,
-                                                       @Nullable List<? extends DataType> outputTypes,
-                                                       @Nullable FormatCodes.FormatCode[] formatCodes) {
+        List<? extends DataType> outputTypes = session.getOutputTypes(portalName);
+        ResultReceiver resultReceiver;
         if (outputTypes == null) {
-            // this is a DML query:
-            return new RowCountReceiver(query, channel);
+            // this is a DML query
+            maxRows = 0;
+            resultReceiver = new RowCountReceiver(query, channel);
         } else {
             // query with resultSet
-            return new ResultSetReceiver(query, channel, outputTypes, formatCodes);
+            resultReceiver = new ResultSetReceiver(query, channel, outputTypes, session.getResultFormatCodes(portalName));
         }
+        session.execute(portalName, maxRows, resultReceiver);
     }
 
     private void handleSync(final Channel channel) {
@@ -580,7 +572,7 @@ class ConnectionContext {
             List<Field> fields = session.describe('P', "");
             if (fields == null) {
                 RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel);
-                session.execute("", 1, rowCountReceiver);
+                session.execute("", 0, rowCountReceiver);
             } else {
                 Messages.sendRowDescription(channel, fields, null);
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(query, channel, Symbols.extractTypes(fields), null);

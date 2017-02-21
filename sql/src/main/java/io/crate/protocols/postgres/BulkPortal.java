@@ -31,7 +31,6 @@ import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.Rows;
 import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.executor.Executor;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.planner.Plan;
@@ -107,9 +106,6 @@ class BulkPortal extends AbstractPortal {
 
     @Override
     public void execute(ResultReceiver resultReceiver, int maxRows) {
-        if (maxRows != 1) {
-            throw new UnsupportedFeatureException("bulk operations don't support fetch size");
-        }
         this.resultReceivers.add(resultReceiver);
         this.maxRows = maxRows;
     }
