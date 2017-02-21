@@ -37,7 +37,7 @@ public abstract class AbstractSysCheck implements SysCheck {
         this(id, description, severity, LINK_PATTERN);
     }
 
-    AbstractSysCheck(int id, String description, Severity severity, String linkPattern) {
+    protected AbstractSysCheck(int id, String description, Severity severity, String linkPattern) {
         String linkedDescriptionBuilder = description + " " + linkPattern + id;
         this.description = new BytesRef(linkedDescriptionBuilder);
 

@@ -29,6 +29,7 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
@@ -54,14 +55,27 @@ public class SysNodeCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdateAcknowledge() throws Exception {
-        // gateway.expected_nodes is -1 in the test setup so this check always fails
-        execute("select id, passed from sys.node_checks where passed = false");
-        Object id = response.rows()[0][0];
-        execute("update sys.node_checks set acknowledged = true where id = ?", new Object[]{id});
+        execute("update sys.node_checks set acknowledged = true where id = 3");
+        assertThat(response.rowCount(), is(2L));
 
-        execute("select id, passed, acknowledged from sys.node_checks where id = ?", new Object[]{id});
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("1| false| true\n" +
-               "1| false| true\n"));
+        execute("select acknowledged from sys.node_checks where id = 3");
+        assertThat(response.rows()[0][0], is(true));
+        assertThat(response.rows()[1][0], is(true));
+
+        execute("update sys.node_checks set acknowledged = false where id = 3");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("select acknowledged from sys.node_checks where id = 3");
+        assertThat(response.rows()[0][0], is(false));
+        assertThat(response.rows()[1][0], is(false));
+    }
+
+    @Test
+    public void testUpdateAcknowledgedFromReference() throws Exception {
+        execute("select count(*) from sys.node_checks where not passed");
+        Long rc = (Long) response.rows()[0][0];
+        assertThat(rc, greaterThan(0L));
+        execute("update sys.node_checks set acknowledged = not passed where passed = false");
+        assertThat(response.rowCount(), is(rc));
     }
 }

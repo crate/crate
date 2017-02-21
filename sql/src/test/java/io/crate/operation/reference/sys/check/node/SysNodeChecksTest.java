@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.test.integration.CrateUnitTest;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -45,58 +46,60 @@ public class SysNodeChecksTest extends CrateUnitTest {
 
     private final ClusterService clusterService = new NoopClusterService();
 
+    private RecoveryExpectedNodesSysCheck recoveryExpectedNodesSysCheck() {
+        return applyAndAssertNodeId(new RecoveryExpectedNodesSysCheck(clusterService, Settings.EMPTY));
+    }
+
+    private <T extends SysNodeCheck> T applyAndAssertNodeId(T check){
+        check.setNodeId(new BytesRef(clusterService.localNode().getId()));
+        assertThat(check.nodeId().utf8ToString(), is("noop_id"));
+        return check;
+    }
+
     @Test
     public void testRecoveryExpectedNodesCheckWithDefaultSetting() {
-        RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
-            new RecoveryExpectedNodesSysCheck(clusterService, Settings.EMPTY);
+        RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck = recoveryExpectedNodesSysCheck();
 
         assertThat(recoveryExpectedNodesCheck.id(), is(1));
-        assertThat(recoveryExpectedNodesCheck.nodeId().utf8ToString(), is("noop_id"));
         assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.HIGH));
         assertThat(recoveryExpectedNodesCheck.validate(1,
             CrateSettings.GATEWAY_EXPECTED_NODES.defaultValue()), is(true));
     }
 
+
     @Test
     public void testRecoveryExpectedNodesCheckWithLessThanQuorum() {
-        RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
-            new RecoveryExpectedNodesSysCheck(clusterService, Settings.EMPTY);
+        RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck = recoveryExpectedNodesSysCheck();
 
         assertThat(recoveryExpectedNodesCheck.id(), is(1));
-        assertThat(recoveryExpectedNodesCheck.nodeId().utf8ToString(), is("noop_id"));
         assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.HIGH));
         assertThat(recoveryExpectedNodesCheck.validate(2, 1), is(false));
     }
 
     @Test
     public void testRecoveryExpectedNodesCheckWithCorrectSetting() {
-        RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
-            new RecoveryExpectedNodesSysCheck(clusterService, Settings.EMPTY);
+        RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck = recoveryExpectedNodesSysCheck();
 
         assertThat(recoveryExpectedNodesCheck.id(), is(1));
-        assertThat(recoveryExpectedNodesCheck.nodeId().utf8ToString(), is("noop_id"));
         assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.HIGH));
         assertThat(recoveryExpectedNodesCheck.validate(3, 3), is(true));
     }
 
     @Test
     public void testRecoveryExpectedNodesCheckWithBiggerThanNumberOfNodes() {
-        RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
-            new RecoveryExpectedNodesSysCheck(clusterService, Settings.EMPTY);
+        RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck = recoveryExpectedNodesSysCheck();
 
         assertThat(recoveryExpectedNodesCheck.id(), is(1));
-        assertThat(recoveryExpectedNodesCheck.nodeId().utf8ToString(), is("noop_id"));
         assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.HIGH));
         assertThat(recoveryExpectedNodesCheck.validate(3, 4), is(false));
     }
 
     @Test
     public void testRecoveryAfterNodesCheckWithDefaultSetting() {
-        RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
-            new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY);
+        RecoveryAfterNodesSysCheck recoveryAfterNodesCheck = applyAndAssertNodeId(
+            new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY));
 
         assertThat(recoveryAfterNodesCheck.id(), is(2));
-        assertThat(recoveryAfterNodesCheck.nodeId().utf8ToString(), is("noop_id"));
         assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.HIGH));
         assertThat(recoveryAfterNodesCheck.validate(
             CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.defaultValue(),
@@ -108,14 +111,11 @@ public class SysNodeChecksTest extends CrateUnitTest {
     public void testRecoveryAfterNodesCheckWithLessThanQuorum() {
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS.get());
 
-        RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
-            new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY);
+        RecoveryAfterNodesSysCheck recoveryAfterNodesCheck = new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY);
 
-        when(clusterService.localNode().getId()).thenReturn("noop_id");
         when(clusterService.state().nodes().getSize()).thenReturn(8);
 
         assertThat(recoveryAfterNodesCheck.id(), is(2));
-        assertThat(recoveryAfterNodesCheck.nodeId().utf8ToString(), is("noop_id"));
         assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.HIGH));
         assertThat(recoveryAfterNodesCheck.validate(4, 8), is(false));
     }
@@ -124,14 +124,12 @@ public class SysNodeChecksTest extends CrateUnitTest {
     public void testRecoveryAfterNodesCheckWithCorrectSetting() {
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS.get());
 
-        RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
-            new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY);
+        RecoveryAfterNodesSysCheck recoveryAfterNodesCheck = applyAndAssertNodeId(
+            new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY));
 
-        when(clusterService.localNode().getId()).thenReturn("noop_id");
         when(clusterService.state().nodes().getSize()).thenReturn(8);
 
         assertThat(recoveryAfterNodesCheck.id(), is(2));
-        assertThat(recoveryAfterNodesCheck.nodeId().utf8ToString(), is("noop_id"));
         assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.HIGH));
         assertThat(recoveryAfterNodesCheck.validate(8, 8), is(true));
     }
@@ -139,10 +137,9 @@ public class SysNodeChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryAfterTimeCheckWithCorrectSetting() {
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck =
-            new RecoveryAfterTimeSysCheck(clusterService, Settings.EMPTY);
+            applyAndAssertNodeId(new RecoveryAfterTimeSysCheck(clusterService, Settings.EMPTY));
 
         assertThat(recoveryAfterNodesCheck.id(), is(3));
-        assertThat(recoveryAfterNodesCheck.nodeId().utf8ToString(), is("noop_id"));
         assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
         assertThat(recoveryAfterNodesCheck.validate(TimeValue.timeValueMinutes(6), 1, 4), is(true));
     }
@@ -150,10 +147,9 @@ public class SysNodeChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryAfterTimeCheckWithDefaultSetting() {
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck =
-            new RecoveryAfterTimeSysCheck(clusterService, Settings.EMPTY);
+            applyAndAssertNodeId(new RecoveryAfterTimeSysCheck(clusterService, Settings.EMPTY));
 
         assertThat(recoveryAfterNodesCheck.id(), is(3));
-        assertThat(recoveryAfterNodesCheck.nodeId().utf8ToString(), is("noop_id"));
         assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
         assertThat(recoveryAfterNodesCheck.validate(
             CrateSettings.GATEWAY_RECOVER_AFTER_TIME.defaultValue(),
@@ -165,10 +161,9 @@ public class SysNodeChecksTest extends CrateUnitTest {
     @Test
     public void testRecoveryAfterTimeCheckWithWrongSetting() {
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck =
-            new RecoveryAfterTimeSysCheck(clusterService, Settings.EMPTY);
+            applyAndAssertNodeId(new RecoveryAfterTimeSysCheck(clusterService, Settings.EMPTY));
 
         assertThat(recoveryAfterNodesCheck.id(), is(3));
-        assertThat(recoveryAfterNodesCheck.nodeId().utf8ToString(), is("noop_id"));
         assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
         assertThat(recoveryAfterNodesCheck.validate(TimeValue.timeValueMinutes(4), 3, 3), is(false));
     }
@@ -178,7 +173,7 @@ public class SysNodeChecksTest extends CrateUnitTest {
     @Test
     public void testValidationDiskWatermarkCheckInBytes() {
         DiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck
-            = new HighDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
+            = applyAndAssertNodeId(new HighDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class)));
 
         assertThat(highDiskWatermarkNodesSysCheck.id(), is(5));
         assertThat(highDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));
@@ -204,7 +199,7 @@ public class SysNodeChecksTest extends CrateUnitTest {
     @Test
     public void testValidationDiskWatermarkCheckInPercents() {
         DiskWatermarkNodesSysCheck lowDiskWatermarkNodesSysCheck
-            = new LowDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
+            = applyAndAssertNodeId(new LowDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class)));
 
         assertThat(lowDiskWatermarkNodesSysCheck.id(), is(6));
         assertThat(lowDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));

@@ -97,7 +97,8 @@ public class CollectSourceResolver {
             transportActionProvider,
             bulkRetryCoordinatorPool,
             new InputFactory(functions),
-            normalizer
+            normalizer,
+            systemCollectSource::getRowUpdater
         );
         this.shardCollectSource = shardCollectSource;
         this.fileCollectSource = new ProjectorSetupCollectSource(fileCollectSource, projectorFactory);

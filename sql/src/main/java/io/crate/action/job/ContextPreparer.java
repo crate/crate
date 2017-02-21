@@ -44,6 +44,7 @@ import io.crate.metadata.Routing;
 import io.crate.operation.*;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
+import io.crate.operation.collect.sources.SystemCollectSource;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.fetch.FetchContext;
 import io.crate.operation.join.NestedLoopOperation;
@@ -108,7 +109,8 @@ public class ContextPreparer extends AbstractComponent {
                            TransportActionProvider transportActionProvider,
                            IndexNameExpressionResolver indexNameExpressionResolver,
                            BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                           Functions functions) {
+                           Functions functions,
+                           SystemCollectSource systemCollectSource) {
         super(settings);
         nlContextLogger = Loggers.getLogger(NestedLoopContext.class, settings);
         pageDownstreamContextLogger = Loggers.getLogger(PageDownstreamContext.class, settings);
@@ -130,7 +132,8 @@ public class ContextPreparer extends AbstractComponent {
             transportActionProvider,
             bulkRetryCoordinatorPool,
             inputFactory,
-            normalizer
+            normalizer,
+            systemCollectSource::getRowUpdater
         );
     }
 

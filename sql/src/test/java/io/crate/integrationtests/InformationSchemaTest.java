@@ -272,7 +272,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(13L, response.rowCount());
         assertThat(response.cols(),
             arrayContaining("constraint_name", "constraint_type", "table_name", "table_schema"));
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is(
             "[table_name, table_schema, column_name]| PRIMARY_KEY| columns| information_schema\n" +
             "[schema_name]| PRIMARY_KEY| schemata| information_schema\n" +
             "[feature_id, feature_name, sub_feature_id, sub_feature_name, is_supported, is_verified_by, comments]| PRIMARY_KEY| sql_features| information_schema\n" +
@@ -280,7 +281,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             "[id]| PRIMARY_KEY| checks| sys\n" +
             "[id]| PRIMARY_KEY| jobs| sys\n" +
             "[id]| PRIMARY_KEY| jobs_log| sys\n" +
-            "[id]| PRIMARY_KEY| node_checks| sys\n" +
+            "[id, node_id]| PRIMARY_KEY| node_checks| sys\n" +
             "[id]| PRIMARY_KEY| nodes| sys\n" +
             "[name]| PRIMARY_KEY| repositories| sys\n" +
             "[schema_name, table_name, id, partition_ident]| PRIMARY_KEY| shards| sys\n" +

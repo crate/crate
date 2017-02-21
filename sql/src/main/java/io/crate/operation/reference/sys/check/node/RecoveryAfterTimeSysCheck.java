@@ -23,7 +23,6 @@
 package io.crate.operation.reference.sys.check.node;
 
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.reference.sys.check.AbstractSysNodeCheck;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -35,7 +34,7 @@ public class RecoveryAfterTimeSysCheck extends AbstractSysNodeCheck {
 
     private final Settings settings;
 
-    private static final int ID = 3;
+    static final int ID = 3;
     private static final String DESCRIPTION = "The value of the cluster setting 'gateway.recover_after_time' " +
                                               "must not be less than its default value (5m).";
 

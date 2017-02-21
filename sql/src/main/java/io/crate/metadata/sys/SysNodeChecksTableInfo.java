@@ -28,6 +28,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.StaticTableInfo;
@@ -44,7 +45,7 @@ import java.util.Set;
 public class SysNodeChecksTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "node_checks");
-    private static final ImmutableList<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(SysNodeChecksTableInfo.Columns.ID);
+    private static final ImmutableList<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(Columns.ID, Columns.NODE_ID);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
     private final ClusterService clusterService;
@@ -67,7 +68,8 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
                 .register(SysNodeChecksTableInfo.Columns.SEVERITY, DataTypes.INTEGER)
                 .register(SysNodeChecksTableInfo.Columns.DESCRIPTION, DataTypes.STRING)
                 .register(SysNodeChecksTableInfo.Columns.PASSED, DataTypes.BOOLEAN)
-                .register(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED, DataTypes.BOOLEAN),
+                .register(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED, DataTypes.BOOLEAN)
+                .putInfoOnly(DocSysColumns.ID, DocSysColumns.forTable(IDENT, DocSysColumns.ID)),
             PRIMARY_KEYS);
         this.clusterService = clusterService;
     }

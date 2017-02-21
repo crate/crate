@@ -22,7 +22,6 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.base.Function;
 import io.crate.analyze.symbol.Symbol;
 import org.elasticsearch.common.io.stream.StreamInput;
 
@@ -36,11 +35,6 @@ public class DeleteProjection extends DMLProjection {
 
     DeleteProjection(StreamInput in) throws IOException {
         super(in);
-    }
-
-    @Override
-    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
-        uidSymbol = replaceFunction.apply(uidSymbol);
     }
 
     @Override

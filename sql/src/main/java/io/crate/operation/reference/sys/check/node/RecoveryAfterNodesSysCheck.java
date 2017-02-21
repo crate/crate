@@ -23,7 +23,6 @@
 package io.crate.operation.reference.sys.check.node;
 
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.reference.sys.check.AbstractSysNodeCheck;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -35,7 +34,7 @@ public class RecoveryAfterNodesSysCheck extends AbstractSysNodeCheck {
     private final ClusterService clusterService;
     private final Settings settings;
 
-    private static final int ID = 2;
+    static final int ID = 2;
     private static final String DESCRIPTION = "The value of the cluster setting 'gateway.recover_after_nodes' " +
                                               "needs to be greater than half of the maximum/expected number of nodes and equal or less than " +
                                               "the maximum/expected number of nodes in the cluster.";

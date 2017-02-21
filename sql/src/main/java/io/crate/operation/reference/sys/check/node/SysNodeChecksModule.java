@@ -20,18 +20,23 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.check;
+package io.crate.operation.reference.sys.check.node;
 
-import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-public interface SysNodeCheck extends SysCheck {
+public class SysNodeChecksModule extends AbstractModule {
 
-    /**
-     * Returns the unique id of the checked node.
-     */
-    BytesRef nodeId();
+    @Override
+    protected void configure() {
+        bind(SysNodeChecks.class).asEagerSingleton();
 
-    boolean acknowledged();
+        MapBinder<Integer, SysNodeCheck> b = MapBinder.newMapBinder(binder(), Integer.class, SysNodeCheck.class);
 
-    void acknowledged(boolean value);
+        b.addBinding(HighDiskWatermarkNodesSysCheck.ID).to(HighDiskWatermarkNodesSysCheck.class);
+        b.addBinding(LowDiskWatermarkNodesSysCheck.ID).to(LowDiskWatermarkNodesSysCheck.class);
+        b.addBinding(RecoveryAfterNodesSysCheck.ID).to(RecoveryAfterNodesSysCheck.class);
+        b.addBinding(RecoveryAfterTimeSysCheck.ID).to(RecoveryAfterTimeSysCheck.class);
+        b.addBinding(RecoveryExpectedNodesSysCheck.ID).to(RecoveryExpectedNodesSysCheck.class);
+    }
 }

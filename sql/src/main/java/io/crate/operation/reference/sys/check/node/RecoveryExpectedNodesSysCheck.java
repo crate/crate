@@ -23,7 +23,6 @@
 package io.crate.operation.reference.sys.check.node;
 
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.reference.sys.check.AbstractSysNodeCheck;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -34,7 +33,7 @@ public class RecoveryExpectedNodesSysCheck extends AbstractSysNodeCheck {
 
     private final Settings settings;
 
-    private static final int ID = 1;
+    static final int ID = 1;
     private static final String DESCRIPTION = "The value of the cluster setting 'gateway.expected_nodes' " +
                                               "must be equal to the maximum/expected number of master and data nodes in the cluster.";
 

@@ -24,53 +24,23 @@ package io.crate.operation.projectors;
 
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.metadata.expressions.WritableExpression;
-import io.crate.operation.Input;
-import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.collect.ValueAndInputRow;
-import org.elasticsearch.common.collect.Tuple;
 
-/**
- * Projector that executes in-memory updates on the given assignmentExpressions.
- * <p>
- * The rows it receives must be of type {@link ValueAndInputRow}.
- */
+import java.util.function.Consumer;
+
 class SysUpdateProjector extends AbstractProjector {
 
-    private final Iterable<Tuple<WritableExpression, Input<?>>> assignmentExpressions;
-    private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
-
+    private final Consumer<Object> rowWriter;
     private long rowCount = 0;
 
-    /**
-     * @param assignmentExpressions iterable of tuples
-     *                              the tuples contain a writeable expression (target column)
-     *                              and the value for the assignment (the source "source")
-     *                              <p>
-     *                              e.g. [ x = (y + 1) ]
-     *                              where
-     *                              WriteExpression: x
-     *                              Input: (y + 1)
-     * @param collectExpressions    expressions that are linked to the "source" inputs of the assignmentExpressions
-     */
-    SysUpdateProjector(Iterable<Tuple<WritableExpression, Input<?>>> assignmentExpressions,
-                       Iterable<? extends CollectExpression<Row, ?>> collectExpressions) {
-        this.assignmentExpressions = assignmentExpressions;
-        this.collectExpressions = collectExpressions;
+    SysUpdateProjector(Consumer<Object> rowWriter)  {
+        this.rowWriter = rowWriter;
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public Result setNextRow(Row row) {
-        assert row instanceof ValueAndInputRow : "row must be instance of ValueAndInputRow";
-
-        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
-            collectExpression.setNextRow(row);
-        }
-        for (Tuple<WritableExpression, Input<?>> assignmentExpression : assignmentExpressions) {
-            WritableExpression writableExpression = assignmentExpression.v1();
-            writableExpression.updateValue(((ValueAndInputRow) row).get(), assignmentExpression.v2().value());
-        }
+        Object id = row.get(0);
+        rowWriter.accept(id);
         rowCount++;
         return Result.CONTINUE;
     }
@@ -79,7 +49,6 @@ class SysUpdateProjector extends AbstractProjector {
     public void finish(RepeatHandle repeatHandle) {
         downstream.setNextRow(new Row1(rowCount));
         downstream.finish(RepeatHandle.UNSUPPORTED);
-        ;
     }
 
     @Override

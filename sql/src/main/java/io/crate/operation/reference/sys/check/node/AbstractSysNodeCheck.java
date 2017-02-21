@@ -20,20 +20,31 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.check;
+package io.crate.operation.reference.sys.check.node;
 
+import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
+import io.crate.analyze.Id;
+import io.crate.operation.reference.sys.check.AbstractSysCheck;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 
+import java.util.List;
+
 public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements SysNodeCheck {
+
+    private static final Function<List<BytesRef>, String> PK_FUNC = Id.compile(2, -1);
+
 
     private static final String LINK_PATTERN = "https://cr8.is/d-node-check-";
     protected final ClusterService clusterService;
 
     private BytesRef nodeId;
+    private BytesRef rowId;
     private boolean acknowledged;
 
-    public AbstractSysNodeCheck(int id, String description, Severity severity, ClusterService clusterService) {
+    AbstractSysNodeCheck(int id, String description, Severity severity, ClusterService clusterService) {
         super(id, description, severity, LINK_PATTERN);
         this.clusterService = clusterService;
         acknowledged = false;
@@ -41,10 +52,14 @@ public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements S
 
     @Override
     public BytesRef nodeId() {
-        if (nodeId == null) {
-            nodeId = new BytesRef(clusterService.localNode().getId());
-        }
+        assert nodeId != null : "local node required, setNodeId not called";
         return nodeId;
+    }
+
+    @Override
+    public BytesRef rowId() {
+        assert rowId != null : "local node required, setNodeId not called";
+        return rowId;
     }
 
     @Override
@@ -56,4 +71,15 @@ public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements S
     public void acknowledged(boolean value) {
         acknowledged = value;
     }
+
+    private BytesRef generateId(BytesRef nodeId) {
+        //noinspection ConstantConditions
+        return new BytesRef(PK_FUNC.apply(ImmutableList.of(DataTypes.STRING.value(id()), nodeId)));
+    }
+
+    public void setNodeId(BytesRef nodeId) {
+        this.nodeId = nodeId;
+        this.rowId = generateId(nodeId);
+    }
+
 }

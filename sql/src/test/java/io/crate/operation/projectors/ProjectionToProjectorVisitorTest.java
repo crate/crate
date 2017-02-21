@@ -97,7 +97,8 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
             mock(BulkRetryCoordinatorPool.class),
             new InputFactory(functions),
-            EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY)
+            EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY),
+            null
         );
 
         countInfo = new FunctionInfo(

@@ -83,6 +83,7 @@ public abstract class ShardCollectorProvider {
             bulkRetryCoordinatorPool,
             inputFactory,
             shardNormalizer,
+            null,
             indexShard.shardId()
         );
     }

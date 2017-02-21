@@ -35,7 +35,7 @@ public class LowDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
 
     private static final StringSetting LOW_DISK_WATERMARK_SETTING = CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_LOW;
 
-    private static final int ID = 6;
+    static final int ID = 6;
     private static final String DESCRIPTION = "The low disk watermark is exceeded on the node." +
                                               " The cluster will not allocate new shards to the node. Please check the node disk usage.";
 

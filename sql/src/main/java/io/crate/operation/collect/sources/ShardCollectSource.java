@@ -176,7 +176,8 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             transportActionProvider,
             bulkRetryCoordinatorPool,
             new InputFactory(functions),
-            nodeNormalizer
+            nodeNormalizer,
+            systemCollectSource::getRowUpdater
         );
 
         indicesLifecycle.addListener(new LifecycleListener());

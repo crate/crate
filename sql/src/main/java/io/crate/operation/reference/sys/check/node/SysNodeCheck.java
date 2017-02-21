@@ -20,21 +20,23 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.check;
+package io.crate.operation.reference.sys.check.node;
 
-import io.crate.operation.reference.sys.check.node.*;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.Multibinder;
+import io.crate.operation.reference.sys.check.SysCheck;
+import org.apache.lucene.util.BytesRef;
 
-public class SysNodeChecksModule extends AbstractModule {
+public interface SysNodeCheck extends SysCheck {
 
-    @Override
-    protected void configure() {
-        Multibinder<SysNodeCheck> checksBinder = Multibinder.newSetBinder(binder(), SysNodeCheck.class);
-        checksBinder.addBinding().to(RecoveryExpectedNodesSysCheck.class);
-        checksBinder.addBinding().to(RecoveryAfterTimeSysCheck.class);
-        checksBinder.addBinding().to(RecoveryAfterNodesSysCheck.class);
-        checksBinder.addBinding().to(HighDiskWatermarkNodesSysCheck.class);
-        checksBinder.addBinding().to(LowDiskWatermarkNodesSysCheck.class);
-    }
+    /**
+     * Returns the unique id of the checked node.
+     */
+    BytesRef nodeId();
+
+    boolean acknowledged();
+
+    void acknowledged(boolean value);
+
+    BytesRef rowId();
+
+    void setNodeId(BytesRef nodeId);
 }

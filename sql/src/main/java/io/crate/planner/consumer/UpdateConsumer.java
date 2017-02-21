@@ -21,7 +21,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.VersionRewriter;
 import io.crate.analyze.WhereClause;
@@ -34,9 +33,12 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
-import io.crate.metadata.*;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.Routing;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Merge;
 import io.crate.planner.NoopPlan;
@@ -48,6 +50,7 @@ import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.MergeCountProjection;
+import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SysUpdateProjection;
 import io.crate.planner.projection.UpdateProjection;
 import io.crate.types.DataTypes;
@@ -145,7 +148,7 @@ public class UpdateConsumer implements Consumer {
                 if (nestedStatement.whereClause().noMatch()) {
                     continue;
                 }
-                childPlans.add(createSysTableUpdatePlan(tableRelation, plannerContext, nestedStatement));
+                childPlans.add(createSysTableUpdatePlan(tableRelation.tableInfo(), plannerContext, nestedStatement));
             }
             return createUpsertPlan(childPlans, plannerContext.jobId());
         }
@@ -158,33 +161,40 @@ public class UpdateConsumer implements Consumer {
         return new Upsert(childPlans, jobId);
     }
 
-    private static Plan createSysTableUpdatePlan(TableRelation tableRelation,
-                                                 Planner.Context plannerContext,
-                                                 UpdateAnalyzedStatement.NestedAnalyzedStatement nestedStatement) {
-        Routing routing = plannerContext.allocateRouting(
-            tableRelation.tableInfo(), nestedStatement.whereClause(), Preference.PRIMARY.type());
-
-        List<Symbol> toCollect = new ArrayList<>();
-        for (Symbol symbol : nestedStatement.assignments().values()) {
-            toCollect.add(symbol);
-        }
-        SysUpdateProjection updateProjection = new SysUpdateProjection(nestedStatement.assignments());
+    private static Plan createPlan(Planner.Context plannerContext,
+                                   Routing routing,
+                                   TableInfo tableInfo,
+                                   Reference idReference,
+                                   Projection updateProjection,
+                                   WhereClause whereClause) {
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             "collect",
             routing,
-            tableRelation.tableInfo().rowGranularity(),
-            toCollect,
+            tableInfo.rowGranularity(),
+            Collections.singletonList(idReference),
             Collections.singletonList(updateProjection),
-            nestedStatement.whereClause(),
+            whereClause,
             DistributionInfo.DEFAULT_BROADCAST
         );
-        return Merge.ensureOnHandler(
-            new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null),
-            plannerContext,
-            Collections.singletonList(MergeCountProjection.INSTANCE)
-        );
+        Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
+        return Merge.ensureOnHandler(collect, plannerContext, Collections.singletonList(MergeCountProjection.INSTANCE));
+    }
+
+    private static Plan createSysTableUpdatePlan(TableInfo tableInfo,
+                                                 Planner.Context plannerContext,
+                                                 UpdateAnalyzedStatement.NestedAnalyzedStatement nestedStatement) {
+        Routing routing = plannerContext.allocateRouting(
+            tableInfo, nestedStatement.whereClause(), Preference.PRIMARY.type());
+
+        Reference idReference = tableInfo.getReference(DocSysColumns.ID);
+        assert idReference != null : "table has no _id column";
+
+        SysUpdateProjection updateProjection = new SysUpdateProjection(
+            idReference.valueType(),
+            nestedStatement.assignments());
+        return createPlan(plannerContext, routing, tableInfo, idReference, updateProjection, nestedStatement.whereClause());
     }
 
     static class Visitor extends RelationPlanningVisitor {
@@ -228,21 +238,8 @@ public class UpdateConsumer implements Consumer {
                 assignments.v1(),
                 assignments.v2(),
                 version);
-
             Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type());
-            RoutedCollectPhase collectPhase = new RoutedCollectPhase(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(),
-                "collect",
-                routing,
-                tableInfo.rowGranularity(),
-                ImmutableList.of(idReference),
-                ImmutableList.of(updateProjection),
-                whereClause,
-                DistributionInfo.DEFAULT_BROADCAST
-            );
-            Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
-            return Merge.ensureOnHandler(collect, plannerContext, Collections.singletonList(MergeCountProjection.INSTANCE));
+            return createPlan(plannerContext, routing, tableInfo, idReference, updateProjection, whereClause);
         } else {
             return null;
         }

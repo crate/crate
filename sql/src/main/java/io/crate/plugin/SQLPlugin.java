@@ -49,7 +49,7 @@ import io.crate.operation.collect.files.FileCollectModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.reference.sys.check.SysChecksModule;
-import io.crate.operation.reference.sys.check.SysNodeChecksModule;
+import io.crate.operation.reference.sys.check.node.SysNodeChecksModule;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.node.local.SysNodeExpressionModule;
 import io.crate.operation.reference.sys.repositories.SysRepositoriesModule;

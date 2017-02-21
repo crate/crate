@@ -25,8 +25,8 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.expressions.WriteableRowContextExpression;
 import io.crate.metadata.information.*;
 import io.crate.metadata.pg_catalog.PgCatalogTables;
 import io.crate.metadata.pg_catalog.PgTypeTable;
@@ -35,7 +35,7 @@ import io.crate.operation.collect.files.SummitsContext;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.information.InformationSchemaExpressionFactories;
 import io.crate.operation.reference.sys.check.SysCheck;
-import io.crate.operation.reference.sys.check.SysNodeCheck;
+import io.crate.operation.reference.sys.check.node.SysNodeCheck;
 import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.node.SysNodesExpressionFactories;
@@ -445,20 +445,16 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
                     };
                 }
             })
-            .put(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED, new RowCollectExpressionFactory() {
+            .put(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED, () -> new RowContextCollectorExpression<SysNodeCheck, Boolean>() {
                 @Override
-                public RowCollectExpression create() {
-                    return new WriteableRowContextExpression<SysNodeCheck, Boolean, Boolean>() {
-                        @Override
-                        public void updateValue(SysNodeCheck sysCheck, Boolean value) {
-                            sysCheck.acknowledged(value);
-                        }
-
-                        @Override
-                        public Boolean value() {
-                            return row.acknowledged();
-                        }
-                    };
+                public Boolean value() {
+                    return row.acknowledged();
+                }
+            })
+            .put(DocSysColumns.ID, () -> new RowContextCollectorExpression<SysNodeCheck, BytesRef>() {
+                @Override
+                public BytesRef value() {
+                    return row.rowId();
                 }
             })
             .build();

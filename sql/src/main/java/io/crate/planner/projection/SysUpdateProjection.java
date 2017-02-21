@@ -23,28 +23,30 @@
 package io.crate.planner.projection;
 
 import com.google.common.base.Function;
+import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.analyze.symbol.Value;
 import io.crate.metadata.Reference;
-import io.crate.types.DataTypes;
+import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 
-public class SysUpdateProjection extends Projection {
-
-    private static final List<Value> OUTPUTS = Collections.singletonList(new Value(DataTypes.LONG));
+public class SysUpdateProjection extends DMLProjection {
 
     private Map<Reference, Symbol> assignments;
 
-    public SysUpdateProjection(Map<Reference, Symbol> assignments) {
+    public SysUpdateProjection(DataType idType, Map<Reference, Symbol> assignments) {
+        super(new InputColumn(0, idType));
         this.assignments = assignments;
     }
 
     public SysUpdateProjection(StreamInput in) throws IOException {
+        super(in);
         int numAssignments = in.readVInt();
         assignments = new HashMap<>(numAssignments, 1.0f);
         for (int i = 0; i < numAssignments; i++) {
@@ -54,6 +56,7 @@ public class SysUpdateProjection extends Projection {
 
     @Override
     public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+        super.replaceSymbols(replaceFunction);
         if (assignments.isEmpty()) {
             return;
         }
@@ -72,17 +75,13 @@ public class SysUpdateProjection extends Projection {
         return visitor.visitSysUpdateProjection(this, context);
     }
 
-    @Override
-    public List<? extends Symbol> outputs() {
-        return OUTPUTS;
-    }
-
     public Map<Reference, Symbol> assignments() {
         return assignments;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
         out.writeVInt(assignments.size());
         for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
             Reference.toStream(e.getKey(), out);

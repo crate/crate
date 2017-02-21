@@ -43,6 +43,7 @@ import io.crate.metadata.ReplaceMode;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
+import io.crate.operation.collect.sources.SystemCollectSource;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.*;
@@ -111,7 +112,8 @@ public class TransportExecutor implements Executor {
                              ShowStatementDispatcher showStatementDispatcherProvider,
                              ClusterService clusterService,
                              IndicesService indicesService,
-                             BulkRetryCoordinatorPool bulkRetryCoordinatorPool) {
+                             BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
+                             SystemCollectSource systemCollectSource) {
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
         this.transportActionProvider = transportActionProvider;
@@ -133,7 +135,9 @@ public class TransportExecutor implements Executor {
             transportActionProvider,
             bulkRetryCoordinatorPool,
             new InputFactory(functions),
-            normalizer);
+            normalizer,
+            systemCollectSource::getRowUpdater
+            );
     }
 
     @Override

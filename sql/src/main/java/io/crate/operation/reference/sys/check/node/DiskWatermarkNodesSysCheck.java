@@ -24,7 +24,6 @@ package io.crate.operation.reference.sys.check.node;
 
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.StringSetting;
-import io.crate.operation.reference.sys.check.AbstractSysNodeCheck;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;

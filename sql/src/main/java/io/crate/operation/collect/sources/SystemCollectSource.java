@@ -29,20 +29,25 @@ import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.information.*;
 import io.crate.metadata.pg_catalog.PgCatalogTables;
 import io.crate.metadata.pg_catalog.PgTypeTable;
 import io.crate.metadata.sys.*;
 import io.crate.operation.InputFactory;
-import io.crate.operation.collect.*;
+import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.RowsCollector;
+import io.crate.operation.collect.RowsTransformer;
 import io.crate.operation.collect.files.SummitsIterable;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
+import io.crate.operation.reference.sys.SysRowUpdater;
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.operation.reference.sys.check.SysChecker;
-import io.crate.operation.reference.sys.check.SysNodeCheck;
+import io.crate.operation.reference.sys.check.node.SysNodeChecks;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
 import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
@@ -68,9 +73,9 @@ public class SystemCollectSource implements CollectSource {
     private final Functions functions;
     private final NodeSysExpression nodeSysExpression;
     private final ImmutableMap<String, Supplier<Iterable<?>>> iterableGetters;
+    private final ImmutableMap<TableIdent, SysRowUpdater<?>> rowUpdaters;
     private final ClusterService clusterService;
     private final InputFactory inputFactory;
-
 
     @Inject
     public SystemCollectSource(ClusterService clusterService,
@@ -79,7 +84,7 @@ public class SystemCollectSource implements CollectSource {
                                JobsLogs jobsLogs,
                                InformationSchemaIterables informationSchemaIterables,
                                Set<SysCheck> sysChecks,
-                               Set<SysNodeCheck> sysNodeChecks,
+                               SysNodeChecks sysNodeChecks,
                                SysRepositoriesService sysRepositoriesService,
                                SysSnapshots sysSnapshots,
                                PgCatalogTables pgCatalogTables) {
@@ -87,6 +92,8 @@ public class SystemCollectSource implements CollectSource {
         inputFactory = new InputFactory(functions);
         this.functions = functions;
         this.nodeSysExpression = nodeSysExpression;
+
+        rowUpdaters = ImmutableMap.of(SysNodeChecksTableInfo.IDENT, sysNodeChecks);
 
         iterableGetters = ImmutableMap.<String, Supplier<Iterable<?>>>builder()
             .put(InformationSchemataTableInfo.IDENT.fqn(), informationSchemaIterables::schemas)
@@ -101,12 +108,14 @@ public class SystemCollectSource implements CollectSource {
             .put(SysOperationsTableInfo.IDENT.fqn(), jobsLogs::operationsGetter)
             .put(SysOperationsLogTableInfo.IDENT.fqn(), jobsLogs::operationsLogGetter)
             .put(SysChecksTableInfo.IDENT.fqn(), new SysChecker<>(sysChecks)::checksGetter)
-            .put(SysNodeChecksTableInfo.IDENT.fqn(), new SysChecker<>(sysNodeChecks)::checksGetter)
+            .put(SysNodeChecksTableInfo.IDENT.fqn(), () -> sysNodeChecks)
             .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositoriesService::repositoriesGetter)
             .put(SysSnapshotsTableInfo.IDENT.fqn(), sysSnapshots::snapshotsGetter)
             .put(SysSummitsTableInfo.IDENT.fqn(), new SummitsIterable()::summitsGetter)
             .put(PgTypeTable.IDENT.fqn(), pgCatalogTables::typesGetter)
             .build();
+
+
     }
 
     Iterable<Row> toRowsIterable(RoutedCollectPhase collectPhase, Iterable<?> iterable, boolean requiresRepeat) {
@@ -131,5 +140,16 @@ public class SystemCollectSource implements CollectSource {
         return ImmutableList.<CrateCollector>of(
             new RowsCollector(downstream, toRowsIterable(collectPhase, iterableGetter.get(),
                 downstream.requirements().contains(Requirement.REPEAT))));
+    }
+
+    /**
+     * Returns a new updater for a given table.
+     *
+     * @param ident the ident of the table
+     * @return a row updater instance for the given table
+     */
+    public SysRowUpdater<?> getRowUpdater(TableIdent ident){
+        assert rowUpdaters.containsKey(ident): "RowUpdater for " + ident.fqn() + " must exist";
+        return rowUpdaters.get(ident);
     }
 }

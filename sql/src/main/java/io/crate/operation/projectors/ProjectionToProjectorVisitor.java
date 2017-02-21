@@ -33,11 +33,7 @@ import io.crate.data.Row;
 import io.crate.executor.transport.ShardDeleteRequest;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.expressions.WritableExpression;
+import io.crate.metadata.*;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.Input;
@@ -49,13 +45,13 @@ import io.crate.operation.projectors.fetch.FetchProjectorContext;
 import io.crate.operation.projectors.fetch.TransportFetchOperation;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
+import io.crate.operation.reference.sys.SysRowUpdater;
 import io.crate.planner.projection.*;
 import io.crate.types.StringType;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -63,6 +59,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -79,7 +76,7 @@ public class ProjectionToProjectorVisitor
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final InputFactory inputFactory;
     private final EvaluatingNormalizer normalizer;
-
+    private final Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter;
     @Nullable
     private final ShardId shardId;
 
@@ -92,6 +89,7 @@ public class ProjectionToProjectorVisitor
                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                         InputFactory inputFactory,
                                         EvaluatingNormalizer normalizer,
+                                        Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter,
                                         @Nullable ShardId shardId) {
         this.clusterService = clusterService;
         this.functions = functions;
@@ -102,6 +100,7 @@ public class ProjectionToProjectorVisitor
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.inputFactory = inputFactory;
         this.normalizer = normalizer;
+        this.sysUpdaterGetter = sysUpdaterGetter;
         this.shardId = shardId;
     }
 
@@ -113,7 +112,8 @@ public class ProjectionToProjectorVisitor
                                         TransportActionProvider transportActionProvider,
                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                         InputFactory inputFactory,
-                                        EvaluatingNormalizer normalizer) {
+                                        EvaluatingNormalizer normalizer,
+                                        Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter) {
         this(clusterService,
             functions,
             indexNameExpressionResolver,
@@ -123,6 +123,7 @@ public class ProjectionToProjectorVisitor
             bulkRetryCoordinatorPool,
             inputFactory,
             normalizer,
+            sysUpdaterGetter,
             null
         );
     }
@@ -446,25 +447,27 @@ public class ProjectionToProjectorVisitor
     @Override
     public Projector visitSysUpdateProjection(SysUpdateProjection projection, Context context) {
         Map<Reference, Symbol> assignments = projection.assignments();
+        assert !assignments.isEmpty() : "at least one assignement is required";
+        InputFactory.Context<RowCollectExpression<?, ?>> readCtx = inputFactory.ctxForRefs(RowContextReferenceResolver.INSTANCE);
 
-        Function<Symbol, Input<?>> symbolToInput = inputFactory.forRefs(RowContextReferenceResolver.INSTANCE);
-        InputFactory.Context readCtx = inputFactory.ctxForRefs(RowContextReferenceResolver.INSTANCE);
+        List<Input<?>> valueInputs = new ArrayList<>(assignments.size());
+        List<ColumnIdent> assignmentCols = new ArrayList<>(assignments.size());
 
-        List<Tuple<WritableExpression, Input<?>>> assignmentExpressions = new ArrayList<>(assignments.size());
+        TableIdent tableIdent = null;
+
         for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
             Reference ref = e.getKey();
-
-            Input<?> targetCol = symbolToInput.apply(ref);
-            if (!(targetCol instanceof WritableExpression)) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Column \"%s\" cannot be updated", ref.ident().columnIdent()));
-            }
-
+            assert tableIdent == null || tableIdent.equals(ref.ident().tableIdent()) : "mixed table assignments found";
+            tableIdent = ref.ident().tableIdent();
+            assignmentCols.add(ref.ident().columnIdent());
             Input<?> sourceInput = readCtx.add(e.getValue());
-            assignmentExpressions.add(
-                new Tuple<>(((WritableExpression) targetCol), sourceInput));
+            valueInputs.add(sourceInput);
         }
-        return new SysUpdateProjector(assignmentExpressions, readCtx.expressions());
+
+        SysRowUpdater<?> rowUpdater = sysUpdaterGetter.apply(tableIdent);
+        assert rowUpdater != null: "row updater needs to exist";
+        Consumer<Object> rowWriter = rowUpdater.newRowWriter(assignmentCols, valueInputs, readCtx.expressions());
+        return new SysUpdateProjector(rowWriter);
     }
 
     @Override
