@@ -26,6 +26,7 @@ import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 
+import javax.annotation.Nullable;
 import java.util.PrimitiveIterator;
 import java.util.Random;
 import java.util.concurrent.CompletableFuture;
@@ -55,7 +56,10 @@ public class BatchSimulatingIterator implements BatchIterator {
      * @param maxAdditionalFakeBatches how many {@link #loadNextBatch()} calls are allowed after {@code delegate.allLoaded()} is true.
      *                   (This is an upper limit, if a consumer calls moveNext correctly, the actual number may be lower)
      */
-    public BatchSimulatingIterator(BatchIterator delegate, int batchSize, int maxAdditionalFakeBatches) {
+    public BatchSimulatingIterator(BatchIterator delegate,
+                                   int batchSize,
+                                   int maxAdditionalFakeBatches,
+                                   @Nullable Executor executor) {
         assert batchSize > 0 : "batchSize must be greater than 0. It is " + batchSize;
         assert maxAdditionalFakeBatches > 0
             : "maxAdditionalFakeBatches must be greater than 0. It is " + maxAdditionalFakeBatches;
@@ -65,7 +69,7 @@ public class BatchSimulatingIterator implements BatchIterator {
         this.batchSize = batchSize;
 
         this.loadNextDelays = new Random(System.currentTimeMillis()).longs(0, 100).iterator();
-        this.executor = ForkJoinPool.commonPool();
+        this.executor = executor == null ? ForkJoinPool.commonPool() : executor;
     }
 
     @Override

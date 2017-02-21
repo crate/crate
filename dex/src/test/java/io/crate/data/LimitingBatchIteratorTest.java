@@ -53,7 +53,8 @@ public class LimitingBatchIteratorTest {
     public void testLimitingBatchIteratorWithBatchedSource() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> {
-                BatchSimulatingIterator batchSimulatingIt = new BatchSimulatingIterator(RowsBatchIterator.newInstance(rows), 2, 5);
+                BatchSimulatingIterator batchSimulatingIt = new BatchSimulatingIterator(
+                    RowsBatchIterator.newInstance(rows), 2, 5, null);
                 return LimitingBatchIterator.newInstance(batchSimulatingIt, limit);
             },
             expectedResult

@@ -108,7 +108,7 @@ public class BatchConsumerToRowReceiverTest {
     @Test
     public void nextBatchIsLoadedAndConsumed() throws Exception {
         BatchIterator batchIterator = new CloseAssertingBatchIterator(
-            new BatchSimulatingIterator(iterator, 2, 1));
+            new BatchSimulatingIterator(iterator, 2, 1, null));
         CollectingRowReceiver collectingRowReceiver = new CollectingRowReceiver();
         BatchConsumerToRowReceiver adapter = new BatchConsumerToRowReceiver(collectingRowReceiver);
 
