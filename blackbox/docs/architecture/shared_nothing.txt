@@ -161,30 +161,23 @@ module.
    Figure 2
 
    Phases of the node discovery process. n1 and n2 already form a
-   cluster where n1 is the elected Primary, n3 joins the cluster. The cluster
+   cluster where n1 is the elected Metadata Primary, n3 joins the cluster. The cluster
    state update happens in parallel!
 
 Node discovery happens in multiple steps:
 
-* In the case of unicast, Crate requires a list of potential hosts/IP addresses
-  of other Crate instances when it is starting up. That list can either be
-  provided by a static configuration or can be dynamically generated, for
-  example by fetching DNS SRV records, querying EC2 API, etc.
-* In the case of multicast this list is not required, because step 2 will send
-  a multicast ping request.
-* This - not necessarily complete - list is then used to send ping requests to.
-  Nodes which receive the request respond to it with information about the
-  cluster it belongs to, the current Primary of the cluster and its own node
-  name.
-* Now that the node knows the Metadata Primary it sends a join request.
+* CrateDB requires a list of potential host addresses for other CrateDB nodes
+  when it is starting up. That list can either be provided by a static
+  configuration or can be dynamically generated, for example by fetching DNS SRV
+  records, querying the Amazon EC2 API, and so on.
+* All potential host addresses are pinged. Nodes which receive the request
+  respond to it with information about the cluster it belongs to, the current
+  Metadata Primary, and its own node name.
+* Now that the node knows the Metadata Primary, it sends a join request.
   The Primary verifies the incoming request and adds the new node to the
   cluster state that now contains the complete list of all nodes in the cluster.
 * The cluster state is then published across the cluster. This guarantees the
   common knowledge of the node addition.
-
-.. caution::
-
-   Multicast discovery was deprecated in CrateDB 1.0.3 and will be removed in CrateDB 1.1.
 
 Networking
 ----------
