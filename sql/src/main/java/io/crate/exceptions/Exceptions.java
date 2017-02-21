@@ -27,7 +27,6 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
@@ -58,7 +57,6 @@ public class Exceptions {
         throwable instanceof TransportException ||
         throwable instanceof UncheckedExecutionException ||
         throwable instanceof UncategorizedExecutionException ||
-        throwable instanceof NotSerializableExceptionWrapper ||
         throwable instanceof ExecutionException;
 
     public static Throwable unwrap(@Nonnull Throwable t, @Nullable Predicate<Throwable> additionalUnwrapCondition) {
