@@ -1,6 +1,7 @@
 apply plugin: 'java'
 apply plugin: 'maven'
 apply plugin: 'de.thetaphi.forbiddenapis'
+apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'me.champeau.gradle.jmh'
 apply plugin: 'findbugs'
 apply plugin: 'pmd'

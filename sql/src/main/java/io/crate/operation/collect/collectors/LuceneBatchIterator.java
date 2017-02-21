@@ -45,6 +45,13 @@ import java.util.List;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 
+/**
+ * BatchIterator implementation which exposes the data stored in a lucene index.
+ * It supports filtering the data using a lucene {@link Query} or via {@code minScore}.
+ *
+ * The contents of {@link #currentRow()} depends on {@code inputs} and {@code expressions}.
+ * The data is unordered.
+ */
 public class LuceneBatchIterator implements BatchIterator {
 
     private final IndexSearcher indexSearcher;
@@ -56,11 +63,11 @@ public class LuceneBatchIterator implements BatchIterator {
     private final LuceneCollectorExpression[] expressions;
     private final List<LeafReaderContext> leaves;
     private final InputRow inputRow;
+    private final Weight weight;
 
     private DocReaderConsumer docReaderConsumer;
     private Row currentRow;
     private Iterator<LeafReaderContext> leavesIt;
-    private Weight weight;
     private LeafReaderContext currentLeaf;
     private Scorer currentScorer;
     private DocIdSetIterator currentDocIdSetIt;
@@ -68,7 +75,7 @@ public class LuceneBatchIterator implements BatchIterator {
 
     public LuceneBatchIterator(IndexSearcher indexSearcher,
                                Query query,
-                               Float minScore,
+                               @Nullable Float minScore,
                                boolean doScores,
                                CollectorContext collectorContext,
                                RamAccountingContext ramAccountingContext,
@@ -85,6 +92,11 @@ public class LuceneBatchIterator implements BatchIterator {
         this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
         leaves = indexSearcher.getTopReaderContext().leaves();
         leavesIt = leaves.iterator();
+        try {
+            weight = createWeight();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
 
@@ -106,9 +118,6 @@ public class LuceneBatchIterator implements BatchIterator {
     }
 
     private boolean innerMoveNext() throws IOException {
-        if (weight == null) {
-            weight = createWeight();
-        }
         while (tryAdvanceDocIdSetIterator()) {
             LeafReader reader = currentLeaf.reader();
             Bits liveDocs = reader.getLiveDocs();
@@ -248,5 +257,4 @@ public class LuceneBatchIterator implements BatchIterator {
             throw new IllegalStateException("BatchIterator is closed");
         }
     }
-
 }
