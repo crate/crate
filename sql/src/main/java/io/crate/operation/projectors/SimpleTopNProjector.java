@@ -27,6 +27,7 @@ import io.crate.data.LimitingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.SkippingBatchIterator;
 import io.crate.operation.Input;
+import io.crate.operation.aggregation.RowTransformingBatchIterator;
 import io.crate.operation.collect.CollectExpression;
 import org.elasticsearch.common.collect.Tuple;
 
@@ -81,7 +82,14 @@ public class SimpleTopNProjector extends InputRowProjector {
             if (remainingOffset > 0) {
                 it = new SkippingBatchIterator(it, remainingOffset);
             }
-            return new Tuple<>(LimitingBatchIterator.newInstance(it, toCollect), downstream);
+            return new Tuple<>(
+                new RowTransformingBatchIterator(
+                    LimitingBatchIterator.newInstance(it, toCollect),
+                    inputs,
+                    collectExpressions
+                ),
+                downstream
+            );
         };
     }
 }
