@@ -331,6 +331,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         return new BatchIteratorCollector(
             OrderedLuceneBatchIteratorFactory.newInstance(
                 orderedDocCollectors,
+                collectPhase.toCollect().size(),
                 OrderingByPosition.rowOrdering(
                     OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
                     orderBy.reverseFlags(),
@@ -447,6 +448,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         }
         return RowsCollector.forRows(
             Iterables.transform(rows, Buckets.arrayToRowFunction()),
+            collectPhase.outputTypes().size(),
             rowReceiver
         );
     }
