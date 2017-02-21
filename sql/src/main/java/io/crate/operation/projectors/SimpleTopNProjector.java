@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
 import io.crate.data.*;
+import io.crate.operation.aggregation.RowTransformingBatchIterator;
 import io.crate.operation.collect.CollectExpression;
 import org.elasticsearch.common.collect.Tuple;
 
@@ -77,7 +78,14 @@ public class SimpleTopNProjector extends InputRowProjector {
             if (remainingOffset > 0) {
                 it = new SkippingBatchIterator(it, remainingOffset);
             }
-            return new Tuple<>(LimitingBatchIterator.newInstance(it, toCollect), downstream);
+            return new Tuple<>(
+                new RowTransformingBatchIterator(
+                    LimitingBatchIterator.newInstance(it, toCollect),
+                    inputs,
+                    collectExpressions
+                ),
+                downstream
+            );
         };
     }
 }

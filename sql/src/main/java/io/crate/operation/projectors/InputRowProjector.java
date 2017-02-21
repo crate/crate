@@ -22,12 +22,17 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Input;
 import io.crate.operation.InputRow;
+import io.crate.operation.aggregation.RowTransformingBatchIterator;
 import io.crate.operation.collect.CollectExpression;
+import org.elasticsearch.common.collect.Tuple;
 
+import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * projector that simply applies its inputs to the given row in {@link #setNextRow(Row)}
@@ -37,11 +42,13 @@ import java.util.List;
  */
 public class InputRowProjector extends AbstractProjector {
 
-    protected final InputRow inputRow;
+    private final InputRow inputRow;
+    protected final List<Input<?>> inputs;
     protected final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
 
     public InputRowProjector(List<Input<?>> inputs,
                              Iterable<? extends CollectExpression<Row, ?>> collectExpressions) {
+        this.inputs = inputs;
         this.collectExpressions = collectExpressions;
         this.inputRow = new InputRow(inputs);
     }
@@ -62,5 +69,14 @@ public class InputRowProjector extends AbstractProjector {
     @Override
     public void fail(Throwable throwable) {
         downstream.fail(throwable);
+    }
+
+    @Nullable
+    @Override
+    public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
+        return bi -> new Tuple<>(
+            new RowTransformingBatchIterator(bi, inputs, collectExpressions),
+            downstream
+        );
     }
 }
