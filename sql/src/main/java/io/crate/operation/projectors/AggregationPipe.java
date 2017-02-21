@@ -98,7 +98,8 @@ public class AggregationPipe extends AbstractProjector {
             CollectingBatchIterator.newInstance(bi,
                 Collectors.collectingAndThen(
                     new AggregateCollector(expressions, aggregators),
-                    cells -> Collections.singletonList(new RowN(cells)))),
+                    cells -> Collections.singletonList(new RowN(cells))),
+                aggregators.length),
             downstream
         );
     }

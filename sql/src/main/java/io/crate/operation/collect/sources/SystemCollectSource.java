@@ -138,9 +138,10 @@ public class SystemCollectSource implements CollectSource {
         String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
         Supplier<Iterable<?>> iterableGetter = iterableGetters.get(table);
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";
+
         Iterable<Row> rows = toRowsIterable(
             collectPhase, iterableGetter.get(), downstream.requirements().contains(Requirement.REPEAT));
-        return ImmutableList.of(new BatchIteratorCollector(RowsBatchIterator.newInstance(rows), downstream));
+        return ImmutableList.of(new BatchIteratorCollector(RowsBatchIterator.newInstance(rows, collectPhase.toCollect().size()), downstream));
     }
 
     /**

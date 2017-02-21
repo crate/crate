@@ -21,11 +21,11 @@
 
 package io.crate.operation.collect;
 
+import io.crate.data.Columns;
 import io.crate.data.Row;
 import io.crate.data.RowsBatchIterator;
+import io.crate.data.IterableControlledBatchIterator;
 import io.crate.operation.projectors.RowReceiver;
-
-import java.util.Collections;
 
 public final class RowsCollector {
 
@@ -33,22 +33,22 @@ public final class RowsCollector {
     }
 
     public static CrateCollector empty(RowReceiver rowDownstream) {
-        return new BatchIteratorCollector(RowsBatchIterator.empty(), rowDownstream);
+        return new BatchIteratorCollector(IterableControlledBatchIterator.empty(), rowDownstream);
     }
 
-    public static CrateCollector single(Row row, RowReceiver rowDownstream) {
-        return new BatchIteratorCollector(RowsBatchIterator.newInstance(Collections.singletonList(row)), rowDownstream);
+    public static CrateCollector single(Columns inputs, RowReceiver rowDownstream) {
+        return new BatchIteratorCollector(IterableControlledBatchIterator.singleRow(inputs), rowDownstream);
     }
 
-    public static CrateCollector forRows(Iterable<Row> rows, RowReceiver rowReceiver) {
-        return new BatchIteratorCollector(RowsBatchIterator.newInstance(rows), rowReceiver);
+    public static CrateCollector forRows(Iterable<Row> rows, int numCols, RowReceiver rowReceiver) {
+        return new BatchIteratorCollector(RowsBatchIterator.newInstance(rows, numCols), rowReceiver);
     }
 
     static CrateCollector.Builder emptyBuilder() {
         return RowsCollector::empty;
     }
 
-    public static CrateCollector.Builder builder(final Iterable<Row> rows) {
-        return rowReceiver -> forRows(rows, rowReceiver);
+    public static CrateCollector.Builder builder(final Iterable<Row> rows, int numCols) {
+        return rowReceiver -> forRows(rows, numCols, rowReceiver);
     }
 }

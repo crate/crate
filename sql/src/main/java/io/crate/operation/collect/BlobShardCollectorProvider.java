@@ -67,7 +67,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                                 Set<Requirement> downstreamRequirements,
                                                 JobCollectContext jobCollectContext) {
         return RowsCollector.builder(
-            getBlobRows(collectPhase, downstreamRequirements.contains(Requirement.REPEAT)));
+            getBlobRows(collectPhase, downstreamRequirements.contains(Requirement.REPEAT)), collectPhase.toCollect().size());
     }
 
     private Iterable<Row> getBlobRows(RoutedCollectPhase collectPhase, boolean requiresRepeat) {

@@ -26,11 +26,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import io.crate.concurrent.CompletableFutures;
-import io.crate.data.BatchIterator;
-import io.crate.data.CloseAssertingBatchIterator;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.operation.InputRow;
+import io.crate.data.*;
 import io.crate.operation.reference.file.LineContext;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.ElasticsearchParseException;
@@ -53,6 +49,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 import static io.crate.exceptions.Exceptions.rethrowUnchecked;
@@ -60,21 +57,18 @@ import static io.crate.exceptions.Exceptions.rethrowUnchecked;
 public class FileReadingIterator implements BatchIterator {
 
     private static final ESLogger LOGGER = Loggers.getLogger(FileReadingIterator.class);
-    public static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
+    private static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
     private final Map<String, FileInputFactory> fileInputFactories;
     private final Boolean shared;
     private final int numReaders;
     private final int readerNumber;
-    private final InputRow inputRow;
     private final boolean compressed;
 
     private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("(.*)[^\\\\]\\*.*");
     private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI input) -> true;
 
-    private Row currentRow = BatchIterator.OFF_ROW;
     private final List<UriWithGlob> urisWithGlob;
     private final Iterable<LineCollectorExpression<?>> collectorExpressions;
-    private List<Tuple<FileInput, UriWithGlob>> fileInputs;
     private Iterator<Tuple<FileInput, UriWithGlob>> fileInputsIterator = null;
     private Tuple<FileInput, UriWithGlob> currentInput = null;
     private Iterator<URI> currentInputIterator = null;
@@ -82,9 +76,11 @@ public class FileReadingIterator implements BatchIterator {
     private BufferedReader currentReader = null;
     private long currentLineNumber;
     private LineContext lineContext;
+    private final Columns inputs;
+
 
     private FileReadingIterator(Collection<String> fileUris,
-                                List<Input<?>> inputs,
+                                List<? extends Input<?>> inputs,
                                 Iterable<LineCollectorExpression<?>> collectorExpressions,
                                 String compression,
                                 Map<String, FileInputFactory> fileInputFactories,
@@ -92,7 +88,7 @@ public class FileReadingIterator implements BatchIterator {
                                 int numReaders,
                                 int readerNumber) {
         this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
-        this.inputRow = new InputRowExceptionHandlingProxy(inputs);
+        this.inputs = Columns.wrap(inputs.stream().map(ExceptionHandlingInputProxy::new).collect(Collectors.toList()));
         this.fileInputFactories = fileInputFactories;
         this.shared = shared;
         this.numReaders = numReaders;
@@ -102,16 +98,23 @@ public class FileReadingIterator implements BatchIterator {
         initCollectorState();
     }
 
-    private class InputRowExceptionHandlingProxy extends InputRow {
+    @Override
+    public Columns rowData() {
+        return inputs;
+    }
 
-        public InputRowExceptionHandlingProxy(List<Input<?>> inputs) {
-            super(inputs);
+    private final class ExceptionHandlingInputProxy<T> implements Input<T> {
+
+        private final Input<T> input;
+
+        ExceptionHandlingInputProxy(Input<T> input) {
+            this.input = input;
         }
 
         @Override
-        public Object get(int index) {
+        public T value() {
             try {
-                return super.get(index);
+                return this.input.value();
             } catch (ElasticsearchParseException e) {
                 throw new ElasticsearchParseException(String.format(Locale.ENGLISH,
                     "Failed to parse JSON in line: %d in file: \"%s\"%n" +
@@ -137,7 +140,7 @@ public class FileReadingIterator implements BatchIterator {
         for (LineCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(lineContext);
         }
-        fileInputs = new ArrayList<>(urisWithGlob.size());
+        List<Tuple<FileInput, UriWithGlob>> fileInputs = new ArrayList<>(urisWithGlob.size());
         for (UriWithGlob fileUri : urisWithGlob) {
             try {
                 FileInput fileInput = getFileInput(fileUri.uri);
@@ -152,7 +155,6 @@ public class FileReadingIterator implements BatchIterator {
     @Override
     public void moveToStart() {
         initCollectorState();
-        currentRow = OFF_ROW;
     }
 
     @Override
@@ -165,7 +167,6 @@ public class FileReadingIterator implements BatchIterator {
                     return moveNext();
                 } else {
                     lineContext.rawSource(line.getBytes(StandardCharsets.UTF_8));
-                    currentRow = inputRow;
                     return true;
                 }
             } else if (currentInputIterator != null && currentInputIterator.hasNext()) {
@@ -176,14 +177,11 @@ public class FileReadingIterator implements BatchIterator {
                 return moveNext();
             } else {
                 releaseBatchIteratorState();
-                currentRow = OFF_ROW;
                 return false;
             }
         } catch (IOException e) {
             rethrowUnchecked(e);
         }
-
-        currentRow = OFF_ROW;
         return false;
     }
 
@@ -202,11 +200,6 @@ public class FileReadingIterator implements BatchIterator {
             currentInputIterator = uris.iterator();
             advanceToNextUri(fileInput);
         }
-    }
-
-    @Override
-    public Row currentRow() {
-        return currentRow;
     }
 
     private void initCurrentReader(FileInput fileInput, URI uri) throws IOException {
@@ -390,15 +383,12 @@ public class FileReadingIterator implements BatchIterator {
         Predicate<URI> moduloPredicate;
         boolean sharedStorage = MoreObjects.firstNonNull(shared, fileInput.sharedStorageDefault());
         if (sharedStorage) {
-            moduloPredicate = new Predicate<URI>() {
-                @Override
-                public boolean apply(URI input) {
-                    int hash = input.hashCode();
-                    if (hash == Integer.MIN_VALUE) {
-                        hash = 0; // Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
-                    }
-                    return Math.abs(hash) % numReaders == readerNumber;
+            moduloPredicate = input -> {
+                int hash = input.hashCode();
+                if (hash == Integer.MIN_VALUE) {
+                    hash = 0; // Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
                 }
+                return Math.abs(hash) % numReaders == readerNumber;
             };
         } else {
             moduloPredicate = MATCH_ALL_PREDICATE;
@@ -413,7 +403,7 @@ public class FileReadingIterator implements BatchIterator {
     private static class GlobPredicate implements Predicate<URI> {
         private final Pattern globPattern;
 
-        public GlobPredicate(URI fileUri) {
+        GlobPredicate(URI fileUri) {
             this.globPattern = Pattern.compile(Globs.toUnixRegexPattern(fileUri.toString()));
         }
 

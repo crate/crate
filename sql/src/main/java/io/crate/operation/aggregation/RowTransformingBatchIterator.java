@@ -22,11 +22,7 @@
 
 package io.crate.operation.aggregation;
 
-import io.crate.data.BatchIterator;
-import io.crate.data.ForwardingBatchIterator;
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.operation.InputRow;
+import io.crate.data.*;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.List;
@@ -53,18 +49,21 @@ public class RowTransformingBatchIterator extends ForwardingBatchIterator {
 
     private final BatchIterator delegate;
     private final Iterable<? extends CollectExpression<Row, ?>> expressions;
-    private final InputRow inputRow;
-
-    private Row currentRow;
-    private boolean closed = false;
+    private final Row sourceRow;
+    private final Columns rowData;
 
     public RowTransformingBatchIterator(BatchIterator delegate,
                                         List<? extends Input<?>> inputs,
                                         Iterable<? extends CollectExpression<Row, ?>> expressions) {
         this.delegate = delegate;
         this.expressions = expressions;
-        this.inputRow = new InputRow(inputs);
-        this.currentRow = inputRow;
+        this.sourceRow = RowBridging.toRow(delegate.rowData());
+        this.rowData = Columns.wrap(inputs);
+    }
+
+    @Override
+    public Columns rowData() {
+        return rowData;
     }
 
     @Override
@@ -76,28 +75,10 @@ public class RowTransformingBatchIterator extends ForwardingBatchIterator {
     public boolean moveNext() {
         if (delegate.moveNext()) {
             for (CollectExpression<Row, ?> expression : expressions) {
-                expression.setNextRow(delegate.currentRow());
+                expression.setNextRow(sourceRow);
             }
-            currentRow = inputRow;
             return true;
         }
-        currentRow = OFF_ROW;
         return false;
-    }
-
-    @Override
-    public Row currentRow() {
-        if (closed) {
-            throw new IllegalStateException("BatchIterator is closed");
-        }
-        return currentRow;
-    }
-
-    @Override
-    public void close() {
-        super.close();
-        // this is only checked in currentRow because all other methods delegate to another BatchIterator
-        // which itself must raise exceptions if methods are called after close
-        closed = true;
     }
 }

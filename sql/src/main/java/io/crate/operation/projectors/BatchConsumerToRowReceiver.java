@@ -24,6 +24,8 @@ package io.crate.operation.projectors;
 
 import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowBridging;
 import io.crate.exceptions.SQLExceptions;
 
 import java.util.Objects;
@@ -58,9 +60,11 @@ public class BatchConsumerToRowReceiver implements BatchConsumer {
         }
     }
     private void consumeIterator(BatchIterator iterator) {
+        assert iterator.rowData() != null: "rowData is null of iterator: " + iterator;
+        final Row row = RowBridging.toRow(iterator.rowData());
         try {
             while (iterator.moveNext()) {
-                RowReceiver.Result result = rowReceiver.setNextRow(iterator.currentRow());
+                RowReceiver.Result result = rowReceiver.setNextRow(row);
                 switch (result) {
                     case CONTINUE:
                         break;
@@ -72,7 +76,8 @@ public class BatchConsumerToRowReceiver implements BatchConsumer {
                         return;
                 }
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // catch Throwables to capture assertion errors
             rowReceiver.fail(e);
             return;
         }

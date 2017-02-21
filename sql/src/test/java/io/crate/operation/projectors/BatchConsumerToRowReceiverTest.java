@@ -24,14 +24,12 @@ package io.crate.operation.projectors;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.CloseAssertingBatchIterator;
-import io.crate.data.Row1;
-import io.crate.data.RowsBatchIterator;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.SingleColumnBatchIterator;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.core.Is.is;
@@ -44,7 +42,7 @@ public class BatchConsumerToRowReceiverTest {
 
     @Before
     public void setUp() throws Exception {
-        iterator = RowsBatchIterator.newInstance(Arrays.asList(new Row1(1), new Row1(2)));
+        iterator = SingleColumnBatchIterator.range(1,3);
     }
 
     @Test
