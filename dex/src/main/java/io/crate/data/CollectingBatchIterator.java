@@ -42,6 +42,7 @@ public class CollectingBatchIterator<A> implements BatchIterator {
 
     private final BatchIterator source;
     private final Collector<Row, A, ? extends Iterable<Row>> collector;
+    private final Columns rowData;
 
     private Row currentRow = OFF_ROW;
     private Iterator<Row> it = Collections.emptyIterator();
@@ -62,16 +63,24 @@ public class CollectingBatchIterator<A> implements BatchIterator {
         return newInstance(
             source,
             Collectors.collectingAndThen(
-                Collectors.summingLong((Row r) -> (long) r.get(0)), sum -> Collections.singletonList(new Row1(sum))));
+                Collectors.summingLong((Row r) -> (long) r.get(0)), sum -> Collections.singletonList(new Row1(sum))),
+            1
+        );
     }
 
-    public static <A> BatchIterator newInstance(BatchIterator source, Collector<Row, A, ? extends Iterable<Row>> collector) {
-        return new CloseAssertingBatchIterator(new CollectingBatchIterator<>(source, collector));
+    public static <A> BatchIterator newInstance(BatchIterator source, Collector<Row, A, ? extends Iterable<Row>> collector, int numCols) {
+        return new CloseAssertingBatchIterator(new CollectingBatchIterator<>(source, collector, numCols));
     }
 
-    private CollectingBatchIterator(BatchIterator source, Collector<Row, A, ? extends Iterable<Row>> collector) {
+    private CollectingBatchIterator(BatchIterator source, Collector<Row, A, ? extends Iterable<Row>> collector, int numCols) {
         this.source = source;
         this.collector = collector;
+        this.rowData = RowBridging.toInputs(() -> currentRow, numCols);
+    }
+
+    @Override
+    public Columns rowData() {
+        return rowData;
     }
 
     @Override
@@ -94,12 +103,6 @@ public class CollectingBatchIterator<A> implements BatchIterator {
         }
         currentRow = OFF_ROW;
         return false;
-    }
-
-    @Override
-    public Row currentRow() {
-        raiseIfLoading();
-        return currentRow;
     }
 
     @Override

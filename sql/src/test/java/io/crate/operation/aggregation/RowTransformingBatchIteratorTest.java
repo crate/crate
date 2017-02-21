@@ -26,13 +26,12 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.data.RowsBatchIterator;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.RowGenerator;
+import io.crate.testing.SingleColumnBatchIterator;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -40,18 +39,17 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import java.util.stream.LongStream;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
 
 public class RowTransformingBatchIteratorTest extends CrateUnitTest {
 
-    private Iterable<Row> rows = RowGenerator.range(0, 10);
     private List<Input<?>> inputs;
     private Collection<CollectExpression<Row, ?>> expressions;
 
-    private List<Object[]> expectedResult = StreamSupport.stream(rows.spliterator(), false)
-        .map(r -> new Object[] { (long) r.get(0) + 2L })
+    private List<Object[]> expectedResult = LongStream.range(0, 10)
+        .mapToObj(l -> new Object[] { l + 2L })
         .collect(Collectors.toList());
 
     @Before
@@ -65,7 +63,7 @@ public class RowTransformingBatchIteratorTest extends CrateUnitTest {
     @Test
     public void testRowTransformingIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> new RowTransformingBatchIterator(RowsBatchIterator.newInstance(rows),
+            () -> new RowTransformingBatchIterator(SingleColumnBatchIterator.range(0, 10),
                 inputs,
                 expressions),
             expectedResult

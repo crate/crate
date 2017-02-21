@@ -20,37 +20,26 @@
  * agreement.
  */
 
-package io.crate.operation.merge;
+package io.crate.data;
 
-import io.crate.data.Row;
 import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.RowGenerator;
 import org.junit.Test;
 
 import java.util.Collections;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
-public class BatchPagingIteratorTest {
-
+public class IterableControlledBatchIteratorTest {
 
     @Test
-    public void testBatchPagingIterator() throws Exception {
-        Iterable<Row> rows = RowGenerator.range(0, 3);
-        BatchIteratorTester tester = new BatchIteratorTester(() -> {
-            PassThroughPagingIterator<Integer, Row> pagingIterator = PassThroughPagingIterator.repeatable();
-            pagingIterator.merge(Collections.singletonList(new KeyIterable<>(0, rows)));
-            return new BatchPagingIterator(
-                pagingIterator,
-                exhaustedIt -> false,
-                () -> true,
-                () -> {},
-                1
-            );
-        }, StreamSupport.stream(rows.spliterator(), false)
-            .map(Row::materialize)
-            .collect(Collectors.toList())
-        );
-        tester.run();;
+    public void testEmpty() throws Exception {
+        BatchIteratorTester t = new BatchIteratorTester(IterableControlledBatchIterator::empty, Collections.emptyList());
+        t.run();
+    }
+
+    @Test
+    public void testSingle() throws Exception {
+        Columns inputs = Columns.singleCol(() -> 42);
+        BatchIteratorTester t = new BatchIteratorTester(() -> IterableControlledBatchIterator.singleRow(inputs),
+            Collections.singletonList(new Object[]{42}));
+        t.run();
     }
 }

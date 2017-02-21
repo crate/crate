@@ -24,26 +24,23 @@ package io.crate.data;
 
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.RowGenerator;
+import io.crate.testing.SingleColumnBatchIterator;
 import org.junit.Test;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import java.util.stream.IntStream;
 
 public class LimitingBatchIteratorTest {
 
     private int limit = 5;
-    private Iterable<Row> rows = RowGenerator.range(0, 10);
-    private List<Object[]> expectedResult = StreamSupport.stream(rows.spliterator(), false)
-        .limit(limit)
-        .map(Row::materialize)
-        .collect(Collectors.toList());
+    private List<Object[]> expectedResult = IntStream.range(0, 10).limit(limit)
+        .mapToObj(l -> new Object[]{l}).collect(Collectors.toList());
 
     @Test
     public void testLimitingBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> LimitingBatchIterator.newInstance(RowsBatchIterator.newInstance(rows), limit),
+            () -> LimitingBatchIterator.newInstance(SingleColumnBatchIterator.range(0, 10), limit),
             expectedResult
         );
         tester.run();
@@ -54,7 +51,7 @@ public class LimitingBatchIteratorTest {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> {
                 BatchSimulatingIterator batchSimulatingIt = new BatchSimulatingIterator(
-                    RowsBatchIterator.newInstance(rows), 2, 5, null);
+                    SingleColumnBatchIterator.range(0, 10), 2, 5, null);
                 return LimitingBatchIterator.newInstance(batchSimulatingIt, limit);
             },
             expectedResult

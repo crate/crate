@@ -36,6 +36,11 @@ public class CloseAssertingBatchIterator implements BatchIterator {
     }
 
     @Override
+    public Columns rowData() {
+        return delegate.rowData();
+    }
+
+    @Override
     public void moveToStart() {
         raiseIfClosed();
         delegate.moveToStart();
@@ -65,12 +70,6 @@ public class CloseAssertingBatchIterator implements BatchIterator {
     public boolean allLoaded() {
         raiseIfClosed();
         return delegate.allLoaded();
-    }
-
-    @Override
-    public Row currentRow() {
-        raiseIfClosed();
-        return delegate.currentRow();
     }
 
     private void raiseIfClosed() {

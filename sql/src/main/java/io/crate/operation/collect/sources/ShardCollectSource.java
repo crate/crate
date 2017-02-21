@@ -332,6 +332,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         return BatchIteratorCollectorBridge.newInstance(
             OrderedLuceneBatchIteratorFactory.newInstance(
                 orderedDocCollectors,
+                collectPhase.toCollect().size(),
                 OrderingByPosition.rowOrdering(
                     OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
                     orderBy.reverseFlags(),
@@ -448,7 +449,11 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             rows.sort(OrderingByPosition.arrayOrdering(collectPhase).reverse());
         }
         return BatchIteratorCollectorBridge.newInstance(
-            RowsBatchIterator.newInstance(Iterables.transform(rows, Buckets.arrayToRowFunction())), rowReceiver);
+            RowsBatchIterator.newInstance(
+                Iterables.transform(rows, Buckets.arrayToRowFunction()),
+                collectPhase.outputTypes().size()
+            ),
+            rowReceiver);
     }
 
     private UnassignedShard toUnassignedShard(ShardId shardId) {

@@ -84,7 +84,7 @@ public class LuceneBatchIteratorBenchmark {
     @Benchmark
     public void measureConsumeLuceneBatchIterator(Blackhole blackhole) throws Exception {
         while (it.moveNext()) {
-            blackhole.consume(it.currentRow());
+            blackhole.consume(it);
         }
         it.moveToStart();
     }

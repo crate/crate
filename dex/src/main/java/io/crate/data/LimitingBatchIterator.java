@@ -26,53 +26,36 @@ import io.crate.concurrent.CompletableFutures;
 
 import java.util.concurrent.CompletionStage;
 
-public class LimitingBatchIterator implements BatchIterator {
+public class LimitingBatchIterator extends CloseAssertingBatchIterator {
 
-    private final BatchIterator delegate;
-    private final int limit;
-
-    private int rowCount = 0;
-    private Row currentRow = OFF_ROW;
+    private final int endPos;
+    private int pos = -1;
 
     public static BatchIterator newInstance(BatchIterator delegate, int limit) {
-        return new CloseAssertingBatchIterator(new LimitingBatchIterator(delegate, limit));
+        return new LimitingBatchIterator(delegate, limit);
     }
 
     private LimitingBatchIterator(BatchIterator delegate, int limit) {
-        this.delegate = delegate;
-        this.limit = limit;
+        super(delegate);
+        this.endPos = limit - 1;
     }
 
     @Override
     public void moveToStart() {
-        rowCount = 0;
-        currentRow = OFF_ROW;
-        delegate.moveToStart();
+        pos = -1;
+        super.moveToStart();
     }
 
     @Override
     public boolean moveNext() {
-        if (rowCount >= limit) {
-            currentRow = OFF_ROW;
+        if (pos >= endPos) {
             return false;
         }
-        if (delegate.moveNext()) {
-            rowCount++;
-            currentRow = delegate.currentRow();
+        if (super.moveNext()) {
+            pos++;
             return true;
         }
-        currentRow = OFF_ROW;
         return false;
-    }
-
-    @Override
-    public Row currentRow() {
-        return currentRow;
-    }
-
-    @Override
-    public void close() {
-        delegate.close();
     }
 
     @Override
@@ -80,11 +63,11 @@ public class LimitingBatchIterator implements BatchIterator {
         if (allLoaded()) {
             return CompletableFutures.failedFuture(new IllegalStateException("Iterator already fully loaded"));
         }
-        return delegate.loadNextBatch();
+        return super.loadNextBatch();
     }
 
     @Override
     public boolean allLoaded() {
-        return rowCount >= limit || delegate.allLoaded();
+        return pos >= endPos || super.allLoaded();
     }
 }

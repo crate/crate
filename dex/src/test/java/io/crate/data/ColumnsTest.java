@@ -20,37 +20,25 @@
  * agreement.
  */
 
-package io.crate.operation.merge;
+package io.crate.data;
 
-import io.crate.data.Row;
 import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.RowGenerator;
 import org.junit.Test;
 
-import java.util.Collections;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 
-public class BatchPagingIteratorTest {
-
+public class ColumnsTest {
 
     @Test
-    public void testBatchPagingIterator() throws Exception {
-        Iterable<Row> rows = RowGenerator.range(0, 3);
-        BatchIteratorTester tester = new BatchIteratorTester(() -> {
-            PassThroughPagingIterator<Integer, Row> pagingIterator = PassThroughPagingIterator.repeatable();
-            pagingIterator.merge(Collections.singletonList(new KeyIterable<>(0, rows)));
-            return new BatchPagingIterator(
-                pagingIterator,
-                exhaustedIt -> false,
-                () -> true,
-                () -> {},
-                1
-            );
-        }, StreamSupport.stream(rows.spliterator(), false)
-            .map(Row::materialize)
-            .collect(Collectors.toList())
-        );
-        tester.run();;
+    public void testSingleCol() throws Exception {
+        Columns inputs = Columns.singleCol(() -> 1);
+        BatchIteratorTester.assertValidColumns(() -> inputs);
+        assertThat(inputs.get(0).value(), is(1));
+    }
+
+    @Test
+    public void testEmpty() throws Exception {
+        BatchIteratorTester.assertValidColumns(() -> Columns.EMPTY);
     }
 }

@@ -47,7 +47,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -127,7 +126,7 @@ public abstract class ShardCollectorProvider {
 
         final CrateCollector.Builder builder;
         if (normalizedCollectNode.whereClause().noMatch()) {
-            builder = RowsCollector.builder(Collections.emptyList());
+            builder = RowsCollector.emptyBuilder();
         } else {
             assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
             builder = getBuilder(normalizedCollectNode, downstreamRequirements, jobCollectContext);

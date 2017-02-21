@@ -175,8 +175,11 @@ public class SystemCollectSource implements CollectSource {
         boolean requiresRepeat = downstream.requirements().contains(Requirement.REPEAT);
         return ImmutableList.of(
             BatchIteratorCollectorBridge.newInstance(
-                () -> iterableGetter.get().thenApply(dataIterable -> RowsBatchIterator.newInstance(
-                    dataIterableToRowsIterable(routedCollectPhase, requiresRepeat, dataIterable))),
+                () -> iterableGetter.get().thenApply(dataIterable ->
+                    RowsBatchIterator.newInstance(
+                        dataIterableToRowsIterable(routedCollectPhase, requiresRepeat, dataIterable),
+                        collectPhase.toCollect().size()
+                    )),
                 downstream
             )
         );

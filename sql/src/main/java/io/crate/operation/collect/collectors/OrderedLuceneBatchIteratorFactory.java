@@ -42,16 +42,18 @@ import java.util.concurrent.RejectedExecutionException;
 public class OrderedLuceneBatchIteratorFactory {
 
     public static BatchIterator newInstance(List<OrderedDocCollector> orderedDocCollectors,
+                                            int numCols,
                                             Comparator<Row> rowComparator,
                                             Executor executor,
                                             boolean requiresScroll) {
         return new Factory(
-            orderedDocCollectors, rowComparator, executor, requiresScroll).create();
+            orderedDocCollectors, numCols, rowComparator, executor, requiresScroll).create();
     }
 
     private static class Factory {
 
         private final List<OrderedDocCollector> orderedDocCollectors;
+        private final int numCols;
         private final Executor executor;
         private final PagingIterator<ShardId, Row> pagingIterator;
         private final Map<ShardId, OrderedDocCollector> collectorsByShardId;
@@ -59,10 +61,12 @@ public class OrderedLuceneBatchIteratorFactory {
         private BatchPagingIterator<ShardId> batchPagingIterator;
 
         Factory(List<OrderedDocCollector> orderedDocCollectors,
+                int numCols,
                 Comparator<Row> rowComparator,
                 Executor executor,
                 boolean requiresScroll) {
             this.orderedDocCollectors = orderedDocCollectors;
+            this.numCols = numCols;
             this.executor = executor;
             if (orderedDocCollectors.size() == 1) {
                 pagingIterator = requiresScroll ?
@@ -79,7 +83,8 @@ public class OrderedLuceneBatchIteratorFactory {
                 pagingIterator,
                 this::tryFetchMore,
                 this::allExhausted,
-                this::close
+                this::close,
+                numCols
             );
             return batchPagingIterator;
         }
