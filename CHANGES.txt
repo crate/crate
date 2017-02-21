@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed the low/high disk-based shard allocation watermark settings. When
+   a percentage value is provided for either of settings, it won't be converted
+   to an absolute byte value.
+
  - Fixed validation of known configuration file settings. The settings are also
    validated upon start-up.
 

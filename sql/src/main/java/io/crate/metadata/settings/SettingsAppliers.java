@@ -336,7 +336,55 @@ public class SettingsAppliers {
         }
     }
 
-    public static class TimeSettingsApplier extends AbstractSettingsApplier {
+    public static class PercentageOrAbsoluteByteSettingApplier extends StringSettingsApplier {
+
+        private final StringSetting setting;
+
+        public PercentageOrAbsoluteByteSettingApplier(StringSetting setting) {
+            super(setting);
+            this.setting = setting;
+        }
+
+        @Override
+        @VisibleForTesting
+        public Object validate(Object value) {
+            String validation = (String) value;
+            if (validation != null && validation.endsWith("%")) {
+                validateAsPercentageValue(validation);
+            } else {
+                validateAsByteSizeValue(validation);
+            }
+            return value;
+        }
+
+        private void validateAsPercentageValue(String value) {
+            final String percentage = value.substring(0, value.length() - 1);
+            try {
+                final double percent = Double.parseDouble(percentage);
+                if (percent < 0 || percent > 100) {
+                    throw new InvalidSettingValueContentException(String.format(Locale.ENGLISH,
+                        "percentage should be in [0-100], got [%s]", percentage)
+                    );
+                }
+            } catch (NumberFormatException e) {
+                throw new InvalidSettingValueContentException(String.format(Locale.ENGLISH,
+                    "failed to parse [%s] as a double", percentage)
+                );
+            }
+        }
+
+        private void validateAsByteSizeValue(String value) {
+            try {
+                ByteSizeValue.parseBytesSizeValue(value, setting.settingName());
+            } catch (ElasticsearchParseException e) {
+                throw new InvalidSettingValueContentException(String.format(Locale.ENGLISH,
+                    "failed to parse [%s] as a byte size value", value)
+                );
+            }
+        }
+    }
+
+    public static class TimeSettingsApplier extends SettingsAppliers.AbstractSettingsApplier {
 
         private final TimeSetting setting;
 

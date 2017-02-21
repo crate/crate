@@ -49,7 +49,7 @@ public class SysNodeChecks implements SysRowUpdater<SysNodeCheck>, Iterable<SysN
         this.checks = new HashMap<>(checks.size());
         // we need to wait for the discovery to finish to have a local node id
         discovery.addListener(() -> {
-            BytesRef nodeId = new BytesRef(clusterService.localNode().id());
+            BytesRef nodeId = new BytesRef(clusterService.localNode().getId());
             for (SysNodeCheck sysNodeCheck : checks.values()) {
                 sysNodeCheck.setNodeId(nodeId);
                 this.checks.put(sysNodeCheck.rowId(), sysNodeCheck);
