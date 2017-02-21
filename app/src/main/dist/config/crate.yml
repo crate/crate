@@ -866,11 +866,11 @@
 
 #license.enterprise: true
 
-# To use any of the modules in this section, Crate.io must have given you
-# permission to enable and use such Enterprise Features (see
+# To enable or use any of the settings in this section, Crate.io must have
+# given you permission to enable and use the CrateDB Enterprise Features (see
 # https://crate.io/enterprise/) and you must have a valid Enterprise or
 # Subscription Agreement with Crate.io. If you enable or use the Enterprise
 # Features, you represent and warrant that you have a valid Enterprise or
-# Subscription Agreement with Crate.io. Your use of the Enterprise Features if
+# Subscription Agreement with Crate.io. Your use of the Enterprise Features is
 # governed by the terms and conditions of your Enterprise or Subscription
 # Agreement with Crate.io.
