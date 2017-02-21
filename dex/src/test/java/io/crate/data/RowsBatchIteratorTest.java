@@ -54,7 +54,8 @@ public class RowsBatchIteratorTest {
                 new BatchSimulatingIterator(
                     RowsBatchIterator.newInstance(rows),
                     10,
-                    5
+                    5,
+                    null
                 )
             );
         };
