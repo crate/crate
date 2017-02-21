@@ -26,12 +26,16 @@ import java.util.concurrent.CompletionStage;
 
 
 /**
- * An iterator used to navigate over batched data.
- * An iterator usually contains some data already in-memory.
- * This data can be accessed via {@link #moveNext()} and {@link #currentRow()}.
+ * An iterator used to navigate over data organized in batches. Though not required most
+ * implementations already hold an initial batch of data ready for use and further data can be loaded asynchronously
+ * via the {@link #loadNextBatch()} method.
  *
- * Once all in-memory data has been consumed more data can loaded with {@link #loadNextBatch()}
- * unless {@link #allLoaded()} is true in which case the iterator is exhausted.
+ * The loaded data can be accessed by moving the iterator via the movement methods {@link #moveNext()} and
+ * {@link #moveToStart()} and then using the {@link Columns} object returned by {@link #rowData()} to access the data
+ * at the current position.
+ *
+ * Once all loaded data has been consumed more data can be loaded with {@link #loadNextBatch()} unless {@link
+ * #allLoaded()} is true in which case the iterator is exhausted.
  *
  * A BatchIterator starts either *before* the first row or in an unloaded state.
  * This means a consumer can consume a BatchIterator like this:
@@ -74,6 +78,21 @@ public interface BatchIterator {
     };
 
     /**
+     * This method returns a columns object which can be used to access the underlying data of the current iterator
+     * position.
+     *
+     * Note that it is only valid to call {@link Input#value()} on any of the returned columns if the iterator is
+     * positioned on a valid row, which is only the case if the last call to {@link #moveNext()} returned true.
+     *
+     * This method is valid to be called over the whole lifetime of the iterator, regardless of the state of the
+     * iterator or its position. However it is good practice for consumers of this iterator to gather the columns
+     * before iterating. This method is required to always return the same object on every call.
+     *
+     * @return a columns object
+     */
+    Columns rowData();
+
+    /**
      * Moves the Iterator back to the starting position.
      *
      * A consumer can then iterate over the rows again by calling into
@@ -94,15 +113,6 @@ public interface BatchIterator {
      * @throws IllegalStateException if the cursor is closed
      */
     boolean moveNext();
-
-
-    /**
-     * @return the current row the iterator is positioned on.
-     *         Multiple calls to this method might return the same instance, even after {@link #moveNext()}.
-     *         But underlying data will change.
-     * @throws IllegalStateException if the cursor is closed
-     */
-    Row currentRow();
 
     /**
      * Closes the iterator and frees all resources.
@@ -130,7 +140,7 @@ public interface BatchIterator {
     CompletionStage<?> loadNextBatch();
 
     /**
-     * @return true if all underlying data is already loaded
+     * @return true if no more batches can be loaded
      * @throws IllegalStateException if the cursor is closed
      */
     boolean allLoaded();

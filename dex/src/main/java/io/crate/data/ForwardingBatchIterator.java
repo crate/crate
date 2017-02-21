@@ -35,6 +35,11 @@ public abstract class ForwardingBatchIterator implements BatchIterator {
     protected abstract BatchIterator delegate();
 
     @Override
+    public Columns rowData() {
+        return delegate().rowData();
+    }
+
+    @Override
     public void moveToStart() {
         delegate().moveToStart();
     }
@@ -42,11 +47,6 @@ public abstract class ForwardingBatchIterator implements BatchIterator {
     @Override
     public boolean moveNext() {
         return delegate().moveNext();
-    }
-
-    @Override
-    public Row currentRow() {
-        return delegate().currentRow();
     }
 
     @Override
