@@ -68,9 +68,21 @@ public class CloseAssertingBatchIterator implements BatchIterator {
     }
 
     @Override
-    public Row currentRow() {
+    public int numColumns() {
         raiseIfClosed();
-        return delegate.currentRow();
+        return delegate.numColumns();
+    }
+
+    @Override
+    public Object get(int index) {
+        raiseIfClosed();
+        return delegate.get(index);
+    }
+
+    @Override
+    public Object[] materialize() {
+        raiseIfClosed();
+        return delegate.materialize();
     }
 
     private void raiseIfClosed() {
