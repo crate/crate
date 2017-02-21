@@ -50,6 +50,7 @@ public class BatchRowVisitor {
         } catch (Throwable t) {
             resultFuture.completeExceptionally(t);
         }
+
         if (it.allLoaded()) {
             resultFuture.complete(collector.finisher().apply(state));
         } else {
