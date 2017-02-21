@@ -22,27 +22,35 @@
 package io.crate.operation.projectors;
 
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.BatchIterator;
+import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
+import org.elasticsearch.common.collect.Tuple;
+
+import javax.annotation.Nullable;
+import java.util.Collections;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class AggregationPipe extends AbstractProjector {
 
     private final Aggregator[] aggregators;
-    private final Iterable<CollectExpression<Row, ?>> collectExpressions;
+    private final Iterable<CollectExpression<Row, ?>> expressions;
     private final Object[] cells;
     private final Row row;
     private final Object[] states;
 
-    public AggregationPipe(Iterable<CollectExpression<Row, ?>> collectExpressions,
+    public AggregationPipe(Iterable<CollectExpression<Row, ?>> expressions,
                            AggregationContext[] aggregations,
                            RamAccountingContext ramAccountingContext) {
         cells = new Object[aggregations.length];
         row = new RowN(cells);
         states = new Object[aggregations.length];
-        this.collectExpressions = collectExpressions;
+        this.expressions = expressions;
         aggregators = new Aggregator[aggregations.length];
         for (int i = 0; i < aggregators.length; i++) {
             aggregators[i] = new Aggregator(
@@ -59,7 +67,7 @@ public class AggregationPipe extends AbstractProjector {
 
     @Override
     public Result setNextRow(Row row) {
-        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
+        for (CollectExpression<Row, ?> collectExpression : expressions) {
             collectExpression.setNextRow(row);
         }
         for (int i = 0; i < aggregators.length; i++) {
@@ -81,5 +89,17 @@ public class AggregationPipe extends AbstractProjector {
         }
         downstream.setNextRow(row);
         downstream.finish(RepeatHandle.UNSUPPORTED);
+    }
+
+    @Nullable
+    @Override
+    public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
+        return bi -> new Tuple<>(
+            CollectingBatchIterator.newInstance(bi,
+                Collectors.collectingAndThen(
+                    new AggregateCollector(expressions, aggregators),
+                    cells -> Collections.singletonList(new RowN(cells)))),
+            downstream
+        );
     }
 }
