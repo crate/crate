@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.migration;
+package io.crate.operation.reference.sys.check.cluster;
 
 import com.google.common.collect.Maps;
 import org.apache.lucene.index.DirectoryReader;
@@ -42,14 +42,14 @@ import java.util.Map;
 /**
  * Utility class to load indices metadata and validate versions
  */
-final class IndexMetaDataUtil {
+public final class IndexMetaDataChecks {
 
     private static final String INDEX_STATE_FILE_PREFIX = "state-";
 
-    private IndexMetaDataUtil() {
+    private IndexMetaDataChecks() {
     }
 
-    static IndexMetaData loadIndexESMetadata(Path path, ESLogger logger) throws IOException {
+    public static IndexMetaData loadIndexESMetadata(Path path, ESLogger logger) throws IOException {
         Map<String, String> params = Maps.newHashMap();
         params.put("binary", "true");
         ToXContent.Params formatParams = new ToXContent.MapParams(params);
@@ -57,15 +57,15 @@ final class IndexMetaDataUtil {
         return indexStateFormat(XContentType.SMILE, formatParams).loadLatestState(logger, path);
     }
 
-    static boolean checkReindexIsRequired(IndexMetaData indexMetaData) {
-        return indexMetaData.getCreationVersion().before(org.elasticsearch.Version.V_1_4_0);
+    public static boolean checkReindexIsRequired(IndexMetaData indexMetaData) {
+        return indexMetaData.getCreationVersion().before(Version.V_1_4_0);
     }
 
-    static boolean checkIndexIsUpgraded(IndexMetaData indexMetaData) {
+    public static boolean checkIndexIsUpgraded(IndexMetaData indexMetaData) {
         return indexMetaData.getUpgradeVersion().onOrAfter(Version.V_2_4_2);
     }
 
-    static boolean checkValidShard(Directory shardDir) {
+    public static boolean checkValidShard(Directory shardDir) {
         try {
             return DirectoryReader.indexExists(shardDir);
         } catch (IOException e) {
@@ -73,7 +73,7 @@ final class IndexMetaDataUtil {
         }
     }
 
-    static boolean checkAlreadyMigrated(Directory shardDir) throws IOException {
+    public static boolean checkAlreadyUpgraded(Directory shardDir) throws IOException {
         org.apache.lucene.util.Version luceneVersion = SegmentInfos.readLatestCommit(shardDir).getCommitLuceneVersion();
         return (luceneVersion != null && luceneVersion.onOrAfter(org.apache.lucene.util.Version.LUCENE_5_0_0));
     }
