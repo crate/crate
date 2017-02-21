@@ -20,13 +20,11 @@
  * agreement.
  */
 
-package io.crate.testing;
-
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
+package io.crate.data;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
+import java.util.stream.Collector;
 
 /**
  * Visitor that iterates to the end of a BatchIterator consuming all rows.
@@ -36,28 +34,33 @@ import java.util.function.Consumer;
  */
 public class BatchRowVisitor {
 
-    public static CompletableFuture<?> visitRows(BatchIterator it, Consumer<Row> rowConsumer) {
-        return visitRows(it, rowConsumer, new CompletableFuture<>());
+    public static <A, R> CompletableFuture<R> visitRows(BatchIterator it, Collector<Row, A, R> collector) {
+        return visitRows(it, collector.supplier().get(), collector, new CompletableFuture<R>());
     }
 
-    public static CompletableFuture<?> visitRows(BatchIterator it,
-                                                 Consumer<Row> rowConsumer,
-                                                 CompletableFuture<?> completableFuture) {
-
-        while (it.moveNext()) {
-            rowConsumer.accept(it.currentRow());
+    public static <A, R> CompletableFuture<R> visitRows(BatchIterator it,
+                                                        A state,
+                                                        Collector<Row, A, R> collector,
+                                                        CompletableFuture<R> resultFuture) {
+        BiConsumer<A, Row> accumulator = collector.accumulator();
+        try {
+            while (it.moveNext()) {
+                accumulator.accept(state, it.currentRow());
+            }
+        } catch (Throwable t) {
+            resultFuture.completeExceptionally(t);
         }
         if (it.allLoaded()) {
-            completableFuture.complete(null);
+            resultFuture.complete(collector.finisher().apply(state));
         } else {
             it.loadNextBatch().whenComplete((r, t) -> {
                 if (t == null) {
-                    visitRows(it, rowConsumer, completableFuture);
+                    visitRows(it, state, collector, resultFuture);
                 } else {
-                    completableFuture.completeExceptionally(t);
+                    resultFuture.completeExceptionally(t);
                 }
             });
         }
-        return completableFuture;
+        return resultFuture;
     }
 }
