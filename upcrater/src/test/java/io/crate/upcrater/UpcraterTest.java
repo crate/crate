@@ -159,7 +159,7 @@ public class UpcraterTest {
         FileChannel fileChannel = FileChannel.open(lockFilePath, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
         FileLock fileLock = fileChannel.lock();
         System.setProperty("es.path.home", dataDir.toString());
-        System.setProperty("es.node.max_local_storage_nodes", "0");
+        System.setProperty("es.node.max_local_storage_nodes", "5");
 
         ByteArrayOutputStream outByteArrayOutputStream = new ByteArrayOutputStream();
         PrintStream outStream = new PrintStream(outByteArrayOutputStream);
@@ -178,7 +178,7 @@ public class UpcraterTest {
         Path zippedIndexDir = getDataPath("/data_dirs/cratehome_reindex_required.zip");
         Path dataDir = prepareDataDir(zippedIndexDir);
         System.setProperty("es.path.home", dataDir.toString());
-        System.setProperty("es.node.max_local_storage_nodes", "3");
+        System.setProperty("es.node.max_local_storage_nodes", "5");
 
         ByteArrayOutputStream outByteArrayOutputStream = new ByteArrayOutputStream();
         PrintStream outStream = new PrintStream(outByteArrayOutputStream);
@@ -193,6 +193,94 @@ public class UpcraterTest {
              " doc.testneedsreindex_parted[node0, node1, node2]\n\n")), is(true)));
         exit.expectSystemExitWithStatus(0);
         Upcrater.main(new String[]{});
+    }
+
+    @Test
+    public void testAlreadyUpgraded() throws IOException {
+        Path zippedIndexDir = getDataPath("/data_dirs/cratehome_already_upgraded.zip");
+        Path dataDir = prepareDataDir(zippedIndexDir);
+        System.setProperty("es.path.home", dataDir.toString());
+        System.setProperty("es.node.max_local_storage_nodes", "5");
+
+        ByteArrayOutputStream outByteArrayOutputStream = new ByteArrayOutputStream();
+        PrintStream outStream = new PrintStream(outByteArrayOutputStream);
+        System.setOut(outStream);
+        exit.checkAssertionAfterwards(() -> assertThat(outByteArrayOutputStream.toString().contains(
+            ("\n" +
+             "-------------\n" +
+             "-- SUMMARY --\n" +
+             "-------------\n" +
+             "\n" +
+             "Tables already upgraded: doc.testalreadyupgraded[node0, node1, node2]," +
+             " doc.testalreadyupgraded_parted[node0, node1, node2]\n\n")), is(true)));
+        exit.expectSystemExitWithStatus(0);
+        Upcrater.main(new String[]{});
+    }
+
+    @Test
+    public void testUpgradeFailed() throws IOException {
+        Path zippedIndexDir = getDataPath("/data_dirs/cratehome_failed.zip");
+        Path dataDir = prepareDataDir(zippedIndexDir);
+        System.setProperty("es.path.home", dataDir.toString());
+        System.setProperty("es.node.max_local_storage_nodes", "5");
+
+        ByteArrayOutputStream outByteArrayOutputStream = new ByteArrayOutputStream();
+        PrintStream outStream = new PrintStream(outByteArrayOutputStream);
+        System.setOut(outStream);
+        exit.checkAssertionAfterwards(() -> assertThat(outByteArrayOutputStream.toString().contains(
+            ("\n" +
+             "-------------\n" +
+             "-- SUMMARY --\n" +
+             "-------------\n" +
+             "\n" +
+             "Tables errored while upgrading (pls check error logs for details): doc.testfailed[node0, node2]," +
+             " doc.testfailed_parted[node0, node1, node2]")), is(true)));
+        exit.expectSystemExitWithStatus(0);
+        Upcrater.main(new String[]{});
+    }
+
+    @Test
+    public void testUpgradeRequired() throws IOException {
+        Path zippedIndexDir = getDataPath("/data_dirs/cratehome_upgrade_required.zip");
+        Path dataDir = prepareDataDir(zippedIndexDir);
+        System.setProperty("es.path.home", dataDir.toString());
+        System.setProperty("es.node.max_local_storage_nodes", "5");
+
+        ByteArrayOutputStream outByteArrayOutputStream = new ByteArrayOutputStream();
+        PrintStream outStream = new PrintStream(outByteArrayOutputStream);
+        System.setOut(outStream);
+        exit.checkAssertionAfterwards(() -> assertThat(outByteArrayOutputStream.toString().contains(
+            ("\n" +
+             "-------------\n" +
+             "-- SUMMARY --\n" +
+             "-------------\n" +
+             "\n" +
+             "Tables successfully upgraded: doc.testneedsupgrade[node0, node1, node2]," +
+             " doc.testneedsupgrade_parted[node0, node1, node2]\n\n")), is(true)));
+        exit.expectSystemExitWithStatus(0);
+        Upcrater.main(new String[]{});
+    }
+
+    @Test
+    public void testUpgradeRequiredDryRun() throws IOException {
+        Path zippedIndexDir = getDataPath("/data_dirs/cratehome_upgrade_required.zip");
+        Path dataDir = prepareDataDir(zippedIndexDir);
+        System.setProperty("es.path.home", dataDir.toString());
+        System.setProperty("es.node.max_local_storage_nodes", "5");
+
+        ByteArrayOutputStream outByteArrayOutputStream = new ByteArrayOutputStream();
+        PrintStream outStream = new PrintStream(outByteArrayOutputStream);
+        System.setOut(outStream);
+        exit.checkAssertionAfterwards(() -> assertThat(outByteArrayOutputStream.toString().contains(
+            ("\n" +
+             "-------------\n" +
+             "-- SUMMARY --\n" +
+             "-------------\n" +
+             "\n" +
+             "Tables to be upgraded: doc.testneedsupgrade[node0, node1, node2]," +
+             " doc.testneedsupgrade_parted[node0, node1, node2]\n\n")), is(true)));
+        exit.expectSystemExitWithStatus(0);
+        Upcrater.main(new String[]{"--dry-run"});
     }
 
     private Path prepareDataDir(Path backwardsIndex) throws IOException {

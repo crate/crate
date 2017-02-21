@@ -27,5 +27,5 @@ enum UpcrationStatus {
     SUCCESSFUL,
     FAILED,
     REINDEX_REQUIRED,
-    ALREADY_MIGRATED
+    ALREADY_UPGRADED
 }

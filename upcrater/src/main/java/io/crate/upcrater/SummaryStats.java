@@ -42,7 +42,7 @@ class SummaryStats {
             map = reindexRequired;
         } else if (statuses.contains(UpcrationStatus.SUCCESSFUL)) {
             map = successful;
-        } else if (statuses.contains(UpcrationStatus.ALREADY_MIGRATED)) {
+        } else if (statuses.contains(UpcrationStatus.ALREADY_UPGRADED)) {
             map = alreadyUpgraded;
         }
         assert map != null : "Status must be one of: " + Arrays.toString(UpcrationStatus.values());

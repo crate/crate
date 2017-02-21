@@ -103,7 +103,7 @@ public final class Upcrater {
 
     private static SummaryStats execute(UpcraterConfiguration configuration, Environment environment) {
         SummaryStats summaryStats = new SummaryStats();
-        Map<Table, List<File>> indexDirs = new HashMap<>();
+
         int maxLocalStorageNodes = environment.settings().getAsInt("node.max_local_storage_nodes", 50);
 
         for (int possibleLockId = 0; possibleLockId < maxLocalStorageNodes; possibleLockId++) {
@@ -111,6 +111,7 @@ public final class Upcrater {
                 Path dir = environment.dataWithClusterFiles()[node]
                     .resolve(NodeEnvironment.NODES_FOLDER)
                     .resolve(Integer.toString(possibleLockId));
+                Map<Table, List<File>> indexDirs = new HashMap<>();
                 retrieveIndexDirs(indexDirs, dir.resolve("indices").toString(), configuration.tableNames());
 
                 for (Map.Entry<Table, List<File>> entry : indexDirs.entrySet()) {
@@ -173,7 +174,7 @@ public final class Upcrater {
                                     tableName,
                                     possibleLockId,
                                     indexPath);
-                                statuses.add(UpcrationStatus.ALREADY_MIGRATED);
+                                statuses.add(UpcrationStatus.ALREADY_UPGRADED);
                                 continue;
                             }
 
@@ -213,7 +214,7 @@ public final class Upcrater {
                                         table.isPartitioned() ? "partitioned " : "",
                                         tableName,
                                         possibleLockId);
-                                    statuses.add(UpcrationStatus.ALREADY_MIGRATED);
+                                    statuses.add(UpcrationStatus.ALREADY_UPGRADED);
                                     continue;
                                 }
                                 if (!configuration.isDryrun()) {

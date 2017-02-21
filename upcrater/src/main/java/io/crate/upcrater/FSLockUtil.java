@@ -29,6 +29,7 @@ import org.elasticsearch.env.NodeEnvironment;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 
@@ -48,15 +49,16 @@ class FSLockUtil implements Closeable {
             for (int dirIndex = 0; dirIndex < environment.dataWithClusterFiles().length; dirIndex++) {
                 Path dir = environment.dataWithClusterFiles()[dirIndex].resolve(NodeEnvironment.NODES_FOLDER)
                     .resolve(Integer.toString(possibleLockId));
-
-                try (Directory luceneDir = FSDirectory.open(dir, NativeFSLockFactory.INSTANCE)) {
-                    try {
-                        locks[dirIndex] = luceneDir.obtainLock(NodeEnvironment.NODE_LOCK_FILENAME);
-                    } catch (LockObtainFailedException e) {
+                if (Files.isDirectory(dir)) {
+                    try (Directory luceneDir = FSDirectory.open(dir, NativeFSLockFactory.INSTANCE)) {
+                        try {
+                            locks[dirIndex] = luceneDir.obtainLock(NodeEnvironment.NODE_LOCK_FILENAME);
+                        } catch (LockObtainFailedException e) {
+                            throw new IllegalStateException("failed to obtain lock on " + dir.toAbsolutePath(), e);
+                        }
+                    } catch (IOException e) {
                         throw new IllegalStateException("failed to obtain lock on " + dir.toAbsolutePath(), e);
                     }
-                } catch (IOException e) {
-                    throw new IllegalStateException("failed to obtain lock on " + dir.toAbsolutePath(), e);
                 }
             }
         }
