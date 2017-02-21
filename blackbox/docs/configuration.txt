@@ -987,24 +987,18 @@ Discovery
   Time a node is waiting for responses from other nodes to a published
   cluster state.
 
+.. NOTE::
+
+   Multicast used to be an option for node discovery, but was deprecated in CrateDB 1.0.3 and removed in CrateDB 1.1.
+
 .. _conf_discovery:
 
 Unicast Host Discovery
 ~~~~~~~~~~~~~~~~~~~~~~
 
-**discovery.zen.ping.multicast.enabled**
-  | *Default:*  ``true``
-  | *Runtime:*  ``no``
-
-  Boolean value whether discovery via multicast is enabled or not.
-
-.. caution::
-
-   Multicast discovery was deprecated in CrateDB 1.0.3 and will be removed in CrateDB 1.1.
-
-CrateDB has built-in support for several different mechanisms how unicast hosts
-for node discovery are obtained. The simplest mechanism is to specify the list
-of hosts in the configuration file.
+CrateDB has built-in support for several different mechanisms of node
+discovery. The simplest mechanism is to specify a list of hosts in the
+configuration file.
 
 **discovery.zen.ping.unicast.hosts**
   | *Default:*  ``not set``

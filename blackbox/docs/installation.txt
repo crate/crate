@@ -2,18 +2,10 @@
 Installation
 ============
 
-This section describes how to install CrateDB on a single node. In order to
-get a CrateDB cluster up and running it is enough to repeat the process on
-another machine if the network supports multicast. The Nodes will discover and
-form a cluster automatically. Just like magic.
+This section shows you how to install CrateDB on a single node.
 
-In case the network doesn't support multicast, a unicast configuration is
-required. Please refer to our article on `Multi Node Setup`_ in order to learn
-how to setup the unicast configuration.
-
-.. caution::
-
-   Multicast discovery was deprecated in CrateDB 1.0.3 and will be removed in CrateDB 1.1.
+To set up a multi-node cluster, you will need to tell CrateDB how to find the
+other nodes. See the `Multi Node Setup`_ article for more information.
 
 Java (JVM) version
 ==================
@@ -110,5 +102,5 @@ additional packages if we see enough interest.
 .. _Docker: https://www.docker.com/
 .. _`Docker Hub Registry`: https://registry.hub.docker.com/u/crate/crate/
 .. _`docker-crate`: https://github.com/crate/docker-crate/
-.. _`Multi Node Setup`: https://crate.io/blog/using-crate-in-multinode-setup/
+.. _`Multi Node Setup`: https://crate.io/docs/scale/multi_node_setup/
 .. _`Java 8`: http://www.oracle.com/technetwork/java/javase/downloads/index.html
