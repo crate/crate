@@ -22,15 +22,12 @@
 
 package io.crate.operation.reference.sys.check.node;
 
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.settings.StringSetting;
-import org.elasticsearch.ElasticsearchParseException;
+import com.google.common.annotations.VisibleForTesting;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.unit.RatioValue;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.monitor.fs.FsProbe;
 
@@ -41,68 +38,59 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
 
     private static final ESLogger LOGGER = Loggers.getLogger(DiskWatermarkNodesSysCheck.class);
 
-    private final StringSetting watermarkSetting;
-    private final Settings settings;
     private final FsProbe fsProbe;
+    private final Provider<DiskThresholdDecider> deciderProvider;
 
     DiskWatermarkNodesSysCheck(int id,
                                String description,
-                               StringSetting watermarkSetting,
                                Severity severity,
                                ClusterService clusterService,
-                               Settings settings,
+                               Provider<DiskThresholdDecider> deciderProvider,
                                FsProbe fsProbe) {
         super(id, description, severity, clusterService);
-        this.settings = settings;
+        this.deciderProvider = deciderProvider;
         this.fsProbe = fsProbe;
-        this.watermarkSetting = watermarkSetting;
     }
 
     @Override
     public boolean validate() {
         try {
-            return !thresholdEnabled() ||
-                   validate(fsProbe.stats(), thresholdPercentageFromWatermark(), thresholdBytesFromWatermark());
+            DiskThresholdDecider decider = deciderProvider.get();
+            if (!decider.isEnabled()) return false;
+
+            FsInfo.Path leastAvailablePath = getLeastAvailablePath();
+            return validate(decider,
+                leastAvailablePath.getAvailable().getBytes(),
+                leastAvailablePath.getTotal().getBytes()
+            );
         } catch (IOException e) {
             LOGGER.error("Unable to determine the node disk usage while validating high/low disk watermark check: ", e);
             return false;
         }
     }
 
-    protected boolean validate(FsInfo fsInfo, double diskWatermarkPercents, long diskWatermarkBytes) {
-        for (FsInfo.Path path : fsInfo) {
-            double usedDiskAsPercentage = 100.0 - (path.getAvailable().getBytes() / (double) path.getTotal().getBytes()) * 100.0;
+    protected abstract boolean validate(DiskThresholdDecider decider, long free, long total);
 
-            // Byte values refer to free disk space
-            // Percentage values refer to used disk space
-            if ((usedDiskAsPercentage > diskWatermarkPercents)
-                || (path.getAvailable().getBytes() < diskWatermarkBytes)) {
-                return false;
+    // if the path with least available disk space violates the check,
+    // then there is no reason to run a check against other paths
+    @VisibleForTesting
+    FsInfo.Path getLeastAvailablePath() throws IOException {
+        FsInfo.Path leastAvailablePath = null;
+        for (FsInfo.Path info : fsProbe.stats()) {
+            if (leastAvailablePath == null) {
+                leastAvailablePath = info;
+            } else if (leastAvailablePath.getAvailable().getBytes() > info.getAvailable().getBytes()) {
+                leastAvailablePath = info;
             }
         }
-        return true;
+        assert leastAvailablePath != null : "must be at least one path";
+        return leastAvailablePath;
     }
 
-    private double thresholdPercentageFromWatermark() {
-        try {
-            return RatioValue.parseRatioValue(watermarkSetting.extract(settings)).getAsPercent();
-        } catch (ElasticsearchParseException ex) {
+    double getFreeDiskAsPercentage(long free, long total) {
+        if (total == 0) {
             return 100.0;
         }
-    }
-
-    private long thresholdBytesFromWatermark() {
-        try {
-            return ByteSizeValue.parseBytesSizeValue(
-                watermarkSetting.extract(settings),
-                watermarkSetting.name()
-            ).getBytes();
-        } catch (ElasticsearchParseException ex) {
-            return ByteSizeValue.parseBytesSizeValue("0b", watermarkSetting.name()).getBytes();
-        }
-    }
-
-    private boolean thresholdEnabled() {
-        return CrateSettings.ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED.extract(settings);
+        return 100.0 * ((double) free / total);
     }
 }
