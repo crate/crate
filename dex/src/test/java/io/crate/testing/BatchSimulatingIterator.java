@@ -24,7 +24,7 @@ package io.crate.testing;
 
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
-import io.crate.data.Row;
+import io.crate.data.Columns;
 
 import javax.annotation.Nullable;
 import java.util.PrimitiveIterator;
@@ -48,7 +48,6 @@ public class BatchSimulatingIterator implements BatchIterator {
 
     private int numSuccessMoveNextCallsInBatch = 0;
     private int currentBatch = 0;
-    private Row currentRow = OFF_ROW;
     private final AtomicBoolean currentlyLoading = new AtomicBoolean(false);
 
     /**
@@ -73,11 +72,13 @@ public class BatchSimulatingIterator implements BatchIterator {
     }
 
     @Override
+    public Columns rowData() {
+        return delegate.rowData();
+    }
+
+    @Override
     public void moveToStart() {
-        if (currentlyLoading.get()) {
-            throw new IllegalStateException("Must not call moveToStart during loadNextBatch");
-        }
-        currentRow = OFF_ROW;
+        ensureNotLoading();
         currentBatch = 0;
         delegate.moveToStart();
         numSuccessMoveNextCallsInBatch = 0;
@@ -85,32 +86,25 @@ public class BatchSimulatingIterator implements BatchIterator {
 
     @Override
     public boolean moveNext() {
-        if (currentlyLoading.get()) {
-            throw new IllegalStateException("Must not call moveNext during loadNextBatch");
-        }
+        ensureNotLoading();
         if (numSuccessMoveNextCallsInBatch == batchSize) {
-            currentRow = OFF_ROW;
             return false;
         }
         if (delegate.moveNext()) {
             numSuccessMoveNextCallsInBatch++;
-            currentRow = delegate.currentRow();
             return true;
         }
 
         if (delegate.allLoaded()) {
             currentBatch = numBatches;
         }
-        currentRow = OFF_ROW;
         return false;
     }
 
-    @Override
-    public Row currentRow() {
+    private void ensureNotLoading() {
         if (currentlyLoading.get()) {
-            throw new IllegalStateException("Must not call currentRow during loadNextBatch");
+            throw new IllegalStateException("Call not allowed during load operation");
         }
-        return currentRow;
     }
 
     @Override
@@ -120,7 +114,7 @@ public class BatchSimulatingIterator implements BatchIterator {
 
     @Override
     public CompletionStage<?> loadNextBatch() {
-        if (currentlyLoading.compareAndSet(false, true) == false) {
+        if (!currentlyLoading.compareAndSet(false, true)) {
             return CompletableFutures.failedFuture(new IllegalStateException("loadNextBatch call during load operation"));
         }
         if (delegate.allLoaded()) {
@@ -144,9 +138,6 @@ public class BatchSimulatingIterator implements BatchIterator {
 
     @Override
     public boolean allLoaded() {
-        if (delegate.allLoaded()) {
-            return currentBatch >= numBatches;
-        }
-        return false;
+        return delegate.allLoaded() && currentBatch >= numBatches;
     }
 }

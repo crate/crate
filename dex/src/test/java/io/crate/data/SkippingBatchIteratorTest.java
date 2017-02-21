@@ -24,26 +24,24 @@ package io.crate.data;
 
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.RowGenerator;
+import io.crate.testing.SingleColumnBatchIterator;
 import org.junit.Test;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import java.util.stream.IntStream;
 
 public class SkippingBatchIteratorTest {
 
     private int offset = 3;
-    private Iterable<Row> rows = RowGenerator.range(0, 10);
-    private List<Object[]> expectedResult = StreamSupport.stream(rows.spliterator(), false)
-        .skip(offset)
-        .map(Row::materialize)
+    private List<Object[]> expectedResult = IntStream.range(3, 10)
+        .mapToObj(i -> new Object[]{i})
         .collect(Collectors.toList());
 
     @Test
     public void testSkippingBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> new SkippingBatchIterator(RowsBatchIterator.newInstance(rows), offset),
+            () -> new SkippingBatchIterator(SingleColumnBatchIterator.range(0, 10), offset),
             expectedResult
         );
         tester.run();
@@ -53,7 +51,7 @@ public class SkippingBatchIteratorTest {
     public void testSkippingBatchIteratorWithBatchedSource() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> {
-                BatchIterator source= RowsBatchIterator.newInstance(rows);
+                BatchIterator source = SingleColumnBatchIterator.range(0, 10);
                 source = new CloseAssertingBatchIterator(new BatchSimulatingIterator(source, 2, 5, null));
                 return new SkippingBatchIterator(source, offset);
             },

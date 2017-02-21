@@ -95,8 +95,8 @@ public class CompositeCollectorTest extends CrateUnitTest {
         Iterable<Row> leftRows = RowGenerator.range(0, 5);
         Iterable<Row> rightRows = RowGenerator.range(5, 10);
 
-        CrateCollector.Builder c1 = RowsCollector.builder(leftRows);
-        CrateCollector.Builder c2 = RowsCollector.builder(rightRows);
+        CrateCollector.Builder c1 = RowsCollector.builder(leftRows, 1);
+        CrateCollector.Builder c2 = RowsCollector.builder(rightRows, 1);
 
         CompositeCollector collector = new CompositeCollector(Arrays.asList(c1, c2), rr);
         collector.doCollect();

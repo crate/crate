@@ -108,6 +108,6 @@ public class SortingTopNProjector extends AbstractProjector {
     @Nullable
     @Override
     public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
-        return bi -> new Tuple<>(CollectingBatchIterator.newInstance(bi, collector), downstream);
+        return bi -> new Tuple<>(CollectingBatchIterator.newInstance(bi, collector, collector.numOutputs()), downstream);
     }
 }
