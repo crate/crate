@@ -245,24 +245,4 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
         }
         rowReceiver.result();
     }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
-    @Test
-    public void testLuceneDocCollectorUnorderedPerformance() throws Exception {
-        CrateCollector docCollector = createCollector("SELECT continent FROM countries", collectingRowReceiver, NUMBER_OF_DOCUMENTS);
-        docCollector.doCollect();
-        collectingRowReceiver.result(); // call result to make sure there were no errors
-    }
-
-    @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
-    @Test
-    public void testLuceneDocCollectorUnorderedStartStopPerformance() throws Exception {
-        PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
-        CrateCollector docCollector = createCollector("SELECT continent FROM countries", rowReceiver, NUMBER_OF_DOCUMENTS);
-        docCollector.doCollect();
-        while (!rowReceiver.isFinished()) {
-            rowReceiver.resumeUpstream(false);
-        }
-        rowReceiver.result();
-    }
 }

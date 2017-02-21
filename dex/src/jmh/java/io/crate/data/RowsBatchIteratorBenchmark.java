@@ -50,7 +50,7 @@ public class RowsBatchIteratorBenchmark {
     private BatchIterator skippingIt = new SkippingBatchIterator(it, 100);
 
     @Benchmark
-    public void testConsumeBatchIterator(Blackhole blackhole) throws Exception {
+    public void measureConsumeBatchIterator(Blackhole blackhole) throws Exception {
         while (it.moveNext()) {
             blackhole.consume(it.currentRow().get(0));
         }
@@ -58,7 +58,7 @@ public class RowsBatchIteratorBenchmark {
     }
 
     @Benchmark
-    public void testConsumeCloseAssertingIterator(Blackhole blackhole) throws Exception {
+    public void measureConsumeCloseAssertingIterator(Blackhole blackhole) throws Exception {
         while (itCloseAsserting.moveNext()) {
             blackhole.consume(itCloseAsserting.currentRow().get(0));
         }
@@ -66,7 +66,7 @@ public class RowsBatchIteratorBenchmark {
     }
 
     @Benchmark
-    public void testConsumeSkippingBatchIterator(Blackhole blackhole) throws Exception {
+    public void measureConsumeSkippingBatchIterator(Blackhole blackhole) throws Exception {
         while (skippingIt.moveNext()) {
             blackhole.consume(skippingIt.currentRow().get(0));
         }
