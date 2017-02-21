@@ -23,6 +23,7 @@
 package io.crate.testing;
 
 import io.crate.data.BatchIterator;
+import io.crate.data.BatchRowVisitor;
 import io.crate.exceptions.Exceptions;
 import org.hamcrest.Matchers;
 
