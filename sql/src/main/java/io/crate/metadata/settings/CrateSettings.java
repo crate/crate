@@ -1564,9 +1564,9 @@ public class CrateSettings {
         .put(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK))
         .put(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_LOW.settingName(),
-            new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_LOW))
+            new SettingsAppliers.PercentageOrAbsoluteByteSettingApplier(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_LOW))
         .put(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_HIGH.settingName(),
-            new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_HIGH))
+            new SettingsAppliers.PercentageOrAbsoluteByteSettingApplier(CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_HIGH))
         .put(CrateSettings.INDICES.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES))
         .put(CrateSettings.INDICES_RECOVERY.settingName(),

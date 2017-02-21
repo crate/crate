@@ -271,4 +271,34 @@ public class CrateSettingsTest extends CrateUnitTest {
         settingsApplier.apply(settings, Row.EMPTY, expression);
         assertThat(settings.build().get(setting), is(notNullValue()));
     }
+
+    @Test
+    public void testPercentageByteSettingsApplier() {
+        StringSetting setting = CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_HIGH;
+        SettingsAppliers.PercentageOrAbsoluteByteSettingApplier applier =
+            new SettingsAppliers.PercentageOrAbsoluteByteSettingApplier(setting);
+        assertThat(applier.validate("12mb"), is("12mb"));
+        assertThat(applier.validate("12%"), is("12%"));
+    }
+
+    public void testPercentageOrAbsoluteByteSettingApplierInvalidPercentageSettingValue() {
+        StringSetting setting = CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_LOW;
+        SettingsAppliers.PercentageOrAbsoluteByteSettingApplier applier =
+            new SettingsAppliers.PercentageOrAbsoluteByteSettingApplier(setting);
+
+        expectedException.expect(SettingsAppliers.InvalidSettingValueContentException.class);
+        expectedException.expectMessage("percentage should be in [0-100], got [1444]");
+        applier.validate("1444%");
+    }
+
+    @Test
+    public void testPercentageOrAbsoluteByteSettingApplierInvalidByteSettingValue() {
+        StringSetting setting = CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_LOW;
+        SettingsAppliers.PercentageOrAbsoluteByteSettingApplier applier =
+            new SettingsAppliers.PercentageOrAbsoluteByteSettingApplier(setting);
+
+        expectedException.expect(SettingsAppliers.InvalidSettingValueContentException.class);
+        expectedException.expectMessage("failed to parse [12mbb] as a byte size value");
+        applier.validate("12mbb");
+    }
 }
