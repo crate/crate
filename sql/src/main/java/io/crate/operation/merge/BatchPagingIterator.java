@@ -53,7 +53,7 @@ public class BatchPagingIterator implements BatchIterator {
     private final Runnable closeCallback;
 
     private Iterator<Row> it;
-    private Row currentRow;
+    private Row currentRow = OFF_ROW;
     private boolean reachedEnd = false;
     private CompletableFuture<Void> currentlyLoading;
 
@@ -73,7 +73,6 @@ public class BatchPagingIterator implements BatchIterator {
     @Override
     public void moveToStart() {
         raiseIfClosed();
-
         if (reachedEnd) {
             this.it = pagingIterator.repeat().iterator();
             currentRow = OFF_ROW;
@@ -96,14 +95,26 @@ public class BatchPagingIterator implements BatchIterator {
     }
 
     @Override
-    public Row currentRow() {
+    public int numColumns() {
         raiseIfClosed();
-        return currentRow;
+        return currentRow.numColumns();
+    }
+
+    @Override
+    public Object get(int index) {
+        raiseIfClosed();
+        return currentRow.get(index);
+    }
+
+    @Override
+    public Object[] materialize() {
+        raiseIfClosed();
+        return currentRow.materialize();
     }
 
     @Override
     public void close() {
-        if (closed == false) {
+        if (!closed) {
             closed = true;
             closeCallback.run();
         }

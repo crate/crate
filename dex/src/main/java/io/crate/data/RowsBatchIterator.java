@@ -78,7 +78,17 @@ public class RowsBatchIterator implements BatchIterator {
     }
 
     @Override
-    public Row currentRow() {
-        return currentRow;
+    public int numColumns() {
+        return currentRow.numColumns();
+    }
+
+    @Override
+    public Object get(int index) {
+        return currentRow.get(index);
+    }
+
+    @Override
+    public Object[] materialize() {
+        return currentRow.materialize();
     }
 }

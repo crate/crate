@@ -32,6 +32,7 @@ import java.util.concurrent.*;
 import java.util.function.Supplier;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.fail;
 
@@ -73,9 +74,9 @@ public class BatchIteratorTester {
     }
 
     private void testIllegalStateIsRaisedIfMoveIsCalledWhileLoadingNextBatch(BatchIterator it) {
-        while (it.allLoaded() == false) {
+        while (!it.allLoaded()) {
             CompletableFuture<?> nextBatchFuture = it.loadNextBatch().toCompletableFuture();
-            while (nextBatchFuture.isDone() == false) {
+            while (!nextBatchFuture.isDone()) {
                 try {
                     it.moveNext();
                     if (nextBatchFuture.isDone()) {
@@ -105,7 +106,7 @@ public class BatchIteratorTester {
 
     private void assertMaterializeFails(BatchIterator it) {
         expectFailure(
-            () -> it.currentRow().materialize(),
+            it::materialize,
             IllegalStateException.class,
             "materialize call should fail if moveNext returned false");
 
@@ -117,7 +118,7 @@ public class BatchIteratorTester {
     }
 
     private void testIllegalNextBatchCall(BatchIterator it) throws Exception {
-        while (it.allLoaded() == false) {
+        while (!it.allLoaded()) {
             it.loadNextBatch().toCompletableFuture().get(10, TimeUnit.SECONDS);
         }
         CompletionStage<?> completionStage = it.loadNextBatch();
@@ -132,11 +133,11 @@ public class BatchIteratorTester {
         try {
             CompletableFuture<Object[]> firstRow = CompletableFuture.supplyAsync(() -> {
                 assertThat("it should have at least two rows, first missing", getBatchAwareMoveNext(it), is(true));
-                return it.currentRow().materialize();
+                return it.materialize();
             }, executor);
             CompletableFuture<Object[]> secondRow = firstRow.thenApplyAsync(row -> {
                 assertThat("it should have at least two rows", getBatchAwareMoveNext(it), is(true));
-                return it.currentRow().materialize();
+                return it.materialize();
             }, executor);
 
             assertThat(firstRow.get(10, TimeUnit.SECONDS), is(expectedResult.get(0)));
@@ -172,7 +173,9 @@ public class BatchIteratorTester {
         it.close();
         expectFailure(it::moveNext, IllegalStateException.class, "moveNext must fail after close");
         expectFailure(it::moveToStart, IllegalStateException.class, "moveToStart must fail after close");
-        expectFailure(it::currentRow, IllegalStateException.class, "currentRow must fail after close");
+        expectFailure(() -> it.get(0), IllegalStateException.class, "get must fail after close");
+        expectFailure(it::materialize, IllegalStateException.class, "materialize must fail after close");
+        expectFailure(it::numColumns, IllegalStateException.class, "numColumns must fail after close");
         expectFailure(it::allLoaded, IllegalStateException.class, "allLoaded must fail after close");
     }
 
@@ -191,7 +194,7 @@ public class BatchIteratorTester {
             runnable.run();
             fail(reason);
         } catch (Exception e) {
-            assertThat(expectedException.isInstance(e), is(true));
+            assertThat(e, instanceOf(expectedException));
         }
     }
 }

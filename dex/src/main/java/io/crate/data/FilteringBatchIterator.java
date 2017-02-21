@@ -42,7 +42,7 @@ public class FilteringBatchIterator extends ForwardingBatchIterator {
     @Override
     public boolean moveNext() {
         while (delegate.moveNext()) {
-            if (filter.test(currentRow())) {
+            if (filter.test(delegate)) {
                 return true;
             }
         }

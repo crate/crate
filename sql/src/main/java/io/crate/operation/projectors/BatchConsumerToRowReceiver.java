@@ -59,7 +59,7 @@ public class BatchConsumerToRowReceiver implements BatchConsumer {
     private void consumeIterator(BatchIterator iterator) {
         try {
             while (iterator.moveNext()) {
-                RowReceiver.Result result = rowReceiver.setNextRow(iterator.currentRow());
+                RowReceiver.Result result = rowReceiver.setNextRow(iterator);
                 switch (result) {
                     case CONTINUE:
                         break;

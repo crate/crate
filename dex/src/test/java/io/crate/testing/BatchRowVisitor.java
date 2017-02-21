@@ -45,7 +45,7 @@ public class BatchRowVisitor {
                                                  CompletableFuture<?> completableFuture) {
 
         while (it.moveNext()) {
-            rowConsumer.accept(it.currentRow());
+            rowConsumer.accept(it);
         }
         if (it.allLoaded()) {
             completableFuture.complete(null);

@@ -60,7 +60,7 @@ import static io.crate.exceptions.Exceptions.rethrowUnchecked;
 public class FileReadingIterator implements BatchIterator {
 
     private static final ESLogger LOGGER = Loggers.getLogger(FileReadingIterator.class);
-    public static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
+    private static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
     private final Map<String, FileInputFactory> fileInputFactories;
     private final Boolean shared;
     private final int numReaders;
@@ -74,7 +74,6 @@ public class FileReadingIterator implements BatchIterator {
     private Row currentRow = BatchIterator.OFF_ROW;
     private final List<UriWithGlob> urisWithGlob;
     private final Iterable<LineCollectorExpression<?>> collectorExpressions;
-    private List<Tuple<FileInput, UriWithGlob>> fileInputs;
     private Iterator<Tuple<FileInput, UriWithGlob>> fileInputsIterator = null;
     private Tuple<FileInput, UriWithGlob> currentInput = null;
     private Iterator<URI> currentInputIterator = null;
@@ -137,7 +136,7 @@ public class FileReadingIterator implements BatchIterator {
         for (LineCollectorExpression<?> collectorExpression : collectorExpressions) {
             collectorExpression.startCollect(lineContext);
         }
-        fileInputs = new ArrayList<>(urisWithGlob.size());
+        List<Tuple<FileInput, UriWithGlob>> fileInputs = new ArrayList<>(urisWithGlob.size());
         for (UriWithGlob fileUri : urisWithGlob) {
             try {
                 FileInput fileInput = getFileInput(fileUri.uri);
@@ -205,8 +204,18 @@ public class FileReadingIterator implements BatchIterator {
     }
 
     @Override
-    public Row currentRow() {
-        return currentRow;
+    public int numColumns() {
+        return currentRow.numColumns();
+    }
+
+    @Override
+    public Object get(int index) {
+        return currentRow.get(index);
+    }
+
+    @Override
+    public Object[] materialize() {
+        return currentRow.materialize();
     }
 
     private void initCurrentReader(FileInput fileInput, URI uri) throws IOException {
@@ -390,15 +399,12 @@ public class FileReadingIterator implements BatchIterator {
         Predicate<URI> moduloPredicate;
         boolean sharedStorage = MoreObjects.firstNonNull(shared, fileInput.sharedStorageDefault());
         if (sharedStorage) {
-            moduloPredicate = new Predicate<URI>() {
-                @Override
-                public boolean apply(URI input) {
-                    int hash = input.hashCode();
-                    if (hash == Integer.MIN_VALUE) {
-                        hash = 0; // Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
-                    }
-                    return Math.abs(hash) % numReaders == readerNumber;
+            moduloPredicate = input -> {
+                int hash = input.hashCode();
+                if (hash == Integer.MIN_VALUE) {
+                    hash = 0; // Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
                 }
+                return Math.abs(hash) % numReaders == readerNumber;
             };
         } else {
             moduloPredicate = MATCH_ALL_PREDICATE;
@@ -413,7 +419,7 @@ public class FileReadingIterator implements BatchIterator {
     private static class GlobPredicate implements Predicate<URI> {
         private final Pattern globPattern;
 
-        public GlobPredicate(URI fileUri) {
+        GlobPredicate(URI fileUri) {
             this.globPattern = Pattern.compile(Globs.toUnixRegexPattern(fileUri.toString()));
         }
 
