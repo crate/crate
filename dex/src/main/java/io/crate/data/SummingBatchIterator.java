@@ -27,20 +27,32 @@ import io.crate.concurrent.CompletableFutures;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
-public class MergeCountBatchIterator implements BatchIterator {
+/**
+ * A BatchIterator that consumes another BatchIterator summing up the first column (expected to be of type long)
+ *
+ * <pre>
+ *     source BatchIterator:
+ *     [ 1, 1, 4, 1 ]
+ *
+ *     output:
+ *     [ 7 ]
+ * </pre>
+ */
+public class SummingBatchIterator implements BatchIterator {
 
     private final BatchIterator source;
 
-    private CompletableFuture<Row> loading = null;
+    private CompletableFuture<?> loading = null;
     private Row result = null;
     private Row currentRow = OFF_ROW;
     private long sum = 0;
+    private boolean atStart = true;
 
     public static BatchIterator newInstance(BatchIterator source) {
-        return new CloseAssertingBatchIterator(new MergeCountBatchIterator(source));
+        return new CloseAssertingBatchIterator(new SummingBatchIterator(source));
     }
 
-    private MergeCountBatchIterator(BatchIterator source) {
+    private SummingBatchIterator(BatchIterator source) {
         this.source = source;
     }
 
@@ -48,24 +60,19 @@ public class MergeCountBatchIterator implements BatchIterator {
     public void moveToStart() {
         raiseIfLoading();
         currentRow = OFF_ROW;
-
-        if (loading == null) {
-            source.moveToStart();
-        } else {
-            result = loading.join();
-        }
+        atStart = true;
     }
 
     @Override
     public boolean moveNext() {
         raiseIfLoading();
-        if (result == null) {
-            currentRow = OFF_ROW;
-            return false;
+        if (result != null && atStart) {
+            currentRow = result;
+            atStart = false;
+            return true;
         }
-        currentRow = result;
-        result = null;
-        return true;
+        currentRow = OFF_ROW;
+        return false;
     }
 
     @Override
@@ -76,16 +83,15 @@ public class MergeCountBatchIterator implements BatchIterator {
 
     @Override
     public void close() {
-        source.close();
     }
 
     @Override
     public CompletionStage<?> loadNextBatch() {
         if (loading == null) {
             loading = BatchRowVisitor.visitRows(source, this::onRow)
-                .thenApply(v -> {
+                .thenAccept(v -> {
+                    source.close();
                     result = new Row1(sum);
-                    return result;
                 });
             return loading;
         }

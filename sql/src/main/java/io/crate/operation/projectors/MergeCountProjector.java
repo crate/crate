@@ -23,7 +23,7 @@
 package io.crate.operation.projectors;
 
 import io.crate.data.BatchIterator;
-import io.crate.data.MergeCountBatchIterator;
+import io.crate.data.SummingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import org.elasticsearch.common.collect.Tuple;
@@ -56,6 +56,6 @@ public class MergeCountProjector extends AbstractProjector {
     @Nullable
     @Override
     public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
-        return bi -> new Tuple<>(MergeCountBatchIterator.newInstance(bi), downstream);
+        return bi -> new Tuple<>(SummingBatchIterator.newInstance(bi), downstream);
     }
 }

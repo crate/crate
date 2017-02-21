@@ -29,14 +29,14 @@ import org.junit.Test;
 
 import java.util.Collections;
 
-public class MergeCountBatchIteratorTest {
+public class SummingBatchIteratorTest {
 
     private Iterable<Row> rows = RowGenerator.range(0, 10);
 
     @Test
     public void testMergeCountBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> MergeCountBatchIterator.newInstance(RowsBatchIterator.newInstance(rows)),
+            () -> SummingBatchIterator.newInstance(RowsBatchIterator.newInstance(rows)),
             Collections.singletonList(new Object[] { 45L })
         );
         tester.run();
@@ -46,7 +46,7 @@ public class MergeCountBatchIteratorTest {
     public void testMergeCountBatchIteratorWithBatchedSource() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> {
-                return MergeCountBatchIterator.newInstance(
+                return SummingBatchIterator.newInstance(
                     new BatchSimulatingIterator(RowsBatchIterator.newInstance(rows), 2, 5));
             },
             Collections.singletonList(new Object[] { 45L })
