@@ -23,8 +23,10 @@
 package io.crate.operation.projectors;
 
 import io.crate.concurrent.CompletionListenable;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 
+import javax.annotation.Nullable;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -96,4 +98,13 @@ public interface RowReceiver extends CompletionListenable {
      * This can be used to switch to optimized implementations if something isn't/is requirement
      */
     Set<Requirement> requirements();
+
+    /**
+     * @return a BatchConsumer implementation of the RowReceiver. Null if none is available.
+     *         This can be used for migration purposes until the RowReceiver interface is removed.
+     */
+    @Nullable
+    default BatchConsumer asConsumer() {
+        return null;
+    }
 }
