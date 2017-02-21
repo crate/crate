@@ -51,7 +51,6 @@ public class IndexMetaDataChecksTest extends CrateUnitTest {
         assertThat(IndexMetaDataChecks.checkReindexIsRequired(indexMetaData), is(false));
         for (int i = 0; i < indexMetaData.getNumberOfShards(); i++) {
             Directory shardDir = FSDirectory.open(dataDir.resolve(String.valueOf(i)).resolve("index"));
-            assertThat(IndexMetaDataChecks.checkAlreadyUpgraded(shardDir), is(true));
             assertThat(IndexMetaDataChecks.checkValidShard(shardDir), is(true));
         }
     }
@@ -66,7 +65,6 @@ public class IndexMetaDataChecksTest extends CrateUnitTest {
         for (int i = 0; i < indexMetaData.getNumberOfShards(); i++) {
             Directory shardDir = FSDirectory.open(dataDir.resolve(String.valueOf(i)).resolve("index"));
             assertThat(IndexMetaDataChecks.checkValidShard(shardDir), is(true));
-            assertThat(IndexMetaDataChecks.checkAlreadyUpgraded(shardDir), is(false));
         }
     }
 
@@ -80,7 +78,6 @@ public class IndexMetaDataChecksTest extends CrateUnitTest {
         for (int i = 0; i < indexMetaData.getNumberOfShards(); i++) {
             Directory shardDir = FSDirectory.open(dataDir.resolve(String.valueOf(i)).resolve("index"));
             assertThat(IndexMetaDataChecks.checkValidShard(shardDir), is(true));
-            assertThat(IndexMetaDataChecks.checkAlreadyUpgraded(shardDir), is(true));
         }
     }
 
@@ -93,7 +90,6 @@ public class IndexMetaDataChecksTest extends CrateUnitTest {
         assertThat(IndexMetaDataChecks.checkReindexIsRequired(indexMetaData), is(false));
         for (int i = 0; i < indexMetaData.getNumberOfShards(); i++) {
             Directory shardDir = FSDirectory.open(dataDir.resolve(String.valueOf(i)).resolve("index"));
-            assertThat(IndexMetaDataChecks.checkAlreadyUpgraded(shardDir), is(false));
             assertThat(IndexMetaDataChecks.checkValidShard(shardDir), is(true));
         }
     }

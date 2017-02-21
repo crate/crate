@@ -30,11 +30,14 @@ import org.apache.lucene.index.IndexUpgrader;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.InfoStream;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.gateway.UpcraterMetaStateService;
 
 import java.io.File;
 import java.io.IOException;
@@ -102,6 +105,7 @@ public final class Upcrater {
     }
 
     private static SummaryStats execute(UpcraterConfiguration configuration, Environment environment) {
+        UpcraterMetaStateService metaStateService = new UpcraterMetaStateService(environment.settings());
         SummaryStats summaryStats = new SummaryStats();
 
         int maxLocalStorageNodes = environment.settings().getAsInt("node.max_local_storage_nodes", 50);
@@ -211,17 +215,6 @@ public final class Upcrater {
                                         continue;
                                     }
 
-                                    if (IndexMetaDataChecks.checkAlreadyUpgraded(shardDir)) {
-                                        LOGGER.debug("Shard [{}] in directory [{}] for {}table [{}] of node [{}] " +
-                                                     "is already upgraded",
-                                            i,
-                                            shardIndexPath,
-                                            table.isPartitioned() ? "partitioned " : "",
-                                            tableName,
-                                            possibleLockId);
-                                        alreadyUpgradedShards++;
-                                        continue;
-                                    }
                                     if (!configuration.isDryrun()) {
                                         LOGGER.debug("Migrating shard [{}] in directory [{}] for {}table [{}] " +
                                                      "of node [{}]",
@@ -244,6 +237,14 @@ public final class Upcrater {
                             }
                             if (upgradedShards + alreadyUpgradedShards == numberOfShards) {
                                 if (upgradedShards > 0) {
+                                    if (configuration.isDryrun() == false) {
+                                        markAsUpgraded(metaStateService, indexMetaData, indexPath);
+                                        LOGGER.debug("{} [{}] of node [{}]: Index [{}] marked as upgraded",
+                                            table.isPartitioned() ? "Partitioned table" : "Table",
+                                            tableName,
+                                            possibleLockId,
+                                            indexMetaData.getIndex());
+                                    }
                                     statuses.add(UpcrationStatus.SUCCESSFUL);
                                 } else {
                                     statuses.add(UpcrationStatus.ALREADY_UPGRADED);
@@ -257,11 +258,22 @@ public final class Upcrater {
                                 e);
                         }
                     }
+
                     summaryStats.addStatusForTable(table, possibleLockId, statuses);
                 }
             }
         }
         return summaryStats;
+    }
+
+    private static void markAsUpgraded(UpcraterMetaStateService metaStateService,
+                                       IndexMetaData indexMetaData,
+                                       Path indexPath) throws Exception {
+        Settings settings = Settings.builder().put(indexMetaData.getSettings())
+            .put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
+            .put(IndexMetaData.SETTING_VERSION_UPGRADED, Version.CURRENT).build();
+        IndexMetaData newIndexMetaData = IndexMetaData.builder(indexMetaData).settings(settings).build();
+        metaStateService.writeIndexState(newIndexMetaData, indexPath);
     }
 
     @VisibleForTesting

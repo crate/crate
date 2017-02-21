@@ -24,7 +24,6 @@ package io.crate.operation.reference.sys.check.cluster;
 
 import com.google.common.collect.Maps;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -62,7 +61,8 @@ public final class IndexMetaDataChecks {
     }
 
     public static boolean checkIndexIsUpgraded(IndexMetaData indexMetaData) {
-        return indexMetaData.getUpgradeVersion().onOrAfter(Version.V_2_4_2);
+        return indexMetaData.getCreationVersion().onOrAfter(Version.V_2_4_2)
+               && indexMetaData.getUpgradeVersion().onOrAfter(Version.V_2_4_2);
     }
 
     public static boolean checkValidShard(Directory shardDir) {
@@ -71,11 +71,6 @@ public final class IndexMetaDataChecks {
         } catch (IOException e) {
             return false;
         }
-    }
-
-    public static boolean checkAlreadyUpgraded(Directory shardDir) throws IOException {
-        org.apache.lucene.util.Version luceneVersion = SegmentInfos.readLatestCommit(shardDir).getCommitLuceneVersion();
-        return (luceneVersion != null && luceneVersion.onOrAfter(org.apache.lucene.util.Version.LUCENE_5_0_0));
     }
 
     private static MetaDataStateFormat<IndexMetaData> indexStateFormat(XContentType format, final ToXContent.Params formatParams) {
