@@ -862,20 +862,6 @@ information about its usage.
 
 .. _conf_graceful_stop:
 
-CrateDB licensing
------------------
-
-The CrateDB licensing information.
-
-.. _license_enterprise:
-
-**license.enterprise**
-  | *Default:*  ``false``
-  | *Runtime:*  ``no``
-
-  The ``enterprise`` setting indicates whether the enterprise version of
-  CrateDB is used.
-
 Graceful Stop
 -------------
 
@@ -1950,6 +1936,33 @@ to your config. This will prevent allocating primary and replica
 of the same shard on the same machine even if more than one instances
 running on it.
 
+Enterprise Features
+===================
+
+CrateDB Licensing
+-----------------
+
+The CrateDB licensing information.
+
+.. _license_enterprise:
+
+**license.enterprise**
+  | *Default:*  ``false``
+  | *Runtime:*  ``no``
+
+  The ``enterprise`` setting indicates whether the enterprise version of
+  CrateDB is used.
+
+.. NOTE::
+
+   To use any of the modules in this section, Crate.io must have given you
+   permission to enable and use such `Enterprise Features`_ and you must have a
+   valid Enterprise or Subscription Agreement with Crate.io. If you enable or
+   use the Enterprise Features, you represent and warrant that you have a valid
+   Enterprise or Subscription Agreement with Crate.io. Your use of the
+   Enterprise Features if governed by the terms and conditions of your
+   Enterprise or Subscription Agreement with Crate.io.
+
 .. _`same-origin policy`: https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy
 .. _`cross-origin resource sharing`: https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
 .. _YAML: http://en.wikipedia.org/wiki/YAML
@@ -1962,3 +1975,4 @@ running on it.
 .. _`Azure Portal`: https://portal.azure.com
 .. _`Active Directory application`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/#_create-ad-application-with-password
 .. _`Java options`: http://docs.oracle.com/javase/7/docs/technotes/tools/windows/java.html#CBBIJCHG
+.. _`Enterprise Features`: https://crate.io/enterprise/
