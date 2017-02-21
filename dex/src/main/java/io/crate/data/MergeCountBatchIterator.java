@@ -94,13 +94,7 @@ public class MergeCountBatchIterator implements BatchIterator {
 
     @Override
     public boolean allLoaded() {
-        if (loading == null) {
-            return false;
-        }
-        if (loading.isDone() == false) {
-            throw new IllegalStateException("BatchIterator is loading");
-        }
-        return true;
+        return loading != null;
     }
 
     private void onRow(Row row) {
