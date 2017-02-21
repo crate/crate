@@ -4,7 +4,7 @@
 #   -h: print usage information
 #   -c <filename>: provide an alternative configuration file
 #   --tables <list_of_tables>: one ore more tables separated with a comma
-#   --dry-run: run all the validations but don't migrate anything
+#   --dry-run: run all the validations but don't upgrade anything
 #   --verbose: increase the verbosity level of the tool's output
 
 CDPATH=""
@@ -47,5 +47,5 @@ case `uname` in
 esac
 
 # Start the tool
-exec "$JAVA" -Des.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" io.crate.migration.MigrationTool $@
+exec "$JAVA" -Des.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" io.crate.upcrater.Upcrater $@
 exit $?

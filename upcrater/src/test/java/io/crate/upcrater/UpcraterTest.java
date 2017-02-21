@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.migration;
+package io.crate.upcrater;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -44,7 +44,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
-public class MigrationToolTest {
+public class UpcraterTest {
 
     @Rule
     public final ExpectedSystemExit exit = ExpectedSystemExit.none();
@@ -57,11 +57,11 @@ public class MigrationToolTest {
         PrintStream errStream = new PrintStream(errByteArrayOutputStream);
         System.setOut(outStream);
         System.setErr(errStream);
-        exit.checkAssertionAfterwards(() -> assertThat(outByteArrayOutputStream.toString(), is(MigrationTool.USAGE)));
+        exit.checkAssertionAfterwards(() -> assertThat(outByteArrayOutputStream.toString(), is(Upcrater.USAGE)));
         exit.checkAssertionAfterwards(() -> assertThat(errByteArrayOutputStream.toString(),
             is("ERROR: Wrong argument provided: foo" + System.lineSeparator())));
         exit.expectSystemExitWithStatus(1);
-        MigrationTool.main(new String[]{"foo"});
+        Upcrater.main(new String[]{"foo"});
     }
 
     @Test
@@ -69,9 +69,9 @@ public class MigrationToolTest {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         PrintStream printStream = new PrintStream(byteArrayOutputStream);
         System.setOut(printStream);
-        exit.checkAssertionAfterwards(() -> assertThat(byteArrayOutputStream.toString(), is(MigrationTool.USAGE)));
+        exit.checkAssertionAfterwards(() -> assertThat(byteArrayOutputStream.toString(), is(Upcrater.USAGE)));
         exit.expectSystemExitWithStatus(0);
-        MigrationTool.main(new String[]{"-h"});
+        Upcrater.main(new String[]{"-h"});
     }
 
     @Test
@@ -89,7 +89,7 @@ public class MigrationToolTest {
         dirs[6] = new File(Files.createDirectory(indexDir.resolve("foo..partitioned.table5.zxcv1")).toUri());
 
         Map<Table, List<File>> tableDirs = new HashMap<>();
-        MigrationTool.retrieveIndexDirs(tableDirs, indexDir.toString(), ImmutableSet.of());
+        Upcrater.retrieveIndexDirs(tableDirs, indexDir.toString(), ImmutableSet.of());
         assertThat(tableDirs.size(), is(tableNames.length));
 
         for (Map.Entry<Table, List<File>> entry : tableDirs.entrySet()) {
@@ -130,7 +130,7 @@ public class MigrationToolTest {
         dirs[8] = new File(Files.createDirectory(indexDir.resolve("custom.table7")).toUri());
 
         Map<Table, List<File>> tableDirs = new HashMap<>();
-        MigrationTool.retrieveIndexDirs(tableDirs, indexDir.toString(), Sets.newHashSet(tableNames));
+        Upcrater.retrieveIndexDirs(tableDirs, indexDir.toString(), Sets.newHashSet(tableNames));
         assertThat(tableDirs.size(), is(tableNames.length));
 
         for (Map.Entry<Table, List<File>> entry : tableDirs.entrySet()) {
@@ -170,7 +170,7 @@ public class MigrationToolTest {
             fileLock.close();
             fileChannel.close();
         });
-        MigrationTool.main(new String[]{});
+        Upcrater.main(new String[]{});
     }
 
     @Test
@@ -189,10 +189,10 @@ public class MigrationToolTest {
              "-- SUMMARY --\n" +
              "-------------\n" +
              "\n" +
-             "Tables that require reindexing: doc.testneedsreindex[node0, node1, node2]," +
+             "Tables that require re-indexing: doc.testneedsreindex[node0, node1, node2]," +
              " doc.testneedsreindex_parted[node0, node1, node2]\n\n")), is(true)));
         exit.expectSystemExitWithStatus(0);
-        MigrationTool.main(new String[]{});
+        Upcrater.main(new String[]{});
     }
 
     private Path prepareDataDir(Path backwardsIndex) throws IOException {

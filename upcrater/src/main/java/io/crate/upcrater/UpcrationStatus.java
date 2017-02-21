@@ -20,9 +20,9 @@
  * agreement.
  */
 
-package io.crate.migration;
+package io.crate.upcrater;
 
-enum MigrationStatus {
+enum UpcrationStatus {
 
     SUCCESSFUL,
     FAILED,

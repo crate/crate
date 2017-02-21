@@ -26,7 +26,7 @@ for /F "usebackq tokens=* delims= " %%A in (!params!) do (
     )
 )
 
-"%JAVA_HOME%\bin\java" -Des.path.home="%CRATE_HOME%" -cp "%CRATE_CLASSPATH%" "io.crate.migration.MigrationTool" !$newparams!
+"%JAVA_HOME%\bin\java" -Des.path.home="%CRATE_HOME%" -cp "%CRATE_CLASSPATH%" "io.crate.upcrater.Upcrater" !$newparams!
 goto finally
 
 :err

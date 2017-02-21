@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.migration;
+package io.crate.upcrater;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.PartitionName;
@@ -42,9 +42,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
-public final class MigrationTool {
+public final class Upcrater {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(MigrationTool.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(Upcrater.class);
     final static String USAGE = "Migration tool to upgrade indexes created with " +
                                 "Crate >= 0.46 Crate <= 0.55" + System.lineSeparator() + System.lineSeparator() +
                                 "Options:" + System.lineSeparator() +
@@ -56,18 +56,18 @@ public final class MigrationTool {
                                 + System.lineSeparator() +
                                 "  --tables <list_of_tables>  one ore more tables separated with a comma"
                                 + System.lineSeparator() +
-                                "  --dry-run                  run all the validations but don't migrate anything"
+                                "  --dry-run                  run all the validations but don't upgrade anything"
                                 + System.lineSeparator() +
                                 "  --verbose                  increase the verbosity level of the tool's output"
                                 + System.lineSeparator();
 
-    private MigrationTool() {
+    private Upcrater() {
     }
 
     public static void main(String[] args) throws IOException {
-        MigrationToolConfiguration configuration = null;
+        UpcraterConfiguration configuration = null;
         try {
-            configuration = MigrationToolArgumentParser.parseArgs(args);
+            configuration = UpcraterArgumentParser.parseArgs(args);
             if (configuration == null) {
                 printUsage();
                 System.exit(0);
@@ -101,7 +101,7 @@ public final class MigrationTool {
         System.exit(0);
     }
 
-    private static SummaryStats execute(MigrationToolConfiguration configuration, Environment environment) {
+    private static SummaryStats execute(UpcraterConfiguration configuration, Environment environment) {
         SummaryStats summaryStats = new SummaryStats();
         Map<Table, List<File>> indexDirs = new HashMap<>();
         int maxLocalStorageNodes = environment.settings().getAsInt("node.max_local_storage_nodes", 50);
@@ -118,7 +118,7 @@ public final class MigrationTool {
                     String tableName = table.name();
 
                     List<File> tablePaths = entry.getValue();
-                    Set<MigrationStatus> statuses = new HashSet<>();
+                    Set<UpcrationStatus> statuses = new HashSet<>();
 
                     for (File indexDir : tablePaths) {
                         // Validate index directory
@@ -130,7 +130,7 @@ public final class MigrationTool {
                                 table.isPartitioned() ? "partitioned " : "",
                                 tableName,
                                 possibleLockId);
-                            statuses.add(MigrationStatus.FAILED);
+                            statuses.add(UpcrationStatus.FAILED);
                             continue;
                         }
                         if (!Files.isExecutable(indexPath) && !Files.isExecutable(indexPath)) {
@@ -140,7 +140,7 @@ public final class MigrationTool {
                                 table.isPartitioned() ? "partitioned " : "",
                                 tableName,
                                 possibleLockId);
-                            statuses.add(MigrationStatus.FAILED);
+                            statuses.add(UpcrationStatus.FAILED);
                             continue;
                         }
 
@@ -152,7 +152,7 @@ public final class MigrationTool {
                                     tableName,
                                     possibleLockId,
                                     indexPath);
-                                statuses.add(MigrationStatus.FAILED);
+                                statuses.add(UpcrationStatus.FAILED);
                                 continue;
                             }
 
@@ -163,17 +163,17 @@ public final class MigrationTool {
                                     tableName,
                                     possibleLockId,
                                     indexPath);
-                                statuses.add(MigrationStatus.REINDEX_REQUIRED);
+                                statuses.add(UpcrationStatus.REINDEX_REQUIRED);
                                 continue;
                             }
 
                             if (IndexMetaDataChecks.checkIndexIsUpgraded(indexMetaData)) {
-                                LOGGER.debug("{} [{}] of node [{}] found in path [{}] is already migrated",
+                                LOGGER.debug("{} [{}] of node [{}] found in path [{}] is already upgraded",
                                     table.isPartitioned() ? "Partitioned table" : "Table",
                                     tableName,
                                     possibleLockId,
                                     indexPath);
-                                statuses.add(MigrationStatus.ALREADY_MIGRATED);
+                                statuses.add(UpcrationStatus.ALREADY_MIGRATED);
                                 continue;
                             }
 
@@ -190,7 +190,7 @@ public final class MigrationTool {
                                         tableName,
                                         possibleLockId,
                                         e);
-                                    statuses.add(MigrationStatus.FAILED);
+                                    statuses.add(UpcrationStatus.FAILED);
                                     continue;
                                 }
 
@@ -201,19 +201,19 @@ public final class MigrationTool {
                                         table.isPartitioned() ? "partitioned " : "",
                                         tableName,
                                         possibleLockId);
-                                    statuses.add(MigrationStatus.FAILED);
+                                    statuses.add(UpcrationStatus.FAILED);
                                     continue;
                                 }
 
                                 if (IndexMetaDataChecks.checkAlreadyUpgraded(shardDir)) {
                                     LOGGER.debug("Shard [{}] in directory [{}] for {}table [{}] of node [{}] " +
-                                                 "is already migrated",
+                                                 "is already upgraded",
                                         i,
                                         shardIndexPath,
                                         table.isPartitioned() ? "partitioned " : "",
                                         tableName,
                                         possibleLockId);
-                                    statuses.add(MigrationStatus.ALREADY_MIGRATED);
+                                    statuses.add(UpcrationStatus.ALREADY_MIGRATED);
                                     continue;
                                 }
                                 if (!configuration.isDryrun()) {
@@ -226,14 +226,14 @@ public final class MigrationTool {
                                         possibleLockId);
                                     new IndexUpgrader(shardDir, InfoStream.NO_OUTPUT, true).upgrade();
                                     LOGGER.debug("Shard [{}] in directory [{}] for {}table [{}] of node [{}] " +
-                                                 "migrated successfully",
+                                                 "upgraded successfully",
                                         i,
                                         shardIndexPath,
                                         table.isPartitioned() ? "partitioned " : "",
                                         tableName,
                                         possibleLockId);
                                 }
-                                statuses.add(MigrationStatus.SUCCESSFUL);
+                                statuses.add(UpcrationStatus.SUCCESSFUL);
                             }
                         } catch (Exception e) {
                             LOGGER.error("Error while upgrading {}table [{}] of node [{}]",
