@@ -60,6 +60,7 @@ public class GroupingProjector extends AbstractProjector {
     private final Function<Map<Object, Object[]>, Iterable<Row>> finisher;
     private final RamAccountingContext ramAccountingContext;
     private final GroupingCollector<Object> collector;
+    private final int numCols;
 
     private EnumSet<Requirement> requirements;
     private boolean killed = false;
@@ -104,6 +105,7 @@ public class GroupingProjector extends AbstractProjector {
         statesByKey = collector.supplier().get();
         accumulator = collector.accumulator();
         finisher = collector.finisher();
+        numCols = keyInputs.size() + aggregators.length;
     }
 
     private static boolean allTypesKnown(List<? extends DataType> keyTypes) {
@@ -158,6 +160,6 @@ public class GroupingProjector extends AbstractProjector {
     @Nullable
     @Override
     public java.util.function.Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
-        return bi -> new Tuple<>(CollectingBatchIterator.newInstance(bi, collector), downstream);
+        return bi -> new Tuple<>(CollectingBatchIterator.newInstance(bi, collector, numCols), downstream);
     }
 }
