@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.operation.PageResultListener;
@@ -33,8 +34,9 @@ import io.crate.operation.merge.BatchPagingIterator;
 import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.projectors.BatchConsumerToRowReceiver;
-import io.crate.operation.projectors.RepeatHandle;
+import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.RowReceiver;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 
 import javax.annotation.Nonnull;
@@ -43,6 +45,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Function;
 
 public class PageDownstreamContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext, PageBucketReceiver {
 
@@ -58,8 +61,9 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final IntObjectHashMap<PageResultListener> listenersByBucketIdx;
     private final IntObjectHashMap<Bucket> bucketsByIdx;
     private final BatchConsumerToRowReceiver consumer;
-    private final BatchPagingIterator batchIterator;
     private final RowReceiver rowReceiver;
+    private final BatchPagingIterator batchPagingIterator;
+    private final BatchIterator batchIterator;
 
     private Throwable lastThrowable = null;
     private boolean receivingFirstPage = true;
@@ -79,19 +83,32 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         this.streamers = streamers;
         this.ramAccountingContext = ramAccountingContext;
         this.numBuckets = numBuckets;
-        this.rowReceiver = rowReceiver;
         traceEnabled = logger.isTraceEnabled();
         this.exhausted = new BitSet(numBuckets);
         this.pagingIterator = pagingIterator;
         this.bucketsByIdx = new IntObjectHashMap<>(numBuckets);
         this.listenersByBucketIdx = new IntObjectHashMap<>(numBuckets);
-        this.consumer = new BatchConsumerToRowReceiver(rowReceiver);
-        this.batchIterator = new BatchPagingIterator(
+        batchPagingIterator = new BatchPagingIterator(
             pagingIterator,
             this::fetchMore,
             this::allUpstreamsExhausted,
             this::releaseListenersAndCloseContext
         );
+
+        BatchIterator batchIterator = batchPagingIterator;
+        while (rowReceiver instanceof Projector) {
+            Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> projection =
+                ((Projector) rowReceiver).batchIteratorProjection();
+            if (projection == null) {
+                break;
+            }
+            Tuple<BatchIterator, RowReceiver> tuple = projection.apply(batchIterator);
+            batchIterator = tuple.v1();
+            rowReceiver = tuple.v2();
+        }
+        this.batchIterator = batchIterator;
+        this.rowReceiver = rowReceiver;
+        this.consumer = new BatchConsumerToRowReceiver(rowReceiver);
     }
 
     private void releaseListenersAndCloseContext() {
@@ -139,7 +156,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
             consumer.accept(batchIterator, lastThrowable);
             receivingFirstPage = false;
         } else {
-            batchIterator.completeLoad(lastThrowable);
+            batchPagingIterator.completeLoad(lastThrowable);
         }
     }
 
@@ -273,13 +290,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         // there won't be any executionNodes for that collectPhase
         // -> no upstreams -> just finish
         if (numBuckets == 0) {
-            rowReceiver.finish(new RepeatHandle() {
-                @Override
-                public void repeat() {
-                    rowReceiver.finish(this);
-                }
-            });
-            close();
+            consumer.accept(batchIterator, lastThrowable);
         }
     }
 

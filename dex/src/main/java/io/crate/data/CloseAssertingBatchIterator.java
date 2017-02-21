@@ -78,4 +78,9 @@ public class CloseAssertingBatchIterator implements BatchIterator {
             throw new IllegalStateException("Iterator is closed");
         }
     }
+
+    @Override
+    public String toString() {
+        return "Closing{" + delegate + '}';
+    }
 }
