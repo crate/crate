@@ -25,6 +25,7 @@ package io.crate.migration;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
+import io.crate.operation.reference.sys.check.cluster.IndexMetaDataChecks;
 import org.apache.lucene.index.IndexUpgrader;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -144,7 +145,7 @@ public final class MigrationTool {
                         }
 
                         try {
-                            IndexMetaData indexMetaData = IndexMetaDataUtil.loadIndexESMetadata(indexPath, LOGGER);
+                            IndexMetaData indexMetaData = IndexMetaDataChecks.loadIndexESMetadata(indexPath, LOGGER);
                             if (indexMetaData == null) {
                                 LOGGER.error("Cannot load metadata for {}table [{}] of [{}] from path [{}]",
                                     table.isPartitioned() ? "partitioned " : "",
@@ -155,7 +156,7 @@ public final class MigrationTool {
                                 continue;
                             }
 
-                            if (IndexMetaDataUtil.checkReindexIsRequired(indexMetaData)) {
+                            if (IndexMetaDataChecks.checkReindexIsRequired(indexMetaData)) {
                                 LOGGER.warn("{} [{}] of node [{}] found in path [{}] is created before " + "" +
                                             "Crate 0.46 and cannot be upgraded, please reindex instead",
                                     table.isPartitioned() ? "Partitioned table" : "Table",
@@ -166,7 +167,7 @@ public final class MigrationTool {
                                 continue;
                             }
 
-                            if (IndexMetaDataUtil.checkIndexIsUpgraded(indexMetaData)) {
+                            if (IndexMetaDataChecks.checkIndexIsUpgraded(indexMetaData)) {
                                 LOGGER.debug("{} [{}] of node [{}] found in path [{}] is already migrated",
                                     table.isPartitioned() ? "Partitioned table" : "Table",
                                     tableName,
@@ -193,7 +194,7 @@ public final class MigrationTool {
                                     continue;
                                 }
 
-                                if (!IndexMetaDataUtil.checkValidShard(shardDir)) {
+                                if (!IndexMetaDataChecks.checkValidShard(shardDir)) {
                                     LOGGER.error("Cannot find a valid shard in directory [{}] for " +
                                                  "{}table [{}] of node [{}]",
                                         shardIndexPath,
@@ -204,7 +205,7 @@ public final class MigrationTool {
                                     continue;
                                 }
 
-                                if (IndexMetaDataUtil.checkAlreadyMigrated(shardDir)) {
+                                if (IndexMetaDataChecks.checkAlreadyUpgraded(shardDir)) {
                                     LOGGER.debug("Shard [{}] in directory [{}] for {}table [{}] of node [{}] " +
                                                  "is already migrated",
                                         i,

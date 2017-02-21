@@ -24,18 +24,17 @@ package io.crate.migration;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
+import org.apache.lucene.util.TestUtil;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +44,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
-public class MigrationToolTest extends MigrationTestCase {
+public class MigrationToolTest {
 
     @Rule
     public final ExpectedSystemExit exit = ExpectedSystemExit.none();
@@ -154,8 +153,8 @@ public class MigrationToolTest extends MigrationTestCase {
 
     @Test
     public void testIndexLocked() throws IOException {
-        Path zippedIndexDir = getDataPath("/indices/cratehome_index_locked.zip");
-        Path dataDir = prepareIndexDir(zippedIndexDir);
+        Path zippedIndexDir = getDataPath("/data_dirs/cratehome_index_locked.zip");
+        Path dataDir = prepareDataDir(zippedIndexDir);
         Path lockFilePath = dataDir.resolve("data").resolve("crate").resolve("nodes").resolve("0").resolve("node.lock");
         FileChannel fileChannel = FileChannel.open(lockFilePath, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
         FileLock fileLock = fileChannel.lock();
@@ -176,8 +175,8 @@ public class MigrationToolTest extends MigrationTestCase {
 
     @Test
     public void testReindexRequired() throws IOException {
-        Path zippedIndexDir = getDataPath("/indices/cratehome_reindex_required.zip");
-        Path dataDir = prepareIndexDir(zippedIndexDir);
+        Path zippedIndexDir = getDataPath("/data_dirs/cratehome_reindex_required.zip");
+        Path dataDir = prepareDataDir(zippedIndexDir);
         System.setProperty("es.path.home", dataDir.toString());
         System.setProperty("es.node.max_local_storage_nodes", "3");
 
@@ -194,5 +193,23 @@ public class MigrationToolTest extends MigrationTestCase {
              " doc.testneedsreindex_parted[node0, node1, node2]\n\n")), is(true)));
         exit.expectSystemExitWithStatus(0);
         MigrationTool.main(new String[]{});
+    }
+
+    private Path prepareDataDir(Path backwardsIndex) throws IOException {
+        Path indexDir = Files.createTempDirectory("");
+        Path dataDir = indexDir.resolve("test");
+        try (InputStream stream = Files.newInputStream(backwardsIndex)) {
+            TestUtil.unzip(stream, dataDir);
+        }
+        assertThat(Files.exists(dataDir), is(true));
+        return dataDir;
+    }
+
+    private Path getDataPath(String name) throws IOException {
+        try {
+            return Paths.get(this.getClass().getResource(name).toURI());
+        } catch (Exception e) {
+            throw new IOException("Cannot find resource: " + name);
+        }
     }
 }

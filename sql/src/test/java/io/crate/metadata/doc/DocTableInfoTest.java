@@ -16,13 +16,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class DocTableInfoTest extends CrateUnitTest {
 
-    ExecutorService executorService;
+    private ExecutorService executorService;
 
     @Before
     public void before() throws Exception {
@@ -42,14 +43,14 @@ public class DocTableInfoTest extends CrateUnitTest {
         DocTableInfo info = new DocTableInfo(
             tableIdent,
             ImmutableList.of(
-                new Reference(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.<String>of())), RowGranularity.DOC, DataTypes.OBJECT)
+                new Reference(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.of())), RowGranularity.DOC, DataTypes.OBJECT)
             ),
-            ImmutableList.<Reference>of(),
-            ImmutableList.<GeneratedReference>of(),
-            ImmutableMap.<ColumnIdent, IndexReference>of(),
-            ImmutableMap.<ColumnIdent, Reference>of(),
-            ImmutableMap.<ColumnIdent, String>of(),
-            ImmutableList.<ColumnIdent>of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableList.of(),
             null,
             false,
             true,
@@ -58,11 +59,12 @@ public class DocTableInfoTest extends CrateUnitTest {
             new IndexNameExpressionResolver(Settings.EMPTY),
             5,
             new BytesRef("0"),
-            ImmutableMap.<String, Object>of(),
-            ImmutableList.<ColumnIdent>of(),
-            ImmutableList.<PartitionName>of(),
+            ImmutableMap.of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
             ColumnPolicy.DYNAMIC,
             Operation.ALL,
+            null,
             executorService
         );
 
@@ -95,13 +97,13 @@ public class DocTableInfoTest extends CrateUnitTest {
 
         DocTableInfo info = new DocTableInfo(
             dummy,
-            ImmutableList.<Reference>of(strictParent),
-            ImmutableList.<Reference>of(),
-            ImmutableList.<GeneratedReference>of(),
-            ImmutableMap.<ColumnIdent, IndexReference>of(),
+            ImmutableList.of(strictParent),
+            ImmutableList.of(),
+            ImmutableList.of(),
+            ImmutableMap.of(),
             references,
-            ImmutableMap.<ColumnIdent, String>of(),
-            ImmutableList.<ColumnIdent>of(),
+            ImmutableMap.of(),
+            ImmutableList.of(),
             null,
             false,
             true,
@@ -110,11 +112,12 @@ public class DocTableInfoTest extends CrateUnitTest {
             new IndexNameExpressionResolver(Settings.EMPTY),
             5,
             new BytesRef("0"),
-            ImmutableMap.<String, Object>of(),
-            ImmutableList.<ColumnIdent>of(),
-            ImmutableList.<PartitionName>of(),
+            ImmutableMap.of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
             ColumnPolicy.DYNAMIC,
             Operation.ALL,
+            null,
             executorService
         );
 
@@ -123,7 +126,7 @@ public class DocTableInfoTest extends CrateUnitTest {
         assertNull(info.getReference(columnIdent));
         assertNull(info.getDynamic(columnIdent, false));
 
-        columnIdent = new ColumnIdent("foobar", Arrays.asList("foo"));
+        columnIdent = new ColumnIdent("foobar", Collections.singletonList("foo"));
         assertNull(info.getReference(columnIdent));
         assertNull(info.getDynamic(columnIdent, false));
 

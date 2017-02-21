@@ -26,7 +26,7 @@ import org.apache.lucene.util.BytesRef;
 
 public abstract class AbstractSysCheck implements SysCheck {
 
-    private static final String LINK_PATTERN = "https://cr8.is/d-cluster-check-";
+    protected static final String LINK_PATTERN = "https://cr8.is/d-cluster-check-";
 
     private final int id;
     private final BytesRef description;

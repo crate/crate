@@ -631,6 +631,10 @@ public class DocIndexMetaData {
         return tableParameters;
     }
 
+    public IndexMetaData metaData() {
+        return metaData;
+    }
+
     private ImmutableMap<ColumnIdent, String> getAnalyzers(ColumnIdent columnIdent, Map<String, Object> propertiesMap) {
         ImmutableMap.Builder<ColumnIdent, String> builder = ImmutableMap.builder();
         for (Map.Entry<String, Object> columnEntry : propertiesMap.entrySet()) {
