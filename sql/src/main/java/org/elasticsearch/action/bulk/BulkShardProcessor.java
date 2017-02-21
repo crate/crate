@@ -43,6 +43,7 @@ import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesA
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -264,7 +265,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                     @Override
                     public void onFailure(Throwable t) {
                         t = Exceptions.unwrap(t, throwable -> throwable instanceof RuntimeException);
-                        if (t instanceof ClassCastException) {
+                        if (t instanceof ClassCastException || t instanceof NotSerializableExceptionWrapper) {
                             // this is caused by passing mixed argument types into a bulk upsert.
                             // it can happen after an valid request already succeeded and data was written.
                             // so never bubble, but rather mark all items of this request as failed.

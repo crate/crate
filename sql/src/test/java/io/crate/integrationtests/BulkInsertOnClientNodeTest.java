@@ -34,12 +34,15 @@ import java.util.HashMap;
 
 import static org.hamcrest.Matchers.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 1)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 1, transportClientRatio = 0)
 public class BulkInsertOnClientNodeTest extends SQLTransportIntegrationTest {
 
     public BulkInsertOnClientNodeTest() {
         super(new SQLTransportExecutor(
             new SQLTransportExecutor.ClientProvider() {
+
+                private String nodeName;
+
                 @Override
                 public Client client() {
                     // make sure we use a client node (started with client=true)
@@ -53,9 +56,15 @@ public class BulkInsertOnClientNodeTest extends SQLTransportIntegrationTest {
 
                 @Override
                 public SQLOperations sqlOperations() {
-                    return internalCluster().getInstance(
-                        SQLOperations.class,
-                        internalCluster().clientNodeClient().settings().get("node.name"));
+                    return internalCluster().getInstance(SQLOperations.class, nodeName());
+                }
+
+                private String nodeName() {
+                    if (nodeName == null) {
+                        Client client= client();
+                        nodeName = client.settings().get("name");
+                    }
+                    return nodeName;
                 }
             }
         ));
