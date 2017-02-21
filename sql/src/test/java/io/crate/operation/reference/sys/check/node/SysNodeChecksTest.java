@@ -27,7 +27,10 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.monitor.fs.FsProbe;
@@ -35,7 +38,7 @@ import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
 import org.mockito.Answers;
 
-import java.util.List;
+import java.io.IOException;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -173,57 +176,64 @@ public class SysNodeChecksTest extends CrateUnitTest {
         assertThat(recoveryAfterNodesCheck.validate(TimeValue.timeValueMinutes(4), 3, 3), is(false));
     }
 
-    private final FsInfo fsInfo = mock(FsInfo.class);
-
     @Test
     public void testValidationDiskWatermarkCheckInBytes() {
-        DiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck
-            = new HighDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
+        DiskWatermarkNodesSysCheck highDiskWatermark
+            = new HighDiskWatermarkNodesSysCheck(clusterService, mock(Provider.class), mock(FsProbe.class));
 
-        assertThat(highDiskWatermarkNodesSysCheck.id(), is(5));
-        assertThat(highDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));
-        assertThat(highDiskWatermarkNodesSysCheck.severity(), is(SysCheck.Severity.HIGH));
+        assertThat(highDiskWatermark.id(), is(5));
+        assertThat(highDiskWatermark.severity(), is(SysCheck.Severity.HIGH));
 
-        // Percentage values refer to used disk space
-        // sda: 160b is available
-        // sdc: 140b is available
-        List<FsInfo.Path> sameSizeDisksGroup = ImmutableList.of(
-            new FsInfo.Path("/middle", "/dev/sda", 300, 170, 160),
-            new FsInfo.Path("/most", "/dev/sdc", 300, 150, 140)
-        );
+        DiskThresholdDecider decider = mock(DiskThresholdDecider.class);
+        // disk.watermark.high: 170b
+        // A path must have at least 170 bytes to pass the check, only 160 bytes are available.
+        when(decider.getFreeDiskThresholdHigh()).thenReturn(.0);
+        when(decider.getFreeBytesThresholdHigh()).thenReturn(new ByteSizeValue(170));
+        assertThat(highDiskWatermark.validate(decider, 160, 300), is(false));
 
-        // disk.watermark.high: 139b
-        when(fsInfo.iterator()).thenReturn(sameSizeDisksGroup.iterator());
-        assertThat(highDiskWatermarkNodesSysCheck.validate(fsInfo, 100.0, 139), is(true));
-
-        // disk.watermark.high: 140b
-        when(fsInfo.iterator()).thenReturn(sameSizeDisksGroup.iterator());
-        assertThat(highDiskWatermarkNodesSysCheck.validate(fsInfo, 100.0, 150), is(false));
+        // disk.watermark.high: 130b
+        // A path must have at least 130 bytes to pass the check, 140 bytes available.
+        when(decider.getFreeDiskThresholdHigh()).thenReturn(.0);
+        when(decider.getFreeBytesThresholdHigh()).thenReturn(new ByteSizeValue(130));
+        assertThat(highDiskWatermark.validate(decider, 140, 300), is(true));
     }
 
     @Test
     public void testValidationDiskWatermarkCheckInPercents() {
-        DiskWatermarkNodesSysCheck lowDiskWatermarkNodesSysCheck
-            = new LowDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
+        DiskWatermarkNodesSysCheck lowDiskWatermark
+            = new LowDiskWatermarkNodesSysCheck(clusterService, mock(Provider.class), mock(FsProbe.class));
+        assertThat(lowDiskWatermark.id(), is(6));
+        assertThat(lowDiskWatermark.severity(), is(SysCheck.Severity.HIGH));
 
-        assertThat(lowDiskWatermarkNodesSysCheck.id(), is(6));
-        assertThat(lowDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));
-        assertThat(lowDiskWatermarkNodesSysCheck.severity(), is(SysCheck.Severity.HIGH));
+        DiskThresholdDecider decider = mock(DiskThresholdDecider.class);
+        // disk.watermark.low: 75%. It must fail when at least 75% of disk is used.
+        // Free - 150 bytes, total - 300 bytes. 50% of disk is used.
+        // freeDiskThresholdLow = 100.0 - 75.0
+        when(decider.getFreeDiskThresholdLow()).thenReturn(25.);
+        when(decider.getFreeBytesThresholdLow()).thenReturn(new ByteSizeValue(0));
 
-        // Percentage values refer to used disk space
-        // sda: 70% is used
-        // sdc: 50% is used
-        List<FsInfo.Path> differentSizeDisksGroup = ImmutableList.of(
-            new FsInfo.Path("/middle", "/dev/sda", 100, 40, 30),
-            new FsInfo.Path("/most", "/dev/sdc", 300, 130, 150)
-        );
+        assertThat(lowDiskWatermark.validate(decider, 150, 300), is(true));
 
-        // disk.watermark.high: 75%
-        when(fsInfo.iterator()).thenReturn(differentSizeDisksGroup.iterator());
-        assertThat(lowDiskWatermarkNodesSysCheck.validate(fsInfo, 75.0, 0), is(true));
+        // disk.watermark.low: 45%. The check must fail when at least 45% of disk is used.
+        // Free - 30 bytes, Total - 100 bytes. 70% of disk is used.
+        // freeDiskThresholdLow = 100.0 - 45.0
+        when(decider.getFreeDiskThresholdLow()).thenReturn(55.);
+        when(decider.getFreeBytesThresholdLow()).thenReturn(new ByteSizeValue(0));
+        assertThat(lowDiskWatermark.validate(decider, 30, 100), is(false));
+    }
 
-        // disk.watermark.high: 55%
-        when(fsInfo.iterator()).thenReturn(differentSizeDisksGroup.iterator());
-        assertThat(lowDiskWatermarkNodesSysCheck.validate(fsInfo, 55.0, 0), is(false));
+    @Test
+    public void testGetLeastAvailablePathForDiskWatermarkChecks() throws IOException {
+        FsProbe fsProbe = mock(FsProbe.class);
+        FsInfo fsInfo = mock(FsInfo.class);
+        when(fsProbe.stats()).thenReturn(fsInfo);
+        when(fsInfo.iterator()).thenReturn(ImmutableList.of(
+            new FsInfo.Path("/middle", "/dev/sda", 300, 170, 160),
+            new FsInfo.Path("/most", "/dev/sdc", 300, 150, 140)
+        ).iterator());
+
+        DiskWatermarkNodesSysCheck diskWatermark
+            = new LowDiskWatermarkNodesSysCheck(clusterService, mock(Provider.class), fsProbe);
+        assertThat(diskWatermark.getLeastAvailablePath().getAvailable().getBytes(), is(140L));
     }
 }

@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed low/high disk-based shard allocation watermark checks. The checks
+   treated the disk watermark settings as non-runtime. Therefore, new values
+   for these settings were ignored.
+
  - Fixed the low/high disk-based shard allocation watermark settings. When
    a percentage value is provided for either of settings, it won't be converted
    to an absolute byte value.

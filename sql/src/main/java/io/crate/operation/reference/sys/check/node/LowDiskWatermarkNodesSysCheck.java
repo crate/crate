@@ -22,26 +22,30 @@
 
 package io.crate.operation.reference.sys.check.node;
 
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.settings.StringSetting;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.monitor.fs.FsProbe;
 
 @Singleton
 public class LowDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
 
-    private static final StringSetting LOW_DISK_WATERMARK_SETTING = CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_LOW;
-
-    private static final int ID = 6;
+    static final int ID = 6;
     private static final String DESCRIPTION = "The low disk watermark is exceeded on the node." +
-                                              " The cluster will not allocate new shards to the node. Please check the node disk usage.";
+        " The cluster will not allocate new shards to the node. Please check the node disk usage.";
 
     @Inject
-    public LowDiskWatermarkNodesSysCheck(ClusterService clusterService, Settings settings, FsProbe fsProbe) {
-        super(ID, DESCRIPTION, LOW_DISK_WATERMARK_SETTING, Severity.HIGH, clusterService, settings, fsProbe);
+    public LowDiskWatermarkNodesSysCheck(ClusterService clusterService,
+                                         Provider<DiskThresholdDecider> decider,
+                                         FsProbe fsProbe) {
+        super(ID, DESCRIPTION, Severity.HIGH, clusterService, decider, fsProbe);
     }
 
+    @Override
+    protected boolean validate(DiskThresholdDecider decider, long free, long total) {
+        return !(free < decider.getFreeBytesThresholdLow().getBytes()
+            || getFreeDiskAsPercentage(free, total) < decider.getFreeDiskThresholdLow());
+    }
 }

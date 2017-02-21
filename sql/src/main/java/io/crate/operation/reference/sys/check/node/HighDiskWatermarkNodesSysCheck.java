@@ -22,26 +22,30 @@
 
 package io.crate.operation.reference.sys.check.node;
 
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.settings.StringSetting;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.monitor.fs.FsProbe;
 
 @Singleton
 public class HighDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
 
-    private static final StringSetting HIGH_DISK_WATERMARK_SETTING = CrateSettings.ROUTING_ALLOCATION_DISK_WATERMARK_HIGH;
-
-    private static final int ID = 5;
+    static final int ID = 5;
     private static final String DESCRIPTION = "The high disk watermark is exceeded on the node." +
-                                              " The cluster will attempt to relocate shards to another node. Please check the node disk usage.";
+        " The cluster will attempt to relocate shards to another node. Please check the node disk usage.";
 
     @Inject
-    public HighDiskWatermarkNodesSysCheck(ClusterService clusterService, Settings settings, FsProbe fsProbe) {
-        super(ID, DESCRIPTION, HIGH_DISK_WATERMARK_SETTING, Severity.HIGH, clusterService, settings, fsProbe);
+    public HighDiskWatermarkNodesSysCheck(ClusterService clusterService,
+                                          Provider<DiskThresholdDecider> deciderProvider,
+                                          FsProbe fsProbe) {
+        super(ID, DESCRIPTION, Severity.HIGH, clusterService, deciderProvider, fsProbe);
     }
 
+    @Override
+    protected boolean validate(DiskThresholdDecider decider, long free, long total) {
+        return !(free < decider.getFreeBytesThresholdHigh().getBytes() ||
+            getFreeDiskAsPercentage(free, total) < decider.getFreeDiskThresholdHigh());
+    }
 }
