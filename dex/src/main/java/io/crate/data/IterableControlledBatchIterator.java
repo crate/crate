@@ -22,39 +22,49 @@
 
 package io.crate.data;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletableFutures;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.CompletionStage;
 
 /**
- * BatchIterator implementation that is backed by {@link Iterable<Row>}.
+ * BatchIterator which returns the given {@link Columns} object on {@link #rowData} and uses an iterable to move
+ * positions.
  *
- * Use this class only if the backing iterable emits different row objects. Otherwise consider the usage of {@link
- * IterableControlledBatchIterator} instead.
+ * Note that the return value of the given iterable is never used.
  */
-public class RowsBatchIterator implements BatchIterator {
+public class IterableControlledBatchIterator implements BatchIterator {
 
-    private final Iterable<? extends Row> rows;
-    private Iterator<? extends Row> it;
-    private Row currentRow = BatchIterator.OFF_ROW;
+    private static final List SINGLE_ROW = Collections.singletonList(null);
+
     private final Columns rowData;
+    private final Iterable<?> iterable;
+    private Iterator<?> iterator;
 
+    /**
+     * Returns an empty batch iterator with no columns.
+     */
     public static BatchIterator empty() {
-        return newInstance(Collections.emptyList(), 0);
+        return newInstance(Columns.EMPTY, Collections.emptyList());
     }
 
-    public static BatchIterator newInstance(Iterable<? extends Row> rows, int numCols) {
-        return new CloseAssertingBatchIterator(new RowsBatchIterator(rows, numCols));
+    /**
+     * Returns a batch iterator with a single row and the given columns.
+     */
+    public static BatchIterator singleRow(Columns columns) {
+        return newInstance(columns, SINGLE_ROW);
     }
 
-    @VisibleForTesting
-    RowsBatchIterator(Iterable<? extends Row> rows, int numCols) {
-        rowData = RowBridging.toInputs(() -> currentRow, numCols);
-        this.rows = rows;
-        this.it = rows.iterator();
+    public static BatchIterator newInstance(Columns rowData, Iterable<?> iterable) {
+        return new CloseAssertingBatchIterator(new IterableControlledBatchIterator(rowData, iterable));
+    }
+
+    private IterableControlledBatchIterator(Columns rowData, Iterable<?> iterable) {
+        this.rowData = rowData;
+        this.iterable = iterable;
+        moveToStart();
     }
 
     @Override
@@ -64,22 +74,21 @@ public class RowsBatchIterator implements BatchIterator {
 
     @Override
     public void moveToStart() {
-        it = rows.iterator();
-        currentRow = OFF_ROW;
+        iterator = iterable.iterator();
     }
 
     @Override
     public boolean moveNext() {
-        if (it.hasNext()) {
-            currentRow = it.next();
+        if (iterator.hasNext()){
+            iterator.next();
             return true;
         }
-        currentRow = OFF_ROW;
         return false;
     }
 
     @Override
     public void close() {
+        iterator = null;
     }
 
     @Override

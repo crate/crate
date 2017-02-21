@@ -81,6 +81,10 @@ public class SortingTopNCollector implements Collector<Row, RowPriorityQueue<Obj
         this.offset = offset;
     }
 
+    public int numOutputs() {
+        return numOutputs;
+    }
+
     @Override
     public Supplier<RowPriorityQueue<Object[]>> supplier() {
         return () -> new RowPriorityQueue<>(offset + limit, comparator);

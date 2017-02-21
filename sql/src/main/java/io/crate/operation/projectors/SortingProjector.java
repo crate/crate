@@ -113,7 +113,7 @@ class SortingProjector extends AbstractProjector {
             Collector<Row, ?, Bucket> collector = Collectors.mapping(
                 this::getCells,
                 Collectors.collectingAndThen(Collectors.toList(), this::sortAndCreateBucket));
-            return new Tuple<>(CollectingBatchIterator.newInstance(bi, collector), downstream);
+            return new Tuple<>(CollectingBatchIterator.newInstance(bi, collector, numOutputs), downstream);
         };
     }
 

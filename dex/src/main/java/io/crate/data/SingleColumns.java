@@ -22,31 +22,24 @@
 
 package io.crate.data;
 
-import java.util.function.BooleanSupplier;
-import java.util.function.Function;
+class SingleColumns<T> implements Columns {
 
-public class FilteringBatchIterator extends ForwardingBatchIterator {
+    private final Input<T> input;
 
-    private final BatchIterator delegate;
-    private final BooleanSupplier filter;
-
-    public FilteringBatchIterator(BatchIterator delegate, Function<Columns, BooleanSupplier> filterGenerator) {
-        this.delegate = delegate;
-        this.filter = filterGenerator.apply(delegate.rowData());
+    SingleColumns(Input<T> input) {
+        this.input = input;
     }
 
     @Override
-    protected BatchIterator delegate() {
-        return delegate;
-    }
-
-    @Override
-    public boolean moveNext() {
-        while (delegate.moveNext()) {
-            if (filter.getAsBoolean()) {
-                return true;
-            }
+    public Input<T> get(int index) {
+        if (index != 0) {
+            throw new IndexOutOfBoundsException("No column found at index: " + index);
         }
-        return false;
+        return input;
+    }
+
+    @Override
+    public int size() {
+        return 1;
     }
 }

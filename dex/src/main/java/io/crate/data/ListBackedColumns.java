@@ -22,31 +22,23 @@
 
 package io.crate.data;
 
-import java.util.function.BooleanSupplier;
-import java.util.function.Function;
+import java.util.List;
 
-public class FilteringBatchIterator extends ForwardingBatchIterator {
+class ListBackedColumns implements Columns {
 
-    private final BatchIterator delegate;
-    private final BooleanSupplier filter;
+    private final List<? extends Input<?>> inputs;
 
-    public FilteringBatchIterator(BatchIterator delegate, Function<Columns, BooleanSupplier> filterGenerator) {
-        this.delegate = delegate;
-        this.filter = filterGenerator.apply(delegate.rowData());
+    ListBackedColumns(List<? extends Input<?>> inputs) {
+        this.inputs = inputs;
     }
 
     @Override
-    protected BatchIterator delegate() {
-        return delegate;
+    public Input<?> get(int index) {
+        return inputs.get(index);
     }
 
     @Override
-    public boolean moveNext() {
-        while (delegate.moveNext()) {
-            if (filter.getAsBoolean()) {
-                return true;
-            }
-        }
-        return false;
+    public int size() {
+        return inputs.size();
     }
 }

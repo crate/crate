@@ -23,7 +23,7 @@
 package io.crate.data;
 
 import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.RowGenerator;
+import io.crate.testing.SingleColumnBatchIterator;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -31,13 +31,12 @@ import java.util.List;
 
 public class CollectingBatchIteratorTest {
 
-    private Iterable<Row> rows = RowGenerator.range(0, 10);
     private List<Object[]> expectedResult = Collections.singletonList(new Object[] { 45L });
 
     @Test
     public void testCollectingBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> CollectingBatchIterator.summingLong(RowsBatchIterator.newInstance(rows)),
+            () -> CollectingBatchIterator.summingLong(SingleColumnBatchIterator.range(0L, 10L)),
             expectedResult
         );
         tester.run();

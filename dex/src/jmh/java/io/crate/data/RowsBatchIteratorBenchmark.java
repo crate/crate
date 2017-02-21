@@ -44,31 +44,34 @@ public class RowsBatchIteratorBenchmark {
         .collect(Collectors.toList());
 
     // use RowsBatchIterator without any state/error handling to establish a performance baseline.
-    private BatchIterator it = new RowsBatchIterator(rows);
+    private BatchIterator it = new RowsBatchIterator(rows, 1);
 
     private BatchIterator itCloseAsserting = new CloseAssertingBatchIterator(it);
     private BatchIterator skippingIt = new SkippingBatchIterator(it, 100);
 
     @Benchmark
     public void measureConsumeBatchIterator(Blackhole blackhole) throws Exception {
+        final Input<?> input = it.rowData().get(0);
         while (it.moveNext()) {
-            blackhole.consume(it.currentRow().get(0));
+            blackhole.consume(input.value());
         }
         it.moveToStart();
     }
 
     @Benchmark
     public void measureConsumeCloseAssertingIterator(Blackhole blackhole) throws Exception {
+        final Input<?> input = itCloseAsserting.rowData().get(0);
         while (itCloseAsserting.moveNext()) {
-            blackhole.consume(itCloseAsserting.currentRow().get(0));
+            blackhole.consume(input.value());
         }
         itCloseAsserting.moveToStart();
     }
 
     @Benchmark
     public void measureConsumeSkippingBatchIterator(Blackhole blackhole) throws Exception {
+        final Input<?> input = skippingIt.rowData().get(0);
         while (skippingIt.moveNext()) {
-            blackhole.consume(skippingIt.currentRow().get(0));
+            blackhole.consume(input.value());
         }
         skippingIt.moveToStart();
     }

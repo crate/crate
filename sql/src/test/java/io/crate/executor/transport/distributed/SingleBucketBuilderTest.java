@@ -25,11 +25,10 @@ package io.crate.executor.transport.distributed;
 import io.crate.Streamer;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
-import io.crate.data.RowsBatchIterator;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.FailingBatchIterator;
-import io.crate.testing.RowGenerator;
+import io.crate.testing.SingleColumnBatchIterator;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.junit.After;
@@ -63,7 +62,7 @@ public class SingleBucketBuilderTest extends CrateUnitTest {
 
     @Test
     public void testSingleBucketBuilderConsumer() throws Exception {
-        bucketBuilder.asConsumer().accept(RowsBatchIterator.newInstance(RowGenerator.range(0, 4)), null);
+        bucketBuilder.asConsumer().accept(SingleColumnBatchIterator.range(0, 4), null);
         Bucket rows = bucketBuilder.completionFuture().get(10, TimeUnit.SECONDS);
         assertThat(TestingHelpers.printedTable(rows),
             is("0\n" +
@@ -74,7 +73,7 @@ public class SingleBucketBuilderTest extends CrateUnitTest {
 
     @Test
     public void testSingleBucketBuilderWithBatchedSource() throws Exception {
-        BatchIterator iterator = RowsBatchIterator.newInstance(RowGenerator.range(0, 4));
+        BatchIterator iterator = SingleColumnBatchIterator.range(0, 4);
         bucketBuilder.asConsumer().accept(new BatchSimulatingIterator(iterator, 2, 2, executor), null);
         Bucket rows = bucketBuilder.completionFuture().get(10, TimeUnit.SECONDS);
         assertThat(TestingHelpers.printedTable(rows),
@@ -86,8 +85,7 @@ public class SingleBucketBuilderTest extends CrateUnitTest {
 
     @Test
     public void testConsumeFailingBatchIterator() throws Exception {
-        FailingBatchIterator iterator = new FailingBatchIterator(
-            RowsBatchIterator.newInstance(RowGenerator.range(0, 4)), 2);
+        FailingBatchIterator iterator = new FailingBatchIterator(SingleColumnBatchIterator.range(0, 4), 2);
         bucketBuilder.asConsumer().accept(iterator, null);
 
         try {

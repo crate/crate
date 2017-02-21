@@ -48,6 +48,8 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
     private final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor;
     private final BatchIterator source;
+    private final Columns rowData;
+    private final Row sourceRow;
     private CompletableFuture<BitSet> loading;
     private Row currentRow = OFF_ROW;
     private  BitSet result;
@@ -65,6 +67,8 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
         this.rowShardResolver = rowShardResolver;
         this.bulkShardProcessor = bulkShardProcessor;
         this.source = source;
+        this.sourceRow = RowBridging.toRow(source.rowData());
+        this.rowData = RowBridging.toInputs(() -> currentRow, 1);
     }
 
     public static BatchIterator newInstance(BatchIterator source, Supplier<String> indexNameResolver,
@@ -75,6 +79,11 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
         IndexWriterCountBatchIterator delegate = new IndexWriterCountBatchIterator(source, indexNameResolver,
             sourceInput, collectExpressions, rowShardResolver, bulkShardProcessor);
         return new CloseAssertingBatchIterator(delegate);
+    }
+
+    @Override
+    public Columns rowData() {
+        return rowData;
     }
 
     @Override
@@ -100,12 +109,6 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
 
         currentRow = OFF_ROW;
         return false;
-    }
-
-    @Override
-    public Row currentRow() {
-        raiseIfLoading();
-        return currentRow;
     }
 
     @Override
@@ -142,8 +145,10 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
     }
 
     private void consumeSource() {
+        Columns inputs = source.rowData();
+
         while (source.moveNext()) {
-            if (!consumeRow(source.currentRow())) {
+            if (!consumeRow()) {
                 // the bulkShardProcessor doesn't accept more items when it fails. The loading future will complete
                 // exceptionally with the exception yielded by the bulkShardProcessor result future.
                 return;
@@ -164,11 +169,11 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
         }
     }
 
-    private boolean consumeRow(Row row) {
+    private boolean consumeRow() {
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
-            collectExpression.setNextRow(row);
+            collectExpression.setNextRow(sourceRow);
         }
-        rowShardResolver.setNextRow(row);
+        rowShardResolver.setNextRow(sourceRow);
         ShardUpsertRequest.Item item = new ShardUpsertRequest.Item(
             rowShardResolver.id(), null, new Object[]{sourceInput.value()}, null);
         return bulkShardProcessor.add(indexNameResolver.get(), item, rowShardResolver.routing());

@@ -27,8 +27,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.operation.InputRow;
+import io.crate.data.Columns;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.LeafReader;
@@ -49,8 +48,7 @@ import java.util.function.Predicate;
  * BatchIterator implementation which exposes the data stored in a lucene index.
  * It supports filtering the data using a lucene {@link Query} or via {@code minScore}.
  *
- * The contents of {@link #currentRow()} depends on {@code inputs} and {@code expressions}.
- * The data is unordered.
+ * Row data depends on {@code inputs} and {@code expressions}. The data is unordered.
  */
 public class LuceneBatchIterator implements BatchIterator {
 
@@ -62,33 +60,31 @@ public class LuceneBatchIterator implements BatchIterator {
     private final Predicate<Scorer> filter;
     private final LuceneCollectorExpression[] expressions;
     private final List<LeafReaderContext> leaves;
-    private final InputRow inputRow;
     private final Weight weight;
+    private final Columns inputs;
 
     private DocReaderConsumer docReaderConsumer;
-    private Row currentRow;
     private Iterator<LeafReaderContext> leavesIt;
     private LeafReaderContext currentLeaf;
     private Scorer currentScorer;
     private DocIdSetIterator currentDocIdSetIt;
     private boolean closed = false;
 
-    public LuceneBatchIterator(IndexSearcher indexSearcher,
-                               Query query,
-                               @Nullable Float minScore,
-                               boolean doScores,
-                               CollectorContext collectorContext,
-                               RamAccountingContext ramAccountingContext,
-                               List<? extends Input<?>> inputs,
-                               Collection<? extends LuceneCollectorExpression<?>> expressions) {
+    LuceneBatchIterator(IndexSearcher indexSearcher,
+                        Query query,
+                        @Nullable Float minScore,
+                        boolean doScores,
+                        CollectorContext collectorContext,
+                        RamAccountingContext ramAccountingContext,
+                        List<? extends Input<?>> inputs,
+                        Collection<? extends LuceneCollectorExpression<?>> expressions) {
         this.indexSearcher = indexSearcher;
         this.query = query;
         this.doScores = doScores || minScore != null;
         this.filter = createMinScorePredicate(minScore);
         this.collectorContext = collectorContext;
         this.ramAccountingContext = ramAccountingContext;
-        this.inputRow = new InputRow(inputs);
-        this.currentRow = inputRow;
+        this.inputs = Columns.wrap(inputs);
         this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
         leaves = indexSearcher.getTopReaderContext().leaves();
         leavesIt = leaves.iterator();
@@ -99,17 +95,20 @@ public class LuceneBatchIterator implements BatchIterator {
         }
     }
 
+    @Override
+    public Columns rowData() {
+        return inputs;
+    }
 
     @Override
     public void moveToStart() {
-        raiseIfClosed();
+        checkClosed();
         leavesIt = leaves.iterator();
-        currentRow = OFF_ROW;
     }
 
     @Override
     public boolean moveNext() {
-        raiseIfClosed();
+        checkClosed();
         try {
             return innerMoveNext();
         } catch (IOException e) {
@@ -123,11 +122,10 @@ public class LuceneBatchIterator implements BatchIterator {
             Bits liveDocs = reader.getLiveDocs();
             int doc;
             while ((doc = currentDocIdSetIt.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-                if (docDeleted(liveDocs, doc) || filter.test(currentScorer) == false) {
+                if (docDeleted(liveDocs, doc) || !filter.test(currentScorer)) {
                     continue;
                 }
                 docReaderConsumer.onDoc(doc, reader);
-                currentRow = inputRow;
                 return true;
             }
             currentDocIdSetIt = null;
@@ -162,13 +160,6 @@ public class LuceneBatchIterator implements BatchIterator {
         currentDocIdSetIt = null;
         currentScorer = null;
         currentLeaf = null;
-        currentRow = OFF_ROW;
-    }
-
-    @Override
-    public Row currentRow() {
-        raiseIfClosed();
-        return currentRow;
     }
 
     @Override
@@ -195,7 +186,7 @@ public class LuceneBatchIterator implements BatchIterator {
 
     @Override
     public boolean allLoaded() {
-        raiseIfClosed();
+        checkClosed();
         return true;
     }
 
@@ -252,7 +243,7 @@ public class LuceneBatchIterator implements BatchIterator {
         };
     }
 
-    private void raiseIfClosed() {
+    private void checkClosed() {
         if (closed) {
             throw new IllegalStateException("BatchIterator is closed");
         }
