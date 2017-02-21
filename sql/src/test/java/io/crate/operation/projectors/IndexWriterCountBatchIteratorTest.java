@@ -35,6 +35,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.SingleColumnBatchIterator;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
@@ -47,6 +48,7 @@ import org.junit.Test;
 
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 
 public class IndexWriterCountBatchIteratorTest extends SQLTransportIntegrationTest {
 
@@ -57,13 +59,10 @@ public class IndexWriterCountBatchIteratorTest extends SQLTransportIntegrationTe
     public void testIndexWriterIterator() throws Exception {
         execute("create table bulk_import (id int primary key) with (number_of_replicas=0)");
         ensureGreen();
+        BatchIterator source = SingleColumnBatchIterator.fromIterable(
+            () -> IntStream.range(0, 10).mapToObj(i -> new BytesRef("{\"id\": " + i + "}")).iterator()
+        );
 
-        List<Row> rows = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            rows.add(new Row1(new BytesRef("{\"id\": " + i + "}")));
-        }
-
-        BatchIterator source = RowsBatchIterator.newInstance(rows);
         Supplier<String> indexNameResolver = IndexNameResolver.forTable(new TableIdent(null, "bulk_import"));
         Input<?> sourceInput = new InputCollectExpression(0);
 

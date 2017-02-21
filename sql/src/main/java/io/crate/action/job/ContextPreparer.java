@@ -506,7 +506,8 @@ public class ContextPreparer extends AbstractComponent {
                 PagingIterators.create(phase.numUpstreams(), false, phase.orderByPositions()),
                 DataTypes.getStreamers(phase.inputTypes()),
                 ramAccountingContext,
-                phase.numUpstreams()));
+                phase.numUpstreams()
+            ));
             return true;
         }
 
@@ -635,7 +636,8 @@ public class ContextPreparer extends AbstractComponent {
                 PagingIterators.create(mergePhase.numUpstreams(), true, mergePhase.orderByPositions()),
                 StreamerVisitor.streamersFromOutputs(mergePhase),
                 ramAccountingContext,
-                mergePhase.numUpstreams());
+                mergePhase.numUpstreams()
+            );
         }
     }
 
