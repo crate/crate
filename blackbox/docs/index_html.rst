@@ -28,3 +28,4 @@ Contents
    udc
    best_practice/index
    protocols/index
+   enterprise/index
