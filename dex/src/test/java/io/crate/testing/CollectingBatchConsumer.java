@@ -24,6 +24,7 @@ package io.crate.testing;
 
 import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
+import io.crate.data.BatchRowVisitor;
 
 import java.util.ArrayList;
 import java.util.List;

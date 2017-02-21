@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.testing;
+package io.crate.data;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
