@@ -31,6 +31,14 @@ dependencies {
     benchmarksCompile 'com.h2database:h2:1.3.173'
 }
 
+
+jmhJar {
+    append 'META-INF/services/org.apache.lucene.codecs.DocValuesFormat'
+    append 'META-INF/services/org.apache.lucene.codecs.Codec'
+    append 'META-INF/services/org.apache.lucene.codecs.PostingsFormat'
+}
+
+
 test {
     testLogging.exceptionFormat = 'full'
     outputs.dir("$projectDir/data")
