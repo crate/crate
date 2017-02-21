@@ -23,13 +23,15 @@
 package io.crate.testing;
 
 import io.crate.data.BatchIterator;
+import io.crate.data.BatchRowVisitor;
+import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
 import org.hamcrest.Matchers;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -62,13 +64,13 @@ public class BatchIteratorTester {
     }
 
     private void testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(BatchIterator it) throws Exception {
-        List<Object[]> firstResult = new ArrayList<>();
-        BatchRowVisitor.visitRows(it, r -> firstResult.add(r.materialize())).get(10, TimeUnit.SECONDS);
+        List<Object[]> firstResult = BatchRowVisitor.visitRows(
+            it, Collectors.mapping(Row::materialize, Collectors.toList())).get(10, TimeUnit.SECONDS);
 
         it.moveToStart();
 
-        List<Object[]> secondResult = new ArrayList<>();
-        BatchRowVisitor.visitRows(it, r -> secondResult.add(r.materialize())).get(10, TimeUnit.SECONDS);
+        List<Object[]> secondResult = BatchRowVisitor.visitRows(
+            it, Collectors.mapping(Row::materialize, Collectors.toList())).get(10, TimeUnit.SECONDS);
         assertThat(firstResult, Matchers.contains(secondResult.toArray(new Object[0][])));
     }
 

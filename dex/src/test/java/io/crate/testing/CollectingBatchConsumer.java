@@ -24,31 +24,33 @@ package io.crate.testing;
 
 import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
+import io.crate.data.BatchRowVisitor;
+import io.crate.data.Row;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 public class CollectingBatchConsumer implements BatchConsumer {
 
-    private final List<Object[]> rows = new ArrayList<>();
     private final CompletableFuture<List<Object[]>> result = new CompletableFuture<>();
 
     public static CompletionStage<?> moveToEnd(BatchIterator it) {
-        return BatchRowVisitor.visitRows(it, r -> {});
+        return BatchRowVisitor.visitRows(it, Collectors.counting());
     }
 
     @Override
     public void accept(BatchIterator it, Throwable failure) {
         if (failure == null) {
-            BatchRowVisitor.visitRows(it, r -> rows.add(r.materialize())).whenComplete((r, t) -> {
-                if (t == null) {
-                    result.complete(rows);
-                } else {
-                    result.completeExceptionally(t);
-                }
-                it.close();
-            });
+            BatchRowVisitor.visitRows(it, Collectors.mapping(Row::materialize, Collectors.toList()))
+                .whenComplete((r, t) -> {
+                    if (t == null) {
+                        result.complete(r);
+                    } else {
+                        result.completeExceptionally(t);
+                    }
+                    it.close();
+                });
         } else {
             result.completeExceptionally(failure);
         }
