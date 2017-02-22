@@ -21,54 +21,34 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.Row;
-import io.crate.operation.projectors.IterableRowEmitter;
+import io.crate.data.RowsBatchIterator;
 import io.crate.operation.projectors.RowReceiver;
 
-import javax.annotation.Nullable;
+import java.util.Collections;
 
-public class RowsCollector implements CrateCollector {
+public final class RowsCollector {
 
-    private final IterableRowEmitter emitter;
-
-    public static RowsCollector empty(RowReceiver rowDownstream) {
-        return new RowsCollector(rowDownstream, ImmutableList.<Row>of());
+    private RowsCollector() {
     }
 
-    public static RowsCollector single(Row row, RowReceiver rowDownstream) {
-        return new RowsCollector(rowDownstream, ImmutableList.of(row));
+    public static CrateCollector empty(RowReceiver rowDownstream) {
+        return new BatchIteratorCollector(RowsBatchIterator.empty(), rowDownstream);
     }
 
-    public RowsCollector(RowReceiver rowDownstream, Iterable<Row> rows) {
-        this.emitter = new IterableRowEmitter(rowDownstream, rows);
+    public static CrateCollector single(Row row, RowReceiver rowDownstream) {
+        return new BatchIteratorCollector(RowsBatchIterator.newInstance(Collections.singletonList(row)), rowDownstream);
     }
 
-    @Override
-    public void doCollect() {
-        emitter.run();
+    public static CrateCollector forRows(Iterable<Row> rows, RowReceiver rowReceiver) {
+        return new BatchIteratorCollector(RowsBatchIterator.newInstance(rows), rowReceiver);
     }
 
-    @Override
-    public void kill(@Nullable Throwable throwable) {
-        emitter.kill(throwable);
+    static CrateCollector.Builder emptyBuilder() {
+        return RowsCollector::empty;
     }
 
-    public static Builder emptyBuilder() {
-        return new CrateCollector.Builder() {
-            @Override
-            public CrateCollector build(RowReceiver rowReceiver) {
-                return RowsCollector.empty(rowReceiver);
-            }
-        };
-    }
-
-    public static Builder builder(final Iterable<Row> rows) {
-        return new CrateCollector.Builder() {
-            @Override
-            public CrateCollector build(RowReceiver rowReceiver) {
-                return new RowsCollector(rowReceiver, rows);
-            }
-        };
+    public static CrateCollector.Builder builder(final Iterable<Row> rows) {
+        return rowReceiver -> forRows(rows, rowReceiver);
     }
 }
