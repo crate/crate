@@ -61,8 +61,8 @@ public final class IndexMetaDataChecks {
     }
 
     public static boolean checkIndexIsUpgraded(IndexMetaData indexMetaData) {
-        return indexMetaData.getCreationVersion().onOrAfter(Version.V_2_4_2)
-               && indexMetaData.getUpgradeVersion().onOrAfter(Version.V_2_4_2);
+        return indexMetaData.getCreationVersion().onOrAfter(Version.V_2_3_3)
+               && indexMetaData.getUpgradeVersion().onOrAfter(Version.V_2_3_3);
     }
 
     public static boolean checkValidShard(Directory shardDir) {
