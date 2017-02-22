@@ -113,11 +113,7 @@ class SummaryStats {
             for (Integer node : nodes) {
                 nodesJoiner.add("node" + node);
             }
-            String nodesString = "";
-            if (nodes.size() > 1) {
-                nodesString = "[" + nodesJoiner.toString() + "]";
-            }
-            tableJoiner.add(table.name() + nodesString);
+            tableJoiner.add(table.name() + "[" + nodesJoiner.toString() + "]");
         }
         return tableJoiner.toString();
     }
