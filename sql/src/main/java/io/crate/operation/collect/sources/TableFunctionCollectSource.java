@@ -94,7 +94,6 @@ public class TableFunctionCollectSource implements CollectSource {
         if (orderBy != null) {
             rows = RowsTransformer.sortRows(Iterables.transform(rows, Row::materialize), phase);
         }
-        RowsCollector rowsCollector = new RowsCollector(downstream, rows);
-        return Collections.singletonList(rowsCollector);
+        return Collections.singletonList(RowsCollector.forRows(rows, downstream));
     }
 }
