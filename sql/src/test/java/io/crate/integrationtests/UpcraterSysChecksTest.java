@@ -79,4 +79,11 @@ public class UpcraterSysChecksTest extends SQLTransportIntegrationTest {
                "[doc.testneedsupgrade, doc.testneedsupgrade_parted] " +
                LINK_PATTERN + TablesNeedUpgradeSysCheck.ID));
     }
+
+    @Test
+    public void testAlreadyUpgraded() throws Exception {
+        startUpNodeWithDataDir("/indices/cluster_checks/cratedata_already_upgraded.zip");
+        SQLResponse response = execute("select * from sys.checks where passed = false");
+        assertThat(response.rowCount(), is(0L));
+    }
 }
