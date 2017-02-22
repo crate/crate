@@ -38,13 +38,12 @@ public class UpcraterMetaStateService {
 
     private static final ESLogger LOGGER = Loggers.getLogger(UpcraterMetaStateService.class);
 
-    private final XContentType format;
-    private final ToXContent.Params formatParams;
     private final MetaDataStateFormat<IndexMetaData> indexStateFormat;
 
     public UpcraterMetaStateService(Settings settings) {
-        this.format = XContentType.fromRestContentType(settings.get(MetaStateService.FORMAT_SETTING, "smile"));
-        if (this.format == XContentType.SMILE) {
+        XContentType format = XContentType.fromRestContentType(settings.get(MetaStateService.FORMAT_SETTING, "smile"));
+        ToXContent.Params formatParams;
+        if (format == XContentType.SMILE) {
             Map<String, String> params = Maps.newHashMap();
             params.put("binary", "true");
             formatParams = new ToXContent.MapParams(params);
@@ -62,7 +61,9 @@ public class UpcraterMetaStateService {
             indexStateFormat.write(indexMetaData, indexMetaData.getVersion(), indexPath);
         } catch (Throwable ex) {
             LOGGER.warn("[{}]: failed to write index state to [{}]", ex, indexMetaData.getIndex(), indexPath);
-            throw new IOException("failed to write state for [" + indexMetaData.getIndex() + "] to [" + indexPath + "]", ex);
+            throw new IOException(
+                "failed to write state for [" + indexMetaData.getIndex() + "] to [" + indexPath + "]",
+                ex);
         }
     }
 }
