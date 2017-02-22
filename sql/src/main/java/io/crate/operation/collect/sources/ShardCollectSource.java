@@ -442,10 +442,10 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         if (collectPhase.orderBy() != null) {
             rows.sort(OrderingByPosition.arrayOrdering(collectPhase).reverse());
         }
-
-        return new RowsCollector(
-            rowReceiver,
-            Iterables.transform(rows, Buckets.arrayToRowFunction()));
+        return RowsCollector.forRows(
+            Iterables.transform(rows, Buckets.arrayToRowFunction()),
+            rowReceiver
+        );
     }
 
     private UnassignedShard toUnassignedShard(ShardId shardId) {

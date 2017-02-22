@@ -25,6 +25,7 @@ package io.crate.data;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletableFutures;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
 
@@ -36,6 +37,10 @@ public class RowsBatchIterator implements BatchIterator {
     private final Iterable<Row> rows;
     private Iterator<Row> it;
     private Row currentRow = BatchIterator.OFF_ROW;
+
+    public static BatchIterator empty() {
+        return newInstance(Collections.emptyList());
+    }
 
     public static BatchIterator newInstance(Iterable<Row> rows) {
         return new CloseAssertingBatchIterator(new RowsBatchIterator(rows));
