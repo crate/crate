@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 
 import io.crate.action.job.SharedShardContext;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.AbstractReferenceResolver;
@@ -31,7 +32,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.shard.RecoveryShardReferenceResolver;
-import io.crate.data.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.*;
@@ -47,6 +47,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -126,7 +127,7 @@ public abstract class ShardCollectorProvider {
 
         final CrateCollector.Builder builder;
         if (normalizedCollectNode.whereClause().noMatch()) {
-            builder = RowsCollector.emptyBuilder();
+            builder = RowsCollector.builder(Collections.emptyList());
         } else {
             assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
             builder = getBuilder(normalizedCollectNode, downstreamRequirements, jobCollectContext);
