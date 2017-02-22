@@ -237,7 +237,7 @@ public final class Upcrater {
                             }
                             if (upgradedShards + alreadyUpgradedShards == numberOfShards) {
                                 if (upgradedShards > 0) {
-                                    if (configuration.isDryrun() == false) {
+                                    if (!configuration.isDryrun()) {
                                         markAsUpgraded(metaStateService, indexMetaData, indexPath);
                                         LOGGER.debug("{} [{}] of node [{}]: Index [{}] marked as upgraded",
                                             table.isPartitioned() ? "Partitioned table" : "Table",

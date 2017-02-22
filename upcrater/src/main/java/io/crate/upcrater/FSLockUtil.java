@@ -69,7 +69,7 @@ class FSLockUtil implements Closeable {
         }
     }
 
-    void releaseLocks() {
+    private void releaseLocks() {
         for (int i = 0; i < locks.length; i++) {
             if (locks[i] != null) {
                 IOUtils.closeWhileHandlingException(locks[i]);

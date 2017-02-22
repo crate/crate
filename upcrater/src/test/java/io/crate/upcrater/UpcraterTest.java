@@ -153,7 +153,7 @@ public class UpcraterTest {
 
     @Test
     public void testIndexLocked() throws IOException {
-        Path zippedIndexDir = getDataPath("/data_dirs/cratehome_index_locked.zip");
+        Path zippedIndexDir = getDataPath("/data_dirs/cratedata_index_locked.zip");
         Path dataDir = prepareDataDir(zippedIndexDir);
         Path lockFilePath = dataDir.resolve("data").resolve("crate").resolve("nodes").resolve("0").resolve("node.lock");
         FileChannel fileChannel = FileChannel.open(lockFilePath, StandardOpenOption.CREATE, StandardOpenOption.WRITE);
@@ -175,7 +175,7 @@ public class UpcraterTest {
 
     @Test
     public void testReindexRequired() throws IOException {
-        Path zippedIndexDir = getDataPath("/data_dirs/cratehome_reindex_required.zip");
+        Path zippedIndexDir = getDataPath("/data_dirs/cratedata_reindex_required.zip");
         Path dataDir = prepareDataDir(zippedIndexDir);
         System.setProperty("es.path.home", dataDir.toString());
         System.setProperty("es.node.max_local_storage_nodes", "5");
@@ -197,7 +197,7 @@ public class UpcraterTest {
 
     @Test
     public void testAlreadyUpgraded() throws IOException {
-        Path zippedIndexDir = getDataPath("/data_dirs/cratehome_already_upgraded.zip");
+        Path zippedIndexDir = getDataPath("/data_dirs/cratedata_already_upgraded.zip");
         Path dataDir = prepareDataDir(zippedIndexDir);
         System.setProperty("es.path.home", dataDir.toString());
         System.setProperty("es.node.max_local_storage_nodes", "5");
@@ -219,7 +219,7 @@ public class UpcraterTest {
 
     @Test
     public void testUpgradeFailed() throws IOException {
-        Path zippedIndexDir = getDataPath("/data_dirs/cratehome_failed.zip");
+        Path zippedIndexDir = getDataPath("/data_dirs/cratedata_failed.zip");
         Path dataDir = prepareDataDir(zippedIndexDir);
         System.setProperty("es.path.home", dataDir.toString());
         System.setProperty("es.node.max_local_storage_nodes", "5");
@@ -241,7 +241,7 @@ public class UpcraterTest {
 
     @Test
     public void testUpgradeRequired() throws IOException {
-        Path zippedIndexDir = getDataPath("/data_dirs/cratehome_upgrade_required.zip");
+        Path zippedIndexDir = getDataPath("/data_dirs/cratedata_upgrade_required.zip");
         Path dataDir = prepareDataDir(zippedIndexDir);
         System.setProperty("es.path.home", dataDir.toString());
         System.setProperty("es.node.max_local_storage_nodes", "5");
@@ -263,7 +263,7 @@ public class UpcraterTest {
 
     @Test
     public void testUpgradeRequiredDryRun() throws IOException {
-        Path zippedIndexDir = getDataPath("/data_dirs/cratehome_upgrade_required.zip");
+        Path zippedIndexDir = getDataPath("/data_dirs/cratedata_upgrade_required.zip");
         Path dataDir = prepareDataDir(zippedIndexDir);
         System.setProperty("es.path.home", dataDir.toString());
         System.setProperty("es.node.max_local_storage_nodes", "5");
