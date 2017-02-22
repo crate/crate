@@ -29,6 +29,14 @@ import java.util.*;
  */
 class SummaryStats {
 
+    private static final String REINDEX_REQUIRED = "Tables that require re-indexing:";
+    private static final String UPGRADED_DRYRUN = "Tables to be upgraded:";
+    private static final String UPGRADED = "Tables successfully upgraded:";
+    private static final String ALREADY_UPGRADED = "Tables already upgraded:";
+    private static final String WITH_ERROR = "Tables errored while upgrading (pls check error logs for details):";
+    private static final String ALL_DONE = "All is up-to-date. Happy data crunching!";
+    private static final String ELEPHANT = "\uD83D\uDC18";
+
     private SortedMap<Table, List<Integer>> successful = new TreeMap<>();
     private SortedMap<Table, List<Integer>> failed = new TreeMap<>();
     private SortedMap<Table, List<Integer>> reindexRequired = new TreeMap<>();
@@ -51,53 +59,66 @@ class SummaryStats {
     }
 
     String print(boolean dryRun) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(System.lineSeparator());
-        sb.append("-------------").append(System.lineSeparator());
-        sb.append("-- SUMMARY --").append(System.lineSeparator());
-        sb.append("-------------").append(System.lineSeparator()).append(System.lineSeparator());
+        StringJoiner joiner = new StringJoiner(System.lineSeparator());
+        joiner.add("");
+        joiner.add("-------------");
+        joiner.add("-- SUMMARY --");
+        joiner.add("-------------");
+        joiner.add("");
+
+
+        String formatString = ELEPHANT + " %-34s %s";
+        if (alreadyUpgraded.size() > 0) {
+            formatString = ELEPHANT + " %-36s %s";
+        }
+        if (failed.size() > 0) {
+            formatString = ELEPHANT + " %-70s %s";
+        }
+
+        boolean allDone = true;
         if (!reindexRequired.isEmpty()) {
-            sb.append("Tables that require re-indexing: ");
-            appendStats(sb, reindexRequired);
+            allDone = false;
+            joiner.add(String.format(Locale.ENGLISH, formatString, REINDEX_REQUIRED, createTableList(reindexRequired)));
         }
         if (!successful.isEmpty()) {
+            String message;
             if (dryRun) {
-                sb.append("Tables to be upgraded: ");
+                message = UPGRADED_DRYRUN;
             } else {
-                sb.append("Tables successfully upgraded: ");
+                message = UPGRADED;
             }
-            appendStats(sb, successful);
+            joiner.add(String.format(Locale.ENGLISH, formatString, message, createTableList(successful)));
         }
         if (!alreadyUpgraded.isEmpty()) {
-            sb.append("Tables already upgraded: ");
-            appendStats(sb, alreadyUpgraded);
+            joiner.add(String.format(Locale.ENGLISH, formatString, ALREADY_UPGRADED, createTableList(alreadyUpgraded)));
         }
         if (!failed.isEmpty()) {
-            sb.append("Tables errored while upgrading (pls check error logs for details): ");
-            appendStats(sb, failed);
+            allDone = false;
+            joiner.add(String.format(Locale.ENGLISH, formatString, WITH_ERROR, createTableList(failed)));
         }
-        return sb.toString();
+        joiner.add("");
+        if (allDone) {
+            joiner.add(ELEPHANT + "  " + ALL_DONE + "  " + ELEPHANT);
+        }
+        joiner.add("");
+        return joiner.toString();
     }
 
-    private static void appendStats(StringBuilder sb, SortedMap<Table, List<Integer>> map) {
+    private static String createTableList(SortedMap<Table, List<Integer>> map) {
+        StringJoiner tableJoiner = new StringJoiner(", ");
         for (Map.Entry<Table, List<Integer>> entry : map.entrySet()) {
             Table table = entry.getKey();
             List<Integer> nodes = entry.getValue();
-            sb.append(table.name()).append('[');
-            for (int i = 0; i < nodes.size(); i++) {
-                sb.append("node").append(nodes.get(i));
-                if (i < nodes.size() - 1) {
-                    sb.append(", ");
-                } else {
-                    sb.append(']');
-                }
+            StringJoiner nodesJoiner = new StringJoiner(", ");
+            for (Integer node : nodes) {
+                nodesJoiner.add("node" + node);
             }
-            sb.append(", ");
+            String nodesString = "";
+            if (nodes.size() > 1) {
+                nodesString = "[" + nodesJoiner.toString() + "]";
+            }
+            tableJoiner.add(table.name() + nodesString);
         }
-        if (sb.lastIndexOf(", ") == sb.length() - 2) {
-            sb.deleteCharAt(sb.length() - 1);
-            sb.deleteCharAt(sb.length() - 1);
-        }
-        sb.append(System.lineSeparator()).append(System.lineSeparator());
+        return tableJoiner.toString();
     }
 }

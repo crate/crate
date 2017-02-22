@@ -184,13 +184,12 @@ public class UpcraterTest {
         PrintStream outStream = new PrintStream(outByteArrayOutputStream);
         System.setOut(outStream);
         exit.checkAssertionAfterwards(() -> assertThat(outByteArrayOutputStream.toString().contains(
-            ("\n" +
-             "-------------\n" +
+            ("-------------\n" +
              "-- SUMMARY --\n" +
              "-------------\n" +
              "\n" +
-             "Tables that require re-indexing: doc.testneedsreindex[node0, node1, node2]," +
-             " doc.testneedsreindex_parted[node0, node1, node2]\n\n")), is(true)));
+             "\uD83D\uDC18 Tables that require re-indexing:   doc.testneedsreindex[node0, node1, node2], doc.testneedsreindex_parted[node0, node1, node2]" +
+             "\n")), is(true)));
         exit.expectSystemExitWithStatus(0);
         Upcrater.main(new String[]{});
     }
@@ -206,13 +205,13 @@ public class UpcraterTest {
         PrintStream outStream = new PrintStream(outByteArrayOutputStream);
         System.setOut(outStream);
         exit.checkAssertionAfterwards(() -> assertThat(outByteArrayOutputStream.toString().contains(
-            ("\n" +
-             "-------------\n" +
+            ("-------------\n" +
              "-- SUMMARY --\n" +
              "-------------\n" +
              "\n" +
-             "Tables already upgraded: doc.testalreadyupgraded[node0, node1, node2]," +
-             " doc.testalreadyupgraded_parted[node0, node1, node2]\n\n")), is(true)));
+             "\uD83D\uDC18 Tables already upgraded:             doc.testalreadyupgraded[node0, node1, node2], doc.testalreadyupgraded_parted[node0, node1, node2]\n" +
+             "\n" +
+             "\uD83D\uDC18  All is up-to-date. Happy data crunching!  \uD83D\uDC18\n")), is(true)));
         exit.expectSystemExitWithStatus(0);
         Upcrater.main(new String[]{});
     }
@@ -228,13 +227,12 @@ public class UpcraterTest {
         PrintStream outStream = new PrintStream(outByteArrayOutputStream);
         System.setOut(outStream);
         exit.checkAssertionAfterwards(() -> assertThat(outByteArrayOutputStream.toString().contains(
-            ("\n" +
-             "-------------\n" +
+            ("-------------\n" +
              "-- SUMMARY --\n" +
              "-------------\n" +
              "\n" +
-             "Tables errored while upgrading (pls check error logs for details): doc.testfailed[node0, node2]," +
-             " doc.testfailed_parted[node0, node1, node2]")), is(true)));
+             "\uD83D\uDC18 Tables errored while upgrading (pls check error logs for details):     doc.testfailed[node0, node2], doc.testfailed_parted[node0, node1, node2]\n" +
+             "\n")), is(true)));
         exit.expectSystemExitWithStatus(0);
         Upcrater.main(new String[]{});
     }
@@ -250,13 +248,13 @@ public class UpcraterTest {
         PrintStream outStream = new PrintStream(outByteArrayOutputStream);
         System.setOut(outStream);
         exit.checkAssertionAfterwards(() -> assertThat(outByteArrayOutputStream.toString().contains(
-            ("\n" +
-             "-------------\n" +
+            ("-------------\n" +
              "-- SUMMARY --\n" +
              "-------------\n" +
              "\n" +
-             "Tables successfully upgraded: doc.testneedsupgrade[node0, node1, node2]," +
-             " doc.testneedsupgrade_parted[node0, node1, node2]\n\n")), is(true)));
+             "\uD83D\uDC18 Tables successfully upgraded:      doc.testneedsupgrade[node0, node1, node2], doc.testneedsupgrade_parted[node0, node1, node2]\n" +
+             "\n" +
+             "\uD83D\uDC18  All is up-to-date. Happy data crunching!  \uD83D\uDC18\n")), is(true)));
         exit.expectSystemExitWithStatus(0);
         Upcrater.main(new String[]{});
     }
@@ -272,13 +270,13 @@ public class UpcraterTest {
         PrintStream outStream = new PrintStream(outByteArrayOutputStream);
         System.setOut(outStream);
         exit.checkAssertionAfterwards(() -> assertThat(outByteArrayOutputStream.toString().contains(
-            ("\n" +
-             "-------------\n" +
+            ("-------------\n" +
              "-- SUMMARY --\n" +
              "-------------\n" +
              "\n" +
-             "Tables to be upgraded: doc.testneedsupgrade[node0, node1, node2]," +
-             " doc.testneedsupgrade_parted[node0, node1, node2]\n\n")), is(true)));
+             "\uD83D\uDC18 Tables to be upgraded:             doc.testneedsupgrade[node0, node1, node2], doc.testneedsupgrade_parted[node0, node1, node2]\n" +
+             "\n" +
+             "\uD83D\uDC18  All is up-to-date. Happy data crunching!  \uD83D\uDC18\n")), is(true)));
         exit.expectSystemExitWithStatus(0);
         Upcrater.main(new String[]{"--dry-run"});
     }
