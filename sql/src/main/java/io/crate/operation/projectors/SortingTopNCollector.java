@@ -57,7 +57,7 @@ public class SortingTopNCollector implements Collector<Row, RowPriorityQueue<Obj
     private Object[] spare;
 
     /**
-     * @param inputs             contains output {@link io.crate.operation.Input}s and orderBy {@link io.crate.operation.Input}s
+     * @param inputs             contains output {@link Input}s and orderBy {@link Input}s
      * @param expressions        expressions linked to the inputs
      * @param numOutputs         number of output columns
      * @param comparator         used to sort the rows
