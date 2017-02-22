@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.MoreObjects;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.ColumnIdent;
@@ -41,6 +42,7 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -55,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class IndexWriterProjector extends AbstractProjector {
@@ -159,6 +162,17 @@ public class IndexWriterProjector extends AbstractProjector {
         failed.set(true);
         super.kill(throwable);
         bulkShardProcessor.kill(throwable);
+    }
+
+    @Nullable
+    @Override
+    public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
+        return it -> {
+            BatchIterator indexWriterCountBatchIterator =
+                IndexWriterCountBatchIterator.newInstance(it, indexNameResolver, sourceInput,
+                    collectExpressions, rowShardResolver, bulkShardProcessor);
+            return new Tuple<>(indexWriterCountBatchIterator, downstream);
+        };
     }
 
     private static class MapInput implements Input<BytesRef> {

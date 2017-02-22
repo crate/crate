@@ -205,7 +205,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("create table quotes (id int, " +
                 "quote string) partitioned by (id)");
         ensureGreen();
-        execute("copy quotes partition (id = 1) from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
+        execute("copy quotes partition (id = 1) from ? with (shared=true)", new Object[]{
+            copyFilePath + "test_copy_from.json"});
         refresh();
 
         execute("select * from quotes");
@@ -300,7 +301,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 ") partitioned by (id_str)");
         ensureYellow();
 
-        execute("copy quotes partition (id_str = 1) from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
+        execute("copy quotes partition (id_str = 1) from ? with (shared=true)", new Object[]{
+            copyFilePath + "test_copy_from.json"});
         assertThat(response.rowCount(), is(3L));
         refresh();
 
@@ -445,7 +447,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("create table users (id int, " +
                 "name string) with (number_of_replicas=0)");
         ensureYellow();
-        execute("copy users from ? with (shared=true)", new Object[]{nestedArrayCopyFilePath + "nested_array_copy_from.json"});
+        execute("copy users from ? with (shared=true)", new Object[]{
+            nestedArrayCopyFilePath + "nested_array_copy_from.json"});
         assertEquals(1L, response.rowCount()); // only 1 document got inserted
         refresh();
 
@@ -548,8 +551,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testCopyFromIntoTableWithPkAndClusterBy() throws Exception {
         execute("create table quotes (id int primary key, quote string) " +
-            "clustered by (id)" +
-            "with (number_of_replicas = 0)");
+                "clustered by (id)" +
+                "with (number_of_replicas = 0)");
         ensureYellow();
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
