@@ -22,6 +22,7 @@
 
 package io.crate.operation.reference.sys.check.cluster;
 
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -29,27 +30,31 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.reference.sys.check.AbstractSysCheck;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 @Singleton
 public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
-    private static final int ID = 4;
-    private static final String DESCRIPTION =
+    public static final int ID = 4;
+    public static final String DESCRIPTION =
         "The following tables must be upgraded to be able to be used in future releases of CrateDB: ";
 
+    private final ClusterService clusterService;
     private final Schemas schemas;
     private volatile Collection<String> tablesNeedUpgrade;
 
     @Inject
-    public TablesNeedUpgradeSysCheck(Schemas schemas) {
+    public TablesNeedUpgradeSysCheck(ClusterService clusterService, Schemas schemas) {
         super(ID, DESCRIPTION, Severity.MEDIUM);
+        this.clusterService = clusterService;
         this.schemas = schemas;
     }
 
@@ -65,15 +70,34 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
         for (SchemaInfo schemaInfo : schemas) {
             if (schemaInfo instanceof DocSchemaInfo) {
                 for (TableInfo tableInfo : schemaInfo) {
-                    IndexMetaData metaData = ((DocTableInfo) tableInfo).metadata();
-                    if (!IndexMetaDataChecks.checkReindexIsRequired(metaData) &&
-                        !IndexMetaDataChecks.checkIndexIsUpgraded(metaData)) {
-                        newTablesNeedUpgrade.add(tableInfo.ident().fqn());
+                    if (((DocTableInfo) tableInfo).isPartitioned()) {
+                        // check each partition, if one needs upgrading, complete table will be marked
+                        for (PartitionName partitionName : ((DocTableInfo) tableInfo).partitions()) {
+                            IndexMetaData indexMetaData = clusterService.state().metaData().index(partitionName.asIndexName());
+                            assert indexMetaData != null :
+                                "could not get metadata for partition " + partitionName.asIndexName();
+                            if (checkIndexMetaData(tableInfo, indexMetaData, newTablesNeedUpgrade)) {
+                                break;
+                            }
+                        }
+                    } else {
+                        IndexMetaData metaData = ((DocTableInfo) tableInfo).metadata();
+                        checkIndexMetaData(tableInfo, metaData, newTablesNeedUpgrade);
                     }
                 }
             }
         }
+        Collections.sort(newTablesNeedUpgrade);
         tablesNeedUpgrade = newTablesNeedUpgrade;
         return tablesNeedUpgrade.isEmpty();
+    }
+
+    private boolean checkIndexMetaData(TableInfo tableInfo, IndexMetaData metaData, List<String> newTablesNeedUpgrade) {
+        if (!IndexMetaDataChecks.checkReindexIsRequired(metaData) &&
+            !IndexMetaDataChecks.checkIndexIsUpgraded(metaData)) {
+            newTablesNeedUpgrade.add(tableInfo.ident().fqn());
+            return true;
+        }
+        return false;
     }
 }
