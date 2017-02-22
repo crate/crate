@@ -26,10 +26,7 @@ import io.crate.operation.PageResultListener;
 
 class BucketResultListener implements PageResultListener {
 
-    private final int bucketIdx;
-
-    BucketResultListener(int bucketIdx) {
-        this.bucketIdx = bucketIdx;
+    BucketResultListener() {
     }
 
     @Override
@@ -37,10 +34,5 @@ class BucketResultListener implements PageResultListener {
         if (needMore) {
             ExecutionPhasesTask.LOGGER.warn("requested more data but directResponse doesn't support paging");
         }
-    }
-
-    @Override
-    public int buckedIdx() {
-        return bucketIdx;
     }
 }

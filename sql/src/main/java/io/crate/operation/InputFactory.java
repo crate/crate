@@ -43,7 +43,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
 
 /**
  * Factory which can be used to create {@link Input}s from symbols.
@@ -74,11 +73,6 @@ public class InputFactory {
 
     public InputFactory(Functions functions) {
         this.functions = functions;
-    }
-
-    public <T extends Input<?>> Function<Symbol, Input<?>> forRefs(ReferenceResolver<T> referenceResolver) {
-        SymbolVisitor<Void, Input<?>> visitor = new RefVisitor<>(functions, referenceResolver);
-        return i -> visitor.process(i, null);
     }
 
     public <T extends Input<?>> Context<T> ctxForRefs(ReferenceResolver<T> referenceResolver) {

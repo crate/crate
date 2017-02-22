@@ -131,11 +131,6 @@ public class PageDownstreamContextTest extends CrateUnitTest {
                     ctx.setBucket(0, b11, true, mock(PageResultListener.class));
                 }
             }
-
-            @Override
-            public int buckedIdx() {
-                return 0;
-            }
         });
         Bucket b2 = new ArrayBucket(new Object[][] {
             new Object[] { 4 }

@@ -51,20 +51,10 @@ public class SymbolToFieldExtractor<T> {
     }
 
     public abstract static class Context {
-        private final List<Reference> references;
         private final io.crate.metadata.Functions functions;
 
         public Context(io.crate.metadata.Functions functions, int size) {
             this.functions = functions;
-            references = new ArrayList<>(size);
-        }
-
-        public void addReference(Reference reference) {
-            references.add(reference);
-        }
-
-        public List<Reference> references() {
-            return references;
         }
 
         public abstract Object inputValueFor(InputColumn inputColumn);
@@ -95,7 +85,6 @@ public class SymbolToFieldExtractor<T> {
             if (value != null) {
                 return constant(value);
             }
-            context.addReference(reference);
             return extractorFactory.build(reference, context);
         }
 

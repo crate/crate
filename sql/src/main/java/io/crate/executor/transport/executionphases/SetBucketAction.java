@@ -40,7 +40,7 @@ abstract class SetBucketAction {
         this.pageBucketReceivers = pageBucketReceivers;
         this.bucketIdx = bucketIdx;
         this.initializationTracker = initializationTracker;
-        bucketResultListener = new BucketResultListener(bucketIdx);
+        bucketResultListener = new BucketResultListener();
     }
 
     protected void setBuckets(List<Bucket> result) {

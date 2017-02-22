@@ -126,7 +126,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
                 request.bucketIdx(),
                 request.rows(),
                 request.isLast(),
-                new SendResponsePageResultListener(listener, request));
+                new SendResponsePageResultListener(listener));
         } else {
             if (request.isKilled()) {
                 pageBucketReceiver.killed(request.bucketIdx(), throwable);
@@ -155,22 +155,15 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
 
     private class SendResponsePageResultListener implements PageResultListener {
         private final ActionListener<DistributedResultResponse> listener;
-        private final DistributedResultRequest request;
 
-        public SendResponsePageResultListener(ActionListener<DistributedResultResponse> listener, DistributedResultRequest request) {
+        public SendResponsePageResultListener(ActionListener<DistributedResultResponse> listener) {
             this.listener = listener;
-            this.request = request;
         }
 
         @Override
         public void needMore(boolean needMore) {
             logger.trace("sending needMore response, need more? {}", needMore);
             listener.onResponse(new DistributedResultResponse(needMore));
-        }
-
-        @Override
-        public int buckedIdx() {
-            return request.bucketIdx();
         }
     }
 

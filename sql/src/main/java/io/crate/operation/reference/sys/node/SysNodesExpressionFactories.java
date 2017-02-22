@@ -37,7 +37,7 @@ import java.util.Map;
 
 public class SysNodesExpressionFactories {
 
-    public SysNodesExpressionFactories() {
+    private SysNodesExpressionFactories() {
     }
 
     private final static Map<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>> EXPRESSION_FACTORIES_BY_COLUMN =
