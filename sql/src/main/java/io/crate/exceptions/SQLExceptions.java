@@ -57,6 +57,7 @@ public class SQLExceptions {
     private final static Predicate<Throwable> EXCEPTIONS_TO_UNWRAP = throwable ->
         throwable instanceof TransportException ||
         throwable instanceof UncheckedExecutionException ||
+        throwable instanceof CompletionException ||
         throwable instanceof UncategorizedExecutionException ||
         throwable instanceof ExecutionException;
 
