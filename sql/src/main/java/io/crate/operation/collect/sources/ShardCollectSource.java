@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect.sources;
 
-import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -36,6 +35,7 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.data.Buckets;
 import io.crate.data.Row;
+import io.crate.data.RowsBatchIterator;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -75,7 +75,6 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
@@ -445,13 +444,8 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         if (collectPhase.orderBy() != null) {
             rows.sort(OrderingByPosition.arrayOrdering(collectPhase).reverse());
         }
-
-        return new RowsCollector(
-            rowReceiver,
-            () -> CompletableFuture.completedFuture(rows),
-            objects -> Iterables.transform(
-                objects,
-                (Function<Object[], Row>) input -> Buckets.arrayToRowFunction().apply(input)));
+        return BatchIteratorCollectorBridge.newInstance(
+            RowsBatchIterator.newInstance(Iterables.transform(rows, Buckets.arrayToRowFunction())), rowReceiver);
     }
 
     private UnassignedShard toUnassignedShard(ShardId shardId) {
