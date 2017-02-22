@@ -47,6 +47,7 @@ import org.elasticsearch.transport.TransportException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Locale;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 
@@ -57,6 +58,7 @@ public class Exceptions {
         throwable instanceof TransportException ||
         throwable instanceof UncheckedExecutionException ||
         throwable instanceof UncategorizedExecutionException ||
+        throwable instanceof CompletionException ||
         throwable instanceof ExecutionException;
 
     public static Throwable unwrap(@Nonnull Throwable t, @Nullable Predicate<Throwable> additionalUnwrapCondition) {
