@@ -95,7 +95,7 @@ public final class Upcrater {
 
             SummaryStats summaryStats = execute(configuration, environment);
             System.out.flush();
-            System.out.println(summaryStats.print(configuration.isDryrun()));
+            System.out.print(summaryStats.print(configuration.isDryrun()));
             System.out.flush();
         }
         System.exit(0);
@@ -178,63 +178,76 @@ public final class Upcrater {
                                 continue;
                             }
 
+                            int numberOfShards = 0;
+                            int upgradedShards = 0;
+                            int alreadyUpgradedShards = 0;
                             for (int i = 0; i < indexMetaData.getNumberOfShards(); i++) {
                                 Path shardIndexPath = indexPath.resolve(String.valueOf(i)).resolve("index");
                                 Directory shardDir;
-                                try {
-                                    shardDir = FSDirectory.open(shardIndexPath);
-                                } catch (IOException e) {
-                                    LOGGER.error("Unable to open shard directory [{}] for {}table [{}]" +
-                                                 "of node [{}]",
-                                        shardIndexPath,
-                                        table.isPartitioned() ? "partitioned " : "",
-                                        tableName,
-                                        possibleLockId,
-                                        e);
-                                    statuses.add(UpcrationStatus.FAILED);
-                                    continue;
-                                }
+                                if (Files.isDirectory(shardIndexPath)) {
+                                    numberOfShards++;
+                                    try {
+                                        shardDir = FSDirectory.open(shardIndexPath);
+                                    } catch (IOException e) {
+                                        LOGGER.error("Unable to open shard directory [{}] for {}table [{}]" +
+                                                     "of node [{}]",
+                                            shardIndexPath,
+                                            table.isPartitioned() ? "partitioned " : "",
+                                            tableName,
+                                            possibleLockId,
+                                            e);
+                                        statuses.add(UpcrationStatus.FAILED);
+                                        continue;
+                                    }
 
-                                if (!IndexMetaDataChecks.checkValidShard(shardDir)) {
-                                    LOGGER.error("Cannot find a valid shard in directory [{}] for " +
-                                                 "{}table [{}] of node [{}]",
-                                        shardIndexPath,
-                                        table.isPartitioned() ? "partitioned " : "",
-                                        tableName,
-                                        possibleLockId);
-                                    statuses.add(UpcrationStatus.FAILED);
-                                    continue;
-                                }
+                                    if (!IndexMetaDataChecks.checkValidShard(shardDir)) {
+                                        LOGGER.error("Cannot find a valid shard in directory [{}] for " +
+                                                     "{}table [{}] of node [{}]",
+                                            shardIndexPath,
+                                            table.isPartitioned() ? "partitioned " : "",
+                                            tableName,
+                                            possibleLockId);
+                                        statuses.add(UpcrationStatus.FAILED);
+                                        continue;
+                                    }
 
-                                if (IndexMetaDataChecks.checkAlreadyUpgraded(shardDir)) {
-                                    LOGGER.debug("Shard [{}] in directory [{}] for {}table [{}] of node [{}] " +
-                                                 "is already upgraded",
-                                        i,
-                                        shardIndexPath,
-                                        table.isPartitioned() ? "partitioned " : "",
-                                        tableName,
-                                        possibleLockId);
+                                    if (IndexMetaDataChecks.checkAlreadyUpgraded(shardDir)) {
+                                        LOGGER.debug("Shard [{}] in directory [{}] for {}table [{}] of node [{}] " +
+                                                     "is already upgraded",
+                                            i,
+                                            shardIndexPath,
+                                            table.isPartitioned() ? "partitioned " : "",
+                                            tableName,
+                                            possibleLockId);
+                                        alreadyUpgradedShards++;
+                                        continue;
+                                    }
+                                    if (!configuration.isDryrun()) {
+                                        LOGGER.debug("Migrating shard [{}] in directory [{}] for {}table [{}] " +
+                                                     "of node [{}]",
+                                            i,
+                                            shardIndexPath,
+                                            table.isPartitioned() ? "partitioned " : "",
+                                            tableName,
+                                            possibleLockId);
+                                        new IndexUpgrader(shardDir, InfoStream.NO_OUTPUT, true).upgrade();
+                                        LOGGER.debug("Shard [{}] in directory [{}] for {}table [{}] of node [{}] " +
+                                                     "upgraded successfully",
+                                            i,
+                                            shardIndexPath,
+                                            table.isPartitioned() ? "partitioned " : "",
+                                            tableName,
+                                            possibleLockId);
+                                    }
+                                    upgradedShards++;
+                                }
+                            }
+                            if (upgradedShards + alreadyUpgradedShards == numberOfShards) {
+                                if (upgradedShards > 0) {
+                                    statuses.add(UpcrationStatus.SUCCESSFUL);
+                                } else {
                                     statuses.add(UpcrationStatus.ALREADY_UPGRADED);
-                                    continue;
                                 }
-                                if (!configuration.isDryrun()) {
-                                    LOGGER.debug("Migrating shard [{}] in directory [{}] for {}table [{}] " +
-                                                 "of node [{}]",
-                                        i,
-                                        shardIndexPath,
-                                        table.isPartitioned() ? "partitioned " : "",
-                                        tableName,
-                                        possibleLockId);
-                                    new IndexUpgrader(shardDir, InfoStream.NO_OUTPUT, true).upgrade();
-                                    LOGGER.debug("Shard [{}] in directory [{}] for {}table [{}] of node [{}] " +
-                                                 "upgraded successfully",
-                                        i,
-                                        shardIndexPath,
-                                        table.isPartitioned() ? "partitioned " : "",
-                                        tableName,
-                                        possibleLockId);
-                                }
-                                statuses.add(UpcrationStatus.SUCCESSFUL);
                             }
                         } catch (Exception e) {
                             LOGGER.error("Error while upgrading {}table [{}] of node [{}]",

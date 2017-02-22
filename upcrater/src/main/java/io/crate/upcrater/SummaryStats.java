@@ -98,6 +98,6 @@ class SummaryStats {
             sb.deleteCharAt(sb.length() - 1);
             sb.deleteCharAt(sb.length() - 1);
         }
-        sb.append(System.lineSeparator());
+        sb.append(System.lineSeparator()).append(System.lineSeparator());
     }
 }
