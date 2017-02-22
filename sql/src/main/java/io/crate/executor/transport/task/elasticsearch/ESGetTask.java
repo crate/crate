@@ -21,13 +21,11 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import io.crate.Constants;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
 import io.crate.data.Row;
@@ -36,9 +34,15 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.InputFactory;
+import io.crate.operation.InputRow;
+import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.*;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.projection.OrderedTopNProjection;
@@ -52,7 +56,6 @@ import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
@@ -61,17 +64,15 @@ import java.util.*;
 
 public class ESGetTask extends JobTask {
 
-    private final static SymbolToFieldExtractor<GetResponse> SYMBOL_TO_FIELD_EXTRACTOR =
-        new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
-
     private final static Set<ColumnIdent> FETCH_SOURCE_COLUMNS = ImmutableSet.of(DocSysColumns.DOC, DocSysColumns.RAW);
     private final ProjectorFactory projectorFactory;
     private final TransportActionProvider transportActionProvider;
     private final ESGet esGet;
 
     private final JobContextService jobContextService;
-    private final List<Function<GetResponse, Object>> extractors;
     private final FetchSourceContext fsc;
+    private final InputRow inputRow;
+    private final Collection<CollectExpression<GetResponse, ?>> expressions;
 
     static abstract class JobContext<Action extends TransportAction<Request, Response>,
         Request extends ActionRequest, Response extends ActionResponse> extends AbstractExecutionSubContext
@@ -168,15 +169,16 @@ public class ESGetTask extends JobTask {
 
         @Override
         public void onResponse(MultiGetResponse responses) {
-            FieldExtractorRow<GetResponse> row = new FieldExtractorRow<>(task.extractors);
             try {
                 loop:
                 for (MultiGetItemResponse response : responses) {
                     if (response.isFailed() || !response.getResponse().isExists()) {
                         continue;
                     }
-                    row.setCurrent(response.getResponse());
-                    RowReceiver.Result result = downstream.setNextRow(row);
+                    for (CollectExpression<GetResponse, ?> expression : task.expressions) {
+                        expression.setNextRow(response.getResponse());
+                    }
+                    RowReceiver.Result result = downstream.setNextRow(task.inputRow);
                     switch (result) {
                         case CONTINUE:
                             continue;
@@ -220,14 +222,11 @@ public class ESGetTask extends JobTask {
 
     private static class SingleGetJobContext extends JobContext<TransportGetAction, GetRequest, GetResponse> {
 
-        private final FieldExtractorRow<GetResponse> row;
-
         SingleGetJobContext(ESGetTask task,
                             TransportGetAction transportAction,
                             RowReceiver downstream) {
             super(task, transportAction, downstream);
             assert task.esGet.docKeys().size() == 1 : "numer of docKeys must be 1";
-            this.row = new FieldExtractorRow<>(task.extractors);
         }
 
         @Override
@@ -253,8 +252,10 @@ public class ESGetTask extends JobTask {
         @Override
         public void onResponse(GetResponse response) {
             if (response.isExists()) {
-                row.setCurrent(response);
-                downstream.setNextRow(row);
+                for (CollectExpression<GetResponse, ?> expression : task.expressions) {
+                    expression.setNextRow(response);
+                }
+                downstream.setNextRow(task.inputRow);
             }
             downstream.finish(RepeatHandle.UNSUPPORTED);
             close();
@@ -291,9 +292,17 @@ public class ESGetTask extends JobTask {
         for (DocKeys.DocKey docKey : esGet.docKeys()) {
             normalizer.normalizeInplace(docKey.values(), null);
         }
-        GetResponseContext ctx = new GetResponseContext(functions, esGet);
-        extractors = getFieldExtractors(esGet, ctx);
-        fsc = getFetchSourceContext(ctx.references());
+        InputFactory inputFactory = new InputFactory(functions);
+        Map<String, DocKeys.DocKey> docKeysById = groupDocKeysById(esGet.docKeys());
+        List<ColumnIdent> columns = new ArrayList<>();
+        GetResponseRefResolver refResolver = new GetResponseRefResolver(columns::add, esGet.tableInfo(), docKeysById);
+        InputFactory.Context<CollectExpression<GetResponse, ?>> ctx = inputFactory.ctxForRefs(refResolver);
+        List<Symbol> outputsAndSortSymbols = Lists2.concatUnique(esGet.outputs(), esGet.sortSymbols());
+        ctx.add(outputsAndSortSymbols);
+
+        inputRow = new InputRow(ctx.topLevelInputs());
+        expressions = ctx.expressions();
+        fsc = getFetchSourceContext(columns);
     }
 
     @Override
@@ -315,29 +324,18 @@ public class ESGetTask extends JobTask {
         }
     }
 
-    private static FetchSourceContext getFetchSourceContext(List<Reference> references) {
-        List<String> includes = new ArrayList<>(references.size());
-        for (Reference ref : references) {
-            if (ref.ident().columnIdent().isSystemColumn() &&
-                FETCH_SOURCE_COLUMNS.contains(ref.ident().columnIdent())) {
+    private static FetchSourceContext getFetchSourceContext(List<ColumnIdent> columns) {
+        List<String> includes = new ArrayList<>(columns.size());
+        for (ColumnIdent col : columns) {
+            if (col.isSystemColumn() && FETCH_SOURCE_COLUMNS.contains(col)) {
                 return new FetchSourceContext(true);
             }
-            includes.add(ref.ident().columnIdent().name());
+            includes.add(col.name());
         }
         if (includes.size() > 0) {
             return new FetchSourceContext(includes.toArray(new String[includes.size()]));
         }
         return new FetchSourceContext(false);
-    }
-
-    private static List<Function<GetResponse, Object>> getFieldExtractors(ESGet node, GetResponseContext ctx) {
-        List<Function<GetResponse, Object>> extractors = new ArrayList<>(
-            node.outputs().size() + node.sortSymbols().size());
-        List<Symbol> concatenated = Lists2.concatUnique(node.outputs(), node.sortSymbols());
-        for (Symbol symbol : concatenated) {
-            extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
-        }
-        return extractors;
     }
 
     public static String indexName(DocTableInfo tableInfo, @Nullable List<BytesRef> values) {
@@ -349,82 +347,11 @@ public class ESGetTask extends JobTask {
         }
     }
 
-    static class GetResponseContext extends SymbolToFieldExtractor.Context {
-        private final HashMap<String, DocKeys.DocKey> ids2Keys;
-        private final ESGet node;
-
-        GetResponseContext(Functions functions, ESGet node) {
-            super(functions, node.outputs().size());
-            this.node = node;
-            ids2Keys = new HashMap<>(node.docKeys().size());
-            for (DocKeys.DocKey key : node.docKeys()) {
-                ids2Keys.put(key.id(), key);
-            }
+    private static Map<String, DocKeys.DocKey> groupDocKeysById(DocKeys docKeys) {
+        Map<String, DocKeys.DocKey> keysById = new HashMap<>(docKeys.size());
+        for (DocKeys.DocKey key : docKeys) {
+            keysById.put(key.id(), key);
         }
-
-        @Override
-        public Object inputValueFor(InputColumn inputColumn) {
-            throw new AssertionError("GetResponseContext does not support resolving InputColumn");
-        }
-    }
-
-    private static class GetResponseFieldExtractorFactory implements FieldExtractorFactory<GetResponse, GetResponseContext> {
-
-        @Override
-        public Function<GetResponse, Object> build(final Reference reference, final GetResponseContext context) {
-            final String field = reference.ident().columnIdent().fqn();
-
-            if (field.startsWith("_")) {
-                switch (field) {
-                    case "_version":
-                        return new Function<GetResponse, Object>() {
-                            @Override
-                            public Object apply(GetResponse response) {
-                                return response.getVersion();
-                            }
-                        };
-                    case "_id":
-                        return new Function<GetResponse, Object>() {
-                            @Override
-                            public Object apply(GetResponse response) {
-                                return response.getId();
-                            }
-                        };
-                    case "_raw":
-                        return new Function<GetResponse, Object>() {
-                            @Override
-                            public Object apply(GetResponse response) {
-                                return response.getSourceAsBytesRef().toBytesRef();
-                            }
-                        };
-                    case "_doc":
-                        return new Function<GetResponse, Object>() {
-                            @Override
-                            public Object apply(GetResponse response) {
-                                return response.getSource();
-                            }
-                        };
-                }
-            } else if (context.node.tableInfo().isPartitioned()
-                       && context.node.tableInfo().partitionedBy().contains(reference.ident().columnIdent())) {
-                final int pos = context.node.tableInfo().primaryKey().indexOf(reference.ident().columnIdent());
-                if (pos >= 0) {
-                    return new Function<GetResponse, Object>() {
-                        @Override
-                        public Object apply(GetResponse response) {
-                            return ValueSymbolVisitor.VALUE.process(context.ids2Keys.get(response.getId()).values().get(pos));
-                        }
-                    };
-                }
-            }
-            return new Function<GetResponse, Object>() {
-                @Override
-                public Object apply(GetResponse response) {
-                    Map<String, Object> sourceAsMap = response.getSourceAsMap();
-                    assert sourceAsMap != null : "sourceAsMap must not be null";
-                    return reference.valueType().value(XContentMapValues.extractValue(field, sourceAsMap));
-                }
-            };
-        }
+        return keysById;
     }
 }

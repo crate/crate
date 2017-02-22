@@ -11,13 +11,23 @@ import java.util.function.BiConsumer;
 public class DocSysColumns {
 
 
-    public static final ColumnIdent ID = new ColumnIdent("_id");
-    public static final ColumnIdent VERSION = new ColumnIdent("_version");
-    public static final ColumnIdent SCORE = new ColumnIdent("_score");
-    public static final ColumnIdent UID = new ColumnIdent("_uid");
-    public static final ColumnIdent DOC = new ColumnIdent("_doc");
-    public static final ColumnIdent RAW = new ColumnIdent("_raw");
-    public static final ColumnIdent DOCID = new ColumnIdent("_docid");
+    public static class Names {
+        public static final String ID = "_id";
+        public static final String VERSION = "_version";
+        public static final String SCORE = "_score";
+        public static final String UID = "_uid";
+        public static final String DOC = "_doc";
+        public static final String RAW = "_raw";
+        public static final String DOCID = "_docid";
+    }
+
+    public static final ColumnIdent ID = new ColumnIdent(Names.ID);
+    public static final ColumnIdent VERSION = new ColumnIdent(Names.VERSION);
+    public static final ColumnIdent SCORE = new ColumnIdent(Names.SCORE);
+    public static final ColumnIdent UID = new ColumnIdent(Names.UID);
+    public static final ColumnIdent DOC = new ColumnIdent(Names.DOC);
+    public static final ColumnIdent RAW = new ColumnIdent(Names.RAW);
+    public static final ColumnIdent DOCID = new ColumnIdent(Names.DOCID);
 
     public static final ImmutableMap<ColumnIdent, DataType> COLUMN_IDENTS = ImmutableMap.<ColumnIdent, DataType>builder()
         .put(ID, DataTypes.STRING)
