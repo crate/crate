@@ -23,6 +23,7 @@
 package io.crate.executor.transport.distributed;
 
 import io.crate.Streamer;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.operation.projectors.*;
@@ -30,6 +31,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Set;
 import java.util.UUID;
@@ -96,12 +98,13 @@ public class DistributingDownstream implements RowReceiver {
     private final Streamer<?>[] streamers;
     private final Bucket[] buckets;
     private final boolean traceEnabled;
+    private final Collection<String> downstreamNodeIds;
     private boolean upstreamFinished;
     private boolean isKilled = false;
     private final AtomicReference<ResumeHandle> resumeHandleRef = new AtomicReference<>(ResumeHandle.INVALID);
     private volatile boolean stop = false;
     private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
-    private final CompletableFuture<?> finishFuture = new CompletableFuture<>();
+    private final CompletableFuture<Void> finishFuture = new CompletableFuture<>();
 
     public DistributingDownstream(ESLogger logger,
                                   UUID jobId,
@@ -121,6 +124,7 @@ public class DistributingDownstream implements RowReceiver {
         this.bucketIdx = bucketIdx;
         this.pageSize = pageSize;
         this.streamers = streamers;
+        this.downstreamNodeIds = downstreamNodeIds;
 
         buckets = new Bucket[downstreamNodeIds.size()];
         downstreams = new Downstream[downstreamNodeIds.size()];
@@ -330,4 +334,24 @@ public class DistributingDownstream implements RowReceiver {
             LOGGER.trace("Received failure from downstream", e);
         }
     };
+
+
+    @Nullable
+    @Override
+    public BatchConsumer asConsumer() {
+        failure.set(new IllegalStateException("RowReceiver invalidated"));
+        return new DistributingConsumer(
+            logger,
+            jobId,
+            multiBucketBuilder,
+            targetPhaseId,
+            inputId,
+            bucketIdx,
+            downstreamNodeIds,
+            distributedResultAction,
+            streamers,
+            pageSize,
+            finishFuture
+        );
+    }
 }

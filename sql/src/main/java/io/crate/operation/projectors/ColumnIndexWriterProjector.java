@@ -126,13 +126,6 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
     }
 
     @Override
-    public void downstream(RowReceiver rowReceiver) {
-        super.downstream(rowReceiver);
-        BulkProcessorFutureCallback bulkProcessorFutureCallback = new BulkProcessorFutureCallback(failed, rowReceiver);
-        bulkShardProcessor.result().whenComplete(bulkProcessorFutureCallback);
-    }
-
-    @Override
     public Result setNextRow(Row row) {
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);
@@ -148,11 +141,15 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
 
     @Override
     public void finish(RepeatHandle repeatHandle) {
+        BulkProcessorFutureCallback bulkProcessorFutureCallback = new BulkProcessorFutureCallback(failed, downstream);
+        bulkShardProcessor.result().whenComplete(bulkProcessorFutureCallback);
         bulkShardProcessor.close();
     }
 
     @Override
     public void kill(Throwable throwable) {
+        BulkProcessorFutureCallback bulkProcessorFutureCallback = new BulkProcessorFutureCallback(failed, downstream);
+        bulkShardProcessor.result().whenComplete(bulkProcessorFutureCallback);
         super.kill(throwable);
         failed.set(true);
         bulkShardProcessor.kill(throwable);
@@ -160,6 +157,8 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
 
     @Override
     public void fail(Throwable throwable) {
+        BulkProcessorFutureCallback bulkProcessorFutureCallback = new BulkProcessorFutureCallback(failed, downstream);
+        bulkShardProcessor.result().whenComplete(bulkProcessorFutureCallback);
         failed.set(true);
         downstream.fail(throwable);
         bulkShardProcessor.kill(throwable);
