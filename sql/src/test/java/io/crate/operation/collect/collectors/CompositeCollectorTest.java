@@ -23,7 +23,6 @@
 package io.crate.operation.collect.collectors;
 
 import io.crate.data.Bucket;
-import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.RowsCollector;
@@ -53,34 +52,6 @@ public class CompositeCollectorTest extends CrateUnitTest {
             }
         };
     }
-
-    @Test
-    public void testRepeatEmitsRowsInTheSameOrder() throws Exception {
-        CollectingRowReceiver rr = new CollectingRowReceiver();
-
-        Iterable<Row> leftRows = RowGenerator.range(0, 15);
-        Iterable<Row> rightRows = RowGenerator.range(10, 30);
-
-        CrateCollector.Builder c1 = RowsCollector.builder(leftRows);
-        CrateCollector.Builder c2 = RowsCollector.builder(rightRows);
-
-        CompositeCollector collector = new CompositeCollector(Arrays.asList(c1, c2), rr);
-        collector.doCollect();
-
-        Bucket result = rr.result();
-        String resultString = TestingHelpers.printedTable(result);
-        assertThat(resultString,
-            is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n"));
-
-        rr.repeatUpstream();
-        assertThat(TestingHelpers.printedTable(new CollectionBucket(rr.rows)),
-            is(resultString + resultString));
-
-        rr.repeatUpstream();
-        assertThat(TestingHelpers.printedTable(new CollectionBucket(rr.rows)),
-            is(resultString + resultString + resultString));
-    }
-
 
     @Test
     public void testKill() throws Exception {

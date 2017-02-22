@@ -21,72 +21,29 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.data.Row;
-import io.crate.operation.projectors.IterableRowEmitter;
+import io.crate.data.RowsBatchIterator;
 import io.crate.operation.projectors.RowReceiver;
 
-import javax.annotation.Nullable;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.Collections;
 
-public class RowsCollector implements CrateCollector {
 
-    private final RowReceiver rowDownstream;
-    private final Supplier<CompletableFuture<? extends Iterable<?>>> future;
-    private final Function<Iterable, Iterable<? extends Row>> dataIterableToRowsIterable;
-    private IterableRowEmitter emitter;
+public final class RowsCollector {
 
-    public static RowsCollector empty(RowReceiver rowDownstream) {
-        return new RowsCollector(
-            rowDownstream,
-            () -> CompletableFuture.completedFuture(ImmutableList.of()),
-            dataIterable -> ImmutableList.of());
+    public static CrateCollector single(Row row, RowReceiver rowDownstream) {
+        return BatchIteratorCollectorBridge.newInstance(
+            RowsBatchIterator.newInstance(Collections.singletonList(row)), rowDownstream);
     }
 
-    public static RowsCollector single(Row row, RowReceiver rowDownstream) {
-        return new RowsCollector(
-            rowDownstream,
-            () -> CompletableFuture.completedFuture(ImmutableList.of(row)),
-            dataIterable -> (Iterable<? extends Row>) dataIterable);
+    public static CrateCollector empty(RowReceiver rowDownstream) {
+        return BatchIteratorCollectorBridge.newInstance(RowsBatchIterator.empty(), rowDownstream);
     }
 
-    public RowsCollector(RowReceiver rowDownstream,
-                         Supplier<CompletableFuture<? extends Iterable<?>>> future,
-                         Function<Iterable, Iterable<? extends Row>> dataIterableToRowsIterable) {
-        this.rowDownstream = rowDownstream;
-        this.future = future;
-        this.dataIterableToRowsIterable = dataIterableToRowsIterable;
+    public static CrateCollector forRows(Iterable<Row> rows, RowReceiver rowReceiver) {
+        return BatchIteratorCollectorBridge.newInstance(RowsBatchIterator.newInstance(rows), rowReceiver);
     }
 
-    @Override
-    public void doCollect() {
-        future.get().whenComplete((objects, throwable) -> {
-            if (throwable == null) {
-                emitter = new IterableRowEmitter(rowDownstream, dataIterableToRowsIterable.apply(objects));
-                emitter.run();
-            } else {
-                rowDownstream.fail(throwable);
-            }
-        });
-    }
-
-    @Override
-    public void kill(@Nullable Throwable throwable) {
-        if (emitter != null) {
-            emitter.kill(throwable);
-        }
-    }
-
-    static Builder emptyBuilder() {
-        return RowsCollector::empty;
-    }
-
-    public static Builder builder(Iterable<Row> rows) {
-        return rowReceiver -> new RowsCollector(
-            rowReceiver,
-            () -> CompletableFuture.completedFuture(rows),
-            (Function<Iterable, Iterable<? extends Row>>) dataIterable -> (Iterable<? extends Row>) dataIterable);
+    public static CrateCollector.Builder builder(final Iterable<Row> rows) {
+        return rowReceiver -> forRows(rows, rowReceiver);
     }
 }
