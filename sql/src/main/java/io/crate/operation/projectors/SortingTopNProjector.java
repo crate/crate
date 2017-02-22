@@ -21,26 +21,26 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Preconditions;
-import io.crate.data.ArrayBucket;
+import io.crate.data.BatchIterator;
+import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.sorting.RowPriorityQueue;
+import org.elasticsearch.common.collect.Tuple;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 public class SortingTopNProjector extends AbstractProjector {
 
-    private final int offset;
-    private final int numOutputs;
-
+    private final SortingTopNCollector collector;
+    private final BiConsumer<RowPriorityQueue<Object[]>, Row> accumulator;
     private final RowPriorityQueue<Object[]> pq;
-    private final Collection<? extends Input<?>> inputs;
-    private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
-    private Object[] spare;
     private Set<Requirement> requirements;
     private volatile IterableRowEmitter rowEmitter = null;
 
@@ -58,47 +58,28 @@ public class SortingTopNProjector extends AbstractProjector {
                                 Comparator<Object[]> ordering,
                                 int limit,
                                 int offset) {
-        Preconditions.checkArgument(limit > 0, "invalid limit %s, this projector only supports positive limits", limit);
-        Preconditions.checkArgument(offset >= 0, "invalid offset %s", offset);
-
-        this.inputs = inputs;
-        this.numOutputs = numOutputs;
-        this.collectExpressions = collectExpressions;
-        this.offset = offset;
-
-        int maxSize = this.offset + limit;
-        pq = new RowPriorityQueue<>(maxSize, ordering);
+        collector = new SortingTopNCollector(
+            inputs,
+            collectExpressions,
+            numOutputs,
+            ordering,
+            limit,
+            offset
+        );
+        pq = collector.supplier().get();
+        accumulator = collector.accumulator();
     }
 
     @Override
     public Result setNextRow(Row row) {
-        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
-            collectExpression.setNextRow(row);
-        }
-        if (spare == null) {
-            spare = new Object[inputs.size()];
-        }
-        int i = 0;
-        for (Input<?> input : inputs) {
-            spare[i++] = input.value();
-        }
-        spare = pq.insertWithOverflow(spare);
+        accumulator.accept(pq, row);
         return Result.CONTINUE;
     }
 
     @Override
     public void finish(RepeatHandle repeatHandle) {
-        final int resultSize = Math.max(pq.size() - offset, 0);
-        rowEmitter = createRowEmitter(resultSize);
+        rowEmitter = new IterableRowEmitter(downstream, collector.finisher().apply(pq));
         rowEmitter.run();
-    }
-
-    private IterableRowEmitter createRowEmitter(int resultSize) {
-        Object[][] rows = new Object[resultSize][];
-        for (int i = resultSize - 1; i >= 0; i--) {
-            rows[i] = pq.pop();
-        }
-        return new IterableRowEmitter(downstream, new ArrayBucket(rows, numOutputs));
     }
 
     @Override
@@ -122,5 +103,11 @@ public class SortingTopNProjector extends AbstractProjector {
             requirements = Requirements.remove(downstream.requirements(), Requirement.REPEAT);
         }
         return requirements;
+    }
+
+    @Nullable
+    @Override
+    public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
+        return bi -> new Tuple<>(CollectingBatchIterator.newInstance(bi, collector), downstream);
     }
 }

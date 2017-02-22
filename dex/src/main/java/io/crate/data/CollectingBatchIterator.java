@@ -41,11 +41,11 @@ import java.util.stream.Collectors;
 public class CollectingBatchIterator<A> implements BatchIterator {
 
     private final BatchIterator source;
-    private final Collector<Row, A, Iterable<Row>> collector;
+    private final Collector<Row, A, ? extends Iterable<Row>> collector;
 
     private Row currentRow = OFF_ROW;
     private Iterator<Row> it = Collections.emptyIterator();
-    private CompletableFuture<Iterable<Row>> resultFuture;
+    private CompletableFuture<? extends Iterable<Row>> resultFuture;
 
     /**
      * Create a BatchIterator which will consume the source, summing up the first column (must be of type long).
@@ -65,11 +65,11 @@ public class CollectingBatchIterator<A> implements BatchIterator {
                 Collectors.summingLong((Row r) -> (long) r.get(0)), sum -> Collections.singletonList(new Row1(sum))));
     }
 
-    public static <A> BatchIterator newInstance(BatchIterator source, Collector<Row, A, Iterable<Row>> collector) {
+    public static <A> BatchIterator newInstance(BatchIterator source, Collector<Row, A, ? extends Iterable<Row>> collector) {
         return new CloseAssertingBatchIterator(new CollectingBatchIterator<>(source, collector));
     }
 
-    private CollectingBatchIterator(BatchIterator source, Collector<Row, A, Iterable<Row>> collector) {
+    private CollectingBatchIterator(BatchIterator source, Collector<Row, A, ? extends Iterable<Row>> collector) {
         this.source = source;
         this.collector = collector;
     }
