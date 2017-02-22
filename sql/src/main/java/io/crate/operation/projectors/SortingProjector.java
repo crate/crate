@@ -22,13 +22,15 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Ordering;
-import io.crate.data.CollectionBucket;
-import io.crate.data.Row;
-import io.crate.data.Input;
+import io.crate.data.*;
 import io.crate.operation.collect.CollectExpression;
+import org.elasticsearch.common.collect.Tuple;
 
+import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 /**
  * Sort rows by ordering criteria and process given offset before emitting.
@@ -42,7 +44,7 @@ class SortingProjector extends AbstractProjector {
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
     private Set<Requirement> requirements;
 
-    private final Ordering<Object[]> ordering;
+    private final Comparator<Object[]> comparator;
     private final int offset;
     private final int numOutputs;
     private final List<Object[]> rows = new ArrayList<>();
@@ -52,56 +54,33 @@ class SortingProjector extends AbstractProjector {
      * @param inputs             contains output {@link Input}s and orderBy {@link Input}s
      * @param collectExpressions gathered from outputs and orderBy inputs
      * @param numOutputs         <code>inputs</code> contains this much output {@link Input}s starting form index 0
-     * @param ordering           ordering that is used to compare the rows
+     * @param comparator         ordering that is used to compare the rows
      * @param offset             the initial offset, this number of rows are skipped
      */
     SortingProjector(Collection<? extends Input<?>> inputs,
                      Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                      int numOutputs,
-                     Ordering<Object[]> ordering,
+                     Comparator<Object[]> comparator,
                      int offset) {
         Preconditions.checkArgument(offset >= 0, "invalid offset %s", offset);
         this.numOutputs = numOutputs;
         this.inputs = inputs;
         this.collectExpressions = collectExpressions;
-        this.ordering = ordering;
+        this.comparator = comparator;
         this.offset = offset;
     }
 
     @Override
     public Result setNextRow(Row row) {
-        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
-            collectExpression.setNextRow(row);
-        }
-        Object[] newRow = new Object[inputs.size()];
-        int i = 0;
-        for (Input<?> input : inputs) {
-            newRow[i++] = input.value();
-        }
+        Object[] newRow = getCells(row);
         rows.add(newRow);
         return Result.CONTINUE;
     }
 
     @Override
     public void finish(RepeatHandle repeatHandle) {
-        // sort, we must reverse the order (back to original one) because order was reserved for used on queues
-        Collections.sort(rows, Collections.reverseOrder(ordering));
-
-        // emit
-        rowEmitter = createRowEmitter();
+        rowEmitter = new IterableRowEmitter(downstream, sortAndCreateBucket(rows));
         rowEmitter.run();
-    }
-
-    private IterableRowEmitter createRowEmitter() {
-        CollectionBucket collectionBucket;
-        // process offset
-        if (offset != 0) {
-            collectionBucket = new CollectionBucket(rows.subList(offset, rows.size()), numOutputs);
-        } else {
-            collectionBucket = new CollectionBucket(rows, numOutputs);
-        }
-
-        return new IterableRowEmitter(downstream, collectionBucket);
     }
 
     @Override
@@ -125,5 +104,36 @@ class SortingProjector extends AbstractProjector {
             requirements = Requirements.remove(downstream.requirements(), Requirement.REPEAT);
         }
         return requirements;
+    }
+
+    @Nullable
+    @Override
+    public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
+        return bi -> {
+            Collector<Row, ?, Bucket> collector = Collectors.mapping(
+                this::getCells,
+                Collectors.collectingAndThen(Collectors.toList(), this::sortAndCreateBucket));
+            return new Tuple<>(CollectingBatchIterator.newInstance(bi, collector), downstream);
+        };
+    }
+
+    private Object[] getCells(Row row) {
+        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
+            collectExpression.setNextRow(row);
+        }
+        Object[] newRow = new Object[inputs.size()];
+        int i = 0;
+        for (Input<?> input : inputs) {
+            newRow[i++] = input.value();
+        }
+        return newRow;
+    }
+
+    private Bucket sortAndCreateBucket(List<Object[]> rows) {
+        rows.sort(comparator.reversed());
+        if (offset == 0) {
+            return new CollectionBucket(rows, numOutputs);
+        }
+        return new CollectionBucket(rows.subList(offset, rows.size()), numOutputs);
     }
 }
