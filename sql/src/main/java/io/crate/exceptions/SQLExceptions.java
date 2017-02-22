@@ -47,6 +47,7 @@ import org.elasticsearch.transport.TransportException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Locale;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 
@@ -56,6 +57,7 @@ public class SQLExceptions {
     private final static Predicate<Throwable> EXCEPTIONS_TO_UNWRAP = throwable ->
         throwable instanceof TransportException ||
         throwable instanceof UncheckedExecutionException ||
+        throwable instanceof CompletionException ||
         throwable instanceof UncategorizedExecutionException ||
         throwable instanceof ExecutionException;
 
