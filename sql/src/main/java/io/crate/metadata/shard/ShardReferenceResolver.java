@@ -29,6 +29,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.partitioned.PartitionedColumnExpression;
 import io.crate.operation.reference.sys.shard.*;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -36,6 +37,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
+import java.util.List;
 import java.util.Locale;
 
 public class ShardReferenceResolver extends AbstractReferenceResolver {
@@ -52,7 +54,8 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
         if (PartitionName.isPartition(index.name())) {
             addPartitions(index, schemas, builder);
         }
-        implementations.put(SysShardsTableInfo.ReferenceIdents.ID, new LiteralReferenceImplementation<>(shardId.getId()));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.ID,
+            new LiteralReferenceImplementation<>(shardId.getId()));
         implementations.put(SysShardsTableInfo.ReferenceIdents.SIZE, new ShardSizeExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.NUM_DOCS, new ShardNumDocsExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.PRIMARY, new ShardPrimaryExpression(indexShard));
@@ -61,14 +64,16 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
         implementations.put(SysShardsTableInfo.ReferenceIdents.SCHEMA_NAME,
             new ShardSchemaNameExpression(shardId));
         implementations.put(SysShardsTableInfo.ReferenceIdents.STATE, new ShardStateExpression(indexShard));
-        implementations.put(SysShardsTableInfo.ReferenceIdents.ROUTING_STATE, new ShardRoutingStateExpression(indexShard));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.ROUTING_STATE,
+            new ShardRoutingStateExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.TABLE_NAME, new ShardTableNameExpression(shardId));
         implementations.put(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT,
             new ShardPartitionIdentExpression(shardId));
         implementations.put(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION,
             new ShardPartitionOrphanedExpression(shardId, clusterService));
         implementations.put(SysShardsTableInfo.ReferenceIdents.PATH, new ShardPathExpression(indexShard));
-        implementations.put(SysShardsTableInfo.ReferenceIdents.BLOB_PATH, new LiteralReferenceImplementation<>(null));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.BLOB_PATH,
+            new LiteralReferenceImplementation<>(null));
         this.implementations.putAll(builder.build());
     }
 
@@ -90,12 +95,12 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                 int i = 0;
                 int numPartitionedColumns = info.partitionedByColumns().size();
 
-                assert partitionName.values().size() ==
-                       numPartitionedColumns : "invalid number of partitioned columns";
+                List<BytesRef> partitionNames = partitionName.values();
+                assert partitionNames.size() == numPartitionedColumns : "invalid number of partitioned columns";
                 for (Reference partitionedInfo : info.partitionedByColumns()) {
                     builder.put(partitionedInfo.ident(), new PartitionedColumnExpression(
                         partitionedInfo,
-                        partitionName.values().get(i)
+                        partitionNames.get(i)
                     ));
                     i++;
                 }

@@ -25,7 +25,7 @@ import io.crate.metadata.RowContextCollectorExpression;
 import org.apache.lucene.util.BytesRef;
 
 
-public abstract class InformationColumnsExpression<T>
+abstract class InformationColumnsExpression<T>
     extends RowContextCollectorExpression<ColumnContext, T> {
 
     public static class ColumnsSchemaNameExpression extends InformationColumnsExpression<BytesRef> {

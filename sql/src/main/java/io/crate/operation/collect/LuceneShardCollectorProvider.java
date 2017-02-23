@@ -76,8 +76,15 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         TransportActionProvider transportActionProvider,
                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                         IndexShard indexShard) {
-        super(clusterService, new ShardReferenceResolver(clusterService, schemas, indexShard), functions,
-            indexNameExpressionResolver, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool,
+        super(
+            clusterService,
+            new ShardReferenceResolver(clusterService, schemas, indexShard),
+            functions,
+            indexNameExpressionResolver,
+            threadPool,
+            settings,
+            transportActionProvider,
+            bulkRetryCoordinatorPool,
             indexShard);
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.threadPool = threadPool;
@@ -170,7 +177,11 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             fieldTypeLookup,
             collectorContext,
             collectPhase.orderBy(),
-            LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), docInputFactory, fieldTypeLookup),
+            LuceneSortGenerator.generateLuceneSort(
+                collectorContext,
+                collectPhase.orderBy(),
+                docInputFactory,
+                fieldTypeLookup),
             ctx.topLevelInputs(),
             ctx.expressions()
         );

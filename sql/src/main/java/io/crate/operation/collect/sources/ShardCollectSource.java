@@ -65,10 +65,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.shard.IllegalIndexShardStateException;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.elasticsearch.index.shard.*;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -192,20 +189,37 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             ShardCollectorProvider provider;
             if (isBlobIndex(indexShard.shardId().getIndex())) {
                 BlobShard blobShard = blobIndicesService.blobShardSafe(indexShard.shardId());
-                provider = new BlobShardCollectorProvider(blobShard, clusterService, functions,
-                    indexNameExpressionResolver, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool);
+                provider = new BlobShardCollectorProvider(
+                    blobShard,
+                    clusterService,
+                    functions,
+                    indexNameExpressionResolver,
+                    threadPool,
+                    settings,
+                    transportActionProvider,
+                    bulkRetryCoordinatorPool);
             } else {
                 provider = new LuceneShardCollectorProvider(
-                    schemas, luceneQueryBuilder, clusterService, functions, indexNameExpressionResolver, threadPool,
-                    settings, transportActionProvider, bulkRetryCoordinatorPool, indexShard);
+                    schemas,
+                    luceneQueryBuilder,
+                    clusterService,
+                    functions,
+                    indexNameExpressionResolver,
+                    threadPool,
+                    settings,
+                    transportActionProvider,
+                    bulkRetryCoordinatorPool,
+                    indexShard);
             }
             shards.put(indexShard.shardId(), provider);
-
         }
 
         @Override
         public void beforeIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard, Settings indexSettings) {
-            logger.debug("removing shard upon close in {} shard={} numShards={}", ShardCollectSource.this, shardId, shards.size());
+            logger.debug("removing shard upon close in {} shard={} numShards={}",
+                ShardCollectSource.this,
+                shardId,
+                shards.size());
             assert shards.containsKey(shardId) : "shard entry missing upon close";
             shards.remove(shardId);
         }
@@ -213,9 +227,15 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         @Override
         public void beforeIndexShardDeleted(ShardId shardId, Settings indexSettings) {
             if (shards.remove(shardId) != null) {
-                logger.debug("removed shard upon delete in {} shard={} remainingShards={}", ShardCollectSource.this, shardId, shards.size());
+                logger.debug("removed shard upon delete in {} shard={} remainingShards={}",
+                    ShardCollectSource.this,
+                    shardId,
+                    shards.size());
             } else {
-                logger.debug("shard not found upon delete in {} shard={} remainingShards={}", ShardCollectSource.this, shardId, shards.size());
+                logger.debug("shard not found upon delete in {} shard={} remainingShards={}",
+                    ShardCollectSource.this,
+                    shardId,
+                    shards.size());
             }
         }
     }
