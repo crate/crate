@@ -22,8 +22,8 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.testing.SQLBulkResponse;
 import io.crate.analyze.UpdateAnalyzer;
+import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -861,5 +861,24 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select a from computed");
         assertThat((Integer) response.rows()[0][0], is(3));
+    }
+
+    @Test
+    public void testFailingUpdateBulkOperation() throws Exception {
+        execute("create table t (x string) clustered into 1 shards with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into t (x) values ('1')");
+        execute("refresh table t");
+
+        // invalid regex causes failure in prepare phase, causing a failure row-count in each individual response
+        Object[][] bulkArgs = new Object[][] {
+            new Object[] { 1, "+123" },
+            new Object[] { 2, "+123" },
+        };
+        SQLBulkResponse resp = execute("update t set x = ? where x ~* ?", bulkArgs);
+        assertThat(resp.results().length, is(2));
+        for (SQLBulkResponse.Result result : resp.results()) {
+            assertThat(result.rowCount(), is(-2L));
+        }
     }
 }
