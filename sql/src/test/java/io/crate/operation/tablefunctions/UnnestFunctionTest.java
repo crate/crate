@@ -29,7 +29,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Bucket;
 import io.crate.metadata.Functions;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;

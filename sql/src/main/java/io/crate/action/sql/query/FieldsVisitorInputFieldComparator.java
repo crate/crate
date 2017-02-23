@@ -22,7 +22,7 @@
 package io.crate.action.sql.query;
 
 import com.google.common.base.Throwables;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.types.DataType;
@@ -31,7 +31,6 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.LeafFieldComparator;
 
 import java.io.IOException;
-import java.util.List;
 
 class FieldsVisitorInputFieldComparator extends InputFieldComparator {
 

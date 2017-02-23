@@ -26,7 +26,7 @@ import com.google.common.collect.Ordering;
 import io.crate.analyze.symbol.Literal;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.sorting.OrderingByPosition;

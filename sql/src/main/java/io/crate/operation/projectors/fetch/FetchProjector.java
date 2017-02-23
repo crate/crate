@@ -32,7 +32,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.fetch.FetchRowInputSymbolVisitor;
 import io.crate.operation.projectors.*;

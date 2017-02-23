@@ -28,7 +28,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.Inputs;
 import org.apache.lucene.util.BytesRef;

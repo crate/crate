@@ -22,6 +22,7 @@
 
 package io.crate.operation;
 
+import io.crate.data.Input;
 import io.crate.metadata.Reference;
 import io.crate.operation.reference.ReferenceResolver;
 

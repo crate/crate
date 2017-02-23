@@ -21,7 +21,7 @@
 
 package io.crate.operation.reference.doc.lucene;
 
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Scorer;
 

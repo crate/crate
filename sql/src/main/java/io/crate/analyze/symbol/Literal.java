@@ -3,7 +3,7 @@ package io.crate.analyze.symbol;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
 import io.crate.exceptions.ConversionException;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;

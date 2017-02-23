@@ -23,7 +23,7 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Function;
 import io.crate.metadata.Scalar;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 
 import java.util.List;
 

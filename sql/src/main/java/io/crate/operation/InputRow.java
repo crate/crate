@@ -22,6 +22,7 @@
 package io.crate.operation;
 
 import io.crate.data.Buckets;
+import io.crate.data.Input;
 import io.crate.data.Row;
 
 import java.util.List;

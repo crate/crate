@@ -28,7 +28,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Scalar;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;

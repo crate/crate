@@ -40,7 +40,7 @@ import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.sql.tree.*;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;

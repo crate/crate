@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import io.crate.operation.Input;
+import io.crate.data.Input;
 
 public interface ReferenceImplementation<T> extends Input<T> {
 

@@ -24,7 +24,7 @@ package io.crate.lucene;
 
 import com.google.common.base.Throwables;
 import io.crate.analyze.symbol.Function;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.reference.doc.lucene.CollectorContext;

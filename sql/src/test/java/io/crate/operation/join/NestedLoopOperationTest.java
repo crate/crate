@@ -27,7 +27,7 @@ import io.crate.data.Bucket;
 import io.crate.data.Buckets;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.ResumeHandle;

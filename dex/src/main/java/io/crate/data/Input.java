@@ -20,43 +20,9 @@
  * agreement.
  */
 
-package io.crate.operation.scalar;
+package io.crate.data;
 
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
-import io.crate.data.Input;
+public interface Input<T> {
 
-import java.util.function.Function;
-
-
-/**
- * Scalar implementation that wraps another function: f(T) -> R
- * <br />
- * null values will result in null as output
- */
-public class UnaryScalar<R, T> extends Scalar<R, T> {
-
-    private final FunctionInfo info;
-    private final Function<T, R> func;
-
-    public UnaryScalar(FunctionInfo info, Function<T, R> func) {
-        this.info = info;
-        this.func = func;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
-
-    @SafeVarargs
-    @Override
-    public final R evaluate(Input<T>... args) {
-        assert args.length == 1 : "UnaryScalar expects exactly 1 argument, got: " + args.length;
-        T value = args[0].value();
-        if (value == null) {
-            return null;
-        }
-        return func.apply(value);
-    }
+    T value();
 }

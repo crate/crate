@@ -24,7 +24,7 @@ package io.crate.operation.operator.any;
 import io.crate.analyze.symbol.Function;
 import io.crate.core.collections.MapComparator;
 import io.crate.metadata.*;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.operator.Operator;
 import io.crate.types.BooleanType;
 import io.crate.types.CollectionType;

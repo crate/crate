@@ -29,7 +29,7 @@ import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.RowGranularity;
 import io.crate.monitor.DummyExtendedNodeInfo;
 import io.crate.monitor.MonitorModule;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.operation.reference.sys.node.local.SysNodeExpressionModule;

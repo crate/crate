@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataTypes;
 import org.apache.lucene.analysis.util.CharacterUtils;

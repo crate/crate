@@ -29,7 +29,7 @@ import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Lists;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.Inputs;
 import org.apache.lucene.util.BytesRef;
 

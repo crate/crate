@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.symbol.Symbol;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import org.elasticsearch.common.Nullable;
 
 public abstract class QueryClause {

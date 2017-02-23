@@ -27,7 +27,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.writer.Output;
 import io.crate.operation.projectors.writer.OutputFile;
@@ -65,7 +65,7 @@ public class WriterProjector extends AbstractProjector {
     private final RowWriter rowWriter;
 
     /**
-     * @param inputs a list of {@link io.crate.operation.Input}.
+     * @param inputs a list of {@link Input}.
      *               If null the row that is received in {@link #setNextRow(Row)}
      *               is expected to contain the raw source in its first column.
      *               That raw source is then written to the output

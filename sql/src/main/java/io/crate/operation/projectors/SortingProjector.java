@@ -25,7 +25,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Ordering;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.*;
@@ -49,9 +49,9 @@ class SortingProjector extends AbstractProjector {
     private IterableRowEmitter rowEmitter = null;
 
     /**
-     * @param inputs             contains output {@link io.crate.operation.Input}s and orderBy {@link io.crate.operation.Input}s
+     * @param inputs             contains output {@link Input}s and orderBy {@link Input}s
      * @param collectExpressions gathered from outputs and orderBy inputs
-     * @param numOutputs         <code>inputs</code> contains this much output {@link io.crate.operation.Input}s starting form index 0
+     * @param numOutputs         <code>inputs</code> contains this much output {@link Input}s starting form index 0
      * @param ordering           ordering that is used to compare the rows
      * @param offset             the initial offset, this number of rows are skipped
      */

@@ -23,6 +23,7 @@
 package io.crate.operation;
 
 import com.google.common.base.Function;
+import io.crate.data.Input;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 

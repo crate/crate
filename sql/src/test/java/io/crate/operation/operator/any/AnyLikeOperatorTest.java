@@ -27,7 +27,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.TransactionContext;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;

@@ -29,7 +29,7 @@ import io.crate.analyze.symbol.format.FunctionFormatSpec;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.metadata.*;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;

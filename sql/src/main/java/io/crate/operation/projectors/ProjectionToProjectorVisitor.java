@@ -36,7 +36,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.AggregationContext;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.RowFilter;
 import io.crate.operation.collect.CollectExpression;

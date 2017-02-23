@@ -21,7 +21,7 @@
 
 package io.crate.operation.collect;
 
-import io.crate.operation.Input;
+import io.crate.data.Input;
 
 public interface CollectExpression<TRow, TReturnValue> extends Input<TReturnValue> {
 

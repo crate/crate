@@ -32,7 +32,7 @@ import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.external.S3ClientHelper;
 import io.crate.metadata.*;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.file.FileLineReferenceResolver;

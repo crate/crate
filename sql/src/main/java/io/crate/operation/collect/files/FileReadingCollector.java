@@ -26,7 +26,7 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.RepeatHandle;

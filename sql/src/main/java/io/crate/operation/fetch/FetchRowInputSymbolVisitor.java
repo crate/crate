@@ -30,7 +30,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.BaseImplementationSymbolVisitor;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.projectors.fetch.FetchProjector;
 import io.crate.planner.node.fetch.FetchSource;
 

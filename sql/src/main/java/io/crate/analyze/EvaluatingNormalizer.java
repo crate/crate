@@ -24,7 +24,7 @@ import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.metadata.*;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.scalar.arithmetic.MapFunction;
 import org.elasticsearch.common.logging.ESLogger;

@@ -23,7 +23,7 @@ package io.crate.operation.aggregation;
 
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 
 import java.util.Locale;
 

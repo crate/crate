@@ -23,7 +23,7 @@ package io.crate.operation.scalar.arithmetic;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 

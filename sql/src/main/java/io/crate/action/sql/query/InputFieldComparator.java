@@ -22,7 +22,7 @@
 package io.crate.action.sql.query;
 
 import com.google.common.base.MoreObjects;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.types.DataType;
 import org.apache.lucene.index.LeafReaderContext;

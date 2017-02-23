@@ -24,7 +24,7 @@ package io.crate.operation.collect.collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;

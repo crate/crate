@@ -22,7 +22,7 @@
 package io.crate.operation.reference;
 
 import io.crate.metadata.Reference;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 
 public interface ReferenceResolver<E extends Input<?>> {
 

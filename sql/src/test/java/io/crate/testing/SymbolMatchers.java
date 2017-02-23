@@ -24,7 +24,7 @@ package io.crate.testing;
 
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.Reference;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 import org.hamcrest.FeatureMatcher;

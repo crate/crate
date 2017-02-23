@@ -31,7 +31,7 @@ import io.crate.breaker.SizeEstimatorFactory;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.operation.AggregationContext;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.types.DataType;

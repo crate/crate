@@ -44,7 +44,7 @@ import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.DocInputFactory;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;

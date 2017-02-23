@@ -23,6 +23,7 @@
 package io.crate.operation;
 
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.InputCondition;

@@ -1,6 +1,7 @@
 package io.crate.operation;
 
 import io.crate.analyze.symbol.Aggregation;
+import io.crate.data.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 
 import java.util.ArrayList;

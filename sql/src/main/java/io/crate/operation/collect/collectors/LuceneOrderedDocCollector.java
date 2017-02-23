@@ -29,7 +29,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.Reference;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;

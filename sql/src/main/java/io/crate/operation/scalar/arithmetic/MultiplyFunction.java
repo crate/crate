@@ -25,7 +25,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.format.OperatorFormatSpec;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 

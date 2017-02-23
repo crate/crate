@@ -22,7 +22,7 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Predicate;
-import io.crate.operation.Input;
+import io.crate.data.Input;
 
 public class InputCondition {
 
