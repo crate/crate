@@ -26,10 +26,10 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.Reference;
-import io.crate.data.Input;
 import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
@@ -81,7 +81,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
                                      CollectorContext collectorContext,
                                      OrderBy orderBy,
                                      Sort sort,
-                                     List<Input<?>> inputs,
+                                     List<? extends Input<?>> inputs,
                                      Collection<? extends LuceneCollectorExpression<?>> expressions) {
         super(shardId);
         this.searcher = searcher;
@@ -117,11 +117,15 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
      * Basically, calling this function multiple times pages through the shard in batches.
      */
     @Override
-    public KeyIterable<ShardId, Row> collect() throws Exception {
-        if (lastDoc == null) {
-            return initialSearch();
+    public KeyIterable<ShardId, Row> collect() {
+        try {
+            if (lastDoc == null) {
+                return initialSearch();
+            }
+            return searchMore();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        return searchMore();
     }
 
     @Override

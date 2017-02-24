@@ -62,7 +62,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final IntObjectHashMap<Bucket> bucketsByIdx;
     private final BatchConsumerToRowReceiver consumer;
     private final RowReceiver rowReceiver;
-    private final BatchPagingIterator batchPagingIterator;
+    private final BatchPagingIterator<Integer> batchPagingIterator;
     private final BatchIterator batchIterator;
 
     private Throwable lastThrowable = null;
@@ -88,7 +88,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         this.pagingIterator = pagingIterator;
         this.bucketsByIdx = new IntObjectHashMap<>(numBuckets);
         this.listenersByBucketIdx = new IntObjectHashMap<>(numBuckets);
-        batchPagingIterator = new BatchPagingIterator(
+        batchPagingIterator = new BatchPagingIterator<>(
             pagingIterator,
             this::fetchMore,
             this::allUpstreamsExhausted,

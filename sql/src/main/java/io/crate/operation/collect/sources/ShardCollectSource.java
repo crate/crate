@@ -45,8 +45,8 @@ import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.*;
 import io.crate.operation.collect.collectors.CompositeCollector;
-import io.crate.operation.collect.collectors.MultiShardScoreDocCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
+import io.crate.operation.collect.collectors.OrderedLuceneBatchIteratorFactory;
 import io.crate.operation.projectors.*;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
@@ -329,15 +329,18 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
         OrderBy orderBy = collectPhase.orderBy();
         assert orderBy != null : "orderBy must not be null";
-        return new MultiShardScoreDocCollector(
-            orderedDocCollectors,
-            OrderingByPosition.rowOrdering(
-                OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
-                orderBy.reverseFlags(),
-                orderBy.nullsFirst()
+        return BatchIteratorCollectorBridge.newInstance(
+            OrderedLuceneBatchIteratorFactory.newInstance(
+                orderedDocCollectors,
+                OrderingByPosition.rowOrdering(
+                    OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
+                    orderBy.reverseFlags(),
+                    orderBy.nullsFirst()
+                ),
+                executor,
+                rowReceiver.requirements().contains(Requirement.REPEAT)
             ),
-            rowReceiver,
-            executor
+            rowReceiver
         );
     }
 
