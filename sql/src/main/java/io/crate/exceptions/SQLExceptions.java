@@ -59,7 +59,6 @@ public class SQLExceptions {
         throwable instanceof UncheckedExecutionException ||
         throwable instanceof CompletionException ||
         throwable instanceof UncategorizedExecutionException ||
-        throwable instanceof CompletionException ||
         throwable instanceof ExecutionException;
 
     public static Throwable unwrap(@Nonnull Throwable t, @Nullable Predicate<Throwable> additionalUnwrapCondition) {
