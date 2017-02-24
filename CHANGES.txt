@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added new column ``min_lucene_version`` to ``sys.shards`` table,
+   which shows the oldest lucene segment version used in the shard.
+
  - Remove restriction to run ``OPTIMIZE`` on blob tables.
 
  - UDC: add the ``enterprise`` field to the ``UDC`` ping.

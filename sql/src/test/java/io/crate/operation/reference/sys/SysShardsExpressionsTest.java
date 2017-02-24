@@ -36,6 +36,7 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.Version;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
@@ -43,6 +44,7 @@ import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.engine.EngineClosedException;
 import org.elasticsearch.index.shard.*;
 import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.indices.recovery.RecoveryState;
@@ -58,7 +60,9 @@ import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.refInfo;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -115,6 +119,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         ShardRoutingHelper.moveToStarted(shardRouting);
         ShardRoutingHelper.relocate(shardRouting, "node_X");
         when(indexShard.routingEntry()).thenReturn(shardRouting);
+        when(indexShard.minimumCompatibleVersion()).thenReturn(Version.LATEST);
 
         RecoveryState recoveryState = mock(RecoveryState.class);
         when(indexShard.recoveryState()).thenReturn(recoveryState);
@@ -205,6 +210,17 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
         ReferenceImplementation<BytesRef> shardExpression = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
+    }
+
+    @Test
+    public void testMinLuceneVersion() throws Exception {
+        Reference refInfo = refInfo("sys.shards.min_lucene_version", DataTypes.STRING, RowGranularity.SHARD);
+        ReferenceImplementation<BytesRef> shardExpression =
+            (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
+        assertEquals(new BytesRef(Version.LATEST.toString()), shardExpression.value());
+
+        doThrow(new EngineClosedException(indexShard.shardId())).when(indexShard).minimumCompatibleVersion();
+        assertThat(shardExpression.value(), nullValue());
     }
 
     @Test

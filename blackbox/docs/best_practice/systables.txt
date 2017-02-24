@@ -147,6 +147,7 @@ provides access to the status and size of shards, its names and IDs::
     +--------------------------------+-----------+
     | blob_path                      | string    |
     | id                             | integer   |
+    | min_lucene_version             | string    |
     | num_docs                       | long      |
     | orphan_partition               | boolean   |
     | partition_ident                | string    |
@@ -173,7 +174,7 @@ provides access to the status and size of shards, its names and IDs::
     | state                          | string    |
     | table_name                     | string    |
     +--------------------------------+-----------+
-    SHOW 27 rows in set (... sec)
+    SHOW 28 rows in set (... sec)
 
 The cluster state is somewhat delicate when nodes join or leave, since
 in those situations shards have to be rearranged to ensure that each of

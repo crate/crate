@@ -69,6 +69,8 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
             new ShardPartitionOrphanedExpression(shardId, clusterService));
         implementations.put(SysShardsTableInfo.ReferenceIdents.PATH, new ShardPathExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.BLOB_PATH, new LiteralReferenceImplementation<>(null));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.MIN_LUCENE_VERSION,
+            new ShardMinLuceneVersionExpression(indexShard));
         this.implementations.putAll(builder.build());
     }
 
