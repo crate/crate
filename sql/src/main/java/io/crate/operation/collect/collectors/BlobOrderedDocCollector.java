@@ -27,6 +27,7 @@ import io.crate.operation.merge.KeyIterable;
 import org.elasticsearch.index.shard.ShardId;
 
 public class BlobOrderedDocCollector extends OrderedDocCollector {
+
     private final Iterable<Row> rows;
 
     public BlobOrderedDocCollector(ShardId shardId, Iterable<Row> rows) {
@@ -36,6 +37,7 @@ public class BlobOrderedDocCollector extends OrderedDocCollector {
 
     @Override
     public KeyIterable<ShardId, Row> collect() {
+        assert !exhausted : "must not call collect on a exhausted OrderedDocCollector";
         exhausted = true;
         return new KeyIterable<>(shardId(), rows);
     }
