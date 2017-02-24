@@ -28,7 +28,6 @@ import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.exceptions.CircuitBreakingException;
 import io.crate.operation.InputRow;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
@@ -36,6 +35,7 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.Bits;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
