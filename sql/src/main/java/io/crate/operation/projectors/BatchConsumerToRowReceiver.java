@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 
 import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
+import io.crate.exceptions.SQLExceptions;
 
 import java.util.Objects;
 
@@ -82,7 +83,7 @@ public class BatchConsumerToRowReceiver implements BatchConsumer {
             iterator.loadNextBatch().whenComplete(
                 (r, e) -> {
                     if (e != null) {
-                        rowReceiver.fail(e);
+                        rowReceiver.fail(SQLExceptions.unwrap(e));
                     } else {
                         safeConsumeIterator(iterator);
                     }
