@@ -29,11 +29,13 @@ import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 public class OptimizeSettings {
 
     public static final IntSetting MAX_NUM_SEGMENTS =
-        new IntSetting("max_num_segments", ForceMergeRequest.Defaults.MAX_NUM_SEGMENTS, false, 1, null);
+        new IntSetting("max_num_segments", ForceMergeRequest.Defaults.MAX_NUM_SEGMENTS, false, 1, Integer.MAX_VALUE);
 
     public static final BoolSetting ONLY_EXPUNGE_DELETES =
         new BoolSetting("only_expunge_deletes", ForceMergeRequest.Defaults.ONLY_EXPUNGE_DELETES, false);
 
     public static final BoolSetting FLUSH = new BoolSetting("flush", ForceMergeRequest.Defaults.FLUSH, false);
+
+    public static final BoolSetting UPGRADE_SEGMENTS = new BoolSetting("upgrade_segments", false, false);
 }
 

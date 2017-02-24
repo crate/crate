@@ -28,8 +28,13 @@ import io.crate.blob.v2.BlobAdminClient;
 import io.crate.executor.transport.*;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
+import org.elasticsearch.action.admin.indices.forcemerge.TransportForceMergeAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
+import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
+import org.elasticsearch.action.admin.indices.upgrade.post.TransportUpgradeAction;
+import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeRequest;
+import org.elasticsearch.action.admin.indices.upgrade.post.UpgradeResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -50,11 +55,13 @@ import java.util.function.Function;
 public class DDLStatementDispatcher {
 
     private final Provider<BlobAdminClient> blobAdminClient;
-    private final TransportActionProvider transportActionProvider;
     private final TableCreator tableCreator;
     private final AlterTableOperation alterTableOperation;
     private final RepositoryService repositoryService;
     private final SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher;
+    private final Provider<TransportUpgradeAction> transportUpgradeActionProvider;
+    private final Provider<TransportForceMergeAction> transportForceMergeActionProvider;
+    private final Provider<TransportRefreshAction> transportRefreshActionProvider;
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
 
@@ -65,13 +72,17 @@ public class DDLStatementDispatcher {
                                   AlterTableOperation alterTableOperation,
                                   RepositoryService repositoryService,
                                   SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
-                                  TransportActionProvider transportActionProvider) {
+                                  Provider<TransportUpgradeAction> transportUpgradeActionProvider,
+                                  Provider<TransportForceMergeAction> transportForceMergeActionProvider,
+                                  Provider<TransportRefreshAction> transportRefreshActionProvider) {
         this.blobAdminClient = blobAdminClient;
         this.tableCreator = tableCreator;
         this.alterTableOperation = alterTableOperation;
-        this.transportActionProvider = transportActionProvider;
         this.repositoryService = repositoryService;
         this.snapshotRestoreDDLDispatcher = snapshotRestoreDDLDispatcher;
+        this.transportUpgradeActionProvider = transportUpgradeActionProvider;
+        this.transportForceMergeActionProvider = transportForceMergeActionProvider;
+        this.transportRefreshActionProvider = transportRefreshActionProvider;
     }
 
     public CompletableFuture<Long> dispatch(AnalyzedStatement analyzedStatement, UUID jobId) {
@@ -103,22 +114,12 @@ public class DDLStatementDispatcher {
 
         @Override
         public CompletableFuture<Long> visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, UUID jobId) {
-            ForceMergeRequest request = new ForceMergeRequest(analysis.indexNames().toArray(new String[0]));
-
-            // Pass parameters to ES request
-            request.maxNumSegments(analysis.settings().getAsInt(OptimizeSettings.MAX_NUM_SEGMENTS.name(),
-                ForceMergeRequest.Defaults.MAX_NUM_SEGMENTS));
-            request.onlyExpungeDeletes(analysis.settings().getAsBoolean(OptimizeSettings.ONLY_EXPUNGE_DELETES.name(),
-                ForceMergeRequest.Defaults.ONLY_EXPUNGE_DELETES));
-            request.flush(analysis.settings().getAsBoolean(OptimizeSettings.FLUSH.name(),
-                ForceMergeRequest.Defaults.FLUSH));
-
-            request.indicesOptions(IndicesOptions.lenientExpandOpen());
-
-            FutureActionListener<ForceMergeResponse, Long> listener =
-                new FutureActionListener<>(Functions.constant((long) analysis.indexNames().size()));
-            transportActionProvider.transportForceMergeAction().execute(request, listener);
-            return listener;
+            if (analysis.settings().getAsBoolean(OptimizeSettings.UPGRADE_SEGMENTS.name(),
+                OptimizeSettings.UPGRADE_SEGMENTS.defaultValue())) {
+                return executeUpgradeSegments(analysis, transportUpgradeActionProvider.get());
+            } else {
+                return executeMergeSegments(analysis, transportForceMergeActionProvider.get());
+            }
         }
 
         @Override
@@ -132,7 +133,7 @@ public class DDLStatementDispatcher {
 
             FutureActionListener<RefreshResponse, Long> listener =
                 new FutureActionListener<>(Functions.constant((long) analysis.indexNames().size()));
-            transportActionProvider.transportRefreshAction().execute(request, listener);
+            transportRefreshActionProvider.get().execute(request, listener);
             return listener;
         }
 
@@ -184,6 +185,35 @@ public class DDLStatementDispatcher {
         public CompletableFuture<Long> visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis, UUID context) {
             return snapshotRestoreDDLDispatcher.dispatch(analysis);
         }
+    }
+
+    private static CompletableFuture<Long> executeMergeSegments(OptimizeTableAnalyzedStatement analysis,
+                                                                TransportForceMergeAction transportForceMergeAction) {
+        ForceMergeRequest request = new ForceMergeRequest(analysis.indexNames().toArray(new String[0]));
+
+        // Pass parameters to ES request
+        request.maxNumSegments(analysis.settings().getAsInt(OptimizeSettings.MAX_NUM_SEGMENTS.name(),
+            ForceMergeRequest.Defaults.MAX_NUM_SEGMENTS));
+        request.onlyExpungeDeletes(analysis.settings().getAsBoolean(OptimizeSettings.ONLY_EXPUNGE_DELETES.name(),
+            ForceMergeRequest.Defaults.ONLY_EXPUNGE_DELETES));
+        request.flush(analysis.settings().getAsBoolean(OptimizeSettings.FLUSH.name(),
+            ForceMergeRequest.Defaults.FLUSH));
+
+        request.indicesOptions(IndicesOptions.lenientExpandOpen());
+
+        FutureActionListener<ForceMergeResponse, Long> listener =
+            new FutureActionListener<>(Functions.constant((long) analysis.indexNames().size()));
+        transportForceMergeAction.execute(request, listener);
+        return listener;
+    }
+
+    private static CompletableFuture<Long> executeUpgradeSegments(OptimizeTableAnalyzedStatement analysis,
+                                                                  TransportUpgradeAction transportUpgradeAction) {
+        UpgradeRequest request = new UpgradeRequest(analysis.indexNames().toArray(new String[0]));
+        FutureActionListener<UpgradeResponse, Long> listener =
+            new FutureActionListener<>(Functions.constant((long) analysis.indexNames().size()));
+        transportUpgradeAction.execute(request, listener);
+        return listener;
     }
 
     private CompletableFuture<Long> wrapRowCountFuture(CompletableFuture<?> wrappedFuture, final Long rowCount) {

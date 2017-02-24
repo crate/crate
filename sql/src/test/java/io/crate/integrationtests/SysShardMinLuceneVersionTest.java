@@ -22,7 +22,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLOperations;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
@@ -41,11 +40,7 @@ public class SysShardMinLuceneVersionTest extends SQLTransportIntegrationTest {
 
     private void startUpNodeWithDataDir(String dataPath) throws IOException {
         Path zippedIndexDir = getDataPath(dataPath);
-        Settings settings = prepareBackwardsDataDir(zippedIndexDir);
-        Settings nodeSettings = Settings.settingsBuilder()
-            .put(settings)
-            .put(SQLOperations.NODE_READ_ONLY_SETTING, true)
-            .build();
+        Settings nodeSettings = prepareBackwardsDataDir(zippedIndexDir);
         internalCluster().startNode(nodeSettings);
         ensureYellow();
     }
@@ -75,5 +70,27 @@ public class SysShardMinLuceneVersionTest extends SQLTransportIntegrationTest {
                "test_upgrade_required_parted| STARTED| 4.10.4| 5\n" +
                "test_upgrade_required_parted| STARTED| 5.5.2| 5\n" +
                "test_upgrade_required_parted| UNASSIGNED| NULL| 10\n"));
+    }
+
+    @Test
+    public void testUpgradeSegments() throws Exception {
+        startUpNodeWithDataDir("/indices/cluster_checks/cratedata_lucene_min_version.zip");
+        execute("select table_name, routing_state, min_lucene_version, count(*) from sys.shards " +
+                "where table_name IN " +
+                "('test_upgrade_required', 'test_upgrade_required_parted', 'test_blob_upgrade_required') AND " +
+                "routing_state = 'STARTED' AND min_lucene_version <> '5.5.2' " +
+                "group by table_name, routing_state, min_lucene_version order by 1, 2, 3");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("test_upgrade_required| STARTED| 4.10.4| 2\n" +
+               "test_upgrade_required_parted| STARTED| 4.10.4| 5\n"));
+
+        execute("optimize table test_upgrade_required, test_upgrade_required_parted, " +
+                "blob.test_blob_upgrade_required with (upgrade_segments=true)");
+
+        execute("select * from sys.shards " +
+                "where table_name IN " +
+                "('test_upgrade_required', 'test_upgrade_required_parted', 'test_blob_upgrade_required') " +
+                "AND min_lucene_version = '4.10.4'");
+        assertThat(response.rowCount(), is(0L));
     }
 }
