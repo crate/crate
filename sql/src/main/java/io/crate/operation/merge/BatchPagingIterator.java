@@ -45,10 +45,10 @@ import java.util.function.Function;
  *  - {@link #completeLoad(Throwable)}  (used by the upstream to inform the
  *                                       BatchPagingIterator that the pagingIterator has been filled)
  */
-public class BatchPagingIterator implements BatchIterator {
+public class BatchPagingIterator<Key> implements BatchIterator {
 
-    private final PagingIterator<Integer, Row> pagingIterator;
-    private final Function<Integer, Boolean> tryFetchMore;
+    private final PagingIterator<Key, Row> pagingIterator;
+    private final Function<Key, Boolean> tryFetchMore;
     private final BooleanSupplier isUpstreamExhausted;
     private final Runnable closeCallback;
 
@@ -59,8 +59,8 @@ public class BatchPagingIterator implements BatchIterator {
 
     private boolean closed = false;
 
-    public BatchPagingIterator(PagingIterator<Integer, Row> pagingIterator,
-                               Function<Integer, Boolean> tryFetchMore,
+    public BatchPagingIterator(PagingIterator<Key, Row> pagingIterator,
+                               Function<Key, Boolean> tryFetchMore,
                                BooleanSupplier isUpstreamExhausted,
                                Runnable closeCallback) {
         this.pagingIterator = pagingIterator;
