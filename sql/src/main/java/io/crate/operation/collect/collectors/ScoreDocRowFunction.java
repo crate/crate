@@ -51,7 +51,7 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
 
 
     public ScoreDocRowFunction(IndexReader indexReader,
-                               List<Input<?>> inputs,
+                               List<? extends Input<?>> inputs,
                                Collection<? extends LuceneCollectorExpression<?>> expressions,
                                DummyScorer scorer) {
         this.indexReader = indexReader;
