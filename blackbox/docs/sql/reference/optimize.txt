@@ -36,7 +36,7 @@ For further details see :ref:`optimize`.
 
 .. note::
 
-    System tables and blob tables cannot be optimized
+    System tables cannot be optimized
 
 
 Parameters

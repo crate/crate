@@ -54,15 +54,8 @@ public class OptimizeTableAnalyzerTest extends CrateUnitTest {
     @Test
     public void testOptimizeSystemTable() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("operation cannot be performed on system and blob tables: table 'sys.shards'");
+        expectedException.expectMessage("operation cannot be performed on system tables: table 'sys.shards'");
         e.analyze("OPTIMIZE TABLE sys.shards");
-    }
-
-    @Test
-    public void testOptimizeBlobTable() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("operation cannot be performed on system and blob tables: table 'blob.blobs'");
-        e.analyze("OPTIMIZE TABLE blob.blobs");
     }
 
     @Test
@@ -70,6 +63,13 @@ public class OptimizeTableAnalyzerTest extends CrateUnitTest {
         OptimizeTableAnalyzedStatement analysis = e.analyze("OPTIMIZE TABLE users");
         assertThat(analysis.indexNames().size(), is(1));
         assertThat(analysis.indexNames(), hasItem("users"));
+    }
+
+    @Test
+    public void testOptimizeBlobTable() throws Exception {
+        OptimizeTableAnalyzedStatement analysis = e.analyze("OPTIMIZE TABLE blob.blobs");
+        assertThat(analysis.indexNames().size(), is(1));
+        assertThat(analysis.indexNames(), hasItem("blob.blobs"));
     }
 
     @Test
@@ -147,14 +147,7 @@ public class OptimizeTableAnalyzerTest extends CrateUnitTest {
     @Test
     public void testOptimizeSysPartitioned() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("operation cannot be performed on system and blob tables: table 'sys.shards'");
+        expectedException.expectMessage("operation cannot be performed on system tables: table 'sys.shards'");
         e.analyze("OPTIMIZE TABLE sys.shards PARTITION (id='n')");
-    }
-
-    @Test
-    public void testOptimizeBlobPartitioned() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("operation cannot be performed on system and blob tables: table 'blob.blobs'");
-        e.analyze("OPTIMIZE TABLE blob.blobs partition (n='n')");
     }
 }

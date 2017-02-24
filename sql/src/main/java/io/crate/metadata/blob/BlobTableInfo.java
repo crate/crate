@@ -59,8 +59,8 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
 
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("digest"));
     private final static List<Tuple<String, DataType>> STATIC_COLUMNS = ImmutableList.<Tuple<String, DataType>>builder()
-        .add(new Tuple<String, DataType>("digest", DataTypes.STRING))
-        .add(new Tuple<String, DataType>("last_modified", DataTypes.TIMESTAMP))
+        .add(new Tuple<>("digest", DataTypes.STRING))
+        .add(new Tuple<>("last_modified", DataTypes.TIMESTAMP))
         .build();
 
     public BlobTableInfo(TableIdent ident,
@@ -192,5 +192,9 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
     @Override
     public Set<Operation> supportedOperations() {
         return Operation.READ_ONLY;
+    }
+
+    public String concreteIndex() {
+        return index;
     }
 }

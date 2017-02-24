@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Remove restriction to run ``OPTIMIZE`` on blob tables.
+
  - UDC: add the ``enterprise`` field to the ``UDC`` ping.
    The field identifies whether a user uses the enterprise version.
 

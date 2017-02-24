@@ -24,11 +24,19 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.metadata.settings.SettingsAppliers;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.OptimizeStatement;
+import io.crate.sql.tree.Table;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static io.crate.analyze.OptimizeSettings.*;
@@ -48,13 +56,38 @@ class OptimizeTableAnalyzer {
     }
 
     public OptimizeTableAnalyzedStatement analyze(OptimizeStatement stmt, Analysis analysis) {
-        Set<String> indexNames = TableAnalyzer.getIndexNames(
-            stmt.tables(), schemas, analysis.parameterContext(), analysis.sessionContext().defaultSchema());
+        Set<String> indexNames = getIndexNames(
+            stmt.tables(),
+            schemas,
+            analysis.parameterContext(),
+            analysis.sessionContext().defaultSchema());
 
         // validate and extract settings
         Settings.Builder builder = GenericPropertiesConverter.settingsFromProperties(
             stmt.properties(), analysis.parameterContext(), SETTINGS);
         Settings settings = builder.build();
         return new OptimizeTableAnalyzedStatement(indexNames, settings);
+    }
+
+    private static Set<String> getIndexNames(List<Table> tables,
+                                             Schemas schemas,
+                                             ParameterContext parameterContext,
+                                             @Nullable String defaultSchema) {
+        Set<String> indexNames = new HashSet<>(tables.size());
+        for (Table nodeTable : tables) {
+            TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(nodeTable, defaultSchema));
+
+            if (tableInfo instanceof DocTableInfo) {
+                indexNames.addAll(TableAnalyzer.filteredIndices(
+                    parameterContext,
+                    nodeTable.partitionProperties(), (DocTableInfo) tableInfo));
+            } else if (tableInfo instanceof BlobTableInfo) {
+                indexNames.add(((BlobTableInfo) tableInfo).concreteIndex());
+            } else {
+                throw new IllegalArgumentException(
+                    "operation cannot be performed on system tables: table '" + tableInfo.ident().fqn() + "'");
+            }
+        }
+        return indexNames;
     }
 }

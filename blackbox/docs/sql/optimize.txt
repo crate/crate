@@ -30,7 +30,7 @@ See :ref:`sql_ref_optimize` for detailed description of parameters.
 
 .. note::
 
-    System tables and blob tables cannot be optimized.
+    System tables cannot be optimized.
 
 
 Multiple Table Optimization

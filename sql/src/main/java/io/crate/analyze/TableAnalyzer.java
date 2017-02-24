@@ -22,48 +22,34 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.Table;
+import io.crate.sql.tree.Assignment;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 final class TableAnalyzer {
 
-    static Set<String> getIndexNames(List<Table> tables,
-                                            Schemas schemas,
-                                            ParameterContext parameterContext,
-                                            @Nullable String defaultSchema) {
-        Set<String> indexNames = new HashSet<>(tables.size());
-        for (Table nodeTable : tables) {
-            TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(nodeTable, defaultSchema));
-            Preconditions.checkArgument(tableInfo instanceof DocTableInfo,
-                "operation cannot be performed on system and blob tables: table '%s'",
-                tableInfo.ident().fqn());
-            if (nodeTable.partitionProperties().isEmpty()) {
-                indexNames.addAll(Arrays.asList(((DocTableInfo) tableInfo).concreteIndices()));
-            } else {
-                DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
-                PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                    docTableInfo,
-                    nodeTable.partitionProperties(),
-                    parameterContext.parameters()
-                );
-                if (!docTableInfo.partitions().contains(partitionName)) {
-                    throw new PartitionUnknownException(tableInfo.ident().fqn(), partitionName.ident());
-                }
-                indexNames.add(partitionName.asIndexName());
+    static Collection<String> filteredIndices(ParameterContext parameterContext,
+                                              List<Assignment> partitionProperties,
+                                              DocTableInfo tableInfo) {
+        if (partitionProperties.isEmpty()) {
+            return Arrays.asList(tableInfo.concreteIndices());
+        } else {
+            DocTableInfo docTableInfo = tableInfo;
+            PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
+                docTableInfo,
+                partitionProperties,
+                parameterContext.parameters()
+            );
+            if (!docTableInfo.partitions().contains(partitionName)) {
+                throw new PartitionUnknownException(tableInfo.ident().fqn(), partitionName.ident());
             }
+            return Collections.singletonList(partitionName.asIndexName());
         }
-        return indexNames;
     }
 }

@@ -21,9 +21,17 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Preconditions;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.RefreshStatement;
+import io.crate.sql.tree.Table;
 
+import javax.annotation.Nullable;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 class RefreshTableAnalyzer {
@@ -35,8 +43,28 @@ class RefreshTableAnalyzer {
     }
 
     public RefreshTableAnalyzedStatement analyze(RefreshStatement refreshStatement, Analysis analysis) {
-        Set<String> indexNames = TableAnalyzer.getIndexNames(
-            refreshStatement.tables(), schemas, analysis.parameterContext(), analysis.sessionContext().defaultSchema());
-        return new RefreshTableAnalyzedStatement(indexNames);
+        return new RefreshTableAnalyzedStatement(getIndexNames(
+            refreshStatement.tables(),
+            schemas,
+            analysis.parameterContext(),
+            analysis.sessionContext().defaultSchema()
+        ));
+    }
+
+    private static Set<String> getIndexNames(List<Table> tables,
+                                             Schemas schemas,
+                                             ParameterContext parameterContext,
+                                             @Nullable String defaultSchema) {
+        Set<String> indexNames = new HashSet<>(tables.size());
+        for (Table nodeTable : tables) {
+            TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(nodeTable, defaultSchema));
+            Preconditions.checkArgument(tableInfo instanceof DocTableInfo,
+                "operation cannot be performed on system and blob tables: table '%s'",
+                tableInfo.ident().fqn());
+            indexNames.addAll(TableAnalyzer.filteredIndices(
+                    parameterContext,
+                    nodeTable.partitionProperties(), (DocTableInfo) tableInfo));
+        }
+        return indexNames;
     }
 }

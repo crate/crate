@@ -23,18 +23,19 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 @UseJdbc(0) // optimize has no rowcount
-public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
+public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
@@ -54,7 +55,31 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rows().length, is(0));
 
         execute("select count(*) from test");
-        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat(response.rows()[0][0], is(2L));
+    }
+
+    @Test
+    public void testOptimizeBlobTables() throws Exception {
+        execute("create blob table blobs with (number_of_replicas = 0)");
+        ensureYellow();
+
+        for (String content : new String[]{"bar", "foo", "buzz", "crateDB"}) {
+            upload("blobs", content);
+        }
+        refresh();
+
+        execute("optimize table blob.blobs");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows().length, is(0));
+
+        execute("select digest from blob.blobs");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            allOf(
+                containsString("626f48d2188e903dc1f373f34eebd063b7ca9ff8\n"),
+                containsString("62cdb7020ff920e5aa642c3d4066950dd1f01f4d\n"),
+                containsString("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33\n"),
+                containsString("6bb2f7cc9eae6a77bcb13cac64098b5fd2b6964b\n")));
+
     }
 
     @Test
@@ -72,7 +97,7 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rows().length, is(0));
 
         execute("select count(*) from test");
-        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat(response.rows()[0][0], is(2L));
     }
 
     @Test
@@ -100,7 +125,7 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select count(*) from parted");
-        assertThat((Long) response.rows()[0][0], is(4L));
+        assertThat(response.rows()[0][0], is(4L));
 
         execute("delete from parted where id in (1, 4)");
         refresh();
@@ -110,7 +135,7 @@ public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
 
         // assert that all data is available after optimize
         execute("select count(*) from parted");
-        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat(response.rows()[0][0], is(2L));
     }
 
     @Test
