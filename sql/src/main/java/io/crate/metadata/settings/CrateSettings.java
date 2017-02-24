@@ -1739,6 +1739,20 @@ public class CrateSettings {
             new SettingsAppliers.StringSettingsApplier(CrateSettings.PSQL_PORT))
         .put(CrateSettings.PSQL_ENABLED.settingName(),
             new SettingsAppliers.BooleanSettingsApplier(CrateSettings.PSQL_ENABLED))
+        .put(CrateSettings.UDC.settingName(),
+            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.UDC))
+        .put(CrateSettings.UDC_ENABLED.settingName(),
+            new SettingsAppliers.BooleanSettingsApplier(CrateSettings.UDC_ENABLED))
+        .put(CrateSettings.UDC_INITIAL_DELAY.settingName(),
+            new SettingsAppliers.TimeSettingsApplier(CrateSettings.UDC_INITIAL_DELAY))
+        .put(CrateSettings.UDC_INTERVAL.settingName(),
+            new SettingsAppliers.TimeSettingsApplier(CrateSettings.UDC_INTERVAL))
+        .put(CrateSettings.UDC_URL.settingName(),
+            new SettingsAppliers.StringSettingsApplier(CrateSettings.UDC_URL))
+        .put(CrateSettings.LICENSE.settingName(),
+            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.LICENSE))
+        .put(CrateSettings.LICENSE_ENTERPRISE.settingName(),
+            new SettingsAppliers.BooleanSettingsApplier(CrateSettings.LICENSE_ENTERPRISE))
         .build();
 
     /**
