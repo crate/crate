@@ -93,3 +93,16 @@ table has many partitions this should be avoided due to performance reasons.
 
   cr> DROP TABLE parted_table;
   DROP OK, 1 row affected (... sec)
+
+
+Segments Upgrade
+================
+
+In case that some or all of the segments of a table or a table partition are created
+with an older version of the storage engine, then with the use of ``OPTIMIZE``, these
+segments can be upgraded to the current version of the storage engine.
+
+::
+
+    cr> OPTIMIZE TABLE locations WITH (ugprade_segments=true);
+    OPTIMIZE OK, 1 row affected (... sec)
