@@ -91,8 +91,6 @@ public class SysShardsTableInfo extends StaticTableInfo {
 
         public static final ColumnIdent PATH = new ColumnIdent("path");
         public static final ColumnIdent BLOB_PATH = new ColumnIdent("blob_path");
-
-        public static final ColumnIdent MIN_LUCENE_VERSION = new ColumnIdent("min_lucene_version");
     }
 
     public static class ReferenceIdents {
@@ -118,7 +116,6 @@ public class SysShardsTableInfo extends StaticTableInfo {
         public static final ReferenceIdent RECOVERY = new ReferenceIdent(IDENT, Columns.RECOVERY);
         public static final ReferenceIdent PATH = new ReferenceIdent(IDENT, Columns.PATH);
         public static final ReferenceIdent BLOB_PATH = new ReferenceIdent(IDENT, Columns.BLOB_PATH);
-        public static final ReferenceIdent MIN_LUCENE_VERSION = new ReferenceIdent(IDENT, Columns.MIN_LUCENE_VERSION);
     }
 
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(
@@ -164,7 +161,6 @@ public class SysShardsTableInfo extends StaticTableInfo {
                 .register(Columns.PATH, DataTypes.STRING)
                 .register(Columns.BLOB_PATH, DataTypes.STRING)
 
-                .register(Columns.MIN_LUCENE_VERSION, StringType.INSTANCE)
                 .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
             PRIMARY_KEY);
         this.service = service;
