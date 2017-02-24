@@ -98,9 +98,9 @@ table has many partitions this should be avoided due to performance reasons.
 Segments Upgrade
 ================
 
-In case that some or all of the segments of a table or a table partition are created
-with an older version of the storage engine, then with the use of ``OPTIMIZE``, these
-segments can be upgraded to the current version of the storage engine.
+If some or all segments of a table or table partition are created with an older
+version of the storage engine, ``OPTIMIZE`` can be used to upgrade these
+segments to to the current version of the storage engine.
 
 ::
 
