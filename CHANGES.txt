@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2017/02/24 0.57.8
+=================
+
  - Fixed an issue in the postgres protocol that could cause a StackOverflow
    exception due to connection errors or malfunctioning clients.
 
