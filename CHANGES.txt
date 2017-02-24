@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added a new parameter ``upgrade_segments`` to the ``OPTIMIZE`` statement
+   which enables the upgrade of tables and tables partitions to the current
+   version of the storage engine.
+
  - Added new column ``min_lucene_version`` to ``sys.shards`` table,
    which shows the version of the oldest segment of the shard.
 
