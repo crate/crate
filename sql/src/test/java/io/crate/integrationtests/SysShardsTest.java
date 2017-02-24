@@ -27,6 +27,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
+import org.apache.lucene.util.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -152,17 +153,18 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute(
             "select * from sys.shards where table_name = 'characters'");
         assertEquals(8L, response.rowCount());
-        assertEquals(14, response.cols().length);
+        assertEquals(15, response.cols().length);
     }
 
     @Test
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = execute("select * from sys.shards");
         assertEquals(26L, response.rowCount());
-        assertEquals(14, response.cols().length);
+        assertEquals(15, response.cols().length);
         assertThat(response.cols(), arrayContaining(
             "blob_path",
             "id",
+            "min_lucene_version",
             "num_docs",
             "orphan_partition",
             "partition_ident",
@@ -182,7 +184,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute(
             "select * from sys.shards where table_name like 'charact%'");
         assertEquals(8L, response.rowCount());
-        assertEquals(14, response.cols().length);
+        assertEquals(15, response.cols().length);
     }
 
     @Test
@@ -190,7 +192,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute(
             "select * from sys.shards where table_name not like 'quotes%'");
         assertEquals(18L, response.rowCount());
-        assertEquals(14, response.cols().length);
+        assertEquals(15, response.cols().length);
     }
 
     @Test
@@ -198,7 +200,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute(
             "select * from sys.shards where table_name in ('characters')");
         assertEquals(8L, response.rowCount());
-        assertEquals(14, response.cols().length);
+        assertEquals(15, response.cols().length);
     }
 
     @Test
@@ -210,11 +212,13 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectOrderBy() throws Exception {
-        SQLResponse response = execute("select table_name, * from sys.shards order by table_name");
+        SQLResponse response = execute("select table_name, min_lucene_version, * " +
+                                       "from sys.shards order by table_name");
         assertEquals(26L, response.rowCount());
         List<String> tableNames = Arrays.asList("blobs", "characters", "quotes");
         for (Object[] row : response.rows()) {
             assertThat(tableNames.contains(row[0]), is(true));
+            assertThat(row[1], is(Version.LATEST.toString()));
         }
     }
 

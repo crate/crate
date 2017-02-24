@@ -26,10 +26,7 @@ import io.crate.metadata.AbstractReferenceResolver;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.sys.shard.*;
-import io.crate.operation.reference.sys.shard.blob.BlobShardBlobPathExpression;
-import io.crate.operation.reference.sys.shard.blob.BlobShardNumDocsExpression;
-import io.crate.operation.reference.sys.shard.blob.BlobShardSizeExpression;
-import io.crate.operation.reference.sys.shard.blob.BlobShardTableNameExpression;
+import io.crate.operation.reference.sys.shard.blob.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -56,5 +53,7 @@ public class BlobShardReferenceResolver extends AbstractReferenceResolver {
             new LiteralReferenceImplementation<>(false));
         implementations.put(SysShardsTableInfo.ReferenceIdents.PATH, new ShardPathExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.BLOB_PATH, new BlobShardBlobPathExpression(blobShard));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.MIN_LUCENE_VERSION,
+            new ShardMinLuceneVersionExpression(indexShard));
     }
 }

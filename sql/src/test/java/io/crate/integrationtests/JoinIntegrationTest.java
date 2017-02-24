@@ -243,8 +243,8 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()),
             is("strict| blob_path\n" +
                "strict| id\n" +
-               "strict| num_docs\n" +
-               "strict| orphan_partition\n"));
+               "strict| min_lucene_version\n" +
+               "strict| num_docs\n"));
     }
 
     @Test

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added new column ``min_lucene_version`` to ``sys.shards`` table,
+   which shows the version of the oldest segment of the shard.
+
  - UDC: add the ``enterprise`` field to the ``UDC`` ping.
    The field identifies whether a user uses the enterprise version.
 
