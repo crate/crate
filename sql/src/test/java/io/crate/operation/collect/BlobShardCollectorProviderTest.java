@@ -49,7 +49,9 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
     private BlobShardCollectorProvider collectorProvider;
 
     private Iterable<Row> getBlobRows(RoutedCollectPhase phase, boolean repeat) throws Exception {
-        Method m = BlobShardCollectorProvider.class.getDeclaredMethod("getBlobRows", RoutedCollectPhase.class, boolean.class);
+        Method m = BlobShardCollectorProvider.class.getDeclaredMethod(
+            "getBlobRows",
+            RoutedCollectPhase.class, boolean.class);
         m.setAccessible(true);
         //noinspection unchecked
         return (Iterable<Row>) m.invoke(collectorProvider, phase, repeat);
@@ -95,8 +97,15 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
                 BlobIndicesService blobIndicesService = internalCluster().getInstance(BlobIndicesService.class);
                 BlobShard blobShard = blobIndicesService.blobShard(new ShardId(".blob_b1", 0));
                 assertNotNull(blobShard);
-                collectorProvider = new BlobShardCollectorProvider(blobShard, null, null,
-                    null, null, null, null, null);
+                collectorProvider = new BlobShardCollectorProvider(
+                    blobShard,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
                 assertNotNull(collectorProvider);
             } catch (Exception e) {
                 fail("Exception shouldn't be thrown: " + e.getMessage());

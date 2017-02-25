@@ -26,10 +26,7 @@ import io.crate.metadata.AbstractReferenceResolver;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.sys.shard.*;
-import io.crate.operation.reference.sys.shard.blob.BlobShardBlobPathExpression;
-import io.crate.operation.reference.sys.shard.blob.BlobShardNumDocsExpression;
-import io.crate.operation.reference.sys.shard.blob.BlobShardSizeExpression;
-import io.crate.operation.reference.sys.shard.blob.BlobShardTableNameExpression;
+import io.crate.operation.reference.sys.shard.blob.*;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -48,7 +45,8 @@ public class BlobShardReferenceResolver extends AbstractReferenceResolver {
             new LiteralReferenceImplementation<>(new BytesRef(BlobSchemaInfo.NAME)));
         implementations.put(SysShardsTableInfo.ReferenceIdents.SIZE, new BlobShardSizeExpression(blobShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.STATE, new ShardStateExpression(indexShard));
-        implementations.put(SysShardsTableInfo.ReferenceIdents.ROUTING_STATE, new ShardRoutingStateExpression(indexShard));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.ROUTING_STATE,
+            new ShardRoutingStateExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.TABLE_NAME, new BlobShardTableNameExpression(shardId));
         implementations.put(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT,
             new LiteralReferenceImplementation<>(new BytesRef("")));

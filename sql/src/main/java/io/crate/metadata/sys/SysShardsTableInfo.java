@@ -97,8 +97,8 @@ public class SysShardsTableInfo extends StaticTableInfo {
 
         /**
          * Implementations have to be registered in
-         *  - {@link io.crate.operation.reference.sys.shard.SysShardExpressionModule}
-         *  - {@link io.crate.operation.reference.sys.shard.blob.BlobShardExpressionModule}
+         *  - {@link io.crate.metadata.shard.ShardReferenceResolver}
+         *  - {@link io.crate.metadata.shard.blob.BlobShardReferenceResolver}
          *  - {@link io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsExpressionFactories}
          */
 
@@ -160,6 +160,7 @@ public class SysShardsTableInfo extends StaticTableInfo {
                 .register(Columns.RECOVERY_FILES_PERCENT, FloatType.INSTANCE)
                 .register(Columns.PATH, DataTypes.STRING)
                 .register(Columns.BLOB_PATH, DataTypes.STRING)
+
                 .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
             PRIMARY_KEY);
         this.service = service;
@@ -187,17 +188,8 @@ public class SysShardsTableInfo extends StaticTableInfo {
             node = shardRouting.currentNodeId();
             id = shardRouting.id();
         }
-        Map<String, List<Integer>> nodeMap = routing.get(node);
-        if (nodeMap == null) {
-            nodeMap = new TreeMap<>();
-            routing.put(node, nodeMap);
-        }
-
-        List<Integer> shards = nodeMap.get(index);
-        if (shards == null) {
-            shards = new ArrayList<>();
-            nodeMap.put(index, shards);
-        }
+        Map<String, List<Integer>> nodeMap = routing.computeIfAbsent(node, k -> new TreeMap<>());
+        List<Integer> shards = nodeMap.computeIfAbsent(index, k -> new ArrayList<>());
         shards.add(id);
     }
 

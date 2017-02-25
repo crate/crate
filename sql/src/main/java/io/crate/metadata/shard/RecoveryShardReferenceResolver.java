@@ -30,7 +30,6 @@ import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.sys.shard.ShardRecoveryExpression;
 import org.elasticsearch.index.shard.IndexShard;
 
-
 public class RecoveryShardReferenceResolver extends AbstractReferenceResolver {
 
     /**
@@ -48,7 +47,8 @@ public class RecoveryShardReferenceResolver extends AbstractReferenceResolver {
 
     private final ReferenceResolver<ReferenceImplementation<?>> staticReferencesResolver;
 
-    public RecoveryShardReferenceResolver(ReferenceResolver<ReferenceImplementation<?>> shardResolver, IndexShard indexShard) {
+    public RecoveryShardReferenceResolver(ReferenceResolver<ReferenceImplementation<?>> shardResolver,
+                                          IndexShard indexShard) {
         staticReferencesResolver = shardResolver;
         implementations.put(SysShardsTableInfo.ReferenceIdents.RECOVERY,
             new ShardRecoveryExpression(indexShard));
@@ -62,5 +62,4 @@ public class RecoveryShardReferenceResolver extends AbstractReferenceResolver {
         }
         return impl;
     }
-
 }
