@@ -104,5 +104,5 @@ segments can be upgraded to the current version of the storage engine.
 
 ::
 
-    cr> OPTIMIZE TABLE locations WITH (ugprade_segments=true);
+    cr> OPTIMIZE TABLE locations WITH (upgrade_segments=true);
     OPTIMIZE OK, 1 row affected (... sec)

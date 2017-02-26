@@ -86,6 +86,10 @@ public class OptimizeTableAnalyzerTest extends CrateUnitTest {
         assertThat(analysis.indexNames().size(), is(1));
         assertThat(analysis.indexNames(), hasItem("users"));
         assertThat(analysis.settings().getAsBoolean(OptimizeSettings.FLUSH.name(), null), is(Boolean.FALSE));
+        analysis = e.analyze("OPTIMIZE TABLE users WITH (upgrade_segments=true)");
+        assertThat(analysis.indexNames().size(), is(1));
+        assertThat(analysis.indexNames(), hasItem("users"));
+        assertThat(analysis.settings().getAsBoolean(OptimizeSettings.UPGRADE_SEGMENTS.name(), null), is(Boolean.TRUE));
     }
 
     @Test
@@ -93,6 +97,13 @@ public class OptimizeTableAnalyzerTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("setting 'invalidparam' not supported");
         e.analyze("OPTIMIZE TABLE users WITH (invalidParam=123)");
+    }
+
+    @Test
+    public void testOptimizeTableWithUpgradeSegmentsAndOtherParam() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("cannot use other parameters if upgrade_segments is set to true");
+        e.analyze("OPTIMIZE TABLE users WITH (flush=false, upgrade_segments=true)");
     }
 
     @Test

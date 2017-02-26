@@ -30,6 +30,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.table.TableInfo;
+import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.OptimizeStatement;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.common.settings.Settings;
@@ -37,6 +38,7 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static io.crate.analyze.OptimizeSettings.*;
@@ -47,6 +49,7 @@ class OptimizeTableAnalyzer {
         .put(MAX_NUM_SEGMENTS.name(), new SettingsAppliers.IntSettingsApplier(MAX_NUM_SEGMENTS))
         .put(ONLY_EXPUNGE_DELETES.name(), new SettingsAppliers.BooleanSettingsApplier(ONLY_EXPUNGE_DELETES))
         .put(FLUSH.name(), new SettingsAppliers.BooleanSettingsApplier(FLUSH))
+        .put(UPGRADE_SEGMENTS.name(), new SettingsAppliers.BooleanSettingsApplier(UPGRADE_SEGMENTS))
         .build();
 
     private final Schemas schemas;
@@ -66,6 +69,7 @@ class OptimizeTableAnalyzer {
         Settings.Builder builder = GenericPropertiesConverter.settingsFromProperties(
             stmt.properties(), analysis.parameterContext(), SETTINGS);
         Settings settings = builder.build();
+        validateSettings(settings, stmt.properties());
         return new OptimizeTableAnalyzedStatement(indexNames, settings);
     }
 
@@ -89,5 +93,13 @@ class OptimizeTableAnalyzer {
             }
         }
         return indexNames;
+    }
+
+    private void validateSettings(Settings settings, Optional<GenericProperties> stmtParameters) {
+        if (settings.getAsBoolean(UPGRADE_SEGMENTS.name(), UPGRADE_SEGMENTS.defaultValue())
+            && stmtParameters.get().size() > 1) {
+            throw new IllegalArgumentException("cannot use other parameters if " +
+                                               UPGRADE_SEGMENTS.name() + " is set to true");
+        }
     }
 }
