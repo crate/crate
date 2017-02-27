@@ -27,14 +27,16 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.BatchIterator;
 import io.crate.executor.transport.TransportNodeStatsAction;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.InputFactory;
+import io.crate.operation.collect.BatchIteratorCollectorBridge;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
-import io.crate.operation.collect.collectors.NodeStatsCollector;
+import io.crate.operation.collect.collectors.NodeStatsIterator;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.planner.node.dql.CollectPhase;
@@ -79,14 +81,13 @@ public class NodeStatsCollectSource implements CollectSource {
         if (nodes.isEmpty()) {
             return ImmutableList.of(RowsCollector.empty(downstream));
         }
-        return ImmutableList.of(new NodeStatsCollector(
-                nodeStatsAction,
-                downstream,
-                collectPhase,
-                nodes,
-                inputFactory
-            )
+        BatchIterator nodeStatsIterator = NodeStatsIterator.newInstance(
+            nodeStatsAction,
+            collectPhase,
+            nodes,
+            inputFactory
         );
+        return ImmutableList.of(BatchIteratorCollectorBridge.newInstance(nodeStatsIterator, downstream));
     }
 
     @Nullable
