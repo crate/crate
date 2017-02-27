@@ -12,13 +12,7 @@ cluster.
 Tables
 ======
 
-The information schema contains a table called `tables`.
-
-This table can be queried to get a list of all available tables and their
-settings like the ``number of shards`` or ``number of replicas``::
-
-
-.. Hidden: Refresh::
+.. Hidden: Create table::
 
     cr> create table partitioned_table (
     ... id long,
@@ -26,6 +20,11 @@ settings like the ``number of shards`` or ``number of replicas``::
     ... date timestamp
     ... ) partitioned by (date);
     CREATE OK, 1 row affected (... sec)
+
+The information schema contains a table called `tables`.
+
+This table can be queried to get a list of all available tables and their
+settings like the ``number of shards`` or ``number of replicas``::
 
     cr> select table_schema, table_name, number_of_shards, number_of_replicas
     ... from information_schema.tables
