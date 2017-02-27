@@ -22,9 +22,9 @@
 package io.crate.operation.collect;
 
 import io.crate.data.Columns;
+import io.crate.data.IterableControlledBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowsBatchIterator;
-import io.crate.data.IterableControlledBatchIterator;
 import io.crate.operation.projectors.RowReceiver;
 
 public final class RowsCollector {
@@ -44,11 +44,7 @@ public final class RowsCollector {
         return new BatchIteratorCollector(RowsBatchIterator.newInstance(rows, numCols), rowReceiver);
     }
 
-    static CrateCollector.Builder emptyBuilder() {
-        return RowsCollector::empty;
-    }
-
-    public static CrateCollector.Builder builder(final Iterable<Row> rows, int numCols) {
-        return rowReceiver -> forRows(rows, numCols, rowReceiver);
+    public static BatchIteratorBuilder builder(final Iterable<Row> rows, int numCols) {
+        return () -> RowsBatchIterator.newInstance(rows, numCols);
     }
 }

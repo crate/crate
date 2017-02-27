@@ -50,6 +50,9 @@ public class BatchConsumerToRowReceiver implements BatchConsumer, Killable {
     }
 
     private BatchIterator applyProjections(BatchIterator iterator) {
+        if (iterator == null) {
+            return null;
+        }
         RowReceiver receiver = rowReceiver;
         while (receiver instanceof Projector) {
             Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> projection = ((Projector) receiver).batchIteratorProjection();

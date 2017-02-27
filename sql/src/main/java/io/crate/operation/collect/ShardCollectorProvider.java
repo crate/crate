@@ -24,6 +24,9 @@ package io.crate.operation.collect;
 
 import io.crate.action.job.SharedShardContext;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.data.BatchIterator;
+import io.crate.data.Input;
+import io.crate.data.IterableControlledBatchIterator;
 import io.crate.data.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.AbstractReferenceResolver;
@@ -31,7 +34,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.shard.RecoveryShardReferenceResolver;
-import io.crate.data.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.*;
@@ -114,19 +116,19 @@ public abstract class ShardCollectorProvider {
      * Create a CrateCollector.Builder to collect rows from a shard.
      * <p>
      * This also creates all shard-level projectors.
-     * The RowReceiver that is used for {@link CrateCollector.Builder#build(RowReceiver)}
+     * The RowReceiver that is used for {@link BatchIteratorBuilder#build()}
      * should be the first node-level projector.
      */
-    public CrateCollector.Builder getCollectorBuilder(RoutedCollectPhase collectPhase,
-                                                      Set<Requirement> downstreamRequirements,
-                                                      JobCollectContext jobCollectContext) throws Exception {
+    public BatchIteratorBuilder getBatchIteratorBuilder(RoutedCollectPhase collectPhase,
+                                                        Set<Requirement> downstreamRequirements,
+                                                        JobCollectContext jobCollectContext) throws Exception {
         assert collectPhase.orderBy() ==
                null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
         RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, null);
 
-        final CrateCollector.Builder builder;
+        final BatchIteratorBuilder builder;
         if (normalizedCollectNode.whereClause().noMatch()) {
-            builder = RowsCollector.emptyBuilder();
+            builder = IterableControlledBatchIterator::empty;
         } else {
             assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
             builder = getBuilder(normalizedCollectNode, downstreamRequirements, jobCollectContext);
@@ -136,19 +138,29 @@ public abstract class ShardCollectorProvider {
         if (shardProjections.isEmpty()) {
             return builder;
         } else {
-            return rowReceiver -> builder.build(ProjectorChain.prependProjectors(
-                rowReceiver,
-                shardProjections,
-                normalizedCollectNode.jobId(),
-                jobCollectContext.queryPhaseRamAccountingContext(),
-                projectorFactory
-            ));
+            return new BatchIteratorBuilder() {
+                @Override
+                public BatchIterator build() {
+                    return builder.build();
+                }
+
+                @Override
+                public RowReceiver applyProjections(RowReceiver rowReceiver) {
+                    return ProjectorChain.prependProjectors(
+                        rowReceiver,
+                        shardProjections,
+                        normalizedCollectNode.jobId(),
+                        jobCollectContext.queryPhaseRamAccountingContext(),
+                        projectorFactory
+                    );
+                }
+            };
         }
     }
 
-    protected abstract CrateCollector.Builder getBuilder(RoutedCollectPhase collectPhase,
-                                                         Set<Requirement> downstreamRequirements,
-                                                         JobCollectContext jobCollectContext);
+    protected abstract BatchIteratorBuilder getBuilder(RoutedCollectPhase collectPhase,
+                                                       Set<Requirement> downstreamRequirements,
+                                                       JobCollectContext jobCollectContext);
 
 
     public abstract OrderedDocCollector getOrderedCollector(RoutedCollectPhase collectPhase,
