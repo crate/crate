@@ -25,11 +25,9 @@ import com.google.common.base.Preconditions;
 import io.crate.data.*;
 import io.crate.operation.aggregation.RowTransformingBatchIterator;
 import io.crate.operation.collect.CollectExpression;
-import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.List;
-import java.util.function.Function;
 
 public class SimpleTopNProjector extends InputRowProjector {
 
@@ -73,19 +71,16 @@ public class SimpleTopNProjector extends InputRowProjector {
 
     @Nullable
     @Override
-    public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
+    public BatchProjector batchProjectorImpl() {
         return it -> {
             if (remainingOffset > 0) {
                 it = new SkippingBatchIterator(it, remainingOffset);
             }
-            return new Tuple<>(
-                new RowTransformingBatchIterator(
+            return new RowTransformingBatchIterator(
                     LimitingBatchIterator.newInstance(it, toCollect),
                     inputs,
                     collectExpressions
-                ),
-                downstream
-            );
+                );
         };
     }
 }

@@ -24,13 +24,14 @@ package io.crate.operation.collect;
 
 import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
+import io.crate.data.BatchProjector;
 import io.crate.operation.projectors.BatchConsumerToRowReceiver;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.RowReceiver;
-import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
-import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.List;
 
 public class BatchIteratorCollector implements CrateCollector {
 
@@ -39,23 +40,22 @@ public class BatchIteratorCollector implements CrateCollector {
     private final RowReceiver rowReceiver;
 
     public BatchIteratorCollector(BatchIterator batchIterator, RowReceiver rowReceiver) {
+        List<BatchProjector> batchProjectors = new ArrayList<>();
         while (rowReceiver instanceof Projector) {
-            Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> projection =
-                ((Projector) rowReceiver).batchIteratorProjection();
-            if (projection == null) {
+            BatchProjector batchProjector = ((Projector) rowReceiver).batchProjectorImpl();
+            if (batchProjector == null) {
                 break;
             }
-            Tuple<BatchIterator, RowReceiver> tuple = projection.apply(batchIterator);
-            rowReceiver = tuple.v2();
-            batchIterator = tuple.v1();
+            batchProjectors.add(batchProjector);
+            rowReceiver = ((Projector) rowReceiver).downstream();
         }
         this.batchIterator = batchIterator;
         this.rowReceiver = rowReceiver;
         BatchConsumer batchConsumer = rowReceiver.asConsumer();
         if (batchConsumer == null) {
-            this.consumer = new BatchConsumerToRowReceiver(rowReceiver);
+            this.consumer = new BatchConsumerToRowReceiver(rowReceiver).projected(batchProjectors);
         } else {
-            this.consumer = batchConsumer;
+            this.consumer = batchConsumer.projected(batchProjectors);
         }
     }
 

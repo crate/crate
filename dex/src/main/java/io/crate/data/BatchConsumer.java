@@ -23,6 +23,7 @@
 package io.crate.data;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.function.BiConsumer;
 
 /**
@@ -93,4 +94,16 @@ public interface BatchConsumer extends BiConsumer<BatchIterator, Throwable> {
      */
     @Override
     void accept(BatchIterator iterator, @Nullable Throwable failure);
+
+    /**
+     * @return true if the consumer wants to scroll backwards by using {@link BatchIterator#moveToStart}
+     */
+    default boolean requiresScroll() {
+        return false;
+    }
+
+    default BatchConsumer projected(List<BatchProjector> projectors) {
+        if (projectors.isEmpty()) return this;
+        return new ProjectedBatchIterator(projectors, this);
+    }
 }
