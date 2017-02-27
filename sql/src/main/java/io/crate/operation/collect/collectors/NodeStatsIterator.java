@@ -24,6 +24,8 @@ package io.crate.operation.collect.collectors;
 
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.concurrent.CompletableFutures;
+import io.crate.data.*;
 import io.crate.executor.transport.NodeStatsRequest;
 import io.crate.executor.transport.NodeStatsResponse;
 import io.crate.executor.transport.TransportNodeStatsAction;
@@ -31,10 +33,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.InputFactory;
-import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.RowsTransformer;
-import io.crate.operation.projectors.IterableRowEmitter;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -43,47 +42,67 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 
-import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class NodeStatsCollector implements CrateCollector {
+import static io.crate.data.RowBridging.OFF_ROW;
 
+/**
+ * BatchIterator implementation that exposes the provided {@link RoutedCollectPhase} stats
+ * of the given collection of nodes.
+ */
+public class NodeStatsIterator implements BatchIterator {
+
+    private Row currentRow = OFF_ROW;
     private final TransportNodeStatsAction transportStatTablesAction;
-    private final RowReceiver rowReceiver;
     private final RoutedCollectPhase collectPhase;
     private final Collection<DiscoveryNode> nodes;
     private final InputFactory inputFactory;
+    private CompletableFuture<Iterable<Row>> loading;
+    private Iterable<Row> rows = Collections.emptyList();
+    private Iterator<Row> it = rows.iterator();
+    private final Columns rowData;
 
-    public NodeStatsCollector(TransportNodeStatsAction transportStatTablesAction,
-                              RowReceiver rowReceiver,
+    private NodeStatsIterator(TransportNodeStatsAction transportStatTablesAction,
                               RoutedCollectPhase collectPhase,
                               Collection<DiscoveryNode> nodes,
                               InputFactory inputFactory) {
         this.transportStatTablesAction = transportStatTablesAction;
-        this.rowReceiver = rowReceiver;
         this.collectPhase = collectPhase;
         this.nodes = nodes;
         this.inputFactory = inputFactory;
+
+        rowData = RowBridging.toInputs(() -> currentRow, this.collectPhase.toCollect().size());
     }
 
-    @Override
-    public void doCollect() {
+    public static BatchIterator newInstance(TransportNodeStatsAction transportStatTablesAction,
+                                            RoutedCollectPhase collectPhase,
+                                            Collection<DiscoveryNode> nodes,
+                                            InputFactory inputFactory) {
+        NodeStatsIterator delegate = new NodeStatsIterator(transportStatTablesAction, collectPhase, nodes, inputFactory);
+        return new CloseAssertingBatchIterator(delegate);
+    }
+
+    private CompletableFuture<List<NodeStatsContext>> getNodeStatsContexts() {
         Set<ColumnIdent> toCollect = TopLevelColumnIdentExtractor.extractColumns(collectPhase.toCollect());
         // If only ID or NAME are required it's possible to avoid collecting data from other nodes as everything
         // is available locally
-        boolean emitDirectly = isEmitDirectlyPossible(toCollect);
-        if (emitDirectly) {
-            emitAllFromLocalState();
+        boolean collectDirectly = isCollectDirectlyPossible(toCollect);
+        CompletableFuture<List<NodeStatsContext>> nodeStatsContextsFuture;
+        if (collectDirectly) {
+            nodeStatsContextsFuture = getNodeStatsContextFromLocalState();
         } else {
-            retrieveRemoteStateAndEmit(toCollect);
+            nodeStatsContextsFuture = getNodeStatsContextFromRemoteState(toCollect);
         }
+        return nodeStatsContextsFuture;
     }
 
     /**
      * @return true if all required column can be provided from the local state.
      */
-    private boolean isEmitDirectlyPossible(Set<ColumnIdent> toCollect) {
+    private boolean isCollectDirectlyPossible(Set<ColumnIdent> toCollect) {
         switch (toCollect.size()) {
             case 1:
                 return toCollect.contains(SysNodesTableInfo.Columns.ID) ||
@@ -95,17 +114,18 @@ public class NodeStatsCollector implements CrateCollector {
         return false;
     }
 
-    private void emitAllFromLocalState() {
+    private CompletableFuture<List<NodeStatsContext>> getNodeStatsContextFromLocalState() {
         List<NodeStatsContext> rows = new ArrayList<>(nodes.size());
         for (DiscoveryNode node : nodes) {
             rows.add(new NodeStatsContext(node.getId(), node.name()));
         }
-        emmitRows(rows);
+        return CompletableFuture.completedFuture(rows);
     }
 
-    private void retrieveRemoteStateAndEmit(Set<ColumnIdent> toCollect) {
-        final AtomicInteger remainingRequests = new AtomicInteger(nodes.size());
+    private CompletableFuture<List<NodeStatsContext>> getNodeStatsContextFromRemoteState(Set<ColumnIdent> toCollect) {
+        final CompletableFuture<List<NodeStatsContext>> nodeStatsContextsFuture = new CompletableFuture<>();
         final List<NodeStatsContext> rows = Collections.synchronizedList(new ArrayList<NodeStatsContext>(nodes.size()));
+        final AtomicInteger remainingNodesToCollect = new AtomicInteger(nodes.size());
         for (final DiscoveryNode node : nodes) {
             final String nodeId = node.getId();
             final NodeStatsRequest request = new NodeStatsRequest(toCollect);
@@ -113,8 +133,8 @@ public class NodeStatsCollector implements CrateCollector {
                 @Override
                 public void onResponse(NodeStatsResponse response) {
                     rows.add(response.nodeStatsContext());
-                    if (remainingRequests.decrementAndGet() == 0) {
-                        emmitRows(rows);
+                    if (remainingNodesToCollect.decrementAndGet() == 0) {
+                        nodeStatsContextsFuture.complete(rows);
                     }
                 }
 
@@ -122,26 +142,85 @@ public class NodeStatsCollector implements CrateCollector {
                 public void onFailure(Throwable t) {
                     if (t instanceof ReceiveTimeoutTransportException) {
                         rows.add(new NodeStatsContext(nodeId, node.name()));
-                        if (remainingRequests.decrementAndGet() == 0) {
-                            emmitRows(rows);
+                        if (remainingNodesToCollect.decrementAndGet() == 0) {
+                            nodeStatsContextsFuture.complete(rows);
                         }
                     } else {
-                        rowReceiver.fail(t);
+                        nodeStatsContextsFuture.completeExceptionally(t);
                     }
                 }
             }, TimeValue.timeValueMillis(3000L));
         }
-    }
-
-    private void emmitRows(List<NodeStatsContext> rows) {
-        new IterableRowEmitter(
-            rowReceiver,
-            RowsTransformer.toRowsIterable(inputFactory, RowContextReferenceResolver.INSTANCE, collectPhase, rows)
-        ).run();
+        return nodeStatsContextsFuture;
     }
 
     @Override
-    public void kill(@Nullable Throwable throwable) {
+    public Columns rowData() {
+        return rowData;
+    }
+
+    @Override
+    public void moveToStart() {
+        raiseIfLoading();
+        it = rows.iterator();
+        currentRow = OFF_ROW;
+    }
+
+    @Override
+    public boolean moveNext() {
+        raiseIfLoading();
+        if (it.hasNext()) {
+            currentRow = it.next();
+            return true;
+        }
+        currentRow = OFF_ROW;
+        return false;
+    }
+
+    @Override
+    public void close() {
+    }
+
+    @Override
+    public CompletionStage<?> loadNextBatch() {
+        if (isLoading()) {
+            return CompletableFutures.failedFuture(new IllegalStateException("Iterator is already loading"));
+        }
+
+        if (allLoaded()) {
+            return CompletableFutures.failedFuture(new IllegalStateException("All batches already loaded"));
+        }
+
+        loading = new CompletableFuture<>();
+
+        CompletableFuture<List<NodeStatsContext>> nodeStatsContexts = getNodeStatsContexts();
+        nodeStatsContexts.whenComplete((List<NodeStatsContext> result, Throwable t) -> {
+            if (t == null) {
+                rows = RowsTransformer.toRowsIterable(inputFactory, RowContextReferenceResolver.INSTANCE, collectPhase,
+                    result);
+                it = rows.iterator();
+                loading.complete(rows);
+            } else {
+                loading.completeExceptionally(t);
+            }
+        });
+
+        return loading;
+    }
+
+    @Override
+    public boolean allLoaded() {
+        return loading != null;
+    }
+
+    private boolean isLoading() {
+        return loading != null && loading.isDone() == false;
+    }
+
+    private void raiseIfLoading() {
+        if (isLoading()) {
+            throw new IllegalStateException("Iterator is loading");
+        }
     }
 
     private static class TopLevelColumnIdentExtractor extends DefaultTraversalSymbolVisitor<Set<ColumnIdent>, Void> {
