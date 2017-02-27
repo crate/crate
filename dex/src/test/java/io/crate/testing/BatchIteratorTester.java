@@ -205,7 +205,7 @@ public class BatchIteratorTester {
         expectFailure(it::allLoaded, IllegalStateException.class, "allLoaded must fail after close");
     }
 
-    private void testProperConsumption(BatchIterator it) {
+    private void testProperConsumption(BatchIterator it) throws Exception {
         CollectingBatchConsumer consumer = new CollectingBatchConsumer();
         consumer.accept(it, null);
 
