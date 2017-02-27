@@ -26,9 +26,7 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.BatchIterator;
-import io.crate.data.Bucket;
-import io.crate.data.Row;
+import io.crate.data.*;
 import io.crate.operation.PageResultListener;
 import io.crate.operation.merge.BatchPagingIterator;
 import io.crate.operation.merge.KeyIterable;
@@ -36,7 +34,6 @@ import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.projectors.BatchConsumerToRowReceiver;
 import io.crate.operation.projectors.Projector;
 import io.crate.operation.projectors.RowReceiver;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 
 import javax.annotation.Nonnull;
@@ -45,7 +42,6 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.Function;
 
 public class PageDownstreamContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext, PageBucketReceiver {
 
@@ -60,7 +56,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final PagingIterator<Integer, Row> pagingIterator;
     private final IntObjectHashMap<PageResultListener> listenersByBucketIdx;
     private final IntObjectHashMap<Bucket> bucketsByIdx;
-    private final BatchConsumerToRowReceiver consumer;
+    private final BatchConsumer consumer;
     private final RowReceiver rowReceiver;
     private final BatchPagingIterator<Integer> batchPagingIterator;
     private final BatchIterator batchIterator;
@@ -96,20 +92,18 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
             streamers.length
         );
 
-        BatchIterator batchIterator = batchPagingIterator;
+        batchIterator = batchPagingIterator;
+        List<BatchProjector> batchProjectors = new ArrayList<>();
         while (rowReceiver instanceof Projector) {
-            Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> projection =
-                ((Projector) rowReceiver).batchIteratorProjection();
-            if (projection == null) {
+            BatchProjector batchProjector = ((Projector) rowReceiver).batchProjectorImpl();
+            if (batchProjector == null) {
                 break;
             }
-            Tuple<BatchIterator, RowReceiver> tuple = projection.apply(batchIterator);
-            batchIterator = tuple.v1();
-            rowReceiver = tuple.v2();
+            batchProjectors.add(batchProjector);
+            rowReceiver = ((Projector) rowReceiver).downstream();
         }
-        this.batchIterator = batchIterator;
         this.rowReceiver = rowReceiver;
-        this.consumer = new BatchConsumerToRowReceiver(rowReceiver);
+        this.consumer = (new BatchConsumerToRowReceiver(rowReceiver)).projected(batchProjectors);
     }
 
     private void releaseListenersAndCloseContext() {

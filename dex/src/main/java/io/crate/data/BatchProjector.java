@@ -20,33 +20,33 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.data;
 
+import java.util.function.UnaryOperator;
 
-import io.crate.data.BatchProjector;
+public interface BatchProjector extends UnaryOperator<BatchIterator> {
 
-import javax.annotation.Nullable;
-
-public interface Projector extends RowReceiver {
-
-    void downstream(RowReceiver rowDownstreamHandle);
-
-    /**
-     * This method is used to get the downstream of the projector if users of this projector want to replace this instance
-     * with a {@link io.crate.data.BatchProjector} implementation.
-     *
-     * @return the downstream row receiver of this projector
-     */
-    RowReceiver downstream();
+    interface Scrollable extends BatchProjector {
+        @Override
+        default boolean isScrollable() {
+            return true;
+        }
+    }
 
     /**
-     * Returns a {@link BatchProjector} object which implements the same semantics as this row receiver based
-     * implementation if available, otherwise null.
+     * Projects a given batch iterator and returns a batch iterator which follows the semantics of the underlying
+     * projection.
      *
-     * @return a batch projector or null.
+     * @param batchIterator the batch iterator to be projected
+     * @return the projected batch iterator
      */
-    @Nullable
-    default BatchProjector batchProjectorImpl() {
-        return null;
+    @Override
+    BatchIterator apply(BatchIterator batchIterator);
+
+    /**
+     * Returns true if the result cursor of the projector is always scrollable
+     */
+    default boolean isScrollable() {
+        return false;
     }
 }

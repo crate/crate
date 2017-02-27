@@ -22,14 +22,12 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.data.BatchIterator;
+import io.crate.data.BatchProjector;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
-import java.util.function.Function;
 
 public class MergeCountProjector extends AbstractProjector {
 
@@ -55,7 +53,7 @@ public class MergeCountProjector extends AbstractProjector {
 
     @Nullable
     @Override
-    public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
-        return bi -> new Tuple<>(CollectingBatchIterator.summingLong(bi), downstream);
+    public BatchProjector batchProjectorImpl() {
+        return (BatchProjector.Scrollable) CollectingBatchIterator::summingLong;
     }
 }

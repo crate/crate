@@ -22,18 +22,16 @@
 package io.crate.operation.projectors;
 
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.BatchIterator;
+import io.crate.data.BatchProjector;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
-import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class AggregationPipe extends AbstractProjector {
@@ -93,14 +91,11 @@ public class AggregationPipe extends AbstractProjector {
 
     @Nullable
     @Override
-    public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
-        return bi -> new Tuple<>(
-            CollectingBatchIterator.newInstance(bi,
-                Collectors.collectingAndThen(
-                    new AggregateCollector(expressions, aggregators),
+    public BatchProjector batchProjectorImpl() {
+        return CollectingBatchIterator.createProjector(
+            Collectors.collectingAndThen(
+                new AggregateCollector(expressions, aggregators),
                     cells -> Collections.singletonList(new RowN(cells))),
-                aggregators.length),
-            downstream
-        );
+            aggregators.length);
     }
 }

@@ -72,6 +72,10 @@ public class CollectingBatchIterator<A> implements BatchIterator {
         return new CloseAssertingBatchIterator(new CollectingBatchIterator<>(source, collector, numCols));
     }
 
+    public static <A> BatchProjector.Scrollable createProjector(Collector<Row, A, ? extends Iterable<Row>> collector, int numCols) {
+        return batchIterator -> newInstance(batchIterator, collector, numCols);
+    }
+
     private CollectingBatchIterator(BatchIterator source, Collector<Row, A, ? extends Iterable<Row>> collector, int numCols) {
         this.source = source;
         this.collector = collector;
