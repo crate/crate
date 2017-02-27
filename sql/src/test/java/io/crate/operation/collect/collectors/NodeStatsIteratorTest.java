@@ -22,8 +22,10 @@
 
 package io.crate.operation.collect.collectors;
 
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.BatchIterator;
 import io.crate.executor.transport.NodeStatsRequest;
 import io.crate.executor.transport.TransportNodeStatsAction;
 import io.crate.metadata.Reference;
@@ -31,32 +33,30 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.InputFactory;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.BatchIteratorTester;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.elasticsearch.test.ESAllocationTestCase.newNode;
 import static org.mockito.Mockito.*;
 
-public class NodeStatsCollectorTest extends CrateUnitTest {
-
+public class NodeStatsIteratorTest extends CrateUnitTest {
 
     private RoutedCollectPhase collectPhase;
     private Collection<DiscoveryNode> nodes = new HashSet<>();
     private TransportNodeStatsAction transportNodeStatsAction = mock(TransportNodeStatsAction.class);
-    private RowReceiver rowReceiver = mock(RowReceiver.class);
 
     private Reference idRef;
     private Reference nameRef;
@@ -81,45 +81,56 @@ public class NodeStatsCollectorTest extends CrateUnitTest {
     }
 
     @Test
-    public void testNoRequestIfNotRequired() {
+    public void testNoRequestIfNotRequired() throws InterruptedException, ExecutionException, TimeoutException {
         List<Symbol> toCollect = new ArrayList<>();
         toCollect.add(idRef);
 
         when(collectPhase.toCollect()).thenReturn(toCollect);
 
-        NodeStatsCollector collector = new NodeStatsCollector(
+        BatchIterator iterator = NodeStatsIterator.newInstance(
             transportNodeStatsAction,
-            rowReceiver,
             collectPhase,
             nodes,
             new InputFactory(getFunctions())
         );
-        collector.doCollect();
+        iterator.loadNextBatch();
 
         // Because only id and name are selected, transportNodesStatsAction should be never used
-        verifyNoMoreInteractions(transportNodeStatsAction);
-
-        toCollect.add(nameRef);
-        collector.doCollect();
         verifyNoMoreInteractions(transportNodeStatsAction);
     }
 
     @Test
-    public void testRequestsIfRequired() {
+    public void testRequestsAreIssued() throws InterruptedException, ExecutionException, TimeoutException {
+        List<Symbol> toCollect = new ArrayList<>();
+        toCollect.add(idRef);
+        toCollect.add(nameRef);
+        when(collectPhase.toCollect()).thenReturn(toCollect);
+
+        BatchIterator iterator = NodeStatsIterator.newInstance(
+            transportNodeStatsAction,
+            collectPhase,
+            nodes,
+            new InputFactory(getFunctions())
+        );
+        iterator.loadNextBatch();
+        verifyNoMoreInteractions(transportNodeStatsAction);
+    }
+
+    @Test
+    public void testRequestsIfRequired() throws InterruptedException, ExecutionException, TimeoutException {
         List<Symbol> toCollect = new ArrayList<>();
         toCollect.add(idRef);
         toCollect.add(hostnameRef);
 
         when(collectPhase.toCollect()).thenReturn(toCollect);
 
-        NodeStatsCollector collector = new NodeStatsCollector(
+        BatchIterator iterator = NodeStatsIterator.newInstance(
             transportNodeStatsAction,
-            rowReceiver,
             collectPhase,
             nodes,
             new InputFactory(getFunctions())
         );
-        collector.doCollect();
+        iterator.loadNextBatch();
 
         // Hostnames needs to be collected so requests need to be performed
         verify(transportNodeStatsAction).execute(eq("nodeOne"), any(NodeStatsRequest.class), any(ActionListener.class),
@@ -127,5 +138,27 @@ public class NodeStatsCollectorTest extends CrateUnitTest {
         verify(transportNodeStatsAction).execute(eq("nodeTwo"), any(NodeStatsRequest.class), any(ActionListener.class),
             eq(TimeValue.timeValueMillis(3000L)));
         verifyNoMoreInteractions(transportNodeStatsAction);
+    }
+
+    @Test
+    public void testNodeStatsIteratorContrat() throws Exception {
+        List<Symbol> toCollect = new ArrayList<>();
+        toCollect.add(idRef);
+        when(collectPhase.toCollect()).thenReturn(toCollect);
+        when(collectPhase.whereClause()).thenReturn(WhereClause.MATCH_ALL);
+        when(collectPhase.orderBy()).thenReturn(new OrderBy(Collections.singletonList(idRef),
+            new boolean[]{false}, new Boolean[]{true}));
+
+        BatchIteratorTester tester = new BatchIteratorTester(() -> NodeStatsIterator.newInstance(
+            transportNodeStatsAction,
+            collectPhase,
+            nodes,
+            new InputFactory(getFunctions())
+        ), Arrays.asList(
+            new Object[]{new BytesRef("nodeOne")},
+            new Object[]{new BytesRef("nodeTwo")}
+        )
+        );
+        tester.run();
     }
 }
