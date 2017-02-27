@@ -20,11 +20,13 @@ supported by Crate.
     reference/copy_to
     reference/create_analyzer
     reference/create_blob_table
+    reference/create_function
     reference/create_repository
     reference/create_snapshot
     reference/create_table
     reference/constraints
     reference/delete
+    reference/drop_function
     reference/drop_repository
     reference/drop_snapshot
     reference/drop_table
