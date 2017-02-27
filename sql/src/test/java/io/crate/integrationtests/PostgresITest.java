@@ -315,18 +315,17 @@ public class PostgresITest extends SQLTransportIntegrationTest {
                     }
                 }
             }
-            try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties);
-                 Statement statement = conn.createStatement()) {
-                String q = "SELECT j.stmt, o.name FROM sys.operations AS o, sys.jobs AS j WHERE o.job_id = j.id";
-                ResultSet rs = statement.executeQuery(q);
-                int rowCount = 0;
+            try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties)) {
+                String q = "SELECT j.stmt, o.name FROM sys.operations AS o, sys.jobs AS j WHERE o.job_id = j.id" +
+                           " and j.stmt = ?";
+                PreparedStatement statement = conn.prepareStatement(q);
+                statement.setString(1, "select mountain from sys.summits");
+                ResultSet rs = statement.executeQuery();
+                List<String> operations = new ArrayList<>();
                 while (rs.next()) {
-                    String stmt = rs.getString(1);
-                    if (!q.equals(stmt)) {
-                        rowCount++;
-                    }
+                     operations.add(rs.getString(2));
                 }
-                assertThat(rowCount, is(0));
+                assertThat(operations, Matchers.empty());
             }
         } finally {
             try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties);
