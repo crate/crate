@@ -27,6 +27,7 @@ import io.crate.action.job.JobRequest;
 import io.crate.action.job.JobResponse;
 import io.crate.action.job.TransportJobAction;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.Killable;
 import io.crate.data.Row;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
@@ -37,6 +38,7 @@ import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.merge.PassThroughPagingIterator;
+import io.crate.operation.projectors.BatchConsumerToRowReceiver;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -61,10 +63,12 @@ public class RemoteCollector implements CrateCollector {
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final JobContextService jobContextService;
     private final RamAccountingContext ramAccountingContext;
-    private final RowReceiver rowReceiver;
+    private final BatchConsumerToRowReceiver consumer;
     private final RoutedCollectPhase collectPhase;
 
     private final Object killLock = new Object();
+    private final boolean scrollRequired;
+    private final Killable killable;
     private JobExecutionContext context = null;
     private boolean collectorKilled = false;
 
@@ -81,11 +85,13 @@ public class RemoteCollector implements CrateCollector {
         this.localNode = localNode;
         this.remoteNode = remoteNode;
 
+        this.scrollRequired = rowReceiver.requirements().contains(Requirement.REPEAT);
         this.transportJobAction = transportJobAction;
         this.transportKillJobsNodeAction = transportKillJobsNodeAction;
         this.jobContextService = jobContextService;
         this.ramAccountingContext = ramAccountingContext;
-        this.rowReceiver = rowReceiver;
+        this.consumer = new BatchConsumerToRowReceiver(rowReceiver);
+        this.killable = rowReceiver;
         this.collectPhase = collectPhase;
     }
 
@@ -101,7 +107,7 @@ public class RemoteCollector implements CrateCollector {
         try {
             synchronized (killLock) {
                 if (collectorKilled) {
-                    rowReceiver.fail(new InterruptedException());
+                    consumer.accept(null, new InterruptedException());
                     return false;
                 }
                 context = jobContextService.createContext(builder);
@@ -110,7 +116,7 @@ public class RemoteCollector implements CrateCollector {
             }
         } catch (Throwable t) {
             if (context == null) {
-                rowReceiver.fail(t);
+                consumer.accept(null, t);
             } else {
                 context.kill();
             }
@@ -154,7 +160,7 @@ public class RemoteCollector implements CrateCollector {
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNode);
 
         PassThroughPagingIterator<Integer, Row> pagingIterator;
-        if (rowReceiver.requirements().contains(Requirement.REPEAT)) {
+        if (scrollRequired) {
             pagingIterator = PassThroughPagingIterator.repeatable();
         } else {
             pagingIterator = PassThroughPagingIterator.oneShot();
@@ -164,7 +170,8 @@ public class RemoteCollector implements CrateCollector {
             localNode,
             RECEIVER_PHASE_ID,
             "remoteCollectReceiver",
-            rowReceiver,
+            consumer,
+            killable,
             pagingIterator,
             DataTypes.getStreamers(collectPhase.outputTypes()),
             ramAccountingContext,
