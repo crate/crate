@@ -32,7 +32,7 @@ import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.merge.SortedPagingIterator;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.CollectingBatchConsumer;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -41,6 +41,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -52,7 +53,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
-    private PageDownstreamContext getPageDownstreamContext(CollectingRowReceiver rowReceiver,
+    private PageDownstreamContext getPageDownstreamContext(CollectingBatchConsumer batchConsumer,
                                                            PagingIterator<Integer, Row> pagingIterator,
                                                            int numBuckets) {
         return new PageDownstreamContext(
@@ -60,7 +61,8 @@ public class PageDownstreamContextTest extends CrateUnitTest {
             "n1",
             1,
             "dummy",
-            rowReceiver,
+            batchConsumer,
+            batchConsumer,
             pagingIterator,
             new Streamer[1],
             RAM_ACCOUNTING_CONTEXT,
@@ -69,10 +71,10 @@ public class PageDownstreamContextTest extends CrateUnitTest {
     }
 
     @Test
-    public void testCantSetSameBucketTwiceWithoutReceivingFullPage() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+    public void testCantSetSameBucketTwiceWithoutReceivingFullPage() throws Throwable {
+        CollectingBatchConsumer batchConsumer = new CollectingBatchConsumer();
 
-        PageBucketReceiver ctx = getPageDownstreamContext(rowReceiver, PassThroughPagingIterator.oneShot(), 3);
+        PageBucketReceiver ctx = getPageDownstreamContext(batchConsumer, PassThroughPagingIterator.oneShot(), 3);
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
@@ -81,13 +83,13 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("Same bucket of a page set more than once. node=n1 method=setBucket phaseId=1 bucket=1");
-        rowReceiver.result();
+        batchConsumer.getResult();
     }
 
     @Test
-    public void testKillCallsDownstream() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        PageDownstreamContext ctx = getPageDownstreamContext(rowReceiver, PassThroughPagingIterator.oneShot(), 3);
+    public void testKillCallsDownstream() throws Throwable {
+        CollectingBatchConsumer batchConsumer = new CollectingBatchConsumer();
+        PageDownstreamContext ctx = getPageDownstreamContext(batchConsumer, PassThroughPagingIterator.oneShot(), 3);
 
         final AtomicReference<Throwable> throwable = new AtomicReference<>();
         ctx.completionFuture().whenComplete((r, t) -> {
@@ -101,15 +103,15 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         ctx.kill(null);
         assertThat(throwable.get(), instanceOf(InterruptedException.class));
 
-        expectedException.expectCause(instanceOf(InterruptedException.class));
-        rowReceiver.result();
+        expectedException.expect(InterruptedException.class);
+        batchConsumer.getResult();
     }
 
     @Test
-    public void testPagingWithSortedPagingIterator() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+    public void testPagingWithSortedPagingIterator() throws Throwable {
+        CollectingBatchConsumer batchConsumer = new CollectingBatchConsumer();
         PageDownstreamContext ctx = getPageDownstreamContext(
-            rowReceiver,
+            batchConsumer,
             new SortedPagingIterator<>(Comparator.comparingInt(r -> (int)r.get(0)), false),
             2
         );
@@ -136,8 +138,8 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         ctx.setBucket(1, b2, true, mock(PageResultListener.class));
 
 
-        Bucket result = rowReceiver.result();
-        assertThat(TestingHelpers.printedTable(result),
+        List<Object[]> result = batchConsumer.getResult();
+        assertThat(TestingHelpers.printedTable(new CollectionBucket(result)),
             is("1\n" +
                "1\n" +
                "2\n" +
@@ -147,8 +149,8 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
     @Test
     public void testListenersCalledWhenOtherUpstreamIsFailing() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        PageDownstreamContext ctx = getPageDownstreamContext(rowReceiver, PassThroughPagingIterator.oneShot(), 2);
+        CollectingBatchConsumer consumer = new CollectingBatchConsumer();
+        PageDownstreamContext ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
 
         PageResultListener listener = mock(PageResultListener.class);
         ctx.setBucket(0, Bucket.EMPTY, true, listener);
@@ -159,8 +161,8 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
     @Test
     public void testListenerCalledAfterOthersHasFailed() throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        PageDownstreamContext ctx = getPageDownstreamContext(rowReceiver, PassThroughPagingIterator.oneShot(), 2);
+        CollectingBatchConsumer consumer = new CollectingBatchConsumer();
+        PageDownstreamContext ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
 
         ctx.failure(0, new Exception("dummy"));
         PageResultListener listener = mock(PageResultListener.class);
