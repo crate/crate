@@ -51,7 +51,7 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
     private final Columns rowData;
     private final Row sourceRow;
     private CompletableFuture<BitSet> loading;
-    private Row currentRow = OFF_ROW;
+    private Row currentRow = RowBridging.OFF_ROW;
     private  BitSet result;
     private boolean fromStart = true;
 
@@ -89,7 +89,7 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
     @Override
     public void moveToStart() {
         raiseIfLoading();
-        currentRow = OFF_ROW;
+        currentRow = RowBridging.OFF_ROW;
         fromStart = true;
     }
 
@@ -100,14 +100,14 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
         }
         raiseIfLoading();
 
-        if (currentRow.equals(OFF_ROW) && fromStart) {
+        if (currentRow.equals(RowBridging.OFF_ROW) && fromStart) {
             long rowCount = result == null ? 0 : result.cardinality();
             currentRow = new Row1(rowCount);
             fromStart = false;
             return true;
         }
 
-        currentRow = OFF_ROW;
+        currentRow = RowBridging.OFF_ROW;
         return false;
     }
 
