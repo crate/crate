@@ -1,227 +1,154 @@
-===========
-DEVELOPMENT
-===========
+=============
+Develop Guide
+=============
 
 Prerequisites
 =============
 
-Crate is written in Java_, so a JDK needs to be installed. On OS X we recommend
-using `Oracle's Java`_ and OpenJDK_ on Linux Systems.
+CrateDB is written in Java_, so a JDK needs to be installed.
 
-It is recommended to use a recent Java 8 version.
+On OS X, we recommend using `Oracle's Java`_. If you're using Linux, we
+recommend OpenJDK_.
 
-Git checkout and submodules
-===========================
+We recommend you use a recent Java 8 version.
 
-Clone the repository and initialize all contained submodules::
+Set Up
+======
 
-    $ git clone --recursive https://github.com/crate/crate.git
+Clone the repository like so::
+
+    $ git clone https://github.com/crate/crate.git
     $ cd crate
+    $ git submodule update --init
 
-Gradlew - Building Crate and Documentation
-==========================================
+Manual Build
+============
 
-This project uses Gradle_ as build tool. It can be invoked by executing
-``./gradlew``. The first time this command is executed it is bootstrapped
-automatically, therefore there is no need to install gradle on the system.
+This project uses Gradle_ as build tool.
 
-Writing Documentation
-=====================
+The most convenient way to  build and run CrateDB while you are working on the
+code is to do so directly from within your IDE. See the section on IDE
+integration later in this document. However, if you want to, you can work with
+Gradle directly.
 
-The documentation is maintained under the ``docs`` directory and written as
-`reStructuredText`_ (aka ``rst``) and is built using Sphinx_. The line length
-shall not exceed 80 characters. Most text editors support automatic line breaks
-at a certain line width if you don't want to insert line break manually ;)
+Gradle can be invoked by executing ``./gradlew``. The first time this command
+is executed it is bootstrapped automatically, therefore there is no need to
+install gradle on the system.
 
-Normally the documentation is built by `Read the Docs`_ and isn't part of the
-Crate distribution. However if you work on the documentation you can run sphinx
-directly, which can be done by just running ``bin/sphinx`` in the ``blackbox``
-directory. The output can then be found in the ``docs/out/html`` and
-``docs/out/text`` directories.
+To compile the CrateDB sources, run::
 
-Sphinx_ requires Python_ 3 to be installed in addition to Java_. Make
-sure that there is a python executable called ``python3`` in the global system
-``$PATH`` (most distributions do that by default if Python is installed).
+    $ ./gradlew compileJava
 
-Before you can build the documentation, you need to setup a development
-environment by running `bootstrap.sh` inside the ``blackbox`` directory::
 
-    $ cd blackbox
-    $ ./bootstrap.sh
+To run CrateDB as a Gradle task, you need to create configuration file for
+logging::
 
-To build the HTML and text documentation, run::
+    $ mkdir -pv config && touch config/log4j2.properties
 
-    $ ./bin/sphinx
+You can use a *minimal logging configuration*. For more information, see the
+the `logging documentation`_.
 
-If you're editing the docs and want live rebuilds, run::
+Run CrateDB like so::
 
-    $ ./bin/sphinx dev
+    $ ./gradlew runDebug
 
-This command watches the file system for changes and rebuilds the docs, refreshing your
-open browser tab, as needed.
+*Note*: If you run CrateDB like this, CrateDB will wait for a remote debugger
+on port ``5005`` before fully starting up!
 
-To test that all examples in the documentation execute correctly run::
+To install the CrateDB locally, run::
 
-    $ ./bin/test
+    $ ./gradlew installDist
 
-Or if you want to test that a specific file executes correctly run::
-
-    $ ./bin/test -1vt <filename>
-
-There is also a gradle task called ``itest`` which will execute all of the
-above steps.
-
-.. note::
-
-    To run the tests your network connection should be up and running, else
-    some of the tests will fail, because crate needs to bind to a network
-    interface that is capable of handling ip multicast requests.
-    This is not possible on localhost.
-
-Building and running Crate
---------------------------
-
-The most convenient way to run build and run Crate during development is
-directly within the IDE. See the section further down for more information.
-
-Regardless, it is possible to compile and run crate using gradle.
-
-To compile Crate sources execute::
-
-    ./gradlew compileJava
-
-To run Crate as a Gradle task, a configuration file for logging (`log4j`_)
-needs to be present::
-
-    mkdir -pv config && touch config/log4j2.properties
-
-You can use a :ref:`minimal logging configuration <minimim_logging_config>`.
-For more information about logging, please refer to our
-`docs <https://crate.io/docs/en/stable/configuration.html#logging>`_.
-
-And to run::
-
-    ./gradlew runDebug
-
-.. note::
-
-   Crate will wait for a remote debugger on port ``5005`` to fully start up!
-
-To install the distribution locally execute::
-
-    ./gradlew installDist
-
-And start Crate::
+And then start CrateDB like this::
 
     ./app/build/install/crate/bin/crate
 
-Other common tasks are::
+Build a tarball like so::
 
-    ./gradlew --parallel -PtestForks=2 :sql:test
+    $ ./gradlew distTar
 
-    ./gradlew itest
+The tarball can then be found in the ``app/build/distributions`` directory.
 
-    ./gradlew -PtestLogging :sql:test
+Some other common build tasks::
 
-    ./gradlew test -Dtest.single='YourTestClass'
+    $ ./gradlew --parallel -PtestForks=2 :sql:test
 
-    ./gradlew test --tests '*ClassName.testMethodName'
+    $ ./gradlew itest
 
-    ./gradlew :sql:test -Dtests.seed=8352BE0120F826A9
+    $ ./gradlew -PtestLogging :sql:test
 
-    ./gradlew :sql:test -Dtests.iters=20
+    $ ./gradlew test -Dtest.single='YourTestClass'
 
-Use ``@TestLogging(["<packageName1>:<logLevel1>", ...])`` on your
-test class or test method to enable more detailed logging.
+    $ ./gradlew test --tests '*ClassName.testMethodName'
 
-Example::
+    $ ./gradlew :sql:test -Dtests.seed=8352BE0120F826A9
+
+    $ ./gradlew :sql:test -Dtests.iters=20
+
+Use ``@TestLogging(["<packageName1>:<logLevel1>", ...])`` on your test class or
+test method to enable more detailed logging. For example::
 
     @TestLogging("io.crate:DEBUG","io.crate.planner.consumer.NestedLoopConsumer:TRACE")
 
-Alternatively you could use this configuration in command line but then it's applied
-to all tests that are run with the command::
+Alternatively, you can set this configuration via the command line::
 
-    ./gradlew -PtestLogging -Dtests.loggers.levels=io.crate:DEBUG,io.crate.planner.consumer.NestedLoopConsumer:TRACE :sql:test
+    $ ./gradlew -PtestLogging -Dtests.loggers.levels=io.crate:DEBUG,io.crate.planner.consumer.NestedLoopConsumer:TRACE :sql:test
 
- - Building a tarball (which will be under ``app/build/distributions``)::
+If you do this, the setting is applied to all tests that are run.
 
-    ./gradlew distTar
+To get a full list of all available tasks, run::
 
-To get a full list of all available tasks run::
+    $ ./gradlew tasks
 
-    ./gradlew tasks
+Using an IDE
+============
 
-Finding your way around in the Crate source code
-------------------------------------------------
+We recommend that you use `IntelliJ IDEA`_ for development.
 
-Getting familiar with a foreign code base is often a daunting task. Especially
-if it is a distributed data store.
+Gradle can be used to generate project files that can be opened in IntelliJ::
 
-This little section won't do justice to explain the whole architecture. This
-should only give you an idea on where to start reading.
-
-If a SQL statement is sent to Crate the work-flow is roughly as follows:
-
- - HTTP Request processing
- - Parse request body and create SQLRequest (happens in ``RestSQLAction.java``)
- - Process SQLRequest (see ``doExecute`` in ``TransportBaseSQLAction.java``)
-    - Statement is parsed, resulting in an abstract syntax tree
-    - AST is analyzed, basically using meta data like schema information to add
-      information.
-    - Some statements (mostly DDL) are executed directly
-    - Planner creates plan for other statements (select, update, delete...)
-    - Executor executes statement
-
-
-Running Crate in your IDE
-=========================
-
-IntelliJ
---------
-
-We recommend IntelliJ to develop Crate. Gradle can be used to generate project
-files that can be opened in IntelliJ::
-
-    ./gradlew idea
+    $ ./gradlew idea
 
 Run/Debug Configurations
 ------------------------
 
-``gradlew idea`` will have created a Run/Debug configuration called ``Crate``.
-This configuration can be used to launch and debug Crate from within IntelliJ.
+Running ``./gradlew idea`` creates a run/debug configuration called ``Crate``.
+This configuration can be used to launch and debug CrateDB from within IntelliJ.
 
-The ``home`` directory will be set to ``<project_root>/sandbox/crate`` and the
-configuration files for it can be found in
-``<project_root>/sandbox/crate/config``.
+The ``home`` directory will be set to ``<PROJECT_ROOT>/sandbox/crate`` and the
+configuration files can be found in the ``<PROJECT_ROOT>/sandbox/crate/config``
+directory.
+
+Here, ``<PROJECT_ROOT>`` is the root of your Git repository.
 
 Test Coverage
 --------------
 
-Create test coverage reports with `jacoco`_. The HTML report will be in
-``build/reports/jacoco/jacocoHtml``::
+You can create test coverage reports with `jacoco`_::
 
-    ./gradlew jacocoReport
+    $ ./gradlew jacocoReport
 
-Findbugs
+The HTML test coverage report can then be found in the
+``build/reports/jacoco/jacocoHtml`` directory.
+
+FindBugs
 --------
 
-Running `FindBugs`_ against our code base::
+You can run `FindBugs`_ like so::
 
-    ./gradlew findBugsMain
+    $ ./gradlew findBugsMain
 
-The findbugs check will also be executed when running::
-
-    ./gradlew check
+The FindBugs check will also be executed when running ``./gradlew check``.
 
 Forbidden APIs
 --------------
 
-Run `Forbidden APIs`_::
+You can run the `Forbidden APIs`_ tool like so::
 
-    ./gradlew forbiddenApisMain
+    $ ./gradlew forbiddenApisMain
 
-Benchmark
-=========
+Benchmarks
+==========
 
 Benchmarks are written using `JMH`_. They can be executed using ``gradle``::
 
@@ -236,80 +163,112 @@ If you want to execute specific benchmarks you can use the jar::
     $ ./gradlew :sql:jmhJar
     $ java -jar sql/build/libs/crate-sql-jmh.jar <benchmarkMethodName>
 
-
 Results will be generated into ``$buildDir/reports/jmh``.
 
 If you're writing new benchmarks take a look at this `JMH introduction`_ and
 those `JMH samples`_.
 
-Preparing a new Release
+Preparing a New Release
 =======================
 
 Before creating a new distribution, a new version and tag should be created:
 
- - Update the CURRENT version in ``io.crate.Version``.
+- Update ``CURRENT`` in ``io.crate.Version``
 
- - Add a note for the new version at the ``CHANGES.txt`` file.
+- Add a section for the new version in the ``CHANGES.txt`` file
 
- - Commit e.g. using message 'prepare release x.x.x'.
+- Commit your changes with a message like "prepare release x.y.z"
 
- - Push to origin
+- Push to origin
 
- - Create a tag using the ``create_tag.sh`` script
-   (run ``./devtools/create_tag.sh``).
+- Create a tag by running ``./devtools/create_tag.sh``
 
-Now everything is ready for building a new distribution, either
-manually or let Jenkins_ do the job as usual :-)
+You can build a release tarball like so::
 
-Building a release tarball is done via the ``release`` task. This task
-actually only runs the ``distTar`` task but additionally checks that
-the output of ``git describe --tag`` matches the current version of
-Crate::
+    $ ./gradlew release
 
- $ ./gradlew release
+This task runs the ``distTar`` task but also checks that the output of ``git
+describe --tag`` matches the current version of CrateDB.
 
-The resulting tarball and zip will reside in the folder
-``./app/build/distributions``.
+The resulting tarball and zip file will be written to the
+``./app/build/distributions`` directory.
+
+We have a Jenkins_ job that will build the tarball for you.
+
+Writing Documentation
+=====================
+
+The docs live under the ``blackbox/docs`` directory.
+
+The docs are written with `reStructuredText`_ and built with Sphinx_.
+
+Line length must not exceed 80 characters (except for literals that cannot be
+wrapped). Most text editors support automatic line breaks or hard wrapping at a
+certain line width if you don't want to do this by hand.
+
+To start working on the docs locally, you will need Python_ 3 in addition to
+Java_ (needed for the doctests_). Make sure that ``python3`` is on your
+``$PATH``.
+
+Before you can get started, you need to bootstrap the docs::
+
+    $ cd blackbox
+    $ ./bootstrap.sh
+
+Once this runs, you can build the docs and start the docs web server like so::
+
+    $ ./bin/sphinx dev
+
+Once the web server running, you can view your local copy of the docs by
+visiting http://127.0.0.1:8000 in a web browser.
+
+This command also watches the file system and rebuilds the docs when changes
+are detected. Even better, it will automatically refresh the browser tab for
+you.
+
+Many of the examples in the documentation are executable and function as
+doctests_.
+
+You can run the doctests like so::
+
+    $ ./bin/test
+
+If you want to test the doctests in a specific file, run this::
+
+    $ ./bin/test -1vt <filename>
+
+There is also a Gradle task called ``itest`` which will execute all of the
+above steps.
+
+*Note*: Your network connection should be up and running, or some of the tests
+will fail.
+
+The docs are automatically built from Git by `Read the Docs`_ and there is
+nothing special you need to do to get the live docs to update.
 
 Troubleshooting
 ===============
 
-If you just pulled some new commits using git and get strange compile errors in
-the SQL parser code it is probably necessary to re-generate the parser code as
-the grammar changed::
+If you just pulled some new commits and you're getting strange compile errors
+in the SQL parser code, try re-generating the code::
 
-    ./gradlew :sql-parser:compileJava
+    $ ./gradlew :sql-parser:compileJava
 
-.. _Jenkins: http://jenkins-ci.org/
-
-.. _Python: http://www.python.org/
-
-.. _Sphinx: http://sphinx-doc.org/
-
-.. _reStructuredText: http://docutils.sourceforge.net/rst.html
-
+.. _doctests: http://www.sphinx-doc.org/en/stable/ext/doctest.html
+.. _FindBugs: http://findbugs.sourceforge.net/
+.. _Forbidden APIs: https://github.com/policeman-tools/forbidden-apis
 .. _Gradle: http://www.gradle.org/
-
+.. _IntelliJ IDEA: https://www.jetbrains.com/idea/
+.. _jacoco: http://www.eclemma.org/jacoco/
 .. _Java: http://www.java.com/
-
-.. _`Oracle's Java`: http://www.java.com/en/download/help/mac_install.xml
-
+.. _Jenkins: http://jenkins-ci.org/
+.. _JMH introduction: http://java-performance.info/jmh/
+.. _JMH samples: http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/
+.. _JMH: http://openjdk.java.net/projects/code-tools/jmh/
+.. _logging documentation: https://crate.io/docs/en/stable/configuration.html#logging
 .. _OpenJDK: http://openjdk.java.net/projects/jdk8/
-
-.. _`Read the Docs`: http://readthedocs.org
-
-.. _`jacoco`: http://www.eclemma.org/jacoco/
-
-.. _`FindBugs`: http://findbugs.sourceforge.net/
-
-.. _`log4j`: http://logging.apache.org/log4j/2.x/
-
-.. _`JMH`: http://openjdk.java.net/projects/code-tools/jmh/
-
-.. _`jmh-gradle-plugin`: https://github.com/melix/jmh-gradle-plugin
-
-.. _`JMH introduction`: http://java-performance.info/jmh/
-
-.. _`JMH samples`: http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/
-
-.. _`Forbidden APIs`: https://github.com/policeman-tools/forbidden-apis
+.. _Oracle's Java: http://www.java.com/en/download/help/mac_install.xml
+.. _Python: http://www.python.org/
+.. _Read the Docs: http://readthedocs.org
+.. _reStructuredText: http://docutils.sourceforge.net/rst.html
+.. _Sphinx: http://sphinx-doc.org/

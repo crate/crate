@@ -11,6 +11,11 @@ the CrateDB distribution.
 
     sh$ ./bin/crash
 
+.. NOTE::
+
+   If you prefer a browser-based experience, you can follow along with this
+   tutorial by running these commands in `the CrateDB admin UI`_.
+
 .. highlight:: psql
 
 First let's connect to a running node::
@@ -81,6 +86,8 @@ Here it is used with a filter to only lookup Ford's tweets::
  :doc:`Configuration <configuration>` - After you're done trying out CrateDB and
  before you go into production you should take a look at this section.
  Especially the `CRATE_HEAP_SIZE` environment variable is very important!
+
+.. _the CrateDB admin UI: https://crate.io/docs/connect/admin_ui/
 
 .. _SQL: https://en.wikipedia.org/wiki/SQL
 
