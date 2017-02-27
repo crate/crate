@@ -36,6 +36,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -89,8 +90,18 @@ public class SingleBucketBuilderTest extends CrateUnitTest {
             RowsBatchIterator.newInstance(RowGenerator.range(0, 4)), 2);
         bucketBuilder.asConsumer().accept(iterator, null);
 
-        expectedException.expectCause(instanceOf(UnsupportedOperationException.class));
-        expectedException.expectMessage("Fail after 2 moveNext calls");
-        bucketBuilder.completionFuture().get(10, TimeUnit.SECONDS);
+        try {
+            bucketBuilder.completionFuture().get(10, TimeUnit.SECONDS);
+            fail("completionFuture must fail");
+        } catch (ExecutionException e) {
+            assertThat(e.getCause(), instanceOf(UnsupportedOperationException.class));
+        }
+
+        try {
+            iterator.moveNext();
+            fail("iterator must be closed");
+        } catch (IllegalStateException e) {
+            assertThat(e.getMessage(), is("Iterator is closed"));
+        }
     }
 }

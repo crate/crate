@@ -49,6 +49,7 @@ public class BatchRowVisitor {
             }
         } catch (Throwable t) {
             resultFuture.completeExceptionally(t);
+            return resultFuture;
         }
 
         if (it.allLoaded()) {
