@@ -22,9 +22,11 @@
 package io.crate.operation.reference.doc.lucene;
 
 
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.search.DocValueFormat;
@@ -58,7 +60,33 @@ public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
 
     @Override
     public void setNextReader(LeafReaderContext context) throws IOException {
-        // TODO: is it safe to unwrap in case it's an array of ips?
-        values = DocValues.unwrapSingleton(context.reader().getSortedSetDocValues(columnName));
+        SortedSetDocValues setDocValues = context.reader().getSortedSetDocValues(columnName);
+        final SortedDocValues singleton = DocValues.unwrapSingleton(setDocValues);
+        if (singleton != null) {
+            values = singleton;
+        } else {
+            values = new SortedDocValues() {
+                @Override
+                public int getOrd(int docID) {
+                    setDocValues.setDocument(docID);
+                    int ord = (int) setDocValues.nextOrd();
+
+                    if (setDocValues.nextOrd() != SortedSetDocValues.NO_MORE_ORDS) {
+                        throw new GroupByOnArrayUnsupportedException(columnName);
+                    }
+                    return ord;
+                }
+
+                @Override
+                public BytesRef lookupOrd(int ord) {
+                    return setDocValues.lookupOrd(ord);
+                }
+
+                @Override
+                public int getValueCount() {
+                    return (int) setDocValues.getValueCount();
+                }
+            };
+        }
     }
 }
