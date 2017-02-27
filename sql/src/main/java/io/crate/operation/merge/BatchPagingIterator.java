@@ -56,7 +56,7 @@ public class BatchPagingIterator<Key> implements BatchIterator {
     private final Columns rowData;
 
     private Iterator<Row> it;
-    private Row currentRow = OFF_ROW;
+    private Row currentRow = RowBridging.OFF_ROW;
     private boolean reachedEnd = false;
     private CompletableFuture<Void> currentlyLoading;
 
@@ -85,7 +85,7 @@ public class BatchPagingIterator<Key> implements BatchIterator {
         raiseIfClosed();
         if (reachedEnd) {
             this.it = pagingIterator.repeat().iterator();
-            currentRow = OFF_ROW;
+            currentRow = RowBridging.OFF_ROW;
         } else {
             throw new UnsupportedOperationException("Cannot moveToStart before all rows have been consumed once");
         }
@@ -101,7 +101,7 @@ public class BatchPagingIterator<Key> implements BatchIterator {
                 "size of row: " + currentRow.numColumns() + " is smaller than rowData: " + rowData().size();
             return true;
         }
-        currentRow = OFF_ROW;
+        currentRow = RowBridging.OFF_ROW;
         reachedEnd = allLoaded();
         return false;
     }
