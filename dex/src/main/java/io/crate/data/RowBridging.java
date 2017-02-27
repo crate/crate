@@ -31,6 +31,23 @@ import java.util.function.Supplier;
  */
 public class RowBridging {
 
+    public static final Row OFF_ROW = new Row() {
+        @Override
+        public int numColumns() {
+            throw new IllegalStateException("Iterator is not on a row");
+        }
+
+        @Override
+        public Object get(int index) {
+            throw new IllegalStateException("Iterator is not on a row");
+        }
+
+        @Override
+        public Object[] materialize() {
+            throw new IllegalStateException("Iterator is not on a row");
+        }
+    };
+
     public static Columns toInputs(final Supplier<Row> rowSupplier, int numCols){
         assert rowSupplier != null: "rowSupplier must not be null";
         List<Input<?>> result = new ArrayList<>(numCols);
