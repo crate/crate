@@ -26,17 +26,14 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.BatchIterator;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Bucket;
+import io.crate.data.Killable;
 import io.crate.data.Row;
 import io.crate.operation.PageResultListener;
 import io.crate.operation.merge.BatchPagingIterator;
 import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.merge.PagingIterator;
-import io.crate.operation.projectors.BatchConsumerToRowReceiver;
-import io.crate.operation.projectors.Projector;
-import io.crate.operation.projectors.RowReceiver;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 
 import javax.annotation.Nonnull;
@@ -45,7 +42,6 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.function.Function;
 
 public class PageDownstreamContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext, PageBucketReceiver {
 
@@ -53,6 +49,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final Object lock = new Object();
     private final String nodeName;
     private final boolean traceEnabled;
+    private final Killable killable;
     private final Streamer<?>[] streamers;
     private final RamAccountingContext ramAccountingContext;
     private final int numBuckets;
@@ -60,19 +57,18 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final PagingIterator<Integer, Row> pagingIterator;
     private final IntObjectHashMap<PageResultListener> listenersByBucketIdx;
     private final IntObjectHashMap<Bucket> bucketsByIdx;
-    private final BatchConsumerToRowReceiver consumer;
-    private final RowReceiver rowReceiver;
+    private final BatchConsumer consumer;
     private final BatchPagingIterator<Integer> batchPagingIterator;
-    private final BatchIterator batchIterator;
 
     private Throwable lastThrowable = null;
-    private boolean receivingFirstPage = true;
+    private volatile boolean receivingFirstPage = true;
 
     public PageDownstreamContext(ESLogger logger,
                                  String nodeName,
                                  int id,
                                  String name,
-                                 RowReceiver rowReceiver,
+                                 BatchConsumer batchConsumer,
+                                 Killable killable,
                                  PagingIterator<Integer, Row> pagingIterator,
                                  Streamer<?>[] streamers,
                                  RamAccountingContext ramAccountingContext,
@@ -80,6 +76,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         super(id, logger);
         this.nodeName = nodeName;
         this.name = name;
+        this.killable = killable;
         this.streamers = streamers;
         this.ramAccountingContext = ramAccountingContext;
         this.numBuckets = numBuckets;
@@ -92,32 +89,18 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
             pagingIterator,
             this::fetchMore,
             this::allUpstreamsExhausted,
-            this::releaseListenersAndCloseContext,
+            () -> releaseListenersAndCloseContext(null),
             streamers.length
         );
-
-        BatchIterator batchIterator = batchPagingIterator;
-        while (rowReceiver instanceof Projector) {
-            Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> projection =
-                ((Projector) rowReceiver).batchIteratorProjection();
-            if (projection == null) {
-                break;
-            }
-            Tuple<BatchIterator, RowReceiver> tuple = projection.apply(batchIterator);
-            batchIterator = tuple.v1();
-            rowReceiver = tuple.v2();
-        }
-        this.batchIterator = batchIterator;
-        this.rowReceiver = rowReceiver;
-        this.consumer = new BatchConsumerToRowReceiver(rowReceiver);
+        this.consumer = batchConsumer;
     }
 
-    private void releaseListenersAndCloseContext() {
+    private void releaseListenersAndCloseContext(@Nullable Throwable throwable) {
         for (ObjectCursor<PageResultListener> cursor : listenersByBucketIdx.values()) {
             cursor.value.needMore(false);
         }
         listenersByBucketIdx.clear();
-        close();
+        close(throwable);
     }
 
     private boolean allUpstreamsExhausted() {
@@ -133,7 +116,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
             traceLog("method=setBucket", bucketIdx);
 
             if (bucketsByIdx.putIfAbsent(bucketIdx, rows) == false) {
-                rowReceiver.fail(new IllegalStateException(String.format(Locale.ENGLISH,
+                killable.kill(new IllegalStateException(String.format(Locale.ENGLISH,
                     "Same bucket of a page set more than once. node=%s method=setBucket phaseId=%d bucket=%d",
                     nodeName, id, bucketIdx)));
                 return;
@@ -143,22 +126,29 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
                 exhausted.set(bucketIdx);
             }
             if (bucketsByIdx.size() == numBuckets) {
-                triggerConsumption();
+                mergeAndTriggerConsumer();
             }
         }
     }
 
-    private void triggerConsumption() {
+    private void triggerConsumer() {
+        if (receivingFirstPage) {
+            receivingFirstPage = false;
+            consumer.accept(batchPagingIterator, lastThrowable);
+        } else {
+            batchPagingIterator.completeLoad(lastThrowable);
+        }
+        if (lastThrowable != null) {
+            releaseListenersAndCloseContext(lastThrowable);
+        }
+    }
+
+    private void mergeAndTriggerConsumer() {
         mergeBuckets();
         if (allUpstreamsExhausted()) {
             pagingIterator.finish();
         }
-        if (receivingFirstPage) {
-            consumer.accept(batchIterator, lastThrowable);
-            receivingFirstPage = false;
-        } else {
-            batchPagingIterator.completeLoad(lastThrowable);
-        }
+        triggerConsumer();
     }
 
     private void mergeBuckets() {
@@ -220,7 +210,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         traceLog("method=failure", bucketIdx, throwable);
         synchronized (lock) {
             if (bucketsByIdx.putIfAbsent(bucketIdx, Bucket.EMPTY) == false) {
-                rowReceiver.fail(new IllegalStateException(String.format(Locale.ENGLISH,
+                killable.kill(new IllegalStateException(String.format(Locale.ENGLISH,
                     "Same bucket of a page set more than once. node=%s method=failure phaseId=%d bucket=%d",
                     nodeName, id(), bucketIdx)));
                 return;
@@ -245,12 +235,11 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         // can't trigger failure on pageDownstream immediately as it would remove the context which the other
         // upstreams still require
 
+        lastThrowable = throwable;
         exhausted.set(bucketIdx);
         if (bucketsByIdx.size() == numBuckets) {
-            rowReceiver.fail(throwable);
-            releaseListenersAndCloseContext();
-        } else {
-            lastThrowable = throwable;
+            triggerConsumer();
+            releaseListenersAndCloseContext(throwable);
         }
     }
 
@@ -276,7 +265,9 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
     @Override
     protected void innerKill(@Nonnull Throwable t) {
-        rowReceiver.kill(t);
+        lastThrowable = t;
+        batchPagingIterator.close();
+        killable.kill(t);
     }
 
     @Override
@@ -291,7 +282,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         // there won't be any executionNodes for that collectPhase
         // -> no upstreams -> just finish
         if (numBuckets == 0) {
-            consumer.accept(batchIterator, lastThrowable);
+            consumer.accept(batchPagingIterator, lastThrowable);
         }
     }
 

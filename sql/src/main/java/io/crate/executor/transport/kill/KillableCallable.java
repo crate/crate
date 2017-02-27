@@ -21,8 +21,9 @@
 
 package io.crate.executor.transport.kill;
 
+import io.crate.data.Killable;
+
 import java.util.concurrent.Callable;
 
-public interface KillableCallable<T> extends Callable<T> {
-    void kill();
+public interface KillableCallable<T> extends Callable<T>, Killable {
 }
