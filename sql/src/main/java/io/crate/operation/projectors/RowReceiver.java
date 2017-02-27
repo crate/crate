@@ -25,12 +25,13 @@ package io.crate.operation.projectors;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
+import io.crate.data.Killable;
 
 import javax.annotation.Nullable;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-public interface RowReceiver extends CompletionListenable {
+public interface RowReceiver extends CompletionListenable, Killable {
 
     enum Result {
         CONTINUE,

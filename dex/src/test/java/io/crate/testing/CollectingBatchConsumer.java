@@ -22,16 +22,18 @@
 
 package io.crate.testing;
 
-import io.crate.data.BatchConsumer;
-import io.crate.data.BatchIterator;
-import io.crate.data.BatchRowVisitor;
-import io.crate.data.Row;
+import io.crate.data.*;
+import io.crate.exceptions.Exceptions;
 
+import javax.annotation.Nullable;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class CollectingBatchConsumer implements BatchConsumer {
+public class CollectingBatchConsumer implements BatchConsumer, Killable {
 
     private final CompletableFuture<List<Object[]>> result = new CompletableFuture<>();
 
@@ -56,11 +58,23 @@ public class CollectingBatchConsumer implements BatchConsumer {
         }
     }
 
-    public List<Object[]> getResult() {
+    public List<Object[]> getResult() throws Exception {
         try {
             return result.get(10, TimeUnit.SECONDS);
-        } catch (ExecutionException | InterruptedException | TimeoutException e) {
-            throw new RuntimeException(e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause != null) {
+                Exceptions.rethrowUnchecked(cause);
+            }
+            throw e;
         }
+    }
+
+    @Override
+    public void kill(@Nullable Throwable throwable) {
+        if (throwable == null) {
+            throwable = new InterruptedException("Operation aborted");
+        }
+        result.completeExceptionally(throwable);
     }
 }

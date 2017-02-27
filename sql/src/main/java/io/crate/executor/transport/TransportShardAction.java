@@ -42,6 +42,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -119,7 +120,7 @@ public abstract class TransportShardAction<R extends ShardRequest>
     public void killAllJobs() {
         synchronized (activeOperations) {
             for (KillableCallable callable : activeOperations.values()) {
-                callable.kill();
+                callable.kill(null);
             }
             activeOperations.clear();
         }
@@ -130,7 +131,7 @@ public abstract class TransportShardAction<R extends ShardRequest>
         synchronized (activeOperations) {
             Collection<KillableCallable> operations = activeOperations.get(jobId);
             for (KillableCallable callable : operations) {
-                callable.kill();
+                callable.kill(null);
             }
             activeOperations.removeAll(jobId);
         }
@@ -145,7 +146,7 @@ public abstract class TransportShardAction<R extends ShardRequest>
         protected AtomicBoolean killed = new AtomicBoolean(false);
 
         @Override
-        public void kill() {
+        public void kill(@Nullable Throwable t) {
             killed.getAndSet(true);
         }
     }

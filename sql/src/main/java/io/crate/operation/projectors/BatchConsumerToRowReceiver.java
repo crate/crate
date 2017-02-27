@@ -22,30 +22,67 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.data.BatchConsumer;
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
-import io.crate.data.RowBridging;
+import io.crate.data.*;
 import io.crate.exceptions.SQLExceptions;
+import org.elasticsearch.common.collect.Tuple;
 
+import javax.annotation.Nullable;
 import java.util.Objects;
+import java.util.function.Function;
 
-public class BatchConsumerToRowReceiver implements BatchConsumer {
+/**
+ * BatchConsumer which consumes a BatchIterator, feeding the data into a {@link RowReceiver}.
+ *
+ * If the {@link RowReceiver} is a {@link Projector} it will try to apply BatchIteration projections using
+ * {@link Projector#batchIteratorProjection()}.
+ *
+ * In case {@link RowReceiver#asConsumer()} returns a consumer this consumer will be used instead of the rowReceiver,
+ * thus this BatchConsumer effectively becomes a proxy.
+ */
+public class BatchConsumerToRowReceiver implements BatchConsumer, Killable {
 
-    private final RowReceiver rowReceiver;
+    private RowReceiver rowReceiver;
+    private boolean running = false;
 
     public BatchConsumerToRowReceiver(RowReceiver rowReceiver) {
         Objects.requireNonNull(rowReceiver, "RowReceiver cannot be null");
         this.rowReceiver = rowReceiver;
     }
 
+    private BatchIterator applyProjections(BatchIterator iterator) {
+        RowReceiver receiver = rowReceiver;
+        while (receiver instanceof Projector) {
+            Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> projection = ((Projector) receiver).batchIteratorProjection();
+            if (projection == null) {
+                break;
+            }
+            Tuple<BatchIterator, RowReceiver> tuple = projection.apply(iterator);
+            iterator = tuple.v1();
+            receiver = tuple.v2();
+        }
+        rowReceiver = receiver;
+        return iterator;
+    }
+
     @Override
-    public void accept(BatchIterator iterator, Throwable failure) {
-        rowReceiver.completionFuture().whenComplete((ignored, t) -> iterator.close());
-        if (failure == null) {
-            safeConsumeIterator(iterator);
+    public synchronized void accept(BatchIterator it, Throwable failure) {
+        assert running == false : "Accept must only be called once";
+        running = true;
+        final BatchIterator iterator = applyProjections(it);
+        BatchConsumer batchConsumer = rowReceiver.asConsumer();
+        if (batchConsumer == null) {
+            rowReceiver.completionFuture().whenComplete((ignored, t) -> {
+                if (iterator != null) {
+                    iterator.close();
+                }
+            });
+            if (failure == null) {
+                safeConsumeIterator(iterator);
+            } else {
+                rowReceiver.fail(failure);
+            }
         } else {
-            rowReceiver.fail(failure);
+            batchConsumer.accept(iterator, failure);
         }
     }
 
@@ -59,6 +96,7 @@ public class BatchConsumerToRowReceiver implements BatchConsumer {
             // swallow exception; rowReceiver got killed from outside which triggered the cursor-close callback
         }
     }
+
     private void consumeIterator(BatchIterator iterator) {
         assert iterator.rowData() != null: "rowData is null of iterator: " + iterator;
         final Row row = RowBridging.toRow(iterator.rowData());
@@ -102,5 +140,15 @@ public class BatchConsumerToRowReceiver implements BatchConsumer {
             iterator.moveToStart();
             consumeIterator(iterator);
         };
+    }
+
+    @Override
+    public synchronized void kill(@Nullable Throwable throwable) {
+        rowReceiver.kill(throwable);
+        if (!running) {
+            // some RowReceiver kill implementations only set a internal "stop" flag and wait for the next
+            // row to process it - in order for that to work it's necessary to trigger the consumption
+            accept(null, throwable);
+        }
     }
 }
