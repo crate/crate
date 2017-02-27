@@ -44,7 +44,7 @@ public class CollectingBatchIterator<A> implements BatchIterator {
     private final Collector<Row, A, ? extends Iterable<Row>> collector;
     private final Columns rowData;
 
-    private Row currentRow = OFF_ROW;
+    private Row currentRow = RowBridging.OFF_ROW;
     private Iterator<Row> it = Collections.emptyIterator();
     private CompletableFuture<? extends Iterable<Row>> resultFuture;
 
@@ -91,7 +91,7 @@ public class CollectingBatchIterator<A> implements BatchIterator {
             }
             it = resultFuture.join().iterator();
         }
-        currentRow = OFF_ROW;
+        currentRow = RowBridging.OFF_ROW;
     }
 
     @Override
@@ -101,7 +101,7 @@ public class CollectingBatchIterator<A> implements BatchIterator {
             currentRow = it.next();
             return true;
         }
-        currentRow = OFF_ROW;
+        currentRow = RowBridging.OFF_ROW;
         return false;
     }
 
