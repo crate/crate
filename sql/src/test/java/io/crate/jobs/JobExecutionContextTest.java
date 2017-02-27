@@ -32,6 +32,7 @@ import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingBatchConsumer;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.IntegerType;
 import org.elasticsearch.common.logging.Loggers;
@@ -120,11 +121,13 @@ public class JobExecutionContextTest extends CrateUnitTest {
             mock(RamAccountingContext.class),
             rowReceiver,
             mock(SharedShardContexts.class));
+        CollectingBatchConsumer batchConsumer = new CollectingBatchConsumer();
         PageDownstreamContext pageDownstreamContext = spy(new PageDownstreamContext(
             Loggers.getLogger(PageDownstreamContext.class),
             "n1",
             2, "dummy",
-            new CollectingRowReceiver(),
+            batchConsumer,
+            batchConsumer,
             PassThroughPagingIterator.oneShot(),
             new Streamer[]{IntegerType.INSTANCE.streamer()},
             mock(RamAccountingContext.class),

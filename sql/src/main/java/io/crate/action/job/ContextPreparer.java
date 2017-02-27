@@ -497,12 +497,14 @@ public class ContextPreparer extends AbstractComponent {
                 context.registerRowReceiver(phase.phaseId(), rowReceiver);
                 return false;
             }
+            BatchConsumerToRowReceiver batchConsumer = new BatchConsumerToRowReceiver(rowReceiver);
             context.registerSubContext(new PageDownstreamContext(
                 pageDownstreamContextLogger,
                 nodeName(),
                 phase.phaseId(),
                 phase.name(),
-                rowReceiver,
+                batchConsumer,
+                batchConsumer,
                 PagingIterators.create(phase.numUpstreams(), false, phase.orderByPositions()),
                 DataTypes.getStreamers(phase.inputTypes()),
                 ramAccountingContext,
@@ -627,11 +629,13 @@ public class ContextPreparer extends AbstractComponent {
             }
             downstream = ProjectorChain.prependProjectors(
                 downstream, mergePhase.projections(), mergePhase.jobId(), ramAccountingContext, projectorFactory);
+            BatchConsumerToRowReceiver batchConsumer = new BatchConsumerToRowReceiver(downstream);
             return new PageDownstreamContext(
                 pageDownstreamContextLogger,
                 nodeName(),
                 mergePhase.phaseId(),
                 mergePhase.name(),
+                batchConsumer,
                 downstream,
                 PagingIterators.create(mergePhase.numUpstreams(), true, mergePhase.orderByPositions()),
                 StreamerVisitor.streamersFromOutputs(mergePhase),
