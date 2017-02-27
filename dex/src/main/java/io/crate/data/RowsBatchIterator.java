@@ -39,7 +39,7 @@ public class RowsBatchIterator implements BatchIterator {
 
     private final Iterable<? extends Row> rows;
     private Iterator<? extends Row> it;
-    private Row currentRow = BatchIterator.OFF_ROW;
+    private Row currentRow = RowBridging.OFF_ROW;
     private final Columns rowData;
 
     public static BatchIterator empty() {
@@ -65,7 +65,7 @@ public class RowsBatchIterator implements BatchIterator {
     @Override
     public void moveToStart() {
         it = rows.iterator();
-        currentRow = OFF_ROW;
+        currentRow = RowBridging.OFF_ROW;
     }
 
     @Override
@@ -74,7 +74,7 @@ public class RowsBatchIterator implements BatchIterator {
             currentRow = it.next();
             return true;
         }
-        currentRow = OFF_ROW;
+        currentRow = RowBridging.OFF_ROW;
         return false;
     }
 
