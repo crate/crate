@@ -1,107 +1,108 @@
-Contributing to Crate
-=====================
+============
+Contributing
+============
 
-Thanks for considering contributing to crate.
+Thank you for your interest in contributing.
 
-The steps outlined in this document should be seen as guidelines. These are NOT
-strict rules and we won't blame anyone who tries to contribute.  By following
-these things you'll just make our lives a tad bit easier, but if you don't
-follow them we'll still be happy about your contribution.
+This document is a guideline. Don't worry too much about getting everything
+perfect. We are more than happy to work with you on your contribution.
 
-The easiest way to contribute is either by filling issues on `Github
-<https://github.com/crate/crate/issues>`_ or by contributing to our
-documentation.
+Reporting issues it the easiest way to contribute. But we also accept pull
+requests for the code and for the documentation. For more information on how to
+work on the code or documentation, see our `developer guide`_.
 
-For more information on how to do that please refer to the documentation
-section in the ``DEVELOP.rst``.
+If you have any questions, please feel free to ask us on Slack_.
 
-If you have any questions don't hesitate to ask us on Slack_.
+Reporting Issues
+================
 
-.. _Slack: https://crate.io/docs/support/slackin/
+Before you report an issue, please search the existing issues to make sure
+someone hasn't already reported it.
 
-Reporting an issue
-------------------
+When reporting a new issue, include as much detail as possible. For some
+Crate.io_ repositories, issue templates have been configured, and you can just
+follow those.
 
-- Search existing issues before raising a new one.
+For repositories without configured issue templates:
 
-- include as much details as possible. This might include:
+- Say what you did, what happened, and what you expected to happen
 
-  - Which OS you're using.
+- Provide steps to reproduce the issue
 
-  - Which version you've been running.
+- Say which OS you're using
 
-  - Logs/Stacktrace of the error that occurred.
-    (For example ``crash`` the command-line client can be started with the `-v`
-    option to get a stacktrace from the server if a SQL statement resulted in
-    an error)
+- Say which version of CrateDB you are running
 
-  - Steps to reproduce.
+- Include logs or stacktraces
 
-Pull requests
--------------
+  - For example, the ``crash`` CLI client can be started with the ``-v`` option
+    to get a stacktrace from the server if a SQL statement resulted in an
+    unexpected error.
 
-Before we can accept any pull requests to Crate we need you to agree to our
-CLA_. Once that is done, we suggest to continue as follows:
+Pull Requests
+=============
 
-- Add an issue on Github and let us know that you're working on something.
+Before we can accept any pull requests we need you to agree to our CLA_.
 
-- Use a feature branch, not master.
+Once that is done, we suggest you:
 
-- Rebase your feature branch onto origin/master before raising the PR
+- Create an issue on Github to let us know that you're working on something.
 
-- Be descriptive in your PR and commit messages. What is it for, why is it
-  needed, etc.
+- Use a feature branch, not ``master``.
 
-- Make sure the tests pass. (`./gradlew test itest`)
+- Rebase your feature branch onto ``origin/master`` before creating the pull
+  request.
 
-- Squash related commits
+- Be descriptive in your PR and commit messages. What is it for? Why is it
+  needed? And so on.
 
-.. _CLA: https://crate.io/community/contribute/agreements/
+- Run ``./gradlew test itest`` to check that all tests pass.
 
-Rebase
-------
+- Squash related commits.
 
-If while you've been working in the feature branch new commits were added to
-the master branch please don't merge them but use rebase::
+General Tips
+============
 
-    git fetch origin
-    git rebase origin/master
+Updating Your Branch
+--------------------
 
-This will apply all commits on your feature branch on top of the master branch.
-Any conflicts can be resolved just the same as if ``git merge`` was used. After
-the conflict has been resolved use ``git rebase --continue`` to continue the
-rebase process.
+If new commits have been added to ``master`` since you created your feature
+branch, please do not merge in to your branch. Instead, rebase your branch::
 
-Squash
-------
+    $ git fetch origin
+    $ git rebase origin/master
+
+This will apply all commits on your feature branch on top of the ``master``
+branch. Any conflicts can be resolved just the same as if ``git merge`` was
+used. After the conflict has been resolved, use ``git rebase --continue`` to
+continue the rebase process.
+
+Squashing Minor Commits
+-----------------------
 
 Minor commits that only fix typos or rename variables that are related to a
 bigger change should be squashed into that commit.
 
-This can be done using ``git rebase -i ( <hash> | <branch> )``
+This can be done like so::
 
-For example while working on a feature branch you'd use::
+    $ git rebase -i origin/master
 
-    git add .
-    git commit -m "implemented feature XY"
+This will open up a text editor where you can annotate your commits.
 
-    # push and ask for a merge/review
+Generally, you'll want to leave the first commit on listed as ``pick``, or
+change it to ``reword`` (or ``r`` for short) if you want to change the commit
+message. And then, if you wanted to squash every subsequent commit, you could
+mark them all as ``fixup`` (or ``f`` for short).
 
-    git add .
-    git commit --fixup $(git rev-parse HEAD)
+Once you're done, you can check it worked by running::
 
-    # push and ask for a merge/review
+    $ git log
 
-    git add .
-    git commit --fixup $(git rev-parse HEAD)
+If you're happy, force push::
 
-    git rebase -i origin/master
+    $ git push -f
 
-``git commit --fixup`` will mark the commit as a fixup relating to the commit
-HEAD currently points to.
-
-This is useful because ``git rebase -i`` will then automatically recognize the
-fixup commits and mark them to squash. But in order for that to work the
-``autosquash`` setting has to be enabled in the ``.gitconfig``::
-
-    git config --global rebase.autosquash true
+.. _CLA: https://crate.io/community/contribute/agreements/
+.. _Crate.io: http://crate.io/
+.. _developer guide: DEVELOP.rst
+.. _Slack: https://crate.io/docs/support/slackin/
