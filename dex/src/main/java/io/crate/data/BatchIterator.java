@@ -60,23 +60,6 @@ import java.util.concurrent.CompletionStage;
  */
 public interface BatchIterator {
 
-    Row OFF_ROW = new Row() {
-        @Override
-        public int numColumns() {
-            throw new IllegalStateException("Iterator is not on a row");
-        }
-
-        @Override
-        public Object get(int index) {
-            throw new IllegalStateException("Iterator is not on a row");
-        }
-
-        @Override
-        public Object[] materialize() {
-            throw new IllegalStateException("Iterator is not on a row");
-        }
-    };
-
     /**
      * This method returns a columns object which can be used to access the underlying data of the current iterator
      * position.
