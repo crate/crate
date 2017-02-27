@@ -1,0 +1,261 @@
+User defined Functions
+======================
+
+CREATE OR REPLACE
+-----------------
+
+CrateDB supports user-defined functions. See :ref:`ref-create-function`
+for a full syntax description.
+
+These functions can be created like this::
+
+     cr> CREATE FUNCTION subtract(integer, integer)
+     ...  RETURNS integer
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function(a, b){
+     ...        return a - b;
+     ...      }';
+
+     cr> SELECT subtract(3, 1);
+     +----------------+
+     | subtract(3, 1) |
+     +----------------+
+     | 2              |
+     +----------------+
+     SELECT 1 rows in set (... sec)
+
+``OR REPLACE`` can be used to replace an existing function::
+
+     cr> CREATE OR REPLACE FUNCTION log10(integer)
+     ...  RETURNS double
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function(a){
+     ...        return Math.log10(a);
+     ...      }';
+
+     cr> SELECT log10(10);
+     +----------------+
+     | log10(10)      |
+     +----------------+
+     | 1              |
+     +----------------+
+     SELECT 1 rows in set (... sec)
+
+Arguments can be named in the function definition.
+
+For example, if you wanted to name two ``geo_point`` arguments ``start`` and
+``end`` you would do it like this::
+
+     cr> CREATE OR REPLACE FUNCTION calculate_distance(start geo_point, end geo_point)
+     ...  RETURNS float
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'distance(start_point, end_point){
+     ...        return Math.sqrt( Math.pow(end_point[0] - start_point[0], 2), Math.pow(end_point[1] - start_point[1], 2));
+     ...      }';
+
+.. NOTE::
+
+   Argument names are used for query documentation purposes only. You cannot
+   reference arguments by name in the function body.
+
+Optionally, a schema for the function can be specified. If no schema is
+specified, the function will be created in the current schema.
+
+You can explicitly assign a schema like this::
+
+     cr> CREATE FUNCTION my_schema.subtract(integer, integer)
+     ...  RETURNS integer
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function(a, b){
+     ...        return a - b;
+     ...      }';
+
+Functions can be accessed from any schema if the full name is provided::
+
+     cr> SELECT my_schema.subtract(1, 2);
+     +-------------------------+
+     | my_schema.subtract(1, 2)|
+     +-------------------------+
+     | -1                      |
+     +-------------------------+
+     SELECT 1 rows in set (... sec)
+
+
+Supported Types
+---------------
+
+The argument types, and the return type of the user-defined function can be
+any of the CrateDB supported :ref:`sql_ddl_datatypes`.
+
+.. NOTE::
+
+   The value returned by the function will be casted to the return type
+   provided in the definition if required. An exception will be thrown
+   if the cast is not successful.
+
+
+
+OPTIONS
+-------
+
+``CALLED ON NULL INPUT``
+........................
+
+The ``CALLED ON NULL INPUT`` option indicates that the function can be called
+when some of its arguments are ``NULL``. All user-defined functions can be
+called on ``NULL`` input by default.
+
+::
+
+     cr> CREATE OR REPLACE FUNCTION custom_multiply(integer, integer)
+     ...  RETURNS integer
+     ...  LANGUAGE JAVASCRIPT
+     ...  CALLED ON NULL INPUT
+     ...  AS 'function(a, b){
+     ...        return a * b;
+     ...      }';
+
+     cr> SELECT custom_multiply(1, NULL);
+     +---------------------------+
+     | custom_multiply(1, NULL)  |
+     +---------------------------+
+     | NULL                      |
+     +---------------------------+
+     SELECT 1 rows in set (... sec)
+
+
+``RETURNS NULL ON NULL INPUT`` and ``STRICT``
+.............................................
+
+The ``RETURNS NULL ON NULL INPUT`` indicates that the function always returns
+``NULL`` when any of it's arguments are ``NULL``. The ``STRICT`` is a synonym
+and behaves in exactly the same way.
+
+Here's how to use ``RETURNS NULL ON NULL INPUT``::
+
+     cr> CREATE OR REPLACE FUNCTION custom_divide(integer, integer)
+     ...  RETURNS float
+     ...  LANGUAGE JAVASCRIPT
+     ...  RETURNS NULL ON NULL INPUT
+     ...  AS 'function(a, b){
+     ...        return a / b;
+     ...      }';
+
+     cr> SELECT custom_divide(1, NULL);
+     +-------------------------+
+     | custom_divide(1, NULL)  |
+     +-------------------------+
+     | NULL                    |
+     +-------------------------+
+     SELECT 1 rows in set (... sec)
+
+Here's how to use ``STRICT``::
+
+     cr> CREATE OR REPLACE FUNCTION custom_divide(integer, integer)
+     ...  RETURNS float
+     ...  LANGUAGE JAVASCRIPT
+     ...  STRICT
+     ...  AS 'function(a, b){
+     ...        return a / b;
+     ...      }';
+
+     cr> SELECT custom_divide(1, NULL);
+     +-------------------------+
+     | custom_divide(1, NULL)  |
+     +-------------------------+
+     | NULL                    |
+     +-------------------------+
+     SELECT 1 rows in set (... sec)
+
+OVERLOADING
+-----------
+
+Within a specific schema, you can overload functions by defining two functions with the
+same name that have a different set of arguments
+
+This would overload our ``subtract`` function with different argument types::
+
+     cr> CREATE FUNCTION my_schema.subtract(long, long)
+     ...  RETURNS long
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function(a, b){
+     ...        return a - b;
+     ...      }';
+
+This would overload our ``subtract`` function with more arguments::
+
+     cr> CREATE FUNCTION my_schema.subtract(long, long, long)
+     ...  RETURNS long
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function(a, b, c){
+     ...        return a - b - c;
+     ...      }';
+
+.. NOTE::
+
+   It is considered bad practice to create functions that have the same name
+   as the CrateDB built-in functions. When no schema name is provided, the
+   CrateDB built-in function will be looked up first, and therefore it will
+   hide the user-defined function. However, such user-defined functions can
+   still be called if the schema name is explicitly provided. See :ref:`schemas`
+   for more information about current schemas.
+
+
+Determinism
+-----------
+
+User-defined functions are considered deterministic, meaning that they will
+always return the same result value when called with the same argument values.
+These return values are then cached, preventing multiple function executions.
+
+Supported Languages
+-------------------
+
+JavaScript
+..........
+
+The current version of CrateDB supports ECMAScript 5.1.
+
+Supported Types
+...............
+
+If a user-defined function specifies ``geo_point`` or ``ARRAY`` as a return
+type, then the JavaScript function should return an ``Array``::
+
+     cr> CREATE FUNCTION rotate_point(point geo_point, angle float)
+     ...  RETURNS geo_point
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function(point, angle){
+     ...        var cos = Math.cos(angle),
+     ...            sin = Math.sin(angle),
+     ...            x = cos * point[0] - sin * point[1],
+     ...            y = sin * point[0] + cos * point[1];
+     ...        return [x, y];
+     ...      }';
+
+Similarly, if the function specifies ``geo_shape`` or ``object`` as a return
+type, then the JavaScript function should return an ``object``::
+
+     cr> CREATE FUNCTION point_object(point geo_point)
+     ...  RETURNS object
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function(point){
+     ...        return {'lon': point[0], 'lat': point[1]};
+     ...      }';
+
+Furthermore, if the javascript function returns a ``WKT String``, it will be
+cast into the corresponding return type ::
+
+     cr> CREATE FUNCTION symmetric_point(point geo_point)
+     ...  RETURNS geo_point
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function(point, angle){
+     ...        var x = - point[0],
+     ...            y = - point[1];
+     ...        return \"POINT (\" + x + \", \" + y +\"; }\";
+     ...      }';
+
+.. NOTE::
+
+   If the return value of the JavaScript function is ``undefined`` it is converted
+   to ``NULL``.
