@@ -96,6 +96,7 @@ public class SingleBucketBuilder implements RowReceiver {
     public BatchConsumer asConsumer() {
         return (it, t) -> {
             if (t == null) {
+                bucketFuture.whenComplete((ignored, failure) -> it.close());
                 StreamBucketCollector streamBucketCollector = new StreamBucketCollector(streamers);
                 BatchRowVisitor.visitRows(it, streamBucketCollector.supplier().get(), streamBucketCollector, bucketFuture);
             } else {
