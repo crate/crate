@@ -58,18 +58,22 @@ public class SysShardMinLuceneVersionTest extends SQLTransportIntegrationTest {
     @Test
     public void testMinLuceneVersion() throws Exception {
         startUpNodeWithDataDir("/indices/cluster_checks/cratedata_lucene_min_version.zip");
-        execute("select count(*), min_lucene_version from sys.shards " +
-                "where table_name IN " +
-                "('test_upgrade_required', 'test_upgrade_required_parted', 'test_blob_upgrade_required') " +
-                "group by min_lucene_version order by 2");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("14| 4.10.4\n" +
-                                                                    "14| NULL\n"));
-
-        execute("select count(*), min_lucene_version from sys.shards " +
-                "where table_name IN " +
-                "('test_no_upgrade_required', 'test_no_upgrade_required_parted', 'test_blob_no_upgrade_required') " +
-                "group by min_lucene_version order by 2");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("14| 5.5.2\n" +
-                                                                    "14| NULL\n"));
+        execute("select table_name, routing_state, min_lucene_version, count(*) from sys.shards " +
+                "where schema_name IN ('doc', 'blob') " +
+                "group by table_name, routing_state, min_lucene_version order by 1, 2, 3");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("test_blob_no_upgrade_required| STARTED| 5.5.2| 2\n" +
+               "test_blob_no_upgrade_required| UNASSIGNED| NULL| 2\n" +
+               "test_blob_upgrade_required| STARTED| 5.5.2| 2\n" +
+               "test_blob_upgrade_required| UNASSIGNED| NULL| 2\n" +
+               "test_no_upgrade_required| STARTED| 5.5.2| 2\n" +
+               "test_no_upgrade_required| UNASSIGNED| NULL| 2\n" +
+               "test_no_upgrade_required_parted| STARTED| 5.5.2| 10\n" +
+               "test_no_upgrade_required_parted| UNASSIGNED| NULL| 10\n" +
+               "test_upgrade_required| STARTED| 4.10.4| 2\n" +
+               "test_upgrade_required| UNASSIGNED| NULL| 2\n" +
+               "test_upgrade_required_parted| STARTED| 4.10.4| 5\n" +
+               "test_upgrade_required_parted| STARTED| 5.5.2| 5\n" +
+               "test_upgrade_required_parted| UNASSIGNED| NULL| 10\n"));
     }
 }
