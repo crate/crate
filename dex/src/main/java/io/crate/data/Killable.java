@@ -20,34 +20,25 @@
  * agreement.
  */
 
-package io.crate.operation.collect;
-
-import io.crate.data.BatchConsumer;
-import io.crate.data.BatchIterator;
-import io.crate.operation.projectors.BatchConsumerToRowReceiver;
-import io.crate.operation.projectors.RowReceiver;
+package io.crate.data;
 
 import javax.annotation.Nullable;
 
-public class BatchIteratorCollector implements CrateCollector {
+public interface Killable {
 
-    private final BatchIterator batchIterator;
-    private final BatchConsumer consumer;
-    private final RowReceiver rowReceiver;
-
-    public BatchIteratorCollector(BatchIterator batchIterator, RowReceiver rowReceiver) {
-        this.batchIterator = batchIterator;
-        this.consumer = new BatchConsumerToRowReceiver(rowReceiver);
-        this.rowReceiver = rowReceiver;
-    }
-
-    @Override
-    public void doCollect() {
-        consumer.accept(batchIterator, null);
-    }
-
-    @Override
-    public void kill(@Nullable Throwable throwable) {
-        rowReceiver.kill(throwable);
-    }
+    /**
+     * Interrupt the operation, increasing the likelihood that it will terminate early with an error.
+     * This method can be called concurrently from a different thread while an operation is running.
+     *
+     * Implementations must:
+     *
+     *  - terminate if they're otherwise waiting for input/data
+     *  - terminate expensive & long running operations within a reasonable amount of time (< 2sec)
+     *
+     * Fast operations which are already running and can complete without further input may ignore the kill.
+     * Operations which have already completed may also ignore the kill.
+     *
+     * @param throwable the reason for the interruption or null if there is none.
+     */
+    void kill(@Nullable Throwable throwable);
 }
