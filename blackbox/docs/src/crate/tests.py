@@ -65,9 +65,9 @@ def wait_for_schema_update(schema, table, column):
     count = 0
     while count == 0:
         c.execute(('select count(*) from information_schema.columns '
-                    'where table_schema = ? and table_name = ? '
-                    'and column_name = ?'),
-                    (schema, table, column))
+                   'where table_schema = ? and table_name = ? '
+                   'and column_name = ?'),
+                   (schema, table, column))
         count = c.fetchone()[0]
 
 
@@ -136,7 +136,10 @@ crate_layer = ConnectingCrateLayer(
     host='localhost',
     crate_home=crate_path(),
     port=CRATE_HTTP_PORT,
-    transport_port=CRATE_TRANSPORT_PORT
+    transport_port=CRATE_TRANSPORT_PORT,
+    settings={
+        'udf.enabled': 'true',
+    }
 )
 
 

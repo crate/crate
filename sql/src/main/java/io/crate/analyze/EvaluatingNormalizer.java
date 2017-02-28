@@ -144,15 +144,8 @@ public class EvaluatingNormalizer {
 
         @SuppressWarnings("unchecked")
         Symbol normalizeFunctionSymbol(Function function, Context context) {
-            FunctionIdent ident = function.info().ident();
-            FunctionImplementation impl = functions.getBuiltin(ident.name(), ident.argumentTypes());
-            if (impl != null) {
-                return impl.normalizeSymbol(function, context.transactionContext);
-            }
-            if (logger.isTraceEnabled()) {
-                logger.trace(SymbolFormatter.format("No implementation found for function %s", function));
-            }
-            return function;
+            FunctionImplementation impl = functions.getQualified(function.info().ident());
+            return impl.normalizeSymbol(function, context.transactionContext);
         }
 
         @Override

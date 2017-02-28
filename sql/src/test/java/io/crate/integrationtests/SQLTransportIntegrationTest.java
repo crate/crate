@@ -39,6 +39,7 @@ import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
@@ -56,6 +57,7 @@ import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingBatchConsumer;
+import io.crate.types.DataType;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.Client;
@@ -394,20 +396,51 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     public void waitForMappingUpdateOnAll(final TableIdent tableIdent, final String... fieldNames) throws Exception {
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                Iterable<Schemas> referenceInfosIterable = internalCluster().getInstances(Schemas.class);
-                for (Schemas schemas : referenceInfosIterable) {
-                    TableInfo tableInfo = schemas.getTableInfo(tableIdent);
-                    assertThat(tableInfo, Matchers.notNullValue());
-                    for (String fieldName : fieldNames) {
-                        ColumnIdent columnIdent = ColumnIdent.fromPath(fieldName);
-                        assertThat(tableInfo.getReference(columnIdent), Matchers.notNullValue());
-                    }
+        assertBusy(() -> {
+            Iterable<Schemas> referenceInfosIterable = internalCluster().getInstances(Schemas.class);
+            for (Schemas schemas : referenceInfosIterable) {
+                TableInfo tableInfo = schemas.getTableInfo(tableIdent);
+                assertThat(tableInfo, Matchers.notNullValue());
+                for (String fieldName : fieldNames) {
+                    ColumnIdent columnIdent = ColumnIdent.fromPath(fieldName);
+                    assertThat(tableInfo.getReference(columnIdent), Matchers.notNullValue());
                 }
             }
         }, 20L, TimeUnit.SECONDS);
+    }
+
+    public void waitForFunctionCreatedOnAll(String schema, String name, List<DataType> types) throws Exception {
+        awaitBusy(() -> {
+            int count = 0;
+            int expected = 0;
+            Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
+            for (Functions function : functions) {
+                expected += 1;
+                try {
+                    function.getUserDefined(schema, name, types);
+                    count += 1;
+                } catch (UnsupportedOperationException e) {
+                    // pass
+                }
+            }
+            return count == expected;
+        });
+    }
+
+    public void waitForFunctionDeleted(String schema, String name, List<DataType> types) throws Exception {
+        awaitBusy(() -> {
+            int count = 0;
+            Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
+            for (Functions function : functions) {
+                try {
+                    function.getUserDefined(schema, name, types);
+                    count += 1;
+                } catch (UnsupportedOperationException e) {
+                    // pass
+                }
+            }
+            return count == 0;
+        });
     }
 
     public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception {

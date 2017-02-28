@@ -25,7 +25,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 
@@ -100,8 +99,7 @@ public class SymbolToFieldExtractor<T> {
             for (Symbol argument : symbol.arguments()) {
                 subExtractors.add(process(argument, context));
             }
-            FunctionIdent functionIdent = symbol.info().ident();
-            return new FunctionExtractor<>((Scalar) context.functions.getQualified(functionIdent), subExtractors);
+            return new FunctionExtractor<>((Scalar) context.functions.getQualified(symbol.info().ident()), subExtractors);
         }
 
         @Override

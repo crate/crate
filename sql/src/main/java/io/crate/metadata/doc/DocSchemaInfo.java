@@ -24,6 +24,7 @@ package io.crate.metadata.doc;
 import com.carrotsearch.hppc.ObjectLookupContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -33,11 +34,15 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.udf.UDFLanguage;
+import io.crate.operation.udf.UserDefinedFunctionMetaData;
+import io.crate.operation.udf.UserDefinedFunctionService;
+import io.crate.operation.udf.UserDefinedFunctionsMetaData;
+import io.crate.types.DataType;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -45,16 +50,15 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.Index;
 
 import javax.annotation.Nonnull;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -111,9 +115,12 @@ import java.util.stream.Stream;
 public class DocSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "doc";
+    private static final Logger logger = Loggers.getLogger(DocSchemaInfo.class);
 
     private final ClusterService clusterService;
     private final DocTableInfoFactory docTableInfoFactory;
+    private final Functions functions;
+    private final UserDefinedFunctionService udfService;
 
     private final LoadingCache<String, DocTableInfo> cache = CacheBuilder.newBuilder()
         .maximumSize(10000)
@@ -139,10 +146,14 @@ public class DocSchemaInfo implements SchemaInfo {
      */
     public DocSchemaInfo(final String schemaName,
                          ClusterService clusterService,
+                         Functions functions,
+                         UserDefinedFunctionService udfService,
                          DocTableInfoFactory docTableInfoFactory) {
+        this.functions = functions;
         this.schemaName = schemaName;
         this.isDocSchema = Schemas.DEFAULT_SCHEMA_NAME.equals(schemaName);
         this.clusterService = clusterService;
+        this.udfService = udfService;
         this.docTableInfoFactory = docTableInfoFactory;
     }
 
@@ -283,6 +294,36 @@ public class DocSchemaInfo implements SchemaInfo {
                 }
             }
         }
+
+        // re register UDFs for this schema
+        functions.deregisterSchemaFunctions(schemaName);
+        UserDefinedFunctionsMetaData udfMetaData = newMetaData.custom(UserDefinedFunctionsMetaData.TYPE);
+        if (udfMetaData != null) {
+            List<UserDefinedFunctionMetaData> udfFunctions = udfMetaData.functionsMetaData().stream()
+                .filter(function -> schemaName.equals(function.schema()))
+                .collect(Collectors.toList());
+            functions.registerSchemaFunctionResolvers(schemaName, toFunctionImpl(udfFunctions, logger));
+        }
+    }
+
+    @VisibleForTesting
+    Map<FunctionIdent, FunctionImplementation> toFunctionImpl(List<UserDefinedFunctionMetaData> functionsMetadata,
+                                                              Logger logger) {
+        Map<FunctionIdent, FunctionImplementation> udfFunctions = new HashMap<>();
+        for (UserDefinedFunctionMetaData function : functionsMetadata) {
+            try {
+                UDFLanguage lang = udfService.getLanguage(function.language());
+                FunctionImplementation impl = lang.createFunctionImplementation(function);
+                udfFunctions.put(impl.info().ident(), impl);
+            } catch (javax.script.ScriptException | IllegalArgumentException e) {
+                logger.warn(
+                    String.format(Locale.ENGLISH, "Can't create user defined function '%s(%s)'",
+                        function.name(),
+                        function.argumentTypes().stream().map(DataType::getName).collect(Collectors.joining(", "))
+                    ), e);
+            }
+        }
+        return udfFunctions;
     }
 
     private String getIndexName(String tableName) {

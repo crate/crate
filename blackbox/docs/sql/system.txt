@@ -190,6 +190,8 @@ currently applied cluster settings.
     | settings['udc']['initial_delay']                                                  | string       |
     | settings['udc']['interval']                                                       | string       |
     | settings['udc']['url']                                                            | string       |
+    | settings['udf']                                                                   | object       |
+    | settings['udf']['enabled']                                                        | boolean      |
     +-----------------------------------------------------------------------------------+--------------+
     SELECT ... rows in set (... sec)
 

@@ -23,6 +23,7 @@ package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -75,6 +76,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("time_format", DataTypes.STRING)
             .add("long_array", new ArrayType(DataTypes.LONG))
             .add("int_array", new ArrayType(DataTypes.INTEGER))
+            .add("array_string_array", new ArrayType(new ArrayType(DataTypes.STRING)))
             .add("long_set", new SetType(DataTypes.LONG))
             .add("regex_pattern", DataTypes.STRING)
             .add("geoshape", DataTypes.GEO_SHAPE)
@@ -89,7 +91,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         tableSources = ImmutableMap.of(new QualifiedName("users"), tableRelation);
         sqlExpressions = new SqlExpressions(tableSources);
-        functions = sqlExpressions.getInstance(Functions.class);
+        functions = sqlExpressions.functions();
     }
 
     /**
@@ -110,8 +112,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             return;
         }
         Function function = (Function) functionSymbol;
-        FunctionIdent ident = function.info().ident();
-        FunctionImplementation impl = functions.getBuiltin(ident.name(), ident.argumentTypes());
+        FunctionImplementation impl = functions.getQualified(function.info().ident());
         assertThat(impl, Matchers.notNullValue());
 
         Symbol normalized = sqlExpressions.normalize(function);
@@ -156,8 +157,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             return;
         }
         Function function = (Function) functionSymbol;
-        FunctionIdent ident = function.info().ident();
-        Scalar scalar = (Scalar) functions.getBuiltin(ident.name(), ident.argumentTypes());
+        Scalar scalar = (Scalar) functions.getQualified(function.info().ident());
 
         InputApplierContext inputApplierContext = new InputApplierContext(inputs, sqlExpressions);
         AssertingInput[] arguments = new AssertingInput[function.arguments().size()];
@@ -182,9 +182,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         functionSymbol = sqlExpressions.normalize(functionSymbol);
         assertThat("function expression was normalized, compile would not be hit", functionSymbol, not(instanceOf(Literal.class)));
         Function function = (Function) functionSymbol;
-        FunctionIdent ident = function.info().ident();
-        Scalar scalar = (Scalar) functions.getBuiltin(ident.name(), ident.argumentTypes());
-        assert scalar != null : "function must be registered";
+        Scalar scalar = (Scalar) functions.getQualified(function.info().ident());
 
         Scalar compiled = scalar.compile(function.arguments());
         assertThat(compiled, matcher.apply(scalar));

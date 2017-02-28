@@ -50,6 +50,7 @@ import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
+import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -71,8 +72,7 @@ import java.util.*;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.testing.SymbolMatchers.*;
-import static io.crate.testing.TestingHelpers.isSQL;
-import static io.crate.testing.TestingHelpers.mapToSortedString;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
@@ -92,7 +92,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             ImmutableMap.of(fooUserTableInfo.ident(), fooUserTableInfo));
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .addSchema(new DocSchemaInfo("foo", clusterService, fooTableFactory))
+            .addSchema(new DocSchemaInfo("foo", clusterService, getFunctions(), new UserDefinedFunctionService(clusterService), fooTableFactory))
             .build();
     }
 

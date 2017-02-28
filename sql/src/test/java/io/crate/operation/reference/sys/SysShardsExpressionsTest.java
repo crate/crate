@@ -32,6 +32,7 @@ import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.sys.shard.ShardPathExpression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import org.apache.lucene.util.BytesRef;
@@ -57,6 +58,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static org.hamcrest.Matchers.is;
@@ -71,15 +73,19 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     private IndexShard indexShard;
     private Schemas schemas;
     private String indexUUID;
+    private Functions functions;
+    private UserDefinedFunctionService udfService;
 
     @Before
     public void prepare()  {
         indexShard = mockIndexShard();
+        functions = getFunctions();
+        udfService = new UserDefinedFunctionService(clusterService);
         schemas = new Schemas(
             Settings.EMPTY,
             ImmutableMap.of("sys", new SysSchemaInfo(clusterService)),
             clusterService,
-            new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()))
+            new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), functions, udfService)
         );
         resolver = ShardReferenceResolver.create(
             clusterService,

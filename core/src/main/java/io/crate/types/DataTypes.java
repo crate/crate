@@ -303,4 +303,8 @@ public final class DataTypes {
         return Iterables.find(dataTypes, input -> input != UNDEFINED, UNDEFINED);
     }
 
+    public static DataType fromId(Integer id) {
+        return TYPE_REGISTRY.get(id).create();
+    }
+
 }

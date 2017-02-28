@@ -10,6 +10,8 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
+import io.crate.metadata.table.SchemaInfo;
+import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Statement;
@@ -49,6 +51,7 @@ import static org.mockito.Mockito.mock;
 public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
     private Functions functions;
+    private UserDefinedFunctionService udfService;
 
     private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder) throws IOException {
         return getIndexMetaData(indexName, builder, Settings.Builder.EMPTY_SETTINGS, null);
@@ -83,6 +86,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void before() throws Exception {
         functions = getFunctions();
+        udfService = new UserDefinedFunctionService(clusterService);
     }
 
     @Test
@@ -883,13 +887,13 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             new IndexNameExpressionResolver(Settings.EMPTY),
             indexTemplateActionProvider
         );
-        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, docTableInfoFactory);
+        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, docTableInfoFactory);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new Schemas(
                 Settings.EMPTY,
                 ImmutableMap.of("doc", docSchemaInfo),
                 clusterService,
-                new DocSchemaInfoFactory(docTableInfoFactory)),
+                new DocSchemaInfoFactory(docTableInfoFactory, functions, udfService)),
             new FulltextAnalyzerResolver(clusterService,
                 new AnalysisRegistry(
                     new Environment(Settings.builder()
