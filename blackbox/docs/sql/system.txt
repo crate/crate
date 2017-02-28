@@ -1132,14 +1132,14 @@ Example query::
   +----+--------------------------------------------------------------...-+
   |  1 | The setting 'discovery.zen.minimum_master_nodes' must not be ... |
   |  2 | The total number of partitions of one or more partitioned tab... |
-  |  3 | The following tables must be re-indexed to be able to be used... |
-  |  4 | The following tables must be upgraded to be able to be used i... |
+  |  3 | The following tables must be re-indexed for compatibility wit... |
+  |  4 | The following tables must be upgraded for compatibility with ... |
   +----+--------------------------------------------------------------...-+
   SELECT 4 rows in set (... sec)
 
 
-Current checks:
----------------
+Current Checks
+--------------
 
 Minimum master nodes
 ....................
@@ -1167,13 +1167,13 @@ partitioning.
 
 Tables need re-indexing
 .......................
-This check warns if there are tables that need to be re-indexed to be able to be used
-with future versions of CrateDB.
+This check warns if there are tables that need to be re-indexed for compatibility with
+future versions of CrateDB.
 
 Tables need to be upgraded
 ..........................
-This check warns if there are tables that need to be upgraded to be able to be used
-with future versions of CrateDB.
+This check warns if there are tables that need to be upgraded for compatibility with
+future versions of CrateDB.
 
 .. _sys-repositories:
 

@@ -39,7 +39,7 @@ public class TablesNeedReindexingSysCheck extends AbstractSysCheck {
 
     public static final int ID = 3;
     public static final String DESCRIPTION =
-        "The following tables must be re-indexed to be able to be used in future releases of CrateDB: ";
+        "The following tables must be re-indexed for compatibility with future versions of CrateDB: ";
 
     private final ClusterService clusterService;
     private final Schemas schemas;

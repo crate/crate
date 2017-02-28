@@ -48,7 +48,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
     public static final int ID = 4;
     public static final String DESCRIPTION =
-        "The following tables must be upgraded to be able to be used in future releases of CrateDB: ";
+        "The following tables must be upgraded for compatibility with future versions of CrateDB: ";
 
     private static final ESLogger LOGGER = Loggers.getLogger(TablesNeedUpgradeSysCheck.class);
     private static final String STMT = "select schema_name || '.' || table_name, min_lucene_version " +
