@@ -22,21 +22,16 @@
 
 package io.crate.operation.reference.sys.check.cluster;
 
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import io.crate.metadata.TableIdent;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.inject.internal.Nullable;
 
 import java.text.ParseException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Collection;
+import java.util.TreeSet;
 
 final class LuceneVersionChecks {
 
@@ -59,38 +54,24 @@ final class LuceneVersionChecks {
                !indexMetaData.getCreationVersion().luceneVersion.onOrAfter(Version.LUCENE_4_10_0);
     }
 
-    static List<String> tablesNeedReindexing(Schemas schemas, MetaData clusterIndexMetaData) {
-        List<String> tablesNeedReindexing = new ArrayList<>();
-        for (SchemaInfo schemaInfo : schemas) {
-            if (schemaInfo instanceof DocSchemaInfo) {
-                for (TableInfo tableInfo : schemaInfo) {
-                    if (((DocTableInfo) tableInfo).isPartitioned()) {
-                        // check each partition, if one needs reindexing, complete table will be marked
-                        for (PartitionName partitionName : ((DocTableInfo) tableInfo).partitions()) {
-                            IndexMetaData indexMetaData = clusterIndexMetaData.index(partitionName.asIndexName());
-                            assert indexMetaData != null :
-                                "could not get metadata for partition " + partitionName.asIndexName();
-                            if (checkIndexMetaData(tableInfo, indexMetaData, tablesNeedReindexing)) {
-                                break;
-                            }
-                        }
-                    } else {
-                        IndexMetaData metaData = ((DocTableInfo) tableInfo).metaData();
-                        checkIndexMetaData(tableInfo, metaData, tablesNeedReindexing);
-                    }
-                }
-            }
+    /**
+     * Retrieves an order collection of table FQNs that need
+     * to be re-indexed to be compatible with future CrateDB versions.
+     * @param clusterIndexMetaData
+     * @return the ordered collection of table FQNs that need re-indexing
+     */
+    static Collection<String> tablesNeedReindexing(MetaData clusterIndexMetaData) {
+        Collection<String> tablesNeedReindexing = new TreeSet<>();
+        for (ObjectObjectCursor<String, IndexMetaData> entry : clusterIndexMetaData.indices()) {
+            checkIndexMetaData(entry.key, entry.value, tablesNeedReindexing);
         }
-        Collections.sort(tablesNeedReindexing);
         return tablesNeedReindexing;
     }
 
-    private static boolean checkIndexMetaData(TableInfo tableInfo, IndexMetaData metaData,
-                                              List<String> tablesNeedReindexing) {
+    private static void checkIndexMetaData(String index, IndexMetaData metaData,
+                                           Collection<String> tablesNeedReindexing) {
         if (LuceneVersionChecks.isReindexRequired(metaData)) {
-            tablesNeedReindexing.add(tableInfo.ident().fqn());
-            return true;
+            tablesNeedReindexing.add(TableIdent.fromIndexName(index).fqn());
         }
-        return false;
     }
 }

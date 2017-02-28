@@ -22,7 +22,6 @@
 
 package io.crate.operation.reference.sys.check.cluster;
 
-import io.crate.metadata.Schemas;
 import io.crate.operation.reference.sys.check.AbstractSysCheck;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
@@ -39,14 +38,12 @@ public class TablesNeedReindexingSysCheck extends AbstractSysCheck {
         "The following tables must be re-indexed for compatibility with future versions of CrateDB: ";
 
     private final ClusterService clusterService;
-    private final Schemas schemas;
     private volatile Collection<String> tablesNeedReindexing;
 
     @Inject
-    public TablesNeedReindexingSysCheck(ClusterService clusterService, Schemas schemas) {
+    public TablesNeedReindexingSysCheck(ClusterService clusterService) {
         super(ID, DESCRIPTION, Severity.MEDIUM);
         this.clusterService = clusterService;
-        this.schemas = schemas;
     }
 
     @Override
@@ -57,9 +54,7 @@ public class TablesNeedReindexingSysCheck extends AbstractSysCheck {
 
     @Override
     public boolean validate() {
-        tablesNeedReindexing = LuceneVersionChecks.tablesNeedReindexing(
-            schemas,
-            clusterService.state().metaData());
+        tablesNeedReindexing = LuceneVersionChecks.tablesNeedReindexing(clusterService.state().metaData());
         return tablesNeedReindexing.isEmpty();
     }
 }

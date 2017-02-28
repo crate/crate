@@ -26,7 +26,6 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.data.Row;
-import io.crate.metadata.Schemas;
 import io.crate.operation.reference.sys.check.AbstractSysCheck;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
@@ -36,7 +35,9 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -57,14 +58,12 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
     private final SQLOperations.Session session;
     private final ClusterService clusterService;
-    private final Schemas schemas;
     private volatile Collection<String> tablesNeedUpgrade;
 
     @Inject
-    public TablesNeedUpgradeSysCheck(ClusterService clusterService, Schemas schemas, SQLOperations sqlOperations) {
+    public TablesNeedUpgradeSysCheck(ClusterService clusterService, SQLOperations sqlOperations) {
         super(ID, DESCRIPTION, Severity.MEDIUM);
         this.clusterService = clusterService;
-        this.schemas = schemas;
         this.session = sqlOperations.createSession("sys", Option.NONE, LIMIT);
         this.session.parse(SQLOperations.Session.UNNAMED, STMT, Collections.emptyList());
             sqlOperations.createSession(null, Option.NONE, 1);
@@ -78,23 +77,9 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
     @Override
     public boolean validate() {
-        List<String> tablesNeedReindexing = LuceneVersionChecks.tablesNeedReindexing(
-            schemas,
-            clusterService.state().metaData());
-
-        String statement;
-        if (tablesNeedReindexing.isEmpty()) {
-            statement = STMT + STMT_SUFFIX;
-        } else {
-            StringBuilder sb = new StringBuilder(STMT + STMT_NOT_IN);
-            for (int i = 0; i < tablesNeedReindexing.size(); i++) {
-                sb.append("'").append(tablesNeedReindexing.get(i)).append("'");
-                if (i < tablesNeedReindexing.size() - 1) {
-                    sb.append(",");
-                }
-            }
-            statement = sb.toString();
-        }
+        Collection<String> tablesNeedReindexing =
+            LuceneVersionChecks.tablesNeedReindexing(clusterService.state().metaData());
+        String statement = createSQLStatement(tablesNeedReindexing);
 
         final CompletableFuture<Collection<String>> result = new CompletableFuture<>();
         try {
@@ -102,7 +87,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
             session.bind(
                 SQLOperations.Session.UNNAMED,
                 SQLOperations.Session.UNNAMED,
-                Collections.singletonList(tablesNeedReindexing),
+                Collections.emptyList(),
                 null);
             session.execute(
                 SQLOperations.Session.UNNAMED,
@@ -118,6 +103,25 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
             LOGGER.error("error occurred when checking for tables that need to be upgraded", e);
         }
         return tablesNeedUpgrade == null || tablesNeedUpgrade.isEmpty();
+    }
+
+    private static String createSQLStatement(Collection<String> tablesNeedReindexing) {
+        String statement;
+        if (tablesNeedReindexing.isEmpty()) {
+            statement = STMT + STMT_SUFFIX;
+        } else {
+            StringBuilder sb = new StringBuilder(STMT + STMT_NOT_IN);
+            int i = 0;
+            for (String tableName : tablesNeedReindexing) {
+                sb.append("'").append(tableName).append("'");
+                if (i < tablesNeedReindexing.size() - 1) {
+                    sb.append(",");
+                }
+                i++;
+            }
+            statement = sb.toString();
+        }
+        return statement;
     }
 
     private class SycCheckResultReceiver implements ResultReceiver {
