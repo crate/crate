@@ -1049,3 +1049,84 @@ means that if you re-create the table using the resulting ``CREATE TABLE``
 statement the settings of the 'old' table may differ from the settings of
 the 'new' table. This is because the table settings are set explicitly on
 creation time.
+
+User defined Functions
+======================
+
+CREATE OR REPLACE
+-----------------
+
+Crate supports user-defined functions, See :ref:`create_function` for a full
+syntax description.
+
+These functions can be created as shown in the following example:
+
+     cr> CREATE FUNCTION add(integer, integer) RETURNS integer
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function(a, b){
+     ...       return a + b;
+     ...      }'
+     ...  RETURNS NULL ON NULL INPUT;
+
+
+``OR REPLACE`` can be used to replace an existing function:
+
+     cr> CREATE OR REPLACE FUNCTION add(integer, integer)
+     ...  RETURNS integer LANGUAGE JAVASCRIPT
+     ...  AS 'function(a, b){
+     ...       return a + b;
+     ...      }'
+     ...  RETURNS NULL ON NULL INPUT;
+
+
+Optionally a schema name can be specified, if not then the function will be
+created in the current schema.
+
+     cr> CREATE FUNCTION my_schema.add(integer, integer) RETURNS integer
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function(a, b){
+     ...       return a + b;
+     ...      }'
+     ...  RETURNS NULL ON NULL INPUT;
+
+Even if a function was created in a specific schema, it can be accessed from
+everywhere if the full name is provided:
+
+     cr> SELECT my_schema.add(1, 2);
+     +--------------------+
+     | my_schema.add(1, 2)|
+     +--------------------+
+     | 3                  |
+     +--------------------+
+     SELECT 1 rows in set (... sec)
+
+
+OVERLOADING
+-----------
+
+You can overload functions by defining two functions of the same name that have
+a different set of arguments, as shown in the following example:
+
+
+     cr> CREATE FUNCTION my_schema.add(long, long) RETURNS long
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function(a, b){
+     ...       return a + b;
+     ...      }'
+     ...  RETURNS NULL ON NULL INPUT;
+
+
+DETERMINISM
+-----------
+
+A User-defined function is considered ``deterministic``, meaning that it returns
+the same result value whenever it is called with the same values for its arguments,
+thereby preventing multiple executions.
+
+SUPPORTED LANGUAGES
+-------------------
+
+The current version of Crate supports only Javascript ECMAScript 5.1.
+
+
+
