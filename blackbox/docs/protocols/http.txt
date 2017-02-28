@@ -329,6 +329,8 @@ Currently the defined error codes are:
     ----- ---------------------------------------------------------------------
     4048  Unknown Snapshot.
     ----- ---------------------------------------------------------------------
+    4049  Unknown user-defined function.
+    ----- ---------------------------------------------------------------------
     4091  A document with the same primary key exists already.
     ----- ---------------------------------------------------------------------
     4092  A VersionConflict. Might be thrown if an attempt was made to update
@@ -343,6 +345,8 @@ Currently the defined error codes are:
     4096  A snapshot with the same name already exists in the repository.
     ----- ---------------------------------------------------------------------
     4097  A partition for the same values already exists in this table.
+    ----- ---------------------------------------------------------------------
+    4098  A user-defined function with the same signature already exists.
     ----- ---------------------------------------------------------------------
     5000  Unhandled server error.
     ----- ---------------------------------------------------------------------

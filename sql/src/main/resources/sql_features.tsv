@@ -451,12 +451,12 @@ T285	Enhanced derived column names			NO
 T301	Functional dependencies			NO		
 T312	OVERLAY function			NO		
 T321	Basic SQL-invoked routines			NO		
-T321	Basic SQL-invoked routines	1	User-defined functions with no overloading	NO		
+T321	Basic SQL-invoked routines	1	User-defined functions with no overloading	YES		
 T321	Basic SQL-invoked routines	2	User-defined stored procedures with no overloading	NO		
-T321	Basic SQL-invoked routines	3	Function invocation	NO		
+T321	Basic SQL-invoked routines	3	Function invocation	YES		
 T321	Basic SQL-invoked routines	4	CALL statement	NO		
 T321	Basic SQL-invoked routines	5	RETURN statement	NO		
-T321	Basic SQL-invoked routines	6	ROUTINES view	NO		
+T321	Basic SQL-invoked routines	6	ROUTINES view	YES		
 T321	Basic SQL-invoked routines	7	PARAMETERS view	NO		
 T322	Declared data type attributes			NO		
 T323	Explicit security for external routines			NO		

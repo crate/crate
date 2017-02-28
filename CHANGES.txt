@@ -15,6 +15,10 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+ - Due to the support of user defined functions there are new reserved keywords
+   in the Crate SQL dialect: ``RETURNS``, ``CALLED`, ``REPLACE``, ``FUNCTION``,
+   ``LANGUAGE``, ``INPUT``
+
  - The ``enterprise.license`` setting is set to ``true`` by default.
    If you start crate enterprise without a valid enterprise license,
    you are entering the unlicensed mode.
@@ -106,6 +110,8 @@ Breaking Changes
 
 Changes
 =======
+
+ - Added support for user defined functions.
 
  - Added cluster check and warning for unlicensed usage of CrateDB Enterprise.
 

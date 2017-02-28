@@ -23,6 +23,7 @@
 package io.crate.metadata;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
@@ -33,6 +34,9 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.udf.UserDefinedFunctionMetaData;
+import io.crate.operation.udf.UserDefinedFunctionService;
+import io.crate.operation.udf.UserDefinedFunctionsMetaData;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -158,24 +162,32 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 }
             }
 
+            for (String addedSchema : added) {
+                schemas.put(addedSchema, getCustomSchemaInfo(addedSchema));
+            }
+
             // update all existing schemas
             for (SchemaInfo schemaInfo : this) {
                 schemaInfo.update(event);
             }
-
-            for (String addedSchema : added) {
-                schemas.put(addedSchema, getCustomSchemaInfo(addedSchema));
-            }
         }
     }
 
-    private static Set<String> getNewCurrentSchemas(MetaData metaData) {
+    @VisibleForTesting
+    static Set<String> getNewCurrentSchemas(MetaData metaData) {
         Set<String> schemas = new HashSet<>();
         for (String openIndex : metaData.getConcreteAllOpenIndices()) {
             addIfSchema(schemas, openIndex);
         }
         for (ObjectCursor<String> cursor : metaData.templates().keys()) {
             addIfSchema(schemas, cursor.value);
+        }
+        UserDefinedFunctionsMetaData udfMetaData = metaData.custom(UserDefinedFunctionsMetaData.TYPE);
+        if (udfMetaData != null) {
+            udfMetaData.functionsMetaData()
+                .stream()
+                .map(UserDefinedFunctionMetaData::schema)
+                .forEach(schemas::add);
         }
         return schemas;
     }

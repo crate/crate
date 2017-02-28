@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import com.google.common.base.Splitter;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.operation.collect.stats.JobsLogService;
+import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
 import io.crate.testing.UseJdbc;
@@ -215,4 +216,5 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         }
         assertThat(settingMap.get(settingPath.get(settingPath.size() - 1)), is(expectedValue));
     }
+
 }

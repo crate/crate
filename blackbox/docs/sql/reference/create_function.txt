@@ -1,0 +1,51 @@
+.. highlight:: psql
+.. _ref-create-function:
+
+===============
+CREATE FUNCTION
+===============
+
+Create a new function.
+
+Synopsis
+========
+
+::
+
+    CREATE [OR REPLACE] FUNCTION function_name
+        ( [ [arg_name] arg_type ] [, ...] ] )
+    RETURNS return_type
+    LANGUAGE language_name
+    AS 'definition'
+
+Description
+===========
+
+``CREATE FUNCTION`` creates a new user defined function.
+
+``CREATE OR REPLACE FUNCTION`` will either create a new function, or replace an
+existing function.
+
+The signature of the function is defined by its schema, name, and input arguments.
+
+You can overload functions by defining two functions of the same name, but with
+a different set of input arguments.
+
+Parameters
+==========
+
+:function_name: The name of the function to create.
+
+:arg_name: The optional name given to an argument. Function arguments do not
+  retain names, but you can name them in your query for documentation purposes.
+
+:arg_type: The data type of a given argument. See :ref:`sql_ddl_datatypes`
+  for more detailed information about the supported types.
+
+:return_type: The returned data type of the function. The return type can be any
+  supported type.
+
+:language_name: The registered language which should be used for the function.
+
+:definition: A string defining the body of the function. See :ref:`string_literal`
+  for more details.

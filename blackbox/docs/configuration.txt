@@ -1645,7 +1645,6 @@ Metadata Gateway
   started. However, the value must be bigger than the half of the expected
   number of nodes in the cluster.
 
-
 .. _conf-session-settings:
 
 Session Setting Parameters
