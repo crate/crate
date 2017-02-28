@@ -27,7 +27,6 @@ import com.carrotsearch.hppc.ObjectLongHashMap;
 import com.carrotsearch.hppc.ObjectLongMap;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.BaseResultReceiver;
-import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.data.Row;
 import io.crate.metadata.TableIdent;
