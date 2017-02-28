@@ -115,7 +115,7 @@ public class CreateFunction extends Statement {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (getClass() != o.getClass()) return false;
+        if (o == null || getClass() != o.getClass()) return false;
 
         final CreateFunction that = (CreateFunction) o;
         return Objects.equals(this.name, that.name)

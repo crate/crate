@@ -344,6 +344,9 @@ Currently the defined error codes are:
     ----- ---------------------------------------------------------------------
     4097  A partition for the same values already exists in this table.
     ----- ---------------------------------------------------------------------
+    4098  A user defined function with the same signature already exists in
+          this schema.
+    ----- ---------------------------------------------------------------------
     5000  Unhandled server error.
     ----- ---------------------------------------------------------------------
     5001  The execution of one or more tasks failed.
