@@ -368,6 +368,54 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testCreateFunctionStmtBuilder() {
+        printStatement("create function foo.bar() returns boolean language ? as ?");
+        printStatement("create function foo.bar() returns boolean language $1 as $2");
+
+        // create or replace function
+        printStatement("create function foo.bar(int, long)" +
+            " returns int" +
+            " language javascript" +
+            " as 'function(a, b) {return a + b}'");
+        printStatement("create function bar(array(int))" +
+            " returns array(int) " +
+            " language javascript" +
+            " as 'function(a) {return [a]}'");
+        printStatement("create function bar()" +
+            " returns string" +
+            " language javascript" +
+            " as 'function() {return \"\"}'");
+        printStatement("create or replace function bar()" +
+            " returns string" +
+            " language javascript as 'function() {return \"1\"}'");
+
+        // argument with names
+        printStatement("create function foo.bar(\"f\" int, s object)" +
+            " returns object" +
+            " language javascript as 'function(f, s) {return {\"a\": 1}}'");
+        printStatement("create function foo.bar(location geo_point, geo_shape)" +
+            " returns boolean" +
+            " language javascript as 'function(location, b) {return true;}'");
+    }
+
+    @Test
+    public void testCreateFunctionStmtBuilderWithIncorrectFunctionName() {
+        expectedException.expectMessage(containsString("[foo.bar.a] does not conform the " +
+            "[[schema_name .] function_name] format"));
+        expectedException.expect(IllegalArgumentException.class);
+        printStatement("create function foo.bar.a()" +
+            " returns object" +
+            " language sql as 'select 1'");
+    }
+
+    @Test
+    public void testDropFunctionStmtBuilder() {
+        printStatement("drop function bar(int)");
+        printStatement("drop function foo.bar(obj object)");
+        printStatement("drop function if exists foo.bar(obj object)");
+    }
+
+    @Test
     public void testSelectStmtBuilder() throws Exception {
         printStatement("select ab" +
             " from (select (ii + y) as iiy, concat(a, b) as ab" +
@@ -959,7 +1007,10 @@ public class TestStatementBuilder {
         println("");
 
         // TODO: support formatting all statement types
-        if (statement instanceof Query || statement instanceof CreateTable || statement instanceof CopyFrom) {
+        if (statement instanceof Query ||
+            statement instanceof CreateTable ||
+            statement instanceof CopyFrom ||
+            statement instanceof CreateFunction) {
             println(SqlFormatter.formatSql(statement));
             println("");
             assertFormattedSql(statement);

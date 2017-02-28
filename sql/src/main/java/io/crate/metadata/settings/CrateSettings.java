@@ -28,6 +28,7 @@ import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.collect.stats.JobsLogService;
 import io.crate.operation.reference.NestedObjectExpression;
+import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.planner.TableStatsService;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.settings.CrateSetting;
@@ -103,7 +104,10 @@ public class CrateSettings implements ClusterStateListener {
 
             // ENTERPRISE
             SharedSettings.ENTERPRISE_LICENSE_SETTING,
-            SharedSettings.LICENSE_IDENT_SETTING
+            SharedSettings.LICENSE_IDENT_SETTING,
+
+            // UDF
+            UserDefinedFunctionService.UDF_SETTING
         ));
 
     private static final List<CrateSetting> EXPOSED_ES_SETTINGS = Collections.unmodifiableList(

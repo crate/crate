@@ -341,7 +341,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "  stopwords=[?, ?, ?]" +
                 ")", new Object[]{"der", "die", "das"});
         ensureGreen();
-        execute("SELECT * from INFORMATION_SCHEMA.routines " +
+        execute("SELECT routine_name, routine_type from INFORMATION_SCHEMA.routines " +
                 "where routine_name = 'myanalyzer' " +
                 "or routine_name = 'myotheranalyzer' " +
                 "and routine_type = 'ANALYZER' " +
@@ -452,7 +452,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(381, response.rowCount());
+        assertEquals(388, response.rowCount());
     }
 
     @Test

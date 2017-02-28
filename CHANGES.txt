@@ -106,6 +106,8 @@ Breaking Changes
 
 Changes
 =======
+ 
+ - Added support for user defined functions
 
  - Added cluster check and warning for unlicensed usage of CrateDB Enterprise.
 

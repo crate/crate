@@ -868,3 +868,9 @@
 
 #psql.enabled: true
 #psql.port: 5432
+
+
+######################### User Defined Functions ########################
+
+# Setting this to `true` enables the User Defined Functions functionality.
+#udf.enabled: true
