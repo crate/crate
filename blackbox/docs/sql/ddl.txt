@@ -1056,10 +1056,10 @@ User defined Functions
 CREATE OR REPLACE
 -----------------
 
-Crate supports user-defined functions, See :ref:`create_function` for a full
+Crate supports user-defined functions, See :ref:`reference/create_function` for a full
 syntax description.
 
-These functions can be created as shown in the following example:
+These functions can be created as shown in the following example::
 
      cr> CREATE FUNCTION add(integer, integer) RETURNS integer
      ...  LANGUAGE JAVASCRIPT
@@ -1068,7 +1068,7 @@ These functions can be created as shown in the following example:
      ...      }';
 
 
-``OR REPLACE`` can be used to replace an existing function:
+``OR REPLACE`` can be used to replace an existing function::
 
      cr> CREATE OR REPLACE FUNCTION add(integer, integer)
      ...  RETURNS integer LANGUAGE JAVASCRIPT
@@ -1078,7 +1078,7 @@ These functions can be created as shown in the following example:
 
 Argument name can be specified in the function definition. Please note that
 these names cannot be used in the function body, but can be named in
-the query for documentation purposes.
+the query for documentation purposes::
 
      cr> CREATE OR REPLACE FUNCTION distance(start geo_point, end geo_point)
      ...  RETURNS float LANGUAGE JAVASCRIPT
@@ -1088,7 +1088,7 @@ the query for documentation purposes.
 
 
 Optionally a schema name can be specified, if not then the function will be
-created in the current schema.
+created in the current schema::
 
      cr> CREATE FUNCTION my_schema.add(integer, integer) RETURNS integer
      ...  LANGUAGE JAVASCRIPT
@@ -1097,7 +1097,7 @@ created in the current schema.
      ...      }';
 
 Even if a function was created in a specific schema, it can be accessed from
-everywhere if the full name is provided:
+everywhere if the full name is provided::
 
      cr> SELECT my_schema.add(1, 2);
      +--------------------+
@@ -1115,7 +1115,7 @@ CALLED ON NULL INPUT
 
 This option Indicates that the function can be called be when some of its
 arguments are ``NULL``. All user-defined functions can be called on ``NULL``
-input.
+input by default::
 
      cr> CREATE OR REPLACE FUNCTION multiply(integer, integer)
      ...  RETURNS integer LANGUAGE JAVASCRIPT CALLED ON NULL INPUT
@@ -1136,7 +1136,7 @@ RETURNS NULL ON NULL INPUT and STRICT
 .....................................
 
 This option indicates that the function always returns ``NULL`` when any of it's
-arguments are ``NULL``:
+arguments are ``NULL``::
 
      cr> CREATE OR REPLACE FUNCTION divide(integer, integer)
      ...  RETURNS float LANGUAGE JAVASCRIPT STRICT
@@ -1156,16 +1156,38 @@ arguments are ``NULL``:
 OVERLOADING
 -----------
 
-You can overload functions by defining two functions of the same name that have
-a different set of arguments, as shown in the following example:
-
+In a specific schema, You can overload functions by defining two functions of the
+same name that have a different set of arguments as shown in the following examples::
 
      cr> CREATE FUNCTION my_schema.add(long, long) RETURNS long
      ...  LANGUAGE JAVASCRIPT
      ...  AS 'function(a, b){
      ...       return a + b;
-     ...      }'
-     ...  RETURNS NULL ON NULL INPUT;
+     ...      }';
+
+or a different number of arguments::
+
+     cr> CREATE FUNCTION my_schema.add(long, long, long) RETURNS long
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function(a, b, c){
+     ...       return a + b + c;
+     ...      }';
+
+or different argument names::
+
+     cr> CREATE FUNCTION my_schema.add(argument_1 long, argument_2 long) RETURNS long
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function(a, b){
+     ...       return a + b;
+     ...      }';
+
+or different return types::
+
+     cr> CREATE FUNCTION my_schema.add(sum long, long) RETURNS long
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function(a, b){
+     ...       return a + b;
+     ...      }';
 
 
 
