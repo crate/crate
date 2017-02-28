@@ -29,10 +29,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
 
 @Singleton
 public class TablesNeedReindexingSysCheck extends AbstractSysCheck {
@@ -60,11 +57,9 @@ public class TablesNeedReindexingSysCheck extends AbstractSysCheck {
 
     @Override
     public boolean validate() {
-        List<String> newTablesNeedReindexing = new ArrayList<>(LuceneVersionChecks.tablesNeedReindexing(
+        tablesNeedReindexing = LuceneVersionChecks.tablesNeedReindexing(
             schemas,
-            clusterService.state().metaData()));
-        Collections.sort(newTablesNeedReindexing);
-        tablesNeedReindexing = newTablesNeedReindexing;
+            clusterService.state().metaData());
         return tablesNeedReindexing.isEmpty();
     }
 }

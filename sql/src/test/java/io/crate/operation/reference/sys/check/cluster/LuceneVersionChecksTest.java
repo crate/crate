@@ -22,39 +22,45 @@
 
 package io.crate.operation.reference.sys.check.cluster;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class LuceneVersionChecksTest {
+public class LuceneVersionChecksTest extends CrateUnitTest {
 
     @Test
     public void testReindexRequired() {
-        assertThat(LuceneVersionChecks.checkReindexRequired(null), is(false));
+        assertThat(LuceneVersionChecks.isReindexRequired(null), is(false));
         IndexMetaData reindexRequired = new IndexMetaData.Builder("testReindexRequired")
             .settings(Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.V_1_2_3).build())
             .numberOfShards(5)
             .numberOfReplicas(2)
             .build();
-        assertThat(LuceneVersionChecks.checkReindexRequired(reindexRequired), is(true));
+        assertThat(LuceneVersionChecks.isReindexRequired(reindexRequired), is(true));
 
         IndexMetaData noReindexRequired = new IndexMetaData.Builder("testNoReindexRequired")
             .settings(Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.V_1_6_2).build())
             .numberOfShards(5)
             .numberOfReplicas(2)
             .build();
-        assertThat(LuceneVersionChecks.checkReindexRequired(noReindexRequired), is(false));
+        assertThat(LuceneVersionChecks.isReindexRequired(noReindexRequired), is(false));
     }
 
     @Test
     public void testUpgradeRequired() {
-        assertThat(LuceneVersionChecks.checkUpgradeRequired(null), is(false));
-        assertThat(LuceneVersionChecks.checkUpgradeRequired("invalidVersion"), is(false));
-        assertThat(LuceneVersionChecks.checkUpgradeRequired("4.9.0"), is(true));
-        assertThat(LuceneVersionChecks.checkUpgradeRequired("5.0.0"), is(true));
+        assertThat(LuceneVersionChecks.isUpgradeRequired(null), is(false));
+        assertThat(LuceneVersionChecks.isUpgradeRequired("4.9.0"), is(true));
+        assertThat(LuceneVersionChecks.isUpgradeRequired("5.0.0"), is(true));
+    }
+
+    @Test
+    public void testUpgradeRequiredInvalidArg() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("'invalidVersion' is not a valid Lucene version");
+        LuceneVersionChecks.isUpgradeRequired("invalidVersion");
     }
 }

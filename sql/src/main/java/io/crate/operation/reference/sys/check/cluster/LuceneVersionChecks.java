@@ -31,33 +31,36 @@ import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.inject.internal.Nullable;
 
 import java.text.ParseException;
-import java.util.Collection;
-import java.util.HashSet;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 final class LuceneVersionChecks {
 
-    static boolean checkUpgradeRequired(String versionStr) {
+    static boolean isUpgradeRequired(@Nullable String versionStr) {
         if (versionStr == null || versionStr.isEmpty()) {
             return false;
         }
-
         try {
-            Version version = Version.parse(versionStr);
-            return !version.onOrAfter(Version.LATEST);
+            return !Version.parse(versionStr).onOrAfter(Version.LATEST);
         } catch (ParseException e) {
-            return false;
+            throw new IllegalArgumentException("'" + versionStr + "' is not a valid Lucene version");
         }
     }
 
-    static boolean checkReindexRequired(IndexMetaData indexMetaData) {
+    // We need to check for the version that the index was created since the lucene segments might
+    // be automatically upgraded to the latest version (happened when data was in the translog) so
+    // minimumCompatVersion cannot be used to indicate that a re-index is needed.
+    static boolean isReindexRequired(IndexMetaData indexMetaData) {
         return indexMetaData != null &&
                !indexMetaData.getCreationVersion().luceneVersion.onOrAfter(Version.LUCENE_4_10_0);
     }
 
-    static Collection<String> tablesNeedReindexing(Schemas schemas, MetaData clusterIndexMetaData) {
-        Collection<String> tablesNeedReindexing = new HashSet<>();
+    static List<String> tablesNeedReindexing(Schemas schemas, MetaData clusterIndexMetaData) {
+        List<String> tablesNeedReindexing = new ArrayList<>();
         for (SchemaInfo schemaInfo : schemas) {
             if (schemaInfo instanceof DocSchemaInfo) {
                 for (TableInfo tableInfo : schemaInfo) {
@@ -78,12 +81,13 @@ final class LuceneVersionChecks {
                 }
             }
         }
+        Collections.sort(tablesNeedReindexing);
         return tablesNeedReindexing;
     }
 
     private static boolean checkIndexMetaData(TableInfo tableInfo, IndexMetaData metaData,
-                                              Collection<String> tablesNeedReindexing) {
-        if (LuceneVersionChecks.checkReindexRequired(metaData)) {
+                                              List<String> tablesNeedReindexing) {
+        if (LuceneVersionChecks.isReindexRequired(metaData)) {
             tablesNeedReindexing.add(tableInfo.ident().fqn());
             return true;
         }

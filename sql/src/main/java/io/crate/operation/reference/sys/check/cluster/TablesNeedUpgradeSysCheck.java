@@ -36,10 +36,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -53,8 +50,9 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
     private static final ESLogger LOGGER = Loggers.getLogger(TablesNeedUpgradeSysCheck.class);
     private static final String STMT = "select schema_name || '.' || table_name, min_lucene_version " +
                                        "from sys.shards where min_lucene_version <> '" +
-                                       org.apache.lucene.util.Version.LATEST.toString() + "' " +
-                                       "order by 1";
+                                       org.apache.lucene.util.Version.LATEST.toString() + "'";
+    private static final String STMT_NOT_IN = " AND schema_name || '.' || table_name NOT IN (";
+    private static final String STMT_SUFFIX = " order by 1";
     private static final int LIMIT = 50_000;
 
     private final SQLOperations.Session session;
@@ -80,18 +78,36 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
     @Override
     public boolean validate() {
-        Collection<String> tablesNeedReindexing = new ArrayList<>(LuceneVersionChecks.tablesNeedReindexing(
+        List<String> tablesNeedReindexing = LuceneVersionChecks.tablesNeedReindexing(
             schemas,
-            clusterService.state().metaData()));
+            clusterService.state().metaData());
+
+        String statement;
+        if (tablesNeedReindexing.isEmpty()) {
+            statement = STMT + STMT_SUFFIX;
+        } else {
+            StringBuilder sb = new StringBuilder(STMT + STMT_NOT_IN);
+            for (int i = 0; i < tablesNeedReindexing.size(); i++) {
+                sb.append("'").append(tablesNeedReindexing.get(i)).append("'");
+                if (i < tablesNeedReindexing.size() - 1) {
+                    sb.append(",");
+                }
+            }
+            statement = sb.toString();
+        }
 
         final CompletableFuture<Collection<String>> result = new CompletableFuture<>();
         try {
-            session.parse(SQLOperations.Session.UNNAMED, STMT, Collections.emptyList());
-            session.bind(SQLOperations.Session.UNNAMED, SQLOperations.Session.UNNAMED, Collections.emptyList(), null);
+            session.parse(SQLOperations.Session.UNNAMED, statement, Collections.emptyList());
+            session.bind(
+                SQLOperations.Session.UNNAMED,
+                SQLOperations.Session.UNNAMED,
+                Collections.singletonList(tablesNeedReindexing),
+                null);
             session.execute(
                 SQLOperations.Session.UNNAMED,
                 0,
-                new SycCheckResultReceiver(result, tablesNeedReindexing));
+                new SycCheckResultReceiver(result));
             session.sync();
         } catch (Throwable t) {
             result.completeExceptionally(t);
@@ -101,28 +117,24 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
         } catch (Exception e) {
             LOGGER.error("error occurred when checking for tables that need to be upgraded", e);
         }
-        return tablesNeedUpgrade.isEmpty();
+        return tablesNeedUpgrade == null || tablesNeedUpgrade.isEmpty();
     }
 
     private class SycCheckResultReceiver implements ResultReceiver {
 
         private final CompletableFuture<Collection<String>> result;
-        private final Collection<String> tablesNeedReindexing;
         private final Collection<String> tables;
 
-        private SycCheckResultReceiver(CompletableFuture<Collection<String>> result,
-                                       Collection<String> tablesNeedReindexing) {
+        private SycCheckResultReceiver(CompletableFuture<Collection<String>> result) {
             this.result = result;
             this.tables = new HashSet<>();
-            this.tablesNeedReindexing = tablesNeedReindexing;
         }
 
         @Override
         public void setNextRow(Row row) {
-            String versionStr = ((BytesRef)row.get(1)).utf8ToString();
-            String tableName = ((BytesRef)row.get(0)).utf8ToString();
-            if (!tablesNeedReindexing.contains(tableName) && LuceneVersionChecks.checkUpgradeRequired(versionStr)) {
-                tables.add(tableName);
+            // Row[0] = table_name, Row[1] = min_lucene_version
+            if (LuceneVersionChecks.isUpgradeRequired(((BytesRef)row.get(1)).utf8ToString())) {
+                tables.add(((BytesRef)row.get(0)).utf8ToString());
             }
         }
 
