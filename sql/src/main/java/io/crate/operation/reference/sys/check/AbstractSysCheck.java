@@ -28,7 +28,7 @@ import java.util.concurrent.CompletableFuture;
 
 public abstract class AbstractSysCheck implements SysCheck {
 
-    private static final String LINK_PATTERN = "https://cr8.is/d-cluster-check-";
+    public static final String LINK_PATTERN = "https://cr8.is/d-cluster-check-";
 
     private final int id;
     private final BytesRef description;
@@ -62,7 +62,7 @@ public abstract class AbstractSysCheck implements SysCheck {
     public abstract boolean validate();
 
     @Override
-    public CompletableFuture<Void> computeResult() {
+    public CompletableFuture<?> computeResult() {
         return CompletableFuture.completedFuture(null);
     }
 }

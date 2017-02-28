@@ -73,5 +73,5 @@ public interface SysCheck {
      * Start the checks in an async manner and returns a future
      * which the caller can use as a callback.
      */
-    CompletableFuture<Void> computeResult();
+    CompletableFuture<?> computeResult();
 }
