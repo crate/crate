@@ -66,6 +66,8 @@ statement
     | DROP ALIAS qname                                                               #dropAlias
     | DROP REPOSITORY ident                                                          #dropRepository
     | DROP SNAPSHOT qname                                                            #dropSnapshot
+    | DROP FUNCTION (IF EXISTS)? name=qname
+        '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
     | createStmt                                                                     #create
     ;
 
@@ -389,6 +391,20 @@ createStmt
     | CREATE SNAPSHOT qname (ALL | TABLE tableWithPartitions) withProperties?        #createSnapshot
     | CREATE ANALYZER name=ident (EXTENDS extendedName=ident)?
         WITH? '(' analyzerElement ( ',' analyzerElement )* ')'                       #createAnalyzer
+    | CREATE (OR REPLACE)? FUNCTION name=qname
+        '(' (functionArgument (',' functionArgument)*)? ')'
+        RETURNS returnType=dataType
+        LANGUAGE langName=ident functionOptions? AS body=stringLiteral               #createFunction
+    ;
+
+functionArgument
+    : (name=ident)? type=dataType
+    ;
+
+functionOptions
+    : CALLED ON NULL INPUT
+    | RETURNS NULL ON NULL INPUT
+    | STRICT
     ;
 
 alterTableDefinition
@@ -545,7 +561,7 @@ nonReserved
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
-    | ISOLATION | TRANSACTION | LEVEL
+    | ISOLATION | TRANSACTION | LEVEL | LANGUAGE
     ;
 
 SELECT: 'SELECT';
@@ -653,6 +669,13 @@ GLOBAL : 'GLOBAL';
 SESSION : 'SESSION';
 LOCAL : 'LOCAL';
 BEGIN: 'BEGIN';
+
+RETURNS: 'RETURNS';
+CALLED: 'CALLED';
+REPLACE: 'REPLACE';
+FUNCTION: 'FUNCTION';
+LANGUAGE: 'LANGUAGE';
+INPUT: 'INPUT';
 
 CONSTRAINT: 'CONSTRAINT';
 DESCRIBE: 'DESCRIBE';
