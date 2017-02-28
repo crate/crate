@@ -25,13 +25,16 @@ import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Objects;
 import java.util.Set;
 
-public abstract class DataType<T> implements Comparable, Streamable {
+public abstract class DataType<T> implements Comparable, Streamable, ToXContent {
 
     public abstract int id();
 
@@ -98,6 +101,14 @@ public abstract class DataType<T> implements Comparable, Streamable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        return builder;
+    }
+
+    public void fromXContent(XContentParser parser) throws IOException {
     }
 
     @Override
