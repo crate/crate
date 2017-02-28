@@ -24,11 +24,14 @@ package io.crate.operation.collect;
 
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.TreeMapBuilder;
+import io.crate.data.BatchConsumer;
+import io.crate.data.BatchIterator;
+import io.crate.data.BatchIteratorProxy;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Routing;
 import io.crate.operation.collect.collectors.RemoteCollector;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.Requirement;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projections;
@@ -38,7 +41,9 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * Used to create RemoteCollectors
@@ -83,20 +88,41 @@ public class RemoteCollectorFactory {
         final String localNodeId = clusterService.localNode().getId();
         final RoutedCollectPhase newCollectPhase = createNewCollectPhase(childJobId, collectPhase, index, shardId, remoteNodeId);
 
-        return new CrateCollector.Builder() {
-            @Override
-            public CrateCollector build(RowReceiver rowReceiver) {
-                return new RemoteCollector(
-                    childJobId,
-                    localNodeId,
-                    remoteNodeId,
-                    transportActionProvider.transportJobInitAction(),
-                    transportActionProvider.transportKillJobsNodeAction(),
-                    jobContextService,
-                    ramAccountingContext,
-                    rowReceiver,
-                    newCollectPhase);
-            }
+        return rowReceiver -> {
+            CompletableFuture<BatchIterator> batchIteratorFuture = new CompletableFuture<>();
+            BatchConsumer batchConsumer = new BatchConsumer() {
+                @Override
+                public void accept(BatchIterator iterator, @Nullable Throwable failure) {
+                    if (failure == null) {
+                        batchIteratorFuture.complete(iterator);
+                    } else {
+                        batchIteratorFuture.completeExceptionally(failure);
+                    }
+                }
+
+                @Override
+                public boolean requiresScroll() {
+                    return rowReceiver.requirements().contains(Requirement.REPEAT);
+                }
+            };
+            RemoteCollector remoteCollector = new RemoteCollector(
+                childJobId,
+                localNodeId,
+                remoteNodeId,
+                transportActionProvider.transportJobInitAction(),
+                transportActionProvider.transportKillJobsNodeAction(),
+                jobContextService,
+                ramAccountingContext,
+                batchConsumer,
+                rowReceiver,
+                newCollectPhase);
+            return new BatchIteratorCollector(
+                BatchIteratorProxy.newInstance(
+                    () -> { remoteCollector.doCollect(); return batchIteratorFuture; },
+                    newCollectPhase.toCollect().size()
+                ),
+                rowReceiver
+            );
         };
     }
 
