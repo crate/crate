@@ -51,7 +51,6 @@ public class CurrentSchemaFunctionTest extends AbstractScalarFunctionsTest {
         assertNormalize("current_schema()", isLiteral("custom_schema"), false);
     }
 
-    @Test
     public void testEvaluateCurrentSchemaNotSupported() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot evaluate CURRENT_SCHEMA function.");

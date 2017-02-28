@@ -31,59 +31,94 @@ import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class Functions {
 
     private final Map<String, FunctionResolver> functionResolvers;
+    private final AtomicReference< Map<String, FunctionResolver>> udfFunctionResolvers = new AtomicReference<>();
 
     @Inject
     public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
                      Map<String, FunctionResolver> functionResolvers) {
         this.functionResolvers = Maps.newHashMap(functionResolvers);
-        generateFunctionResolvers(functionImplementations);
+        this.functionResolvers.putAll(generateFunctionResolvers(functionImplementations));
+        udfFunctionResolvers.set(new HashMap<>());
     }
 
-    private void generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
+    public Map<String, FunctionResolver> generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
+        Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> signatures = getSignatures(functionImplementations);
+        return signatures.keys().stream()
+            .distinct()
+            .collect(Collectors.toMap(name -> name, name -> new GeneratedFunctionResolver(signatures.get(name))));
+    }
+
+    private Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> getSignatures(
+        Map<FunctionIdent, FunctionImplementation> functionImplementations) {
         Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> signatureMap = ArrayListMultimap.create();
         for (Map.Entry<FunctionIdent, FunctionImplementation> entry : functionImplementations.entrySet()) {
             signatureMap.put(entry.getKey().name(), new Tuple<>(entry.getKey(), entry.getValue()));
         }
-        for (String name : signatureMap.keys()) {
-            functionResolvers.put(name, new GeneratedFunctionResolver(signatureMap.get(name)));
-        }
+        return signatureMap;
     }
 
-    /**
-     * Returns the built-in function implementation for the given function name and arguments.
-     *
-     * @param name           The function name.
-     * @param argumentsTypes The function argument types.
-     * @return a function implementation or null if it was not found.
-     */
-    @Nullable
-    public FunctionImplementation getBuiltin(String name, List<DataType> argumentsTypes) throws IllegalArgumentException {
-        FunctionResolver dynamicResolver = functionResolvers.get(name);
-        if (dynamicResolver != null) {
-            List<DataType> signature = dynamicResolver.getSignature(argumentsTypes);
+    public void registerSchemaFunctionResolvers(Map<String, FunctionResolver> resolvers) {
+        udfFunctionResolvers.set(resolvers);
+    }
+
+    private static FunctionImplementation resolveFunctionForArgumentTypes(List<DataType> types, @Nullable FunctionResolver resolver) {
+        if (resolver != null) {
+            List<DataType> signature = resolver.getSignature(types);
             if (signature != null) {
-                return dynamicResolver.getForTypes(signature);
+                return resolver.getForTypes(signature);
             }
         }
         return null;
     }
 
     /**
+     * Returns the built-in function implementation for the given function name and arguments.
+     *
+     * @param name The function name.
+     * @param argumentsTypes The function argument types.
+     * @return a function implementation or null if it was not found.
+     */
+    @Nullable
+    public FunctionImplementation getBuiltin(String name, List<DataType> argumentsTypes) {
+        FunctionResolver dynamicResolver = functionResolvers.get(name);
+        return resolveFunctionForArgumentTypes(argumentsTypes, dynamicResolver);
+    }
+
+    /**
+     * Returns the user-defined function implementation for the given function name and arguments.
+     *
+     * @param name The function name.
+     * @param argumentsTypes The function argument types.
+     * @return a function implementation.
+     * @throws UnsupportedOperationException if no implementation is found.
+     */
+    public FunctionImplementation getUserDefined(String name, List<DataType> argumentsTypes) throws UnsupportedOperationException {
+        FunctionResolver dynamicResolver = udfFunctionResolvers.get().get(name);
+        FunctionImplementation impl = resolveFunctionForArgumentTypes(argumentsTypes, dynamicResolver);
+        if (impl == null) {
+            throw createUnknownFunctionException(name, argumentsTypes);
+        }
+        return impl;
+    }
+
+    /**
      * Returns the function implementation for the given function ident.
+     * First look up function in built-ins then fallback to user-defined functions.
      *
      * @param ident The function ident.
      * @return The function implementation.
-     * @throws UnsupportedOperationException if an implementation is not found.
+     * @throws UnsupportedOperationException if no implementation is found.
      */
-
-    public FunctionImplementation getQualified(FunctionIdent ident) throws IllegalArgumentException {
+    public FunctionImplementation getQualified(FunctionIdent ident) throws UnsupportedOperationException {
         FunctionImplementation impl = getBuiltin(ident.name(), ident.argumentTypes());
         if (impl == null) {
-            throw createUnknownFunctionException(ident.name(), ident.argumentTypes());
+            impl = getUserDefined(ident.name(), ident.argumentTypes());
         }
         return impl;
     }

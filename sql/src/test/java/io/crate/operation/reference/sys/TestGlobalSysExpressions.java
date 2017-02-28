@@ -123,5 +123,8 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
         Map licence = (Map) settings.get(CrateSettings.LICENSE.name());
         assertThat(licence.get(CrateSettings.LICENSE_ENTERPRISE.name()),
             is(CrateSettings.LICENSE_ENTERPRISE.defaultValue()));
+
+        Map udf = (Map) settings.get(CrateSettings.UDF.name());
+        assertThat(udf.get(CrateSettings.UDF_ENABLED.name()), is(CrateSettings.UDF_ENABLED.defaultValue()));
     }
 }

@@ -405,7 +405,11 @@ public class SysClusterTableInfo extends StaticTableInfo {
 
                 .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.LICENSE.name()))
                 .register(ClusterSettingsExpression.NAME, DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.LICENSE.name(),
-                    CrateSettings.LICENSE_ENTERPRISE.name())),
+                    CrateSettings.LICENSE_ENTERPRISE.name()))
+
+                .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.UDF.name()))
+                .register(ClusterSettingsExpression.NAME, DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.UDF.name(),
+                    CrateSettings.UDF_ENABLED.name())),
             Collections.emptyList());
         this.clusterService = clusterService;
     }

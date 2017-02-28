@@ -22,9 +22,11 @@
 
 package io.crate.operation;
 
+import com.google.common.base.Joiner;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.data.Input;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -32,6 +34,7 @@ import io.crate.metadata.Scalar;
 import io.crate.operation.aggregation.FunctionExpression;
 
 import java.util.List;
+import java.util.Locale;
 
 public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?>> {
 
@@ -55,7 +58,14 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
             }
             return new FunctionExpression<>(scalarImpl, argumentInputs);
         } else {
-            throw Functions.createUnknownFunctionException(ident.name(), ident.argumentTypes());
+            throw new UnsupportedFeatureException(
+                String.format(
+                    Locale.ENGLISH,
+                    "Function %s(%s) is not a scalar function.",
+                    ident.name(),
+                    Joiner.on(", ").join(ident.argumentTypes())
+                )
+            );
         }
     }
 

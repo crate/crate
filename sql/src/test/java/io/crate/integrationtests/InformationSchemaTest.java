@@ -22,14 +22,18 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.doc.DocIndexMetaData;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -45,6 +49,13 @@ import static org.hamcrest.Matchers.*;
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     private final Joiner commaJoiner = Joiner.on(", ");
+
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return Settings.builder()
+            .put(super.nodeSettings(nodeOrdinal))
+            .put(CrateSettings.UDF_ENABLED.settingName(), true).build();
+    }
 
     private void serviceSetup() {
         execute("create table t1 (col1 integer primary key, " +
@@ -342,7 +353,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "  stopwords=[?, ?, ?]" +
                 ")", new Object[]{"der", "die", "das"});
         ensureGreen();
-        execute("SELECT * from INFORMATION_SCHEMA.routines " +
+        execute("SELECT routine_name, routine_type from INFORMATION_SCHEMA.routines " +
                 "where routine_name = 'myanalyzer' " +
                 "or routine_name = 'myotheranalyzer' " +
                 "and routine_type = 'ANALYZER' " +
@@ -379,6 +390,28 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             "whitespace, turkish, thai, swedish, stop",
             Joiner.on(", ").join(analyzerNames)
         );
+    }
+
+    @Test
+    public void testSelectFunctionsFromRoutines() throws Exception {
+        try {
+            execute("create function substract_test(long, long, long) " +
+                "returns long language JAVASCRIPT " +
+                "as 'function substract_test(a, b, c) { return a - b - c; }'");
+            waitForFunctionCreatedOnAll("substract_test", ImmutableList.of(DataTypes.LONG, DataTypes.LONG, DataTypes.LONG));
+
+            execute("select routine_name, routine_body, data_type, routine_definition" +
+                " from information_schema.routines " +
+                " where routine_type = 'FUNCTION'");
+            assertThat(response.rowCount(), is(1L));
+            assertThat(response.rows()[0][0], is("substract_test"));
+            assertThat(response.rows()[0][1], is("javascript"));
+            assertThat(response.rows()[0][2], is("long"));
+            assertThat(response.rows()[0][3], is("function substract_test(a, b, c) { return a - b - c; }"));
+        }
+        finally {
+            execute("drop function if exists substract_test(long, long, long)");
+        }
     }
 
     @Test
@@ -449,7 +482,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(389, response.rowCount());
+        assertEquals(395, response.rowCount());
     }
 
     @Test
