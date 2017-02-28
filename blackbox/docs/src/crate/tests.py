@@ -70,6 +70,16 @@ def wait_for_schema_update(schema, table, column):
                     (schema, table, column))
         count = c.fetchone()[0]
 
+def wait_for_function(name, signatures = 1):
+    conn = connect('localhost:' + str(CRATE_HTTP_PORT))
+    c = conn.cursor()
+    count = 0
+    while count < signatures:
+        c.execute(('select count(*) from information_schema.routines '
+                   'where routine_name = ? and routine_type = ?'),
+                  (name, 'FUNCTION'))
+        count = c.fetchone()[0]
+
 
 def bash_transform(s):
     # The examples in the docs show the real port '4200' to a reader.
@@ -137,6 +147,7 @@ crate_layer = ConnectingCrateLayer(
     transport_port=CRATE_TRANSPORT_PORT,
     settings={
         'cluster.routing.schedule': '30ms',
+        'udf.enabled': 'true',
     }
 )
 
@@ -314,6 +325,8 @@ def tearDownCountries(test):
 def setUpLocationsAndQuotes(test):
     setUpLocations(test)
     setUpQuotes(test)
+    test.globs['wait_for_function'] = wait_for_function
+
 
 def tearDownLocationsAndQuotes(test):
     tearDownLocations(test)
@@ -383,6 +396,7 @@ def setUpTutorials(test):
 def setUp(test):
     test.globs['cmd'] = cmd
     test.globs['wait_for_schema_update'] = wait_for_schema_update
+    test.globs['wait_for_function'] = wait_for_function
 
 
 
@@ -421,6 +435,7 @@ def test_suite():
                'sql/ddl/alter_table.txt',
                'sql/administration/set_reset.txt',
                'sql/administration/show_create_table.txt',
+               'sql/administration/user_defined_functions.txt',
                'sql/dql.txt',
                'sql/refresh.txt',
                'sql/optimize.txt',

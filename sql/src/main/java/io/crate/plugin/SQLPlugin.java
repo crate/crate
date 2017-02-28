@@ -56,6 +56,7 @@ import io.crate.operation.reference.sys.repositories.SysRepositoriesModule;
 import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
+import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.rest.action.RestSQLAction;
 import org.elasticsearch.action.bulk.BulkModule;
@@ -113,7 +114,8 @@ public class SQLPlugin extends Plugin {
             PostgresNetty.class,
             JobContextService.class,
             Schemas.class,
-            SysRepositoriesService.class);
+            SysRepositoriesService.class,
+            UserDefinedFunctionService.class);
     }
 
     @Override
