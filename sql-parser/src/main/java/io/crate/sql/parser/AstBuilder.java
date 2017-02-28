@@ -279,7 +279,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         if (context.ALL() != null) {
             return new KillStatement();
         }
-        return new KillStatement((Expression) visit(context.jobId()));
+        return new KillStatement((Expression) visit(context.jobId));
     }
 
     @Override
@@ -324,6 +324,30 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitTableWithPartition(SqlBaseParser.TableWithPartitionContext context) {
         return new Table(getQualifiedName(context.qname()), visit(context.assignment(), Assignment.class));
+    }
+
+    @Override
+    public Node visitCreateFunction(SqlBaseParser.CreateFunctionContext context) {
+        QualifiedName functionName = getQualifiedName(context.name);
+        validateFunctionName(functionName);
+        return new CreateFunction(
+            functionName,
+            context.REPLACE() != null,
+            visit(context.functionArgument(), FunctionArgument.class),
+            (ColumnType) visit(context.returnType),
+            (Expression) visit(context.language),
+            (Expression) visit(context.body));
+    }
+
+    @Override
+    public Node visitDropFunction(SqlBaseParser.DropFunctionContext context) {
+        QualifiedName functionName = getQualifiedName(context.name);
+        validateFunctionName(functionName);
+
+        return new DropFunction(
+            functionName,
+            context.EXISTS() != null,
+            visit(context.functionArgument(), FunctionArgument.class));
     }
 
     // Column / Table definition
@@ -402,6 +426,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitClusteredInto(SqlBaseParser.ClusteredIntoContext context) {
         return new ClusteredBy(null, visitIfPresent(context.numShards, Expression.class));
+    }
+
+    @Override
+    public Node visitFunctionArgument(SqlBaseParser.FunctionArgumentContext context) {
+        return new FunctionArgument(getIdentTextIfPresent(context.ident()), (ColumnType) visit(context.dataType()));
     }
 
     // Properties
@@ -1302,5 +1331,13 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         }
 
         throw new IllegalArgumentException("Unsupported quantifier: " + symbol.getText());
+    }
+
+    // Create Function helpers
+    private void validateFunctionName(QualifiedName functionName) {
+        if (functionName.getParts().size() > 2) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "The function name is not correct! " +
+                "name [%s] does not conform the [[schema_name .] function_name] format.", functionName));
+        }
     }
 }
