@@ -1,0 +1,23 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+archivesBaseName = 'crate-upcrater'
+
+dependencies {
+    compile project(":es:es-core")
+    compile project(":sql")
+
+    testCompile project(":integration-testing")
+    testCompile "com.github.stefanbirkner:system-rules:${versions.system_rules}"
+}
+
+test {
+    testLogging.exceptionFormat = 'full'
+    jacoco.excludes = ["*Test*"]
+}
+
+sourceSets {
+    test {
+        resources {
+            srcDir 'src/test/resources'
+        }
+    }
+}

@@ -20,42 +20,45 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.check;
+package io.crate.upcrater;
 
-import org.apache.lucene.util.BytesRef;
+import io.crate.metadata.TableIdent;
 
-public abstract class AbstractSysCheck implements SysCheck {
+import java.util.Objects;
 
-    public static final String LINK_PATTERN = "https://cr8.is/d-cluster-check-";
+class Table implements Comparable<Table> {
 
-    private final int id;
-    private final BytesRef description;
-    private final Severity severity;
+    private String name;
+    private boolean partitioned;
 
-
-    public AbstractSysCheck(int id, String description, Severity severity) {
-        this(id, description, severity, LINK_PATTERN);
+    Table(TableIdent tableIdent, boolean partitioned) {
+        this.name = tableIdent.fqn();
+        this.partitioned = partitioned;
     }
 
-    protected AbstractSysCheck(int id, String description, Severity severity, String linkPattern) {
-        String linkedDescriptionBuilder = description + " " + linkPattern + id;
-        this.description = new BytesRef(linkedDescriptionBuilder);
-
-        this.id = id;
-        this.severity = severity;
+    String name() {
+        return name;
     }
 
-    public int id() {
-        return id;
+    boolean isPartitioned() {
+        return partitioned;
     }
 
-    public BytesRef description() {
-        return description;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Table table = (Table) o;
+        return Objects.equals(name, table.name);
     }
 
-    public Severity severity() {
-        return severity;
+    @Override
+    public int hashCode() {
+        return Objects.hash(name);
     }
 
-    public abstract boolean validate();
+    @Override
+    public int compareTo(Table o) {
+        return name.compareTo(o.name());
+    }
 }

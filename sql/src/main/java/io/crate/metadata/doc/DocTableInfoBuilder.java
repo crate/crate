@@ -202,6 +202,7 @@ class DocTableInfoBuilder {
             partitions,
             md.columnPolicy(),
             md.supportedOperations(),
+            md.metaData(),
             executorService);
     }
 }
