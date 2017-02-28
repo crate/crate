@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
 public class PageDownstreamContextTest extends CrateUnitTest {
 
@@ -145,5 +145,29 @@ public class PageDownstreamContextTest extends CrateUnitTest {
                "2\n" +
                "2\n" +
                "4\n"));
+    }
+
+    @Test
+    public void testListenersCalledWhenOtherUpstreamIsFailing() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        PageDownstreamContext ctx = getPageDownstreamContext(rowReceiver, PassThroughPagingIterator.oneShot(), 2);
+
+        PageResultListener listener = mock(PageResultListener.class);
+        ctx.setBucket(0, Bucket.EMPTY, true, listener);
+        ctx.failure(1, new Exception("dummy"));
+
+        verify(listener, times(1)).needMore(false);
+    }
+
+    @Test
+    public void testListenerCalledAfterOthersHasFailed() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        PageDownstreamContext ctx = getPageDownstreamContext(rowReceiver, PassThroughPagingIterator.oneShot(), 2);
+
+        ctx.failure(0, new Exception("dummy"));
+        PageResultListener listener = mock(PageResultListener.class);
+        ctx.setBucket(1, Bucket.EMPTY, true, listener);
+
+        verify(listener, times(1)).needMore(false);
     }
 }

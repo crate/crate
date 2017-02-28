@@ -86,7 +86,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
             pagingIterator,
             rowReceiver,
             this::fetchMore,
-            this::finishDownstream,
+            this::releaseListenersAndCloseContext,
             executor.orElse(MoreExecutors.directExecutor())
         );
     }
@@ -114,7 +114,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
                     mergeBucketsAndEmit();
                 } else {
                     rowReceiver.fail(lastThrowable);
-                    close(lastThrowable);
+                    releaseListenersAndCloseContext(lastThrowable);
                 }
             }
         }
@@ -165,7 +165,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         }
     }
 
-    private void finishDownstream(@Nullable Throwable t) {
+    private void releaseListenersAndCloseContext(@Nullable Throwable t) {
         for (ObjectCursor<PageResultListener> cursor : listenersByBucketIdx.values()) {
             cursor.value.needMore(false);
         }
@@ -218,7 +218,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         setExhaustedUpstreams();
         if (bucketsByIdx.size() == numBuckets) {
             rowReceiver.fail(throwable);
-            close(throwable);
+            releaseListenersAndCloseContext(throwable);
         } else {
             lastThrowable = throwable;
         }
