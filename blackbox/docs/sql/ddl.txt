@@ -1056,48 +1056,53 @@ User defined Functions
 CREATE OR REPLACE
 -----------------
 
-Crate supports user-defined functions, See :ref:`reference/create_function`
+CrateDB supports user-defined functions. See :ref:`reference/create_function`
 for a full syntax description.
 
-These functions can be created as shown in the following example::
+These functions can be created, like so::
 
-     cr> CREATE FUNCTION add(integer, integer) RETURNS integer
-     ...  LANGUAGE JAVASCRIPT
+     cr> CREATE FUNCTION add(integer, integer)
+     ...  RETURNS integer LANGUAGE JAVASCRIPT
      ...  AS 'function(a, b){
-     ...       return a + b;
+     ...        return a + b;
      ...      }';
-
 
 ``OR REPLACE`` can be used to replace an existing function::
 
      cr> CREATE OR REPLACE FUNCTION add(integer, integer)
      ...  RETURNS integer LANGUAGE JAVASCRIPT
      ...  AS 'function(a, b){
-     ...       return a + b;
+     ...        return a + b;
      ...      }';
 
-Argument name can be specified in the function definition. Please note that
-these names cannot be used in the function body, but can be named in
-the query for documentation purposes::
+Arguments can be named in the function definition.
+
+For example, if you wanted to name two ``geo_point`` arguments ``start`` and
+``end`` you would do it like so::
 
      cr> CREATE OR REPLACE FUNCTION distance(start geo_point, end geo_point)
      ...  RETURNS float LANGUAGE JAVASCRIPT
      ...  AS 'distance(start_point, end_point){
-     ...   return Math.sqrt( Math.pow(end_point[0] - start_point[0], 2), Math.pow(end_point[1] - start_point[1], 2));
-     ...   }';
-
-
-Optionally a schema name can be specified, if not then the function will be
-created in the current schema::
-
-     cr> CREATE FUNCTION my_schema.add(integer, integer) RETURNS integer
-     ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function(a, b){
-     ...       return a + b;
+     ...        return Math.sqrt( Math.pow(end_point[0] - start_point[0], 2), Math.pow(end_point[1] - start_point[1], 2));
      ...      }';
 
-Even if a function was created in a specific schema, it can be accessed from
-everywhere if the full name is provided::
+.. NOTE::
+
+   Argument names are used for query documentation purposes only. You cannot
+   reference arguments by name in the function body.
+
+Optionally, a schema for the function can be specified. If no schema is
+specified, the function will be created in the current schema
+
+You can explicitly assign a schema like so::
+
+     cr> CREATE FUNCTION my_schema.add(integer, integer)
+     ...  RETURNS integer LANGUAGE JAVASCRIPT
+     ...  AS 'function(a, b){
+     ...        return a + b;
+     ...      }';
+
+Functions can be accessed from any schema if the full name is provided::
 
      cr> SELECT my_schema.add(1, 2);
      +--------------------+
@@ -1110,17 +1115,20 @@ everywhere if the full name is provided::
 OPTIONS
 -------
 
-CALLED ON NULL INPUT
-....................
+``CALLED ON NULL INPUT``
+........................
 
-This option Indicates that the function can be called be when some of its
-arguments are ``NULL``. All user-defined functions can be called on ``NULL``
-input by default::
+The ``CALLED ON NULL INPUT`` option indicates that the function can be called
+be when some of its arguments are ``NULL``. All user-defined functions can be
+called on ``NULL`` input by default.
+
+::
 
      cr> CREATE OR REPLACE FUNCTION multiply(integer, integer)
-     ...  RETURNS integer LANGUAGE JAVASCRIPT CALLED ON NULL INPUT
+     ...  RETURNS integer LANGUAGE JAVASCRIPT
+     ...  CALLED ON NULL INPUT
      ...  AS 'function(a, b){
-     ...       return a * b;
+     ...        return a * b;
      ...      }';
 
      cr> SELECT multiply(1, NULL);
@@ -1132,16 +1140,20 @@ input by default::
      SELECT 1 rows in set (... sec)
 
 
-RETURNS NULL ON NULL INPUT and STRICT
-.....................................
+``RETURNS NULL ON NULL INPUT`` and ``STRICT``
+.............................................
 
-This option indicates that the function always returns ``NULL`` when any of it's
-arguments are ``NULL``::
+The ``RETURNS NULL ON NULL INPUT`` indicates that the function always returns
+``NULL`` when any of it's arguments are ``NULL``. The ``STRICT`` is a synonym
+and behaves in exactly the same way.
+
+Here's how to use ``RETURNS NULL ON NULL INPUT``::
 
      cr> CREATE OR REPLACE FUNCTION divide(integer, integer)
-     ...  RETURNS float LANGUAGE JAVASCRIPT STRICT
+     ...  RETURNS float RETURNS NULL ON NULL INPUT
+     ...  LANGUAGE JAVASCRIPT
      ...  AS 'function(a, b){
-     ...       return a / b;
+     ...        return a / b;
      ...      }';
 
      cr> SELECT divide(1, NULL);
@@ -1152,59 +1164,71 @@ arguments are ``NULL``::
      +--------------------+
      SELECT 1 rows in set (... sec)
 
+Here's how to use ``STRICT``::
+
+     cr> CREATE OR REPLACE FUNCTION divide(integer, integer)
+     ...  RETURNS float STRICT LANGUAGE JAVASCRIPT
+     ...  AS 'function(a, b){
+     ...        return a / b;
+     ...      }';
+
+     cr> SELECT divide(1, NULL);
+     +--------------------+
+     | multiply(1, NULL)  |
+     +--------------------+
+     | NULL               |
+     +--------------------+
+     SELECT 1 rows in set (... sec)
 
 OVERLOADING
 -----------
 
-In a specific schema, You can overload functions by defining two functions of the
-same name that have a different set of arguments as shown in the following examples::
+Within a specific schema, you can overload functions by defining two functions with the
+same name that have a different set of arguments
 
-     cr> CREATE FUNCTION my_schema.add(long, long) RETURNS long
-     ...  LANGUAGE JAVASCRIPT
+This would overload our ``add`` function with different argument types::
+
+     cr> CREATE FUNCTION my_schema.add(long, long)
+     ...  RETURNS long LANGUAGE JAVASCRIPT
      ...  AS 'function(a, b){
-     ...       return a + b;
+     ...        return a + b;
      ...      }';
 
-or a different number of arguments::
+This would overload our ``add`` function with more arguments::
 
-     cr> CREATE FUNCTION my_schema.add(long, long, long) RETURNS long
-     ...  LANGUAGE JAVASCRIPT
+     cr> CREATE FUNCTION my_schema.add(long, long, long)
+     ...  RETURNS long LANGUAGE JAVASCRIPT
      ...  AS 'function(a, b, c){
-     ...       return a + b + c;
+     ...        return a + b + c;
      ...      }';
 
-or different argument names::
+This would overload our ``add`` function with different argument names::
 
-     cr> CREATE FUNCTION my_schema.add(argument_1 long, argument_2 long) RETURNS long
-     ...  LANGUAGE JAVASCRIPT
+     cr> CREATE FUNCTION my_schema.add(argument_1 long, argument_2 long)
+     ...  RETURNS long LANGUAGE JAVASCRIPT
      ...  AS 'function(a, b){
-     ...       return a + b;
+     ...        return a + b;
      ...      }';
 
-or different return types::
+This would overload our ``add`` function with a different return type::
 
-     cr> CREATE FUNCTION my_schema.add(sum long, long) RETURNS long
-     ...  LANGUAGE JAVASCRIPT
+     cr> CREATE FUNCTION my_schema.add(sum long, long)
+     ...  RETURNS long LANGUAGE JAVASCRIPT
      ...  AS 'function(a, b){
-     ...       return a + b;
+     ...        return a + b;
      ...      }';
 
-
-
-DETERMINISM
+Determinism
 -----------
 
-A User-defined function is considered ``deterministic``, meaning that it returns
-the same result value whenever it is called with the same values for its arguments,
-thereby preventing multiple executions.
+User-defined functions are deterministic, meaning that they will always return
+the same result value when called with the same argument values. These return
+values are then cached, preventing multiple function executions.
 
-SUPPORTED LANGUAGES
+Supported Languages
 -------------------
 
-JAVASCRIPT
+JavaScript
 ..........
 
-The current version of Crate supports Javascript ECMAScript 5.1.
-
-
-
+The current version of CrateDB supports ECMAScript 5.1.
