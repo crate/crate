@@ -23,9 +23,11 @@
 package io.crate.data;
 
 import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.SingleColumnBatchIterator;
 import org.junit.Test;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -33,6 +35,7 @@ import java.util.stream.IntStream;
 
 public class BatchIteratorProxyTest {
 
+    private List<Object[]> expectedResult = IntStream.range(0, 10).mapToObj(i -> new Object[]{i}).collect(Collectors.toList());
 
     @Test
     public void testBatchIteratorProxy() throws Exception {
@@ -43,7 +46,20 @@ public class BatchIteratorProxyTest {
                 );
                 return BatchIteratorProxy.newInstance(loadTrigger, 1);
             },
-            IntStream.range(0, 10).mapToObj(i -> new Object[] { i }).collect(Collectors.toList())
+            expectedResult
+        );
+        tester.run();
+    }
+
+    @Test
+    public void testBatchIteratorProxyWithBatchedSource() throws Exception {
+        BatchIteratorTester tester = new BatchIteratorTester(
+            () -> {
+                Supplier<CompletableFuture<BatchIterator>> loadTrigger = () -> CompletableFuture.supplyAsync(
+                    () -> new BatchSimulatingIterator(SingleColumnBatchIterator.range(0, 10), 2, 5, null));
+                return BatchIteratorProxy.newInstance(loadTrigger, 1);
+            },
+            expectedResult
         );
         tester.run();
     }

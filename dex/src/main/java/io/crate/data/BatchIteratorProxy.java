@@ -84,17 +84,23 @@ public class BatchIteratorProxy implements BatchIterator {
     public CompletionStage<?> loadNextBatch() {
         if (delegate == null) {
             if (loadingFuture == null) {
-                loadingFuture = loadTrigger.get().whenComplete((bi, failure) -> delegate = bi);
+                loadingFuture = loadTrigger.get().whenComplete((bi, failure) -> {
+                    delegate = bi;
+                    columnsProxy.setDelegate(bi.rowData());
+                });
                 return loadingFuture;
             }
             return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already loading"));
         }
-        return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already loaded"));
+        return delegate.loadNextBatch();
     }
 
     @Override
     public boolean allLoaded() {
-        return loadingFuture != null;
+        if (delegate == null) {
+            return false;
+        }
+        return delegate.allLoaded();
     }
 
     private void raiseIfLoading() {
@@ -105,27 +111,42 @@ public class BatchIteratorProxy implements BatchIterator {
 
 
     private class ColumnsProxy implements Columns {
+
         private final int numColumns;
-        private Columns columns;
+        private final ProxyInput[] inputs;
 
         ColumnsProxy(int numColumns) {
             this.numColumns = numColumns;
+            inputs = new ProxyInput[numColumns];
+            for (int i = 0; i < numColumns; i++) {
+                inputs[i] = new ProxyInput();
+            }
         }
 
         @Override
         public Input<?> get(int index) {
-            if (columns == null) {
-                if (delegate == null) {
-                    throw new IllegalStateException("BatchIterator not loaded.");
-                }
-                columns = delegate.rowData();
-            }
-            return columns.get(index);
+            return inputs[index];
         }
 
         @Override
         public int size() {
             return numColumns;
+        }
+
+        public void setDelegate(Columns columns) {
+            for (int i = 0; i < inputs.length; i++) {
+                inputs[i].input = columns.get(i);
+            }
+        }
+    }
+
+    private static class ProxyInput implements Input {
+
+        Input<?> input;
+
+        @Override
+        public Object value() {
+            return input.value();
         }
     }
 }
