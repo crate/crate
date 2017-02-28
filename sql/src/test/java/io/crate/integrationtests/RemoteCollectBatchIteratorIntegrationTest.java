@@ -40,7 +40,7 @@ import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
 @UseJdbc
-public class RemoteCollectorIntegrationTest extends SQLTransportIntegrationTest {
+public class RemoteCollectBatchIteratorIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpdateWithExpressionAndRelocatedShard() throws Exception {

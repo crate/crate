@@ -27,8 +27,8 @@ import io.crate.core.collections.TreeMapBuilder;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Routing;
-import io.crate.operation.collect.collectors.RemoteCollector;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.collect.collectors.RemoteCollectBatchIterator;
+import io.crate.operation.projectors.Requirement;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projections;
@@ -83,21 +83,19 @@ public class RemoteCollectorFactory {
         final String localNodeId = clusterService.localNode().getId();
         final RoutedCollectPhase newCollectPhase = createNewCollectPhase(childJobId, collectPhase, index, shardId, remoteNodeId);
 
-        return new CrateCollector.Builder() {
-            @Override
-            public CrateCollector build(RowReceiver rowReceiver) {
-                return new RemoteCollector(
-                    childJobId,
-                    localNodeId,
-                    remoteNodeId,
-                    transportActionProvider.transportJobInitAction(),
-                    transportActionProvider.transportKillJobsNodeAction(),
-                    jobContextService,
-                    ramAccountingContext,
-                    rowReceiver,
-                    newCollectPhase);
-            }
-        };
+        return rowReceiver -> new BatchIteratorCollector(
+            new RemoteCollectBatchIterator(
+                childJobId,
+                localNodeId,
+                remoteNodeId,
+                transportActionProvider.transportJobInitAction(),
+                transportActionProvider.transportKillJobsNodeAction(),
+                jobContextService,
+                ramAccountingContext,
+                newCollectPhase,
+                rowReceiver.requirements().contains(Requirement.REPEAT)),
+            rowReceiver
+        );
     }
 
     private RoutedCollectPhase createNewCollectPhase(
