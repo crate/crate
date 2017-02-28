@@ -22,6 +22,8 @@
 
 package io.crate.operation.reference.sys.check.cluster;
 
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
@@ -31,8 +33,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
@@ -48,7 +48,6 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
     public static final String DESCRIPTION =
         "The following tables must be upgraded for compatibility with future versions of CrateDB: ";
 
-    private static final ESLogger LOGGER = Loggers.getLogger(TablesNeedUpgradeSysCheck.class);
     private static final String STMT = "select schema_name || '.' || table_name, min_lucene_version " +
                                        "from sys.shards where min_lucene_version <> '" +
                                        org.apache.lucene.util.Version.LATEST.toString() + "'";
@@ -58,6 +57,8 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
     private final SQLOperations.Session session;
     private final ClusterService clusterService;
+
+    private final Supplier<Void> checkCache;
     private volatile Collection<String> tablesNeedUpgrade;
 
     @Inject
@@ -67,6 +68,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
         this.session = sqlOperations.createSession("sys", Option.NONE, LIMIT);
         this.session.parse(SQLOperations.Session.UNNAMED, STMT, Collections.emptyList());
             sqlOperations.createSession(null, Option.NONE, 1);
+        checkCache = Suppliers.memoizeWithExpiration(this::updateCheck, 5, TimeUnit.SECONDS);
     }
 
     @Override
@@ -77,31 +79,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
     @Override
     public boolean validate() {
-        Collection<String> tablesNeedReindexing =
-            LuceneVersionChecks.tablesNeedReindexing(clusterService.state().metaData());
-        String statement = createSQLStatement(tablesNeedReindexing);
-
-        final CompletableFuture<Collection<String>> result = new CompletableFuture<>();
-        try {
-            session.parse(SQLOperations.Session.UNNAMED, statement, Collections.emptyList());
-            session.bind(
-                SQLOperations.Session.UNNAMED,
-                SQLOperations.Session.UNNAMED,
-                Collections.emptyList(),
-                null);
-            session.execute(
-                SQLOperations.Session.UNNAMED,
-                0,
-                new SycCheckResultReceiver(result));
-            session.sync();
-        } catch (Throwable t) {
-            result.completeExceptionally(t);
-        }
-        try {
-            tablesNeedUpgrade = result.get(5, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            LOGGER.error("error occurred when checking for tables that need to be upgraded", e);
-        }
+        checkCache.get();
         return tablesNeedUpgrade == null || tablesNeedUpgrade.isEmpty();
     }
 
@@ -122,6 +100,31 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
             statement = sb.toString();
         }
         return statement;
+    }
+
+    private Void updateCheck() {
+        Collection<String> tablesNeedReindexing =
+            LuceneVersionChecks.tablesNeedReindexing(clusterService.state().metaData());
+        String statement = createSQLStatement(tablesNeedReindexing);
+
+        final CompletableFuture<Collection<String>> result = new CompletableFuture<>();
+        try {
+            session.parse(SQLOperations.Session.UNNAMED, statement, Collections.emptyList());
+            session.bind(
+                SQLOperations.Session.UNNAMED,
+                SQLOperations.Session.UNNAMED,
+                Collections.emptyList(),
+                null);
+            session.execute(
+                SQLOperations.Session.UNNAMED,
+                0,
+                new SycCheckResultReceiver(result));
+            session.sync();
+            result.thenAccept(strings -> tablesNeedUpgrade = strings);
+        } catch (Throwable t) {
+            result.completeExceptionally(t);
+        }
+        return null;
     }
 
     private class SycCheckResultReceiver implements ResultReceiver {

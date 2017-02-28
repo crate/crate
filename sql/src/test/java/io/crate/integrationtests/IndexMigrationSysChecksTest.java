@@ -25,7 +25,6 @@ package io.crate.integrationtests;
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.operation.reference.sys.check.cluster.TablesNeedReindexingSysCheck;
 import io.crate.operation.reference.sys.check.cluster.TablesNeedUpgradeSysCheck;
-import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -57,7 +56,7 @@ public class IndexMigrationSysChecksTest extends SQLTransportIntegrationTest {
     @Test
     public void testReindexRequired() throws Exception {
         startUpNodeWithDataDir("/indices/cluster_checks/cratedata_reindex_required.zip");
-        SQLResponse response = execute("select * from sys.checks where passed = false");
+        execute("select * from sys.checks where passed = false");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][1], is(TablesNeedReindexingSysCheck.ID));
         assertThat(response.rows()[0][3], is(SysCheck.Severity.MEDIUM.value()));
@@ -70,8 +69,10 @@ public class IndexMigrationSysChecksTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpgradeRequired() throws Exception {
         startUpNodeWithDataDir("/indices/cluster_checks/cratedata_upgrade_required.zip");
-        SQLResponse response = execute("select * from sys.checks where passed = false");
-        assertThat(response.rowCount(), is(1L));
+        assertBusy(() -> {
+            execute("select * from sys.checks where passed = false");
+            assertThat(response.rowCount(), is(1L));
+        });
         assertThat(response.rows()[0][1], is(TablesNeedUpgradeSysCheck.ID));
         assertThat(response.rows()[0][3], is(SysCheck.Severity.MEDIUM.value()));
         assertThat(response.rows()[0][0],
@@ -83,7 +84,7 @@ public class IndexMigrationSysChecksTest extends SQLTransportIntegrationTest {
     @Test
     public void testAlreadyUpgraded() throws Exception {
         startUpNodeWithDataDir("/indices/cluster_checks/cratedata_already_upgraded.zip");
-        SQLResponse response = execute("select * from sys.checks where passed = false");
+        execute("select * from sys.checks where passed = false");
         assertThat(response.rowCount(), is(0L));
     }
 }
