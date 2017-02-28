@@ -23,6 +23,7 @@
 package io.crate.sql.parser;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
@@ -34,9 +35,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import java.util.List;
-import java.util.Locale;
-import java.util.Optional;
+import java.util.*;
 
 import static java.util.stream.Collectors.toList;
 
@@ -326,6 +325,32 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new Table(getQualifiedName(context.qname()), visit(context.assignment(), Assignment.class));
     }
 
+    @Override
+    public Node visitCreateFunction(SqlBaseParser.CreateFunctionContext context) {
+        QualifiedName functionName = getQualifiedName(context.name);
+        validateFunctionName(functionName);
+
+        return new CreateFunction(
+            functionName,
+            context.REPLACE() != null,
+            visit(context.functionArgument(), FunctionArgument.class),
+            (ColumnType) visit(context.returnType),
+            getFunctionOptions(context.functionOptions()),
+            getFunctionLanguage(getIdentText(context.langName)),
+            unquote(context.body.getText()));
+    }
+
+    @Override
+    public Node visitDropFunction(SqlBaseParser.DropFunctionContext context) {
+        QualifiedName functionName = getQualifiedName(context.name);
+        validateFunctionName(functionName);
+
+        return new DropFunction(
+            functionName,
+            context.EXISTS() != null,
+            visit(context.functionArgument(), FunctionArgument.class));
+    }
+
     // Column / Table definition
 
     @Override
@@ -402,6 +427,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitClusteredInto(SqlBaseParser.ClusteredIntoContext context) {
         return new ClusteredBy(null, visitIfPresent(context.numShards, Expression.class));
+    }
+
+    @Override
+    public Node visitFunctionArgument(SqlBaseParser.FunctionArgumentContext context) {
+        return new FunctionArgument(getIdentTextIfPresent(context.ident()), (ColumnType) visit(context.dataType()));
     }
 
     // Properties
@@ -1304,36 +1334,35 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         throw new IllegalArgumentException("Unsupported quantifier: " + symbol.getText());
     }
 
-    private static WindowFrame.Type getFrameType(Token type) {
-        switch (type.getType()) {
-            case SqlBaseLexer.RANGE:
-                return WindowFrame.Type.RANGE;
-            case SqlBaseLexer.ROWS:
-                return WindowFrame.Type.ROWS;
-        }
+    // Create Function helpers
 
-        throw new IllegalArgumentException("Unsupported frame type: " + type.getText());
+    private void validateFunctionName(QualifiedName functionName) {
+        if (functionName.getParts().size() > 2) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "The function name is not correct! " +
+                "name [%s] does not conform the [[schema_name .] function_name] format.", functionName));
+        }
     }
 
-    private static FrameBound.Type getBoundedFrameBoundType(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.PRECEDING:
-                return FrameBound.Type.PRECEDING;
-            case SqlBaseLexer.FOLLOWING:
-                return FrameBound.Type.FOLLOWING;
+    private Set<CreateFunction.Option> getFunctionOptions(SqlBaseParser.FunctionOptionsContext context) {
+        if (context == null) return ImmutableSet.of();
+        Set<CreateFunction.Option> options = new HashSet<>();
+        if (context.RETURNS() != null) {
+            options.add(CreateFunction.Option.RETURNS_NULL_ON_NULL_INPUT);
+        } else if (context.CALLED() != null) {
+            options.add(CreateFunction.Option.CALLED_ON_NULL_INPUT);
+        } else {
+            options.add(CreateFunction.Option.STRICT);
         }
-
-        throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
+        return options;
     }
 
-    private static FrameBound.Type getUnboundedFrameBoundType(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.PRECEDING:
-                return FrameBound.Type.UNBOUNDED_PRECEDING;
-            case SqlBaseLexer.FOLLOWING:
-                return FrameBound.Type.UNBOUNDED_FOLLOWING;
+    private CreateFunction.FunctionLanguage getFunctionLanguage(String language) {
+        CreateFunction.FunctionLanguage lang;
+        try {
+            lang = CreateFunction.FunctionLanguage.valueOf(language.toUpperCase(Locale.ENGLISH));
+        } catch (Throwable e) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "[%s] language is not supported.", language));
         }
-
-        throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
+        return lang;
     }
 }
