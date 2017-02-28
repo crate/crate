@@ -1056,8 +1056,8 @@ User defined Functions
 CREATE OR REPLACE
 -----------------
 
-Crate supports user-defined functions, See :ref:`reference/create_function` for a full
-syntax description.
+Crate supports user-defined functions, See :ref:`reference/create_function`
+for a full syntax description.
 
 These functions can be created as shown in the following example::
 
