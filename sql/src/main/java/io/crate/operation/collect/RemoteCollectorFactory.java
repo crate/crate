@@ -67,10 +67,11 @@ public class RemoteCollectorFactory {
      * <p>
      * This should only be used if a shard is not available on the current node due to a relocation
      */
-    public CrateCollector.Builder createCollector(String index,
-                                                  Integer shardId,
-                                                  RoutedCollectPhase collectPhase,
-                                                  final RamAccountingContext ramAccountingContext) {
+    public BatchIteratorBuilder createCollector(String index,
+                                                Integer shardId,
+                                                RoutedCollectPhase collectPhase,
+                                                RamAccountingContext ramAccountingContext,
+                                                Set<Requirement> downstreamRequirements) {
         final UUID childJobId = UUID.randomUUID(); // new job because subContexts can't be merged into an existing job
 
         IndexShardRoutingTable shardRoutings = clusterService.state().routingTable().shardRoutingTable(index, shardId);
@@ -83,18 +84,16 @@ public class RemoteCollectorFactory {
         final String localNodeId = clusterService.localNode().getId();
         final RoutedCollectPhase newCollectPhase = createNewCollectPhase(childJobId, collectPhase, index, shardId, remoteNodeId);
 
-        return rowReceiver -> new BatchIteratorCollector(
-            new RemoteCollectBatchIterator(
-                childJobId,
-                localNodeId,
-                remoteNodeId,
-                transportActionProvider.transportJobInitAction(),
-                transportActionProvider.transportKillJobsNodeAction(),
-                jobContextService,
-                ramAccountingContext,
-                newCollectPhase,
-                rowReceiver.requirements().contains(Requirement.REPEAT)),
-            rowReceiver
+        return () -> new RemoteCollectBatchIterator(
+            childJobId,
+            localNodeId,
+            remoteNodeId,
+            transportActionProvider.transportJobInitAction(),
+            transportActionProvider.transportKillJobsNodeAction(),
+            jobContextService,
+            ramAccountingContext,
+            newCollectPhase,
+            downstreamRequirements.contains(Requirement.REPEAT)
         );
     }
 

@@ -20,27 +20,16 @@
  * agreement.
  */
 
-package io.crate.operation.collect.collectors;
+package io.crate.operation.collect;
 
 import io.crate.data.BatchIterator;
-import io.crate.data.CompositeBatchIterator;
-import io.crate.operation.collect.BatchIteratorBuilder;
-import io.crate.operation.collect.BatchIteratorCollector;
-import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.RowReceiver;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+public interface BatchIteratorBuilder {
 
-public class CompositeCollector {
+    BatchIterator build();
 
-    public static CrateCollector newInstance(Collection<? extends BatchIteratorBuilder> builders, RowReceiver rowReceiver) {
-        List<BatchIterator> batchIterators = new ArrayList<>();
-        for (BatchIteratorBuilder builder : builders) {
-            batchIterators.add(builder.build());
-        }
-        return new BatchIteratorCollector(
-            new CompositeBatchIterator(batchIterators.toArray(new BatchIterator[0])), rowReceiver);
+    default RowReceiver applyProjections(RowReceiver rowReceiver) {
+        return rowReceiver;
     }
 }
