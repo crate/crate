@@ -65,7 +65,7 @@ public class IndexWriterCountBatchIteratorTest extends SQLTransportIntegrationTe
     public void testIndexWriterIterator() throws Exception {
         execute("create table bulk_import (id int primary key) with (number_of_replicas=0)");
         ensureGreen();
-        BatchIterator source = RowsBatchIterator.newInstance(RowGenerator.fromSingleColValues(
+        Supplier<BatchIterator> sourceSupplier = () -> RowsBatchIterator.newInstance(RowGenerator.fromSingleColValues(
             () -> IntStream.range(0, 10).mapToObj(i -> new BytesRef("{\"id\": " + i + "}")).iterator()
         ), 1);
 
@@ -79,7 +79,7 @@ public class IndexWriterCountBatchIteratorTest extends SQLTransportIntegrationTe
         BulkShardProcessor bulkShardProcessor = getBulkShardProcessor();
 
         BatchIteratorTester tester = new BatchIteratorTester(() ->
-            IndexWriterCountBatchIterator.newInstance(source, indexNameResolver, (Input<BytesRef>) sourceInput,
+            IndexWriterCountBatchIterator.newInstance(sourceSupplier.get(), indexNameResolver, (Input<BytesRef>) sourceInput,
                 collectExpressions, rowShardResolver, bulkShardProcessor),
             Collections.singletonList(new Object[]{10L}));
         tester.run();
