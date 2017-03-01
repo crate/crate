@@ -69,7 +69,7 @@ Here it is used with a filter to only lookup Ford's tweets::
 
 .. seealso::
 
- :doc:`Data Definition <sql/ddl>` - To see what options the create table
+ :doc:`Data Definition <sql/ddl/index>` - To see what options the create table
  statement supports and to learn more about sharding and replication.
 
  :doc:`Data Manipulation <sql/dml>` - In order to learn how to import, export,

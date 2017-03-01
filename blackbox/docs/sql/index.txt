@@ -11,9 +11,10 @@ see :doc:`sql`. For general information about SQL please refer to
 .. toctree::
    :maxdepth: 2
 
-   ddl
+   ddl/index
    dml
    dql
+   administration/index
    joins
    subselects
    data_types

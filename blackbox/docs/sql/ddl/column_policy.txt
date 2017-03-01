@@ -1,0 +1,78 @@
+.. _column_policy:
+
+Column Policy
+=============
+
+The Column Policy defines if a table enforces its defined schema or if it's
+allowed to store additional columns which are a not defined in the table schema.
+If the column policy is not defined within the ``with`` clause, ``dynamic`` will be used.
+
+strict
+------
+
+The column policy can be configured to be ``strict``, rejecting any column on
+insert/update/copy_to which is not defined in the schema.
+
+Example::
+
+    cr> create table my_table11 (
+    ...   title string,
+    ...   author string
+    ... ) with (column_policy = 'strict');
+    CREATE OK, 1 row affected (... sec)
+
+.. hide:
+
+    cr> drop table my_table11;
+    DROP OK, 1 row affected (... sec)
+
+dynamic
+-------
+
+The other option is ``dynamic`` which is the default policy.
+``dynamic`` means that new columns can be added using ``insert``, ``update`` or ``copy from``.
+
+Note that adding new columns to a table with a ``dynamic`` policy will affect the schema of the
+table. Once a column is added, it shows up in the ``information_schema.columns``
+table and its type and attributes are fixed. It will have the type that was guessed by its
+inserted/updated value and they will always be ``not_indexed`` which means
+they are analyzed with the ``plain`` analyzer, which means as-is.
+If a new column ``a`` was added with type ``boolean``,
+adding strings to this column will result in an error, except
+the string can be implicit casted to a ``boolean`` value.
+
+Examples::
+
+    cr> create table my_table12 (
+    ...   title string,
+    ...   author string
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+.. hide:
+
+    cr> drop table my_table12;
+    DROP OK, 1 row affected (... sec)
+
+which is exactly the same as::
+
+    cr> create table my_table13 (
+    ...   title string,
+    ...   author string
+    ... ) with (column_policy = 'dynamic');
+    CREATE OK, 1 row affected (... sec)
+
+.. hide:
+
+    cr> drop table my_table13;
+    DROP OK, 1 row affected (... sec)
+
+New columns added to ``dynamic`` tables are, once added, usable as usual
+columns. One can retrieve them, sort by them and use them in where clauses.
+
+.. warning::
+    The mapping update is processed asynchrously on multiple nodes. If a new
+    field gets added to the local mapping of two shards, these shards are sending
+    their mapping to the master. If this mapping update gets delivered later
+    than the next query on the previously added column, it will result
+    in a ``ColumnUnknownException``.

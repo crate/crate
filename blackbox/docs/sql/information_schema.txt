@@ -17,6 +17,16 @@ The information schema contains a table called `tables`.
 This table can be queried to get a list of all available tables and their
 settings like the ``number of shards`` or ``number of replicas``::
 
+
+.. Hidden: Refresh::
+
+    cr> create table partitioned_table (
+    ... id long,
+    ... title string,
+    ... date timestamp
+    ... ) partitioned by (date);
+    CREATE OK, 1 row affected (... sec)
+
     cr> select table_schema, table_name, number_of_shards, number_of_replicas
     ... from information_schema.tables
     ... where table_name not like 'my_table%'
@@ -53,7 +63,7 @@ settings like the ``number of shards`` or ``number of replicas``::
     SELECT 25 rows in set (... sec)
 
 The table also contains additional information such as specified routing
-(:ref:`sql_ddl_sharding`) and partitioned by (:ref:`sql_ddl_partitioned_by`)
+(:ref:`sql_ddl_sharding`) and partitioned by (:ref:`partitioned_tables`)
 columns::
 
     cr> select table_name, clustered_by, partitioned_by, blobs_path
@@ -176,7 +186,7 @@ information table name, schema name, partition ident, and the values of the
 partition. ``values`` is a key-value object with the 'partitioned by column'
 as key(s) and the corresponding value as value(s).
 
-For further information see :ref:`sql_ddl_partitioned_by`.
+For further information see :ref:`partitioned_tables`.
 
 .. hide:
 

@@ -31,7 +31,7 @@ partitioned table. All columns by which a table is partitioned are required.
 In case the ``PARTITION`` clause is omitted all partitions will be optimized.
 For performance reasons doing that should be avoided if possible.
 
-See :ref:`sql_ddl_partitioned_by` for more information on partitioned tables.
+See :ref:`partitioned_tables` for more information on partitioned tables.
 
 For further information see :ref:`optimize`.
 

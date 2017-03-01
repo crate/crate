@@ -377,7 +377,7 @@ a new partition.
 .. seealso::
 
   - Detailed documentation of :ref:`partitioned_tables`
-  - Table creation of :ref:`sql_ddl_partitioned_by`
+  - Table creation of :ref:`partitioned_by_clause`
   - :ref:`Alter a partitioned table <partitioned_tables_alter>`
 
 

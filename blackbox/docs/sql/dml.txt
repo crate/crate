@@ -402,7 +402,7 @@ Example JSON data::
     were quoted in a SQL statement).
 
 
-In order to import data into :ref:`sql_ddl_partitioned_by` take a look at the
+In order to import data into :ref:`partitioned_tables` take a look at the
 :ref:`copy_from` reference.
 
 Import From File URI

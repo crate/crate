@@ -97,7 +97,7 @@ Addressing of Documents
 =======================
 
 Every document has an internal identifier (see
-:ref:`_id <sql_ddl_system_column_id>`) . By default this identifier is derived
+:ref:`_id <sql_administration_system_column_id>`) . By default this identifier is derived
 from the primary key. Documents living in tables without a primary
 key are assigned a unique auto-generated id automatically when created.
 

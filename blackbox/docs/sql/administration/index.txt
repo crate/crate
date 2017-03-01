@@ -1,0 +1,13 @@
+.. highlight:: psql
+.. _db_administration_stmt:
+
+==================================
+Database Administration Statements
+==================================
+
+.. toctree::
+   :maxdepth: 2
+
+   system_columns
+   set_reset
+   show_create_table

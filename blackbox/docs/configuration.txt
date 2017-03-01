@@ -670,7 +670,7 @@ Cluster Wide Settings
 All current applied cluster settings can be read by querying the
 :ref:`sys.cluster.settings <sys-cluster-settings>` column. Most
 cluster settings can be changed at runtime using the
-:ref:`SET/RESET<ddl-set-reset>` statement. This is documented at each setting.
+:ref:`SET/RESET<administration-set-reset>` statement. This is documented at each setting.
 It's not recommended to add cluster wide settings to the crate.yml file of each node,
 as this will result to each node having a different setting which can lead to
 a non-deterministic behavior of the cluster.

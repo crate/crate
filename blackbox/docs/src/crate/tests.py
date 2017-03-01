@@ -410,7 +410,17 @@ def test_suite():
                      tearDown=tearDownLocations)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/ddl.txt',
+    for fn in ('sql/ddl/basics.txt',
+               'sql/ddl/generated_columns.txt',
+               'sql/ddl/constraints.txt',
+               'sql/ddl/sharding.txt',
+               'sql/ddl/replication.txt',
+               'sql/ddl/column_policy.txt',
+               'sql/ddl/indices_full_search.txt',
+               'sql/administration/system_columns.txt',
+               'sql/ddl/alter_table.txt',
+               'sql/administration/set_reset.txt',
+               'sql/administration/show_create_table.txt',
                'sql/dql.txt',
                'sql/refresh.txt',
                'sql/optimize.txt',

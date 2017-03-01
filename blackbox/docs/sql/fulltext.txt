@@ -44,7 +44,7 @@ it's not possible to query multiple index columns with different index types
 within the same MATCH predicate.
 
 To get the relevance of a matching row, a specific system column
-:ref:`_score <sql_ddl_system_column_score>` can be selected. It contains a
+:ref:`_score <sql_administration_system_column_score>` can be selected. It contains a
 numeric score *relative to the other rows*: The higher, the more relevant the row::
 
     cr> select name, _score from locations where match(name_description_ft, 'time') order by _score desc;
@@ -65,14 +65,14 @@ MATCH returns ``TRUE``.
 The MATCH predicate can be also used to perform a fulltext search on multiple
 columns with a single ``query_term`` and to add weight to specific columns
 it's possible to add a ``boost`` argument to each ``column_ident``.
-Matches on columns with a higher boost result in a higher :ref:`_score <sql_ddl_system_column_score>` value
+Matches on columns with a higher boost result in a higher :ref:`_score <sql_administration_system_column_score>` value
 for that document.
 
 The ``match_type`` argument determines how a single ``query_term`` is applied and
-and how the resulting :ref:`_score <sql_ddl_system_column_score>` is computed.
+and how the resulting :ref:`_score <sql_administration_system_column_score>` is computed.
 For more information see :ref:`predicates_match_types`.
 
-Results are ordered by :ref:`_score <sql_ddl_system_column_score>` by default,
+Results are ordered by :ref:`_score <sql_administration_system_column_score>` by default,
 but can be overridden by adding an ``ORDER BY`` clause.
 
 Arguments
@@ -120,17 +120,17 @@ Arguments
 Match Types
 ...........
 
-The match type determines how the ``query_term`` is applied and the :ref:`_score <sql_ddl_system_column_score>`
+The match type determines how the ``query_term`` is applied and the :ref:`_score <sql_administration_system_column_score>`
 is created, thereby influencing which documents are considered more relevant.
 The default ``match_type`` for fulltext indices is ``best_fields``.
 
-:best_fields: Use the :ref:`_score <sql_ddl_system_column_score>` of the column that matched best.
+:best_fields: Use the :ref:`_score <sql_administration_system_column_score>` of the column that matched best.
               For example if a column contains all the tokens of the ``query_term``
               it's considered more relevant than other columns containing only one.
 
               This type is the default, if omitted.
 
-:most_fields: This match type takes the :ref:`_score <sql_ddl_system_column_score>` of every matching column
+:most_fields: This match type takes the :ref:`_score <sql_administration_system_column_score>` of every matching column
               and averages their scores.
 
 :cross_fields: This match type analyzes the ``query_term`` into tokens and searches all tokens
@@ -158,15 +158,15 @@ Not all options are applicable to all match types. See the options below for det
 
 :analyzer: The analyzer used to convert the ``query_term`` into tokens.
 
-:boost: This numeric value is multiplied with the resulting :ref:`_score <sql_ddl_system_column_score>` of
+:boost: This numeric value is multiplied with the resulting :ref:`_score <sql_administration_system_column_score>` of
         this ``match`` call. If this ``match`` call is used with other conditions in the where clause
-        a value above ``1.0`` will increase its influence on the overall :ref:`_score <sql_ddl_system_column_score>`
+        a value above ``1.0`` will increase its influence on the overall :ref:`_score <sql_administration_system_column_score>`
         of the whole query, a value below ``1.0`` will decrease it.
 
-:cutoff_frequency: The token frequency is the number of occurences of a token in a column.
+:cutoff_frequency: The token frequency is the number of occurrences of a token in a column.
                    This option specifies a minimum token frequency that excludes
-                   matching tokens with a higher frequency from the overall :ref:`_score <sql_ddl_system_column_score>`.
-                   Their :ref:`_score <sql_ddl_system_column_score>` is only included
+                   matching tokens with a higher frequency from the overall :ref:`_score <sql_administration_system_column_score>`.
+                   Their :ref:`_score <sql_administration_system_column_score>` is only included
                    if another token with a lower frequency also matches.
                    This can be used to suppress results where only high frequency terms like ``the`` would cause a match.
 
@@ -199,7 +199,7 @@ Not all options are applicable to all match types. See the options below for det
           using all possible terms and rewriting them into another kind of query to compute the score.
           Possible values are ``constant_score_auto``, ``constant_score_boolean``, ``constant_score_filter``,
           ``scoring_boolean``,``top_terms_N``, ``top_terms_boost_N``. The ``constant_...`` values
-          can be used together with the ``boost`` option to set a constant :ref:`_score <sql_ddl_system_column_score>`
+          can be used together with the ``boost`` option to set a constant :ref:`_score <sql_administration_system_column_score>`
           for rows with a matching prefix or fuzzy match.
 
 :slop: When matching for phrases this option controls how exact the phrase match should be (proximity search).
@@ -209,9 +209,9 @@ Not all options are applicable to all match types. See the options below for det
        ``foo bar`` will not only match ``foo bar`` but also ``foo what a bar``.
 
 :tie_breaker: When using ``best_fields``, ``phrase`` or ``phrase_prefix``
-              the :ref:`_score <sql_ddl_system_column_score>` of every other column
+              the :ref:`_score <sql_administration_system_column_score>` of every other column
               will be multiplied with this value and added to the
-              :ref:`_score <sql_ddl_system_column_score>` of the best matching column.
+              :ref:`_score <sql_administration_system_column_score>` of the best matching column.
               Defaults to ``0.0``. Not applicable to match type ``most_fields``
               as this type is executed as if it had a ``tie_breaker`` of ``1.0``.
 
@@ -237,7 +237,7 @@ A fulltext search is done using the :ref:`predicates_match` predicate::
 
 It returns ``TRUE`` for rows which match the search string. To get more detailed
 information about the quality of a match, the relevance of the row,
-the :ref:`_score <sql_ddl_system_column_score>` can be selected::
+the :ref:`_score <sql_administration_system_column_score>` can be selected::
 
     cr> select name, _score
     ... from locations where match(name_description_ft, 'time') order by _score desc;
@@ -265,7 +265,7 @@ There are two possibilities if a search should span the contents of multiple col
 * use the :ref:`predicates_match` predicate on multiple columns.
 
 When querying multiple columns, there are many ways how the relevance a.k.a.
-:ref:`_score <sql_ddl_system_column_score>` can be computed. These different
+:ref:`_score <sql_administration_system_column_score>` can be computed. These different
 techniques are called :ref:`predicates_match_types`.
 
 To increase the relevance of rows where one column matches extremely
@@ -335,14 +335,14 @@ A negative fulltext search can be done using a ``NOT`` clause::
     SELECT 11 rows in set (... sec)
 
 
-Filter By :ref:`_score <sql_ddl_system_column_score>`
-=====================================================
+Filter By :ref:`_score <sql_administration_system_column_score>`
+================================================================
 
-It is possible to filter results by the :ref:`_score <sql_ddl_system_column_score>` column
+It is possible to filter results by the :ref:`_score <sql_administration_system_column_score>` column
 but as its value is a computed value relative to the highest score of all results and consequently never
 absolute or comparable across searches the usefulness outside of sorting is very limited.
 Although possible, filtering by the greater-than-or-equals('>=') operator on the
-:ref:`_score <sql_ddl_system_column_score>` column would not make much sense and
+:ref:`_score <sql_administration_system_column_score>` column would not make much sense and
 can lead to unpredictable result sets.
 
 Anyway let's do it here for demonstration purpose::
@@ -358,12 +358,12 @@ Anyway let's do it here for demonstration purpose::
     +-----------+------------+
     SELECT 2 rows in set (... sec)
 
-As you might have noticed, the :ref:`_score <sql_ddl_system_column_score>` value has changed for the
+As you might have noticed, the :ref:`_score <sql_administration_system_column_score>` value has changed for the
 same query text and document because it's a ratio relative to all results,
-and by filtering on :ref:`_score <sql_ddl_system_column_score>`,
+and by filtering on :ref:`_score <sql_administration_system_column_score>`,
 'all results' has already changed.
 
 .. warning::
 
-  As noted above :ref:`_score <sql_ddl_system_column_score>` is a relative number and not comparable
+  As noted above :ref:`_score <sql_administration_system_column_score>` is a relative number and not comparable
   across searches. Filtering is therefore greatly discouraged.

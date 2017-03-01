@@ -6,7 +6,7 @@ Optimistic Concurrency Control with Crate
 =========================================
 
 Even though Crate does not support transactions, `Optimistic Concurrency Control`_ can be achieved
-by using the internal system column :ref:`_version <sql_ddl_system_column_version>`.
+by using the internal system column :ref:`_version <sql_administration_system_column_version>`.
 
 Every new row has an initial version of ``1``. This value is increased by ``1`` on every update.
 

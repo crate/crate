@@ -1,0 +1,56 @@
+.. _sql_ddl_alter_table:
+
+Alter Table
+===========
+
+Updating Parameters
+-------------------
+
+The parameters of a table can be modified using the `ALTER TABLE` clause::
+
+    cr> alter table my_table1 set (number_of_replicas = '0-all');
+    ALTER OK, -1 rows affected (... sec)
+
+In order to set a parameter to its default value use `reset`::
+
+    cr> alter table my_table1 reset (number_of_replicas);
+    ALTER OK, -1 rows affected (... sec)
+
+Read :ref:`Alter Partitioned Tables <partitioned_tables_alter>` to see
+how to alter parameters of partitioned tables.
+
+Adding Columns
+--------------
+
+In order to add a column to an existing table use ``ALTER TABLE`` with the
+``ADD COLUMN`` clause::
+
+    cr> alter table my_table1 add column new_column_name string;
+    ALTER OK, -1 rows affected (... sec)
+
+The inner schema of object columns can also be extended, as shown in the
+following example.
+
+First a column of type object is added::
+
+    cr> alter table my_table1 add column obj_column object as (age int);
+    ALTER OK, -1 rows affected (... sec)
+
+
+And now a nested column named ``name`` is added to the ``obj_column``::
+
+    cr> alter table my_table1 add column obj_column['name'] string;
+    ALTER OK, -1 rows affected (... sec)
+
+::
+
+    cr> select column_name, data_type from information_schema.columns
+    ... where table_name = 'my_table1' and column_name like 'obj_%';
+    +--------------------+-----------+
+    | column_name        | data_type |
+    +--------------------+-----------+
+    | obj_column         | object    |
+    | obj_column['age']  | integer   |
+    | obj_column['name'] | string    |
+    +--------------------+-----------+
+    SELECT 3 rows in set (... sec)
