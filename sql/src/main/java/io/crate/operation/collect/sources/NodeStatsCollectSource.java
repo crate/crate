@@ -37,6 +37,7 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.collect.collectors.NodeStatsIterator;
+import io.crate.operation.projectors.BatchConsumerToRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.planner.node.dql.CollectPhase;
@@ -87,7 +88,8 @@ public class NodeStatsCollectSource implements CollectSource {
             nodes,
             inputFactory
         );
-        return ImmutableList.of(BatchIteratorCollectorBridge.newInstance(nodeStatsIterator, downstream));
+        return ImmutableList.of(BatchIteratorCollectorBridge.newInstance(
+                nodeStatsIterator, new BatchConsumerToRowReceiver(downstream), downstream));
     }
 
     @Nullable
