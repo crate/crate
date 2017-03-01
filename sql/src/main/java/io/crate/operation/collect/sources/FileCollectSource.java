@@ -34,6 +34,7 @@ import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.files.FileReadingIterator;
 import io.crate.operation.collect.files.LineCollectorExpression;
+import io.crate.operation.projectors.BatchConsumerToRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
@@ -84,7 +85,8 @@ public class FileCollectSource implements CollectSource {
             Arrays.binarySearch(readers, clusterService.state().nodes().getLocalNodeId())
         );
 
-        return ImmutableList.of(BatchIteratorCollectorBridge.newInstance(fileReadingIterator, downstream));
+        return ImmutableList.of(BatchIteratorCollectorBridge.newInstance(
+            fileReadingIterator, new BatchConsumerToRowReceiver(downstream), downstream));
     }
 
     private static List<String> targetUriToStringList(Symbol targetUri) {

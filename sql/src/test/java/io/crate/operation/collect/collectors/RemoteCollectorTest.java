@@ -38,7 +38,7 @@ import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
-import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.CollectingBatchConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.settings.Settings;
@@ -57,7 +57,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.Matchers.isA;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
@@ -69,8 +68,8 @@ public class RemoteCollectorTest {
 
     private TransportJobAction transportJobAction;
     private TransportKillJobsNodeAction transportKillJobsNodeAction;
-    private CollectingRowReceiver rowReceiver;
     private RemoteCollector remoteCollector;
+    private CollectingBatchConsumer consumer;
 
     @Captor
     public ArgumentCaptor<ActionListener<JobResponse>> listenerCaptor;
@@ -92,7 +91,7 @@ public class RemoteCollectorTest {
         );
         transportJobAction = mock(TransportJobAction.class);
         transportKillJobsNodeAction = mock(TransportKillJobsNodeAction.class);
-        rowReceiver = new CollectingRowReceiver();
+        consumer = new CollectingBatchConsumer();
 
         JobsLogs jobsLogs = new JobsLogs(() -> true);
         JobContextService jobContextService = new JobContextService(Settings.EMPTY, new NoopClusterService(), jobsLogs);
@@ -104,7 +103,8 @@ public class RemoteCollectorTest {
             transportKillJobsNodeAction,
             jobContextService,
             mock(RamAccountingContext.class),
-            rowReceiver,
+            consumer,
+            consumer,
             collectPhase
         );
     }
@@ -116,8 +116,8 @@ public class RemoteCollectorTest {
 
         verify(transportJobAction, times(0)).execute(eq("remoteNode"), any(JobRequest.class), any(ActionListener.class));
 
-        expectedException.expectCause(isA(InterruptedException.class));
-        rowReceiver.result();
+        expectedException.expect(InterruptedException.class);
+        consumer.getResult();
     }
 
 
@@ -128,8 +128,8 @@ public class RemoteCollectorTest {
         remoteCollector.createRemoteContext();
 
         verify(transportJobAction, times(0)).execute(eq("remoteNode"), any(JobRequest.class), any(ActionListener.class));
-        expectedException.expectCause(isA(InterruptedException.class));
-        rowReceiver.result();
+        expectedException.expect(InterruptedException.class);
+        consumer.getResult();
     }
 
     @Test
