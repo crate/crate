@@ -23,16 +23,28 @@
 package io.crate.data;
 
 import java.util.concurrent.CompletionStage;
+import java.util.function.BooleanSupplier;
+import java.util.function.Function;
 
 public class NestedLoopBatchIterator implements BatchIterator {
 
-    private final BatchIterator left;
-    private final BatchIterator right;
-    private final CombinedColumn rowData;
+    final CombinedColumn rowData;
+    final BatchIterator left;
+    final BatchIterator right;
 
-    private BatchIterator activeIt;
+    BatchIterator activeIt;
 
-    public NestedLoopBatchIterator(BatchIterator left, BatchIterator right) {
+    public static BatchIterator crossJoin(BatchIterator left, BatchIterator right) {
+        return new NestedLoopBatchIterator(left, right);
+    }
+
+    public static BatchIterator leftJoin(BatchIterator left,
+                                         BatchIterator right,
+                                         Function<Columns, BooleanSupplier> joinCondition) {
+        return new LeftJoinBatchIterator(left, right, joinCondition);
+    }
+
+    NestedLoopBatchIterator(BatchIterator left, BatchIterator right) {
         this.left = left;
         this.right = right;
         this.activeIt = left;
@@ -104,31 +116,141 @@ public class NestedLoopBatchIterator implements BatchIterator {
 
     @Override
     public boolean allLoaded() {
-        return left.allLoaded() && right.allLoaded();
+        return activeIt.allLoaded();
     }
 
     private static class CombinedColumn implements Columns {
-        private final int numColumns;
+
+        private final static Input<Object> NULL_INPUT = () -> null;
+
+        private final ProxyInput[] inputs;
         private final Columns left;
         private final Columns right;
 
         CombinedColumn(Columns left, Columns right) {
             this.left = left;
             this.right = right;
-            numColumns = left.size() + right.size();
+            inputs = new ProxyInput[left.size() + right.size()];
+            for (int i = 0; i < left.size(); i++) {
+                inputs[i] = new ProxyInput();
+                inputs[i].input = left.get(i);
+            }
+            for (int i = left.size(); i < inputs.length; i++) {
+                inputs[i] = new ProxyInput();
+                inputs[i].input = right.get(i - left.size());
+            }
         }
 
         @Override
         public Input<?> get(int index) {
-            if (index >= left.size()) {
-                return right.get(index - left.size());
-            }
-            return left.get(index);
+            return inputs[index];
         }
 
         @Override
         public int size() {
-            return numColumns;
+            return inputs.length;
+        }
+
+        void nullRight() {
+            for (int i = left.size(); i < inputs.length; i++) {
+                inputs[i].input = NULL_INPUT;
+            }
+        }
+
+        void resetRight() {
+            for (int i = left.size(); i < inputs.length; i++) {
+                inputs[i].input = right.get(i - left.size());
+            }
+        }
+    }
+
+    /**
+     * <pre>
+     *     for (leftRow in left) {
+     *         for (rightRow in right) {
+     *             match?
+     *                  onRow
+     *         }
+     *         if (noRightRowMatched) {
+     *              onRow // with right side null
+     *         }
+     *     }
+     * </pre>
+     */
+    private static class LeftJoinBatchIterator extends NestedLoopBatchIterator {
+
+        private final BooleanSupplier joinCondition;
+        boolean hadMatch = false;
+        private boolean loading = false;
+
+        LeftJoinBatchIterator(BatchIterator left,
+                              BatchIterator right,
+                              Function<Columns, BooleanSupplier> joinCondition) {
+            super(left, right);
+            this.joinCondition = joinCondition.apply(rowData());
+        }
+
+        @Override
+        public boolean moveNext() {
+            if (loading) {
+                throw new IllegalStateException("BatchIterator is loading");
+            }
+            while (true) {
+                rowData.resetRight();
+                if (activeIt == left) {
+                    return moveLeftSide();
+                }
+
+                Boolean x = tryAdvanceRight();
+                if (x != null) {
+                    return x;
+                }
+                activeIt = left;
+            }
+        }
+
+        private boolean moveLeftSide() {
+            activeIt = right;
+            while (left.moveNext()) {
+                Boolean x = tryAdvanceRight();
+                if (x != null) {
+                    return x;
+                }
+            }
+            activeIt = left;
+            return false;
+        }
+
+        @Override
+        public CompletionStage<?> loadNextBatch() {
+            loading = true;
+            return super.loadNextBatch().whenComplete((result, failure) -> loading = false);
+        }
+
+        /**
+         * try to move the right side
+         * @return true  -> moved and matched
+         *         false -> need to load more data
+         *         null  -> reached it's end and moved back to start -> left side needs to continue
+         */
+        private Boolean tryAdvanceRight() {
+            while (right.moveNext()) {
+                if (joinCondition.getAsBoolean()) {
+                    hadMatch = true;
+                    return true;
+                }
+            }
+            if (right.allLoaded() == false) {
+                return false;
+            }
+            right.moveToStart();
+            if (hadMatch == false) {
+                activeIt = left;
+                rowData.nullRight();
+                return true;
+            }
+            hadMatch = false;
+            return null;
         }
     }
 }
