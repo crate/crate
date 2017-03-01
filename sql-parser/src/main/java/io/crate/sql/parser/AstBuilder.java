@@ -1303,37 +1303,4 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
         throw new IllegalArgumentException("Unsupported quantifier: " + symbol.getText());
     }
-
-    private static WindowFrame.Type getFrameType(Token type) {
-        switch (type.getType()) {
-            case SqlBaseLexer.RANGE:
-                return WindowFrame.Type.RANGE;
-            case SqlBaseLexer.ROWS:
-                return WindowFrame.Type.ROWS;
-        }
-
-        throw new IllegalArgumentException("Unsupported frame type: " + type.getText());
-    }
-
-    private static FrameBound.Type getBoundedFrameBoundType(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.PRECEDING:
-                return FrameBound.Type.PRECEDING;
-            case SqlBaseLexer.FOLLOWING:
-                return FrameBound.Type.FOLLOWING;
-        }
-
-        throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
-    }
-
-    private static FrameBound.Type getUnboundedFrameBoundType(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.PRECEDING:
-                return FrameBound.Type.UNBOUNDED_PRECEDING;
-            case SqlBaseLexer.FOLLOWING:
-                return FrameBound.Type.UNBOUNDED_FOLLOWING;
-        }
-
-        throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
-    }
 }

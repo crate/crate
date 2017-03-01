@@ -27,12 +27,14 @@ import com.google.common.collect.Ordering;
 import com.google.common.collect.TreeMultimap;
 import io.crate.sql.tree.*;
 
-import java.util.*;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import static io.crate.sql.SqlFormatter.formatSql;
-import static io.crate.sql.SqlFormatter.orderByFormatterFunction;
 
 public final class ExpressionFormatter {
 
@@ -425,61 +427,6 @@ public final class ExpressionFormatter {
         @Override
         protected String visitInListExpression(InListExpression node, Void context) {
             return "(" + joinExpressions(node.getValues()) + ")";
-        }
-
-        // TODO: add tests for window clause formatting, as these are not really expressions
-        @Override
-        public String visitWindow(Window node, Void context) {
-            List<String> parts = new ArrayList<>();
-
-            if (!node.getPartitionBy().isEmpty()) {
-                parts.add("PARTITION BY " + joinExpressions(node.getPartitionBy()));
-            }
-            if (!node.getOrderBy().isEmpty()) {
-                parts.add("ORDER BY " + node.getOrderBy().stream()
-                    .map(orderByFormatterFunction)
-                    .collect(COMMA_JOINER));
-            }
-            if (node.getFrame().isPresent()) {
-                parts.add(process(node.getFrame().get(), null));
-            }
-
-            return '(' + String.join(" ", parts) + ')';
-        }
-
-        @Override
-        public String visitWindowFrame(WindowFrame node, Void context) {
-            StringBuilder builder = new StringBuilder();
-
-            builder.append(node.getType().toString()).append(' ');
-
-            if (node.getEnd().isPresent()) {
-                builder.append("BETWEEN ")
-                    .append(process(node.getStart(), null))
-                    .append(" AND ")
-                    .append(process(node.getEnd().get(), null));
-            } else {
-                builder.append(process(node.getStart(), null));
-            }
-
-            return builder.toString();
-        }
-
-        @Override
-        public String visitFrameBound(FrameBound node, Void context) {
-            switch (node.getType()) {
-                case UNBOUNDED_PRECEDING:
-                    return "UNBOUNDED PRECEDING";
-                case PRECEDING:
-                    return process(node.getValue().get(), null) + " PRECEDING";
-                case CURRENT_ROW:
-                    return "CURRENT ROW";
-                case FOLLOWING:
-                    return process(node.getValue().get(), null) + " FOLLOWING";
-                case UNBOUNDED_FOLLOWING:
-                    return "UNBOUNDED FOLLOWING";
-            }
-            throw new IllegalArgumentException("unhandled type: " + node.getType());
         }
 
         @Override

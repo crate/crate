@@ -261,18 +261,6 @@ public abstract class AstVisitor<R, C> {
         return visitExpression(node, context);
     }
 
-    public R visitWindow(Window node, C context) {
-        return visitNode(node, context);
-    }
-
-    public R visitWindowFrame(WindowFrame node, C context) {
-        return visitNode(node, context);
-    }
-
-    public R visitFrameBound(FrameBound node, C context) {
-        return visitNode(node, context);
-    }
-
     protected R visitSubscriptExpression(SubscriptExpression node, C context) {
         return visitExpression(node, context);
     }
