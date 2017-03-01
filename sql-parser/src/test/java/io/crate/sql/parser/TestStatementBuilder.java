@@ -412,7 +412,7 @@ public class TestStatementBuilder {
     public void testDropFunctionStmtBuilder() {
         printStatement("drop function bar(int)");
         printStatement("drop function foo.bar(obj object)");
-        printStatement("drop function if exists foo.bar()");
+        printStatement("drop function if exists foo.bar(obj object)");
     }
 
     @Test

@@ -47,7 +47,7 @@ public class DDLTask extends JobTask {
 
     @Override
     public void execute(final BatchConsumer consumer, Row parameters) {
-        CompletableFuture<Long> future = ddlStatementDispatcher.dispatch(analyzedStatement, jobId());
+        CompletableFuture<Long> future = ddlStatementDispatcher.dispatch(analyzedStatement, jobId(), parameters);
 
         OneRowActionListener<Long> responseOneRowActionListener = new OneRowActionListener<>(consumer, new Function<Long, Row>() {
             @Nullable
@@ -58,5 +58,4 @@ public class DDLTask extends JobTask {
         });
         future.whenComplete(responseOneRowActionListener);
     }
-
 }

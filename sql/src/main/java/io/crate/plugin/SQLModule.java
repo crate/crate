@@ -24,6 +24,8 @@ package io.crate.plugin;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.action.sql.SQLOperations;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.operation.udf.TransportCreateUserDefinedFunctionAction;
+import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.planner.Planner;
 import io.crate.planner.TableStats;
 import io.crate.planner.TableStatsService;
@@ -42,5 +44,7 @@ public class SQLModule extends AbstractModule {
         bind(Planner.class).asEagerSingleton();
         bind(TableStats.class).asEagerSingleton();
         bind(TableStatsService.class).asEagerSingleton();
+        bind(UserDefinedFunctionService.class).asEagerSingleton();
+        bind(TransportCreateUserDefinedFunctionAction.class).asEagerSingleton();
     }
 }
