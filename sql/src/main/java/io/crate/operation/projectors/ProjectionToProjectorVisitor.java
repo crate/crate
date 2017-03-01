@@ -248,7 +248,7 @@ public class ProjectionToProjectorVisitor
         }
         uri = sb.toString();
 
-        return new WriterProjector(
+        return new FileWriterProjector(
             ((ThreadPoolExecutor) threadPool.generic()),
             uri,
             projection.compressionType(),
