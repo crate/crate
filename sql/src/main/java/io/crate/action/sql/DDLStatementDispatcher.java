@@ -96,7 +96,6 @@ public class DDLStatementDispatcher {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analyzedStatement));
         }
 
-
         @Override
         public CompletableFuture<Long> visitCreateTableStatement(CreateTableAnalyzedStatement analysis, UUID jobId) {
             return tableCreator.create(analysis);

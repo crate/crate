@@ -67,6 +67,8 @@ public class Analyzer {
     private final CreateSnapshotAnalyzer createSnapshotAnalyzer;
     private final RestoreSnapshotAnalyzer restoreSnapshotAnalyzer;
     private final UnboundAnalyzer unboundAnalyzer;
+    private final CreateFunctionAnalyzer createFunctionAnalyzer;
+    private final DropFunctionAnalyzer dropFunctionAnalyzer;
 
     @Inject
     public Analyzer(Schemas schemas,
@@ -108,6 +110,8 @@ public class Analyzer {
         this.dropSnapshotAnalyzer = new DropSnapshotAnalyzer(repositoryService);
         this.createSnapshotAnalyzer = new CreateSnapshotAnalyzer(repositoryService, schemas);
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
+        this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
+        this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
     }
 
     public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
@@ -265,6 +269,16 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitCreateRepository(CreateRepository node, Analysis context) {
             return createRepositoryAnalyzer.analyze(node, context.parameterContext());
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateFunction(CreateFunction node, Analysis context) {
+            return createFunctionAnalyzer.analyze(node);
+        }
+
+        @Override
+        public AnalyzedStatement visitDropFunction(DropFunction node, Analysis context) {
+            return dropFunctionAnalyzer.analyze(node);
         }
 
         @Override

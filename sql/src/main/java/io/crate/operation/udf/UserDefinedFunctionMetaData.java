@@ -1,7 +1,7 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.io Inc. ("Crate.io") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
+ * additional information regarding copyright ownership.  Crate.io licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
@@ -14,15 +14,21 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  *
- * However, if you have executed another commercial license agreement
- * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * To enable or use any of the enterprise features, Crate.io must have given
+ * you permission to enable and use the Enterprise Edition of CrateDB and you
+ * must have a valid Enterprise or Subscription Agreement with Crate.io.  If
+ * you enable or use features that are part of the Enterprise Edition, you
+ * represent and warrant that you have a valid Enterprise or Subscription
+ * Agreement with Crate.io.  Your use of features of the Enterprise Edition
+ * is governed by the terms and conditions of your Enterprise or Subscription
+ * Agreement with Crate.io.
  */
+
 package io.crate.operation.udf;
 
+import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.internal.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -33,14 +39,18 @@ import java.util.*;
 public class UserDefinedFunctionMetaData implements Streamable {
 
     String name;
-    List<FunctionArgument> arguments;
+    List<FunctionArgumentDefinition> arguments;
     Set<String> options;
     DataType returnType;
     String functionLanguage;
     String functionBody;
 
-    public UserDefinedFunctionMetaData(String name, List<FunctionArgument> arguments, Set<String> options,
-                                       DataType returnType, String functionLanguage, String functionBody) {
+    public UserDefinedFunctionMetaData(String name,
+                                       List<FunctionArgumentDefinition> arguments,
+                                       Set<String> options,
+                                       DataType returnType,
+                                       String functionLanguage,
+                                       String functionBody) {
         this.name = name;
         this.arguments = arguments;
         this.options = options;
@@ -49,7 +59,8 @@ public class UserDefinedFunctionMetaData implements Streamable {
         this.functionBody = functionBody;
     }
 
-    private UserDefinedFunctionMetaData() {}
+    private UserDefinedFunctionMetaData() {
+    }
 
     public static UserDefinedFunctionMetaData fromStream(StreamInput in) throws IOException {
         UserDefinedFunctionMetaData udfMetaData = new UserDefinedFunctionMetaData();
@@ -63,9 +74,7 @@ public class UserDefinedFunctionMetaData implements Streamable {
         int numArguments = in.readVInt();
         arguments = new ArrayList<>(numArguments);
         for (int i = 0; i < numArguments; i++) {
-            FunctionArgument argument = new FunctionArgument();
-            argument.readFrom(in);
-            arguments.add(argument);
+            arguments.add(FunctionArgumentDefinition.fromStream(in));
         }
         int numOptions = in.readVInt();
         options = new HashSet<>(numOptions);
@@ -81,7 +90,7 @@ public class UserDefinedFunctionMetaData implements Streamable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeString(name);
         out.writeVInt(arguments.size());
-        for (FunctionArgument argument : arguments) {
+        for (FunctionArgumentDefinition argument : arguments) {
             argument.writeTo(out);
         }
         out.writeVInt(options.size());
@@ -93,72 +102,23 @@ public class UserDefinedFunctionMetaData implements Streamable {
         out.writeString(functionBody);
     }
 
-    public static class FunctionArgument implements Streamable {
-
-        private String name;
-        private DataType dataType;
-
-        public FunctionArgument(DataType dataType, @Nullable String name) {
-            this.name = name;
-            this.dataType = dataType;
-        }
-
-        private FunctionArgument() {}
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            name = in.readOptionalString();
-            dataType = DataTypes.fromStream(in);
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeOptionalString(name);
-            DataTypes.toStream(dataType, out);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            FunctionArgument argument = (FunctionArgument) o;
-            return Objects.equals(name, argument.name) &&
-                   Objects.equals(dataType, argument.dataType);
-        }
-
-        @Override
-        public int hashCode() {
-            int result = name != null ? name.hashCode() : 0;
-            result = 31 * result + dataType.hashCode();
-            return result;
-        }
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
         UserDefinedFunctionMetaData that = (UserDefinedFunctionMetaData) o;
-
         return Objects.equals(name, that.name) &&
-               Objects.equals(arguments, that.arguments) &&
-               Objects.equals(options, that.options) &&
-               Objects.equals(returnType, that.returnType) &&
-               Objects.equals(functionLanguage, that.functionLanguage) &&
-               Objects.equals(functionBody, that.functionBody);
+            Objects.equals(arguments, that.arguments) &&
+            Objects.equals(options, that.options) &&
+            Objects.equals(returnType, that.returnType) &&
+            Objects.equals(functionLanguage, that.functionLanguage) &&
+            Objects.equals(functionBody, that.functionBody);
 
     }
 
     @Override
     public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + arguments.hashCode();
-        result = 31 * result + options.hashCode();
-        result = 31 * result + returnType.hashCode();
-        result = 31 * result + functionLanguage.hashCode();
-        result = 31 * result + functionBody.hashCode();
-        return result;
+        return Objects.hash(name, arguments, options, returnType, functionBody, functionLanguage);
     }
 }

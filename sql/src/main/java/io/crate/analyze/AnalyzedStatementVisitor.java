@@ -69,6 +69,14 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
+    protected R visitCreateFunctionStatement(CreateFunctionAnalyzedStatement analysis, C context) {
+        return visitDDLStatement(analysis, context);
+    }
+
+    public R visitDropFunctionStatement(DropFunctionAnalyzedStatement analysis, C context) {
+        return visitDDLStatement(analysis, context);
+    }
+
     protected R visitDropTableStatement(DropTableAnalyzedStatement analysis, C context) {
         return visitDDLStatement(analysis, context);
     }

@@ -22,6 +22,7 @@ package io.crate.operation.udf;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -39,8 +40,8 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         String functionBody = "function(a, b) {return a - b;}";
         UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
             "my_add",
-            ImmutableList.of(new UserDefinedFunctionMetaData.FunctionArgument(DataTypes.DOUBLE_ARRAY, null),
-                             new UserDefinedFunctionMetaData.FunctionArgument(DataTypes.DOUBLE, "my_named_arg")
+            ImmutableList.of(FunctionArgumentDefinition.of(DataTypes.DOUBLE_ARRAY),
+                FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
             ),
             ImmutableSet.of("STRICT"),
             DataTypes.FLOAT,
@@ -58,7 +59,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         assertThat(udfMeta2.name, is("my_add"));
         assertThat(udfMeta2.arguments.size(), is(2));
         assertThat(udfMeta2.arguments.get(1), is(
-            new UserDefinedFunctionMetaData.FunctionArgument(DataTypes.DOUBLE, "my_named_arg")
+            FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
         ));
         assertThat(udfMeta2.options, is(ImmutableSet.of("STRICT")));
         assertThat(udfMeta2.returnType, is(DataTypes.FLOAT));
