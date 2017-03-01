@@ -1132,13 +1132,14 @@ Example query::
   +----+--------------------------------------------------------------...-+
   |  1 | The setting 'discovery.zen.minimum_master_nodes' must not be ... |
   |  2 | The total number of partitions of one or more partitioned tab... |
+  |  3 | The following tables must be re-indexed for compatibility wit... |
+  |  4 | The following tables must be upgraded for compatibility with ... |
   +----+--------------------------------------------------------------...-+
-  SELECT 2 rows in set (... sec)
+  SELECT 4 rows in set (... sec)
 
 
-Settings checks:
-----------------
-All the settings must be present in the cluster `configuration`_
+Current Checks
+--------------
 
 Minimum master nodes
 ....................
@@ -1164,6 +1165,15 @@ This check warns if any :ref:`partitioned table <partitioned_tables>` has more
 than 1000 partitions to detect the usage of a high cardinality field for
 partitioning.
 
+Tables need re-indexing
+.......................
+This check warns if there are tables that need to be re-indexed for compatibility with
+future versions of CrateDB.
+
+Tables need to be upgraded
+..........................
+This check warns if there are tables that need to be upgraded for compatibility with
+future versions of CrateDB.
 
 .. _sys-repositories:
 

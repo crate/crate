@@ -35,12 +35,12 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -52,20 +52,21 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
 
     class TestDocTableInfo extends DocTableInfo {
 
-        public TestDocTableInfo(TableIdent ident,
-                                int numberOfShards,
-                                String numberOfReplicas,
-                                List<Reference> columns,
-                                List<Reference> partitionedByColumns,
-                                List<GeneratedReference> generatedColumns,
-                                ImmutableMap<ColumnIdent, IndexReference> indexColumns,
-                                ImmutableMap<ColumnIdent, Reference> references,
-                                ImmutableMap<ColumnIdent, String> analyzers,
-                                List<ColumnIdent> primaryKeys,
-                                ColumnIdent clusteredBy,
-                                ImmutableMap<String, Object> tableParameters,
-                                List<ColumnIdent> partitionedBy,
-                                ColumnPolicy policy) {
+        TestDocTableInfo(TableIdent ident,
+                         int numberOfShards,
+                         String numberOfReplicas,
+                         List<Reference> columns,
+                         List<Reference> partitionedByColumns,
+                         List<GeneratedReference> generatedColumns,
+                         ImmutableMap<ColumnIdent, IndexReference> indexColumns,
+                         ImmutableMap<ColumnIdent, Reference> references,
+                         ImmutableMap<ColumnIdent, String> analyzers,
+                         List<ColumnIdent> primaryKeys,
+                         ColumnIdent clusteredBy,
+                         ImmutableMap<String, Object> tableParameters,
+                         List<ColumnIdent> partitionedBy,
+                         ColumnPolicy policy,
+                         IndexMetaData indexMetaData) {
             super(ident,
                 columns,
                 partitionedByColumns,
@@ -83,9 +84,10 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 new BytesRef(numberOfReplicas),
                 tableParameters,
                 partitionedBy,
-                Collections.EMPTY_LIST,
+                Collections.emptyList(),
                 policy,
                 Operation.ALL,
+                indexMetaData,
                 mock(ExecutorService.class));
         }
     }
@@ -116,7 +118,6 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
         return referencesMap.build();
     }
 
-
     @Test
     public void testBuildCreateTableColumns() throws Exception {
         TableIdent ident = new TableIdent("doc", "test");
@@ -135,27 +136,28 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
             newReference(ident, "arr_simple", new ArrayType(DataTypes.STRING)),
             newReference(ident, "arr_geo_point", new ArrayType(DataTypes.GEO_POINT)),
             newReference(ident, "arr_obj", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.STRICT, false),
-            newReference(ident, "arr_obj", DataTypes.LONG, Arrays.asList("col_1"), null, false),
-            newReference(ident, "arr_obj", DataTypes.STRING, Arrays.asList("col_2"), null, false),
+            newReference(ident, "arr_obj", DataTypes.LONG, Collections.singletonList("col_1"), null, false),
+            newReference(ident, "arr_obj", DataTypes.STRING, Collections.singletonList("col_2"), null, false),
             newReference(ident, "obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC, false),
-            newReference(ident, "obj", DataTypes.LONG, Arrays.asList("col_1"), null, false),
-            newReference(ident, "obj", DataTypes.STRING, Arrays.asList("col_2"), null, false)
+            newReference(ident, "obj", DataTypes.LONG, Collections.singletonList("col_1"), null, false),
+            newReference(ident, "obj", DataTypes.STRING, Collections.singletonList("col_2"), null, false)
         );
 
         DocTableInfo tableInfo = new TestDocTableInfo(
             ident,
             5, "0-all",
             columns,
-            ImmutableList.<Reference>of(),
-            ImmutableList.<GeneratedReference>of(),
-            ImmutableMap.<ColumnIdent, IndexReference>of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
+            ImmutableMap.of(),
             referencesMap(columns),
-            ImmutableMap.<ColumnIdent, String>of(),
-            ImmutableList.<ColumnIdent>of(),
+            ImmutableMap.of(),
+            ImmutableList.of(),
             null,
-            ImmutableMap.<String, Object>of(),
-            ImmutableList.<ColumnIdent>of(),
-            ColumnPolicy.DYNAMIC);
+            ImmutableMap.of(),
+            ImmutableList.of(),
+            ColumnPolicy.DYNAMIC,
+            null);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
@@ -205,16 +207,17 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
             ident,
             5, "0-all",
             columns,
-            ImmutableList.<Reference>of(),
-            ImmutableList.<GeneratedReference>of(),
-            ImmutableMap.<ColumnIdent, IndexReference>of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
+            ImmutableMap.of(),
             referencesMap(columns),
-            ImmutableMap.<ColumnIdent, String>of(),
+            ImmutableMap.of(),
             primaryKeys,
             null,
-            ImmutableMap.<String, Object>of(),
-            ImmutableList.<ColumnIdent>of(),
-            ColumnPolicy.STRICT);
+            ImmutableMap.of(),
+            ImmutableList.of(),
+            ColumnPolicy.STRICT,
+            null);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
@@ -246,16 +249,17 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
             ident,
             5, "0-all",
             columns,
-            ImmutableList.<Reference>of(),
-            ImmutableList.<GeneratedReference>of(),
-            ImmutableMap.<ColumnIdent, IndexReference>of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
+            ImmutableMap.of(),
             referencesMap(columns),
-            ImmutableMap.<ColumnIdent, String>of(),
+            ImmutableMap.of(),
             primaryKeys,
             null,
-            ImmutableMap.<String, Object>of(),
-            ImmutableList.<ColumnIdent>of(),
-            ColumnPolicy.STRICT);
+            ImmutableMap.of(),
+            ImmutableList.of(),
+            ColumnPolicy.STRICT,
+            null);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
@@ -291,16 +295,17 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
             ident,
             5, "5",
             columns,
-            ImmutableList.<Reference>of(),
-            ImmutableList.<GeneratedReference>of(),
-            ImmutableMap.<ColumnIdent, IndexReference>of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
+            ImmutableMap.of(),
             referencesMap(columns),
-            ImmutableMap.<ColumnIdent, String>of(),
-            ImmutableList.<ColumnIdent>of(),
+            ImmutableMap.of(),
+            ImmutableList.of(),
             null,
             tableParameters.build(),
-            ImmutableList.<ColumnIdent>of(),
-            ColumnPolicy.IGNORED);
+            ImmutableList.of(),
+            ColumnPolicy.IGNORED,
+            null);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
@@ -333,15 +338,16 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
             5, "0-all",
             columns,
             ImmutableList.of(columns.get(1)),
-            ImmutableList.<GeneratedReference>of(),
-            ImmutableMap.<ColumnIdent, IndexReference>of(),
+            ImmutableList.of(),
+            ImmutableMap.of(),
             referencesMap(columns),
-            ImmutableMap.<ColumnIdent, String>of(),
-            ImmutableList.<ColumnIdent>of(),
+            ImmutableMap.of(),
+            ImmutableList.of(),
             new ColumnIdent("cluster_column"),
-            ImmutableMap.<String, Object>of(),
+            ImmutableMap.of(),
             ImmutableList.of(columns.get(1).ident().columnIdent()),
-            ColumnPolicy.DYNAMIC);
+            ColumnPolicy.DYNAMIC,
+            null);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
@@ -358,7 +364,6 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
             SqlFormatter.formatSql(node));
     }
 
-
     @Test
     public void testBuildCreateTableIndexes() throws Exception {
         TableIdent ident = new TableIdent("myschema", "test");
@@ -370,7 +375,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
             RowGranularity.DOC, DataTypes.STRING, null, Reference.IndexType.NO, true);
         Reference colD = new Reference(new ReferenceIdent(ident, "col_d", null),
             RowGranularity.DOC, DataTypes.OBJECT);
-        Reference colE = new Reference(new ReferenceIdent(ident, "col_d", Arrays.asList("a")),
+        Reference colE = new Reference(new ReferenceIdent(ident, "col_d", Collections.singletonList("a")),
             RowGranularity.DOC, DataTypes.STRING, null, Reference.IndexType.NOT_ANALYZED, true);
 
         List<Reference> columns = ImmutableList.of(
@@ -391,17 +396,17 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
             ident,
             5, "0-all",
             columns,
-            ImmutableList.<Reference>of(),
-            ImmutableList.<GeneratedReference>of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
             indexBuilder.build(),
             referencesMap(columns),
-            ImmutableMap.<ColumnIdent, String>of(),
-            ImmutableList.<ColumnIdent>of(),
+            ImmutableMap.of(),
+            ImmutableList.of(),
             null,
-            ImmutableMap.<String, Object>of(),
-            ImmutableList.<ColumnIdent>of(),
-            ColumnPolicy.DYNAMIC);
-
+            ImmutableMap.of(),
+            ImmutableList.of(),
+            ColumnPolicy.DYNAMIC,
+            null);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
