@@ -144,8 +144,6 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
     }
 
     private void consumeSource() {
-        Columns inputs = source.rowData();
-
         while (source.moveNext()) {
             if (!consumeRow()) {
                 // the bulkShardProcessor doesn't accept more items when it fails. The loading future will complete
