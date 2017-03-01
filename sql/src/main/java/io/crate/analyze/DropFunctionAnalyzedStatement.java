@@ -24,63 +24,38 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.sql.tree;
+package io.crate.analyze;
 
-import com.google.common.base.MoreObjects;
+import io.crate.types.DataType;
 
 import java.util.List;
-import java.util.Objects;
 
-public class DropFunction extends Statement {
+public class DropFunctionAnalyzedStatement implements DDLStatement {
 
-    private final QualifiedName name;
+    private final String name;
     private final boolean ifExists;
-    private final List<FunctionArgument> arguments;
+    private final List<DataType> argumentTypes;
 
-    public DropFunction(QualifiedName name, boolean exists, List<FunctionArgument> arguments) {
+    public DropFunctionAnalyzedStatement(String name, boolean ifExists, List<DataType> argumentTypes) {
         this.name = name;
-        this.ifExists = exists;
-        this.arguments = arguments;
+        this.ifExists = ifExists;
+        this.argumentTypes = argumentTypes;
     }
 
-    public QualifiedName name() {
+    @Override
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
+        return analyzedStatementVisitor.visitDropFunctionStatement(this, context);
+    }
+
+    public String name() {
         return name;
+    }
+
+    public List<DataType> arguments() {
+        return argumentTypes;
     }
 
     public boolean ifExists() {
         return ifExists;
-    }
-
-    public List<FunctionArgument> arguments() {
-        return arguments;
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitDropFunction(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (getClass() != o.getClass()) return false;
-
-        final DropFunction that = (DropFunction) o;
-        return Objects.equals(this.name, that.name)
-            && Objects.equals(this.ifExists, that.ifExists)
-            && Objects.equals(this.arguments, that.arguments);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, ifExists, arguments);
-    }
-
-    @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("ifExists", ifExists)
-            .add("arguments", arguments).toString();
     }
 }
