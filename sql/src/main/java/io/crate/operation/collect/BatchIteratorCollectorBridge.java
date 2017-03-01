@@ -22,36 +22,40 @@
 
 package io.crate.operation.collect;
 
+import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
-import io.crate.operation.projectors.BatchConsumerToRowReceiver;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.data.Killable;
 
 import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
+/**
+ * Collector adapter to a BatchIterator.
+ * {@link CrateCollector#doCollect()} results in a {@link BatchConsumer#accept(BatchIterator, Throwable)} call on the consumer.
+ */
 public final class BatchIteratorCollectorBridge {
 
-    public static CrateCollector newInstance(BatchIterator batchIterator,
-                                             RowReceiver rowReceiver ) {
-        return new SyncBatchItCollector(batchIterator, rowReceiver);
+    public static CrateCollector newInstance(BatchIterator batchIterator, BatchConsumer consumer, Killable killable) {
+        return new SyncBatchItCollector(batchIterator, consumer, killable);
     }
 
     public static CrateCollector newInstance(Supplier<CompletableFuture<BatchIterator>> batchIteratorFuture,
-                                             RowReceiver rowReceiver) {
-        return new AsyncBatchItCollector(batchIteratorFuture, rowReceiver);
+                                             BatchConsumer consumer,
+                                             Killable killable) {
+        return new AsyncBatchItCollector(batchIteratorFuture, consumer, killable);
     }
 
     private static class SyncBatchItCollector implements CrateCollector {
 
         private final BatchIterator batchIterator;
-        private final RowReceiver rowReceiver;
-        private final BatchConsumerToRowReceiver consumer;
+        private final Killable killable;
+        private final BatchConsumer consumer;
 
-        SyncBatchItCollector(BatchIterator batchIterator, RowReceiver rowReceiver) {
+        SyncBatchItCollector(BatchIterator batchIterator, BatchConsumer consumer, Killable killable) {
             this.batchIterator = batchIterator;
-            this.rowReceiver = rowReceiver;
-            this.consumer = new BatchConsumerToRowReceiver(rowReceiver);
+            this.consumer = consumer;
+            this.killable = killable;
         }
 
         @Override
@@ -61,21 +65,22 @@ public final class BatchIteratorCollectorBridge {
 
         @Override
         public void kill(@Nullable Throwable throwable) {
-            rowReceiver.kill(throwable);
+            killable.kill(throwable);
         }
     }
 
     private static class AsyncBatchItCollector implements CrateCollector {
 
         private final Supplier<CompletableFuture<BatchIterator>> batchIteratorFuture;
-        private final RowReceiver rowReceiver;
-        private final BatchConsumerToRowReceiver consumer;
+        private final BatchConsumer consumer;
+        private final Killable killable;
 
         AsyncBatchItCollector(Supplier<CompletableFuture<BatchIterator>> batchIteratorFuture,
-                              RowReceiver rowReceiver) {
+                              BatchConsumer consumer,
+                              Killable killable) {
             this.batchIteratorFuture = batchIteratorFuture;
-            this.rowReceiver = rowReceiver;
-            this.consumer = new BatchConsumerToRowReceiver(rowReceiver);
+            this.consumer = consumer;
+            this.killable = killable;
         }
 
         @Override
@@ -85,7 +90,7 @@ public final class BatchIteratorCollectorBridge {
 
         @Override
         public void kill(@Nullable Throwable throwable) {
-            rowReceiver.kill(throwable);
+            killable.kill(throwable);
         }
     }
 }
