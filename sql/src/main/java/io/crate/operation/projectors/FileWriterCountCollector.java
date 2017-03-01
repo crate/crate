@@ -1,33 +1,35 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
 package io.crate.operation.projectors;
 
+import com.google.common.annotations.VisibleForTesting;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.data.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.writer.Output;
 import io.crate.operation.projectors.writer.OutputFile;
@@ -45,9 +47,17 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
 
-public class WriterProjector extends AbstractProjector {
+/**
+ * Collector implementation which writes the rows to the configured {@link Output}
+ * and returns a count representing the number of written rows
+ */
+public class FileWriterCountCollector implements Collector<Row, long[], Iterable<Row>> {
 
     private static final byte NEW_LINE = (byte) '\n';
 
@@ -61,25 +71,16 @@ public class WriterProjector extends AbstractProjector {
     private final WriterProjection.CompressionType compressionType;
     private Output output;
 
-    protected final AtomicLong counter = new AtomicLong();
     private final RowWriter rowWriter;
 
-    /**
-     * @param inputs a list of {@link Input}.
-     *               If null the row that is received in {@link #setNextRow(Row)}
-     *               is expected to contain the raw source in its first column.
-     *               That raw source is then written to the output
-     *               <p/>
-     *               If inputs is not null the inputs are consumed to write a JSON array to the output.
-     */
-    public WriterProjector(ExecutorService executorService,
-                           String uri,
-                           @Nullable WriterProjection.CompressionType compressionType,
-                           @Nullable List<Input<?>> inputs,
-                           Iterable<CollectExpression<Row, ?>> collectExpressions,
-                           Map<ColumnIdent, Object> overwrites,
-                           @Nullable List<String> outputNames,
-                           WriterProjection.OutputFormat outputFormat) {
+    public FileWriterCountCollector(ExecutorService executorService,
+                                    String uri,
+                                    @Nullable WriterProjection.CompressionType compressionType,
+                                    @Nullable List<Input<?>> inputs,
+                                    Iterable<CollectExpression<Row, ?>> collectExpressions,
+                                    Map<ColumnIdent, Object> overwrites,
+                                    @Nullable List<String> outputNames,
+                                    WriterProjection.OutputFormat outputFormat) {
         this.collectExpressions = collectExpressions;
         this.inputs = inputs;
         this.overwrites = toNestedStringObjectMap(overwrites);
@@ -98,10 +99,11 @@ public class WriterProjector extends AbstractProjector {
         } else {
             throw new UnsupportedFeatureException(String.format(Locale.ENGLISH, "Unknown scheme '%s'", this.uri.getScheme()));
         }
-        rowWriter = initWriter();
+        this.rowWriter = initWriter();
     }
 
-    protected static Map<String, Object> toNestedStringObjectMap(Map<ColumnIdent, Object> columnIdentObjectMap) {
+    @VisibleForTesting
+    static Map<String, Object> toNestedStringObjectMap(Map<ColumnIdent, Object> columnIdentObjectMap) {
         Map<String, Object> nestedMap = new HashMap<>();
         Map<String, Object> parent = nestedMap;
 
@@ -139,7 +141,6 @@ public class WriterProjector extends AbstractProjector {
     }
 
     private RowWriter initWriter() {
-        counter.set(0);
         try {
             if (!overwrites.isEmpty()) {
                 return new DocWriter(
@@ -156,38 +157,49 @@ public class WriterProjector extends AbstractProjector {
         }
     }
 
-    @Override
-    public Result setNextRow(Row row) {
-        rowWriter.write(row);
-        counter.incrementAndGet();
-        return Result.CONTINUE;
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        if (closeWriterAndOutput()) return;
-
-        downstream.setNextRow(new Row1(counter.get()));
-        downstream.finish(RepeatHandle.UNSUPPORTED);
-    }
-
-    private boolean closeWriterAndOutput() {
+    private void closeWriterAndOutput() {
         try {
             if (rowWriter != null) {
                 rowWriter.close();
             }
         } catch (IOException e) {
-            downstream.fail(new UnhandledServerException("Failed to close output", e));
-            return true;
+
         }
-        return false;
     }
 
     @Override
-    public void fail(Throwable throwable) {
-        if (closeWriterAndOutput()) return;
+    public Supplier<long[]> supplier() {
+        return () -> new long[1];
+    }
 
-        downstream.fail(throwable);
+    @Override
+    public BiConsumer<long[], Row> accumulator() {
+        return this::onNextRow;
+    }
+
+    private void onNextRow(long[] container, Row row) {
+        rowWriter.write(row);
+        container[0] += 1;
+    }
+
+    @Override
+    public BinaryOperator<long[]> combiner() {
+        return (state1, state2) -> {
+            throw new UnsupportedOperationException("combine not supported");
+        };
+    }
+
+    @Override
+    public Function<long[], Iterable<Row>> finisher() {
+        return (container) -> {
+            closeWriterAndOutput();
+            return Collections.singletonList(new Row1(container[0]));
+        };
+    }
+
+    @Override
+    public Set<Characteristics> characteristics() {
+        return Collections.emptySet();
     }
 
     interface RowWriter {
