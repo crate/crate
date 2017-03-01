@@ -178,7 +178,7 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
 
     @Override
     public boolean allLoaded() {
-        return loading != null && loading.isDone() == true;
+        return loading != null;
     }
 
     private boolean isLoading() {
