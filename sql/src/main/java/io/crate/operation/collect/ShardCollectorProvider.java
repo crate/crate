@@ -24,6 +24,9 @@ package io.crate.operation.collect;
 
 import io.crate.action.job.SharedShardContext;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.data.BatchConsumer;
+import io.crate.data.Input;
+import io.crate.data.Killable;
 import io.crate.data.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.AbstractReferenceResolver;
@@ -31,7 +34,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.shard.RecoveryShardReferenceResolver;
-import io.crate.data.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.*;
@@ -114,7 +116,7 @@ public abstract class ShardCollectorProvider {
      * Create a CrateCollector.Builder to collect rows from a shard.
      * <p>
      * This also creates all shard-level projectors.
-     * The RowReceiver that is used for {@link CrateCollector.Builder#build(RowReceiver)}
+     * The RowReceiver that is used for {@link CrateCollector.Builder#build(BatchConsumer, Killable)}
      * should be the first node-level projector.
      */
     public CrateCollector.Builder getCollectorBuilder(RoutedCollectPhase collectPhase,
@@ -136,13 +138,23 @@ public abstract class ShardCollectorProvider {
         if (shardProjections.isEmpty()) {
             return builder;
         } else {
-            return rowReceiver -> builder.build(ProjectorChain.prependProjectors(
-                rowReceiver,
-                shardProjections,
-                normalizedCollectNode.jobId(),
-                jobCollectContext.queryPhaseRamAccountingContext(),
-                projectorFactory
-            ));
+            return new CrateCollector.Builder() {
+                @Override
+                public CrateCollector build(BatchConsumer batchConsumer, Killable killable) {
+                    return builder.build(batchConsumer, killable);
+                }
+
+                @Override
+                public RowReceiver applyProjections(RowReceiver rowReceiver) {
+                    return ProjectorChain.prependProjectors(
+                        rowReceiver,
+                        shardProjections,
+                        normalizedCollectNode.jobId(),
+                        jobCollectContext.queryPhaseRamAccountingContext(),
+                        projectorFactory
+                    );
+                }
+            };
         }
     }
 

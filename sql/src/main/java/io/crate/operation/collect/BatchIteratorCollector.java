@@ -24,21 +24,29 @@ package io.crate.operation.collect;
 
 import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
-import io.crate.operation.projectors.BatchConsumerToRowReceiver;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.data.Killable;
 
 import javax.annotation.Nullable;
 
+/**
+ * Collector adapter to a BatchIterator.
+ * {@link #doCollect()} results in a {@link BatchConsumer#accept(BatchIterator, Throwable)} call on the consumer.
+ */
 public class BatchIteratorCollector implements CrateCollector {
 
     private final BatchIterator batchIterator;
     private final BatchConsumer consumer;
-    private final RowReceiver rowReceiver;
+    private final Killable killable;
 
-    public BatchIteratorCollector(BatchIterator batchIterator, RowReceiver rowReceiver) {
+    /**
+     * @param batchIterator providing the data
+     * @param consumer receiving the data
+     * @param killable to be used when {@link #kill(Throwable)} is called
+     */
+    public BatchIteratorCollector(BatchIterator batchIterator, BatchConsumer consumer, Killable killable) {
         this.batchIterator = batchIterator;
-        this.consumer = new BatchConsumerToRowReceiver(rowReceiver);
-        this.rowReceiver = rowReceiver;
+        this.consumer = consumer;
+        this.killable = killable;
     }
 
     @Override
@@ -48,6 +56,6 @@ public class BatchIteratorCollector implements CrateCollector {
 
     @Override
     public void kill(@Nullable Throwable throwable) {
-        rowReceiver.kill(throwable);
+        killable.kill(throwable);
     }
 }

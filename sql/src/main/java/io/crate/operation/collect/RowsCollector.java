@@ -22,9 +22,10 @@
 package io.crate.operation.collect;
 
 import io.crate.data.Columns;
+import io.crate.data.IterableControlledBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowsBatchIterator;
-import io.crate.data.IterableControlledBatchIterator;
+import io.crate.operation.projectors.BatchConsumerToRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
 
 public final class RowsCollector {
@@ -33,22 +34,39 @@ public final class RowsCollector {
     }
 
     public static CrateCollector empty(RowReceiver rowDownstream) {
-        return new BatchIteratorCollector(IterableControlledBatchIterator.empty(), rowDownstream);
+        return new BatchIteratorCollector(
+            IterableControlledBatchIterator.empty(),
+            new BatchConsumerToRowReceiver(rowDownstream),
+            rowDownstream);
     }
 
     public static CrateCollector single(Columns inputs, RowReceiver rowDownstream) {
-        return new BatchIteratorCollector(IterableControlledBatchIterator.singleRow(inputs), rowDownstream);
+        return new BatchIteratorCollector(
+            IterableControlledBatchIterator.singleRow(inputs),
+            new BatchConsumerToRowReceiver(rowDownstream),
+            rowDownstream);
     }
 
     public static CrateCollector forRows(Iterable<Row> rows, int numCols, RowReceiver rowReceiver) {
-        return new BatchIteratorCollector(RowsBatchIterator.newInstance(rows, numCols), rowReceiver);
+        return new BatchIteratorCollector(
+            RowsBatchIterator.newInstance(rows, numCols),
+            new BatchConsumerToRowReceiver(rowReceiver),
+            rowReceiver);
     }
 
     static CrateCollector.Builder emptyBuilder() {
-        return RowsCollector::empty;
+        return (consumer, killable) -> new BatchIteratorCollector(
+            IterableControlledBatchIterator.empty(),
+            consumer,
+            killable
+        );
     }
 
     public static CrateCollector.Builder builder(final Iterable<Row> rows, int numCols) {
-        return rowReceiver -> forRows(rows, numCols, rowReceiver);
+        return (batchConsumer, killable) -> new BatchIteratorCollector(
+            RowsBatchIterator.newInstance(rows, numCols),
+            batchConsumer,
+            killable
+        );
     }
 }

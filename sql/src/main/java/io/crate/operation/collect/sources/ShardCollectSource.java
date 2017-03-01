@@ -271,7 +271,9 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             case 0:
                 return Collections.singletonList(RowsCollector.empty(firstNodeRR));
             case 1:
-                return Collections.singletonList(builders.iterator().next().build(firstNodeRR));
+                CrateCollector.Builder collectorBuilder = builders.iterator().next();
+                return Collections.singletonList(collectorBuilder.build(
+                    new BatchConsumerToRowReceiver(collectorBuilder.applyProjections(firstNodeRR)), firstNodeRR));
             default:
                 if (hasShardProjections) {
                     // 1 Collector per shard to benefit from concurrency (each collector is run in a thread)
@@ -280,13 +282,16 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     MultiUpstreamRowReceiver multiUpstreamRowReceiver = new MultiUpstreamRowReceiver(firstNodeRR);
                     List<CrateCollector> collectors = new ArrayList<>(builders.size());
                     for (CrateCollector.Builder builder : builders) {
-                        collectors.add(builder.build(multiUpstreamRowReceiver.newRowReceiver()));
+                        RowReceiver rowReceiver = multiUpstreamRowReceiver.newRowReceiver();
+                        collectors.add(builder.build(
+                            new BatchConsumerToRowReceiver(builder.applyProjections(rowReceiver)), rowReceiver));
                     }
                     return collectors;
                 } else {
                     // If there are no shard-projections there is no real benefit from concurrency gained by using multiple collectors.
                     // CompositeCollector to collects single-threaded sequentially.
-                    return Collections.singletonList(new CompositeCollector(builders, firstNodeRR));
+                    return Collections.singletonList(
+                        new CompositeCollector(builders, new BatchConsumerToRowReceiver(firstNodeRR), firstNodeRR));
                 }
         }
     }
@@ -340,6 +345,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 executor,
                 rowReceiver.requirements().contains(Requirement.REPEAT)
             ),
+            new BatchConsumerToRowReceiver(rowReceiver),
             rowReceiver
         );
     }

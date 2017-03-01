@@ -30,12 +30,13 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.google.common.collect.ImmutableMap;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.external.S3ClientHelper;
 import io.crate.metadata.*;
-import io.crate.data.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.BatchIteratorCollector;
+import io.crate.operation.projectors.BatchConsumerToRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
@@ -249,7 +250,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
 
     private void getObjects(Collection<String> fileUris, String compression, final S3ObjectInputStream s3InputStream, RowReceiver rowReceiver) throws Throwable {
         BatchIterator iterator = createBatchIterator(fileUris, compression, s3InputStream);
-        new BatchIteratorCollector(iterator, rowReceiver).doCollect();
+        new BatchIteratorCollector(iterator, new BatchConsumerToRowReceiver(rowReceiver), rowReceiver).doCollect();
     }
 
     private BatchIterator createBatchIterator(Collection<String> fileUris, String compression, final S3ObjectInputStream s3InputStream) {

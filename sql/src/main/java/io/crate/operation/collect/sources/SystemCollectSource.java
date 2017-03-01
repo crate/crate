@@ -42,6 +42,7 @@ import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsTransformer;
 import io.crate.operation.collect.files.SummitsIterable;
 import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.operation.projectors.BatchConsumerToRowReceiver;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
@@ -141,7 +142,10 @@ public class SystemCollectSource implements CollectSource {
 
         Iterable<Row> rows = toRowsIterable(
             collectPhase, iterableGetter.get(), downstream.requirements().contains(Requirement.REPEAT));
-        return ImmutableList.of(new BatchIteratorCollector(RowsBatchIterator.newInstance(rows, collectPhase.toCollect().size()), downstream));
+        return ImmutableList.of(new BatchIteratorCollector(
+            RowsBatchIterator.newInstance(rows, collectPhase.toCollect().size()),
+            new BatchConsumerToRowReceiver(downstream),
+            downstream));
     }
 
     /**
