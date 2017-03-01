@@ -21,6 +21,8 @@
 
 package io.crate.operation.collect;
 
+import io.crate.data.BatchConsumer;
+import io.crate.data.Killable;
 import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
@@ -28,7 +30,20 @@ import javax.annotation.Nullable;
 public interface CrateCollector {
 
     interface Builder {
-        CrateCollector build(RowReceiver rowReceiver);
+
+        /**
+         * Create a CrateCollector
+         *
+         * @param batchConsumer consumer which will receive a BatchIterator to consume data after
+         *                      {@link #doCollect()} has been called.
+         *                      (May be async)
+         * @param killable component that will receive kill calls on {@link #kill(Throwable)}
+         */
+        CrateCollector build(BatchConsumer batchConsumer, Killable killable);
+
+        default RowReceiver applyProjections(RowReceiver rowReceiver) {
+            return rowReceiver;
+        }
     }
 
     void doCollect();

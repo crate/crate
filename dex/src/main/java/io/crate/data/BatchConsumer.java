@@ -58,4 +58,11 @@ public interface BatchConsumer extends BiConsumer<BatchIterator, Throwable> {
      */
     @Override
     void accept(BatchIterator iterator, @Nullable Throwable failure);
+
+    /**
+     * @return true if the consumer wants to scroll backwards by using {@link BatchIterator#moveToStart}
+     * */
+    default boolean requiresScroll() {
+        return false;
+    }
 }
