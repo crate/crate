@@ -27,48 +27,65 @@ import io.crate.operation.projectors.IterableRowEmitter;
 import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 public class RowsCollector implements CrateCollector {
 
-    private final IterableRowEmitter emitter;
+    private final RowReceiver rowDownstream;
+    private final CompletableFuture<? extends Iterable<?>> future;
+    private final Function<Iterable, Iterable<? extends Row>> dataIterableToRowsIterable;
+    private IterableRowEmitter emitter;
 
     public static RowsCollector empty(RowReceiver rowDownstream) {
-        return new RowsCollector(rowDownstream, ImmutableList.<Row>of());
+        return new RowsCollector(
+            rowDownstream,
+            CompletableFuture.completedFuture(ImmutableList.of()),
+            dataIterable -> ImmutableList.of());
     }
 
     public static RowsCollector single(Row row, RowReceiver rowDownstream) {
-        return new RowsCollector(rowDownstream, ImmutableList.of(row));
+        return new RowsCollector(
+            rowDownstream,
+            CompletableFuture.completedFuture(ImmutableList.of(row)),
+            dataIterable -> (Iterable<? extends Row>) dataIterable);
     }
 
-    public RowsCollector(RowReceiver rowDownstream, Iterable<Row> rows) {
-        this.emitter = new IterableRowEmitter(rowDownstream, rows);
+    public RowsCollector(RowReceiver rowDownstream,
+                         CompletableFuture<? extends Iterable<?>> future,
+                         Function<Iterable, Iterable<? extends Row>> dataIterableToRowsIterable) {
+        this.rowDownstream = rowDownstream;
+        this.future = future;
+        this.dataIterableToRowsIterable = dataIterableToRowsIterable;
     }
 
     @Override
     public void doCollect() {
-        emitter.run();
+        future.whenComplete((objects, throwable) -> {
+            if (throwable == null) {
+                emitter = new IterableRowEmitter(rowDownstream, dataIterableToRowsIterable.apply(objects));
+                emitter.run();
+            } else {
+                rowDownstream.fail(throwable);
+            }
+        });
     }
 
     @Override
     public void kill(@Nullable Throwable throwable) {
-        emitter.kill(throwable);
+        if (emitter != null) {
+            emitter.kill(throwable);
+        }
     }
 
-    public static Builder emptyBuilder() {
-        return new CrateCollector.Builder() {
-            @Override
-            public CrateCollector build(RowReceiver rowReceiver) {
-                return RowsCollector.empty(rowReceiver);
-            }
-        };
+    static Builder emptyBuilder() {
+        return RowsCollector::empty;
     }
 
-    public static Builder builder(final Iterable<Row> rows) {
-        return new CrateCollector.Builder() {
-            @Override
-            public CrateCollector build(RowReceiver rowReceiver) {
-                return new RowsCollector(rowReceiver, rows);
-            }
-        };
+    public static Builder builder(Iterable<Row> rows) {
+        return rowReceiver -> new RowsCollector(
+            rowReceiver,
+            CompletableFuture.completedFuture(rows),
+            (Function<Iterable, Iterable<? extends Row>>) dataIterable -> (Iterable<? extends Row>) dataIterable);
     }
 }

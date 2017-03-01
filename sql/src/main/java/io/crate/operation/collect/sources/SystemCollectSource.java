@@ -61,6 +61,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -72,7 +74,7 @@ public class SystemCollectSource implements CollectSource {
 
     private final Functions functions;
     private final NodeSysExpression nodeSysExpression;
-    private final ImmutableMap<String, Supplier<Iterable<?>>> iterableGetters;
+    private final ImmutableMap<String, Supplier<CompletableFuture<? extends Iterable<?>>>> iterableGetters;
     private final ImmutableMap<TableIdent, SysRowUpdater<?>> rowUpdaters;
     private final ClusterService clusterService;
     private final InputFactory inputFactory;
@@ -95,38 +97,62 @@ public class SystemCollectSource implements CollectSource {
 
         rowUpdaters = ImmutableMap.of(SysNodeChecksTableInfo.IDENT, sysNodeChecks);
 
-        iterableGetters = ImmutableMap.<String, Supplier<Iterable<?>>>builder()
-            .put(InformationSchemataTableInfo.IDENT.fqn(), informationSchemaIterables::schemas)
-            .put(InformationTablesTableInfo.IDENT.fqn(), informationSchemaIterables::tables)
-            .put(InformationPartitionsTableInfo.IDENT.fqn(), informationSchemaIterables::partitions)
-            .put(InformationColumnsTableInfo.IDENT.fqn(), informationSchemaIterables::columns)
-            .put(InformationTableConstraintsTableInfo.IDENT.fqn(), informationSchemaIterables::constraints)
-            .put(InformationRoutinesTableInfo.IDENT.fqn(), informationSchemaIterables::routines)
-            .put(InformationSqlFeaturesTableInfo.IDENT.fqn(), informationSchemaIterables::features)
-            .put(SysJobsTableInfo.IDENT.fqn(), jobsLogs::jobsGetter)
-            .put(SysJobsLogTableInfo.IDENT.fqn(), jobsLogs::jobsLogGetter)
-            .put(SysOperationsTableInfo.IDENT.fqn(), jobsLogs::operationsGetter)
-            .put(SysOperationsLogTableInfo.IDENT.fqn(), jobsLogs::operationsLogGetter)
-            .put(SysChecksTableInfo.IDENT.fqn(), new SysChecker<>(sysChecks)::checksGetter)
-            .put(SysNodeChecksTableInfo.IDENT.fqn(), () -> sysNodeChecks)
-            .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositoriesService::repositoriesGetter)
-            .put(SysSnapshotsTableInfo.IDENT.fqn(), sysSnapshots::snapshotsGetter)
-            .put(SysSummitsTableInfo.IDENT.fqn(), new SummitsIterable()::summitsGetter)
-            .put(PgTypeTable.IDENT.fqn(), pgCatalogTables::typesGetter)
+        iterableGetters = ImmutableMap.<String, Supplier<CompletableFuture<? extends Iterable<?>>>>builder()
+            .put(InformationSchemataTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(informationSchemaIterables.schemas()))
+            .put(InformationTablesTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(informationSchemaIterables.tables()))
+            .put(InformationPartitionsTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(informationSchemaIterables.partitions()))
+            .put(InformationColumnsTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(informationSchemaIterables.columns()))
+            .put(InformationTableConstraintsTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(informationSchemaIterables.constraints()))
+            .put(InformationRoutinesTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(informationSchemaIterables.routines()))
+            .put(InformationSqlFeaturesTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(informationSchemaIterables.features()))
+            .put(SysJobsTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(jobsLogs.jobsGetter()))
+            .put(SysJobsLogTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(jobsLogs.jobsLogGetter()))
+            .put(SysOperationsTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(jobsLogs.operationsGetter()))
+            .put(SysOperationsLogTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(jobsLogs.operationsLogGetter()))
+            .put(SysChecksTableInfo.IDENT.fqn(),
+                () -> new SysChecker<>(sysChecks).checksGetter())
+            .put(SysNodeChecksTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(sysNodeChecks))
+            .put(SysRepositoriesTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(sysRepositoriesService.repositoriesGetter()))
+            .put(SysSnapshotsTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(sysSnapshots.snapshotsGetter()))
+            .put(SysSummitsTableInfo.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(new SummitsIterable().summitsGetter()))
+            .put(PgTypeTable.IDENT.fqn(),
+                () -> CompletableFuture.completedFuture(pgCatalogTables.typesGetter()))
             .build();
-
-
     }
 
-    Iterable<Row> toRowsIterable(RoutedCollectPhase collectPhase, Iterable<?> iterable, boolean requiresRepeat) {
-        if (requiresRepeat) {
-            iterable = ImmutableList.copyOf(iterable);
-        }
-        return RowsTransformer.toRowsIterable(inputFactory, RowContextReferenceResolver.INSTANCE, collectPhase, iterable);
+    Function<Iterable, Iterable<? extends Row>> toRowsIterableTransformation(RoutedCollectPhase collectPhase,
+                                                                                boolean requiresRepeat) {
+        return objects -> {
+            if (requiresRepeat) {
+                objects = ImmutableList.copyOf(objects);
+            }
+            return RowsTransformer.toRowsIterable(
+                inputFactory,
+                RowContextReferenceResolver.INSTANCE,
+                collectPhase,
+                objects);
+        };
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase phase,
+                                                    RowReceiver downstream,
+                                                    JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         // sys.operations can contain a _node column - these refs need to be normalized into literals
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
@@ -135,11 +161,15 @@ public class SystemCollectSource implements CollectSource {
 
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
-        Supplier<Iterable<?>> iterableGetter = iterableGetters.get(table);
+        Supplier<CompletableFuture<? extends Iterable<?>>> iterableGetter = iterableGetters.get(table);
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";
-        return ImmutableList.<CrateCollector>of(
-            new RowsCollector(downstream, toRowsIterable(collectPhase, iterableGetter.get(),
-                downstream.requirements().contains(Requirement.REPEAT))));
+        return ImmutableList.of(
+            new RowsCollector(
+                downstream,
+                iterableGetter.get(),
+                toRowsIterableTransformation(
+                    collectPhase,
+                    downstream.requirements().contains(Requirement.REPEAT))));
     }
 
     /**
@@ -148,8 +178,8 @@ public class SystemCollectSource implements CollectSource {
      * @param ident the ident of the table
      * @return a row updater instance for the given table
      */
-    public SysRowUpdater<?> getRowUpdater(TableIdent ident){
-        assert rowUpdaters.containsKey(ident): "RowUpdater for " + ident.fqn() + " must exist";
+    public SysRowUpdater<?> getRowUpdater(TableIdent ident) {
+        assert rowUpdaters.containsKey(ident) : "RowUpdater for " + ident.fqn() + " must exist";
         return rowUpdaters.get(ident);
     }
 }

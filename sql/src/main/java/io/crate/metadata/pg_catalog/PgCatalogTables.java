@@ -24,7 +24,6 @@ package io.crate.metadata.pg_catalog;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.protocols.postgres.types.PGType;
@@ -41,48 +40,28 @@ public class PgCatalogTables {
 
     public static Map<ColumnIdent, RowCollectExpressionFactory> pgTypeExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
-            .put(PgTypeTable.Columns.OID, new RowCollectExpressionFactory() {
+            .put(PgTypeTable.Columns.OID, () -> new RowContextCollectorExpression<PGType, Integer>() {
                 @Override
-                public RowCollectExpression create() {
-                    return new RowContextCollectorExpression<PGType, Integer>() {
-                        @Override
-                        public Integer value() {
-                            return row.oid();
-                        }
-                    };
+                public Integer value() {
+                    return row.oid();
                 }
             })
-            .put(PgTypeTable.Columns.TYPNAME, new RowCollectExpressionFactory() {
+            .put(PgTypeTable.Columns.TYPNAME, () -> new RowContextCollectorExpression<PGType, BytesRef>() {
                 @Override
-                public RowCollectExpression create() {
-                    return new RowContextCollectorExpression<PGType, BytesRef>() {
-                        @Override
-                        public BytesRef value() {
-                            return new BytesRef(row.typName());
-                        }
-                    };
+                public BytesRef value() {
+                    return new BytesRef(row.typName());
                 }
             })
-            .put(PgTypeTable.Columns.TYPDELIM, new RowCollectExpressionFactory() {
+            .put(PgTypeTable.Columns.TYPDELIM, () -> new RowContextCollectorExpression<PGType, BytesRef>() {
                 @Override
-                public RowCollectExpression create() {
-                    return new RowContextCollectorExpression<PGType, BytesRef>() {
-                        @Override
-                        public BytesRef value() {
-                            return new BytesRef(row.typDelim());
-                        }
-                    };
+                public BytesRef value() {
+                    return new BytesRef(row.typDelim());
                 }
             })
-            .put(PgTypeTable.Columns.TYPELEM, new RowCollectExpressionFactory() {
+            .put(PgTypeTable.Columns.TYPELEM, () -> new RowContextCollectorExpression<PGType, Integer>() {
                 @Override
-                public RowCollectExpression create() {
-                    return new RowContextCollectorExpression<PGType, Integer>() {
-                        @Override
-                        public Integer value() {
-                            return row.typElem();
-                        }
-                    };
+                public Integer value() {
+                    return row.typElem();
                 }
             })
             .build();
