@@ -22,7 +22,7 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.operation.collect.stats.JobsLogs;
 
 import java.util.UUID;
@@ -43,7 +43,7 @@ public class JobsLogsUpdateListener implements BiConsumer<Object, Throwable> {
         if (t == null) {
             jobsLogs.logExecutionEnd(jobId, null);
         } else {
-            jobsLogs.logExecutionEnd(jobId, Exceptions.messageOf(t));
+            jobsLogs.logExecutionEnd(jobId, SQLExceptions.messageOf(t));
         }
     }
 }

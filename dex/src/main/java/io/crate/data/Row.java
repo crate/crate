@@ -24,7 +24,6 @@ package io.crate.data;
 
 public interface Row {
 
-
     Row EMPTY = new Row() {
 
         private final Object[] EMPTY_CELLS = new Object[0];

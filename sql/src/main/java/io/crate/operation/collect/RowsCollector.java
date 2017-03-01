@@ -21,54 +21,34 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.collect.ImmutableList;
+import io.crate.data.Columns;
 import io.crate.data.Row;
-import io.crate.operation.projectors.IterableRowEmitter;
+import io.crate.data.RowsBatchIterator;
+import io.crate.data.IterableControlledBatchIterator;
 import io.crate.operation.projectors.RowReceiver;
 
-import javax.annotation.Nullable;
+public final class RowsCollector {
 
-public class RowsCollector implements CrateCollector {
-
-    private final IterableRowEmitter emitter;
-
-    public static RowsCollector empty(RowReceiver rowDownstream) {
-        return new RowsCollector(rowDownstream, ImmutableList.<Row>of());
+    private RowsCollector() {
     }
 
-    public static RowsCollector single(Row row, RowReceiver rowDownstream) {
-        return new RowsCollector(rowDownstream, ImmutableList.of(row));
+    public static CrateCollector empty(RowReceiver rowDownstream) {
+        return new BatchIteratorCollector(IterableControlledBatchIterator.empty(), rowDownstream);
     }
 
-    public RowsCollector(RowReceiver rowDownstream, Iterable<Row> rows) {
-        this.emitter = new IterableRowEmitter(rowDownstream, rows);
+    public static CrateCollector single(Columns inputs, RowReceiver rowDownstream) {
+        return new BatchIteratorCollector(IterableControlledBatchIterator.singleRow(inputs), rowDownstream);
     }
 
-    @Override
-    public void doCollect() {
-        emitter.run();
+    public static CrateCollector forRows(Iterable<Row> rows, int numCols, RowReceiver rowReceiver) {
+        return new BatchIteratorCollector(RowsBatchIterator.newInstance(rows, numCols), rowReceiver);
     }
 
-    @Override
-    public void kill(@Nullable Throwable throwable) {
-        emitter.kill(throwable);
+    static CrateCollector.Builder emptyBuilder() {
+        return RowsCollector::empty;
     }
 
-    public static Builder emptyBuilder() {
-        return new CrateCollector.Builder() {
-            @Override
-            public CrateCollector build(RowReceiver rowReceiver) {
-                return RowsCollector.empty(rowReceiver);
-            }
-        };
-    }
-
-    public static Builder builder(final Iterable<Row> rows) {
-        return new CrateCollector.Builder() {
-            @Override
-            public CrateCollector build(RowReceiver rowReceiver) {
-                return new RowsCollector(rowReceiver, rows);
-            }
-        };
+    public static CrateCollector.Builder builder(final Iterable<Row> rows, int numCols) {
+        return rowReceiver -> forRows(rows, numCols, rowReceiver);
     }
 }

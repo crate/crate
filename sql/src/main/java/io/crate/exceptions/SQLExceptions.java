@@ -51,14 +51,14 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 
-public class Exceptions {
+public class SQLExceptions {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(Exceptions.class);
+    private final static ESLogger LOGGER = Loggers.getLogger(SQLExceptions.class);
     private final static Predicate<Throwable> EXCEPTIONS_TO_UNWRAP = throwable ->
         throwable instanceof TransportException ||
         throwable instanceof UncheckedExecutionException ||
-        throwable instanceof UncategorizedExecutionException ||
         throwable instanceof CompletionException ||
+        throwable instanceof UncategorizedExecutionException ||
         throwable instanceof ExecutionException;
 
     public static Throwable unwrap(@Nonnull Throwable t, @Nullable Predicate<Throwable> additionalUnwrapCondition) {
@@ -100,7 +100,7 @@ public class Exceptions {
     }
 
     public static boolean isShardFailure(Throwable e) {
-        e = Exceptions.unwrap(e);
+        e = SQLExceptions.unwrap(e);
         return e instanceof ShardNotFoundException || e instanceof IllegalIndexShardStateException;
     }
 
@@ -164,7 +164,7 @@ public class Exceptions {
     }
 
     private static Throwable esToCrateException(Throwable e) {
-        e = Exceptions.unwrap(e);
+        e = SQLExceptions.unwrap(e);
 
         if (e instanceof IllegalArgumentException || e instanceof ParsingException) {
             return new SQLParseException(e.getMessage(), (Exception) e);

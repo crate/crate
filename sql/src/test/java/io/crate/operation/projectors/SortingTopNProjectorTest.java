@@ -109,7 +109,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testInvalidNegativeLimit() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid limit -1, this projector only supports positive limits");
+        expectedException.expectMessage("invalid limit -1, this collector only supports positive limits");
 
         new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, -1, 0);
     }
@@ -117,7 +117,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testInvalidZeroLimit() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid limit 0, this projector only supports positive limits");
+        expectedException.expectMessage("invalid limit 0, this collector only supports positive limits");
 
         new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, 0, 0);
     }

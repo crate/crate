@@ -502,12 +502,12 @@ public class ContextPreparer extends AbstractComponent {
                 nodeName(),
                 phase.phaseId(),
                 phase.name(),
-                java.util.Optional.empty(),
                 rowReceiver,
                 PagingIterators.create(phase.numUpstreams(), false, phase.orderByPositions()),
                 DataTypes.getStreamers(phase.inputTypes()),
                 ramAccountingContext,
-                phase.numUpstreams()));
+                phase.numUpstreams()
+            ));
             return true;
         }
 
@@ -632,12 +632,12 @@ public class ContextPreparer extends AbstractComponent {
                 nodeName(),
                 mergePhase.phaseId(),
                 mergePhase.name(),
-                java.util.Optional.of(threadPool.executor(ThreadPool.Names.SEARCH)),
                 downstream,
                 PagingIterators.create(mergePhase.numUpstreams(), true, mergePhase.orderByPositions()),
                 StreamerVisitor.streamersFromOutputs(mergePhase),
                 ramAccountingContext,
-                mergePhase.numUpstreams());
+                mergePhase.numUpstreams()
+            );
         }
     }
 

@@ -164,7 +164,6 @@ public class RemoteCollector implements CrateCollector {
             localNode,
             RECEIVER_PHASE_ID,
             "remoteCollectReceiver",
-            java.util.Optional.empty(),
             rowReceiver,
             pagingIterator,
             DataTypes.getStreamers(collectPhase.outputTypes()),
