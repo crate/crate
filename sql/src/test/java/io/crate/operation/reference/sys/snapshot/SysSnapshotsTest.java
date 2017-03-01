@@ -28,8 +28,6 @@ import io.crate.operation.reference.sys.repositories.SysRepository;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import java.util.Collections;
 
@@ -45,14 +43,9 @@ public class SysSnapshotsTest extends CrateUnitTest {
     public void testErrorsOnRetrievingSnapshotsAreIgnored() throws Exception {
         SysRepositoriesService sysRepos = mock(SysRepositoriesService.class);
 
-        final Iterable<?> objects =
-            Collections.singletonList((Object) new SysRepository("foo", "url", ImmutableMap.<String, Object>of()));
-        when(sysRepos.repositoriesGetter()).then(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                return objects;
-            }
-        });
+        Iterable<?> objects = Collections.singletonList(
+                (Object) new SysRepository("foo", "url", ImmutableMap.of()));
+        when(sysRepos.repositoriesGetter()).then(invocation -> objects);
 
         SnapshotsService snapshotService = mock(SnapshotsService.class);
         when(snapshotService.snapshots(anyString(), anyBoolean())).thenThrow(new IllegalStateException("dummy"));

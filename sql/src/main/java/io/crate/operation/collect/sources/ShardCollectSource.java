@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect.sources;
 
+import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
@@ -74,6 +75,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
@@ -435,7 +437,8 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         if (!unassignedShards.isEmpty()) {
             // since unassigned shards aren't really on any node we use the collectPhase which is NOT normalized here
             // because otherwise if _node was also selected it would contain something which is wrong
-            for (Row row : systemCollectSource.toRowsIterable(collectPhase, unassignedShards, false)) {
+            for (Row row :
+                systemCollectSource.toRowsIterableTransformation(collectPhase, false).apply(unassignedShards)) {
                 rows.add(row.materialize());
             }
         }
@@ -445,7 +448,10 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
         return new RowsCollector(
             rowReceiver,
-            Iterables.transform(rows, Buckets.arrayToRowFunction()));
+            () -> CompletableFuture.completedFuture(rows),
+            objects -> Iterables.transform(
+                objects,
+                (Function<Object[], Row>) input -> Buckets.arrayToRowFunction().apply(input)));
     }
 
     private UnassignedShard toUnassignedShard(ShardId shardId) {

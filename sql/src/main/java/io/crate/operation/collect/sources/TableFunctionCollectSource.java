@@ -26,12 +26,12 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.data.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.*;
 import io.crate.operation.projectors.InputCondition;
@@ -94,7 +94,6 @@ public class TableFunctionCollectSource implements CollectSource {
         if (orderBy != null) {
             rows = RowsTransformer.sortRows(Iterables.transform(rows, Row::materialize), phase);
         }
-        RowsCollector rowsCollector = new RowsCollector(downstream, rows);
-        return Collections.singletonList(rowsCollector);
+        return Collections.singletonList(RowsCollector.builder(rows).build(downstream));
     }
 }

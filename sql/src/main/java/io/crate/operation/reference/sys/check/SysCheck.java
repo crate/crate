@@ -26,6 +26,7 @@ package io.crate.operation.reference.sys.check;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.concurrent.ThreadSafe;
+import java.util.concurrent.CompletableFuture;
 
 @ThreadSafe
 public interface SysCheck {
@@ -67,4 +68,10 @@ public interface SysCheck {
      * @return true if validation is passed.
      */
     boolean validate();
+
+    /**
+     * Start the checks in an async manner and returns a future
+     * which the caller can use as a callback.
+     */
+    CompletableFuture<?> computeResult();
 }

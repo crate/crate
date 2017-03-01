@@ -27,14 +27,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.projection.Projection;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
@@ -42,7 +40,10 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -61,17 +62,20 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             UUID.randomUUID(),
             1,
             "collect",
-            new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()),
+            new Routing(ImmutableMap.of()),
             RowGranularity.SHARD,
-            Collections.<Symbol>singletonList(shardId),
-            ImmutableList.<Projection>of(),
+            Collections.singletonList(shardId),
+            ImmutableList.of(),
             WhereClause.MATCH_ALL,
             DistributionInfo.DEFAULT_BROADCAST
         );
-        collectPhase.orderBy(new OrderBy(Collections.<Symbol>singletonList(shardId), new boolean[]{false}, new Boolean[]{null}));
-        Iterable<Row> rows = systemCollectSource.toRowsIterable(collectPhase, Collections.singletonList(
-            new UnassignedShard(new ShardId("foo", 1), mock(ClusterService.class), true, ShardRoutingState.UNASSIGNED)),
-            false);
+        collectPhase.orderBy(new OrderBy(Collections.singletonList(shardId), new boolean[]{false}, new Boolean[]{null}));
+        Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(collectPhase, false)
+            .apply(Collections.singletonList(new UnassignedShard(
+                new ShardId("foo", 1),
+                mock(ClusterService.class),
+                true,
+                ShardRoutingState.UNASSIGNED)));
         Row next = rows.iterator().next();
         assertThat(next.numColumns(), is(1));
     }
@@ -83,10 +87,10 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             UUID.randomUUID(),
             1,
             "collect",
-            new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()),
+            new Routing(ImmutableMap.of()),
             RowGranularity.SHARD,
-            ImmutableList.<Symbol>of(),
-            ImmutableList.<Projection>of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
             WhereClause.MATCH_ALL,
             DistributionInfo.DEFAULT_BROADCAST);
 
@@ -95,7 +99,8 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
         noReadIsolationIterable.add("a");
         noReadIsolationIterable.add("b");
 
-        Iterable<Row> rows = systemCollectSource.toRowsIterable(collectPhase, noReadIsolationIterable, false);
+        Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(collectPhase, false)
+            .apply(noReadIsolationIterable);
         assertThat(Iterables.size(rows), is(2));
 
         noReadIsolationIterable.add("c");
@@ -106,7 +111,8 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
         readIsolationIterable.add("a");
         readIsolationIterable.add("b");
 
-        rows = systemCollectSource.toRowsIterable(collectPhase, readIsolationIterable, true);
+        rows = systemCollectSource.toRowsIterableTransformation(collectPhase, true)
+            .apply(readIsolationIterable);
         assertThat(Iterables.size(rows), is(2));
 
         readIsolationIterable.add("c");

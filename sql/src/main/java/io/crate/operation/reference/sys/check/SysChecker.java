@@ -23,8 +23,11 @@ package io.crate.operation.reference.sys.check;
 
 import org.elasticsearch.common.inject.Singleton;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class SysChecker<T extends SysCheck> {
@@ -36,15 +39,12 @@ public class SysChecker<T extends SysCheck> {
         this.sysChecks = sysChecks;
     }
 
-    private void check() {
+    public CompletableFuture<Iterable<T>> checksGetter() {
+        List<CompletableFuture<?>> futures = new ArrayList<>(sysChecks.size());
         for (SysCheck sysCheck : sysChecks) {
-            sysCheck.validate();
+            futures.add(sysCheck.computeResult());
         }
-    }
-
-    public Iterable<T> checksGetter() {
-        check();
-        return sysChecks;
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[]{})).thenApply(aVoid -> sysChecks);
     }
 
     private boolean idsAreUnique(Set<T> sysChecks) {

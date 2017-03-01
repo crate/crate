@@ -24,6 +24,8 @@ package io.crate.operation.reference.sys.check;
 
 import org.apache.lucene.util.BytesRef;
 
+import java.util.concurrent.CompletableFuture;
+
 public abstract class AbstractSysCheck implements SysCheck {
 
     private static final String LINK_PATTERN = "https://cr8.is/d-cluster-check-";
@@ -58,4 +60,9 @@ public abstract class AbstractSysCheck implements SysCheck {
     }
 
     public abstract boolean validate();
+
+    @Override
+    public CompletableFuture<?> computeResult() {
+        return CompletableFuture.completedFuture(null);
+    }
 }
