@@ -24,40 +24,64 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.sql.tree;
+package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.internal.Nullable;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Streamable;
 
-import java.util.List;
+import java.io.IOException;
 import java.util.Objects;
 
-public class DropFunction extends Statement {
+public class FunctionArgumentDefinition implements Streamable {
 
-    private final QualifiedName name;
-    private final boolean ifExists;
-    private final List<ColumnType> argumentTypes;
+    private String name;
+    private DataType type;
 
-    public DropFunction(QualifiedName name, boolean exists, List<ColumnType> argumentTypes) {
+    private FunctionArgumentDefinition(@Nullable String name, DataType dataType) {
         this.name = name;
-        this.ifExists = exists;
-        this.argumentTypes = argumentTypes;
+        this.type = dataType;
     }
 
-    public QualifiedName name() {
-        return name;
+    private FunctionArgumentDefinition() {
     }
 
-    public boolean ifExists() {
-        return ifExists;
+    public static FunctionArgumentDefinition of(String name, DataType dataType) {
+        return new FunctionArgumentDefinition(name, dataType);
     }
 
-    public List<ColumnType> arguments() {
-        return argumentTypes;
+    public static FunctionArgumentDefinition of(DataType dataType) {
+        return new FunctionArgumentDefinition(null, dataType);
+    }
+
+    public static FunctionArgumentDefinition fromStream(StreamInput in) throws IOException {
+        FunctionArgumentDefinition argumentDefinition = new FunctionArgumentDefinition();
+        argumentDefinition.readFrom(in);
+        return argumentDefinition;
+    }
+
+    public void name(String name) {
+        this.name = name;
+    }
+
+    public void type(DataType type) {
+        this.type = type;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitDropFunction(this, context);
+    public void readFrom(StreamInput in) throws IOException {
+        name = in.readOptionalString();
+        type = DataTypes.fromStream(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeOptionalString(name);
+        DataTypes.toStream(type, out);
     }
 
     @Override
@@ -65,22 +89,20 @@ public class DropFunction extends Statement {
         if (this == o) return true;
         if (getClass() != o.getClass()) return false;
 
-        final DropFunction that = (DropFunction) o;
+        final FunctionArgumentDefinition that = (FunctionArgumentDefinition) o;
         return Objects.equals(this.name, that.name)
-            && Objects.equals(this.ifExists, that.ifExists)
-            && Objects.equals(this.argumentTypes, that.argumentTypes);
+            && Objects.equals(this.type, that.type);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, ifExists, argumentTypes);
+        return Objects.hash(name, type);
     }
 
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("name", name)
-            .add("ifExists", ifExists)
-            .add("arguments", argumentTypes).toString();
+            .add("type", type).toString();
     }
 }
