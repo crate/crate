@@ -167,13 +167,4 @@ public class CompositeBatchIterator implements BatchIterator {
         }
     }
 
-    private static class ProxyInput implements Input {
-
-        Input<?> input;
-
-        @Override
-        public Object value() {
-            return input.value();
-        }
-    }
 }
