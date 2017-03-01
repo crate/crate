@@ -27,6 +27,7 @@ import io.crate.action.job.JobRequest;
 import io.crate.action.job.JobResponse;
 import io.crate.action.job.TransportJobAction;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Killable;
 import io.crate.data.Row;
 import io.crate.executor.transport.kill.KillJobsRequest;
@@ -38,9 +39,6 @@ import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.merge.PassThroughPagingIterator;
-import io.crate.operation.projectors.BatchConsumerToRowReceiver;
-import io.crate.operation.projectors.Requirement;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
@@ -63,7 +61,7 @@ public class RemoteCollector implements CrateCollector {
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final JobContextService jobContextService;
     private final RamAccountingContext ramAccountingContext;
-    private final BatchConsumerToRowReceiver consumer;
+    private final BatchConsumer consumer;
     private final RoutedCollectPhase collectPhase;
 
     private final Object killLock = new Object();
@@ -79,19 +77,20 @@ public class RemoteCollector implements CrateCollector {
                            TransportKillJobsNodeAction transportKillJobsNodeAction,
                            JobContextService jobContextService,
                            RamAccountingContext ramAccountingContext,
-                           RowReceiver rowReceiver,
+                           BatchConsumer consumer,
+                           Killable killable,
                            RoutedCollectPhase collectPhase) {
         this.jobId = jobId;
         this.localNode = localNode;
         this.remoteNode = remoteNode;
 
-        this.scrollRequired = rowReceiver.requirements().contains(Requirement.REPEAT);
+        this.scrollRequired = consumer.requiresScroll();
         this.transportJobAction = transportJobAction;
         this.transportKillJobsNodeAction = transportKillJobsNodeAction;
         this.jobContextService = jobContextService;
         this.ramAccountingContext = ramAccountingContext;
-        this.consumer = new BatchConsumerToRowReceiver(rowReceiver);
-        this.killable = rowReceiver;
+        this.consumer = consumer;
+        this.killable = killable;
         this.collectPhase = collectPhase;
     }
 

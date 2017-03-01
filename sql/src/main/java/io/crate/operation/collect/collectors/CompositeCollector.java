@@ -22,19 +22,16 @@
 
 package io.crate.operation.collect.collectors;
 
-import io.crate.data.Row;
+import io.crate.data.BatchConsumer;
+import io.crate.data.BatchIterator;
+import io.crate.data.CompositeBatchIterator;
+import io.crate.data.Killable;
 import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.Requirement;
-import io.crate.operation.projectors.ResumeHandle;
-import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -79,109 +76,58 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class CompositeCollector implements CrateCollector {
 
     private final List<CrateCollector> collectors;
-    private final Receiver receiver;
-    private final RowReceiver downstream;
-    private boolean isDownstreamFinished = false;
 
-    public CompositeCollector(Collection<? extends Builder> builders, RowReceiver rowReceiver) {
+    public CompositeCollector(Collection<? extends Builder> builders, BatchConsumer finalConsumer, Killable killable) {
         assert builders.size() > 1 : "CompositeCollector must not be called with less than 2 collectors";
-        receiver = new Receiver(builders.size());
+
         collectors = new ArrayList<>(builders.size());
-        downstream = rowReceiver;
+        MultiConsumer multiConsumer = new MultiConsumer(builders.size(), finalConsumer);
         for (Builder builder : builders) {
-            collectors.add(builder.build(receiver));
+            collectors.add(builder.build(multiConsumer, killable));
         }
     }
 
     @Override
     public void doCollect() {
-        collectors.get(0).doCollect();
+        for (CrateCollector collector : collectors) {
+            collector.doCollect();
+        }
     }
 
     @Override
     public void kill(@Nullable Throwable throwable) {
-        receiver.killFromParent(throwable);
+        for (CrateCollector collector : collectors) {
+            collector.kill(throwable);
+        }
     }
 
-    private class Receiver implements RowReceiver, RepeatHandle {
+    static class MultiConsumer implements BatchConsumer {
 
-        private final AtomicInteger numFinishCalls = new AtomicInteger(0);
-        private final RepeatHandle[] repeatHandles;
+        private final BatchConsumer consumer;
+        private final BatchIterator[] iterators;
 
-        private Receiver(int size) {
-            repeatHandles = new RepeatHandle[size];
+        private AtomicInteger remainingAccepts;
+        private Throwable lastFailure;
+
+        MultiConsumer(int numAccepts, BatchConsumer consumer) {
+            this.remainingAccepts = new AtomicInteger(numAccepts);
+            this.iterators = new BatchIterator[numAccepts];
+            this.consumer = consumer;
         }
 
         @Override
-        public CompletableFuture<?> completionFuture() {
-            return downstream.completionFuture();
-        }
-
-        @Override
-        public Result setNextRow(Row row) {
-            Result result = downstream.setNextRow(row);
-            if (result == Result.STOP) {
-                isDownstreamFinished = true;
+        public void accept(BatchIterator iterator, @Nullable Throwable failure) {
+            int remaining = remainingAccepts.decrementAndGet();
+            if (failure != null) {
+                lastFailure = failure;
             }
-            return result;
-        }
-
-        @Override
-        public void pauseProcessed(ResumeHandle resumeable) {
-            downstream.pauseProcessed(resumeable);
-        }
-
-        public void repeat() {
-            int calls = numFinishCalls.get();
-            if (calls == -1) return;
-            assert calls % collectors.size() == 0 : "Repeat called without all upstreams being finished";
-            repeatHandles[0].repeat();
-        }
-
-        @Override
-        public void finish(RepeatHandle repeatable) {
-            int calls = numFinishCalls.incrementAndGet();
-            if (calls == 0) {
-                // numFinishedCalls was -1 so killed
-                numFinishCalls.set(-1);
-                return;
+            synchronized (iterators) {
+                iterators[remaining] = iterator;
             }
-            repeatHandles[(calls - 1) % repeatHandles.length] = repeatable;
-            if (!isDownstreamFinished && calls < repeatHandles.length) {
-                // in first collect loop
-                collectors.get(calls).doCollect();
-            } else if (isDownstreamFinished || calls % repeatHandles.length == 0) {
-                // a loop over upstreams is finished or downstream returned Result.STOP
-                downstream.finish(this);
-            } else {
-                // in a repeat loop
-                repeatHandles[calls % repeatHandles.length].repeat();
+            if (remaining == 0) {
+                CompositeBatchIterator compositeBatchIterator = new CompositeBatchIterator(iterators);
+                consumer.accept(compositeBatchIterator, lastFailure);
             }
-        }
-
-        @Override
-        public void fail(Throwable throwable) {
-            downstream.fail(throwable);
-        }
-
-        private void killFromParent(Throwable throwable) {
-            int calls = numFinishCalls.getAndSet(-1);
-            if (calls >= 0) {
-                collectors.get(calls % repeatHandles.length).kill(throwable);
-            }
-            downstream.kill(throwable);
-        }
-
-        @Override
-        public void kill(Throwable throwable) {
-            if (numFinishCalls.get() != -1) {
-                downstream.kill(throwable);
-            }
-        }
-
-        @Override
-        public Set<Requirement> requirements() {
-            return downstream.requirements();
         }
     }
 }
