@@ -23,10 +23,11 @@
 package io.crate.operation.collect.collectors;
 
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Input;
+import io.crate.data.Killable;
 import io.crate.operation.collect.BatchIteratorCollectorBridge;
 import io.crate.operation.collect.CrateCollector;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.search.IndexSearcher;
@@ -65,7 +66,7 @@ public class CrateDocCollectorBuilder implements CrateCollector.Builder {
     }
 
     @Override
-    public CrateCollector build(RowReceiver rowReceiver) {
+    public CrateCollector build(BatchConsumer consumer, Killable killable) {
         LuceneBatchIterator batchIterator = new LuceneBatchIterator(
             indexSearcher,
             query,
@@ -76,6 +77,6 @@ public class CrateDocCollectorBuilder implements CrateCollector.Builder {
             inputs,
             expressions
         );
-        return BatchIteratorCollectorBridge.newInstance(batchIterator, rowReceiver);
+        return BatchIteratorCollectorBridge.newInstance(batchIterator, consumer, killable);
     }
 }
