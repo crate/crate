@@ -24,17 +24,15 @@ package io.crate.operation.projectors;
 
 import io.crate.data.*;
 import io.crate.exceptions.SQLExceptions;
-import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.Objects;
-import java.util.function.Function;
 
 /**
  * BatchConsumer which consumes a BatchIterator, feeding the data into a {@link RowReceiver}.
  *
- * If the {@link RowReceiver} is a {@link Projector} it will try to apply BatchIteration projections using
- * {@link Projector#batchIteratorProjection()}.
+ * If the {@link RowReceiver} is a {@link Projector} it will try to use {@link BatchIteratorProjector} implementations
+ * by using {@link Projector#asProjector()}}.
  *
  * In case {@link RowReceiver#asConsumer()} returns a consumer this consumer will be used instead of the rowReceiver,
  * thus this BatchConsumer effectively becomes a proxy.
@@ -52,13 +50,13 @@ public class BatchConsumerToRowReceiver implements BatchConsumer, Killable {
     private BatchIterator applyProjections(BatchIterator iterator) {
         RowReceiver receiver = rowReceiver;
         while (receiver instanceof Projector) {
-            Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> projection = ((Projector) receiver).batchIteratorProjection();
-            if (projection == null) {
+            Projector projector = (Projector) receiver;
+            BatchIteratorProjector bip = projector.asProjector();
+            if (bip == null) {
                 break;
             }
-            Tuple<BatchIterator, RowReceiver> tuple = projection.apply(iterator);
-            iterator = tuple.v1();
-            receiver = tuple.v2();
+            receiver =  projector.downstream();
+            iterator = bip.apply(iterator);
         }
         rowReceiver = receiver;
         return iterator;
