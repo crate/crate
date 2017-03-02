@@ -24,11 +24,8 @@ package io.crate.operation.projectors;
 import com.google.common.base.Preconditions;
 import io.crate.data.*;
 import io.crate.operation.collect.CollectExpression;
-import org.elasticsearch.common.collect.Tuple;
 
-import javax.annotation.Nullable;
 import java.util.*;
-import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -106,14 +103,13 @@ class SortingProjector extends AbstractProjector {
         return requirements;
     }
 
-    @Nullable
     @Override
-    public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
+    public BatchIteratorProjector asProjector() {
         return bi -> {
             Collector<Row, ?, Bucket> collector = Collectors.mapping(
                 this::getCells,
                 Collectors.collectingAndThen(Collectors.toList(), this::sortAndCreateBucket));
-            return new Tuple<>(CollectingBatchIterator.newInstance(bi, collector, numOutputs), downstream);
+            return CollectingBatchIterator.newInstance(bi, collector, numOutputs);
         };
     }
 

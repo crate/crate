@@ -25,16 +25,15 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.BatchIterator;
+import io.crate.data.BatchIteratorProjector;
 import io.crate.data.CollectingBatchIterator;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.operation.AggregationContext;
-import io.crate.data.Input;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -157,9 +156,8 @@ public class GroupingProjector extends AbstractProjector {
         return requirements;
     }
 
-    @Nullable
     @Override
-    public java.util.function.Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
-        return bi -> new Tuple<>(CollectingBatchIterator.newInstance(bi, collector, numCols), downstream);
+    public BatchIteratorProjector asProjector() {
+        return bi -> CollectingBatchIterator.newInstance(bi, collector, numCols);
     }
 }

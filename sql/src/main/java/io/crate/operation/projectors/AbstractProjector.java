@@ -43,6 +43,11 @@ public abstract class AbstractProjector implements Projector {
     }
 
     @Override
+    public RowReceiver downstream() {
+        return downstream;
+    }
+
+    @Override
     public CompletableFuture<?> completionFuture() {
         return downstream.completionFuture();
     }
