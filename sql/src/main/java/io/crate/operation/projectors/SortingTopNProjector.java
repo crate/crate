@@ -21,20 +21,18 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.data.BatchIterator;
+import io.crate.data.BatchIteratorProjector;
 import io.crate.data.CollectingBatchIterator;
-import io.crate.data.Row;
 import io.crate.data.Input;
+import io.crate.data.Row;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.sorting.RowPriorityQueue;
-import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 public class SortingTopNProjector extends AbstractProjector {
 
@@ -107,7 +105,7 @@ public class SortingTopNProjector extends AbstractProjector {
 
     @Nullable
     @Override
-    public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
-        return bi -> new Tuple<>(CollectingBatchIterator.newInstance(bi, collector, collector.numOutputs()), downstream);
+    public BatchIteratorProjector asProjector() {
+        return bi -> CollectingBatchIterator.newInstance(bi, collector, collector.numOutputs());
     }
 }
