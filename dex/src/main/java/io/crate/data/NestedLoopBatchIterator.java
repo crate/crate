@@ -38,6 +38,12 @@ public class NestedLoopBatchIterator implements BatchIterator {
      */
     BatchIterator activeIt;
 
+    public static BatchIterator fullOuterJoin(BatchIterator left,
+                                              BatchIterator right,
+                                              Function<Columns, BooleanSupplier> joinCondition) {
+        return new FullOuterJoinBatchIterator(left, right, joinCondition);
+    }
+
     public static BatchIterator crossJoin(BatchIterator left, BatchIterator right) {
         return new NestedLoopBatchIterator(left, right);
     }
@@ -372,6 +378,129 @@ public class NestedLoopBatchIterator implements BatchIterator {
             }
             position = -1;
             right.moveToStart();
+            return null;
+        }
+
+        private boolean moveRightPostNL() {
+            while (right.moveNext()) {
+                position++;
+                if (matchedRows.get(position) == false) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+
+    /**
+     * Combination of left + right join:
+     *
+     * <pre>
+     *     for (leftRow in left) {
+     *         for (rightRow in right) {
+     *             match?
+     *               onRow
+     *         }
+     *         if (noMatches) {
+     *             onRow (right-side-null)
+     *         }
+     *     }
+     *
+     *     for (rightRow in right) {
+     *         if (noMatches) {
+     *              onRow (left-side-null)
+     *         }
+     *     }
+     * </pre>
+     */
+    private static class FullOuterJoinBatchIterator extends NestedLoopBatchIterator {
+
+        private final BitSet matchedRows = new BitSet();
+        private final BooleanSupplier joinCondition;
+
+        private boolean postNL = false;
+        private boolean hadMatch = false;
+        private int position = -1;
+
+        FullOuterJoinBatchIterator(BatchIterator left, BatchIterator right, Function<Columns, BooleanSupplier> joinCondition) {
+            super(left, right);
+            this.joinCondition = joinCondition.apply(rowData());
+        }
+
+        @Override
+        public void moveToStart() {
+            postNL = false;
+            hadMatch = false;
+            position = -1;
+            activeIt = left;
+            rowData.resetRight();
+            rowData.resetLeft();
+            super.moveToStart();
+        }
+
+        @Override
+        public boolean moveNext() {
+            if (postNL) {
+                return moveRightPostNL();
+            }
+            while (true) {
+                rowData.resetRight();
+                if (activeIt == left) {
+                    return moveLeft();
+                }
+                Boolean x = tryAdvanceRight();
+                if (x != null) {
+                    return x;
+                }
+                activeIt = left;
+            }
+        }
+
+        private boolean moveLeft() {
+            while (left.moveNext()) {
+                activeIt = right;
+                Boolean x = tryAdvanceRight();
+                if (x != null) {
+                    return x;
+                }
+            }
+            activeIt = left;
+            postNL = left.allLoaded();
+            if (postNL) {
+                position = -1;
+                activeIt = right;
+                rowData.nullLeft();
+                return moveRightPostNL();
+            }
+            return false;
+        }
+
+        /**
+         * @return true  -> right moved
+         *         false -> need to load more data
+         *         null  -> reached its end, need to continue on left
+         */
+        private Boolean tryAdvanceRight() {
+            while (right.moveNext()) {
+                position++;
+                if (joinCondition.getAsBoolean()) {
+                    hadMatch = true;
+                    matchedRows.set(position);
+                    return true;
+                }
+            }
+            if (right.allLoaded() == false) {
+                return false;
+            }
+            position = -1;
+            right.moveToStart();
+            if (hadMatch == false) {
+                rowData.nullRight();
+                activeIt = left;
+                return true;
+            }
+            hadMatch = false;
             return null;
         }
 
