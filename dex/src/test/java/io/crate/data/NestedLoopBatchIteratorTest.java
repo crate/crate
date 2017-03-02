@@ -31,7 +31,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -44,6 +43,7 @@ public class NestedLoopBatchIteratorTest {
     private ArrayList<Object[]> threeXThreeRows;
     private ArrayList<Object[]> leftJoinResult;
     private ArrayList<Object[]> rightJoinResult;
+    private ArrayList<Object[]> fullJoinResult;
 
     private Function<Columns, BooleanSupplier> getCol0EqCol1JoinCondition() {
         return columns -> new BooleanSupplier() {
@@ -68,37 +68,25 @@ public class NestedLoopBatchIteratorTest {
         }
 
         leftJoinResult = new ArrayList<>();
-        for (int i = 0; i < 4; i++) {
-            boolean matched = false;
-            for (int j = 2; j < 6 ; j++) {
-                if (Integer.compare(i, j) == 0) {
-                    matched = true;
-                    leftJoinResult.add(new Object[] { i, j });
-                }
-            }
-            if (!matched) {
-                leftJoinResult.add(new Object[] { i, null });
-            }
-        }
+        leftJoinResult.add(new Object[] { 0, null });
+        leftJoinResult.add(new Object[] { 1, null });
+        leftJoinResult.add(new Object[] { 2, 2, });
+        leftJoinResult.add(new Object[] { 3, 3, });
+
         rightJoinResult = new ArrayList<>();
-        BitSet matches = new BitSet();
-        for (int i = 0; i < 4; i++) {
-            int position = -1;
-            for (int j = 2; j < 6 ; j++) {
-                position++;
-                if (Integer.compare(i, j) == 0) {
-                    matches.set(position);
-                    rightJoinResult.add(new Object[] { i, j });
-                }
-            }
-        }
-        int position = -1;
-        for (int i = 2; i < 6; i++) {
-            position++;
-            if (matches.get(position) == false) {
-                rightJoinResult.add(new Object[] { null, i });
-            }
-        }
+        rightJoinResult.add(new Object[] { 2, 2, });
+        rightJoinResult.add(new Object[] { 3, 3, });
+        rightJoinResult.add(new Object[] { null, 4 });
+        rightJoinResult.add(new Object[] { null, 5 });
+
+
+        fullJoinResult = new ArrayList<>();
+        fullJoinResult.add(new Object[] { 0, null });
+        fullJoinResult.add(new Object[] { 1, null });
+        fullJoinResult.add(new Object[] { 2, 2, });
+        fullJoinResult.add(new Object[] { 3, 3, });
+        fullJoinResult.add(new Object[] { null, 4 });
+        fullJoinResult.add(new Object[] { null, 5 });
     }
 
     @Test
@@ -200,6 +188,28 @@ public class NestedLoopBatchIteratorTest {
             getCol0EqCol1JoinCondition()
         );
         BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier, rightJoinResult);
+        tester.run();
+    }
+
+    @Test
+    public void testFullOuterJoin() throws Exception {
+        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.fullOuterJoin(
+            TestingBatchIterators.range(0, 4),
+            TestingBatchIterators.range(2, 6),
+            getCol0EqCol1JoinCondition()
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier, fullJoinResult);
+        tester.run();
+    }
+
+    @Test
+    public void testFullOuterJoinBatchedSource() throws Exception {
+        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.fullOuterJoin(
+            new BatchSimulatingIterator(TestingBatchIterators.range(0, 4), 2, 2, null),
+            new BatchSimulatingIterator(TestingBatchIterators.range(2, 6), 2, 2, null),
+            getCol0EqCol1JoinCondition()
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier, fullJoinResult);
         tester.run();
     }
 }
