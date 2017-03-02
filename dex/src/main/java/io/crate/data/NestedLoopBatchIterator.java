@@ -22,6 +22,7 @@
 
 package io.crate.data;
 
+import java.util.BitSet;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -32,6 +33,9 @@ public class NestedLoopBatchIterator implements BatchIterator {
     final BatchIterator left;
     final BatchIterator right;
 
+    /**
+     * points to the batchIterator which will be used on the next {@link #moveNext()} call
+     */
     BatchIterator activeIt;
 
     public static BatchIterator crossJoin(BatchIterator left, BatchIterator right) {
@@ -42,6 +46,12 @@ public class NestedLoopBatchIterator implements BatchIterator {
                                          BatchIterator right,
                                          Function<Columns, BooleanSupplier> joinCondition) {
         return new LeftJoinBatchIterator(left, right, joinCondition);
+    }
+
+    public static BatchIterator rightJoin(BatchIterator left,
+                                          BatchIterator right,
+                                          Function<Columns, BooleanSupplier> joinCondition) {
+        return new RightJoinBatchIterator(left, right, joinCondition);
     }
 
     NestedLoopBatchIterator(BatchIterator left, BatchIterator right) {
@@ -162,6 +172,18 @@ public class NestedLoopBatchIterator implements BatchIterator {
                 inputs[i].input = right.get(i - left.size());
             }
         }
+
+        void nullLeft() {
+            for (int i = 0; i < left.size(); i++) {
+                inputs[i].input = NULL_INPUT;
+            }
+        }
+
+        void resetLeft() {
+            for (int i = 0; i < left.size(); i++) {
+                inputs[i].input = left.get(i);
+            }
+        }
     }
 
     /**
@@ -251,6 +273,116 @@ public class NestedLoopBatchIterator implements BatchIterator {
             }
             hadMatch = false;
             return null;
+        }
+    }
+
+    /**
+     * Nested Loop + additional loop afterwards to emit any rows that had no matches
+     *
+     * <pre>
+     *     for (leftRow in left) {
+     *         for (rightRow in right) {
+     *             if matched {
+     *                 markPosition(pos)
+     *                 onRow
+     *             }
+     *         }
+     *     }
+     *
+     *     for (rightRow in right) {
+     *         if (noMatch(position)) {
+     *             onRow (left-side-null)
+     *         }
+     *     }
+     * </pre>
+     */
+    private static class RightJoinBatchIterator extends NestedLoopBatchIterator {
+
+        private final BitSet matchedRows = new BitSet();
+        private final BooleanSupplier joinCondition;
+
+        private boolean postNL = false;
+        private int position = -1;
+
+        RightJoinBatchIterator(BatchIterator left, BatchIterator right, Function<Columns, BooleanSupplier> joinCondition) {
+            super(left, right);
+            this.joinCondition = joinCondition.apply(rowData());
+        }
+
+        @Override
+        public void moveToStart() {
+            super.moveToStart();
+            rowData.resetLeft();
+            activeIt = left;
+            postNL = false;
+            position = -1;
+        }
+
+        @Override
+        public boolean moveNext() {
+            if (postNL) {
+                return moveRightPostNL();
+            }
+            while (true) {
+                if (activeIt == left) {
+                    return moveLeft();
+                }
+                Boolean x = tryAdvanceRight();
+                if (x != null) {
+                    return x;
+                }
+                activeIt = left;
+            }
+        }
+
+        private boolean moveLeft() {
+            while (left.moveNext()) {
+                activeIt = right;
+                Boolean x = tryAdvanceRight();
+                if (x != null) {
+                    return x;
+                }
+            }
+            activeIt = left;
+            postNL = left.allLoaded();
+            if (postNL) {
+                position = -1;
+                activeIt = right;
+                rowData.nullLeft();
+                return moveRightPostNL();
+            }
+            return false;
+        }
+
+        /**
+         * @return true  -> right moved
+         *         false -> need to load more data
+         *         null  -> reached its end, need to continue on left
+         */
+        private Boolean tryAdvanceRight() {
+            while (right.moveNext()) {
+                position++;
+                if (joinCondition.getAsBoolean()) {
+                    matchedRows.set(position);
+                    return true;
+                }
+            }
+            if (right.allLoaded() == false) {
+                return false;
+            }
+            position = -1;
+            right.moveToStart();
+            return null;
+        }
+
+        private boolean moveRightPostNL() {
+            while (right.moveNext()) {
+                position++;
+                if (matchedRows.get(position) == false) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 }
