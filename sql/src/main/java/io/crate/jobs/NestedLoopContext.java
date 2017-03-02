@@ -21,8 +21,8 @@
 
 package io.crate.jobs;
 
-import io.crate.operation.join.NestedLoopOperation;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.concurrent.CompletionListenable;
+import io.crate.data.Killable;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import org.elasticsearch.common.logging.ESLogger;
 
@@ -32,28 +32,27 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
 
     private final NestedLoopPhase nestedLoopPhase;
 
+    private final Killable killable;
     @Nullable
     private final PageBucketReceiver leftBucketReceiver;
+
     @Nullable
     private final PageBucketReceiver rightBucketReceiver;
-    private final RowReceiver leftRowReceiver;
-    private final RowReceiver rightRowReceiver;
 
     public NestedLoopContext(ESLogger logger,
                              NestedLoopPhase nestedLoopPhase,
-                             NestedLoopOperation nestedLoopOperation,
+                             CompletionListenable completionListenable,
+                             Killable killable,
                              @Nullable PageBucketReceiver leftBucketReceiver,
                              @Nullable PageBucketReceiver rightBucketReceiver) {
         super(nestedLoopPhase.phaseId(), logger);
 
         this.nestedLoopPhase = nestedLoopPhase;
+        this.killable = killable;
         this.leftBucketReceiver = leftBucketReceiver;
         this.rightBucketReceiver = rightBucketReceiver;
 
-        leftRowReceiver = nestedLoopOperation.leftRowReceiver();
-        rightRowReceiver = nestedLoopOperation.rightRowReceiver();
-
-        nestedLoopOperation.completionFuture().whenComplete((Object result, Throwable t) -> {
+        completionListenable.completionFuture().whenComplete((Object result, Throwable t) -> {
             if (t == null) {
                 future.close(null);
             } else {
@@ -68,32 +67,12 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
     }
 
     @Override
-    public int id() {
-        return nestedLoopPhase.phaseId();
-    }
-
-    @Override
     protected void innerClose(@Nullable Throwable t) {
-        closeReceiver(t, leftBucketReceiver, leftRowReceiver);
-        closeReceiver(t, rightBucketReceiver, rightRowReceiver);
-    }
-
-    private static void closeReceiver(@Nullable Throwable t, @Nullable PageBucketReceiver subContext, RowReceiver rowReceiver) {
-        if (subContext == null && t != null) {
-            rowReceiver.fail(t);
-        }
     }
 
     @Override
     protected void innerKill(@Nullable Throwable t) {
-        killReceiver(t, leftBucketReceiver, leftRowReceiver);
-        killReceiver(t, rightBucketReceiver, rightRowReceiver);
-    }
-
-    private static void killReceiver(Throwable t, @Nullable PageBucketReceiver subContext, RowReceiver rowReceiver) {
-        if (subContext == null) {
-            rowReceiver.kill(t);
-        }
+        killable.kill(t);
     }
 
     @Override
