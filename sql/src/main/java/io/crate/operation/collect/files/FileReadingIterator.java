@@ -26,9 +26,11 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import io.crate.concurrent.CompletableFutures;
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.CloseAssertingBatchIterator;
+import io.crate.data.Columns;
+import io.crate.data.Input;
 import io.crate.operation.reference.file.LineContext;
-import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
@@ -212,7 +214,11 @@ public class FileReadingIterator implements BatchIterator {
 
     private void closeCurrentReader() {
         if (currentReader != null) {
-            IOUtils.closeWhileHandlingException(currentReader);
+            try {
+                currentReader.close();
+            } catch (IOException e) {
+                LOGGER.error("Unable to close reader for {}", e, currentUri);
+            }
             currentReader = null;
         }
     }
