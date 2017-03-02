@@ -20,37 +20,15 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.data;
 
-import io.crate.data.BatchIteratorProjector;
-import io.crate.data.CollectingBatchIterator;
-import io.crate.data.Row;
-import io.crate.data.Row1;
+import java.util.function.UnaryOperator;
 
-public class MergeCountProjector extends AbstractProjector {
 
-    private long sum;
+/**
+ * Projects a given upstream {@link BatchIterator} object and returns a batch iterator which follows the semantics of
+ * the underlying projection.
+ */
+public interface BatchIteratorProjector extends UnaryOperator<BatchIterator> {
 
-    @Override
-    public Result setNextRow(Row row) {
-        Long count = (Long) row.get(0);
-        sum += count;
-        return Result.CONTINUE;
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        downstream.setNextRow(new Row1(sum));
-        downstream.finish(RepeatHandle.UNSUPPORTED);
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        downstream.fail(throwable);
-    }
-
-    @Override
-    public BatchIteratorProjector asProjector() {
-        return CollectingBatchIterator::summingLong;
-    }
 }
