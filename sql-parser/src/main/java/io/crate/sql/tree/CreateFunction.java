@@ -34,10 +34,6 @@ import java.util.Set;
 
 public class CreateFunction extends Statement {
 
-    public enum FunctionLanguage {
-        JAVASCRIPT
-    }
-
     public enum Option {
         STRICT("STRICT"),
         CALLED_ON_NULL_INPUT("CALLED ON NULL INPUT"),
@@ -59,8 +55,8 @@ public class CreateFunction extends Statement {
     private final boolean replace;
     private final List<FunctionArgument> arguments;
     private final ColumnType returnType;
-    private final FunctionLanguage language;
-    private final String body;
+    private final Expression language;
+    private final Expression body;
     private final Set<Option> options;
 
     public CreateFunction(QualifiedName name,
@@ -68,8 +64,8 @@ public class CreateFunction extends Statement {
                           List<FunctionArgument> arguments,
                           ColumnType returnType,
                           Set<Option> options,
-                          FunctionLanguage language,
-                          String body) {
+                          Expression language,
+                          Expression body) {
         this.name = name;
         this.replace = replace;
         this.arguments = arguments;
@@ -95,11 +91,11 @@ public class CreateFunction extends Statement {
         return returnType;
     }
 
-    public FunctionLanguage getLanguage() {
+    public Expression language() {
         return language;
     }
 
-    public String body() {
+    public Expression body() {
         return body;
     }
 
