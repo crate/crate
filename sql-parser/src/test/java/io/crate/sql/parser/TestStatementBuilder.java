@@ -369,6 +369,9 @@ public class TestStatementBuilder {
 
     @Test
     public void testCreateFunctionStmtBuilder() {
+        printStatement("create function foo.bar() returns boolean language ? as ?");
+        printStatement("create function foo.bar() returns boolean language $1 as $2");
+
         // create or replace function
         printStatement("create function foo.bar(int, long)" +
             " returns int" +
@@ -409,15 +412,6 @@ public class TestStatementBuilder {
             " returns boolean" +
             " language javascript" +
             " returns null on null input as 'function(location, b) {return true}'");
-    }
-
-    @Test
-    public void testCreateFunctionStmtBuilderWithNotSupportedLanguage() {
-        expectedException.expectMessage("[sql] language is not supported.");
-        expectedException.expect(IllegalArgumentException.class);
-        printStatement("create function foo.bar()" +
-            " returns object" +
-            " language sql as 'select 1'");
     }
 
     @Test

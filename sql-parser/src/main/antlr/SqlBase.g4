@@ -54,7 +54,7 @@ statement
         (EQ | TO) (DEFAULT | setExpr (',' setExpr)*)                                 #set
     | SET GLOBAL (PERSISTENT | TRANSIENT)?
         setGlobalAssignment (',' setGlobalAssignment)*                               #setGlobal
-    | KILL (ALL | jobId)                                                             #kill
+    | KILL (ALL | jobId=parameterOrString)                                           #kill
     | INSERT INTO table ('(' ident (',' ident)* ')')? insertSource
         (ON DUPLICATE KEY UPDATE assignment (',' assignment)*)?                      #insert
     | RESTORE SNAPSHOT qname (ALL | TABLE tableWithPartitions) withProperties?       #restore
@@ -82,8 +82,8 @@ with
 queryNoWith:
       queryTerm
       (ORDER BY sortItem (',' sortItem)*)?
-      (LIMIT limit=paramOrInteger)?
-      (OFFSET offset=paramOrInteger)?
+      (LIMIT limit=parameterOrInteger)?
+      (OFFSET offset=parameterOrInteger)?
     ;
 
 queryTerm
@@ -271,12 +271,17 @@ parameterOrSimpleLiteral
     | parameterExpr
     ;
 
-paramOrInteger
+parameterOrInteger
     : parameterExpr
     | integerLiteral
     ;
 
-jobId
+parameterOrIdent
+    : parameterExpr
+    | ident
+    ;
+
+parameterOrString
     : parameterExpr
     | stringLiteral
     ;
@@ -394,7 +399,8 @@ createStmt
     | CREATE (OR REPLACE)? FUNCTION name=qname
         '(' (functionArgument (',' functionArgument)*)? ')'
         RETURNS returnType=dataType
-        LANGUAGE langName=ident functionOptions? AS body=stringLiteral               #createFunction
+        LANGUAGE language=parameterOrIdent functionOptions?
+        AS body=parameterOrString                                                    #createFunction
     ;
 
 functionArgument
@@ -415,7 +421,7 @@ alterTableDefinition
 crateTableOption
     : PARTITIONED BY columns                                                         #partitionedBy
     | CLUSTERED (BY '(' routing=primaryExpression ')')?
-        (INTO numShards=paramOrInteger SHARDS)?                                      #clusteredBy
+        (INTO numShards=parameterOrInteger SHARDS)?                                  #clusteredBy
     ;
 
 clusteredInto
