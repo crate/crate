@@ -20,37 +20,28 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.operation.projectors.ng;
 
-import io.crate.data.BatchIteratorProjector;
-import io.crate.data.Row;
-import io.crate.data.Row1;
-import io.crate.operation.projectors.ng.CollectingProjectors;
+import io.crate.operation.aggregation.Aggregator;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.BatchIteratorTester;
+import io.crate.testing.SingleColumnBatchIterator;
+import org.junit.Test;
 
-public class MergeCountProjector extends AbstractProjector {
+import java.util.Collections;
 
-    private long sum;
+public class AggregationBIPTest extends CrateUnitTest {
 
-    @Override
-    public Result setNextRow(Row row) {
-        Long count = (Long) row.get(0);
-        sum += count;
-        return Result.CONTINUE;
-    }
+    @Test
+    public void testEmptyValidity() throws Exception {
+        // the projector is safe to be reused
+        AggregationBIP p = new AggregationBIP(
+            new Aggregator[]{}, Collections.emptyList());
 
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        downstream.setNextRow(new Row1(sum));
-        downstream.finish(RepeatHandle.UNSUPPORTED);
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        downstream.fail(throwable);
-    }
-
-    @Override
-    public BatchIteratorProjector asProjector() {
-        return CollectingProjectors.SUMMING_LONG;
+        BatchIteratorTester tester = new BatchIteratorTester(
+            () -> p.apply(SingleColumnBatchIterator.range(0L, 10L)),
+            Collections.singletonList(new Object[0])
+        );
+        tester.run();
     }
 }

@@ -22,23 +22,11 @@
 
 package io.crate.data;
 
-import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.SingleColumnBatchIterator;
-import org.junit.Test;
+abstract class InputAtIndex<T> implements Input<T>{
 
-import java.util.Collections;
-import java.util.List;
+    protected final int idx;
 
-public class CollectingBatchIteratorTest {
-
-    private List<Object[]> expectedResult = Collections.singletonList(new Object[] { 45L });
-
-    @Test
-    public void testCollectingBatchIterator() throws Exception {
-        BatchIteratorTester tester = new BatchIteratorTester(
-            () -> CollectingBatchIterator.summingLong(SingleColumnBatchIterator.range(0L, 10L)),
-            expectedResult
-        );
-        tester.run();
+    InputAtIndex(int idx) {
+        this.idx = idx;
     }
 }

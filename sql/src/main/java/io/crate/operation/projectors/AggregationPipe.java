@@ -23,15 +23,12 @@ package io.crate.operation.projectors;
 
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIteratorProjector;
-import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
-
-import java.util.Collections;
-import java.util.stream.Collectors;
+import io.crate.operation.projectors.ng.AggregationBIP;
 
 public class AggregationPipe extends AbstractProjector {
 
@@ -90,10 +87,6 @@ public class AggregationPipe extends AbstractProjector {
 
     @Override
     public BatchIteratorProjector asProjector() {
-        return bi ->  CollectingBatchIterator.newInstance(bi,
-                Collectors.collectingAndThen(
-                    new AggregateCollector(expressions, aggregators),
-                    cells -> Collections.singletonList(new RowN(cells))),
-            aggregators.length);
+        return new AggregationBIP(aggregators, expressions);
     }
 }
