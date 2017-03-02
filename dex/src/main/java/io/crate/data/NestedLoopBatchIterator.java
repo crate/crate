@@ -27,7 +27,49 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
 
+/**
+ * NestedLoop BatchIterator implementations
+ *
+ * - {@link #crossJoin(BatchIterator, BatchIterator)}
+ * - {@link #leftJoin(BatchIterator, BatchIterator, Function)}
+ * - {@link #rightJoin(BatchIterator, BatchIterator, Function)}
+ * - {@link #fullOuterJoin(BatchIterator, BatchIterator, Function)}
+ */
 public class NestedLoopBatchIterator implements BatchIterator {
+
+    /**
+     * Create a BatchIterator that creates a full-outer-join of {@code left} and {@code right}.
+     */
+    public static BatchIterator fullOuterJoin(BatchIterator left,
+                                              BatchIterator right,
+                                              Function<Columns, BooleanSupplier> joinCondition) {
+        return new FullOuterJoinBatchIterator(left, right, joinCondition);
+    }
+
+    /**
+     * Create a BatchIterator that creates a cross-join of {@code left} and {@code right}.
+     */
+    public static BatchIterator crossJoin(BatchIterator left, BatchIterator right) {
+        return new NestedLoopBatchIterator(left, right);
+    }
+
+    /**
+     * Create a BatchIterator that creates the left-outer-join result of {@code left} and {@code right}.
+     */
+    public static BatchIterator leftJoin(BatchIterator left,
+                                         BatchIterator right,
+                                         Function<Columns, BooleanSupplier> joinCondition) {
+        return new LeftJoinBatchIterator(left, right, joinCondition);
+    }
+
+    /**
+     * Create a BatchIterator that creates the right-outer-join result of {@code left} and {@code right}.
+     */
+    public static BatchIterator rightJoin(BatchIterator left,
+                                          BatchIterator right,
+                                          Function<Columns, BooleanSupplier> joinCondition) {
+        return new RightJoinBatchIterator(left, right, joinCondition);
+    }
 
     final CombinedColumn rowData;
     final BatchIterator left;
@@ -37,28 +79,6 @@ public class NestedLoopBatchIterator implements BatchIterator {
      * points to the batchIterator which will be used on the next {@link #moveNext()} call
      */
     BatchIterator activeIt;
-
-    public static BatchIterator fullOuterJoin(BatchIterator left,
-                                              BatchIterator right,
-                                              Function<Columns, BooleanSupplier> joinCondition) {
-        return new FullOuterJoinBatchIterator(left, right, joinCondition);
-    }
-
-    public static BatchIterator crossJoin(BatchIterator left, BatchIterator right) {
-        return new NestedLoopBatchIterator(left, right);
-    }
-
-    public static BatchIterator leftJoin(BatchIterator left,
-                                         BatchIterator right,
-                                         Function<Columns, BooleanSupplier> joinCondition) {
-        return new LeftJoinBatchIterator(left, right, joinCondition);
-    }
-
-    public static BatchIterator rightJoin(BatchIterator left,
-                                          BatchIterator right,
-                                          Function<Columns, BooleanSupplier> joinCondition) {
-        return new RightJoinBatchIterator(left, right, joinCondition);
-    }
 
     NestedLoopBatchIterator(BatchIterator left, BatchIterator right) {
         this.left = left;
