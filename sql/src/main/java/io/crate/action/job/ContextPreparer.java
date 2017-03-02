@@ -33,6 +33,7 @@ import io.crate.Streamer;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.executor.transport.TransportActionProvider;
@@ -357,6 +358,11 @@ public class ContextPreparer extends AbstractComponent {
          * from toKey(phaseId, inputId) to RowReceiver.
          */
         private final LongObjectMap<RowReceiver> phaseIdToRowReceivers = new LongObjectHashMap<>();
+
+        /**
+         * from toKey(phaseId, inputId) to BatchConsumer.
+         */
+        private final LongObjectMap<BatchConsumer> consumersByPhaseId = new LongObjectHashMap<>();
         private final IntObjectMap<RowReceiver> handlerRowReceivers = new IntObjectHashMap<>();
 
         @Nullable
@@ -394,13 +400,18 @@ public class ContextPreparer extends AbstractComponent {
                 return handlerPhaseRowReceiver(phase.phaseId());
             }
 
-            RowReceiver targetRowReceiver = phaseIdToRowReceivers.get(
-                toKey(nodeOperation.downstreamExecutionPhaseId(), nodeOperation.downstreamExecutionPhaseInputId()));
+            long phaseIdKey = toKey(nodeOperation.downstreamExecutionPhaseId(), nodeOperation.downstreamExecutionPhaseInputId());
+            RowReceiver targetRowReceiver = phaseIdToRowReceivers.get(phaseIdKey);
 
             if (targetRowReceiver != null) {
                 // targetRowReceiver is available because of same node optimization or direct result;
                 return targetRowReceiver;
             }
+            BatchConsumer batchConsumer = consumersByPhaseId.get(phaseIdKey);
+            if (batchConsumer != null) {
+                return new BatchConsumerRowReceiverAdapter(batchConsumer);
+            }
+
             DistributionType distributionType = phase.distributionInfo().distributionType();
             switch (distributionType) {
                 case BROADCAST:
@@ -409,6 +420,7 @@ public class ContextPreparer extends AbstractComponent {
                         nodeOperation, phase.distributionInfo(), jobId(), pageSize);
                     traceGetRowReceiver(phase, distributionType.toString(), nodeOperation, downstream);
                     return downstream;
+
                 default:
                     throw new AssertionError(
                         "unhandled distributionType: " + distributionType);
@@ -579,18 +591,16 @@ public class ContextPreparer extends AbstractComponent {
             Predicate<Row> joinCondition = RowFilter.create(inputFactory, phase.joinCondition());
 
             NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(
-                phase.phaseId(),
-                firstRR,
+                new BatchConsumerToRowReceiver(firstRR),
                 joinCondition,
-                phase.joinType(),
-                phase.numLeftOutputs(),
-                phase.numRightOutputs());
+                phase.joinType()
+            );
             PageDownstreamContext left = pageDownstreamContextForNestedLoop(
                 phase.phaseId(),
                 context,
                 (byte) 0,
                 phase.leftMergePhase(),
-                nestedLoopOperation.leftRowReceiver(),
+                nestedLoopOperation.leftConsumer(),
                 ramAccountingContext);
             if (left != null) {
                 context.registerSubContext(left);
@@ -600,7 +610,7 @@ public class ContextPreparer extends AbstractComponent {
                 context,
                 (byte) 1,
                 phase.rightMergePhase(),
-                nestedLoopOperation.rightRowReceiver(),
+                nestedLoopOperation.rightConsumer(),
                 ramAccountingContext
             );
             if (right != null) {
@@ -610,6 +620,7 @@ public class ContextPreparer extends AbstractComponent {
                 nlContextLogger,
                 phase,
                 nestedLoopOperation,
+                firstRR, // killable
                 left,
                 right
             ));
@@ -621,22 +632,22 @@ public class ContextPreparer extends AbstractComponent {
                                                                          PreparerContext ctx,
                                                                          byte inputId,
                                                                          @Nullable MergePhase mergePhase,
-                                                                         RowReceiver downstream,
+                                                                         BatchConsumer batchConsumer,
                                                                          RamAccountingContext ramAccountingContext) {
             if (mergePhase == null) {
-                ctx.phaseIdToRowReceivers.put(toKey(nlPhaseId, inputId), downstream);
+                ctx.consumersByPhaseId.put(toKey(nlPhaseId, inputId), batchConsumer);
                 return null;
             }
-            downstream = ProjectorChain.prependProjectors(
-                downstream, mergePhase.projections(), mergePhase.jobId(), ramAccountingContext, projectorFactory);
-            BatchConsumerToRowReceiver batchConsumer = new BatchConsumerToRowReceiver(downstream);
+            // projections should be part of the previous phase or part of the nestedLoopPhase.
+            // mergePhase is only used to receive data
+            assert mergePhase.projections().isEmpty() : "NL mergePhase shouldn't have any projections";
             return new PageDownstreamContext(
                 pageDownstreamContextLogger,
                 nodeName(),
                 mergePhase.phaseId(),
                 mergePhase.name(),
                 batchConsumer,
-                downstream,
+                t -> {},
                 PagingIterators.create(mergePhase.numUpstreams(), true, mergePhase.orderByPositions()),
                 StreamerVisitor.streamersFromOutputs(mergePhase),
                 ramAccountingContext,
