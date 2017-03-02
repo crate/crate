@@ -23,14 +23,14 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.MoreObjects;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.data.BatchIterator;
+import io.crate.data.BatchIteratorProjector;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.data.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import org.apache.lucene.util.BytesRef;
@@ -42,7 +42,6 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -57,7 +56,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class IndexWriterProjector extends AbstractProjector {
@@ -164,15 +162,10 @@ public class IndexWriterProjector extends AbstractProjector {
         bulkShardProcessor.kill(throwable);
     }
 
-    @Nullable
     @Override
-    public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
-        return it -> {
-            BatchIterator indexWriterCountBatchIterator =
-                IndexWriterCountBatchIterator.newInstance(it, indexNameResolver, sourceInput,
-                    collectExpressions, rowShardResolver, bulkShardProcessor);
-            return new Tuple<>(indexWriterCountBatchIterator, downstream);
-        };
+    public BatchIteratorProjector asProjector() {
+        return it -> IndexWriterCountBatchIterator.newInstance(it, indexNameResolver, sourceInput,
+            collectExpressions, rowShardResolver, bulkShardProcessor);
     }
 
     private static class MapInput implements Input<BytesRef> {
