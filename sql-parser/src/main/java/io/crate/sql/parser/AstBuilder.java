@@ -278,7 +278,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         if (context.ALL() != null) {
             return new KillStatement();
         }
-        return new KillStatement((Expression) visit(context.jobId()));
+        return new KillStatement((Expression) visit(context.jobId));
     }
 
     @Override
@@ -336,8 +336,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             visit(context.functionArgument(), FunctionArgument.class),
             (ColumnType) visit(context.returnType),
             getFunctionOptions(context.functionOptions()),
-            getFunctionLanguage(getIdentText(context.langName)),
-            unquote(context.body.getText()));
+            (Expression) visit(context.language),
+            (Expression) visit(context.body));
     }
 
     @Override
@@ -1354,15 +1354,5 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             options.add(CreateFunction.Option.STRICT);
         }
         return options;
-    }
-
-    private CreateFunction.FunctionLanguage getFunctionLanguage(String language) {
-        CreateFunction.FunctionLanguage lang;
-        try {
-            lang = CreateFunction.FunctionLanguage.valueOf(language.toUpperCase(Locale.ENGLISH));
-        } catch (Throwable e) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "[%s] language is not supported.", language));
-        }
-        return lang;
     }
 }
