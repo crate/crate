@@ -31,6 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Objects;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -42,6 +43,7 @@ public class NestedLoopBatchIteratorTest {
 
     private ArrayList<Object[]> threeXThreeRows;
     private ArrayList<Object[]> leftJoinResult;
+    private ArrayList<Object[]> rightJoinResult;
 
     private Function<Columns, BooleanSupplier> getCol0EqCol1JoinCondition() {
         return columns -> new BooleanSupplier() {
@@ -76,6 +78,25 @@ public class NestedLoopBatchIteratorTest {
             }
             if (!matched) {
                 leftJoinResult.add(new Object[] { i, null });
+            }
+        }
+        rightJoinResult = new ArrayList<>();
+        BitSet matches = new BitSet();
+        for (int i = 0; i < 4; i++) {
+            int position = -1;
+            for (int j = 2; j < 6 ; j++) {
+                position++;
+                if (Integer.compare(i, j) == 0) {
+                    matches.set(position);
+                    rightJoinResult.add(new Object[] { i, j });
+                }
+            }
+        }
+        int position = -1;
+        for (int i = 2; i < 6; i++) {
+            position++;
+            if (matches.get(position) == false) {
+                rightJoinResult.add(new Object[] { null, i });
             }
         }
     }
@@ -160,4 +181,25 @@ public class NestedLoopBatchIteratorTest {
         tester.run();
     }
 
+    @Test
+    public void testRightJoin() throws Exception {
+        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.rightJoin(
+            TestingBatchIterators.range(0, 4),
+            TestingBatchIterators.range(2, 6),
+            getCol0EqCol1JoinCondition()
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier, rightJoinResult);
+        tester.run();
+    }
+
+    @Test
+    public void testRightJoinBatchedSource() throws Exception {
+        Supplier<BatchIterator> batchIteratorSupplier = () -> NestedLoopBatchIterator.rightJoin(
+            new BatchSimulatingIterator(TestingBatchIterators.range(0, 4), 2, 2, null),
+            new BatchSimulatingIterator(TestingBatchIterators.range(2, 6), 2, 2, null),
+            getCol0EqCol1JoinCondition()
+        );
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier, rightJoinResult);
+        tester.run();
+    }
 }
