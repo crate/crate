@@ -22,42 +22,29 @@
 
 package io.crate.operation.join;
 
-import io.crate.data.Row;
+import io.crate.data.BatchIterator;
+import io.crate.data.ForwardingBatchIterator;
 
-class CombinedRow implements Row {
+import java.util.concurrent.CompletableFuture;
 
-    volatile Row outerRow;
-    volatile Row innerRow;
+public class ListenableBatchIterator extends ForwardingBatchIterator {
 
-    @Override
-    public int numColumns() {
-        return outerRow.numColumns() + innerRow.numColumns();
+    private final BatchIterator delegate;
+    private final CompletableFuture<Void> completeOnClose;
+
+    public ListenableBatchIterator(BatchIterator delegate, CompletableFuture<Void> completeOnClose) {
+        this.delegate = delegate;
+        this.completeOnClose = completeOnClose;
     }
 
     @Override
-    public Object get(int index) {
-        if (index < outerRow.numColumns()) {
-            return outerRow.get(index);
-        }
-        return innerRow.get(index - outerRow.numColumns());
+    protected BatchIterator delegate() {
+        return delegate;
     }
 
     @Override
-    public Object[] materialize() {
-        Object[] left = outerRow.materialize();
-        Object[] right = innerRow.materialize();
-
-        Object[] newRow = new Object[left.length + right.length];
-        System.arraycopy(left, 0, newRow, 0, left.length);
-        System.arraycopy(right, 0, newRow, left.length, right.length);
-        return newRow;
-    }
-
-    @Override
-    public String toString() {
-        return "CombinedRow{" +
-               " outer=" + outerRow +
-               ", inner=" + innerRow +
-               '}';
+    public void close() {
+        super.close();
+        completeOnClose.complete(null);
     }
 }
