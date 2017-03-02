@@ -95,12 +95,13 @@ public class AlterTableOperation {
             String stmt =
                 String.format(Locale.ENGLISH, "SELECT COUNT(*) FROM \"%s\".\"%s\"", ident.schema(), ident.name());
 
-            SQLOperations.Session session = sqlOperations.createSession(ident.schema(), Option.NONE, 1);
+            SQLOperations.SQLDirectExecutor sqlDirectExecutor = sqlOperations.createSQLDirectExecutor(
+                ident.schema(),
+                SQLOperations.Session.UNNAMED,
+                stmt,
+                1);
             try {
-                session.parse(SQLOperations.Session.UNNAMED, stmt, Collections.<DataType>emptyList());
-                session.bind(SQLOperations.Session.UNNAMED, SQLOperations.Session.UNNAMED, Collections.emptyList(), null);
-                session.execute(SQLOperations.Session.UNNAMED, 0, new ResultSetReceiver(analysis, result));
-                session.sync();
+                sqlDirectExecutor.execute(new ResultSetReceiver(analysis, result), Collections.emptyList());
             } catch (Throwable t) {
                 result.completeExceptionally(t);
             }

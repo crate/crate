@@ -23,14 +23,11 @@
 package io.crate.planner;
 
 import com.carrotsearch.hppc.ObjectLongMap;
-import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.data.RowN;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.protocols.postgres.FormatCodes;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.types.DataType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
@@ -141,13 +138,17 @@ public class TableStatsServiceTest extends CrateUnitTest {
     }
 
     @Test
-    public void testStatsQueriesCorrectly() throws Exception {
+    public void testStatsQueriesCorrectly() throws Throwable {
         ClusterService clusterService = mock(ClusterService.class);
         when(clusterService.localNode()).thenReturn(mock(DiscoveryNode.class));
         final SQLOperations sqlOperations = mock(SQLOperations.class);
-        SQLOperations.Session session = mock(SQLOperations.Session.class);
-        when(sqlOperations.createSession(eq("sys"), eq(Option.NONE), eq(TableStatsService.DEFAULT_SOFT_LIMIT)))
-            .thenReturn(session);
+        SQLOperations.SQLDirectExecutor sqlDirectExecutor = mock(SQLOperations.SQLDirectExecutor.class);
+        when(sqlOperations.createSQLDirectExecutor(
+            eq("sys"),
+            eq(TableStatsService.TABLE_STATS),
+            eq(TableStatsService.STMT),
+            eq(TableStatsService.DEFAULT_SOFT_LIMIT)))
+            .thenReturn(sqlDirectExecutor);
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
@@ -159,20 +160,9 @@ public class TableStatsServiceTest extends CrateUnitTest {
         );
         statsService.run();
 
-        verify(session, times(1)).parse(
-            eq(TableStatsService.TABLE_STATS),
-            eq(TableStatsService.STMT),
-            eq(Collections.<DataType>emptyList()));
-        verify(session, times(1)).bind(
-            eq(TableStatsService.TABLE_STATS),
-            eq(TableStatsService.TABLE_STATS),
-            eq(Collections.emptyList()),
-            isNull(FormatCodes.FormatCode[].class));
-        verify(session, times(1)).execute(
-            eq(TableStatsService.TABLE_STATS),
-            eq(0),
-            any(TableStatsService.TableStatsResultReceiver.class));
-        verify(session, times(1)).sync();
+        verify(sqlDirectExecutor, times(1)).execute(
+            any(TableStatsService.TableStatsResultReceiver.class),
+            eq(Collections.emptyList()));
     }
 
     @Test

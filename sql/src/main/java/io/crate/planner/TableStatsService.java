@@ -59,7 +59,7 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final TableStatsResultReceiver resultReceiver;
-    private final SQLOperations.Session session;
+    private final SQLOperations.SQLDirectExecutor sqlDirectExecutor;
 
     private TimeValue initialRefreshInterval;
 
@@ -83,8 +83,7 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
         refreshScheduledTask = scheduleRefresh(initialRefreshInterval);
         resultReceiver = new TableStatsResultReceiver(tableStats::updateTableStats);
         nodeSettingsService.addListener(this);
-        session = sqlOperations.createSession("sys", Option.NONE, DEFAULT_SOFT_LIMIT);
-        session.parse(TABLE_STATS, STMT, Collections.emptyList());
+        sqlDirectExecutor = sqlOperations.createSQLDirectExecutor("sys", TABLE_STATS, STMT, DEFAULT_SOFT_LIMIT);
     }
 
     @Override
@@ -103,9 +102,7 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
         }
 
         try {
-            session.bind(TABLE_STATS, TABLE_STATS, Collections.emptyList(), null);
-            session.execute(TABLE_STATS, 0, resultReceiver);
-            session.sync().thenAccept(ignored -> session.close((byte) 'P', TABLE_STATS));
+            sqlDirectExecutor.execute(resultReceiver, Collections.emptyList());
         } catch (Throwable t) {
             logger.error("error retrieving table stats", t);
         }

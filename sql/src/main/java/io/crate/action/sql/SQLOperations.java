@@ -107,6 +107,24 @@ public class SQLOperations {
     }
 
     /**
+     * Create an {@link SQLDirectExecutor} instance.
+     *
+     * @param defaultSchema the defaultSchema to use
+     * @param preparedStmtName the name of the prepared statement
+     * @param sqlStmt the SQL statement
+     * @param defaultLimit the default limit to be applied
+     * @return an instance of {@link SQLDirectExecutor} class
+     */
+    public SQLDirectExecutor createSQLDirectExecutor(String defaultSchema,
+                                                     String preparedStmtName,
+                                                     String sqlStmt,
+                                                     int defaultLimit) {
+        Session session = createSession(defaultSchema, Option.NONE, defaultLimit);
+        session.parse(preparedStmtName, sqlStmt, Collections.emptyList());
+        return new SQLDirectExecutor(session, preparedStmtName, sqlStmt);
+    }
+
+    /**
      * Stateful Session
      * In the PSQL case there is one session per connection.
      * <p>
@@ -357,6 +375,28 @@ public class SQLOperations {
             for (Portal portal : portals.values()) {
                 portal.close();
             }
+        }
+    }
+
+    /**
+     * Stateful class that uses a prepared statement
+     * and can execute it multiple times.
+     */
+    public static class SQLDirectExecutor {
+
+        private final SQLOperations.Session session;
+        private final String preparedStmtName;
+
+        private SQLDirectExecutor(Session session, String preparedStmtName, String sqlStmt) {
+            this.session = session;
+            this.session.parse(preparedStmtName, sqlStmt, Collections.emptyList());
+            this.preparedStmtName = preparedStmtName;
+        }
+
+        public void execute(ResultReceiver resultReceiver, List<Object> params) throws Throwable {
+            session.bind(preparedStmtName, preparedStmtName, params, null);
+            session.execute(preparedStmtName, 0, resultReceiver);
+            session.sync().whenComplete((o, throwable) -> session.close((byte) 'P', preparedStmtName));
         }
     }
 }
