@@ -1647,13 +1647,10 @@ optional settings.
 .. _threadpool.<threadpool>.size:
 
 **threadpool.<threadpool>.size**
-  | *Default index:*  ``<number-of-cores>``
-  | *Default search:*  ``<number-of-cores> * 3``
-  | *Default get:*  ``<number-of-cores>``
-  | *Default bulk:*  ``<number-of-cores>``
   | *Runtime:*  ``no``
 
-  Number of threads.
+  Number of threads. The default size of the different thread pools depend on
+  the number of available CPU cores.
 
 .. _threadpool.<threadpool>.queue_size:
 
