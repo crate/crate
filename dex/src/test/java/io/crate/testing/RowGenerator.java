@@ -76,6 +76,31 @@ public class RowGenerator {
         };
     }
 
+    /**
+     * Return a Iterable where each Row has the same instance, but the data changes depending on the given iterable.
+     *
+     * @param iterable iterable containing values for the first column of the Rows in the result.
+     */
+    public static <T> Iterable<Row> fromSingleColValues(Iterable<T> iterable) {
+        return () -> new Iterator<Row>() {
+
+            private Object[] cells = new Object[1];
+            private RowN row = new RowN(cells);
+            private Iterator<?> iterator = iterable.iterator();
+
+            @Override
+            public boolean hasNext() {
+                return iterator.hasNext();
+            }
+
+            @Override
+            public Row next() {
+                cells[0] = iterator.next();
+                return row;
+            }
+        };
+    }
+
     public static List<Row> singleColRows(Object... rows) {
         List<Row> result = new ArrayList<>(rows.length);
         for (Object row : rows) {

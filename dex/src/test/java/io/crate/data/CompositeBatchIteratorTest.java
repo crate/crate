@@ -24,7 +24,7 @@ package io.crate.data;
 
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.SingleColumnBatchIterator;
+import io.crate.testing.TestingBatchIterators;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -45,8 +45,8 @@ public class CompositeBatchIteratorTest {
     @Test
     public void testDataRowInputsCanBeRetrievedEagerly() throws Exception {
         CompositeBatchIterator iterator = new CompositeBatchIterator(
-            SingleColumnBatchIterator.range(0, 1),
-            SingleColumnBatchIterator.range(1, 2)
+            TestingBatchIterators.range(0, 1),
+            TestingBatchIterators.range(1, 2)
         );
         Input<?> input = iterator.rowData().get(0);
         assertThat(iterator.moveNext(), is(true));
@@ -60,8 +60,8 @@ public class CompositeBatchIteratorTest {
     public void testCompositeBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> new CompositeBatchIterator(
-                SingleColumnBatchIterator.range(0, 5),
-                SingleColumnBatchIterator.range(5, 10)),
+                TestingBatchIterators.range(0, 5),
+                TestingBatchIterators.range(5, 10)),
             expectedResult
         );
         tester.run();
@@ -84,8 +84,8 @@ public class CompositeBatchIteratorTest {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> new CompositeBatchIterator(
                 new CloseAssertingBatchIterator(
-                    new BatchSimulatingIterator(SingleColumnBatchIterator.range(0, 5), 2, 6, null)),
-                SingleColumnBatchIterator.range(5, 10)
+                    new BatchSimulatingIterator(TestingBatchIterators.range(0, 5), 2, 6, null)),
+                TestingBatchIterators.range(5, 10)
             ),
             expectedResult
         );
