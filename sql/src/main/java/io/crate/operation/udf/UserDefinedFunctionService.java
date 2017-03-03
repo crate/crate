@@ -22,7 +22,9 @@
 package io.crate.operation.udf;
 
 import io.crate.metadata.FunctionIdent;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -52,6 +54,11 @@ public class UserDefinedFunctionService extends AbstractComponent {
      * @param function function to register
      */
     public void registerFunction(UserDefinedFunction function) {
+        if (!clusterService.localNode().isMasterNode()) {
+            return;
+        }
+
+        final ActionListener<ClusterStateUpdateResponse> registrationListener;
 
     }
 
