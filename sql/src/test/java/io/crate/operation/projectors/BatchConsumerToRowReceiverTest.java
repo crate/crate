@@ -26,7 +26,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.CloseAssertingBatchIterator;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.CollectingRowReceiver;
-import io.crate.testing.SingleColumnBatchIterator;
+import io.crate.testing.TestingBatchIterators;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,7 +42,7 @@ public class BatchConsumerToRowReceiverTest {
 
     @Before
     public void setUp() throws Exception {
-        iterator = SingleColumnBatchIterator.range(1,3);
+        iterator = TestingBatchIterators.range(1,3);
     }
 
     @Test

@@ -23,25 +23,26 @@
 package io.crate.testing;
 
 import io.crate.data.BatchIterator;
-import org.junit.Test;
+import io.crate.data.Row;
+import io.crate.data.RowsBatchIterator;
 
-import java.util.List;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class SingleColumnBatchIteratorTest {
+public class TestingBatchIterators {
 
-    @Test
-    public void testCollect() throws Exception {
-        List<Object[]> expectedResult = IntStream.range(0, 20)
-            .mapToObj(l -> new Object[]{l}).collect(Collectors.toList());
-        Supplier<BatchIterator> batchIteratorSupplier = () -> SingleColumnBatchIterator.range(0, 20);
+    /**
+     * Returns a batch iterator containing a range of integers.
+     */
+    public static BatchIterator range(int startInclusive, int endExclusive) {
+        Iterable<Row> rows = RowGenerator.fromSingleColValues(
+            () -> IntStream.range(startInclusive, endExclusive).iterator());
+        return RowsBatchIterator.newInstance(rows, 1);
+    }
 
-        BatchIteratorTester tester = new BatchIteratorTester(
-            batchIteratorSupplier,
-            expectedResult
-        );
-        tester.run();
+    /**
+     * Returns a batch iterator containing a range of longs.
+     */
+    public static BatchIterator range(long startInclusive, long endExclusive) {
+        return RowsBatchIterator.newInstance(RowGenerator.range(startInclusive, endExclusive), 1);
     }
 }
