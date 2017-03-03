@@ -21,25 +21,25 @@
 
 package io.crate.operation.collect;
 
-import io.crate.data.Columns;
-import io.crate.data.IterableControlledBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowsBatchIterator;
 import io.crate.operation.projectors.BatchConsumerToRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
 
+import java.util.Collections;
+
 public final class RowsCollector {
 
     public static CrateCollector empty(RowReceiver rowDownstream) {
         return BatchIteratorCollectorBridge.newInstance(
-            IterableControlledBatchIterator.empty(),
+            RowsBatchIterator.empty(),
             new BatchConsumerToRowReceiver(rowDownstream),
             rowDownstream);
     }
 
-    public static CrateCollector single(Columns inputs, RowReceiver rowDownstream) {
+    public static CrateCollector single(Row row, RowReceiver rowDownstream) {
         return BatchIteratorCollectorBridge.newInstance(
-            IterableControlledBatchIterator.singleRow(inputs),
+            RowsBatchIterator.newInstance(Collections.singletonList(row), row.numColumns()),
             new BatchConsumerToRowReceiver(rowDownstream),
             rowDownstream);
     }
@@ -53,7 +53,7 @@ public final class RowsCollector {
 
     static CrateCollector.Builder emptyBuilder() {
         return (consumer, killable) -> BatchIteratorCollectorBridge.newInstance(
-            IterableControlledBatchIterator.empty(),
+            RowsBatchIterator.empty(),
             consumer,
             killable
         );
