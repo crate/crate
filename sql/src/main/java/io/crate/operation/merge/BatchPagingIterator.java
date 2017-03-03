@@ -23,10 +23,7 @@
 package io.crate.operation.merge;
 
 import io.crate.concurrent.CompletableFutures;
-import io.crate.data.BatchIterator;
-import io.crate.data.Columns;
-import io.crate.data.Row;
-import io.crate.data.RowBridging;
+import io.crate.data.*;
 
 import javax.annotation.Nullable;
 import java.util.Iterator;
@@ -53,10 +50,9 @@ public class BatchPagingIterator<Key> implements BatchIterator {
     private final Function<Key, Boolean> tryFetchMore;
     private final BooleanSupplier isUpstreamExhausted;
     private final Runnable closeCallback;
-    private final Columns rowData;
+    private final RowColumns rowData;
 
     private Iterator<Row> it;
-    private Row currentRow = RowBridging.OFF_ROW;
     private boolean reachedEnd = false;
     private CompletableFuture<Void> currentlyLoading;
 
@@ -72,7 +68,7 @@ public class BatchPagingIterator<Key> implements BatchIterator {
         this.tryFetchMore = tryFetchMore;
         this.isUpstreamExhausted = isUpstreamExhausted;
         this.closeCallback = closeCallback;
-        this.rowData = RowBridging.toInputs(() -> currentRow, numCols);
+        this.rowData = new RowColumns(numCols);
     }
 
     @Override
@@ -85,7 +81,7 @@ public class BatchPagingIterator<Key> implements BatchIterator {
         raiseIfClosed();
         if (reachedEnd) {
             this.it = pagingIterator.repeat().iterator();
-            currentRow = RowBridging.OFF_ROW;
+            rowData.updateRef(RowBridging.OFF_ROW);
         } else {
             throw new UnsupportedOperationException("Cannot moveToStart before all rows have been consumed once");
         }
@@ -96,12 +92,13 @@ public class BatchPagingIterator<Key> implements BatchIterator {
         raiseIfClosed();
 
         if (it.hasNext()) {
-            currentRow = it.next();
+            Row currentRow = it.next();
             assert currentRow.numColumns() >= rowData.size():
                 "size of row: " + currentRow.numColumns() + " is smaller than rowData: " + rowData().size();
+            rowData.updateRef(currentRow);
             return true;
         }
-        currentRow = RowBridging.OFF_ROW;
+        rowData.updateRef(RowBridging.OFF_ROW);
         reachedEnd = allLoaded();
         return false;
     }
