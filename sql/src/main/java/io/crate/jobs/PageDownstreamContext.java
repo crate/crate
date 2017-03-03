@@ -215,14 +215,13 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         // can't trigger failure on pageDownstream immediately as it would remove the context which the other
         // upstreams still require
 
-        setExhaustedUpstreams();
+        exhausted.set(bucketIdx);
         if (bucketsByIdx.size() == numBuckets) {
             rowReceiver.fail(throwable);
             releaseListenersAndCloseContext(throwable);
         } else {
             lastThrowable = throwable;
         }
-        exhausted.set(bucketIdx);
     }
 
     /**

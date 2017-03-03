@@ -11,9 +11,6 @@ Unreleased
  - Added functionality to monitor query runtime statistics via JMX.
    This feature can only be used with an enterprise license.
 
- - Fixed some memory leaks which could happen on error handling of
-   distributed queries like e.g. `GROUP BY`.
-
  - Added a new parameter ``upgrade_segments`` to the ``OPTIMIZE`` statement
    which enables the upgrade of tables and tables partitions to the current
    version of the storage engine.
