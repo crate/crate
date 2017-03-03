@@ -24,7 +24,7 @@ package io.crate.data;
 
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.SingleColumnBatchIterator;
+import io.crate.testing.TestingBatchIterators;
 import org.junit.Test;
 
 import java.util.List;
@@ -40,7 +40,7 @@ public class LimitingBatchIteratorTest {
     @Test
     public void testLimitingBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> LimitingBatchIterator.newInstance(SingleColumnBatchIterator.range(0, 10), limit),
+            () -> LimitingBatchIterator.newInstance(TestingBatchIterators.range(0, 10), limit),
             expectedResult
         );
         tester.run();
@@ -51,7 +51,7 @@ public class LimitingBatchIteratorTest {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> {
                 BatchSimulatingIterator batchSimulatingIt = new BatchSimulatingIterator(
-                    SingleColumnBatchIterator.range(0, 10), 2, 5, null);
+                    TestingBatchIterators.range(0, 10), 2, 5, null);
                 return LimitingBatchIterator.newInstance(batchSimulatingIt, limit);
             },
             expectedResult
