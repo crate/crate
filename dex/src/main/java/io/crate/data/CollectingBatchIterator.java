@@ -42,9 +42,8 @@ public class CollectingBatchIterator<A> implements BatchIterator {
 
     private final BatchIterator source;
     private final Collector<Row, A, ? extends Iterable<Row>> collector;
-    private final Columns rowData;
+    private final RowColumns rowData;
 
-    private Row currentRow = RowBridging.OFF_ROW;
     private Iterator<Row> it = Collections.emptyIterator();
     private CompletableFuture<? extends Iterable<Row>> resultFuture;
 
@@ -75,7 +74,7 @@ public class CollectingBatchIterator<A> implements BatchIterator {
     private CollectingBatchIterator(BatchIterator source, Collector<Row, A, ? extends Iterable<Row>> collector, int numCols) {
         this.source = source;
         this.collector = collector;
-        this.rowData = RowBridging.toInputs(() -> currentRow, numCols);
+        this.rowData = new RowColumns(numCols);
     }
 
     @Override
@@ -91,17 +90,17 @@ public class CollectingBatchIterator<A> implements BatchIterator {
             }
             it = resultFuture.join().iterator();
         }
-        currentRow = RowBridging.OFF_ROW;
+        rowData.updateRef(RowBridging.OFF_ROW);
     }
 
     @Override
     public boolean moveNext() {
         raiseIfLoading();
         if (it.hasNext()) {
-            currentRow = it.next();
+            rowData.updateRef(it.next());
             return true;
         }
-        currentRow = RowBridging.OFF_ROW;
+        rowData.updateRef(RowBridging.OFF_ROW);
         return false;
     }
 

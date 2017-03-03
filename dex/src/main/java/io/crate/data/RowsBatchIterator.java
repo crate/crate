@@ -32,15 +32,13 @@ import java.util.concurrent.CompletionStage;
 /**
  * BatchIterator implementation that is backed by {@link Iterable<Row>}.
  *
- * Use this class only if the backing iterable emits different row objects. Otherwise consider the usage of {@link
- * IterableControlledBatchIterator} instead.
  */
 public class RowsBatchIterator implements BatchIterator {
 
+    private final RowColumns rowData;
     private final Iterable<? extends Row> rows;
+
     private Iterator<? extends Row> it;
-    private Row currentRow = RowBridging.OFF_ROW;
-    private final Columns rowData;
 
     public static BatchIterator empty() {
         return newInstance(Collections.emptyList(), 0);
@@ -52,7 +50,7 @@ public class RowsBatchIterator implements BatchIterator {
 
     @VisibleForTesting
     RowsBatchIterator(Iterable<? extends Row> rows, int numCols) {
-        rowData = RowBridging.toInputs(() -> currentRow, numCols);
+        rowData = new RowColumns(numCols);
         this.rows = rows;
         this.it = rows.iterator();
     }
@@ -65,16 +63,16 @@ public class RowsBatchIterator implements BatchIterator {
     @Override
     public void moveToStart() {
         it = rows.iterator();
-        currentRow = RowBridging.OFF_ROW;
+        rowData.updateRef(RowBridging.OFF_ROW);
     }
 
     @Override
     public boolean moveNext() {
         if (it.hasNext()) {
-            currentRow = it.next();
+            rowData.updateRef(it.next());
             return true;
         }
-        currentRow = RowBridging.OFF_ROW;
+        rowData.updateRef(RowBridging.OFF_ROW);
         return false;
     }
 
@@ -91,4 +89,5 @@ public class RowsBatchIterator implements BatchIterator {
     public boolean allLoaded() {
         return true;
     }
+
 }
