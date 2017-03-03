@@ -24,13 +24,10 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.data.BatchIterator;
-import io.crate.data.Row;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.projection.WriterProjection;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.CollectingBatchConsumer;
 import io.crate.testing.SingleColumnBatchIterator;
 import io.crate.testing.TestingHelpers;
@@ -41,7 +38,10 @@ import org.junit.rules.TemporaryFolder;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
@@ -49,7 +49,7 @@ import java.util.stream.IntStream;
 
 import static org.hamcrest.core.Is.is;
 
-public class FileWriterIteratorTest extends CrateUnitTest {
+public class FileWriterProjectorTest extends CrateUnitTest {
 
     ExecutorService executorService = Executors.newSingleThreadExecutor();
 
@@ -63,22 +63,10 @@ public class FileWriterIteratorTest extends CrateUnitTest {
     );
 
     @Test
-    public void testFileWriterIterator() throws Exception {
-        Path file = createTempFile("out", "json");
-
-        BatchIteratorTester tester = new BatchIteratorTester(() ->
-            FileWriterIterator.newInstance(sourceSupplier.get(),
-                executorService, file.toUri().toString(), null, null, ImmutableSet.<CollectExpression<Row, ?>>of(),
-                new HashMap<>(), null, WriterProjection.OutputFormat.JSON_OBJECT),
-            Collections.singletonList(new Object[]{5L}));
-        tester.run();
-    }
-
-    @Test
     public void testToNestedStringObjectMap() throws Exception {
         Map<ColumnIdent, Object> columnIdentMap = new HashMap<>();
         columnIdentMap.put(new ColumnIdent("some", Arrays.asList("nested", "column")), "foo");
-        Map<String, Object> convertedMap = FileWriterIterator.toNestedStringObjectMap(columnIdentMap);
+        Map<String, Object> convertedMap = FileWriterCountCollector.toNestedStringObjectMap(columnIdentMap);
 
         Map someMap = (Map) convertedMap.get("some");
         Map nestedMap = (Map) someMap.get("nested");
@@ -89,11 +77,11 @@ public class FileWriterIteratorTest extends CrateUnitTest {
     public void testWriteRawToFile() throws Exception {
         Path file = createTempFile("out", "json");
 
-        BatchIterator batchIterator = FileWriterIterator.newInstance(sourceSupplier.get(),
-            executorService, file.toUri().toString(), null, null, ImmutableSet.<CollectExpression<Row, ?>>of(),
-            new HashMap<>(), null, WriterProjection.OutputFormat.JSON_OBJECT);
+        FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, file.toUri().toString(),
+            null, null, ImmutableSet.of(), new HashMap<>(),
+            null, WriterProjection.OutputFormat.JSON_OBJECT);
 
-        new CollectingBatchConsumer().accept(batchIterator, null);
+        new CollectingBatchConsumer().accept(fileWriterProjector.asProjector().apply(sourceSupplier.get()), null);
 
         assertEquals("input line 00\n" +
                      "input line 01\n" +
@@ -109,11 +97,11 @@ public class FileWriterIteratorTest extends CrateUnitTest {
 
         Path directory = createTempDir();
 
-        BatchIterator batchIterator = FileWriterIterator.newInstance(sourceSupplier.get(),
-            executorService, directory.toUri().toString(), null, null, ImmutableSet.<CollectExpression<Row, ?>>of(),
-            new HashMap<>(), null, WriterProjection.OutputFormat.JSON_OBJECT);
+        FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, directory.toUri().toString(),
+            null, null, ImmutableSet.of(), new HashMap<>(),
+            null, WriterProjection.OutputFormat.JSON_OBJECT);
 
-        new CollectingBatchConsumer().accept(batchIterator, null);
+        new CollectingBatchConsumer().accept(fileWriterProjector.asProjector().apply(sourceSupplier.get()), null);
     }
 
     @Test
@@ -123,8 +111,10 @@ public class FileWriterIteratorTest extends CrateUnitTest {
 
         String uri = Paths.get(folder.newFile().toURI()).resolve("out.json").toUri().toString();
 
-        BatchIterator batchIterator = FileWriterIterator.newInstance(sourceSupplier.get(),
-            executorService, uri, null, null, ImmutableSet.<CollectExpression<Row, ?>>of(),
-            new HashMap<>(), null, WriterProjection.OutputFormat.JSON_OBJECT);
+        FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, uri,
+            null, null, ImmutableSet.of(), new HashMap<>(),
+            null, WriterProjection.OutputFormat.JSON_OBJECT);
+
+        new CollectingBatchConsumer().accept(fileWriterProjector.asProjector().apply(sourceSupplier.get()), null);
     }
 }

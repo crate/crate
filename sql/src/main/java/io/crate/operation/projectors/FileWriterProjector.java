@@ -21,19 +21,18 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.data.BatchIterator;
+import io.crate.data.BatchIteratorProjector;
+import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.projection.WriterProjection;
-import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
-import java.util.function.Function;
 
 public class FileWriterProjector extends AbstractProjector {
 
@@ -75,13 +74,9 @@ public class FileWriterProjector extends AbstractProjector {
 
     @Nullable
     @Override
-    public Function<BatchIterator, Tuple<BatchIterator, RowReceiver>> batchIteratorProjection() {
-        return it -> {
-            BatchIterator indexWriterCountBatchIterator =
-                FileWriterIterator.newInstance(it, executorService, uri.toString(), compressionType, inputs,
-                    collectExpressions, overwrites, outputNames, outputFormat);
-            return new Tuple<>(indexWriterCountBatchIterator, downstream);
-        };
+    public BatchIteratorProjector asProjector() {
+        return it -> CollectingBatchIterator.newInstance(it, new FileWriterCountCollector(executorService, uri.toString(), compressionType, inputs,
+            collectExpressions, overwrites, outputNames, outputFormat), 1);
     }
 
     @Override

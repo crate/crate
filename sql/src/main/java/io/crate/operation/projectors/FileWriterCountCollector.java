@@ -23,8 +23,9 @@
 package io.crate.operation.projectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.concurrent.CompletableFutures;
-import io.crate.data.*;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
@@ -45,16 +46,19 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
 
 /**
- * Iterator implementation that consumes the provided source by writing the rows to the configured
- * {@link Output} and returns a count representing the number of written rows
+ * Collector implementation which writes the rows to the configured {@link Output}
+ * and returns a count representing the number of written rows
  */
-public class FileWriterIterator implements BatchIterator {
+public class FileWriterCountCollector implements Collector<Row, AtomicLong, Iterable<Row>> {
 
     private static final byte NEW_LINE = (byte) '\n';
 
@@ -66,28 +70,18 @@ public class FileWriterIterator implements BatchIterator {
     private final List<String> outputNames;
     private final WriterProjection.OutputFormat outputFormat;
     private final WriterProjection.CompressionType compressionType;
-    private final BatchIterator source;
     private Output output;
 
-    private final AtomicLong counter = new AtomicLong();
     private final RowWriter rowWriter;
 
-    private CompletableFuture<Long> loading;
-    private final Row sourceRow;
-    private Row currentRow = RowBridging.OFF_ROW;
-    private Columns rowData;
-    private boolean fromStart = true;
-
-    private FileWriterIterator(BatchIterator source,
-                               ExecutorService executorService,
-                               String uri,
-                               @Nullable WriterProjection.CompressionType compressionType,
-                               @Nullable List<Input<?>> inputs,
-                               Iterable<CollectExpression<Row, ?>> collectExpressions,
-                               Map<ColumnIdent, Object> overwrites,
-                               @Nullable List<String> outputNames,
-                               WriterProjection.OutputFormat outputFormat) {
-        this.source = source;
+    public FileWriterCountCollector(ExecutorService executorService,
+                                    String uri,
+                                    @Nullable WriterProjection.CompressionType compressionType,
+                                    @Nullable List<Input<?>> inputs,
+                                    Iterable<CollectExpression<Row, ?>> collectExpressions,
+                                    Map<ColumnIdent, Object> overwrites,
+                                    @Nullable List<String> outputNames,
+                                    WriterProjection.OutputFormat outputFormat) {
         this.collectExpressions = collectExpressions;
         this.inputs = inputs;
         this.overwrites = toNestedStringObjectMap(overwrites);
@@ -107,9 +101,6 @@ public class FileWriterIterator implements BatchIterator {
             throw new UnsupportedFeatureException(String.format(Locale.ENGLISH, "Unknown scheme '%s'", this.uri.getScheme()));
         }
         this.rowWriter = initWriter();
-
-        this.sourceRow = RowBridging.toRow(source.rowData());
-        this.rowData = RowBridging.toInputs(() -> currentRow, 1);
     }
 
     @VisibleForTesting
@@ -150,22 +141,7 @@ public class FileWriterIterator implements BatchIterator {
         return nestedMap;
     }
 
-    public static BatchIterator newInstance(BatchIterator source,
-                                            ExecutorService executorService,
-                                            String uri,
-                                            @Nullable WriterProjection.CompressionType compressionType,
-                                            @Nullable List<Input<?>> inputs,
-                                            Iterable<CollectExpression<Row, ?>> collectExpressions,
-                                            Map<ColumnIdent, Object> overwrites,
-                                            @Nullable List<String> outputNames,
-                                            WriterProjection.OutputFormat outputFormat) {
-        FileWriterIterator fileWriterIterator = new FileWriterIterator(source, executorService, uri,
-            compressionType, inputs, collectExpressions, overwrites, outputNames, outputFormat);
-        return new CloseAssertingBatchIterator(fileWriterIterator);
-    }
-
     private RowWriter initWriter() {
-        counter.set(0);
         try {
             if (!overwrites.isEmpty()) {
                 return new DocWriter(
@@ -188,99 +164,43 @@ public class FileWriterIterator implements BatchIterator {
                 rowWriter.close();
             }
         } catch (IOException e) {
+
         }
     }
 
     @Override
-    public Columns rowData() {
-        return rowData;
+    public Supplier<AtomicLong> supplier() {
+        return () -> new AtomicLong(0);
     }
 
     @Override
-    public void moveToStart() {
-        raiseIfLoading();
-        currentRow = RowBridging.OFF_ROW;
-        fromStart = true;
+    public BiConsumer<AtomicLong, Row> accumulator() {
+        return this::onNextRow;
     }
 
-    @Override
-    public boolean moveNext() {
-        if (loading == null) {
-            return false;
-        }
-        raiseIfLoading();
-
-        if (currentRow.equals(RowBridging.OFF_ROW) && fromStart) {
-            currentRow = new Row1(counter.get());
-            fromStart = false;
-            return true;
-        }
-
-        currentRow = RowBridging.OFF_ROW;
-        return false;
-    }
-
-    @Override
-    public void close() {
-        closeWriterAndOutput();
-        source.close();
-    }
-
-    @Override
-    public CompletionStage<?> loadNextBatch() {
-        if (isLoading()) {
-            return CompletableFutures.failedFuture(new IllegalStateException("Iterator is already loading"));
-        }
-
-        if (allLoaded()) {
-            return CompletableFutures.failedFuture(new IllegalStateException("All batches already loaded"));
-        }
-        loading = new CompletableFuture();
-        try {
-            consumeSource();
-        } catch (Exception e) {
-            loading.completeExceptionally(e);
-        }
-        return loading;
-    }
-
-    private void consumeSource() {
-        while (source.moveNext()) {
-            consumeRow(sourceRow);
-        }
-
-        if (source.allLoaded()) {
-            loading.complete(counter.get());
-            return;
-        } else {
-            source.loadNextBatch().whenComplete((r, t) -> {
-                if (t == null) {
-                    consumeSource();
-                } else {
-                    loading.completeExceptionally(t);
-                }
-            });
-        }
-    }
-
-    private void consumeRow(Row row) {
+    private void onNextRow(AtomicLong container, Row row) {
         rowWriter.write(row);
-        counter.incrementAndGet();
+        container.incrementAndGet();
     }
 
     @Override
-    public boolean allLoaded() {
-        return loading != null;
+    public BinaryOperator<AtomicLong> combiner() {
+        return (state1, state2) -> {
+            throw new UnsupportedOperationException("combine not supported");
+        };
     }
 
-    private boolean isLoading() {
-        return loading != null && loading.isDone() == false;
+    @Override
+    public Function<AtomicLong, Iterable<Row>> finisher() {
+        return (container) -> {
+            closeWriterAndOutput();
+            return Collections.singletonList(new Row1(container.get()));
+        };
     }
 
-    private void raiseIfLoading() {
-        if (isLoading()) {
-            throw new IllegalStateException("Iterator is loading");
-        }
+    @Override
+    public Set<Characteristics> characteristics() {
+        return Collections.emptySet();
     }
 
     interface RowWriter {
