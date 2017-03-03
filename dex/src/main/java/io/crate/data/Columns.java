@@ -105,4 +105,8 @@ public interface Columns extends Iterable<Input<?>> {
     static Columns wrap(List<? extends Input<?>> listOfInputs) {
         return new ListBackedColumns(listOfInputs);
     }
+
+    static Columns of(Object[] cells) {
+        return ListBackedColumns.forArray(cells);
+    }
 }

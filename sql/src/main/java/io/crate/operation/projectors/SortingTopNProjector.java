@@ -22,10 +22,10 @@
 package io.crate.operation.projectors;
 
 import io.crate.data.BatchIteratorProjector;
-import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.operation.collect.CollectExpression;
+import io.crate.operation.projectors.ng.SortingTopNBIP;
 import io.crate.operation.projectors.sorting.RowPriorityQueue;
 
 import javax.annotation.Nullable;
@@ -39,6 +39,12 @@ public class SortingTopNProjector extends AbstractProjector {
     private final SortingTopNCollector collector;
     private final BiConsumer<RowPriorityQueue<Object[]>, Row> accumulator;
     private final RowPriorityQueue<Object[]> pq;
+    private final Collection<? extends Input<?>> inputs;
+    private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
+    private final int numOutputs;
+    private final Comparator<Object[]> ordering;
+    private final int limit;
+    private final int offset;
     private Set<Requirement> requirements;
     private volatile IterableRowEmitter rowEmitter = null;
 
@@ -56,6 +62,12 @@ public class SortingTopNProjector extends AbstractProjector {
                                 Comparator<Object[]> ordering,
                                 int limit,
                                 int offset) {
+        this.inputs = inputs;
+        this.collectExpressions = collectExpressions;
+        this.numOutputs = numOutputs;
+        this.ordering = ordering;
+        this.limit = limit;
+        this.offset = offset;
         collector = new SortingTopNCollector(
             inputs,
             collectExpressions,
@@ -106,6 +118,6 @@ public class SortingTopNProjector extends AbstractProjector {
     @Nullable
     @Override
     public BatchIteratorProjector asProjector() {
-        return bi -> CollectingBatchIterator.newInstance(bi, collector, collector.numOutputs());
+        return new SortingTopNBIP(inputs, collectExpressions, numOutputs, ordering, limit, offset);
     }
 }

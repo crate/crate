@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 /**
  * A BatchIterator implementation which always fully consumes another BatchIterator before it can generate it's result.
@@ -47,26 +46,6 @@ public class CollectingBatchIterator<A> implements BatchIterator {
     private Row currentRow = RowBridging.OFF_ROW;
     private Iterator<Row> it = Collections.emptyIterator();
     private CompletableFuture<? extends Iterable<Row>> resultFuture;
-
-    /**
-     * Create a BatchIterator which will consume the source, summing up the first column (must be of type long).
-     *
-     * <pre>
-     *     source BatchIterator:
-     *     [ 1, 2, 2, 1 ]
-     *
-     *     output:
-     *     [ 6 ]
-     * </pre>
-     */
-    public static BatchIterator summingLong(BatchIterator source) {
-        return newInstance(
-            source,
-            Collectors.collectingAndThen(
-                Collectors.summingLong((Row r) -> (long) r.get(0)), sum -> Collections.singletonList(new Row1(sum))),
-            1
-        );
-    }
 
     public static <A> BatchIterator newInstance(BatchIterator source, Collector<Row, A, ? extends Iterable<Row>> collector, int numCols) {
         return new CloseAssertingBatchIterator(new CollectingBatchIterator<>(source, collector, numCols));

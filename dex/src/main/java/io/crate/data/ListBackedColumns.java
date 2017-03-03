@@ -22,11 +22,48 @@
 
 package io.crate.data;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
-class ListBackedColumns implements Columns {
+public class ListBackedColumns implements Columns {
 
     private final List<? extends Input<?>> inputs;
+
+    public static Columns forArray(Object[] cells) {
+        List<Input<?>> inputs = new ArrayList<>(cells.length);
+        for (int i = 0; i < cells.length; i++) {
+            inputs.add(new InputAtIndex<Object>(i) {
+                @Override
+                public Object value() {
+                    return cells[idx];
+                }
+            });
+        }
+        return new ListBackedColumns(inputs);
+    }
+
+    /**
+     * Returns a function which returns a columns implementation wrapping the given supplier of an object array.
+     *
+     * @param numCols the number of columns
+     * @return a function object creating a Columns object
+     */
+    public static Function<Supplier<Object[]>, Columns> forArraySupplier(final int numCols) {
+        return (data) -> {
+            List<Input<?>> inputs = new ArrayList<>(numCols);
+            for (int i = 0; i < numCols; i++) {
+                inputs.add(new InputAtIndex<Object>(i) {
+                    @Override
+                    public Object value() {
+                        return data.get()[idx];
+                    }
+                });
+            }
+            return new ListBackedColumns(inputs);
+        };
+    }
 
     ListBackedColumns(List<? extends Input<?>> inputs) {
         this.inputs = inputs;
