@@ -31,7 +31,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.SingleColumnBatchIterator;
+import io.crate.testing.TestingBatchIterators;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -63,7 +63,7 @@ public class RowTransformingBatchIteratorTest extends CrateUnitTest {
     @Test
     public void testRowTransformingIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> new RowTransformingBatchIterator(SingleColumnBatchIterator.range(0, 10),
+            () -> new RowTransformingBatchIterator(TestingBatchIterators.range(0, 10),
                 inputs,
                 expressions),
             expectedResult

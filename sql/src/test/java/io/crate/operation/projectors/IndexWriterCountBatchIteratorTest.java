@@ -24,7 +24,10 @@ package io.crate.operation.projectors;
 
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.RowsBatchIterator;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
@@ -35,7 +38,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import io.crate.testing.BatchIteratorTester;
-import io.crate.testing.SingleColumnBatchIterator;
+import io.crate.testing.RowGenerator;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
@@ -46,7 +49,10 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -59,9 +65,9 @@ public class IndexWriterCountBatchIteratorTest extends SQLTransportIntegrationTe
     public void testIndexWriterIterator() throws Exception {
         execute("create table bulk_import (id int primary key) with (number_of_replicas=0)");
         ensureGreen();
-        BatchIterator source = SingleColumnBatchIterator.fromIterable(
+        BatchIterator source = RowsBatchIterator.newInstance(RowGenerator.fromSingleColValues(
             () -> IntStream.range(0, 10).mapToObj(i -> new BytesRef("{\"id\": " + i + "}")).iterator()
-        );
+        ), 1);
 
         Supplier<String> indexNameResolver = IndexNameResolver.forTable(new TableIdent(null, "bulk_import"));
         Input<?> sourceInput = new InputCollectExpression(0);
