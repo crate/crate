@@ -22,10 +22,6 @@
 
 package io.crate.data;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Supplier;
-
 /**
  * Helper functions to migrate between {@link Columns} based and {@link Row} based components.
  */
@@ -47,16 +43,6 @@ public class RowBridging {
             throw new IllegalStateException("Iterator is not on a row");
         }
     };
-
-    public static Columns toInputs(final Supplier<Row> rowSupplier, int numCols){
-        assert rowSupplier != null: "rowSupplier must not be null";
-        List<Input<?>> result = new ArrayList<>(numCols);
-        for (int i = 0; i < numCols; i++) {
-            int finalI = i;
-            result.add(() -> rowSupplier.get().get(finalI));
-        }
-        return Columns.wrap(result);
-    }
 
     public static Object[] materialize(Columns inputs){
         assert inputs != null: "inputs must not be null";

@@ -23,13 +23,13 @@ package io.crate.operation.collect.sources;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.data.Columns;
 import io.crate.data.Row;
 import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.InputFactory;
+import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
@@ -68,6 +68,6 @@ public class SingleRowSource implements CollectSource {
 
         InputFactory inputFactory = new InputFactory(functions);
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(collectPhase.toCollect());
-        return Collections.singletonList(RowsCollector.single(Columns.wrap(ctx.topLevelInputs()), downstream));
+        return Collections.singletonList(RowsCollector.single(new InputRow(ctx.topLevelInputs()), downstream));
     }
 }

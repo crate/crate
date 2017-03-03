@@ -55,7 +55,6 @@ import static io.crate.data.RowBridging.OFF_ROW;
  */
 public class NodeStatsIterator implements BatchIterator {
 
-    private Row currentRow = OFF_ROW;
     private final TransportNodeStatsAction transportStatTablesAction;
     private final RoutedCollectPhase collectPhase;
     private final Collection<DiscoveryNode> nodes;
@@ -63,7 +62,7 @@ public class NodeStatsIterator implements BatchIterator {
     private CompletableFuture<Iterable<Row>> loading;
     private Iterable<Row> rows = Collections.emptyList();
     private Iterator<Row> it = rows.iterator();
-    private final Columns rowData;
+    private final RowColumns rowData;
 
     private NodeStatsIterator(TransportNodeStatsAction transportStatTablesAction,
                               RoutedCollectPhase collectPhase,
@@ -73,8 +72,7 @@ public class NodeStatsIterator implements BatchIterator {
         this.collectPhase = collectPhase;
         this.nodes = nodes;
         this.inputFactory = inputFactory;
-
-        rowData = RowBridging.toInputs(() -> currentRow, this.collectPhase.toCollect().size());
+        rowData = new RowColumns(collectPhase.toCollect().size());
     }
 
     public static BatchIterator newInstance(TransportNodeStatsAction transportStatTablesAction,
@@ -163,17 +161,17 @@ public class NodeStatsIterator implements BatchIterator {
     public void moveToStart() {
         raiseIfLoading();
         it = rows.iterator();
-        currentRow = OFF_ROW;
+        rowData.updateRef(OFF_ROW);
     }
 
     @Override
     public boolean moveNext() {
         raiseIfLoading();
         if (it.hasNext()) {
-            currentRow = it.next();
+            rowData.updateRef(it.next());
             return true;
         }
-        currentRow = OFF_ROW;
+        rowData.updateRef(OFF_ROW);
         return false;
     }
 
