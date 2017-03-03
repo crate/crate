@@ -27,17 +27,22 @@
 package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.internal.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Objects;
 
-public class FunctionArgumentDefinition implements Streamable {
+public class FunctionArgumentDefinition implements Streamable, ToXContent {
 
     private String name;
     private DataType type;
@@ -104,5 +109,37 @@ public class FunctionArgumentDefinition implements Streamable {
         return MoreObjects.toStringHelper(this)
             .add("name", name)
             .add("type", type).toString();
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        builder.startObject();
+        builder.field("name", name);
+        builder.field("data_type");
+        DataTypes.toXContent(type, builder, params);
+        builder.endObject();
+        return builder;
+    }
+
+    public static FunctionArgumentDefinition fromXContent(XContentParser parser) throws IOException {
+        if (parser.nextToken() != XContentParser.Token.FIELD_NAME || !"name".equals(parser.currentName())) {
+            throw new IllegalStateException("Can't parse FunctionArgument from XContent, expected name field");
+        }
+        String name = parseStringField(parser);
+        if (parser.nextToken() != XContentParser.Token.FIELD_NAME || !"data_type".equals(parser.currentName())) {
+            throw new IllegalStateException("Can't parse FunctionArgument from XContent, expected data_type field");
+        }
+        DataType type = DataTypes.fromXContent(parser);
+        parser.nextToken();
+        return new FunctionArgumentDefinition(name, type);
+    }
+
+    private static String parseStringField(XContentParser parser) throws IOException {
+        if (parser.nextToken() != XContentParser.Token.VALUE_STRING && parser.currentToken() != XContentParser.Token.VALUE_NULL) {
+            throw new UnhandledServerException(
+                String.format(Locale.ENGLISH, "failed to parse function")
+            );
+        }
+        return parser.textOrNull();
     }
 }
