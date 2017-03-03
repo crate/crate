@@ -24,6 +24,8 @@ package io.crate.types;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.xcontent.*;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -49,5 +51,18 @@ public class ArrayTypeTest extends CrateUnitTest {
         ArrayType readInnerArrayType = (ArrayType) readArrayType.innerType();
         assertThat(readInnerArrayType.innerType(), instanceOf(StringType.class));
         assertSame(readInnerArrayType.innerType(), StringType.INSTANCE);
+    }
+
+    @Test
+    public void testArrayTypeStreaming() throws Exception {
+        ArrayType type = new ArrayType(new ArrayType(StringType.INSTANCE));
+        XContentBuilder builder = XContentFactory.jsonBuilder();
+
+        DataTypes.toXContent(type, builder, ToXContent.EMPTY_PARAMS);
+        System.out.println(XContentHelper.convertToJson(builder.bytes(), true, true));
+        XContentParser parser = JsonXContent.jsonXContent.createParser(builder.bytes());
+
+        ArrayType type2 = (ArrayType)DataTypes.fromXContent(parser);
+        assertTrue(type.equals(type2));
     }
 }

@@ -24,6 +24,8 @@ package io.crate.types;
 import io.crate.Streamer;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.*;
@@ -114,6 +116,20 @@ public class SetType extends DataType implements CollectionType, Streamer<Set> {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         DataTypes.toStream(innerType, out);
+    }
+
+    @Override
+    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        builder.field("inner_type", DataTypes.toXContent(innerType, builder, params));
+        return builder;
+    }
+
+    @Override
+    public void fromXContent(XContentParser parser) throws IOException {
+        if (parser.nextToken() != XContentParser.Token.FIELD_NAME || !"inner_type".equals(parser.currentName())) {
+            throw new IllegalStateException("Can't parse DataType form XContent");
+        }
+        innerType = DataTypes.fromXContent(parser);
     }
 
     @Override
