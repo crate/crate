@@ -48,10 +48,9 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
     private final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor;
     private final BatchIterator source;
-    private final Columns rowData;
+    private final RowColumns rowData;
     private final Row sourceRow;
     private CompletableFuture<BitSet> loading;
-    private Row currentRow = RowBridging.OFF_ROW;
     private  BitSet result;
     private boolean fromStart = true;
 
@@ -68,7 +67,7 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
         this.bulkShardProcessor = bulkShardProcessor;
         this.source = source;
         this.sourceRow = RowBridging.toRow(source.rowData());
-        this.rowData = RowBridging.toInputs(() -> currentRow, 1);
+        this.rowData = new RowColumns(1);
     }
 
     public static BatchIterator newInstance(BatchIterator source, Supplier<String> indexNameResolver,
@@ -89,7 +88,7 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
     @Override
     public void moveToStart() {
         raiseIfLoading();
-        currentRow = RowBridging.OFF_ROW;
+        rowData.updateRef(RowBridging.OFF_ROW);
         fromStart = true;
     }
 
@@ -100,14 +99,14 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
         }
         raiseIfLoading();
 
-        if (currentRow.equals(RowBridging.OFF_ROW) && fromStart) {
+        if (fromStart) {
             long rowCount = result == null ? 0 : result.cardinality();
-            currentRow = new Row1(rowCount);
+            rowData.updateRef(new Row1(rowCount));
             fromStart = false;
             return true;
         }
 
-        currentRow = RowBridging.OFF_ROW;
+        rowData.updateRef(RowBridging.OFF_ROW);
         return false;
     }
 
