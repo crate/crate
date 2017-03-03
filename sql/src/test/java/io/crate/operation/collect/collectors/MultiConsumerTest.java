@@ -24,7 +24,7 @@ package io.crate.operation.collect.collectors;
 
 import io.crate.data.CollectionBucket;
 import io.crate.testing.CollectingBatchConsumer;
-import io.crate.testing.SingleColumnBatchIterator;
+import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
@@ -40,8 +40,8 @@ public class MultiConsumerTest {
         CollectingBatchConsumer batchConsumer = new CollectingBatchConsumer();
         CompositeCollector.MultiConsumer consumer = new CompositeCollector.MultiConsumer(2, batchConsumer);
 
-        consumer.accept(SingleColumnBatchIterator.range(3, 6), null);
-        consumer.accept(SingleColumnBatchIterator.range(0, 3), null);
+        consumer.accept(TestingBatchIterators.range(3, 6), null);
+        consumer.accept(TestingBatchIterators.range(0, 3), null);
 
         List<Object[]> result = batchConsumer.getResult();
         assertThat(TestingHelpers.printedTable(new CollectionBucket(result)),

@@ -24,7 +24,7 @@ package io.crate.data;
 
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.SingleColumnBatchIterator;
+import io.crate.testing.TestingBatchIterators;
 import org.junit.Test;
 
 import java.util.List;
@@ -41,7 +41,7 @@ public class SkippingBatchIteratorTest {
     @Test
     public void testSkippingBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> new SkippingBatchIterator(SingleColumnBatchIterator.range(0, 10), offset),
+            () -> new SkippingBatchIterator(TestingBatchIterators.range(0, 10), offset),
             expectedResult
         );
         tester.run();
@@ -51,7 +51,7 @@ public class SkippingBatchIteratorTest {
     public void testSkippingBatchIteratorWithBatchedSource() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> {
-                BatchIterator source = SingleColumnBatchIterator.range(0, 10);
+                BatchIterator source = TestingBatchIterators.range(0, 10);
                 source = new CloseAssertingBatchIterator(new BatchSimulatingIterator(source, 2, 5, null));
                 return new SkippingBatchIterator(source, offset);
             },
