@@ -35,8 +35,8 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.concurrent.CompletableFuture;
 
@@ -50,7 +50,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
     private static final String STMT = "select schema_name || '.' || table_name, min_lucene_version " +
                                        "from sys.shards where min_lucene_version <> '" +
                                        org.apache.lucene.util.Version.LATEST.toString() + "' " +
-                                       "AND (? = [] OR schema_name || '.' || table_name != ANY (?)) " +
+                                       "AND (NOT schema_name || '.' || table_name = ANY (?)) " +
                                        "order by 1";
     private static final int LIMIT = 50_000;
     private static final String PREP_STMT_NAME = "tables_need_recrate_syscheck";
@@ -88,7 +88,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
         final CompletableFuture<Collection<String>> result = new CompletableFuture<>();
         Object[] sqlParam = tablesNeedRecreation.toArray(new String[]{});
         try {
-            sqlDirectExecutor.execute(new SycCheckResultReceiver(result), Arrays.asList(sqlParam, sqlParam));
+            sqlDirectExecutor.execute(new SycCheckResultReceiver(result), Collections.singletonList(sqlParam));
         } catch (Throwable t) {
             result.completeExceptionally(t);
         }

@@ -80,6 +80,25 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    public void testUpgradeAndRecreationRequired() throws Exception {
+        startUpNodeWithDataDir("/indices/cluster_checks/cratedata_upgrade_and_recreate_required.zip");
+        execute("select * from sys.checks where passed = false order by id");
+        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rows()[0][1], is(TablesNeedRecreationSysCheck.ID));
+        assertThat(response.rows()[0][3], is(SysCheck.Severity.MEDIUM.value()));
+        assertThat(response.rows()[0][0],
+            is(TablesNeedRecreationSysCheck.DESCRIPTION +
+               "[doc.test_recreation_required, doc.test_recreation_required_parted] " +
+               LINK_PATTERN + TablesNeedRecreationSysCheck.ID));
+        assertThat(response.rows()[1][1], is(TablesNeedUpgradeSysCheck.ID));
+        assertThat(response.rows()[1][3], is(SysCheck.Severity.MEDIUM.value()));
+        assertThat(response.rows()[1][0],
+            is(TablesNeedUpgradeSysCheck.DESCRIPTION +
+               "[doc.test_upgrade_required, doc.test_upgrade_required_parted] " +
+               LINK_PATTERN + TablesNeedUpgradeSysCheck.ID));
+    }
+
+    @Test
     public void testAlreadyUpgraded() throws Exception {
         startUpNodeWithDataDir("/indices/cluster_checks/cratedata_already_upgraded.zip");
         execute("select * from sys.checks where passed = false");
