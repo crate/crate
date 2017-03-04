@@ -47,7 +47,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
@@ -58,7 +57,7 @@ import java.util.stream.Collector;
  * Collector implementation which writes the rows to the configured {@link Output}
  * and returns a count representing the number of written rows
  */
-public class FileWriterCountCollector implements Collector<Row, AtomicLong, Iterable<Row>> {
+public class FileWriterCountCollector implements Collector<Row, long[], Iterable<Row>> {
 
     private static final byte NEW_LINE = (byte) '\n';
 
@@ -169,32 +168,32 @@ public class FileWriterCountCollector implements Collector<Row, AtomicLong, Iter
     }
 
     @Override
-    public Supplier<AtomicLong> supplier() {
-        return () -> new AtomicLong(0);
+    public Supplier<long[]> supplier() {
+        return () -> new long[1];
     }
 
     @Override
-    public BiConsumer<AtomicLong, Row> accumulator() {
+    public BiConsumer<long[], Row> accumulator() {
         return this::onNextRow;
     }
 
-    private void onNextRow(AtomicLong container, Row row) {
+    private void onNextRow(long[] container, Row row) {
         rowWriter.write(row);
-        container.incrementAndGet();
+        container[0] += 1;
     }
 
     @Override
-    public BinaryOperator<AtomicLong> combiner() {
+    public BinaryOperator<long[]> combiner() {
         return (state1, state2) -> {
             throw new UnsupportedOperationException("combine not supported");
         };
     }
 
     @Override
-    public Function<AtomicLong, Iterable<Row>> finisher() {
+    public Function<long[], Iterable<Row>> finisher() {
         return (container) -> {
             closeWriterAndOutput();
-            return Collections.singletonList(new Row1(container.get()));
+            return Collections.singletonList(new Row1(container[0]));
         };
     }
 
