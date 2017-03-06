@@ -8,6 +8,7 @@ configurations {
 dependencies {
     compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
     compile "com.google.guava:guava:${versions.guava}"
+    compile "org.apache.lucene:lucene-core:${versions.lucene}"
     compile project(':shared')
 
     testCompile "junit:junit:${versions.junit}"
