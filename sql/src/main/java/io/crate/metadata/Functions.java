@@ -31,26 +31,40 @@ import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 public class Functions {
 
     private final Map<String, FunctionResolver> functionResolvers;
+    private final AtomicReference< Map<String, FunctionResolver>> udfFunctionResolvers = new AtomicReference<>();
 
     @Inject
     public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
                      Map<String, FunctionResolver> functionResolvers) {
         this.functionResolvers = Maps.newHashMap(functionResolvers);
-        generateFunctionResolvers(functionImplementations);
+        this.functionResolvers.putAll(generateFunctionResolvers(functionImplementations));
+        udfFunctionResolvers.set(new HashMap<>());
     }
 
-    private void generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
+    public Map<String, FunctionResolver> generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
+        Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> signatures = getSignatures(functionImplementations);
+        return signatures.keys().stream()
+            .distinct()
+            .collect(Collectors.toMap(name -> name, name -> new GeneratedFunctionResolver(signatures.get(name))));
+    }
+
+    private Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> getSignatures(
+        Map<FunctionIdent, FunctionImplementation> functionImplementations) {
         Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> signatureMap = ArrayListMultimap.create();
         for (Map.Entry<FunctionIdent, FunctionImplementation> entry : functionImplementations.entrySet()) {
             signatureMap.put(entry.getKey().name(), new Tuple<>(entry.getKey(), entry.getValue()));
         }
-        for (String name : signatureMap.keys()) {
-            functionResolvers.put(name, new GeneratedFunctionResolver(signatureMap.get(name)));
-        }
+        return signatureMap;
+    }
+
+    public void registerSchemaFunctionResolvers(Map<String, FunctionResolver> resolvers) {
+        udfFunctionResolvers.set(resolvers);
     }
 
     /**
@@ -88,12 +102,23 @@ public class Functions {
      */
     @Nullable
     public FunctionImplementation get(FunctionIdent ident) throws IllegalArgumentException {
-        FunctionResolver dynamicResolver = functionResolvers.get(ident.name());
-        if (dynamicResolver != null) {
-            List<DataType> argumentTypes = ident.argumentTypes();
-            List<DataType> signature = dynamicResolver.getSignature(argumentTypes);
+        List<DataType> argTypes = ident.argumentTypes();
+        String name = ident.name();
+
+        FunctionImplementation function = resolveFunctionForArgumentTypes(argTypes, functionResolvers.get(name));
+        if (function != null) {
+            return function;
+        }
+
+        // fallback to user-defined functions
+        return resolveFunctionForArgumentTypes(argTypes, udfFunctionResolvers.get().get(name));
+    }
+
+    private FunctionImplementation resolveFunctionForArgumentTypes(List<DataType> types, FunctionResolver resolver) {
+        if (resolver != null) {
+            List<DataType> signature = resolver.getSignature(types);
             if (signature != null) {
-                return dynamicResolver.getForTypes(signature);
+                return resolver.getForTypes(signature);
             }
         }
         return null;

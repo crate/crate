@@ -89,7 +89,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         tableSources = ImmutableMap.of(new QualifiedName("users"), tableRelation);
         sqlExpressions = new SqlExpressions(tableSources);
-        functions = sqlExpressions.getInstance(Functions.class);
+        functions = sqlExpressions.functions();
     }
 
     /**

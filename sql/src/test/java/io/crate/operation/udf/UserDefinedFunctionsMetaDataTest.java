@@ -24,13 +24,12 @@ package io.crate.operation.udf;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.StringType;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.*;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
@@ -40,16 +39,15 @@ import static org.hamcrest.core.Is.is;
 
 public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
 
-    private final String functionBody = "function(a, b) {return a - b;}";
+    private final String definition = "function(a, b) {return a - b;}";
     private final UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
-        "custom",
         "my_add",
         ImmutableList.of(FunctionArgumentDefinition.of(DataTypes.DOUBLE_ARRAY),
             FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
         ),
         DataTypes.FLOAT,
         "javascript",
-        functionBody
+        definition
     );
 
     @Test
@@ -61,15 +59,14 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         UserDefinedFunctionMetaData udfMeta2 = UserDefinedFunctionMetaData.fromStream(in);
         assertThat(udfMeta, is(udfMeta2));
 
-        assertThat(udfMeta2.schema(), is("custom"));
         assertThat(udfMeta2.name(), is("my_add"));
         assertThat(udfMeta2.arguments().size(), is(2));
         assertThat(udfMeta2.arguments().get(1), is(
             FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
         ));
         assertThat(udfMeta2.returnType, is(DataTypes.FLOAT));
-        assertThat(udfMeta2.functionLanguage, is("javascript"));
-        assertThat(udfMeta2.functionBody, is(functionBody));
+        assertThat(udfMeta2.language, is("javascript"));
+        assertThat(udfMeta2.definition, is(definition));
     }
 
     @Test
@@ -106,5 +103,15 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         UserDefinedFunctionsMetaData functions2 =
             (UserDefinedFunctionsMetaData) UserDefinedFunctionsMetaData.of().fromXContent(parser);
         assertEquals(functions, functions2);
+    }
+
+    @Test
+    public void testDataTypeStreaming() throws Exception {
+        ArrayType type = new ArrayType(new ArrayType(StringType.INSTANCE));
+        XContentBuilder builder = XContentFactory.jsonBuilder();
+        UserDefinedFunctionMetaData.DataTypeXContent.toXContent(type, builder, ToXContent.EMPTY_PARAMS);
+        XContentParser parser = JsonXContent.jsonXContent.createParser(builder.bytes());
+        ArrayType type2 = (ArrayType) UserDefinedFunctionMetaData.DataTypeXContent.fromXContent(parser);
+        assertTrue(type.equals(type2));
     }
 }

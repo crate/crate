@@ -33,9 +33,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.*;
@@ -170,25 +167,6 @@ public final class DataTypes {
         type.writeTo(out);
     }
 
-    public static XContentBuilder toXContent(DataType type, XContentBuilder builder, ToXContent.Params params) throws IOException {
-        builder.startObject().field("id", type.id());
-        type.toXContent(builder, params);
-        builder.endObject();
-        return builder;
-    }
-
-    public static DataType fromXContent(XContentParser parser) throws IOException {
-        XContentParser.Token token;
-        DataType type = null;
-        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
-            if (token == XContentParser.Token.VALUE_NUMBER) {
-                type = TYPE_REGISTRY.get(parser.intValue()).create();
-                type.fromXContent(parser);
-            }
-        }
-        return type;
-    }
-
     private static final Map<Class<?>, DataType> POJO_TYPE_MAPPING = ImmutableMap.<Class<?>, DataType>builder()
         .put(Double.class, DOUBLE)
         .put(Float.class, FLOAT)
@@ -321,6 +299,10 @@ public final class DataTypes {
      */
     public static DataType tryFindNotNullType(Iterable<? extends DataType> dataTypes) {
         return Iterables.find(dataTypes, input -> input != UNDEFINED, UNDEFINED);
+    }
+
+    public static DataType fromId(Integer id) {
+        return TYPE_REGISTRY.get(id).create();
     }
 
 }
