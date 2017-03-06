@@ -46,6 +46,7 @@ import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateReque
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.cluster.routing.Murmur3HashFunction;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -55,6 +56,9 @@ import java.io.IOException;
 import java.util.*;
 
 public class DocIndexMetaData {
+
+    public static final String SETTING_ROUTING_HASH_FUNCTION = "routing_hash_function";
+    public static final String DEFAULT_ROUTING_HASH_FUNCTION = Murmur3HashFunction.class.getName();
 
     private static final String ID = "_id";
     private final IndexMetaData metaData;
@@ -126,6 +130,19 @@ public class DocIndexMetaData {
         } else {
             supportedOperations = Operation.buildFromIndexSettings(metaData.getSettings());
         }
+    }
+
+    private static Map<String, Object> getMappingMap(IndexMetaData metaData) throws IOException {
+        MappingMetaData mappingMetaData = metaData.mappingOrDefault(Constants.DEFAULT_MAPPING_TYPE);
+        if (mappingMetaData == null) {
+            return ImmutableMap.of();
+        } else {
+            return mappingMetaData.sourceAsMap();
+        }
+    }
+
+    static String getRoutingHashFunctionType(Map<String, Object> mappingMap) {
+        return getNested(getNested(mappingMap, "_meta", null), SETTING_ROUTING_HASH_FUNCTION, null);
     }
 
     @SuppressWarnings("unchecked")
