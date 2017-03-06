@@ -365,6 +365,17 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t (pk_col, message) values (?, ?)", args);
     }
 
+//    @Test
+//    public void testInsertWithNotNullConstraintNoValue() throws Exception {
+//        execute("create table t (pk_col int primary key, message string not null)");
+//        ensureYellow();
+//
+//        expectedException.expect(SQLActionException.class);
+//        expectedException.expectMessage("SQLParseException: Cannot insert null value for column message");
+//        Object[] args = new Object[]{"1"};
+//        execute("insert into t (pk_col) values (?)", args);
+//    }
+
     @Test
     public void testInsertWithUniqueConstraintViolation() throws Exception {
         this.setup.createTestTableWithPrimaryKey();

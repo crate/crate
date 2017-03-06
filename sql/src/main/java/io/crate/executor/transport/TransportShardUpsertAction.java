@@ -127,11 +127,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.shardSafe(shardId.id());
 
-        Collection<ColumnIdent> notUsedNonGeneratedColumns = ImmutableList.of();
-        if (request.validateConstraints()) {
-            notUsedNonGeneratedColumns = getNotUsedNonGeneratedColumns(request.insertColumns(), tableInfo);
-        }
-
         Translog.Location translogLocation = null;
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
@@ -150,7 +145,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     item,
                     indexShard,
                     item.insertValues() != null, // try insert first
-                    notUsedNonGeneratedColumns,
                     0);
                 shardResponse.add(location);
             } catch (Throwable t) {
@@ -202,14 +196,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                           ShardUpsertRequest.Item item,
                                           IndexShard indexShard,
                                           boolean tryInsertFirst,
-                                          Collection<ColumnIdent> notUsedNonGeneratedColumns,
                                           int retryCount) throws Throwable {
         try {
             long version = item.version();
             if (tryInsertFirst) {
                 // try insert first without fetching the document
                 try {
-                    item.source(prepareInsert(tableInfo, notUsedNonGeneratedColumns, request, item));
+                    item.source(prepareInsert(tableInfo, request, item));
                 } catch (IOException e) {
                     throw ExceptionsHelper.convertToElastic(e);
                 }
@@ -231,14 +224,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     logger.trace("[{}] VersionConflict, retrying operation for document id {}, retry count: {}",
                         indexShard.shardId(), item.id(), retryCount);
                 }
-                return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns,
-                    retryCount + 1);
+                return indexItem(tableInfo, request, item, indexShard, false, retryCount + 1);
             }
             throw e;
         } catch (DocumentAlreadyExistsException e) {
             if (tryInsertFirst && item.updateAssignments() != null) {
                 // insert failed, document already exists, try update
-                return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns, 0);
+                return indexItem(tableInfo, request, item, indexShard, false, 0);
             }
             throw e;
         }
@@ -329,7 +321,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     private BytesReference prepareInsert(DocTableInfo tableInfo,
-                                         Collection<ColumnIdent> notUsedNonGeneratedColumns,
                                          ShardUpsertRequest request,
                                          ShardUpsertRequest.Item item) throws IOException {
         List<GeneratedReference> generatedReferencesWithValue = new ArrayList<>();
@@ -339,12 +330,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             source = new BytesArray((BytesRef) item.insertValues()[0]);
         } else {
             XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
-
-            // For direct inserts it is enough to have constraints validation on a handler.
-            // validateConstraints() of ShardUpsertRequest should result in false in this case.
-            if (request.validateConstraints()) {
-                ConstraintsValidator.validateConstraintsForNotUsedColumns(notUsedNonGeneratedColumns, tableInfo);
-            }
 
             for (int i = 0; i < item.insertValues().length; i++) {
                 Object value = item.insertValues()[i];
@@ -607,27 +592,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 source.put(key, changesEntry.getValue());
             }
         }
-    }
-
-    public static Collection<ColumnIdent> getNotUsedNonGeneratedColumns(Reference[] targetColumns,
-                                                                        DocTableInfo tableInfo) {
-        Set<String> targetColumnsSet = new HashSet<>();
-        Collection<ColumnIdent> columnsNotUsed = new ArrayList<>();
-
-        if (targetColumns != null) {
-            for (Reference targetColumn : targetColumns) {
-                targetColumnsSet.add(targetColumn.ident().columnIdent().fqn());
-            }
-        }
-
-        for (Reference reference : tableInfo.columns()) {
-            if (!(reference instanceof GeneratedReference) && !reference.isNullable()) {
-                if (!targetColumnsSet.contains(reference.ident().columnIdent().fqn())) {
-                    columnsNotUsed.add(reference.ident().columnIdent());
-                }
-            }
-        }
-        return columnsNotUsed;
     }
 
     private static class SymbolToFieldExtractorContext extends SymbolToFieldExtractor.Context {
