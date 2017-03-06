@@ -24,6 +24,8 @@ package io.crate.operation.projectors;
 import com.google.common.base.MoreObjects;
 import io.crate.analyze.symbol.Assignments;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.BatchIteratorProjector;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
@@ -31,7 +33,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.data.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
@@ -59,7 +60,6 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
     private final InputRow insertValues;
     private BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor;
     private final AtomicBoolean failed = new AtomicBoolean(false);
-
 
     protected ColumnIndexWriterProjector(ClusterService clusterService,
                                          Functions functions,
@@ -115,6 +115,14 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
             transportActionProvider.transportShardUpsertAction()::execute,
             jobId
         );
+    }
+
+    @Override
+    public BatchIteratorProjector asProjector() {
+        Supplier<ShardUpsertRequest.Item> updateItemSupplier = () -> new ShardUpsertRequest.Item(
+            rowShardResolver.id(), assignments, insertValues.materialize(), null);
+        return it -> IndexWriterCountBatchIterator.newInstance(it, indexNameResolver,
+            collectExpressions, rowShardResolver, bulkShardProcessor, updateItemSupplier);
     }
 
     @Override
