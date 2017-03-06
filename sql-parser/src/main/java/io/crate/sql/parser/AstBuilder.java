@@ -348,7 +348,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new DropFunction(
             functionName,
             context.EXISTS() != null,
-            visit(context.dataType(), ColumnType.class));
+            visit(context.functionArgument(), FunctionArgument.class));
     }
 
     // Column / Table definition
