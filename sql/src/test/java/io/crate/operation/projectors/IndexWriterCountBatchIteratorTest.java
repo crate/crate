@@ -78,9 +78,12 @@ public class IndexWriterCountBatchIteratorTest extends SQLTransportIntegrationTe
         RowShardResolver rowShardResolver = getRowShardResolver();
         BulkShardProcessor bulkShardProcessor = getBulkShardProcessor();
 
+        Supplier<ShardUpsertRequest.Item> updateItemSupplier = () -> new ShardUpsertRequest.Item(
+            rowShardResolver.id(), null, new Object[]{sourceInput.value()}, null);
+
         BatchIteratorTester tester = new BatchIteratorTester(() ->
-            IndexWriterCountBatchIterator.newInstance(sourceSupplier.get(), indexNameResolver, (Input<BytesRef>) sourceInput,
-                collectExpressions, rowShardResolver, bulkShardProcessor),
+            IndexWriterCountBatchIterator.newInstance(sourceSupplier.get(), indexNameResolver, collectExpressions,
+                rowShardResolver, bulkShardProcessor, updateItemSupplier),
             Collections.singletonList(new Object[]{10L}));
         tester.run();
     }
