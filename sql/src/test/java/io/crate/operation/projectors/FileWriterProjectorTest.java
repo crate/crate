@@ -24,12 +24,13 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.data.BatchIterator;
+import io.crate.data.RowsBatchIterator;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.projection.WriterProjection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingBatchConsumer;
-import io.crate.testing.SingleColumnBatchIterator;
+import io.crate.testing.RowGenerator;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Rule;
@@ -45,6 +46,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.core.Is.is;
@@ -56,11 +58,10 @@ public class FileWriterProjectorTest extends CrateUnitTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    Supplier<BatchIterator> sourceSupplier = () -> SingleColumnBatchIterator.fromIterable(
-        () -> IntStream.range(0, 5)
+    Supplier<BatchIterator> sourceSupplier = () -> RowsBatchIterator.newInstance(RowGenerator.fromSingleColValues(
+        IntStream.range(0, 5)
             .mapToObj(i -> new BytesRef(String.format(Locale.ENGLISH, "input line %02d", i)))
-            .iterator()
-    );
+            .collect(Collectors.toList())), 1);
 
     @Test
     public void testToNestedStringObjectMap() throws Exception {
