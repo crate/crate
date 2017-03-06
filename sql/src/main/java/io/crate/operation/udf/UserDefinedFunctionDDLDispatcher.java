@@ -24,7 +24,6 @@ package io.crate.operation.udf;
 import io.crate.analyze.CreateFunctionAnalyzedStatement;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
-import io.crate.executor.transport.TransportActionProvider;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -34,11 +33,11 @@ import java.util.concurrent.CompletableFuture;
 @Singleton
 public class UserDefinedFunctionDDLDispatcher {
 
-    private final TransportActionProvider transportActionProvider;
+    private final TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction;
 
     @Inject
-    public UserDefinedFunctionDDLDispatcher(TransportActionProvider transportActionProvider) {
-        this.transportActionProvider = transportActionProvider;
+    public UserDefinedFunctionDDLDispatcher(TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction) {
+        this.createUserDefinedFunctionAction = createUserDefinedFunctionAction;
     }
 
     public CompletableFuture<Long> dispatch(final CreateFunctionAnalyzedStatement statement, Row params) {
@@ -51,7 +50,7 @@ public class UserDefinedFunctionDDLDispatcher {
             ExpressionToStringVisitor.convert(statement.definition(), params)
         );
         CreateUserDefinedFunctionRequest request = new CreateUserDefinedFunctionRequest(metaData, statement.replace());
-        transportActionProvider.transportCreateUserDefinedFunctionAction().execute(
+        createUserDefinedFunctionAction.execute(
             request,
             new ActionListener<CreateUserDefinedFunctionResponse>() {
                 @Override

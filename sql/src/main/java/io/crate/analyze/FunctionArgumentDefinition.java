@@ -28,6 +28,8 @@ package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.sql.tree.FunctionArgument;
+import io.crate.operation.udf.UserDefinedFunctionMetaData;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.internal.Nullable;
@@ -39,8 +41,9 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.Locale;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class FunctionArgumentDefinition implements Streamable, ToXContent {
 
@@ -69,16 +72,16 @@ public class FunctionArgumentDefinition implements Streamable, ToXContent {
         return argumentDefinition;
     }
 
-    public void name(String name) {
-        this.name = name;
-    }
-
-    public void type(DataType type) {
-        this.type = type;
+    public static List<FunctionArgumentDefinition> toFunctionArgumentDefinitions(List<FunctionArgument> arguments) {
+        return arguments.stream()
+            .map(arg -> FunctionArgumentDefinition.of(
+                arg.name().orElse(null),
+                DataTypeAnalyzer.convert(arg.type())))
+            .collect(Collectors.toList());
     }
 
     public DataType type() {
-        return this.type;
+        return type;
     }
 
     @Override
@@ -118,7 +121,7 @@ public class FunctionArgumentDefinition implements Streamable, ToXContent {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject().field("name", name).field("data_type");
-        DataTypes.toXContent(type, builder, params);
+        UserDefinedFunctionMetaData.DataTypeXContent.toXContent(type, builder, params);
         builder.endObject();
         return builder;
     }
@@ -131,16 +134,14 @@ public class FunctionArgumentDefinition implements Streamable, ToXContent {
         if (parser.nextToken() != XContentParser.Token.FIELD_NAME || !"data_type".equals(parser.currentName())) {
             throw new IllegalStateException("Can't parse FunctionArgument from XContent, expected data_type field");
         }
-        DataType type = DataTypes.fromXContent(parser);
+        DataType type = UserDefinedFunctionMetaData.DataTypeXContent.fromXContent(parser);
         parser.nextToken();
         return new FunctionArgumentDefinition(name, type);
     }
 
     private static String parseStringField(XContentParser parser) throws IOException {
         if (parser.nextToken() != XContentParser.Token.VALUE_STRING && parser.currentToken() != XContentParser.Token.VALUE_NULL) {
-            throw new UnhandledServerException(
-                String.format(Locale.ENGLISH, "failed to parse function")
-            );
+            throw new UnhandledServerException("failed to parse function");
         }
         return parser.textOrNull();
     }

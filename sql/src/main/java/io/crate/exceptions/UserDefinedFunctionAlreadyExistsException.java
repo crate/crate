@@ -22,8 +22,6 @@
 
 package io.crate.exceptions;
 
-import com.google.common.base.Joiner;
-import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.operation.udf.UserDefinedFunctionMetaData;
 import io.crate.types.DataType;
 

@@ -26,6 +26,7 @@
 
 package io.crate.operation.udf;
 
+import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 
@@ -33,24 +34,20 @@ import javax.script.Compilable;
 import javax.script.CompiledScript;
 import javax.script.ScriptException;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
 public class UserDefinedFunctionFactory {
 
-    public static FunctionImplementation of(UserDefinedFunctionMetaData meta) {
+    public static FunctionImplementation of(UserDefinedFunctionMetaData meta) throws ScriptException {
         switch (meta.language.toLowerCase(Locale.ENGLISH)) {
             case "javascript":
-                try {
-                    CompiledScript compiledScript = ((Compilable) JavaScriptUserDefinedFunction.ENGINE)
-                        .compile(meta.definition);
-                    return new JavaScriptUserDefinedFunction(
-                        new FunctionIdent(meta.name(), meta.argumentDataTypes()),
-                        meta.returnType,
-                        compiledScript
-                    );
-                } catch (ScriptException e) {
-                    throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Cannot compile the script. [%s]", e));
-                }
+                CompiledScript compiledScript = ((Compilable) JavaScriptUserDefinedFunction.ENGINE)
+                    .compile(meta.definition);
+                return new JavaScriptUserDefinedFunction(
+                    new FunctionIdent(meta.name(), meta.argumentTypes()),
+                    meta.returnType,
+                    compiledScript
+                );
             default:
                 throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH, "[%s] language is not supported.", meta.language));

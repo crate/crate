@@ -26,12 +26,9 @@
 
 package io.crate.operation.udf;
 
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequestBuilder;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.ValidateActions;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
-import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -79,18 +76,5 @@ public class CreateUserDefinedFunctionRequest extends MasterNodeRequest<CreateUs
         super.writeTo(out);
         userDefinedFunctionMetaData.writeTo(out);
         out.writeBoolean(replace);
-    }
-
-    static class RequestBuilder extends ActionRequestBuilder<CreateUserDefinedFunctionRequest,
-        CreateUserDefinedFunctionResponse, RequestBuilder> {
-
-        RequestBuilder(ElasticsearchClient client, CreateUserDefinedFunctionAction action) {
-            super(client, action, new CreateUserDefinedFunctionRequest());
-        }
-
-        @Override
-        public void execute(ActionListener<CreateUserDefinedFunctionResponse> listener) {
-            client.execute(CreateUserDefinedFunctionAction.INSTANCE, request, listener);
-        }
     }
 }

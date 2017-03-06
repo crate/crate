@@ -36,10 +36,12 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+@Singleton
 public class TransportCreateUserDefinedFunctionAction
     extends TransportMasterNodeAction<CreateUserDefinedFunctionRequest, CreateUserDefinedFunctionResponse> {
 
@@ -53,10 +55,9 @@ public class TransportCreateUserDefinedFunctionAction
                                                     UserDefinedFunctionService userDefinedFunctionService,
                                                     ActionFilters actionFilters,
                                                     IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, CreateUserDefinedFunctionAction.NAME, transportService, clusterService, threadPool, actionFilters,
+        super(settings, "crate/sql/create_udf", transportService, clusterService, threadPool, actionFilters,
             indexNameExpressionResolver, CreateUserDefinedFunctionRequest.class);
         this.userDefinedFunctionService = userDefinedFunctionService;
-
     }
 
     @Override
