@@ -22,7 +22,6 @@
 
 package io.crate.data;
 
-import java.util.BitSet;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -324,7 +323,7 @@ public class NestedLoopBatchIterator implements BatchIterator {
      */
     private static class RightJoinBatchIterator extends NestedLoopBatchIterator {
 
-        private final BitSet matchedRows = new BitSet();
+        private final LuceneLongBitSetWrapper matchedRows = new LuceneLongBitSetWrapper();
         private final BooleanSupplier joinCondition;
 
         private boolean postNL = false;
@@ -436,7 +435,7 @@ public class NestedLoopBatchIterator implements BatchIterator {
      */
     private static class FullOuterJoinBatchIterator extends NestedLoopBatchIterator {
 
-        private final BitSet matchedRows = new BitSet();
+        private final LuceneLongBitSetWrapper matchedRows = new LuceneLongBitSetWrapper();
         private final BooleanSupplier joinCondition;
 
         private boolean postNL = false;

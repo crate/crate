@@ -20,12 +20,12 @@
  * agreement.
  */
 
-package io.crate.operation.join;
+package io.crate.data;
 
 import org.apache.lucene.util.LongBitSet;
 
 /**
- * This BitSet is used to mark matched rows between left and right in {@link NestedLoopOperation}
+ * This BitSet is used to mark matched rows between left and right in {@link io.crate.data.NestedLoopBatchIterator}
  * <p>
  * Each bit true if the rows in the respective position are matched and therefore we need
  * a structure capable of holding <pre>long</pre> size of bits so java.util.BitSet cannot be used.
