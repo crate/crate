@@ -102,8 +102,8 @@ public class CollectingRowReceiver implements RowReceiver {
     @Override
     public void finish(RepeatHandle repeatHandle) {
         this.repeatHandle = repeatHandle;
-        resultFuture.complete(new CollectionBucket(rows));
         numFailOrFinish++;
+        resultFuture.complete(new CollectionBucket(rows));
     }
 
     public int getNumFailOrFinishCalls() {
