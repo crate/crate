@@ -27,7 +27,6 @@ import io.crate.data.*;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 
 import java.util.BitSet;
@@ -42,7 +41,6 @@ import java.util.function.Supplier;
  */
 public class IndexWriterCountBatchIterator implements BatchIterator {
 
-    private final Input<BytesRef> sourceInput;
     private final RowShardResolver rowShardResolver;
     private final Supplier<String> indexNameResolver;
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
@@ -53,30 +51,31 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
     private CompletableFuture<BitSet> loading;
     private  BitSet result;
     private boolean fromStart = true;
+    private Supplier<ShardUpsertRequest.Item> updateItemSupplier;
 
     private IndexWriterCountBatchIterator(BatchIterator source,
                                           Supplier<String> indexNameResolver,
-                                          Input<BytesRef> sourceInput,
                                           Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                                           RowShardResolver rowShardResolver,
-                                          BulkShardProcessor bulkShardProcessor) {
+                                          BulkShardProcessor bulkShardProcessor,
+                                          Supplier<ShardUpsertRequest.Item> updateItemSupplier) {
+        this.source = source;
         this.indexNameResolver = indexNameResolver;
         this.collectExpressions = collectExpressions;
-        this.sourceInput = sourceInput;
         this.rowShardResolver = rowShardResolver;
         this.bulkShardProcessor = bulkShardProcessor;
-        this.source = source;
+        this.updateItemSupplier = updateItemSupplier;
         this.sourceRow = RowBridging.toRow(source.rowData());
         this.rowData = new RowColumns(1);
     }
 
     public static BatchIterator newInstance(BatchIterator source, Supplier<String> indexNameResolver,
-                                            Input<BytesRef> sourceInput,
                                             Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                                             RowShardResolver rowShardResolver,
-                                            BulkShardProcessor bulkShardProcessor) {
+                                            BulkShardProcessor bulkShardProcessor,
+                                            Supplier<ShardUpsertRequest.Item> updateItemSupplier) {
         IndexWriterCountBatchIterator delegate = new IndexWriterCountBatchIterator(source, indexNameResolver,
-            sourceInput, collectExpressions, rowShardResolver, bulkShardProcessor);
+            collectExpressions, rowShardResolver, bulkShardProcessor, updateItemSupplier);
         return new CloseAssertingBatchIterator(delegate);
     }
 
@@ -171,8 +170,7 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
             collectExpression.setNextRow(sourceRow);
         }
         rowShardResolver.setNextRow(sourceRow);
-        ShardUpsertRequest.Item item = new ShardUpsertRequest.Item(
-            rowShardResolver.id(), null, new Object[]{sourceInput.value()}, null);
+        ShardUpsertRequest.Item item = updateItemSupplier.get();
         return bulkShardProcessor.add(indexNameResolver.get(), item, rowShardResolver.routing());
     }
 
