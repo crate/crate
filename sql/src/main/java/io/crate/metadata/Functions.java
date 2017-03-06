@@ -31,26 +31,43 @@ import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Functions {
 
     private final Map<String, FunctionResolver> functionResolvers;
+    private final Map<String, Map<String, FunctionResolver>> schemaFunctionResolvers;
 
     @Inject
     public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
                      Map<String, FunctionResolver> functionResolvers) {
         this.functionResolvers = Maps.newHashMap(functionResolvers);
-        generateFunctionResolvers(functionImplementations);
+        this.functionResolvers.putAll(generateFunctionResolvers(functionImplementations));
+        schemaFunctionResolvers = new HashMap<>();
     }
 
-    private void generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
+    public Map<String, FunctionResolver> generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
+        Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> signatures = getSignatures(functionImplementations);
+        return signatures.keys().stream()
+            .distinct()
+            .collect(Collectors.toMap(name -> name, name -> new GeneratedFunctionResolver(signatures.get(name))));
+    }
+
+    private Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> getSignatures(
+        Map<FunctionIdent, FunctionImplementation> functionImplementations) {
         Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> signatureMap = ArrayListMultimap.create();
         for (Map.Entry<FunctionIdent, FunctionImplementation> entry : functionImplementations.entrySet()) {
             signatureMap.put(entry.getKey().name(), new Tuple<>(entry.getKey(), entry.getValue()));
         }
-        for (String name : signatureMap.keys()) {
-            functionResolvers.put(name, new GeneratedFunctionResolver(signatureMap.get(name)));
-        }
+        return signatureMap;
+    }
+
+    public void registerSchemaFunctionResolvers(String schema, Map<String, FunctionResolver> resolvers) {
+        schemaFunctionResolvers.put(schema, resolvers);
+    }
+
+    public void deregisterSchemaFunctionResolvers(String schema) {
+        schemaFunctionResolvers.remove(schema);
     }
 
     /**
@@ -90,13 +107,41 @@ public class Functions {
     public FunctionImplementation get(FunctionIdent ident) throws IllegalArgumentException {
         FunctionResolver dynamicResolver = functionResolvers.get(ident.name());
         if (dynamicResolver != null) {
-            List<DataType> argumentTypes = ident.argumentTypes();
-            List<DataType> signature = dynamicResolver.getSignature(argumentTypes);
-            if (signature != null) {
-                return dynamicResolver.getForTypes(signature);
-            }
+            FunctionImplementation function = getFunctionImplementation(ident, dynamicResolver);
+            if (function != null) return function;
+        }
+
+        FunctionResolver schemaResolver = getSchemaFunctionResolver(ident);
+        if (schemaResolver != null) {
+            return getFunctionImplementation(ident, schemaResolver);
         }
         return null;
+    }
+
+    private FunctionImplementation getFunctionImplementation(FunctionIdent ident, FunctionResolver dynamicResolver) {
+        List<DataType> argumentTypes = ident.argumentTypes();
+        List<DataType> signature = dynamicResolver.getSignature(argumentTypes);
+        if (signature != null) {
+            return dynamicResolver.getForTypes(signature);
+        }
+        return null;
+    }
+
+    private FunctionResolver getSchemaFunctionResolver(FunctionIdent ident) {
+        String[] parts = getSchemaFunctionName(ident);
+        Map<String, FunctionResolver> schemaFunctionResolver = schemaFunctionResolvers.get(parts[0]);
+        if (schemaFunctionResolver != null) {
+            return schemaFunctionResolver.get(Joiner.on(".").join(parts));
+        }
+        return null;
+    }
+
+    private static String[] getSchemaFunctionName(FunctionIdent ident) {
+        String[] parts = ident.name().split("\\.");
+        if (parts.length == 1) {
+            return new String[]{Schemas.DEFAULT_SCHEMA_NAME, parts[0]};
+        }
+        return parts;
     }
 
     private static class GeneratedFunctionResolver implements FunctionResolver {
