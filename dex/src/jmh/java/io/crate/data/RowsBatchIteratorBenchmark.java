@@ -27,8 +27,11 @@ import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -45,6 +48,25 @@ public class RowsBatchIteratorBenchmark {
 
     // use RowsBatchIterator without any state/error handling to establish a performance baseline.
     private BatchIterator it = new RowsBatchIterator(rows, 1);
+    private BatchIterator crossJoin = NestedLoopBatchIterator.crossJoin(
+        RowsBatchIterator.newInstance(IntStream.range(0, 1000).mapToObj(Row1::new).collect(Collectors.toList()), 1),
+        RowsBatchIterator.newInstance(IntStream.range(0, 10000).mapToObj(Row1::new).collect(Collectors.toList()), 1)
+    );
+
+    private BatchIterator leftJoin = NestedLoopBatchIterator.leftJoin(
+        RowsBatchIterator.newInstance(IntStream.range(0, 1000).mapToObj(Row1::new).collect(Collectors.toList()), 1),
+        RowsBatchIterator.newInstance(IntStream.range(0, 10000).mapToObj(Row1::new).collect(Collectors.toList()), 1),
+        columns -> new BooleanSupplier() {
+
+            Input<?> col1 = columns.get(0);
+            Input<?> col2 = columns.get(1);
+
+            @Override
+            public boolean getAsBoolean() {
+                return Objects.equals(col1.value(), col2.value());
+            }
+        }
+    );
 
     private BatchIterator itCloseAsserting = new CloseAssertingBatchIterator(it);
     private BatchIterator skippingIt = new SkippingBatchIterator(it, 100);
@@ -69,6 +91,22 @@ public class RowsBatchIteratorBenchmark {
     public void measureConsumeSkippingBatchIterator(Blackhole blackhole) throws Exception {
         final Input<?> input = skippingIt.rowData().get(0);
         while (skippingIt.moveNext()) {
+            blackhole.consume(input.value());
+        }
+    }
+
+    @Benchmark
+    public void measureConsumeNestedLoopJoin(Blackhole blackhole) throws Exception {
+        final Input<?> input = crossJoin.rowData().get(0);
+        while (crossJoin.moveNext()) {
+            blackhole.consume(input.value());
+        }
+    }
+
+    @Benchmark
+    public void measureConsumeNestedLoopLeftJoin(Blackhole blackhole) throws Exception {
+        final Input<?> input = leftJoin.rowData().get(0);
+        while (leftJoin.moveNext()) {
             blackhole.consume(input.value());
         }
     }
