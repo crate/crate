@@ -164,8 +164,11 @@ public class IndexWriterProjector extends AbstractProjector {
 
     @Override
     public BatchIteratorProjector asProjector() {
-        return it -> IndexWriterCountBatchIterator.newInstance(it, indexNameResolver, sourceInput,
-            collectExpressions, rowShardResolver, bulkShardProcessor);
+        Supplier<ShardUpsertRequest.Item> updateItemSupplier = () -> new ShardUpsertRequest.Item(
+            rowShardResolver.id(), null, new Object[]{sourceInput.value()}, null);
+
+        return it -> IndexWriterCountBatchIterator.newInstance(it, indexNameResolver,
+            collectExpressions, rowShardResolver, bulkShardProcessor, updateItemSupplier);
     }
 
     private static class MapInput implements Input<BytesRef> {
