@@ -66,7 +66,8 @@ statement
     | DROP ALIAS qname                                                               #dropAlias
     | DROP REPOSITORY ident                                                          #dropRepository
     | DROP SNAPSHOT qname                                                            #dropSnapshot
-    | DROP FUNCTION (IF EXISTS)? name=qname '(' (dataType (',' dataType)*)? ')'      #dropFunction
+    | DROP FUNCTION (IF EXISTS)? name=qname
+        '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
     | createStmt                                                                     #create
     ;
 

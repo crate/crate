@@ -26,20 +26,18 @@
 
 package io.crate.analyze;
 
-import io.crate.types.DataType;
-
 import java.util.List;
 
 public class DropFunctionAnalyzedStatement implements DDLStatement {
 
     private final String name;
     private final boolean ifExists;
-    private final List<DataType> argumentTypes;
+    private final List<FunctionArgumentDefinition> arguments;
 
-    public DropFunctionAnalyzedStatement(String name, boolean ifExists, List<DataType> argumentTypes) {
+    public DropFunctionAnalyzedStatement(String name, boolean ifExists, List<FunctionArgumentDefinition> arguments) {
         this.name = name;
         this.ifExists = ifExists;
-        this.argumentTypes = argumentTypes;
+        this.arguments = arguments;
     }
 
     @Override
@@ -51,8 +49,8 @@ public class DropFunctionAnalyzedStatement implements DDLStatement {
         return name;
     }
 
-    public List<DataType> arguments() {
-        return argumentTypes;
+    public List<FunctionArgumentDefinition> arguments() {
+        return arguments;
     }
 
     public boolean ifExists() {

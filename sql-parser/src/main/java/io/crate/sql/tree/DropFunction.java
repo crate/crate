@@ -35,12 +35,12 @@ public class DropFunction extends Statement {
 
     private final QualifiedName name;
     private final boolean ifExists;
-    private final List<ColumnType> argumentTypes;
+    private final List<FunctionArgument> arguments;
 
-    public DropFunction(QualifiedName name, boolean exists, List<ColumnType> argumentTypes) {
+    public DropFunction(QualifiedName name, boolean exists, List<FunctionArgument> arguments) {
         this.name = name;
         this.ifExists = exists;
-        this.argumentTypes = argumentTypes;
+        this.arguments = arguments;
     }
 
     public QualifiedName name() {
@@ -51,8 +51,8 @@ public class DropFunction extends Statement {
         return ifExists;
     }
 
-    public List<ColumnType> arguments() {
-        return argumentTypes;
+    public List<FunctionArgument> arguments() {
+        return arguments;
     }
 
     @Override
@@ -68,12 +68,12 @@ public class DropFunction extends Statement {
         final DropFunction that = (DropFunction) o;
         return Objects.equals(this.name, that.name)
             && Objects.equals(this.ifExists, that.ifExists)
-            && Objects.equals(this.argumentTypes, that.argumentTypes);
+            && Objects.equals(this.arguments, that.arguments);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, ifExists, argumentTypes);
+        return Objects.hash(name, ifExists, arguments);
     }
 
     @Override
@@ -81,6 +81,6 @@ public class DropFunction extends Statement {
         return MoreObjects.toStringHelper(this)
             .add("name", name)
             .add("ifExists", ifExists)
-            .add("arguments", argumentTypes).toString();
+            .add("arguments", arguments).toString();
     }
 }
