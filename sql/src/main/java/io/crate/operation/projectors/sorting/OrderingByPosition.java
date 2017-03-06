@@ -78,7 +78,7 @@ public abstract class OrderingByPosition<T> extends Ordering<T> {
     }
 
     public static Ordering<Object[]> arrayOrdering(int[] position, boolean[] reverse, Boolean[] nullsFirst) {
-        if (position.length == 0) {
+        if (position.length == 1) {
             return arrayOrdering(position[0], reverse[0], nullsFirst[0]);
         }
 

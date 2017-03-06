@@ -24,6 +24,7 @@ package io.crate.operation.projectors.sorting;
 
 import com.google.common.collect.Ordering;
 import io.crate.test.integration.CrateUnitTest;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -84,5 +85,12 @@ public class OrderingByPositionTest extends CrateUnitTest {
         assertThat(ordering.compare(new Object[]{4, 0}, new Object[]{1, 1}), is(1));
         assertThat(ordering.compare(new Object[]{5, 1}, new Object[]{2, 2}), is(1));
         assertThat(ordering.compare(new Object[]{5, 1}, new Object[]{2, 2}), is(1));
+    }
+
+    @Test
+    public void testSingleOrderByPositionResultsInNonCompoundOrdering() throws Exception {
+        Ordering<Object[]> ordering = OrderingByPosition.arrayOrdering(
+            new int[]{0}, new boolean[]{false}, new Boolean[]{null});
+        assertThat(ordering, Matchers.instanceOf(OrderingByPosition.class));
     }
 }
