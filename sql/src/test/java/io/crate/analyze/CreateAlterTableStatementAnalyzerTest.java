@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Joiner;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.data.Row;
@@ -29,6 +28,7 @@ import io.crate.exceptions.*;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
@@ -315,9 +315,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table foo (id integer primary key, details array(object as (name string, age integer, tags array(string))))");
 
-        Map<String, Object> metaMapping = (Map) analysis.mapping().get("_meta");
-        assertThat(Joiner.on(", ").withKeyValueSeparator(":").join(metaMapping), is("primary_keys:[id]"));
-
         Map<String, Object> mappingProperties = analysis.mappingProperties();
         assertThat(mapToSortedString(mappingProperties),
             is("details={inner={dynamic=true, " +
@@ -589,9 +586,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
             "title string," +
             "name string" +
             ")");
+        Map<String, Object> metaMap = (Map) analysis.mapping().get("_meta");
         assertThat(
-            Joiner.on(", ").withKeyValueSeparator(": ").join((Map) analysis.mapping().get("_meta")),
-            is("indices: {ft={}}"));
+            metaMap.get("indices").toString(),
+            is("{ft={}}"));
         assertThat(
             (List<String>) ((Map<String, Object>) analysis.mappingProperties()
                 .get("title")).get("copy_to"),
@@ -842,13 +840,11 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
             "create table foo (ts timestamp, day as date_trunc('day', ts))");
 
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
-        assertThat(metaMapping.size(), is(1));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
         assertThat(generatedColumnsMapping.size(), is(1));
         assertThat(generatedColumnsMapping.get("day"), is("date_trunc('day', ts)"));
 
         Map<String, Object> mappingProperties = analysis.mappingProperties();
-        assertThat(mappingProperties.size(), is(2));
         Map<String, Object> dayMapping = (Map<String, Object>) mappingProperties.get("day");
         assertThat((String) dayMapping.get("type"), is("date"));
         Map<String, Object> tsMapping = (Map<String, Object>) mappingProperties.get("ts");
@@ -987,5 +983,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("INDEX constraint cannot be used on columns of type \"object\"");
         e.analyze("create table test (obj object index off)");
+    }
+
+    @Test
+    public void testCreateTableDefaultRoutingHashFunctionTypeSet() throws Exception {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table default_routing_hash_set (id int)");
+        Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
+        assertThat(metaMapping.get(DocIndexMetaData.SETTING_ROUTING_HASH_FUNCTION), is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION));
     }
 }

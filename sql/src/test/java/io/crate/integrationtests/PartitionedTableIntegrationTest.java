@@ -1594,13 +1594,15 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         MappingMetaData partitionMetaData = clusterService().state().metaData().indices()
             .get(new PartitionName("dynamic_table", Collections.singletonList(new BytesRef("10.0"))).asIndexName())
             .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("_meta")), Matchers.is("{partitioned_by=[[score, double]]}"));
+        Map<String, Object> metaMap = (Map) partitionMetaData.getSourceAsMap().get("_meta");
+        assertThat(String.valueOf(metaMap.get("partitioned_by")), Matchers.is("[[score, double]]"));
         execute("alter table dynamic_table set (column_policy= 'dynamic')");
         waitNoPendingTasksOnAll();
         partitionMetaData = clusterService().state().metaData().indices()
             .get(new PartitionName("dynamic_table", Collections.singletonList(new BytesRef("10.0"))).asIndexName())
             .getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
-        assertThat(String.valueOf(partitionMetaData.getSourceAsMap().get("_meta")), Matchers.is("{partitioned_by=[[score, double]]}"));
+        metaMap = (Map) partitionMetaData.getSourceAsMap().get("_meta");
+        assertThat(String.valueOf(metaMap.get("partitioned_by")), Matchers.is("[[score, double]]"));
     }
 
     @Test

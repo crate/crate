@@ -26,6 +26,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocIndexMetaData;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -126,6 +127,10 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
             if (routingColumn != null) {
                 ((Map) mapping.get("_meta")).put("routing", routingColumn.fqn());
             }
+            // set the default routing hash function type
+            ((Map) mapping.get("_meta")).put(DocIndexMetaData.SETTING_ROUTING_HASH_FUNCTION,
+                DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION);
+
             // merge in user defined mapping parameter
             mapping.putAll(tableParameter.mappings());
         }
