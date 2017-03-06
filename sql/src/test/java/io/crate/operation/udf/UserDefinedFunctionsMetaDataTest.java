@@ -40,7 +40,7 @@ import static org.hamcrest.core.Is.is;
 
 public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
 
-    private final String functionBody = "function(a, b) {return a - b;}";
+    private final String definition = "function(a, b) {return a - b;}";
     private final UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
         "custom",
         "my_add",
@@ -49,7 +49,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         ),
         DataTypes.FLOAT,
         "javascript",
-        functionBody
+        definition
     );
 
     @Test
@@ -68,8 +68,8 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
             FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
         ));
         assertThat(udfMeta2.returnType, is(DataTypes.FLOAT));
-        assertThat(udfMeta2.functionLanguage, is("javascript"));
-        assertThat(udfMeta2.functionBody, is(functionBody));
+        assertThat(udfMeta2.language, is("javascript"));
+        assertThat(udfMeta2.definition, is(definition));
     }
 
     @Test

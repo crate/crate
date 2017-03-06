@@ -119,7 +119,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         builder.field("return_type");
         DataTypes.toXContent(returnType, builder, params);
         builder.field("language", language);
-        builder.field("body", definition);
+        builder.field("definition", definition);
         builder.endObject();
         return builder;
     }

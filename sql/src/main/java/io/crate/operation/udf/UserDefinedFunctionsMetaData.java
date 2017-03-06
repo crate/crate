@@ -1,7 +1,7 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * Licensed to Crate.io Inc. ("Crate.io") under one or more contributor
  * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
+ * additional information regarding copyright ownership.  Crate.io licenses
  * this file to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
@@ -14,10 +14,16 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  *
- * However, if you have executed another commercial license agreement
- * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * To enable or use any of the enterprise features, Crate.io must have given
+ * you permission to enable and use the Enterprise Edition of CrateDB and you
+ * must have a valid Enterprise or Subscription Agreement with Crate.io.  If
+ * you enable or use features that are part of the Enterprise Edition, you
+ * represent and warrant that you have a valid Enterprise or Subscription
+ * Agreement with Crate.io.  Your use of features of the Enterprise Edition
+ * is governed by the terms and conditions of your Enterprise or Subscription
+ * Agreement with Crate.io.
  */
+
 package io.crate.operation.udf;
 
 import org.elasticsearch.cluster.AbstractDiffable;
@@ -51,6 +57,10 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
         this.functions = functions;
     }
 
+    public static UserDefinedFunctionsMetaData newInstance(UserDefinedFunctionsMetaData instance) {
+        return new UserDefinedFunctionsMetaData(new HashMap<>(instance.functions));
+    }
+
     static UserDefinedFunctionsMetaData of(UserDefinedFunctionMetaData... functions) {
         Map<Integer, UserDefinedFunctionMetaData> udfs = new HashMap<>();
         for (UserDefinedFunctionMetaData udf : functions) {
@@ -59,16 +69,16 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
         return new UserDefinedFunctionsMetaData(udfs);
     }
 
-    public Collection<UserDefinedFunctionMetaData> functions() {
-        return functions.values();
-    }
-
     public void put(UserDefinedFunctionMetaData function) {
         functions.put(function.createMethodSignature(), function);
     }
 
     public boolean contains(UserDefinedFunctionMetaData function) {
         return functions.containsKey(function.createMethodSignature());
+    }
+
+    public Collection<UserDefinedFunctionMetaData> functionsMetaData() {
+        return functions.values();
     }
 
     @Override
@@ -130,5 +140,4 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
         UserDefinedFunctionsMetaData that = (UserDefinedFunctionsMetaData) o;
         return functions.equals(that.functions);
     }
-
 }

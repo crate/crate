@@ -39,7 +39,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.Locale;
 import java.util.Objects;
 
 public class FunctionArgumentDefinition implements Streamable, ToXContent {
@@ -78,7 +77,7 @@ public class FunctionArgumentDefinition implements Streamable, ToXContent {
     }
 
     public DataType type() {
-        return this.type;
+        return type;
     }
 
     @Override
@@ -138,9 +137,7 @@ public class FunctionArgumentDefinition implements Streamable, ToXContent {
 
     private static String parseStringField(XContentParser parser) throws IOException {
         if (parser.nextToken() != XContentParser.Token.VALUE_STRING && parser.currentToken() != XContentParser.Token.VALUE_NULL) {
-            throw new UnhandledServerException(
-                String.format(Locale.ENGLISH, "failed to parse function")
-            );
+            throw new UnhandledServerException("failed to parse function");
         }
         return parser.textOrNull();
     }

@@ -45,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.containsString;
 
@@ -60,7 +59,6 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     private Map<FunctionIdent, FunctionImplementation> functionImplementations = new HashMap<>();
 
     private void registerUserDefinedFunction(String schema, String name, DataType returnType, List<DataType> types, String definition) {
-        String fName = String.format("%s.%s", schema, name);
         UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
             schema,
             name,
@@ -69,7 +67,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
             JS,
             definition
         );
-        functionImplementations.put(new FunctionIdent(fName, types), UserDefinedFunctionFactory.of(udfMeta));
+        functionImplementations.put(new FunctionIdent(schema, name, types), UserDefinedFunctionFactory.of(udfMeta));
         functionResolvers.putAll(functions.generateFunctionResolvers(functionImplementations));
         functions.registerSchemaFunctionResolvers(schema, functionResolvers);
     }
@@ -172,9 +170,9 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     @Test
     public void testNormalizeOnObjectInput() throws Exception {
-        registerUserDefinedFunction("custom", "f", DataTypes.LONG, ImmutableList.of(DataTypes.OBJECT),
+        registerUserDefinedFunction("custom", "f", DataTypes.OBJECT, ImmutableList.of(DataTypes.OBJECT),
             "function f(x) { return x; }");
-        assertNormalize("custom.f({})", isFunction("custom.f", ImmutableList.of(DataTypes.OBJECT)));
+        assertNormalize("custom.f({})", isLiteral(new HashMap<>()));
     }
 
     @Test
@@ -186,9 +184,8 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     @Test
     public void testNormalizeOnStringInputs() throws Exception {
-        registerUserDefinedFunction("doc", "f", DataTypes.LONG, ImmutableList.of(DataTypes.STRING, DataTypes.STRING),
-            "function f(x, y) { return x.concat(y); }");
-        assertNormalize("f('foo', 'bar')",
-            isFunction("doc.f", ImmutableList.of(DataTypes.STRING, DataTypes.STRING)));
+        registerUserDefinedFunction("doc", "f", DataTypes.STRING, ImmutableList.of(DataTypes.STRING),
+            "function f(x) { return x; }");
+        assertNormalize("doc.f('bar')", isLiteral("bar"));
     }
 }

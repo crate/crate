@@ -57,6 +57,7 @@ public class InformationSchemaIterables {
             .transformAndConcat(schema -> FluentIterable.from(schema)
                 .filter(i -> !PartitionName.isPartition(i.ident().indexName())));
         partitionInfos = new PartitionInfos(clusterService);
+
         columnsIterable = tablesIterable.transformAndConcat(ColumnsIterable::new);
 
         constraints = tablesIterable.filter(i -> i != null && i.primaryKey().size() > 0);
