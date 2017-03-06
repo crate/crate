@@ -26,37 +26,36 @@
 
 package io.crate.operation.udf;
 
-import io.crate.data.Input;
+import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
-import io.crate.types.DataType;
 
-public abstract class UserDefinedFunction extends Scalar<Object, Object> {
+import javax.script.Compilable;
+import javax.script.CompiledScript;
+import javax.script.ScriptException;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
-    protected final DataType returnType;
-    protected final FunctionInfo info;
+public class UserDefinedFunctionFactory {
 
-    UserDefinedFunction(FunctionIdent ident,
-                        DataType returnType) {
-        this.info = new FunctionInfo(ident, returnType);
-        this.returnType = returnType;
-    }
+    public static UserDefinedFunction of(UserDefinedFunctionMetaData meta) {
+        switch (meta.language.toLowerCase()) {
+            case "javascript":
+                try {
+                    CompiledScript compiledScript =
+                        ((Compilable) JavaScriptUserDefinedFunction.ENGINE).compile(meta.definition);
 
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
-
-    @SafeVarargs
-    @Override
-    public final Object evaluate(Input<Object>... args) {
-        Object[] values = new Object[args.length];
-        for (int i = 0; i < args.length; i++) {
-            values[i] = args[i].value();
+                    return new JavaScriptUserDefinedFunction(
+                        new FunctionIdent(meta.name, meta.arguments.stream()
+                            .map(FunctionArgumentDefinition::type)
+                            .collect(Collectors.toList())),
+                        meta.returnType,
+                        compiledScript);
+                } catch (ScriptException e) {
+                    throw new IllegalArgumentException(String.format("Cannot compile the script. [%s]", e));
+                }
+            default:
+                throw new UnsupportedOperationException(
+                    String.format(Locale.ENGLISH, "[%s] language is not supported.", meta.language));
         }
-        return evaluateUserDefinedFunction(values);
     }
-
-    protected abstract Object evaluateUserDefinedFunction(Object[] values);
 }

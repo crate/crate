@@ -39,7 +39,7 @@ import static org.hamcrest.core.Is.is;
 
 public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
 
-    private final String functionBody = "function(a, b) {return a - b;}";
+    private final String definition = "function(a, b) {return a - b;}";
     private final UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
         "my_add",
         ImmutableList.of(FunctionArgumentDefinition.of(DataTypes.DOUBLE_ARRAY),
@@ -47,7 +47,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         ),
         DataTypes.FLOAT,
         "javascript",
-        functionBody
+        definition
     );
 
     @Test
@@ -65,8 +65,8 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
             FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
         ));
         assertThat(udfMeta2.returnType, is(DataTypes.FLOAT));
-        assertThat(udfMeta2.functionLanguage, is("javascript"));
-        assertThat(udfMeta2.functionBody, is(functionBody));
+        assertThat(udfMeta2.language, is("javascript"));
+        assertThat(udfMeta2.definition, is(definition));
     }
 
     @Test
@@ -75,7 +75,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         XContentBuilder builder = XContentFactory.jsonBuilder();
         functions.toXContent(builder, ToXContent.EMPTY_PARAMS);
         XContentParser parser = JsonXContent.jsonXContent.createParser(builder.bytes());
-        UserDefinedFunctionsMetaData functions2 = (UserDefinedFunctionsMetaData)UserDefinedFunctionsMetaData.of().fromXContent(parser);
+        UserDefinedFunctionsMetaData functions2 = (UserDefinedFunctionsMetaData) UserDefinedFunctionsMetaData.of().fromXContent(parser);
         assertEquals(functions, functions2);
     }
 
@@ -95,5 +95,4 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         assertThat(same1.hasSameSignature(same2), is(true));
         assertThat(same1.hasSameSignature(different), is(false));
     }
-
 }

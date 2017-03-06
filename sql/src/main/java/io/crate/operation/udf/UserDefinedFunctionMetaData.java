@@ -46,19 +46,19 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
     String name;
     List<FunctionArgumentDefinition> arguments;
     DataType returnType;
-    String functionLanguage;
-    String functionBody;
+    String language;
+    String definition;
 
     public UserDefinedFunctionMetaData(String name,
                                        List<FunctionArgumentDefinition> arguments,
                                        DataType returnType,
-                                       String functionLanguage,
-                                       String functionBody) {
+                                       String language,
+                                       String definition) {
         this.name = name;
         this.arguments = arguments;
         this.returnType = returnType;
-        this.functionLanguage = functionLanguage;
-        this.functionBody = functionBody;
+        this.language = language;
+        this.definition = definition;
     }
 
     private UserDefinedFunctionMetaData() {
@@ -77,9 +77,9 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         if (arguments.size() != other.arguments.size()) {
             return false;
         }
-        int i=0;
+        int i = 0;
         for (FunctionArgumentDefinition arg : arguments) {
-            if(!arg.type().equals(other.arguments.get(i).type())) {
+            if (!arg.type().equals(other.arguments.get(i).type())) {
                 return false;
             }
             i++;
@@ -96,8 +96,8 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
             arguments.add(FunctionArgumentDefinition.fromStream(in));
         }
         returnType = DataTypes.fromStream(in);
-        functionLanguage = in.readString();
-        functionBody = in.readString();
+        language = in.readString();
+        definition = in.readString();
     }
 
     @Override
@@ -108,8 +108,8 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
             argument.writeTo(out);
         }
         DataTypes.toStream(returnType, out);
-        out.writeString(functionLanguage);
-        out.writeString(functionBody);
+        out.writeString(language);
+        out.writeString(definition);
     }
 
     @Override
@@ -117,14 +117,14 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         builder.startObject();
         builder.field("name", name);
         builder.startArray("arguments");
-        for(FunctionArgumentDefinition argument : arguments) {
+        for (FunctionArgumentDefinition argument : arguments) {
             argument.toXContent(builder, params);
         }
         builder.endArray();
         builder.field("return_type");
         DataTypes.toXContent(returnType, builder, params);
-        builder.field("language", functionLanguage);
-        builder.field("body", functionBody);
+        builder.field("language", language);
+        builder.field("definition", definition);
         builder.endObject();
         return builder;
     }
@@ -133,48 +133,39 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         XContentParser.Token token;
         String name = null;
         List<FunctionArgumentDefinition> arguments = new ArrayList<>();
-        Set<String> options = new HashSet<>();
         DataType returnType = null;
         String language = null;
-        String body = null;
+        String definition = null;
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
                 if ("name".equals(parser.currentName())) {
                     name = parseStringField(parser);
                 } else if ("language".equals(parser.currentName())) {
                     language = parseStringField(parser);
-                } else if ("body".equals(parser.currentName())) {
-                    body = parseStringField(parser);
+                } else if ("definition".equals(parser.currentName())) {
+                    definition = parseStringField(parser);
                 } else if ("arguments".equals(parser.currentName())) {
                     if (parser.nextToken() != XContentParser.Token.START_ARRAY) {
-                        throw new UnhandledServerException(
-                            String.format(Locale.ENGLISH, "failed to parse function")
-                        );
+                        throw new UnhandledServerException("failed to parse function");
                     }
                     while (parser.nextToken() != XContentParser.Token.END_ARRAY) {
                         arguments.add(FunctionArgumentDefinition.fromXContent(parser));
                     }
-                }  else if ("return_type".equals(parser.currentName())){
+                } else if ("return_type".equals(parser.currentName())) {
                     returnType = DataTypes.fromXContent(parser);
                 } else {
-                    throw new UnhandledServerException(
-                        String.format(Locale.ENGLISH, "failed to parse function")
-                    );
+                    throw new UnhandledServerException("failed to parse function");
                 }
             } else {
-                throw new UnhandledServerException(
-                    String.format(Locale.ENGLISH, "failed to parse function")
-                );
+                throw new UnhandledServerException("failed to parse function");
             }
         }
-        return new UserDefinedFunctionMetaData(name, arguments, returnType, language, body);
+        return new UserDefinedFunctionMetaData(name, arguments, returnType, language, definition);
     }
 
     private static String parseStringField(XContentParser parser) throws IOException {
         if (parser.nextToken() != XContentParser.Token.VALUE_STRING && parser.currentToken() != XContentParser.Token.VALUE_NULL) {
-            throw new UnhandledServerException(
-                String.format(Locale.ENGLISH, "failed to parse function")
-            );
+            throw new UnhandledServerException("failed to parse function");
         }
         return parser.textOrNull();
     }
@@ -188,14 +179,13 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         return Objects.equals(name, that.name) &&
             Objects.equals(arguments, that.arguments) &&
             Objects.equals(returnType, that.returnType) &&
-            Objects.equals(functionLanguage, that.functionLanguage) &&
-            Objects.equals(functionBody, that.functionBody);
-
+            Objects.equals(language, that.language) &&
+            Objects.equals(definition, that.definition);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, arguments, returnType, functionBody, functionLanguage);
+        return Objects.hash(name, arguments, returnType, definition, language);
     }
 
     public int createMethodSignature() {

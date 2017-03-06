@@ -48,7 +48,7 @@ public class UserDefinedFunctionDDLDispatcher {
             statement.arguments(),
             statement.returnType(),
             ExpressionToStringVisitor.convert(statement.language(), params),
-            ExpressionToStringVisitor.convert(statement.body(), params)
+            ExpressionToStringVisitor.convert(statement.definition(), params)
         );
 
         CreateUserDefinedFunctionRequest request = new CreateUserDefinedFunctionRequest(metaData);
