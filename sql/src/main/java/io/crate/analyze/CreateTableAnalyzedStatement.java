@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.Version;
 import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
@@ -124,12 +125,15 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     public Map<String, Object> mapping() {
         if (mapping == null) {
             mapping = analyzedTableElements.toMapping();
+            Map<String, Object> metaMap = (Map<String, Object>) mapping.get("_meta");
             if (routingColumn != null) {
-                ((Map) mapping.get("_meta")).put("routing", routingColumn.fqn());
+                metaMap.put("routing", routingColumn.fqn());
             }
             // set the default routing hash function type
-            ((Map) mapping.get("_meta")).put(DocIndexMetaData.SETTING_ROUTING_HASH_FUNCTION,
-                DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION);
+            metaMap.put(DocIndexMetaData.SETTING_ROUTING_HASH_FUNCTION, DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION);
+
+            // set the created version
+            DocIndexMetaData.putVersionToMap(metaMap, "created", Version.CURRENT);
 
             // merge in user defined mapping parameter
             mapping.putAll(tableParameter.mappings());
