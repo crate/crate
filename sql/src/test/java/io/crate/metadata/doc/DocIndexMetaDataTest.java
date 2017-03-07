@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
+import io.crate.Version;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.metadata.*;
@@ -19,7 +20,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoPointType;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
@@ -71,7 +71,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         Settings.Builder settingsBuilder = Settings.builder()
             .put("index.number_of_shards", 1)
             .put("index.number_of_replicas", 0)
-            .put("index.version.created", Version.CURRENT)
+            .put("index.version.created", org.elasticsearch.Version.CURRENT)
             .put(settings);
 
         IndexMetaData.Builder mdBuilder = IndexMetaData.builder(indexName)
@@ -917,7 +917,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         Settings.Builder settingsBuilder = Settings.builder()
             .put("index.number_of_shards", 1)
             .put("index.number_of_replicas", 0)
-            .put("index.version.created", Version.CURRENT)
+            .put("index.version.created", org.elasticsearch.Version.CURRENT)
             .put(analyzedStatement.tableParameter().settings());
 
         IndexMetaData indexMetaData = IndexMetaData.builder(analyzedStatement.tableIdent().name())
@@ -1329,5 +1329,37 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         assertThat(md.indices().size(), is(1));
         assertThat(md.indices().keySet().iterator().next(), is(new ColumnIdent("description_ft")));
     }
-}
 
+    @Test
+    public void testVersionsRead() throws Exception {
+        // @formatter:off
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+            .startObject()
+                .startObject("_meta")
+                    .startObject("version")
+                        .startObject(Version.Property.CREATED.toString())
+                            .field("crate", "560499")
+                            .field("elasticsearch", "2040299")
+                        .endObject()
+                        .startObject(Version.Property.UPGRADED.toString())
+                            .field("crate", String.valueOf(Version.CURRENT.id))
+                            .field("elasticsearch", String.valueOf(Version.CURRENT.esVersion.id))
+                        .endObject()
+                    .endObject()
+                .endObject()
+            .startObject("properties")
+                .startObject("id")
+                    .field("type", "integer")
+                    .field("index", "not_analyzed")
+                .endObject()
+            .endObject();
+        // @formatter: on
+
+        IndexMetaData metaData = getIndexMetaData("test1", builder, Settings.EMPTY, null);
+        DocIndexMetaData md = newMeta(metaData, "test1");
+
+        assertThat(md.versionCreated().id, is(560499));
+        assertThat(md.versionCreated().esVersion.id, is(2040299));
+        assertThat(md.versionUpgraded(), is(Version.CURRENT));
+    }
+}

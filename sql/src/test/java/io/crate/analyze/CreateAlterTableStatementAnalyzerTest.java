@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.Version;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.data.Row;
@@ -33,7 +34,6 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -68,9 +68,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
             .build();
         ClusterState state = ClusterState.builder(ClusterName.DEFAULT)
             .nodes(DiscoveryNodes.builder()
-                .put(new DiscoveryNode("n1", DummyTransportAddress.INSTANCE, Version.CURRENT))
-                .put(new DiscoveryNode("n2", DummyTransportAddress.INSTANCE, Version.CURRENT))
-                .put(new DiscoveryNode("n3", DummyTransportAddress.INSTANCE, Version.CURRENT))
+                .put(new DiscoveryNode("n1", DummyTransportAddress.INSTANCE, org.elasticsearch.Version.CURRENT))
+                .put(new DiscoveryNode("n2", DummyTransportAddress.INSTANCE, org.elasticsearch.Version.CURRENT))
+                .put(new DiscoveryNode("n3", DummyTransportAddress.INSTANCE, org.elasticsearch.Version.CURRENT))
                 .localNodeId("n1")
             )
             .metaData(metaData)
@@ -991,5 +991,15 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
             "create table default_routing_hash_set (id int)");
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         assertThat(metaMapping.get(DocIndexMetaData.SETTING_ROUTING_HASH_FUNCTION), is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION));
+    }
+
+    @Test
+    public void testCreateTableCreatedVersionSet() throws Exception {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "create table created_version_table (id int)");
+        Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
+        Map<String, Object> versionMap = (Map) metaMapping.get("version");
+        assertThat(versionMap.get(Version.Property.CREATED.toString()), is(Version.toMap(Version.CURRENT)));
+        assertThat(versionMap.get(Version.Property.UPGRADED.toString()), nullValue());
     }
 }

@@ -25,6 +25,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
+import io.crate.Version;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.ParamTypeHints;
@@ -65,15 +66,14 @@ public class DocIndexMetaData {
     public static final String DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME = "Murmur3";
 
     private static final String ID = "_id";
+    private static final String VERSION_STRING = "version";
     private static final Map<String, String> routingHashFunctionPrettyNameLookupMap =
         ImmutableMap.of("org.elasticsearch.cluster.routing.SimpleHashFunction", "Simple",
                         "org.elasticsearch.cluster.routing.DjbHashFunction", "Djb",
                         "org.elasticsearch.cluster.routing.Murmur3HashFunction", "Murmur3");
 
     private final IndexMetaData metaData;
-
     private final Map<String, Object> mappingMap;
-
     private final Map<ColumnIdent, IndexReference.Builder> indicesBuilder = new HashMap<>();
 
     private final ImmutableSortedSet.Builder<Reference> columnsBuilder = ImmutableSortedSet.orderedBy(new Comparator<Reference>() {
@@ -112,6 +112,11 @@ public class DocIndexMetaData {
     private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
     private Map<String, String> generatedColumns;
 
+    @Nullable
+    private final Version versionCreated;
+    @Nullable
+    private final Version versionUpgraded;
+
     public DocIndexMetaData(Functions functions, IndexMetaData metaData, TableIdent ident) throws IOException {
         this.functions = functions;
         this.ident = ident;
@@ -133,6 +138,9 @@ public class DocIndexMetaData {
         } else {
             supportedOperations = Operation.buildFromIndexSettings(metaData.getSettings());
         }
+        Map<String, Object> versionMap = getNested(metaMap, "version", null);
+        versionCreated = Version.fromMap(getNested(versionMap, Version.Property.CREATED.toString(), null));
+        versionUpgraded = Version.fromMap(getNested(versionMap, Version.Property.UPGRADED.toString(), null));
     }
 
     private static Map<String, Object> getMappingMap(IndexMetaData metaData) throws IOException {
@@ -149,6 +157,15 @@ public class DocIndexMetaData {
 
     public static String getRoutingHashFunctionPrettyName(String routingHashFunction) {
         return routingHashFunctionPrettyNameLookupMap.getOrDefault(routingHashFunction, routingHashFunction);
+    }
+
+    public static void putVersionToMap(Map<String, Object> metaMap, Version.Property key, Version version) {
+        Map<String, Object> versionMap = (Map<String, Object>) metaMap.get("version");
+        if (versionMap == null) {
+            versionMap = new HashMap<>(1);
+            metaMap.put(VERSION_STRING, versionMap);
+        }
+        versionMap.put(key.toString(), Version.toMap(version));
     }
 
     @SuppressWarnings("unchecked")
@@ -683,5 +700,15 @@ public class DocIndexMetaData {
 
     public Set<Operation> supportedOperations() {
         return supportedOperations;
+    }
+
+    @Nullable
+    public Version versionCreated() {
+        return versionCreated;
+    }
+
+    @Nullable
+    public Version versionUpgraded() {
+        return versionUpgraded;
     }
 }

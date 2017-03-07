@@ -23,11 +23,13 @@ package io.crate;
 
 
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 
 import java.io.IOException;
+import java.util.Map;
 
 public class Version {
 
@@ -129,5 +131,28 @@ public class Version {
         out.writeVInt(version.id);
         out.writeBoolean(version.snapshot);
         org.elasticsearch.Version.writeVersion(version.esVersion, out);
+    }
+
+    public static Map<String, String> toMap(Version version) {
+        return MapBuilder.<String, String>newMapBuilder()
+            .put("crate", String.valueOf(version.id))
+            .put("elasticsearch", String.valueOf(version.esVersion.id))
+            .map();
+    }
+
+    @Nullable
+    public static Version fromMap(Map<String, String> versionMap) {
+        if (versionMap == null || versionMap.isEmpty()) {
+            return null;
+        }
+        return new Version(
+            Integer.parseInt(versionMap.get("crate")),
+            null, // snapshot info is not saved
+            org.elasticsearch.Version.fromId(Integer.parseInt(versionMap.get("elasticsearch"))));
+    }
+
+    public enum Property {
+        CREATED,
+        UPGRADED
     }
 }
