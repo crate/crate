@@ -26,8 +26,8 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
-import io.crate.data.Input;
 import io.crate.data.Columns;
+import io.crate.data.Input;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.LeafReader;
@@ -42,7 +42,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.function.Predicate;
 
 /**
  * BatchIterator implementation which exposes the data stored in a lucene index.
@@ -57,13 +56,13 @@ public class LuceneBatchIterator implements BatchIterator {
     private final CollectorContext collectorContext;
     private final RamAccountingContext ramAccountingContext;
     private final boolean doScores;
-    private final Predicate<Scorer> filter;
     private final LuceneCollectorExpression[] expressions;
     private final List<LeafReaderContext> leaves;
     private final Weight weight;
     private final Columns inputs;
+    private final CollectorFieldsVisitor visitor;
+    private final Float minScore;
 
-    private DocReaderConsumer docReaderConsumer;
     private Iterator<LeafReaderContext> leavesIt;
     private LeafReaderContext currentLeaf;
     private Scorer currentScorer;
@@ -81,8 +80,9 @@ public class LuceneBatchIterator implements BatchIterator {
         this.indexSearcher = indexSearcher;
         this.query = query;
         this.doScores = doScores || minScore != null;
-        this.filter = createMinScorePredicate(minScore);
+        this.minScore = minScore;
         this.collectorContext = collectorContext;
+        this.visitor = collectorContext.visitor();
         this.ramAccountingContext = ramAccountingContext;
         this.inputs = Columns.wrap(inputs);
         this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
@@ -122,16 +122,20 @@ public class LuceneBatchIterator implements BatchIterator {
             Bits liveDocs = reader.getLiveDocs();
             int doc;
             while ((doc = currentDocIdSetIt.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-                if (docDeleted(liveDocs, doc) || !filter.test(currentScorer)) {
+                if (docDeleted(liveDocs, doc) || belowMinScore(currentScorer)) {
                     continue;
                 }
-                docReaderConsumer.onDoc(doc, reader);
+                onDoc(doc, reader);
                 return true;
             }
             currentDocIdSetIt = null;
         }
         clearState();
         return false;
+    }
+
+    private boolean belowMinScore(Scorer currentScorer) throws IOException {
+        return minScore != null && currentScorer.score() < minScore;
     }
 
     private boolean tryAdvanceDocIdSetIterator() throws IOException {
@@ -180,7 +184,6 @@ public class LuceneBatchIterator implements BatchIterator {
         for (LuceneCollectorExpression expression : expressions) {
             expression.startCollect(collectorContext);
         }
-        docReaderConsumer = createOnDocFunction(collectorContext.visitor());
         return indexSearcher.createNormalizedWeight(query, doScores);
     }
 
@@ -190,29 +193,11 @@ public class LuceneBatchIterator implements BatchIterator {
         return true;
     }
 
-    private static Predicate<Scorer> createMinScorePredicate(Float minScore) {
-        if (minScore == null) {
-            return s -> true;
-        } else {
-            return s -> {
-                try {
-                    return s.score() >= minScore;
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            };
-        }
-    }
-
     private static boolean docDeleted(@Nullable Bits liveDocs, int doc) {
         if (liveDocs == null) {
             return false;
         }
         return liveDocs.get(doc) == false;
-    }
-
-    interface DocReaderConsumer {
-        void onDoc(int doc, LeafReader reader) throws IOException;
     }
 
     private void checkCircuitBreaker() throws CircuitBreakingException {
@@ -224,23 +209,15 @@ public class LuceneBatchIterator implements BatchIterator {
         }
     }
 
-    private DocReaderConsumer createOnDocFunction(CollectorFieldsVisitor visitor) {
+    private void onDoc(int doc, LeafReader reader) throws IOException {
+        checkCircuitBreaker();
         if (visitor.required()) {
-            return (doc, reader) -> {
-                checkCircuitBreaker();
-                visitor.reset();
-                reader.document(doc, visitor);
-                for (LuceneCollectorExpression<?> expression : expressions) {
-                    expression.setNextDocId(doc);
-                }
-            };
+            visitor.reset();
+            reader.document(doc, visitor);
         }
-        return (doc, reader) -> {
-            checkCircuitBreaker();
-            for (LuceneCollectorExpression<?> expression : expressions) {
-                expression.setNextDocId(doc);
-            }
-        };
+        for (LuceneCollectorExpression expression : expressions) {
+            expression.setNextDocId(doc);
+        }
     }
 
     private void checkClosed() {
