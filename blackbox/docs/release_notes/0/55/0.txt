@@ -1,0 +1,143 @@
+==============
+Version 0.55.0
+==============
+
+Released on 2016/05/30.
+
+Changelog
+=========
+
+ - BREAKING: Units are now required for time or byte based settings in the
+   ``crate.yml`` configuration file. Nodes won't start otherwise.
+
+ - BREAKING: The ``gateway.local.sync`` setting has been renamed to
+   ``translog.sync_interval``.
+
+ - BREAKING: It is no longer possible to specify the location of the config
+   file with the ``CONF_FILE`` environment variable, or the ``-Des.config``,
+   ``-Des.default.config``, or ``-Delasticsearch.config`` parameters. The
+   config file must now be named ``crate.yml`` and must be located in the
+   default ``config/`` directory, in the directory specified in the
+   ``CONF_DIR`` environmental variable, or the one specified in the
+   ``-Des.path.home`` parameter.
+
+ - BREAKING: Crate will die now on all plugin loading errors.
+
+ - BREAKING: Column names may not contain the ``.`` character anymore.
+
+ - BREAKING: Tables are not refreshed automatically anymore before and after
+   a ``DELETE-BY-QUERY`` operation is applied.
+
+ - Upgraded Elasticsearch to 2.3.3.
+
+ - Implemented trigonometric scalar functions (``sin()``, ``cos()``, ``tan()``,
+   ``asin()``, ``acos()``, and ``atan())``.
+
+ - Updated crate-admin to 0.18.0 which contains following changes:
+
+    - Cluster check include now clickable links.
+
+    - Load additional links in menu dynamically from news feed.
+
+    - Fixed an issue which caused rendering errors in the node list if the
+      cluster contains multiple nodes with the same name note: changes the url
+      to the detail view of single nodes.
+
+    - Added UTM tokens to links that link to the Crate.IO blog.
+
+    - Updated news feed URL.
+
+    - Label the master node in the cluster node list.
+
+ - Fixed a bug which prevented complete deletion of tables in custom
+   schemas.
+
+ - Improved the ``KILL`` behaviour for ``COPY``, ``UPDATE`` and ``DELETE``
+   statements.
+
+ - Fixed a ``ClassCastException`` that occurred if the left side of a ``IN``
+   predicate was a function.
+
+ - Added links to Cluster check documentation.
+
+ - Removed the ``creationTime`` property from ``SQL(Bulk)Request`` and changed
+   the `duration` property on ``SQL(Bulk)Response`` to return the server-side
+   duration instead of the full round-trip duration.
+
+ - The default number of shards is calculated dynamically upon the table
+   creation.
+
+ - Deprecated camelCase names on ``CREATE ANALYZER``.
+
+ - ``+HeapDumpOnOutOfMemoryError`` is no longer set by default. It can still be
+   set using the ``JAVA_OPTS`` environment variable.
+
+ - Made sure orphaned contexts are cleaned up eventually after a coordinator
+   node dies.
+
+ - Load ``crate.yml`` explicitly and do not allow any other extension than
+   ``yml`` for the configuration file.
+
+ - Restrict creation of tables having the primary key constraint within an
+   array column type or its children.
+
+ - Renamed all scalar function names to lowercase (CamelCase names were
+   transformed to lowercase using ``_`` as word boundary)
+
+ - Fixed a NPE at the ``substr`` scalar function when using column references as
+   from/to arguments containing null values.
+
+ - NOTE: Upgrading to this Crate version is only supported from >= 0.52.
+
+ - Removed the ``bulk.partition_creation_timeout`` setting.
+
+ - Removed internal migration code that ensured schema backward compatibility
+   to Crate versions <= 0.45
+
+ - Improved the speed of global aggregation queries which involve more than 1
+   shard per node.
+
+ - The log level of loggers can now be set at runtime via the ``SET`` statement.
+
+ - Improved validation of geo point data type; now it is not possible any more
+   to insert invalid latitude or longitude in array literals.
+
+ - Nodes can be configured now to allow only SQL statements resulting
+   in read operations using new setting ``node.sql.read_only``.
+
+ - Improved bulk insert/update and copy-from performance when replicas
+   are configured.
+
+ - Fixed planner issues that could cause INSERT INTO with a JOIN in the
+   sub-query to fail or get stuck.
+
+ - Removed the ``jobs.keep_alive_timeout`` setting and all related logic.
+   This means it is no longer possible to enable automatic job termination.
+
+ - Added a ``node_filters`` option to ``COPY FROM``.
+
+ - Add support for ``COPY FROM`` to ``EXPLAIN``.
+
+ - The ``COPY FROM`` statement now also accepts an array of strings as URI.
+
+ - Added support for schemes supported by the used JVM's ``URL`` implementation
+   for ``COPY FROM``. These usually include``http``, ``https``, ``ftp`` and
+   ``jar``.
+
+ - Added support for the ``unnest`` table function.
+
+ - Implemented cluster check for installed java version.
+
+ - removed wrong behaving CrateClient feature which allowed to load client
+   settings from a configuration file.
+
+ - Crate will now recognize settings defined by crate plugins.
+
+ - Implemented the EXPLAIN command for SELECT statements.
+
+ - Removed the limitation that the WHERE clause couldn't contain certain
+   expressions in `DELETE` statements
+
+ - Exposed setting the default schema via HTTP header.
+
+ - Added ``lower`` and ``upper`` string functions.

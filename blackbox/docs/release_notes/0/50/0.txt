@@ -1,0 +1,41 @@
+==============
+Version 0.50.0
+==============
+
+Released on 2015/07/29.
+
+Changelog
+=========
+
+ - Added the ``KILL 'job_id'`` statement.
+
+ - Fixed a bug with the kill of collectors when ``KILL ALL`` is called.
+
+ - Added support for unicast host discovery via EC2 API.
+
+ - BREAKING CHANGE: Connections to AWS S3 for ``COPY FROM`` and ``COPY TO`` are
+   now using HTTPS. If you have previously blocked outgoing connections on
+   ``443``, please update your firewall settings!
+
+ - Improved handling of ``/_blobs`` REST URIs to prevent invalid URIs from being
+   passed to main handler where they raise missleading error messages.
+
+ - Updated crate-admin to 0.14.2 which includes the following changes:
+
+   - Added support for line breaks in console result table.
+
+ - Added column policy as column to ``information_schema.tables`` table.
+
+ - Added ``SHOW CREATE TABLE`` statement to dump the schema of a user created
+   table.
+
+ - Updated crash to 0.13.1 which contains following changes:
+
+   - Added multiline support for tabular output format.
+
+ - Expose missing ``refresh_interval`` table setting in
+   ``information_schema.tables``.
+
+ - Added support for multiple tables in refresh statement.
+
+ - Added ``date_format`` scalar function.

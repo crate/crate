@@ -1,0 +1,63 @@
+==============
+Version 0.54.0
+==============
+
+Released on 2015/12/16.
+
+Changelog
+=========
+
+ - Fixed: plugin modules are now instantiated with settings.
+
+ - Added support for 2+ table joins.
+
+ - Fix: All insert from subquery statements are now executed without ``limit``.
+
+ - Updated crate-admin to 0.17.0 which includes following changes:
+
+     - Display current shard recovery status on table info page. It shows the
+       percentage of done recovery.
+
+     - Updated calculation of underreplicated shards/records to work with the
+       change in Crate server where shards in sys.shards table have a more fine
+       granular state now and relocating shards are listed, too.
+
+ - Added ``show schemas``, ``show tables``, and ``show columns`` commands.
+
+ - Updated crash to 0.15.0 which contains following changes:
+
+   - Added new format ``json_row`` which prints a dataset as json row-by-row
+     in separate lines.
+
+   - Added the ``sysinfo`` command which queries the ``sys`` tables for
+     system and cluster information. The command requires Crate >= 0.54.0.
+
+ - Added filtering support to ``COPY TO`` statement.
+
+ - Fix: disabled type detection for timestamps.
+
+ - Added support for ``Generated columns`` (Feature T175 ANSI SQL:2006).
+
+ - Fixed an issue which caused dangling readers after executing a self-join.
+
+ - Added ``char_length``, ``bit_length`` and ``octet_length`` scalar functions.
+
+ - The ``jobs.keep_alive_timeout`` value can now be configured and the default
+   has been changed to 0 (deactivated) from ``5m``
+
+ - Allow creating the CrateClient with settings and servers at the same time.
+
+ - Expose shard recovery information in the ``sys.shards`` table.
+
+ - Expose relocating shards in the ``sys.shards`` table. Note that relocating
+   shards are shown additionally to their already assigned source shards.
+
+ - Removed the limitation that all selected columns must also appear in the
+   ``ORDER BY`` clause for joins.
+
+ - Added support for explicit ``INNER JOIN .. ON`` syntax.
+
+ - Added OS and JVM info to ``sys.nodes`` table.
+
+ - Sort columns in ``sys`` and ``information_schema`` tables alphabetically
+   when selecting all columns with ``*``.

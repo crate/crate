@@ -1,0 +1,21 @@
+0.x Release Lines
+=================
+
+.. toctree::
+    :maxdepth: 1
+
+    57/index
+    56/index
+    55/index
+    54/index
+    53/index
+    52/index
+    51/index
+    50/index
+    
+.. NOTE::
+
+   For information about release lines earlier than 0.50, please see the
+   CHANGES.txt_ file that was shipped with version 0.49.6.
+   
+.. _CHANGES.txt: https://github.com/crate/crate/blob/7774442326da89a82970616354cdb12c815f2140/CHANGES.txt

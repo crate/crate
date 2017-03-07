@@ -1,0 +1,32 @@
+==============
+Version 0.57.4
+==============
+
+Released on 2016/11/30.
+
+Changelog
+=========
+
+ - Fixed ``ClassCastException`` that occurs when executing queries with ``order
+   by`` that uses scalar functions which have integer return type and null
+   values are involved in the ordering. e.g.::
+
+     SELECT * from t1 ORDER BY abs(col1)
+
+   Here, col1 contains nulls.
+
+ - Fixed NPE that that can occur in join queries when left table has no
+   matching records.
+
+ - Fixed issue that caused join queries to get stuck when killed.
+
+ - Improved error message when column is missing from ``group by``. The column
+   alias is used instead of the column name.
+
+ - Improve error message for not supported set operations ``intersect`` and
+   ``except``.
+
+ - Improved error handling: Sometimes a user would get a ``Job Killed`` error
+   instead of the actual error that caused a query to get interrupted.
+
+ - Fixed a memory leak that was caused by blob uploads.

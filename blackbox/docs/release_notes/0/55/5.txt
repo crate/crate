@@ -1,0 +1,43 @@
+==============
+Version 0.55.5
+==============
+
+Released on 2016/09/19.
+
+Changelog
+=========
+
+ - Fix: Dropping a partition while inserting by primary key into same
+   partition should not raise an exception but returns a 0 row count instead.
+
+ - Fixed: JAR conflict if HDFS plugin with Hadoop 2.x is used.
+
+ - Fix: it is now also possible to restore a snapshot of a single partition of a
+   partitioned table in a non-existent table. This requires that the snapshot
+   has been created with version ``0.55.5`` or greater!
+
+ - Fixed: join conditions were not properly validated and an expression with a
+   not yet defined relation could be used.
+
+ - Fixed: setting of a default schema was not possible by using the HTTP REST
+   endpoint.
+
+ - Fixed: an error was thrown in case of primary key bulk delete statement with
+   null bulk arguments.
+
+ - Fix: return 0 rows instead of an error when executing select queries that
+   try to match null for primary key columns. e.g.::
+
+     select * from t where pk in (null);
+
+ - Fix: allow select statements on columns of multiple nested object array.
+
+ - Fix: do not allow to create tables in read-only system schemas.
+
+ - Fix: ``COPY FROM`` statements fail if null values are inserted into
+   partitioned tables.
+
+ - Fix: type was not set correctly when creating a token filter with default
+   name and no type.
+
+ - Fix: prevent creating ``char filters`` with missing properties.

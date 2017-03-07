@@ -1,0 +1,134 @@
+==============
+Version 0.57.0
+==============
+
+Released on 2016/09/23.
+
+Changelog
+=========
+
+ - BREAKING: Column names returned on queries does not include the table and
+   schema names anymore, i.e., ``select doc.t1.a from t1`` will return column
+   name ``a`` instead of ``doc.t1.a``.
+
+ - BREAKING: Moved some ``sys.checks`` into a new ``sys.node_checks`` table as
+   those checks were actually node specific. Added the ability to acknowledge
+   failing checks on this new ``sys.node_checks`` table.
+
+ - Updated crate-admin to 0.20.0 which contains following changes:
+
+    - Added a new console option to allow users to display the error trace when
+      an error occurs.
+
+    - Added translation for tutorial plugin. This enables support for i18n for
+      any admin ui plugin.
+
+ - Fix: aggregations on no-match ``JOIN`` queries incorrectly returned empty
+   result Now these queries fail because aggregations are not supported on
+   joins.
+
+ - Updated crash to 0.18.0 which contains following changes:
+
+    - Don't show tables from ``pg_catalog`` if ``\dt`` command is used.
+
+    - Make the ``\check`` command to display both, node and cluster checks.
+      Allow ``node`` and ``cluster`` arguments for the command to display node
+      and cluster checks, respectively.
+
+ - Added support for outer joins: ``LEFT``, ``RIGHT``, and ``FULL``.
+
+ - Added ``percentile`` aggregate function.
+
+ - Fixed an issue that could cause joins on 3+ tables to produce the wrong
+   result.
+
+ - Fix: inserting in tables which have a generated column with
+   ``current_timestamp`` failed.
+
+ - Added the ``sys.summits`` table. The table contains the information about
+   mountains in the Alps higher than 2000 meters, which are used as node names.
+
+ - Replaced the existing list of random node names with the list of mountains
+   in the Alps.
+
+ - Remove limitation that prevented usage of columns from multiple tables
+   in the same order by expression. e.g.::
+
+     FROM t1, t2, t3 ORDER BY t1.x - t2.y + t3.z
+
+ - F501: Added SQL conformance info to ``information_schema.sql_features``.
+
+ - Updated crate-admin to 0.19.0 which contains following changes:
+
+   - Display failing node checks on overview page and allow to dismiss them.
+
+   - Added German translation. his change also enables the possibility for
+     further i18n.
+
+ - Added plugin for unicast host discovery on Azure (ARM mode)
+
+ - Optimized ``sys.nodes`` queries.
+
+ - Queries on the ``sys.nodes`` table will now short circuit in case some nodes
+   in the cluster are unresponsive. All columns of the unresponsive nodes will
+   contain null values except ``id`` and ``name``.
+
+ - Added support for subselect statements that can be rewritten as a single
+   query.
+
+ - Fetch operations are now threaded per shard instead of per node.
+
+ - Added initial experimental support for the postgres wire protocol. This is
+   disabled by default.
+
+ - Improved the error message of ``COPY FROM`` statements which fail due to
+   invalid entries in the files being imported.
+
+ - Implemented basic conditional functions (``coalesce()``, ``greatest()``,
+   ``least()``, ``nullif()``).
+
+ - Implemented ``NOT NULL`` column constraint.
+
+ - Added high/low disk watermark node checks exposed via ``sys.node_checks``.
+
+ - Leverage new Lucene queries for geo point queries (``distance``, ``within``,
+   ``match`` using ``within``). Newly created tables with geo_point columns
+   automatically use the new queries whereas previously created tables still
+   use the backwards compatible old queries.
+
+ - Implemented ``OPTIMIZE`` table statement which optimizes tables and
+   partitions by merging the segments of which each table and partition
+   consists.
+
+ - Updated crash to 0.17.0 which contains following changes:
+
+      - Added support for ``OPTIMIZE`` table statement.
+
+      - All statements will respond with an affected rows count now.
+
+      - Added a configuration file that stores default values for Crash. The
+        file is placed inside the user's application config folder. A path to a
+        custom configuration file can be specified using the ``--config``
+        command line argument.
+
+      - Dropped Python 2.6 support.
+
+      - Added support for client certificates.
+
+      - It is now possible to disable autocompletion using
+        ``--no-autocomplete`` command line argument and to toggle autocomplete
+        using the ``\autocomplete`` crash command.
+
+      - Fixed "read file" command (``\r``) for legacy Python 2.7.
+
+      - Fixed result info command output for whitespace other than space
+        characters in queries.
+
+      - Fixed call of ``sysinfo`` command when launching the shell.
+
+ - Deprecated usage of COPY TO without specifying a DIRECTORY. This will
+   prevent a user from defining an output path that conflicts with multiple
+   shards.
+
+ - Optimize count aggregations by using custom data type to avoid boxing of
+   primitives into Objects.

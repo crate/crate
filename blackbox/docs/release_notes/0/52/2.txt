@@ -1,0 +1,18 @@
+==============
+Version 0.52.2
+==============
+
+Released on 2015/11/11.
+
+Changelog
+=========
+
+ - Updated crate-admin to 0.15.3 which includes following changes:
+
+   - Fix: REPLICATED DATA at the overview page showed incorrect percentage of
+     of replicated data when number of undereplicated records was higher than
+     number of total records.
+
+ - Updated crash to 0.14.2 which contains following changes:
+
+   - Fixed an assertion error that could occur under Python 2.7.

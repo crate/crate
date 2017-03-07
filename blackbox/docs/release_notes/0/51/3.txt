@@ -1,0 +1,11 @@
+==============
+Version 0.51.3
+==============
+
+Released on 2015/09/15.
+
+Changelog
+=========
+
+ - Display column names that contain a dot correctly in information schema
+   and result column headers.
