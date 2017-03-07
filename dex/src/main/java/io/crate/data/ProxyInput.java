@@ -22,9 +22,9 @@
 
 package io.crate.data;
 
-class ProxyInput implements Input {
+public class ProxyInput implements Input {
 
-    Input<?> input;
+    public Input<?> input;
 
     @Override
     public Object value() {
