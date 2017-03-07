@@ -122,7 +122,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
         Bucket result = collect(collectNode);
         assertThat(TestingHelpers.printedTable(result),
-            is("NULL| NULL| strict| 0| 1| NULL| NULL| NULL| shards| sys\n"));
+            is("NULL| NULL| strict| 0| 1| NULL| NULL| NULL| shards| sys| NULL\n"));
     }
 
     @Test

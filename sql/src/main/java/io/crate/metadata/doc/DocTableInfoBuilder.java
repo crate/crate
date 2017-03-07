@@ -202,6 +202,8 @@ class DocTableInfoBuilder {
             partitions,
             md.columnPolicy(),
             md.getRoutingHashFunction(),
+            md.versionCreated(),
+            md.versionUpgraded(),
             md.supportedOperations(),
             executorService);
     }

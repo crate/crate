@@ -22,6 +22,7 @@
 package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.Version;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
@@ -43,7 +44,9 @@ public class BlobTableInfoTest extends CrateUnitTest {
         new BytesRef("0"),
         ImmutableMap.of(),
         new BytesRef("/tmp/blobs_path"),
-        DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION);
+        DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION,
+        Version.CURRENT,
+        null);
 
     @Test
     public void testGetColumnInfo() throws Exception {

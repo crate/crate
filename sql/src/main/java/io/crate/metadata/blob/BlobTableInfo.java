@@ -22,6 +22,7 @@
 package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.Version;
 import io.crate.analyze.AlterBlobTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
@@ -55,6 +56,8 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
     private final TableParameterInfo tableParameterInfo;
     private final Map<String, Object> tableParameters;
     private final String routingHashFunction;
+    private final Version versionCreated;
+    private final Version versionUpgraded;
 
     private static final Map<ColumnIdent, Reference> INFOS = new LinkedHashMap<>();
 
@@ -71,7 +74,9 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
                          BytesRef numberOfReplicas,
                          Map<String, Object> tableParameters,
                          BytesRef blobsPath,
-                         String routingHashFunction) {
+                         String routingHashFunction,
+                         @Nullable Version versionCreated,
+                         @Nullable Version versionUpgraded) {
         this.ident = ident;
         this.index = index;
         this.clusterService = clusterService;
@@ -81,6 +86,8 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
         this.tableParameterInfo = new AlterBlobTableParameterInfo();
         this.tableParameters = tableParameters;
         this.routingHashFunction = routingHashFunction;
+        this.versionCreated = versionCreated;
+        this.versionUpgraded = versionUpgraded;
 
         registerStaticColumns();
     }
@@ -204,5 +211,17 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
     @Override
     public String routingHashFunction() {
         return routingHashFunction;
+    }
+
+    @Nullable
+    @Override
+    public Version versionCreated() {
+        return versionCreated;
+    }
+
+    @Nullable
+    @Override
+    public Version versionUpgraded() {
+        return versionUpgraded;
     }
 }

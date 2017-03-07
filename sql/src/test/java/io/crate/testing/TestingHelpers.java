@@ -25,6 +25,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
+import io.crate.Version;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
 import io.crate.data.Bucket;
@@ -66,6 +67,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -454,5 +460,14 @@ public class TestingHelpers {
      */
     public static String resolveCanonicalString(String str) {
         return str.replaceAll("/", java.util.regex.Matcher.quoteReplacement(File.separator));
+    }
+
+    public static void assertCrateVersion(Object object, Version versionCreated, Version versionUpgraded) {
+        assertThat((Map<String, String>) object,
+            allOf(
+                hasEntry(is(Version.Properties.CREATED.toString()),
+                    versionCreated == null ? nullValue() : is(Version.toMap(versionCreated))),
+                hasEntry(is(Version.Properties.UPGRADED.toString()),
+                    versionUpgraded == null ? nullValue() : is(Version.toMap(versionUpgraded)))));
     }
 }

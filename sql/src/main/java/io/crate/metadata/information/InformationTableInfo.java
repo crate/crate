@@ -22,6 +22,7 @@
 package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.Version;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.table.StaticTableInfo;
@@ -46,6 +47,19 @@ public class InformationTableInfo extends StaticTableInfo {
         public static final ColumnIdent BLOBS_PATH = new ColumnIdent("blobs_path");
         public static final ColumnIdent COLUMN_POLICY = new ColumnIdent("column_policy");
         public static final ColumnIdent ROUTING_HASH_FUNCTION = new ColumnIdent("routing_hash_function");
+        public static final ColumnIdent TABLE_VERSION = new ColumnIdent("version");
+        public static final ColumnIdent TABLE_VERSION_CREATED = new ColumnIdent("version",
+            ImmutableList.of(Version.Properties.CREATED.toString()));
+        public static final ColumnIdent TABLE_VERSION_CREATED_CRATEDB = new ColumnIdent("version",
+            ImmutableList.of(Version.Properties.CREATED.toString(), Version.CRATEDB_VERSION_KEY));
+        public static final ColumnIdent TABLE_VERSION_CREATED_ES = new ColumnIdent("version",
+            ImmutableList.of(Version.Properties.CREATED.toString(), Version.ES_VERSION_KEY));
+        public static final ColumnIdent TABLE_VERSION_UPGRADED = new ColumnIdent("version",
+            ImmutableList.of(Version.Properties.UPGRADED.toString()));
+        public static final ColumnIdent TABLE_VERSION_UPGRADED_CRATEDB = new ColumnIdent("version",
+            ImmutableList.of(Version.Properties.UPGRADED.toString(), Version.CRATEDB_VERSION_KEY));
+        public static final ColumnIdent TABLE_VERSION_UPGRADED_ES = new ColumnIdent("version",
+            ImmutableList.of(Version.Properties.UPGRADED.toString(), Version.ES_VERSION_KEY));
         public static final ColumnIdent TABLE_SETTINGS = new ColumnIdent("settings");
         public static final ColumnIdent TABLE_SETTINGS_BLOCKS = new ColumnIdent("settings",
             ImmutableList.of("blocks"));

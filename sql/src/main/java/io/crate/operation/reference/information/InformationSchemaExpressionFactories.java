@@ -35,6 +35,7 @@ import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.collect.files.SqlFeatureContext;
 import io.crate.operation.reference.partitioned.PartitionsSettingsExpression;
+import io.crate.operation.reference.partitioned.PartitionsVersionExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
@@ -153,7 +154,8 @@ public class InformationSchemaExpressionFactories {
                 }
             })
             .put(InformationPartitionsTableInfo.Columns.ROUTING_HASH_FUNCTION,
-                () -> new InformationTablePartitionsExpression.PartitionsRoutingHashFunctionExpression())
+                InformationTablePartitionsExpression.PartitionsRoutingHashFunctionExpression::new)
+            .put(InformationPartitionsTableInfo.Columns.TABLE_VERSION, PartitionsVersionExpression::new)
             .put(InformationPartitionsTableInfo.Columns.TABLE_SETTINGS, new RowCollectExpressionFactory() {
 
                 @Override
@@ -378,6 +380,7 @@ public class InformationSchemaExpressionFactories {
                         return null;
                     }
                 })
+            .put(InformationTablesTableInfo.Columns.TABLE_VERSION, TablesVersionExpression::new)
             .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS, new RowCollectExpressionFactory() {
                     @Override
                     public RowCollectExpression create() {

@@ -44,6 +44,19 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         public static final Reference BLOBS_PATH = createRef(Columns.BLOBS_PATH, DataTypes.STRING);
         public static final Reference COLUMN_POLICY = createRef(Columns.COLUMN_POLICY, DataTypes.STRING);
         public static final Reference ROUTING_HASH_FUNCTION = createRef(Columns.ROUTING_HASH_FUNCTION, DataTypes.STRING);
+        public static final Reference TABLE_VERSION = createRef(Columns.TABLE_VERSION, DataTypes.OBJECT);
+        public static final Reference TABLE_VERSION_CREATED = createRef(
+            Columns.TABLE_VERSION_CREATED, DataTypes.OBJECT);
+        public static final Reference TABLE_VERSION_CREATED_CRATEDB = createRef(
+            Columns.TABLE_VERSION_CREATED_CRATEDB, DataTypes.OBJECT);
+        public static final Reference TABLE_VERSION_CREATED_ES = createRef(
+            Columns.TABLE_VERSION_CREATED_ES, DataTypes.OBJECT);
+        public static final Reference TABLE_VERSION_UPGRADED = createRef(
+            Columns.TABLE_VERSION_UPGRADED, DataTypes.OBJECT);
+        public static final Reference TABLE_VERSION_UPGRADED_CRATEDB = createRef(
+            Columns.TABLE_VERSION_UPGRADED_CRATEDB, DataTypes.OBJECT);
+        public static final Reference TABLE_VERSION_UPGRADED_ES = createRef(
+            Columns.TABLE_VERSION_UPGRADED_ES, DataTypes.OBJECT);
 
         public static final Reference TABLE_SETTINGS = createRef(Columns.TABLE_SETTINGS, DataTypes.OBJECT);
 
@@ -121,6 +134,13 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 .put(Columns.BLOBS_PATH, References.BLOBS_PATH)
                 .put(Columns.COLUMN_POLICY, References.COLUMN_POLICY)
                 .put(Columns.ROUTING_HASH_FUNCTION, References.ROUTING_HASH_FUNCTION)
+                .put(Columns.TABLE_VERSION, References.TABLE_VERSION)
+                .put(Columns.TABLE_VERSION_CREATED, References.TABLE_VERSION_CREATED)
+                .put(Columns.TABLE_VERSION_CREATED_CRATEDB, References.TABLE_VERSION_CREATED_CRATEDB)
+                .put(Columns.TABLE_VERSION_CREATED_ES, References.TABLE_VERSION_CREATED_ES)
+                .put(Columns.TABLE_VERSION_UPGRADED, References.TABLE_VERSION_UPGRADED)
+                .put(Columns.TABLE_VERSION_UPGRADED_CRATEDB, References.TABLE_VERSION_UPGRADED_CRATEDB)
+                .put(Columns.TABLE_VERSION_UPGRADED_ES, References.TABLE_VERSION_UPGRADED_ES)
                 .put(Columns.TABLE_SETTINGS, References.TABLE_SETTINGS)
                 .put(Columns.TABLE_SETTINGS_BLOCKS, References.TABLE_SETTINGS_BLOCKS)
                 .put(Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, References.TABLE_SETTINGS_BLOCKS_READ_ONLY)
@@ -157,7 +177,8 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 References.ROUTING_HASH_FUNCTION,
                 References.TABLE_SETTINGS,
                 References.TABLE_NAME,
-                References.TABLE_SCHEMA
+                References.TABLE_SCHEMA,
+                References.TABLE_VERSION
             )
         );
     }

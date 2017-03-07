@@ -45,6 +45,20 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
         public static final Reference NUMBER_OF_SHARDS = createRef(Columns.NUMBER_OF_SHARDS, DataTypes.INTEGER);
         public static final Reference NUMBER_OF_REPLICAS = createRef(Columns.NUMBER_OF_REPLICAS, DataTypes.STRING);
         public static final Reference ROUTING_HASH_FUNCTION = createRef(Columns.ROUTING_HASH_FUNCTION, DataTypes.STRING);
+        public static final Reference TABLE_VERSION = createRef(Columns.TABLE_VERSION, DataTypes.OBJECT);
+        public static final Reference TABLE_VERSION_CREATED = createRef(
+            Columns.TABLE_VERSION_CREATED, DataTypes.OBJECT);
+        public static final Reference TABLE_VERSION_CREATED_CRATEDB = createRef(
+            Columns.TABLE_VERSION_CREATED_CRATEDB, DataTypes.OBJECT);
+        public static final Reference TABLE_VERSION_CREATED_ES = createRef(
+            Columns.TABLE_VERSION_CREATED_ES, DataTypes.OBJECT);
+        public static final Reference TABLE_VERSION_UPGRADED = createRef(
+            Columns.TABLE_VERSION_UPGRADED, DataTypes.OBJECT);
+        public static final Reference TABLE_VERSION_UPGRADED_CRATEDB = createRef(
+            Columns.TABLE_VERSION_UPGRADED_CRATEDB, DataTypes.OBJECT);
+        public static final Reference TABLE_VERSION_UPGRADED_ES = createRef(
+            Columns.TABLE_VERSION_UPGRADED_ES, DataTypes.OBJECT);
+
         public static final Reference TABLE_SETTINGS = createRef(Columns.TABLE_SETTINGS, DataTypes.OBJECT);
 
         public static final Reference TABLE_SETTINGS_BLOCKS = createRef(
@@ -116,6 +130,13 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                 .put(Columns.NUMBER_OF_SHARDS, References.NUMBER_OF_SHARDS)
                 .put(Columns.NUMBER_OF_REPLICAS, References.NUMBER_OF_REPLICAS)
                 .put(Columns.ROUTING_HASH_FUNCTION, References.ROUTING_HASH_FUNCTION)
+                .put(Columns.TABLE_VERSION, References.TABLE_VERSION)
+                .put(Columns.TABLE_VERSION_CREATED, References.TABLE_VERSION_CREATED)
+                .put(Columns.TABLE_VERSION_CREATED_CRATEDB, References.TABLE_VERSION_CREATED_CRATEDB)
+                .put(Columns.TABLE_VERSION_CREATED_ES, References.TABLE_VERSION_CREATED_ES)
+                .put(Columns.TABLE_VERSION_UPGRADED, References.TABLE_VERSION_UPGRADED)
+                .put(Columns.TABLE_VERSION_UPGRADED_CRATEDB, References.TABLE_VERSION_UPGRADED_CRATEDB)
+                .put(Columns.TABLE_VERSION_UPGRADED_ES, References.TABLE_VERSION_UPGRADED_ES)
                 .put(Columns.TABLE_SETTINGS, References.TABLE_SETTINGS)
                 .put(Columns.TABLE_SETTINGS_BLOCKS, References.TABLE_SETTINGS_BLOCKS)
                 .put(Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, References.TABLE_SETTINGS_BLOCKS_READ_ONLY)
@@ -149,7 +170,8 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                 References.SCHEMA_NAME,
                 References.TABLE_SETTINGS,
                 References.TABLE_NAME,
-                References.VALUES
+                References.VALUES,
+                References.TABLE_VERSION
             )
         );
     }

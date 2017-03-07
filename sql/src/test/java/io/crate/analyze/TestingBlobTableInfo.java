@@ -23,6 +23,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.Version;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobTableInfo;
@@ -52,7 +53,9 @@ class TestingBlobTableInfo extends BlobTableInfo {
             numberOfReplicas,
             tableParameters,
             blobsPath,
-            DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION);
+            DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION,
+            Version.CURRENT,
+            null);
         this.routing = routing;
     }
 

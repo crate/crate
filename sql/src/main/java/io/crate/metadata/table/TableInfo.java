@@ -21,6 +21,7 @@
 
 package io.crate.metadata.table;
 
+import io.crate.Version;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 
@@ -64,4 +65,14 @@ public interface TableInfo extends Iterable<Reference> {
     Map<String, Object> tableParameters();
 
     Set<Operation> supportedOperations();
+
+    @Nullable
+    default Version versionCreated() {
+        return null;
+    }
+
+    @Nullable
+    default Version versionUpgraded() {
+        return null;
+    }
 }

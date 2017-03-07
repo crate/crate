@@ -21,6 +21,7 @@
 
 package io.crate.metadata.blob;
 
+import io.crate.Constants;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.blob.v2.BlobIndex;
@@ -35,14 +36,19 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.IndexNotFoundException;
 
+import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
 
 public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
 
+    private static final ESLogger LOGGER = Loggers.getLogger(InternalBlobTableInfoFactory.class);
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Environment environment;
     private final Path globalBlobPath;
@@ -71,6 +77,13 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
     @Override
     public BlobTableInfo create(TableIdent ident, ClusterService clusterService) {
         IndexMetaData indexMetaData = resolveIndexMetaData(ident.name(), clusterService.state());
+        Map<String, Object> mappingMap;
+        try {
+            mappingMap = indexMetaData.mapping(Constants.DEFAULT_MAPPING_TYPE).getSourceAsMap();
+        } catch (IOException e) {
+            LOGGER.error("error extracting blob table info for {}", e, ident.fqn());
+            throw new RuntimeException(e);
+        }
         return new BlobTableInfo(
             ident,
             indexMetaData.getIndex(),
@@ -79,7 +92,9 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
             NumberOfReplicas.fromSettings(indexMetaData.getSettings()),
             TableParameterInfo.tableParametersFromIndexMetaData(indexMetaData),
             blobsPath(indexMetaData.getSettings()),
-            DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION);
+            DocIndexMetaData.getRoutingHashFunction(mappingMap),
+            DocIndexMetaData.getVersionCreated(mappingMap),
+            DocIndexMetaData.getVersionUpgraded(mappingMap));
     }
 
     private BytesRef blobsPath(Settings indexMetaDataSettings) {

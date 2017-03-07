@@ -130,9 +130,8 @@ public class DocIndexMetaData {
         } else {
             supportedOperations = Operation.buildFromIndexSettings(metaData.getSettings());
         }
-        Map<String, Object> versionMap = getNested(metaMap, "version", null);
-        versionCreated = Version.fromMap(getNested(versionMap, Version.VersionProperties.CREATED.toString(), null));
-        versionUpgraded = Version.fromMap(getNested(versionMap, Version.VersionProperties.UPGRADED.toString(), null));
+        versionCreated = getVersionCreated(mappingMap);
+        versionUpgraded = getVersionUpgraded(mappingMap);
     }
 
     private static Map<String, Object> getMappingMap(IndexMetaData metaData) throws IOException {
@@ -143,6 +142,10 @@ public class DocIndexMetaData {
         return mappingMetaData.sourceAsMap();
     }
 
+    private static Map<String, Object> getVersionMap(Map<String, Object> mappingMap) {
+        return getNested(getNested(mappingMap, "_meta", null), VERSION_STRING,null);
+    }
+
     public static String getRoutingHashFunction(Map<String, Object> mappingMap) {
         return getNested(getNested(mappingMap, "_meta", null), SETTING_ROUTING_HASH_FUNCTION, null);
     }
@@ -151,8 +154,20 @@ public class DocIndexMetaData {
         return getRoutingHashFunction(mappingMap);
     }
 
-    public static void putVersionToMap(Map<String, Object> metaMap, Version.VersionProperties key, Version version) {
-        Map<String, Object> versionMap = (Map<String, Object>) metaMap.get("version");
+    @Nullable
+    public static Version getVersionCreated(Map<String, Object> mappingMap) {
+        Map<String, Object> versionMap = getVersionMap(mappingMap);
+        return Version.fromMap(getNested(versionMap, Version.Properties.CREATED.toString(), null));
+    }
+
+    @Nullable
+    public static Version getVersionUpgraded(Map<String, Object> mappingMap) {
+        Map<String, Object> versionMap = getVersionMap(mappingMap);
+        return Version.fromMap(getNested(versionMap, Version.Properties.UPGRADED.toString(), null));
+    }
+
+    public static void putVersionToMap(Map<String, Object> metaMap, Version.Properties key, Version version) {
+        Map<String, Object> versionMap = (Map<String, Object>) metaMap.get(VERSION_STRING);
         if (versionMap == null) {
             versionMap = new HashMap<>(1);
             metaMap.put(VERSION_STRING, versionMap);

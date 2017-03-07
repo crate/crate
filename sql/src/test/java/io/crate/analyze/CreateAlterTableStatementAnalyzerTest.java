@@ -999,7 +999,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
             "create table created_version_table (id int)");
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, Object> versionMap = (Map) metaMapping.get("version");
-        assertThat(versionMap.get(Version.VersionProperties.CREATED.toString()), is(Version.toMap(Version.CURRENT)));
-        assertThat(versionMap.get(Version.VersionProperties.UPGRADED.toString()), nullValue());
+        assertThat(versionMap.get(Version.Properties.CREATED.toString()), is(Version.toMap(Version.CURRENT)));
+        assertThat(versionMap.get(Version.Properties.UPGRADED.toString()), nullValue());
     }
 }

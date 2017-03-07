@@ -63,14 +63,17 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
                 PartitionName partitionName = PartitionName.fromIndexOrTemplate(input.key);
                 try {
                     MappingMetaData mappingMetaData = input.value.mapping(Constants.DEFAULT_MAPPING_TYPE);
+                    Map<String, Object> mappingMap = mappingMetaData.sourceAsMap();
                     Map<String, Object> valuesMap = buildValuesMap(partitionName, mappingMetaData);
-                    String routingHashFunction = DocIndexMetaData.getRoutingHashFunction(mappingMetaData.sourceAsMap());
+                    String routingHashFunction = DocIndexMetaData.getRoutingHashFunction(mappingMap);
                     BytesRef numberOfReplicas = NumberOfReplicas.fromSettings(input.value.getSettings());
                     return new PartitionInfo(
                         partitionName,
                         input.value.getNumberOfShards(),
                         numberOfReplicas,
                         routingHashFunction == null ? null : new BytesRef(routingHashFunction),
+                        DocIndexMetaData.getVersionCreated(mappingMap),
+                        DocIndexMetaData.getVersionUpgraded(mappingMap),
                         valuesMap,
                         TableParameterInfo.tableParametersFromIndexMetaData(input.value));
                 } catch (Exception e) {

@@ -23,15 +23,20 @@ package io.crate.metadata;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
+import io.crate.Version;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Nullable;
 
 import java.util.Map;
 
 public class PartitionInfo {
+
     private final PartitionName name;
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
     private final BytesRef routingHashFunction;
+    private final Version versionCreated;
+    private final Version versionUpgraded;
     private final Map<String, Object> values;
     private final ImmutableMap<String, Object> tableParameters;
 
@@ -39,12 +44,16 @@ public class PartitionInfo {
                          int numberOfShards,
                          BytesRef numberOfReplicas,
                          BytesRef routingHashFunction,
+                         @Nullable Version versionCreated,
+                         @Nullable Version versionUpgraded,
                          Map<String, Object> values,
                          ImmutableMap<String, Object> tableParameters) {
         this.name = name;
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
         this.routingHashFunction = routingHashFunction;
+        this.versionCreated = versionCreated;
+        this.versionUpgraded = versionUpgraded;
         this.values = values;
         this.tableParameters = tableParameters;
     }
@@ -98,11 +107,23 @@ public class PartitionInfo {
             .add("numberOfShards", numberOfShards)
             .add("numberOfReplicas", numberOfReplicas)
             .add("routingHashFunction", routingHashFunction)
+            .add("versionCreated", versionCreated)
+            .add("versionUpgraded", versionUpgraded)
             .toString();
     }
 
     public ImmutableMap<String, Object> tableParameters() {
         return tableParameters;
+    }
+
+    @Nullable
+    public Version versionCreated() {
+        return versionCreated;
+    }
+
+    @Nullable
+    public Version versionUpgraded() {
+        return versionUpgraded;
     }
 }
 

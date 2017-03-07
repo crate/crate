@@ -34,13 +34,16 @@ import java.util.Map;
 
 public class Version {
 
-    public enum VersionProperties {
+    public static final String CRATEDB_VERSION_KEY = "cratedb";
+    public static final String ES_VERSION_KEY = "elasticsearch";
+
+    public enum Properties {
         CREATED,
         UPGRADED;
 
         private String nameLowerCase;
 
-        VersionProperties() {
+        Properties() {
             this.nameLowerCase = name().toLowerCase(Locale.ENGLISH);
         }
 
@@ -151,8 +154,8 @@ public class Version {
 
     public static Map<String, String> toMap(Version version) {
         return MapBuilder.<String, String>newMapBuilder()
-            .put("crate", String.valueOf(version.id))
-            .put("elasticsearch", String.valueOf(version.esVersion.id))
+            .put(CRATEDB_VERSION_KEY, String.valueOf(version.id))
+            .put(ES_VERSION_KEY, String.valueOf(version.esVersion.id))
             .map();
     }
 
@@ -162,7 +165,7 @@ public class Version {
             return null;
         }
         return new Version(
-            Integer.parseInt(versionMap.get("crate")),
+            Integer.parseInt(versionMap.get("cratedb")),
             null, // snapshot info is not saved
             org.elasticsearch.Version.fromId(Integer.parseInt(versionMap.get("elasticsearch"))));
     }

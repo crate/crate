@@ -80,7 +80,6 @@ public class CrateMetaDataUpgradeService extends AbstractComponent implements Cu
             indexMetaData.getSettings().get(IndexMetaData.SETTING_LEGACY_ROUTING_HASH_FUNCTION));
         if (mappingMetaData != newMappingMetaData) {
             logger.info("upgraded mapping of index={}", indexMetaData.getIndex());
-            markAsUpgraded(newMappingMetaData);
             return IndexMetaData.builder(indexMetaData)
                 .removeMapping(Constants.DEFAULT_MAPPING_TYPE)
                 .putMapping(newMappingMetaData)
@@ -100,7 +99,6 @@ public class CrateMetaDataUpgradeService extends AbstractComponent implements Cu
             indexTemplateMetaData.getSettings().get(IndexMetaData.SETTING_LEGACY_ROUTING_HASH_FUNCTION));
         if (mappingMetaData != newMappingMetaData) {
             logger.info("upgraded mapping of template={}", indexTemplateMetaData.getName());
-            markAsUpgraded(newMappingMetaData);
             return new IndexTemplateMetaData.Builder(indexTemplateMetaData)
                 .removeMapping(Constants.DEFAULT_MAPPING_TYPE)
                 .putMapping(Constants.DEFAULT_MAPPING_TYPE, newMappingMetaData.source())
@@ -131,6 +129,7 @@ public class CrateMetaDataUpgradeService extends AbstractComponent implements Cu
                 newMappingMap.put("_meta", newMetaMap);
             }
             newMetaMap.put(DocIndexMetaData.SETTING_ROUTING_HASH_FUNCTION, routingHashFunction);
+            markAsUpgraded(newMappingMap);
 
             Map<String, Object> typeAndMapping = new HashMap<>(1);
             typeAndMapping.put(Constants.DEFAULT_MAPPING_TYPE, newMappingMap);
@@ -139,10 +138,9 @@ public class CrateMetaDataUpgradeService extends AbstractComponent implements Cu
         return mappingMetaData;
     }
 
-    private void markAsUpgraded(MappingMetaData mappingMetaData) throws IOException {
-        assert mappingMetaData != null : "mapping metadata must not be null to be marked as upgraded";
-        Map<String, Object> mappingMap = mappingMetaData.sourceAsMap();
+    private void markAsUpgraded(Map<String, Object> mappingMap) throws IOException {
+        assert mappingMap != null : "mapping metadata must not be null to be marked as upgraded";
         Map<String, Object> newMetaMap = (Map<String, Object>) mappingMap.get("_meta");
-        DocIndexMetaData.putVersionToMap(newMetaMap, Version.VersionProperties.UPGRADED, Version.CURRENT);
+        DocIndexMetaData.putVersionToMap(newMetaMap, Version.Properties.UPGRADED, Version.CURRENT);
     }
 }

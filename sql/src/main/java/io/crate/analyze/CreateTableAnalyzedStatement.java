@@ -133,7 +133,7 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
             metaMap.put(DocIndexMetaData.SETTING_ROUTING_HASH_FUNCTION, DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION);
 
             // set the created version
-            DocIndexMetaData.putVersionToMap(metaMap, Version.VersionProperties.CREATED, Version.CURRENT);
+            DocIndexMetaData.putVersionToMap(metaMap, Version.Properties.CREATED, Version.CURRENT);
 
             // merge in user defined mapping parameter
             mapping.putAll(tableParameter.mappings());
