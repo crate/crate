@@ -23,6 +23,7 @@
 package io.crate.operation.collect.collectors;
 
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.Input;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LongColumnReference;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -46,7 +47,7 @@ import java.util.concurrent.TimeUnit;
 import static org.mockito.Mockito.mock;
 
 @BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 public class LuceneBatchIteratorBenchmark {
 
@@ -62,6 +63,7 @@ public class LuceneBatchIteratorBenchmark {
             iw.addDocument(doc);
         }
         iw.commit();
+        iw.forceMerge(1, true);
         IndexSearcher indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true));
         LongColumnReference columnReference = new LongColumnReference(columnName);
         List<LongColumnReference> columnRefs = Collections.singletonList(columnReference);
@@ -83,8 +85,9 @@ public class LuceneBatchIteratorBenchmark {
 
     @Benchmark
     public void measureConsumeLuceneBatchIterator(Blackhole blackhole) throws Exception {
+        Input<?> input = it.rowData().get(0);
         while (it.moveNext()) {
-            blackhole.consume(it);
+            blackhole.consume(input.value());
         }
         it.moveToStart();
     }
