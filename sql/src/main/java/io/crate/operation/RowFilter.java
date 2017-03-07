@@ -29,12 +29,13 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.InputCondition;
 
 import javax.annotation.Nullable;
+import java.util.List;
 import java.util.function.Predicate;
 
 public class RowFilter implements Predicate<Row> {
 
     private final Input<Boolean> filterCondition;
-    private final Iterable<CollectExpression<Row, ?>> filterCollectExpressions;
+    private final List<CollectExpression<Row, ?>> expressions;
 
     public static Predicate<Row> create(InputFactory inputFactory, @Nullable Symbol filterSymbol) {
         if (filterSymbol == null) {
@@ -47,13 +48,15 @@ public class RowFilter implements Predicate<Row> {
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
         //noinspection unchecked
         filterCondition = (Input) ctx.add(filterSymbol);
-        filterCollectExpressions = ctx.expressions();
+        expressions = ctx.expressions();
     }
 
     @Override
     public boolean test(@Nullable Row row) {
-        for (CollectExpression<Row, ?> collectExpression : filterCollectExpressions) {
-            collectExpression.setNextRow(row);
+        //noinspection ForLoopReplaceableByForEach // avoids iterator allocation - rowFilter test is invoked per row
+        for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
+            CollectExpression<Row, ?> expression = expressions.get(i);
+            expression.setNextRow(row);
         }
         return InputCondition.matches(filterCondition);
     }
@@ -66,13 +69,13 @@ public class RowFilter implements Predicate<Row> {
         RowFilter rowFilter = (RowFilter) o;
 
         if (!filterCondition.equals(rowFilter.filterCondition)) return false;
-        return filterCollectExpressions.equals(rowFilter.filterCollectExpressions);
+        return expressions.equals(rowFilter.expressions);
     }
 
     @Override
     public int hashCode() {
         int result = filterCondition.hashCode();
-        result = 31 * result + filterCollectExpressions.hashCode();
+        result = 31 * result + expressions.hashCode();
         return result;
     }
 }

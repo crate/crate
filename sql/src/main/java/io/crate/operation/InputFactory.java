@@ -40,7 +40,6 @@ import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.reference.ReferenceResolver;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -104,12 +103,12 @@ public class InputFactory {
     public static class Context<T extends Input<?>> {
 
         private final List<Input<?>> topLevelInputs = new ArrayList<>();
-        private final Collection<T> expressions;
+        private final List<T> expressions;
         private final List<AggregationContext> aggregationContexts;
         private final SymbolVisitor<?, Input<?>> visitor;
 
 
-        private Context(Collection<T> expressions,
+        private Context(List<T> expressions,
                         List<AggregationContext> aggregationContexts,
                         SymbolVisitor<?, Input<?>> visitor) {
             this.expressions = expressions;
@@ -117,7 +116,7 @@ public class InputFactory {
             this.visitor = visitor;
         }
 
-        private Context(Collection<T> expressions, SymbolVisitor<?, Input<?>> visitor) {
+        private Context(List<T> expressions, SymbolVisitor<?, Input<?>> visitor) {
             this(expressions, Collections.emptyList(), visitor);
         }
 
@@ -125,7 +124,7 @@ public class InputFactory {
             return topLevelInputs;
         }
 
-        public Collection<T> expressions() {
+        public List<T> expressions() {
             return expressions;
         }
 

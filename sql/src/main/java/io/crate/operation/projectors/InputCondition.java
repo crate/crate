@@ -30,12 +30,7 @@ public class InputCondition {
     }
 
     public static <T> Predicate<T> asPredicate(final Input<Boolean> condition) {
-        return new Predicate<T>() {
-            @Override
-            public boolean apply(Object input) {
-                return matches(condition);
-            }
-        };
+        return input -> matches(condition);
     }
 
     public static boolean matches(Input<Boolean> condition) {
