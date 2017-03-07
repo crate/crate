@@ -22,6 +22,7 @@
 
 package io.crate.data;
 
+import io.crate.data.join.NestedLoopBatchIterator;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.CollectingBatchConsumer;
