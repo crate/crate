@@ -1,0 +1,47 @@
+==============
+Version 0.57.1
+==============
+
+Released on 2016/11/10.
+
+Changelog
+=========
+
+ - Fixed NPE in the ``percentile`` aggregation fucntion. The NPE was occurring
+   in case when queried shards have no records.
+
+ - Fixed an issue with select queries returning duplicate outputs when
+   ``where`` uses ``=`` with ``primary key`` and an order by which is also part
+   of the selected fields is used.
+
+ - Fixed adding a column to an existing object array using ``ALTER TABLE``.
+
+ - Fix: selecting ``os_info['jvm']['vm_vendor']`` and
+   ``os_info['jvm']['name']`` caused ``ColumnUnknownException``.
+
+ - Removed reduced thread stack size java option, stack size defaults to JVM
+   defaults now.
+
+ - Fixed an issue that causes outer joins to fail with an exception if columns
+   are referenced in a where clause but not as select items.
+
+ - Updated crate-admin to 0.21.2 which includes the following change:
+
+     - fixed incorrect sql query for creating the tweets table in the tutorial.
+
+ - Fixed an issue that caused right outer joins to get stuck instead of
+   returning a result if the left table is empty.
+
+ - Updated crate-admin to 0.21.1 which includes the following changes:
+
+     - Fix: Corrected the sql queries to display the table list in the Tables
+       view, and to create the tweets table only if it does not exist.
+
+ - Fixed an issue that caused left outer joins to return an empty result if the
+   joined table is empty.
+
+ - Fix: Certain subselects with nested ``order by`` and ``limit`` or ``offset``
+   produced incorrect results. e.g.::
+
+     select * from (select a, b from t1 order by a limit 3) as t
+     order by b limit 2

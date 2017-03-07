@@ -1,0 +1,18 @@
+==============
+Version 0.54.6
+==============
+
+Released on 2016/02/25.
+
+Changelog
+=========
+
+ - Fixed a NPE that occurred if a table was created using the ES API with a
+   mapping that uses ``copy_to`` but does not define ``_meta.indices``.
+
+ - Fixed a NPE that could occur if a system table was joined with a regular
+   user table.
+
+ - Fixed an issue that could cause queries with ``ORDER BY`` on partitioned
+   tables to get stuck if multiple shards were on the same node and a single
+   shard couldn't produce the whole result.

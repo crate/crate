@@ -1,3 +1,5 @@
+.. _drop-table:
+
 ==========
 DROP TABLE
 ==========

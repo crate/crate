@@ -1,0 +1,110 @@
+=============
+Version 1.0.0
+=============
+
+Released on 2016/12/05.
+
+Changelog
+=========
+
+ - BREAKING: Removed ``schema_name`` from ``information_schema.tables``,
+   ``information_schema.columns`` and ``information_schema.table_constraints``
+   in favour of ``table_schema``.
+
+ - Possibly BREAKING blob storage changes:
+
+   - Changed blob storage to utilize all paths listed under ``path.data``.
+
+   - Changed the directory layout in case a custom ``blobs.path`` is
+     configured. This allows running two nodes on the same machine pointing to
+     the same ``blobs.path`` without conflicts.
+
+   These changes require a manual migration for users who have blob tables and
+   either had:
+
+     - Multiple paths configured under ``path.data``
+
+     - A custom ``blobs.path`` set either globally or per table.
+
+   Please run the `migration script`_ provided **before** updating to examine
+   whether you are affected by these changes. The migration script will tell
+   you what has to be done.
+
+ - Removed the ``client`` package which contained the deprecated
+   ``crate-client``. You should start using the PostgreSQL JDBC driver instead.
+
+ - Removed java7 support
+
+ - Optimize execution of joins by ordering the join relations based on
+   join/where conditions.
+
+ - Fixed issue in joins with 3 or more tables where limit was applied before
+   ``WHERE`` clause filtering which produced  wrong results.
+
+ - Fixed issue which causes ``BETWEEN`` to return a wrong result if ``min`` or
+   ``max`` is null.
+
+ - Improved error message if function is unsupported with ``distinct``.
+
+ - Nested numeric factors do not require brackets any more; e.g. ``SELECT + -
+   10`` is now supported.
+
+ - Added subscript support for ``cast`` and ``try_cast`` expressions. e.g.:
+   ``select cast(coordinates as array(double))[1] from sys.summits`` is now
+   possible
+
+ - Upgraded Elasticsearch to 2.4.2.
+
+ - Added scalar functions ``latitude`` and ``longitude`` to extract latitude
+   and longitude of a ``geo_point``.
+
+ - Improved performance of ``array_cat`` and ``array_difference`` scalar
+   functions if the array contains function expressions.
+
+ - New setting ``stats.service.interval`` which allows to control the refresh
+   interval of the table statistics used to create optimal query execution
+   plans.
+
+ - Added support for global aggregations on subselects.
+
+ - Added the ``-C`` option for providing Crate settings and deprecated usage of
+   the ``.es`` prefix with ``-D`` option.
+
+ - Added support for global aggregations on joins
+
+ - Log unhandled HTTP related exceptions as ``debug`` instead of ``error``.
+
+ - Implemented ``if`` conditional function.
+
+ - F261/F262: Implemented ``CASE`` expression support.
+
+ - Removed the duplicate ``rowcount`` field from the HTTP response.
+
+ - Added the ``search_path`` session setting parameter. The default table
+   schema can be set with ``SET SESSION search_path = schema_name``.
+
+ - Updated crate-admin to 1.0.1 which includes the following changes:
+
+    - Fixed an issue that caused incorrect URL paths if the project gets built.
+
+    - Implemented new layout for the admin-ui.
+
+    - Local development: do not store ``base_uri`` permanently in localStorage
+      but keep it in URL.
+
+    - Added Pepper contact widget which displays various Crate.IO
+      support Channels in a user friendly way.
+
+    - The first node in the node list is selected by default.
+
+    - The first table in the table list is selected by default.
+
+    - Developer news from crate.io website are now loaded correctly into
+      newsfeed.
+
+ - Updated Crash to 0.20.0 which includes the following change:
+
+    - Updated information_schema metadata queries to reflect the current state
+      of CrateDB.
+
+.. _migration script: https://github.com/crate/crate-utils/tree/master/migrations/pre-1.0

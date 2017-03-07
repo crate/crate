@@ -1,0 +1,63 @@
+==============
+Version 0.57.0
+==============
+
+Released on 2016/10/27.
+
+Changelog
+=========
+
+ - Updated Crash to 0.19.0 which includes the following change:
+
+    - Allow "short hosts" as Crate hosts argument, such as ``:4200`` for
+      ``localhost:4200``
+
+ - Updated crate-admin to 0.21.0 which includes following changes:
+
+    - Added a button to clear the search field in the table list view.
+
+    - Added Spanish translation.
+
+ - Allow ``admin-ui`` to be served from ``/`` if accessed via browser.
+   Otherwise the request is handled by the REST API.
+
+ - Upgraded Elasticsearch to 2.4.1
+
+ - Improved parameter de-serialization of the ``Bind`` message. If a client
+   doesn't provide parameter types in the parse message, bind will now default
+   to ``text/varchar`` instead of ``text/json``. This enables support for
+   clients like pg-nodejs.
+
+ - Added support for the ``Flush`` message in the Postgres wire protocol.
+
+ - Added support for scalar subquery expressions to ``SELECT`` statements.
+
+ - Added ``CURRENT_SCHEMA`` system information function
+
+ - Added column ``table_schema`` in ``information_schema.columns``,
+   ``information_schema.tables`` and ``information_schema.table_constraints``
+   in order to be conform with the SQL standard. The column ``schema_name`` is
+   deprecated.
+
+ - Added support for ``BETWEEN``.
+
+ - Added support of expressions in the array constructors. Allowed to to write
+   an array constructor in the PostgreSQL form, like ``ARRAY[]``.
+
+ - Expose bound psql port in ``sys.nodes``
+
+ - BREAKING: Removed deprecated Plugin interface methods.
+
+ - Deprecated the ``CrateClient`` class. You should start using the PostgreSQL
+   JDBC driver instead.
+
+ - Extended the Postgres wire protocol to support describe for queries with
+   result sets. This removes the requirement to set ``prepareThreshold=0``
+   when using the JDBC client.
+
+ - Added support for ``SET LOCAL|SESSION`` statements.
+
+ - Support ``SELECT`` queries without the ``FROM`` clause. Such queries are
+   executed against the ``sys.cluster`` table.
+
+ - The PostgreSQL wire protocol is enabled by default.
