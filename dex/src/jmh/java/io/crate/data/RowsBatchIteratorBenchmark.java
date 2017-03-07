@@ -22,6 +22,7 @@
 
 package io.crate.data;
 
+import io.crate.data.join.NestedLoopBatchIterator;
 import io.crate.testing.RowGenerator;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
