@@ -23,15 +23,21 @@ package io.crate.metadata;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMap;
+import io.crate.Version;
+import io.crate.metadata.table.StoredTable;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.Nullable;
 
 import java.util.Map;
 
-public class PartitionInfo {
+public class PartitionInfo implements StoredTable {
+
     private final PartitionName name;
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
     private final String routingHashFunction;
+    private final Version versionCreated;
+    private final Version versionUpgraded;
     private final Map<String, Object> values;
     private final ImmutableMap<String, Object> tableParameters;
 
@@ -39,12 +45,16 @@ public class PartitionInfo {
                          int numberOfShards,
                          BytesRef numberOfReplicas,
                          String routingHashFunction,
+                         @Nullable Version versionCreated,
+                         @Nullable Version versionUpgraded,
                          Map<String, Object> values,
                          ImmutableMap<String, Object> tableParameters) {
         this.name = name;
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
         this.routingHashFunction = routingHashFunction;
+        this.versionCreated = versionCreated;
+        this.versionUpgraded = versionUpgraded;
         this.values = values;
         this.tableParameters = tableParameters;
     }
@@ -98,11 +108,25 @@ public class PartitionInfo {
             .add("numberOfShards", numberOfShards)
             .add("numberOfReplicas", numberOfReplicas)
             .add("routingHashFunction", routingHashFunction)
+            .add("versionCreated", versionCreated)
+            .add("versionUpgraded", versionUpgraded)
             .toString();
     }
 
     public ImmutableMap<String, Object> tableParameters() {
         return tableParameters;
+    }
+
+    @Override
+    @Nullable
+    public Version versionCreated() {
+        return versionCreated;
+    }
+
+    @Override
+    @Nullable
+    public Version versionUpgraded() {
+        return versionUpgraded;
     }
 }
 

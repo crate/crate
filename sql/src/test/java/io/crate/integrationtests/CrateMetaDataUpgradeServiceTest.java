@@ -23,6 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.metadata.doc.DocIndexMetaData;
+import io.crate.Version;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.TestUtil;
@@ -77,7 +78,7 @@ public class CrateMetaDataUpgradeServiceTest extends SQLTransportIntegrationTest
     @Test
     public void testUpgradeRequiredTables() throws Exception {
         startUpNodeWithDataDir();
-        execute("select routing_hash_function" +
+        execute("select routing_hash_function, version " +
                 "from information_schema.tables where table_name in " +
                 "('test_blob_upgrade_required', 'test_upgrade_required', 'test_upgrade_required_parted') " +
                 "order by table_name");
@@ -85,6 +86,9 @@ public class CrateMetaDataUpgradeServiceTest extends SQLTransportIntegrationTest
         assertThat(response.rows()[0][0], is("Djb"));
         assertThat(response.rows()[1][0], is("Djb"));
         assertThat(response.rows()[2][0], is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        TestingHelpers.assertCrateVersion(response.rows()[0][1], null, Version.CURRENT);
+        TestingHelpers.assertCrateVersion(response.rows()[1][1], null, Version.CURRENT);
+        TestingHelpers.assertCrateVersion(response.rows()[2][1], null, Version.CURRENT);
 
         execute("select routing_hash_function, version " +
                 "from information_schema.table_partitions "+
@@ -92,6 +96,7 @@ public class CrateMetaDataUpgradeServiceTest extends SQLTransportIntegrationTest
         assertThat(response.rowCount(), is(5L));
         for (Object[] row : response.rows()) {
             assertThat(row[0], is("Djb"));
+            TestingHelpers.assertCrateVersion(row[1], null, Version.CURRENT);
         }
     }
 
@@ -105,12 +110,14 @@ public class CrateMetaDataUpgradeServiceTest extends SQLTransportIntegrationTest
                 "WITH (wait_for_completion=true)");
         ensureYellow();
 
-        execute("select routing_hash_function " +
+        execute("select routing_hash_function, version " +
                 "from information_schema.tables "+
                 "where table_name in ('test_upgrade_required', 'test_upgrade_required_parted') order by table_name");
         assertThat(response.rowCount(), is(2L));
         assertThat(response.rows()[0][0], is("Djb"));
         assertThat(response.rows()[1][0], is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        TestingHelpers.assertCrateVersion(response.rows()[0][1], null, Version.CURRENT);
+        TestingHelpers.assertCrateVersion(response.rows()[1][1], null, Version.CURRENT);
 
         execute("select routing_hash_function, version " +
                 "from information_schema.table_partitions "+
@@ -118,6 +125,7 @@ public class CrateMetaDataUpgradeServiceTest extends SQLTransportIntegrationTest
         assertThat(response.rowCount(), is(5L));
         for (Object[] row : response.rows()) {
             assertThat(row[0], is("Djb"));
+            TestingHelpers.assertCrateVersion(row[1], null, Version.CURRENT);
         }
     }
 }

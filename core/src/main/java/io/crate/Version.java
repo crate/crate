@@ -29,6 +29,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 
 public class Version {
@@ -50,6 +51,9 @@ public class Version {
                                                                         "] is still set to [" +
                                                                         CURRENT.esVersion + "]";
     }
+
+    public static final String CRATEDB_VERSION_KEY = "cratedb";
+    public static final String ES_VERSION_KEY = "elasticsearch";
 
     public final int id;
     public final byte major;
@@ -133,26 +137,44 @@ public class Version {
         org.elasticsearch.Version.writeVersion(version.esVersion, out);
     }
 
-    public static Map<String, String> toMap(Version version) {
-        return MapBuilder.<String, String>newMapBuilder()
-            .put("crate", String.valueOf(version.id))
-            .put("elasticsearch", String.valueOf(version.esVersion.id))
+    public static Map<String, Integer> toMap(Version version) {
+        return MapBuilder.<String, Integer>newMapBuilder()
+            .put(CRATEDB_VERSION_KEY, version.id)
+            .put(ES_VERSION_KEY, version.esVersion.id)
             .map();
     }
 
     @Nullable
-    public static Version fromMap(Map<String, String> versionMap) {
+    public static Version fromMap(@Nullable Map<String, Integer> versionMap) {
         if (versionMap == null || versionMap.isEmpty()) {
             return null;
         }
         return new Version(
-            Integer.parseInt(versionMap.get("crate")),
+            versionMap.get(CRATEDB_VERSION_KEY),
             null, // snapshot info is not saved
-            org.elasticsearch.Version.fromId(Integer.parseInt(versionMap.get("elasticsearch"))));
+            org.elasticsearch.Version.fromId(versionMap.get(ES_VERSION_KEY)));
+    }
+
+    public static Map<String, String> toStringMap(Version version) {
+        return MapBuilder.<String, String>newMapBuilder()
+            .put(CRATEDB_VERSION_KEY, version.number())
+            .put(ES_VERSION_KEY, version.esVersion.number())
+            .map();
     }
 
     public enum Property {
         CREATED,
-        UPGRADED
+        UPGRADED;
+
+        private String nameLowerCase;
+
+        Property() {
+            this.nameLowerCase = name().toLowerCase(Locale.ENGLISH);
+        }
+
+        @Override
+        public String toString() {
+            return nameLowerCase;
+        }
     }
 }

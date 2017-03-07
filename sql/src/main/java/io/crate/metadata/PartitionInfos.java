@@ -71,6 +71,8 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
                         input.value.getNumberOfShards(),
                         numberOfReplicas,
                         DocIndexMetaData.getRoutingHashFunction(mappingMap),
+                        DocIndexMetaData.getVersionCreated(mappingMap),
+                        DocIndexMetaData.getVersionUpgraded(mappingMap),
                         valuesMap,
                         TableParameterInfo.tableParametersFromIndexMetaData(input.value));
                 } catch (Exception e) {

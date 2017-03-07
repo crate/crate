@@ -61,7 +61,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"true\",\"_meta\":{\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\",\"primary_keys\":[\"col1\"]," +
-                                 "\"version\":{\"created\":{\"elasticsearch\":\"" + Version.CURRENT.esVersion.id + "\",\"crate\":\"" + Version.CURRENT.id + "\"}}}," +
+                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
                                  "\"properties\":{" +
@@ -174,7 +174,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
 
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"strict\",\"_meta\":{\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\",\"primary_keys\":[\"col1\"]," +
-                                 "\"version\":{\"created\":{\"elasticsearch\":\"" + Version.CURRENT.esVersion.id + "\",\"crate\":\"" + Version.CURRENT.id + "\"}}}," +
+                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
                                  "\"properties\":{" +
@@ -199,7 +199,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"true\",\"_meta\":{\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\"," +
-                                 "\"version\":{\"created\":{\"elasticsearch\":\"" + Version.CURRENT.esVersion.id + "\",\"crate\":\"" + Version.CURRENT.id + "\"}}}," +
+                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
                                  "\"properties\":{" +
@@ -213,7 +213,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"true\",\"_meta\":{\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\"," +
-                                 "\"version\":{\"created\":{\"elasticsearch\":\"" + Version.CURRENT.esVersion.id + "\",\"crate\":\"" + Version.CURRENT.id + "\"}}}," +
+                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
                                  "\"properties\":{\"col1\":{\"type\":\"geo_shape\"}}}}";
@@ -692,7 +692,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "{\"dynamic\":\"true\"," +
                                  "\"_meta\":{\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\"," +
                                  "\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}," +
-                                 "\"version\":{\"created\":{\"elasticsearch\":\"" + Version.CURRENT.esVersion.id + "\",\"crate\":\"" + Version.CURRENT.id + "\"}}}," +
+                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
                                  "\"properties\":{\"day\":{\"type\":\"date\",\"format\":\"epoch_millis||strict_date_optional_time\"},\"ts\":{\"type\":\"date\",\"format\":\"epoch_millis||strict_date_optional_time\"}}}}";
