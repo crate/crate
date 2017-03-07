@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused joins on `information_schema.columns` to produce
+   a wrong result if `information_schema.columns` was used as the right table.
+
  - Added cluster checks that warn if some tables need to be recreated
    or upgraded for compatibility with future versions of CrateDB.
 

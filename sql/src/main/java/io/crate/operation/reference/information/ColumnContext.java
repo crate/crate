@@ -25,7 +25,14 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
 
 public class ColumnContext {
-    public TableInfo tableInfo;
-    public Reference info;
-    public Short ordinal;
+
+    public final TableInfo tableInfo;
+    public final short ordinal;
+    public final Reference info;
+
+    public ColumnContext(TableInfo tableInfo, short ordinal, Reference ref) {
+        this.tableInfo = tableInfo;
+        this.ordinal = ordinal;
+        this.info = ref;
+    }
 }

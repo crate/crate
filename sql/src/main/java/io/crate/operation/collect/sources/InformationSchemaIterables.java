@@ -34,6 +34,7 @@ import org.elasticsearch.common.inject.Inject;
 
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.stream.StreamSupport;
 
@@ -56,7 +57,7 @@ public class InformationSchemaIterables {
             .transformAndConcat(schema -> FluentIterable.from(schema)
                 .filter(i -> !PartitionName.isPartition(i.ident().indexName())));
         partitionInfos = new PartitionInfos(clusterService);
-        columnsIterable = tablesIterable.transformAndConcat(ColumnsIterator::new);
+        columnsIterable = tablesIterable.transformAndConcat(ColumnsIterable::new);
 
         constraints = tablesIterable.filter(i -> i != null && i.primaryKey().size() > 0);
 
@@ -93,17 +94,32 @@ public class InformationSchemaIterables {
         return sqlFeatures;
     }
 
-    static class ColumnsIterator implements Iterator<ColumnContext>, Iterable<ColumnContext> {
 
-        private final ColumnContext context = new ColumnContext();
+    static class ColumnsIterable implements Iterable<ColumnContext> {
+
+        private final TableInfo ti;
+
+        ColumnsIterable(TableInfo ti) {
+            this.ti = ti;
+        }
+
+        @Override
+        public Iterator<ColumnContext> iterator() {
+            return new ColumnsIterator(ti);
+        }
+    }
+
+    static class ColumnsIterator implements Iterator<ColumnContext> {
+
         private final Iterator<Reference> columns;
+        private final TableInfo tableInfo;
+        private short ordinal = 0;
 
-        ColumnsIterator(TableInfo ti) {
-            context.tableInfo = ti;
-            context.ordinal = 0;
-            columns = StreamSupport.stream(ti.spliterator(), false)
-                .filter(i -> !i.ident().columnIdent().isSystemColumn() && i.valueType() != DataTypes.NOT_SUPPORTED)
-                .iterator();
+        ColumnsIterator(TableInfo tableInfo) {
+            columns = StreamSupport.stream(tableInfo.spliterator(), false)
+                .filter(reference -> !reference.ident().columnIdent().isSystemColumn()
+                                     && reference.valueType() != DataTypes.NOT_SUPPORTED).iterator();
+            this.tableInfo = tableInfo;
         }
 
         @Override
@@ -113,19 +129,11 @@ public class InformationSchemaIterables {
 
         @Override
         public ColumnContext next() {
-            context.info = columns.next();
-            context.ordinal++;
-            return context;
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException("remove not allowed");
-        }
-
-        @Override
-        public Iterator<ColumnContext> iterator() {
-            return this;
+            if (!hasNext()) {
+                throw new NoSuchElementException("Columns iterator exhausted");
+            }
+            ordinal++;
+            return new ColumnContext(tableInfo, ordinal, columns.next());
         }
     }
 }
