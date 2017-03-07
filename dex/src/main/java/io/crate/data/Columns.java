@@ -50,18 +50,6 @@ public interface Columns extends Iterable<Input<?>> {
      */
     int size();
 
-    Columns EMPTY = new Columns() {
-        @Override
-        public Input<?> get(int index) {
-            throw new IndexOutOfBoundsException("No column found at index: " + index);
-        }
-
-        @Override
-        public int size() {
-            return 0;
-        }
-    };
-
     @Override
     default Iterator<Input<?>> iterator() {
         return new Iterator<Input<?>>() {
@@ -80,17 +68,6 @@ public interface Columns extends Iterable<Input<?>> {
                 throw new NoSuchElementException("Iterator exhausted");
             }
         };
-    }
-
-    /**
-     * Creates a new columns object with a single column using the given input as data source.
-     *
-     * @param input the input providing the value
-     * @param <T>      the type of object returned by the input
-     * @return a new columns object
-     */
-    static <T> Columns singleCol(Input<T> input) {
-        return new SingleColumns<>(input);
     }
 
     /**
