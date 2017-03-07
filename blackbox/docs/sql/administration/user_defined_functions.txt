@@ -1,3 +1,5 @@
+.. _sql_administration_udf:
+
 User defined Functions
 ======================
 
