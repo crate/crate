@@ -27,6 +27,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.information.*;
@@ -152,6 +153,8 @@ public class InformationSchemaExpressionFactories {
                     return new InformationTablePartitionsExpression.PartitionsNumberOfReplicasExpression();
                 }
             })
+            .put(InformationPartitionsTableInfo.Columns.ROUTING_HASH_FUNCTION,
+                () -> new InformationTablePartitionsExpression.PartitionsRoutingHashFunctionExpression())
             .put(InformationPartitionsTableInfo.Columns.TABLE_SETTINGS, new RowCollectExpressionFactory() {
 
                 @Override
@@ -365,6 +368,17 @@ public class InformationSchemaExpressionFactories {
                     }
                 }
             )
+            .put(InformationTablesTableInfo.Columns.ROUTING_HASH_FUNCTION,
+                () -> new RowContextCollectorExpression<TableInfo, BytesRef>() {
+                    @Override
+                    public BytesRef value() {
+                        if (row instanceof ShardedTable) {
+                            return new BytesRef(DocIndexMetaData.getRoutingHashFunctionPrettyName(
+                                ((ShardedTable) row).routingHashFunction()));
+                        }
+                        return null;
+                    }
+                })
             .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS, new RowCollectExpressionFactory() {
                     @Override
                     public RowCollectExpression create() {

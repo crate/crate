@@ -45,6 +45,7 @@ public class InformationTableInfo extends StaticTableInfo {
         public static final ColumnIdent PARTITIONED_BY = new ColumnIdent("partitioned_by");
         public static final ColumnIdent BLOBS_PATH = new ColumnIdent("blobs_path");
         public static final ColumnIdent COLUMN_POLICY = new ColumnIdent("column_policy");
+        public static final ColumnIdent ROUTING_HASH_FUNCTION = new ColumnIdent("routing_hash_function");
         public static final ColumnIdent TABLE_SETTINGS = new ColumnIdent("settings");
         public static final ColumnIdent TABLE_SETTINGS_BLOCKS = new ColumnIdent("settings",
             ImmutableList.of("blocks"));

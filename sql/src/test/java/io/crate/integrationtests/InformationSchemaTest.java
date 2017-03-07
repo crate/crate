@@ -25,6 +25,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SQLActionException;
+import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -62,26 +63,26 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(20L, response.rowCount());
 
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "NULL| NULL| strict| 0| 1| NULL| NULL| columns| information_schema\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| routines| information_schema\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| schemata| information_schema\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| sql_features| information_schema\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| table_constraints| information_schema\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| table_partitions| information_schema\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| tables| information_schema\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| pg_type| pg_catalog\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| checks| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| cluster| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| jobs| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| jobs_log| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| node_checks| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| nodes| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| operations| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| operations_log| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| repositories| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| shards| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| snapshots| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| summits| sys\n"));
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| columns| information_schema\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| routines| information_schema\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| schemata| information_schema\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| sql_features| information_schema\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| table_constraints| information_schema\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| table_partitions| information_schema\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| tables| information_schema\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| pg_type| pg_catalog\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| checks| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| cluster| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| jobs| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| jobs_log| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| node_checks| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| nodes| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| operations| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| operations_log| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| repositories| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| shards| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| snapshots| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| summits| sys\n"));
     }
 
     @Test
@@ -133,18 +134,21 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "col2 string) clustered by(col1) into 3 shards");
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where table_schema='doc' order by table_name asc");
-        assertEquals(2L, response.rowCount());
-        assertEquals("doc", response.rows()[0][8]);
-        assertEquals("foo", response.rows()[0][7]);
-        assertEquals(3, response.rows()[0][4]);
-        assertEquals("1", response.rows()[0][3]);
-        assertEquals("col1", response.rows()[0][1]);
+        assertThat(response.rowCount(), is(2L));
 
-        assertEquals("doc", response.rows()[1][8]);
-        assertEquals("test", response.rows()[1][7]);
-        assertEquals(5, response.rows()[1][4]);
-        assertEquals("1", response.rows()[1][3]);
-        assertEquals("col1", response.rows()[1][1]);
+        assertThat(response.rows()[0][9], is("doc"));
+        assertThat(response.rows()[0][8], is("foo"));
+        assertThat(response.rows()[0][6], is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        assertThat(response.rows()[0][4], is(3));
+        assertThat(response.rows()[0][3], is("1"));
+        assertThat(response.rows()[0][1], is("col1"));
+
+        assertThat(response.rows()[1][9], is("doc"));
+        assertThat(response.rows()[1][8], is("test"));
+        assertThat(response.rows()[1][6], is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        assertThat(response.rows()[1][4], is(5));
+        assertThat(response.rows()[1][3], is("1"));
+        assertThat(response.rows()[1][1], is("col1"));
     }
 
     @Test
@@ -183,13 +187,14 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table foo (col1 integer primary key, col2 string) clustered into 3 shards");
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where table_schema='doc' order by table_name asc limit 1 offset 1");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount(), is(1L));
 
-        assertEquals("doc", response.rows()[0][8]); // table_schema
-        assertEquals("test", response.rows()[0][7]); // table_name
-        assertEquals(5, response.rows()[0][4]); // number_of_shards
-        assertEquals("1", response.rows()[0][3]); // number_of_replicas
-        assertEquals("col1", response.rows()[0][1]); // primary key
+        assertThat(response.rows()[0][9], is("doc")); // table_schema
+        assertThat(response.rows()[0][8], is("test"));  // table_name
+        assertThat(response.rows()[0][6], is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME)); // routing_hash_function
+        assertThat(response.rows()[0][4], is(5)); // number_of_shards
+        assertThat(response.rows()[0][3], is("1")); // number_of_replicas
+        assertThat(response.rows()[0][1], is("col1")); // primary key
     }
 
     @Test
@@ -252,12 +257,14 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table test (col1 integer, col2 string) clustered into 5 shards");
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where table_schema='doc'");
-        assertEquals(1L, response.rowCount());
-        assertEquals("doc", response.rows()[0][8]);
-        assertEquals("test", response.rows()[0][7]);
-        assertEquals(5, response.rows()[0][4]);
-        assertEquals("1", response.rows()[0][3]);
-        assertEquals("_id", response.rows()[0][1]);
+        assertThat(response.rowCount(), is(1L));
+
+        assertThat(response.rows()[0][9], is("doc"));
+        assertThat(response.rows()[0][8], is("test"));
+        assertThat(response.rows()[0][6], is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        assertThat(response.rows()[0][4], is(5));
+        assertThat(response.rows()[0][3], is("1"));
+        assertThat(response.rows()[0][1], is("_id"));
     }
 
     @Test
@@ -437,7 +444,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(371, response.rowCount());
+        assertEquals(373, response.rowCount());
     }
 
     @Test

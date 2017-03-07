@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 
@@ -43,7 +44,15 @@ class TestingBlobTableInfo extends BlobTableInfo {
                          ImmutableMap<String, Object> tableParameters,
                          BytesRef blobsPath,
                          Routing routing) {
-        super(ident, index, clusterService, numberOfShards, numberOfReplicas, tableParameters, blobsPath);
+        super(
+            ident,
+            index,
+            clusterService,
+            numberOfShards,
+            numberOfReplicas,
+            tableParameters,
+            blobsPath,
+            DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION);
         this.routing = routing;
     }
 

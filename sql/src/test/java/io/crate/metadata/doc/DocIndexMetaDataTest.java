@@ -1331,5 +1331,3 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
     }
 }
 
-
-

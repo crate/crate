@@ -27,6 +27,7 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
@@ -77,7 +78,8 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
             indexMetaData.getNumberOfShards(),
             NumberOfReplicas.fromSettings(indexMetaData.getSettings()),
             TableParameterInfo.tableParametersFromIndexMetaData(indexMetaData),
-            blobsPath(indexMetaData.getSettings()));
+            blobsPath(indexMetaData.getSettings()),
+            DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION);
     }
 
     private BytesRef blobsPath(Settings indexMetaDataSettings) {

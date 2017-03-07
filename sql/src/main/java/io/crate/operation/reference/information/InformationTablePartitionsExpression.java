@@ -22,11 +22,12 @@ package io.crate.operation.reference.information;
 
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Map;
 
-public abstract class InformationTablePartitionsExpression<T>
+abstract class InformationTablePartitionsExpression<T>
     extends RowContextCollectorExpression<PartitionInfo, T> {
 
     public static class PartitionsTableNameExpression extends InformationTablePartitionsExpression<BytesRef> {
@@ -70,6 +71,14 @@ public abstract class InformationTablePartitionsExpression<T>
         @Override
         public BytesRef value() {
             return row.numberOfReplicas();
+        }
+    }
+
+    public static class PartitionsRoutingHashFunctionExpression
+        extends InformationTablePartitionsExpression<BytesRef> {
+        @Override
+        public BytesRef value() {
+            return new BytesRef(DocIndexMetaData.getRoutingHashFunctionPrettyName(row.routingHashFunction()));
         }
     }
 }

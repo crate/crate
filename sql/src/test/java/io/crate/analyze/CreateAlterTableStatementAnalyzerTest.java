@@ -986,7 +986,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testCreateTableDefaultRoutingHashFunctionTypeSet() throws Exception {
+    public void testCreateTableDefaultRoutingHashFunctionSet() throws Exception {
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table default_routing_hash_set (id int)");
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));

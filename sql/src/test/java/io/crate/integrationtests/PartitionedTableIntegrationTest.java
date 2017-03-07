@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -226,14 +227,14 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureYellow();
 
         execute("select * from information_schema.tables where table_schema='doc' order by table_name");
-        assertEquals(1L, response.rowCount());
-        assertEquals("quotes", response.rows()[0][7]);
-
+        assertThat(response.rowCount(), is (1L));
+        assertThat(response.rows()[0][8], is("quotes"));
+        assertThat(response.rows()[0][6], is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
         execute("select * from information_schema.columns where table_name='quotes' order by ordinal_position");
-        assertEquals(3L, response.rowCount());
-        assertEquals("id", response.rows()[0][0]);
-        assertEquals("quote", response.rows()[1][0]);
-        assertEquals("timestamp", response.rows()[2][0]);
+        assertThat(response.rowCount(), is (3L));
+        assertThat(response.rows()[0][0], is("id"));
+        assertThat(response.rows()[1][0], is("quote"));
+        assertThat(response.rows()[2][0], is("timestamp"));
     }
 
     @Test

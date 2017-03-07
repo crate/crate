@@ -105,15 +105,15 @@ public class CrateMetaDataUpgradeService extends AbstractComponent implements Cu
     }
 
     private MappingMetaData saveRoutingHashFunctionToMapping(@Nullable MappingMetaData mappingMetaData,
-                                                             @Nullable String routingHashFunctionType) throws IOException {
+                                                             @Nullable String routingHashFunction) throws IOException {
         Map<String, Object> mappingMap = null;
         if (mappingMetaData != null) {
             mappingMap = mappingMetaData.sourceAsMap();
         }
-        String hashFunction = DocIndexMetaData.getRoutingHashFunctionType(mappingMap);
+        String hashFunction = DocIndexMetaData.getRoutingHashFunction(mappingMap);
         if (hashFunction == null) {
-            if (routingHashFunctionType == null) {
-                routingHashFunctionType = DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION;
+            if (routingHashFunction == null) {
+                routingHashFunction = DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION;
             }
             // create new map, existing one can be immutable
             Map<String, Object> newMappingMap = mappingMap == null
@@ -125,7 +125,7 @@ public class CrateMetaDataUpgradeService extends AbstractComponent implements Cu
                 newMetaMap = new HashMap<>(1);
                 newMappingMap.put("_meta", newMetaMap);
             }
-            newMetaMap.put(DocIndexMetaData.SETTING_ROUTING_HASH_FUNCTION, routingHashFunctionType);
+            newMetaMap.put(DocIndexMetaData.SETTING_ROUTING_HASH_FUNCTION, routingHashFunction);
 
             Map<String, Object> typeAndMapping = new HashMap<>(1);
             typeAndMapping.put(Constants.DEFAULT_MAPPING_TYPE, newMappingMap);

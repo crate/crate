@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -40,8 +41,9 @@ public class BlobTableInfoTest extends CrateUnitTest {
         null,
         5,
         new BytesRef("0"),
-        ImmutableMap.<String, Object>of(),
-        new BytesRef("/tmp/blobs_path"));
+        ImmutableMap.of(),
+        new BytesRef("/tmp/blobs_path"),
+        DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION);
 
     @Test
     public void testGetColumnInfo() throws Exception {

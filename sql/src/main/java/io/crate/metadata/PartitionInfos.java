@@ -29,6 +29,7 @@ import com.google.common.collect.FluentIterable;
 import io.crate.Constants;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.TableParameterInfo;
+import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.metadata.doc.PartitionedByMappingExtractor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -48,33 +49,36 @@ import java.util.Map;
 public class PartitionInfos implements Iterable<PartitionInfo> {
 
 
-    private static final Predicate<ObjectObjectCursor<String, IndexMetaData>> PARTITION_INDICES_PREDICATE = new Predicate<ObjectObjectCursor<String, IndexMetaData>>() {
-        @Override
-        public boolean apply(@Nullable ObjectObjectCursor<String, IndexMetaData> input) {
-            return input != null
-                   && input.value.getState() == IndexMetaData.State.OPEN
-                   && PartitionName.isPartition(input.key);
-        }
-    };
+    private static final Predicate<ObjectObjectCursor<String, IndexMetaData>> PARTITION_INDICES_PREDICATE = input ->
+        input != null
+        && input.value.getState() == IndexMetaData.State.OPEN
+        && PartitionName.isPartition(input.key);
 
-    private static final Function<ObjectObjectCursor<String, IndexMetaData>, PartitionInfo> CREATE_PARTITION_INFO_FUNCTION = new Function<ObjectObjectCursor<String, IndexMetaData>, PartitionInfo>() {
-        @Nullable
-        @Override
-        public PartitionInfo apply(@Nullable ObjectObjectCursor<String, IndexMetaData> input) {
-            assert input != null : "input must not be null";
-            PartitionName partitionName = PartitionName.fromIndexOrTemplate(input.key);
-            try {
-                Map<String, Object> valuesMap = buildValuesMap(partitionName, input.value.mapping(Constants.DEFAULT_MAPPING_TYPE));
-                BytesRef numberOfReplicas = NumberOfReplicas.fromSettings(input.value.getSettings());
-                return new PartitionInfo(partitionName, input.value.getNumberOfShards(), numberOfReplicas, valuesMap,
-                    TableParameterInfo.tableParametersFromIndexMetaData(input.value));
-            } catch (Exception e) {
-                Loggers.getLogger(PartitionInfos.class).trace("error extracting partition infos from index {}", e, input.key);
-                return null; // must filter on null
+    private static final Function<ObjectObjectCursor<String, IndexMetaData>, PartitionInfo> CREATE_PARTITION_INFO_FUNCTION =
+        new Function<ObjectObjectCursor<String, IndexMetaData>, PartitionInfo>() {
+            @Nullable
+            @Override
+            public PartitionInfo apply(@Nullable ObjectObjectCursor<String, IndexMetaData> input) {
+                assert input != null : "input must not be null";
+                PartitionName partitionName = PartitionName.fromIndexOrTemplate(input.key);
+                try {
+                    MappingMetaData mappingMetaData = input.value.mapping(Constants.DEFAULT_MAPPING_TYPE);
+                    Map<String, Object> mappingMap = mappingMetaData.sourceAsMap();
+                    Map<String, Object> valuesMap = buildValuesMap(partitionName, mappingMetaData);
+                    BytesRef numberOfReplicas = NumberOfReplicas.fromSettings(input.value.getSettings());
+                    return new PartitionInfo(
+                        partitionName,
+                        input.value.getNumberOfShards(),
+                        numberOfReplicas,
+                        DocIndexMetaData.getRoutingHashFunction(mappingMap),
+                        valuesMap,
+                        TableParameterInfo.tableParametersFromIndexMetaData(input.value));
+                } catch (Exception e) {
+                    Loggers.getLogger(PartitionInfos.class).trace("error extracting partition infos from index {}", e, input.key);
+                    return null; // must filter on null
+                }
             }
-
-        }
-    };
+        };
 
     private final ClusterService clusterService;
 

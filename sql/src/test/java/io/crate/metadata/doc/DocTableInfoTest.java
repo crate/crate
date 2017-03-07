@@ -62,6 +62,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             ImmutableList.<ColumnIdent>of(),
             ImmutableList.<PartitionName>of(),
             ColumnPolicy.DYNAMIC,
+            null,
             Operation.ALL,
             executorService
         );
@@ -114,6 +115,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             ImmutableList.<ColumnIdent>of(),
             ImmutableList.<PartitionName>of(),
             ColumnPolicy.DYNAMIC,
+            null,
             Operation.ALL,
             executorService
         );
