@@ -43,6 +43,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         public static final Reference PARTITIONED_BY = createRef(Columns.PARTITIONED_BY, new ArrayType(DataTypes.STRING));
         public static final Reference BLOBS_PATH = createRef(Columns.BLOBS_PATH, DataTypes.STRING);
         public static final Reference COLUMN_POLICY = createRef(Columns.COLUMN_POLICY, DataTypes.STRING);
+        public static final Reference ROUTING_HASH_FUNCTION = createRef(Columns.ROUTING_HASH_FUNCTION, DataTypes.STRING);
 
         public static final Reference TABLE_SETTINGS = createRef(Columns.TABLE_SETTINGS, DataTypes.OBJECT);
 
@@ -119,6 +120,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 .put(Columns.PARTITIONED_BY, References.PARTITIONED_BY)
                 .put(Columns.BLOBS_PATH, References.BLOBS_PATH)
                 .put(Columns.COLUMN_POLICY, References.COLUMN_POLICY)
+                .put(Columns.ROUTING_HASH_FUNCTION, References.ROUTING_HASH_FUNCTION)
                 .put(Columns.TABLE_SETTINGS, References.TABLE_SETTINGS)
                 .put(Columns.TABLE_SETTINGS_BLOCKS, References.TABLE_SETTINGS_BLOCKS)
                 .put(Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, References.TABLE_SETTINGS_BLOCKS_READ_ONLY)
@@ -152,6 +154,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 References.NUMBER_OF_REPLICAS,
                 References.NUMBER_OF_SHARDS,
                 References.PARTITIONED_BY,
+                References.ROUTING_HASH_FUNCTION,
                 References.TABLE_SETTINGS,
                 References.TABLE_NAME,
                 References.TABLE_SCHEMA

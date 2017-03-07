@@ -52,7 +52,7 @@ public class SysShardMinLuceneVersionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testMinLuceneVersion() throws Exception {
-        startUpNodeWithDataDir("/indices/cluster_checks/cratedata_lucene_min_version.zip");
+        startUpNodeWithDataDir("/indices/data_home/cratedata_lucene_min_version.zip");
         execute("select table_name, routing_state, min_lucene_version, count(*) from sys.shards " +
                 "where schema_name IN ('doc', 'blob') " +
                 "group by table_name, routing_state, min_lucene_version order by 1, 2, 3");
@@ -74,7 +74,7 @@ public class SysShardMinLuceneVersionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUpgradeSegments() throws Exception {
-        startUpNodeWithDataDir("/indices/cluster_checks/cratedata_lucene_min_version.zip");
+        startUpNodeWithDataDir("/indices/data_home/cratedata_lucene_min_version.zip");
         execute("select table_name, routing_state, min_lucene_version, count(*) from sys.shards " +
                 "where table_name IN " +
                 "('test_upgrade_required', 'test_upgrade_required_parted', 'test_blob_upgrade_required') AND " +

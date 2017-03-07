@@ -31,4 +31,6 @@ public interface ShardedTable {
     BytesRef numberOfReplicas();
 
     ColumnIdent clusteredBy();
+
+    String routingHashFunction();
 }

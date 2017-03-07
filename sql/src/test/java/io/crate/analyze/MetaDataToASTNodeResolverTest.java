@@ -85,6 +85,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 partitionedBy,
                 Collections.EMPTY_LIST,
                 policy,
+                null,
                 Operation.ALL,
                 mock(ExecutorService.class));
         }

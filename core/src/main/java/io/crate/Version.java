@@ -29,10 +29,26 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
 
 public class Version {
 
+    public enum VersionProperties {
+        CREATED,
+        UPGRADED;
+
+        private String nameLowerCase;
+
+        VersionProperties() {
+            this.nameLowerCase = name().toLowerCase(Locale.ENGLISH);
+        }
+
+        @Override
+        public String toString() {
+            return nameLowerCase;
+        }
+    }
 
     // The logic for ID is: XXYYZZAA, where XX is major version, YY is minor version, ZZ is revision, and AA is Beta/RC indicator
     // AA values below 50 are beta builds, and below 99 are RC builds, with 99 indicating a release

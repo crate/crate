@@ -55,7 +55,7 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
 
     @Test
     public void testRecreationRequired() throws Exception {
-        startUpNodeWithDataDir("/indices/cluster_checks/cratedata_recreation_required.zip");
+        startUpNodeWithDataDir("/indices/data_home/cratedata_recreation_required.zip");
         execute("select * from sys.checks where passed = false");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][1], is(TablesNeedRecreationSysCheck.ID));
@@ -68,7 +68,7 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
 
     @Test
     public void testUpgradeRequired() throws Exception {
-        startUpNodeWithDataDir("/indices/cluster_checks/cratedata_upgrade_required.zip");
+        startUpNodeWithDataDir("/indices/data_home/cratedata_upgrade_required.zip");
         execute("select * from sys.checks where passed = false");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][1], is(TablesNeedUpgradeSysCheck.ID));
@@ -81,7 +81,7 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
 
     @Test
     public void testUpgradeAndRecreationRequired() throws Exception {
-        startUpNodeWithDataDir("/indices/cluster_checks/cratedata_upgrade_and_recreate_required.zip");
+        startUpNodeWithDataDir("/indices/data_home/cratedata_upgrade_and_recreate_required.zip");
         execute("select * from sys.checks where passed = false order by id");
         assertThat(response.rowCount(), is(2L));
         assertThat(response.rows()[0][1], is(TablesNeedRecreationSysCheck.ID));
@@ -100,7 +100,7 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
 
     @Test
     public void testAlreadyUpgraded() throws Exception {
-        startUpNodeWithDataDir("/indices/cluster_checks/cratedata_already_upgraded.zip");
+        startUpNodeWithDataDir("/indices/data_home/cratedata_already_upgraded.zip");
         execute("select * from sys.checks where passed = false");
         assertThat(response.rowCount(), is(0L));
     }

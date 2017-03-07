@@ -25,7 +25,6 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
 import io.crate.Version;
-import io.crate.VersionProperties;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.ParamTypeHints;
@@ -132,8 +131,8 @@ public class DocIndexMetaData {
             supportedOperations = Operation.buildFromIndexSettings(metaData.getSettings());
         }
         Map<String, Object> versionMap = getNested(metaMap, "version", null);
-        versionCreated = Version.fromMap(getNested(versionMap, VersionProperties.created.toString(), null));
-        versionUpgraded = Version.fromMap(getNested(versionMap, VersionProperties.upgraded.toString(), null));
+        versionCreated = Version.fromMap(getNested(versionMap, Version.VersionProperties.CREATED.toString(), null));
+        versionUpgraded = Version.fromMap(getNested(versionMap, Version.VersionProperties.UPGRADED.toString(), null));
     }
 
     private static Map<String, Object> getMappingMap(IndexMetaData metaData) throws IOException {
@@ -144,11 +143,15 @@ public class DocIndexMetaData {
         return mappingMetaData.sourceAsMap();
     }
 
-    static String getRoutingHashFunctionType(Map<String, Object> mappingMap) {
+    public static String getRoutingHashFunction(Map<String, Object> mappingMap) {
         return getNested(getNested(mappingMap, "_meta", null), SETTING_ROUTING_HASH_FUNCTION, null);
     }
 
-    public static void putVersionToMap(Map<String, Object> metaMap, VersionProperties key, Version version) {
+    String getRoutingHashFunction() {
+        return getRoutingHashFunction(mappingMap);
+    }
+
+    public static void putVersionToMap(Map<String, Object> metaMap, Version.VersionProperties key, Version version) {
         Map<String, Object> versionMap = (Map<String, Object>) metaMap.get("version");
         if (versionMap == null) {
             versionMap = new HashMap<>(1);

@@ -31,17 +31,20 @@ public class PartitionInfo {
     private final PartitionName name;
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
+    private final BytesRef routingHashFunction;
     private final Map<String, Object> values;
     private final ImmutableMap<String, Object> tableParameters;
 
     public PartitionInfo(PartitionName name,
                          int numberOfShards,
                          BytesRef numberOfReplicas,
+                         BytesRef routingHashFunction,
                          Map<String, Object> values,
                          ImmutableMap<String, Object> tableParameters) {
         this.name = name;
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
+        this.routingHashFunction = routingHashFunction;
         this.values = values;
         this.tableParameters = tableParameters;
     }
@@ -56,6 +59,10 @@ public class PartitionInfo {
 
     public BytesRef numberOfReplicas() {
         return numberOfReplicas;
+    }
+
+    public BytesRef routingHashFunction() {
+        return routingHashFunction;
     }
 
     public Map<String, Object> values() {
@@ -90,6 +97,7 @@ public class PartitionInfo {
             .add("name", name)
             .add("numberOfShards", numberOfShards)
             .add("numberOfReplicas", numberOfReplicas)
+            .add("routingHashFunction", routingHashFunction)
             .toString();
     }
 

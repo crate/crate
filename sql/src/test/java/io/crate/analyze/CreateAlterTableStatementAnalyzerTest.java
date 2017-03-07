@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import io.crate.Version;
-import io.crate.VersionProperties;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.data.Row;
@@ -987,7 +986,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testCreateTableDefaultRoutingHashFunctionTypeSet() throws Exception {
+    public void testCreateTableDefaultRoutingHashFunctionSet() throws Exception {
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table default_routing_hash_set (id int)");
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
@@ -1000,7 +999,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
             "create table created_version_table (id int)");
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, Object> versionMap = (Map) metaMapping.get("version");
-        assertThat(versionMap.get(VersionProperties.created.toString()), is(Version.toMap(Version.CURRENT)));
-        assertThat(versionMap.get(VersionProperties.upgraded.toString()), nullValue());
+        assertThat(versionMap.get(Version.VersionProperties.CREATED.toString()), is(Version.toMap(Version.CURRENT)));
+        assertThat(versionMap.get(Version.VersionProperties.UPGRADED.toString()), nullValue());
     }
 }

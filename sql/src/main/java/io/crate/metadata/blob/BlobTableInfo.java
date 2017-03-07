@@ -54,6 +54,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
     private final BytesRef blobsPath;
     private final TableParameterInfo tableParameterInfo;
     private final Map<String, Object> tableParameters;
+    private final String routingHashFunction;
 
     private static final Map<ColumnIdent, Reference> INFOS = new LinkedHashMap<>();
 
@@ -69,7 +70,8 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
                          int numberOfShards,
                          BytesRef numberOfReplicas,
                          Map<String, Object> tableParameters,
-                         BytesRef blobsPath) {
+                         BytesRef blobsPath,
+                         String routingHashFunction) {
         this.ident = ident;
         this.index = index;
         this.clusterService = clusterService;
@@ -78,6 +80,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
         this.blobsPath = blobsPath;
         this.tableParameterInfo = new AlterBlobTableParameterInfo();
         this.tableParameters = tableParameters;
+        this.routingHashFunction = routingHashFunction;
 
         registerStaticColumns();
     }
@@ -196,5 +199,10 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
 
     public String concreteIndex() {
         return index;
+    }
+
+    @Override
+    public String routingHashFunction() {
+        return routingHashFunction;
     }
 }

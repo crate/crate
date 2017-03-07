@@ -152,6 +152,8 @@ public class InformationSchemaExpressionFactories {
                     return new InformationTablePartitionsExpression.PartitionsNumberOfReplicasExpression();
                 }
             })
+            .put(InformationPartitionsTableInfo.Columns.ROUTING_HASH_FUNCTION,
+                () -> new InformationTablePartitionsExpression.PartitionsRoutingHashFunctionExpression())
             .put(InformationPartitionsTableInfo.Columns.TABLE_SETTINGS, new RowCollectExpressionFactory() {
 
                 @Override
@@ -365,6 +367,17 @@ public class InformationSchemaExpressionFactories {
                     }
                 }
             )
+            .put(InformationTablesTableInfo.Columns.ROUTING_HASH_FUNCTION,
+                () -> new RowContextCollectorExpression<TableInfo, BytesRef>() {
+                    @Override
+                    public BytesRef value() {
+                        if (row instanceof ShardedTable) {
+                            String routingHashFunction = ((ShardedTable) row).routingHashFunction();
+                            return routingHashFunction == null ? null : new BytesRef(routingHashFunction);
+                        }
+                        return null;
+                    }
+                })
             .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS, new RowCollectExpressionFactory() {
                     @Override
                     public RowCollectExpression create() {
