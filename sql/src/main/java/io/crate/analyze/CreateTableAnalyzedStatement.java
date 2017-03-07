@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.Version;
+import io.crate.VersionProperties;
 import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
@@ -133,7 +134,7 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
             metaMap.put(DocIndexMetaData.SETTING_ROUTING_HASH_FUNCTION, DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION);
 
             // set the created version
-            DocIndexMetaData.putVersionToMap(metaMap, "created", Version.CURRENT);
+            DocIndexMetaData.putVersionToMap(metaMap, VersionProperties.created, Version.CURRENT);
 
             // merge in user defined mapping parameter
             mapping.putAll(tableParameter.mappings());

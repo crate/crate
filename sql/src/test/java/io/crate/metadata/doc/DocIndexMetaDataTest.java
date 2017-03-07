@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.Version;
+import io.crate.VersionProperties;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.metadata.*;
@@ -1337,11 +1338,11 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
             .startObject()
                 .startObject("_meta")
                     .startObject("version")
-                        .startObject("created")
+                        .startObject(VersionProperties.created.toString())
                             .field("crate", "560499")
                             .field("elasticsearch", "2040299")
                         .endObject()
-                        .startObject("upgraded")
+                        .startObject(VersionProperties.upgraded.toString())
                             .field("crate", String.valueOf(Version.CURRENT.id))
                             .field("elasticsearch", String.valueOf(Version.CURRENT.esVersion.id))
                         .endObject()

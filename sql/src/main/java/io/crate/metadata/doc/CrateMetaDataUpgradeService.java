@@ -24,6 +24,7 @@ package io.crate.metadata.doc;
 
 import io.crate.Constants;
 import io.crate.Version;
+import io.crate.VersionProperties;
 import io.crate.metadata.PartitionName;
 import org.elasticsearch.cluster.metadata.CustomUpgradeService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -143,6 +144,6 @@ public class CrateMetaDataUpgradeService extends AbstractComponent implements Cu
         assert mappingMetaData != null : "mapping metadata must not be null to be marked as upgraded";
         Map<String, Object> mappingMap = mappingMetaData.sourceAsMap();
         Map<String, Object> newMetaMap = (Map<String, Object>) mappingMap.get("_meta");
-        DocIndexMetaData.putVersionToMap(newMetaMap, "upgraded", Version.CURRENT);
+        DocIndexMetaData.putVersionToMap(newMetaMap, VersionProperties.upgraded, Version.CURRENT);
     }
 }

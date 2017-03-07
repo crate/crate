@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.Version;
+import io.crate.VersionProperties;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.data.Row;
@@ -999,7 +1000,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
             "create table created_version_table (id int)");
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, Object> versionMap = (Map) metaMapping.get("version");
-        assertThat(versionMap.get("created"), is(Version.toMap(Version.CURRENT)));
-        assertThat(versionMap.get("upgraded"), nullValue());
+        assertThat(versionMap.get(VersionProperties.created.toString()), is(Version.toMap(Version.CURRENT)));
+        assertThat(versionMap.get(VersionProperties.upgraded.toString()), nullValue());
     }
 }

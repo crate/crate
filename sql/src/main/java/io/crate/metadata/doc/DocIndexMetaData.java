@@ -25,6 +25,7 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
 import io.crate.Version;
+import io.crate.VersionProperties;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.ParamTypeHints;
@@ -62,10 +63,10 @@ public class DocIndexMetaData {
     public static final String DEFAULT_ROUTING_HASH_FUNCTION = Murmur3HashFunction.class.getName();
 
     private static final String ID = "_id";
+    private static final String VERSION_STRING = "version";
+
     private final IndexMetaData metaData;
-
     private final Map<String, Object> mappingMap;
-
     private final Map<ColumnIdent, IndexReference.Builder> indicesBuilder = new HashMap<>();
 
     private final ImmutableSortedSet.Builder<Reference> columnsBuilder = ImmutableSortedSet.orderedBy(new Comparator<Reference>() {
@@ -131,8 +132,8 @@ public class DocIndexMetaData {
             supportedOperations = Operation.buildFromIndexSettings(metaData.getSettings());
         }
         Map<String, Object> versionMap = getNested(metaMap, "version", null);
-        versionCreated = Version.fromMap(getNested(versionMap, "created", null));
-        versionUpgraded = Version.fromMap(getNested(versionMap, "upgraded", null));
+        versionCreated = Version.fromMap(getNested(versionMap, VersionProperties.created.toString(), null));
+        versionUpgraded = Version.fromMap(getNested(versionMap, VersionProperties.upgraded.toString(), null));
     }
 
     private static Map<String, Object> getMappingMap(IndexMetaData metaData) throws IOException {
@@ -147,13 +148,13 @@ public class DocIndexMetaData {
         return getNested(getNested(mappingMap, "_meta", null), SETTING_ROUTING_HASH_FUNCTION, null);
     }
 
-    public static void putVersionToMap(Map<String, Object> metaMap, String key, Version version) {
+    public static void putVersionToMap(Map<String, Object> metaMap, VersionProperties key, Version version) {
         Map<String, Object> versionMap = (Map<String, Object>) metaMap.get("version");
         if (versionMap == null) {
             versionMap = new HashMap<>(1);
-            metaMap.put("version", versionMap);
+            metaMap.put(VERSION_STRING, versionMap);
         }
-        versionMap.put(key, Version.toMap(version));
+        versionMap.put(key.toString(), Version.toMap(version));
     }
 
     @SuppressWarnings("unchecked")
