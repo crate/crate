@@ -24,7 +24,7 @@ package io.crate.operation.udf;
 
 import org.elasticsearch.action.ActionResponse;
 
-public class CreateUserDefinedFunctionResponse extends ActionResponse {
+class CreateUserDefinedFunctionResponse extends ActionResponse {
 
 
 }

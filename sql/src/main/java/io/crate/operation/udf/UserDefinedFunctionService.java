@@ -53,7 +53,6 @@ public class UserDefinedFunctionService extends AbstractComponent implements Clu
         if (!clusterService.localNode().isMasterNode()) {
             return;
         }
-        // TODO: if request.verify
         clusterService.submitStateUpdateTask(request.cause, new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
 
             @Override
