@@ -77,6 +77,10 @@ public class FunctionArgumentDefinition implements Streamable, ToXContent {
         this.type = type;
     }
 
+    public DataType type() {
+        return this.type;
+    }
+
     @Override
     public void readFrom(StreamInput in) throws IOException {
         name = in.readOptionalString();

@@ -26,6 +26,7 @@ import io.crate.action.FutureActionListener;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobAdminClient;
 import io.crate.executor.transport.*;
+import io.crate.operation.udf.UserDefinedFunctionDDLDispatcher;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.forcemerge.TransportForceMergeAction;
@@ -59,6 +60,7 @@ public class DDLStatementDispatcher {
     private final AlterTableOperation alterTableOperation;
     private final RepositoryService repositoryService;
     private final SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher;
+    private final UserDefinedFunctionDDLDispatcher userDefinedFunctionDDLDispatcher;
     private final Provider<TransportUpgradeAction> transportUpgradeActionProvider;
     private final Provider<TransportForceMergeAction> transportForceMergeActionProvider;
     private final Provider<TransportRefreshAction> transportRefreshActionProvider;
@@ -72,6 +74,7 @@ public class DDLStatementDispatcher {
                                   AlterTableOperation alterTableOperation,
                                   RepositoryService repositoryService,
                                   SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
+                                  UserDefinedFunctionDDLDispatcher userDefinedFunctionDDLDispatcher,
                                   Provider<TransportUpgradeAction> transportUpgradeActionProvider,
                                   Provider<TransportForceMergeAction> transportForceMergeActionProvider,
                                   Provider<TransportRefreshAction> transportRefreshActionProvider) {
@@ -80,6 +83,7 @@ public class DDLStatementDispatcher {
         this.alterTableOperation = alterTableOperation;
         this.repositoryService = repositoryService;
         this.snapshotRestoreDDLDispatcher = snapshotRestoreDDLDispatcher;
+        this.userDefinedFunctionDDLDispatcher = userDefinedFunctionDDLDispatcher;
         this.transportUpgradeActionProvider = transportUpgradeActionProvider;
         this.transportForceMergeActionProvider = transportForceMergeActionProvider;
         this.transportRefreshActionProvider = transportRefreshActionProvider;
@@ -183,6 +187,11 @@ public class DDLStatementDispatcher {
         @Override
         public CompletableFuture<Long> visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis, UUID context) {
             return snapshotRestoreDDLDispatcher.dispatch(analysis);
+        }
+
+        @Override
+        protected CompletableFuture<Long> visitCreateFunctionStatement(CreateFunctionAnalyzedStatement analysis, UUID context) {
+            return userDefinedFunctionDDLDispatcher.dispatch(analysis);
         }
     }
 

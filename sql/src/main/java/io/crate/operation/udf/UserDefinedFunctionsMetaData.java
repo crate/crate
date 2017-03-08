@@ -28,16 +28,30 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.List;
 
 public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Custom> implements MetaData.Custom{
 
     public static final String TYPE = "user_defined_functions";
 
+    public static final UserDefinedFunctionsMetaData PROTO = new UserDefinedFunctionsMetaData();
+
+    static {
+        // register non plugin custom metadata
+        MetaData.registerPrototype(TYPE, PROTO);
+    }
+
     private final List<UserDefinedFunctionMetaData> functions;
 
     public UserDefinedFunctionsMetaData(UserDefinedFunctionMetaData... functions) {
         this.functions = Arrays.asList(functions);
+    }
+
+    public List<UserDefinedFunctionMetaData> functions() {
+        return functions;
     }
 
     @Override
