@@ -314,4 +314,45 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
     public void testDeletePartitionWhileBulkInsertingData() throws Exception {
         deletePartitionWhileInsertingData(true);
     }
+
+    private static Map createColumnMap(int numCols, String prefix) {
+        Map<String, Object> map = new HashMap<>(numCols);
+        for (int i = 0; i < numCols; i++) {
+            map.put(String.format("%s_col_%d", prefix, i), i);
+        }
+        return map;
+    }
+
+
+    @Test
+    public void testInsertIntoDynamicObjectColumnAddsAllColumnsToTemplate() throws Exception {
+        // regression test for issue that caused columns not being added to metadata/tableinfo of partitioned table
+        // when inserting a lot of new dynamic columns to various partitions of a table
+        execute("create table dyn_parted (id int, bucket string, data object(dynamic), primary key (id, bucket)) " +
+                "partitioned by (bucket) " +
+                "with (number_of_replicas = 0)");
+        ensureYellow();
+
+        int bulkSize = 100;
+        int numCols = 100;
+        String[] buckets = new String[]{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"};
+        final CountDownLatch countDownLatch = new CountDownLatch(buckets.length);
+        for (String bucket : buckets) {
+            Object[][] bulkArgs = new Object[bulkSize][];
+            for (int i = 0; i < bulkSize; i++) {
+                bulkArgs[i] = new Object[]{i, bucket, createColumnMap(numCols, bucket)};
+            }
+            new Thread(() -> {
+                try {
+                    execute("insert into dyn_parted (id, bucket, data) values (?, ?, ?)", bulkArgs, TimeValue.timeValueSeconds(10));
+                } finally {
+                    countDownLatch.countDown();
+                }
+            }).start();
+        }
+
+        countDownLatch.await();
+        execute("select count(*) from information_schema.columns where table_name = 'dyn_parted'");
+        assertThat(response.rows()[0][0], is(3L + numCols * buckets.length));
+    }
 }

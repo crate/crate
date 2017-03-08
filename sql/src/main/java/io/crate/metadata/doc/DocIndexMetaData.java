@@ -564,24 +564,16 @@ public class DocIndexMetaData {
         if (schemaEquals(other)) {
             return this;
         } else if (thisIsCreatedFromTemplate) {
-            if (this.references.size() < other.references.size()) {
-                // this is older, update template and return other
-                // settings in template are always authoritative for table information about
-                // number_of_shards and number_of_replicas
-                updateTemplate(other, transportPutIndexTemplateAction, this.metaData.getSettings());
-                // merge the new mapping with the template settings
-                return new DocIndexMetaData(
-                    functions,
-                    IndexMetaData.builder(other.metaData).settings(this.metaData.getSettings()).build(),
-                    other.ident).build();
-            } else if (references().size() == other.references().size() &&
-                       !references().keySet().equals(other.references().keySet())) {
-                XContentHelper.update(defaultMappingMap, other.defaultMappingMap, false);
-                // update the template with new information
-                updateTemplate(this, transportPutIndexTemplateAction, this.metaData.getSettings());
-                return this;
+            boolean mappingChanged = XContentHelper.update(this.defaultMappingMap, other.defaultMappingMap, true);
+            if (mappingChanged) {
+                IndexMetaData indexMetaData = IndexMetaData.builder(other.metaData)
+                    .putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, defaultMappingMap))
+                    .settings(this.metaData.getSettings())
+                    .build();
+                DocIndexMetaData ret = new DocIndexMetaData(functions, indexMetaData, other.ident).build();
+                updateTemplate(ret, transportPutIndexTemplateAction, this.metaData.getSettings());
+                return ret;
             }
-            // other is older, just return this
             return this;
         } else {
             throw new TableAliasSchemaException(other.ident.name());
