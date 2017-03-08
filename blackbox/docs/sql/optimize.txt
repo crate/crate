@@ -94,6 +94,7 @@ table has many partitions this should be avoided due to performance reasons.
   cr> DROP TABLE parted_table;
   DROP OK, 1 row affected (... sec)
 
+.. _optimize_segments_upgrade:
 
 Segments Upgrade
 ================
