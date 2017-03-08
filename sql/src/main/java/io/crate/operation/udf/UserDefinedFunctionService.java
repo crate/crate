@@ -26,7 +26,6 @@ import org.elasticsearch.cluster.*;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateRequest;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -42,12 +41,11 @@ public class UserDefinedFunctionService extends AbstractComponent implements Clu
     public UserDefinedFunctionService(Settings settings, ClusterService clusterService) {
         super(settings);
         this.clusterService = clusterService;
-        if (DiscoveryNode.masterNode(settings)) {
-            clusterService.add(this);
-        }
+        clusterService.add(this);
     }
 
     /**
+     * This method can only be called on master node
      * registers new function in the cluster
      * @param request function to register
      */
