@@ -66,9 +66,9 @@ public class FetchProjectorContext {
         return readerBuckets.get(readerId);
     }
 
-    ReaderBucket require(long doc) {
-        int readerId = (int) (doc >> 32);
-        int docId = (int) doc;
+    ReaderBucket require(long fetchId) {
+        int readerId = FetchId.decodeReaderId(fetchId);
+        int docId = FetchId.decodeDocId(fetchId);
         ReaderBucket readerBucket = readerBuckets.get(readerId);
         if (readerBucket == null) {
             readerBucket = createReaderBucket(readerId);

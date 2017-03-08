@@ -128,7 +128,7 @@ public class Symbols {
 
         @Override
         public Boolean visitFetchReference(FetchReference fetchReference, ColumnIdent context) {
-            if (process(fetchReference.docId(), context)) {
+            if (process(fetchReference.fetchId(), context)) {
                 return true;
             }
             return process(fetchReference.ref(), context);

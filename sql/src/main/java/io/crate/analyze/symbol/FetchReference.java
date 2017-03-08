@@ -31,11 +31,11 @@ import java.io.IOException;
 
 public class FetchReference extends Symbol {
 
-    private final Symbol docId;
+    private final Symbol fetchId;
     private final Reference ref;
 
-    public FetchReference(Symbol docId, Reference ref) {
-        this.docId = docId;
+    public FetchReference(Symbol fetchId, Reference ref) {
+        this.fetchId = fetchId;
         this.ref = ref;
     }
 
@@ -54,8 +54,8 @@ public class FetchReference extends Symbol {
         return ref.valueType();
     }
 
-    public Symbol docId() {
-        return docId;
+    public Symbol fetchId() {
+        return fetchId;
     }
 
     public Reference ref() {

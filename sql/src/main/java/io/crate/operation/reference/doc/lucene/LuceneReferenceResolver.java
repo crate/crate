@@ -63,8 +63,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             return new IdCollectorExpression();
         } else if (DocCollectorExpression.COLUMN_NAME.equals(name)) {
             return DocCollectorExpression.create(refInfo);
-        } else if (DocIdCollectorExpression.COLUMN_NAME.equals(name)) {
-            return new DocIdCollectorExpression();
+        } else if (FetchIdCollectorExpression.COLUMN_NAME.equals(name)) {
+            return new FetchIdCollectorExpression();
         } else if (ScoreCollectorExpression.COLUMN_NAME.equals(name)) {
             return new ScoreCollectorExpression();
         }

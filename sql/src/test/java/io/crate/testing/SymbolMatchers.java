@@ -110,7 +110,7 @@ public class SymbolMatchers {
         ) {
             @Override
             protected Symbol featureValueOf(Symbol actual) {
-                return ((FetchReference) actual).docId();
+                return ((FetchReference) actual).fetchId();
             }
         };
 

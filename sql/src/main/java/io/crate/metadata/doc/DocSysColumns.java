@@ -18,7 +18,12 @@ public class DocSysColumns {
         public static final String UID = "_uid";
         public static final String DOC = "_doc";
         public static final String RAW = "_raw";
-        public static final String DOCID = "_docid";
+
+        /**
+         * Column that contains the lucene docId + a readerId.
+         * See {@link io.crate.operation.projectors.fetch.FetchId}
+         */
+        public static final String FETCHID = "_fetchid";
     }
 
     public static final ColumnIdent ID = new ColumnIdent(Names.ID);
@@ -27,7 +32,11 @@ public class DocSysColumns {
     public static final ColumnIdent UID = new ColumnIdent(Names.UID);
     public static final ColumnIdent DOC = new ColumnIdent(Names.DOC);
     public static final ColumnIdent RAW = new ColumnIdent(Names.RAW);
-    public static final ColumnIdent DOCID = new ColumnIdent(Names.DOCID);
+
+    /**
+     * See {@link Names#FETCHID}
+     */
+    public static final ColumnIdent FETCHID = new ColumnIdent(Names.FETCHID);
 
     public static final ImmutableMap<ColumnIdent, DataType> COLUMN_IDENTS = ImmutableMap.<ColumnIdent, DataType>builder()
         .put(ID, DataTypes.STRING)
@@ -36,7 +45,7 @@ public class DocSysColumns {
         .put(UID, DataTypes.STRING)
         .put(DOC, DataTypes.OBJECT)
         .put(RAW, DataTypes.STRING)
-        .put(DOCID, DataTypes.LONG)
+        .put(FETCHID, DataTypes.LONG)
         .build();
 
     private static final ImmutableMap<ColumnIdent, String> LUCENE_COLUMN_NAMES = ImmutableMap.<ColumnIdent, String>builder()

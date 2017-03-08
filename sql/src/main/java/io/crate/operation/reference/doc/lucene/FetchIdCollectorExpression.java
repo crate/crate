@@ -22,37 +22,38 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.operation.projectors.fetch.FetchId;
 import org.apache.lucene.index.LeafReaderContext;
 
 import java.io.IOException;
 
-public class DocIdCollectorExpression extends LuceneCollectorExpression<Long> {
+public class FetchIdCollectorExpression extends LuceneCollectorExpression<Long> {
 
-    public static final String COLUMN_NAME = DocSysColumns.DOCID.name();
+    public static final String COLUMN_NAME = DocSysColumns.FETCHID.name();
 
-    private long jobSearchContextId;
-    private long docId;
+    private long fetchId;
+    private int jobSearchContextId;
     private int docBase;
 
-    public DocIdCollectorExpression() {
+    public FetchIdCollectorExpression() {
         super(COLUMN_NAME);
     }
 
     @Override
     public void startCollect(CollectorContext context) {
         super.startCollect(context);
-        this.jobSearchContextId = (long) context.jobSearchContextId();
+        this.jobSearchContextId = context.jobSearchContextId();
     }
 
     @Override
     public void setNextDocId(int doc) {
         super.setNextDocId(doc);
-        docId = packDocId(jobSearchContextId, docBase + doc);
+        fetchId = FetchId.encode(jobSearchContextId, docBase + doc);
     }
 
     @Override
     public Long value() {
-        return docId;
+        return fetchId;
     }
 
     @Override
@@ -60,15 +61,4 @@ public class DocIdCollectorExpression extends LuceneCollectorExpression<Long> {
         super.setNextReader(context);
         docBase = context.docBase;
     }
-
-    /**
-     * Pack jobSearchContextId and doc integers into 1 long.
-     * Reverse logic is:
-     * int jobSearchContextId = (int)(docId >> 32);
-     * int doc = (int)docId;
-     */
-    private long packDocId(long jobSearchContextId, int doc) {
-        return ((jobSearchContextId) << 32) | (doc & 0xffffffffL);
-    }
-
 }

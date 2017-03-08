@@ -83,14 +83,14 @@ class MultiSourceFetchPushDown {
             DocTableRelation rel = (DocTableRelation) source.relation();
             HashSet<Field> canBeFetched = filterByRelation(statement.canBeFetched(), rel);
             if (!canBeFetched.isEmpty()) {
-                RelationColumn docIdColumn = new RelationColumn(entry.getKey(), 0, DataTypes.LONG);
-                mssOutputs.add(docIdColumn);
-                InputColumn docIdInput = new InputColumn(mssOutputs.size() - 1);
+                RelationColumn fetchIdColumn = new RelationColumn(entry.getKey(), 0, DataTypes.LONG);
+                mssOutputs.add(fetchIdColumn);
+                InputColumn fetchIdInput = new InputColumn(mssOutputs.size() - 1);
 
                 ArrayList<Symbol> qtOutputs = new ArrayList<>(
                     source.querySpec().outputs().size() - canBeFetched.size() + 1);
-                Reference docId = rel.tableInfo().getReference(DocSysColumns.DOCID);
-                qtOutputs.add(docId);
+                Reference fetchId = rel.tableInfo().getReference(DocSysColumns.FETCHID);
+                qtOutputs.add(fetchId);
 
                 for (Symbol output : source.querySpec().outputs()) {
                     if (!canBeFetched.contains(output)) {
@@ -104,7 +104,7 @@ class MultiSourceFetchPushDown {
                 }
                 for (Field field : canBeFetched) {
                     FetchReference fr = new FetchReference(
-                        docIdInput, DocReferenceConverter.toSourceLookup(rel.resolveField(field)));
+                        fetchIdInput, DocReferenceConverter.toSourceLookup(rel.resolveField(field)));
                     allocateFetchedReference(fr, rel);
                     topLevelOutputMap.put(field, fr);
                 }
@@ -143,7 +143,7 @@ class MultiSourceFetchPushDown {
             fs = new FetchSource(rel.tableInfo().partitionedByColumns());
             fetchSources.put(fr.ref().ident().tableIdent(), fs);
         }
-        fs.docIdCols().add((InputColumn) fr.docId());
+        fs.fetchIdCols().add((InputColumn) fr.fetchId());
         if (fr.ref().granularity() == RowGranularity.DOC) {
             fs.references().add(fr.ref());
         }

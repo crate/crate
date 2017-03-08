@@ -380,7 +380,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     // If toCollect contains a docId it means that this is a QueryThenFetch operation.
                     // In such a case RemoteCollect cannot be used because on that node the FetchContext is missing
                     // and the reader required in the fetchPhase would be missing.
-                    if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.DOCID)) {
+                    if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
                         throw e;
                     }
                     crateCollectors.add(remoteCollectorFactory.createCollector(
