@@ -111,7 +111,7 @@ class QueriedDocTableFetchPushDown {
 
         // build the subquery
         QuerySpec sub = new QuerySpec();
-        Reference docIdReference = DocSysColumns.forTable(tableRelation.tableInfo().ident(), DocSysColumns.DOCID);
+        Reference docIdReference = DocSysColumns.forTable(tableRelation.tableInfo().ident(), DocSysColumns.FETCHID);
 
         List<Symbol> outputs = new ArrayList<>();
         if (orderBy.isPresent()) {

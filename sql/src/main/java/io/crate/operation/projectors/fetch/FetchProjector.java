@@ -30,9 +30,9 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Bucket;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
-import io.crate.data.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.fetch.FetchRowInputSymbolVisitor;
 import io.crate.operation.projectors.*;
@@ -142,10 +142,10 @@ public class FetchProjector extends AbstractProjector {
     public Result setNextRow(Row row) {
         Object[] cells = row.materialize();
         collectRowContext.inputRow().cells = cells;
-        for (int i : collectRowContext.docIdPositions()) {
-            Object docId = cells[i];
-            if (docId != null) {
-                context.require((long) docId);
+        for (int i : collectRowContext.fetchIdPositions()) {
+            Object fetchId = cells[i];
+            if (fetchId != null) {
+                context.require((long) fetchId);
             }
         }
         inputValues.add(cells);
@@ -220,23 +220,23 @@ public class FetchProjector extends AbstractProjector {
         final ArrayBackedRow inputRow = collectRowContext.inputRow();
         final ArrayBackedRow[] fetchRows = collectRowContext.fetchRows();
         final ArrayBackedRow[] partitionRows = collectRowContext.partitionRows();
-        final int[] docIdPositions = collectRowContext.docIdPositions();
+        final int[] fetchIdPositions = collectRowContext.fetchIdPositions();
         final Object[][] nullCells = collectRowContext.nullCells();
 
         loop:
         for (int i = rowStartIdx; i < inputValues.size(); i++) {
             Object[] cells = inputValues.get(i);
             inputRow.cells = cells;
-            for (int j = 0; j < docIdPositions.length; j++) {
-                Object docObject = cells[docIdPositions[j]];
-                if (docObject == null) {
+            for (int j = 0; j < fetchIdPositions.length; j++) {
+                Object fetchIdObject = cells[fetchIdPositions[j]];
+                if (fetchIdObject == null) {
                     // can be null on outer joins
                     fetchRows[j].cells = nullCells[j];
                     continue;
                 }
-                long doc = (long) docObject;
-                int readerId = (int) (doc >> 32);
-                int docId = (int) (long) doc;
+                long fetchId = (long) fetchIdObject;
+                int readerId = FetchId.decodeReaderId(fetchId);
+                int docId = FetchId.decodeDocId(fetchId);
                 ReaderBucket readerBucket = context.getReaderBucket(readerId);
                 assert readerBucket != null : "readerBucket must not be null";
                 setPartitionRow(partitionRows, j, readerBucket);

@@ -537,7 +537,7 @@ public class SelectPlannerTest extends CrateUnitTest {
 
         // doesn't contain "name" because whereClause is pushed down,
         // but still contains "id" because it is in the joinCondition
-        assertThat(rightCM.collectPhase().toCollect(), contains(isReference("_docid"), isReference("id")));
+        assertThat(rightCM.collectPhase().toCollect(), contains(isReference("_fetchid"), isReference("id")));
     }
 
     @Test
