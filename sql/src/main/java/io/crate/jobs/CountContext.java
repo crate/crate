@@ -21,21 +21,21 @@
 
 package io.crate.jobs;
 
-import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row1;
+import io.crate.data.RowsBatchIterator;
 import io.crate.operation.count.CountOperation;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -44,59 +44,57 @@ public class CountContext extends AbstractExecutionSubContext {
     private static final ESLogger LOGGER = Loggers.getLogger(CountContext.class);
 
     private final CountOperation countOperation;
-    private final RowReceiver rowReceiver;
+    private final BatchConsumer consumer;
     private final Map<String, List<Integer>> indexShardMap;
     private final WhereClause whereClause;
     private ListenableFuture<Long> countFuture;
 
     public CountContext(int id,
                         CountOperation countOperation,
-                        RowReceiver rowReceiver,
+                        BatchConsumer consumer,
                         Map<String, List<Integer>> indexShardMap,
                         WhereClause whereClause) {
         super(id, LOGGER);
         this.countOperation = countOperation;
-        this.rowReceiver = rowReceiver;
+        this.consumer = consumer;
         this.indexShardMap = indexShardMap;
         this.whereClause = whereClause;
     }
 
     @Override
-    public void innerStart() {
+    public synchronized void innerStart() {
         try {
             countFuture = countOperation.count(indexShardMap, whereClause);
         } catch (IOException | InterruptedException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
         Futures.addCallback(countFuture, new FutureCallback<Long>() {
             @Override
             public void onSuccess(@Nullable Long result) {
-                rowReceiver.setNextRow(new Row1(result));
+                consumer.accept(
+                    RowsBatchIterator.newInstance(Collections.singletonList(new Row1(result)), 1), null);
                 close();
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
+                consumer.accept(null, t);
                 close(t);
             }
         });
     }
 
     @Override
-    public void innerKill(@Nonnull Throwable throwable) {
-        if (countFuture != null) {
+    public synchronized void innerKill(@Nonnull Throwable throwable) {
+        if (countFuture == null) {
+            consumer.accept(null, throwable);
+        } else {
             countFuture.cancel(true);
         }
-        rowReceiver.kill(throwable);
     }
 
     @Override
     protected void innerClose(@Nullable Throwable t) {
-        if (t == null) {
-            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
-        } else {
-            rowReceiver.fail(t);
-        }
     }
 
     @Override

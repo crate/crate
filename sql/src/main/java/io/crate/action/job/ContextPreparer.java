@@ -482,7 +482,7 @@ public class ContextPreparer extends AbstractComponent {
             context.registerSubContext(new CountContext(
                 phase.phaseId(),
                 countOperation,
-                rowReceiver,
+                new BatchConsumerToRowReceiver(rowReceiver),
                 indexShardMap,
                 phase.whereClause()
             ));
