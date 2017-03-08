@@ -64,7 +64,8 @@ public class TransportCreateUserDefinedFunctionAction extends TransportMasterNod
         userDefinedFunctionService.registerFunction(
             new UserDefinedFunctionService.RegisterUserDefinedFunctionRequest(
                 "put_udf [" + request.userDefinedFunctionMetaData().name + "]",
-                request.userDefinedFunctionMetaData().name, request.userDefinedFunctionMetaData()
+                request.userDefinedFunctionMetaData().name,
+                request.userDefinedFunctionMetaData()
             ).masterNodeTimeout(request.masterNodeTimeout()), // TODO: request.timeout() request.settings()
             new ActionListener<ClusterStateUpdateResponse>() {
                 @Override
