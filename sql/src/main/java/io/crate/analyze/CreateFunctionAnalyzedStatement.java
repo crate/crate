@@ -38,20 +38,21 @@ public class CreateFunctionAnalyzedStatement extends AbstractDDLAnalyzedStatemen
     private final List<FunctionArgumentDefinition> arguments;
     private final DataType returnType;
     private final Expression language;
-    private final Expression body;
+    private final Expression definition;
 
     public CreateFunctionAnalyzedStatement(String name,
                                            boolean replace,
                                            List<FunctionArgumentDefinition> arguments,
                                            DataType returnType,
                                            Expression language,
-                                           Expression body) {
+                                           Expression definition) {
         this.name = name;
         this.replace = replace;
         this.arguments = arguments;
         this.returnType = returnType;
         this.language = language;
-        this.body = body;
+        this.definition = definition;
+
     }
 
     @Override
@@ -75,8 +76,8 @@ public class CreateFunctionAnalyzedStatement extends AbstractDDLAnalyzedStatemen
         return language;
     }
 
-    public Expression body() {
-        return body;
+    public Expression definition() {
+        return definition;
     }
 
     public List<FunctionArgumentDefinition> arguments() {
