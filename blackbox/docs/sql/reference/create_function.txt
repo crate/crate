@@ -15,10 +15,8 @@ Synopsis
     CREATE [OR REPLACE] FUNCTION [ schema_name. ] function_name
         ( [ [arg_name] arg_type ] [, ...] ] )
     RETURNS return_type
-    { LANGUAGE language_name
-      | CALLED ON NULL INPUT | RETURNS NULL ON NULL INPUT | STRICT
-      | AS 'definition'
-    }
+    LANGUAGE language_name
+    AS 'definition'
 
 Description
 ===========
@@ -31,8 +29,7 @@ existing function.
 Optionally, a function name can contain a schema name. If the schema is not
 defined, the function is created in the current schema.
 
-The signature of the function is defined by its schema, name, input arguments,
-and return type.
+The signature of the function is defined by its schema, name and input arguments.
 
 You can overload functions by defining two functions of the same name, but have
 a different set of input arguments.
@@ -58,9 +55,3 @@ Parameters
 
 :definition: A string defining the body of the function. See :ref:`string_literal`
   for more details.
-
-:CALLED ON NULL INPUT: (default) Indicates that the function can be called when
-  some of its arguments are NULL.
-
-:RETURNS NULL ON NULL INPUT and STRICT: Indicates that the function always
-  returns null when any of its arguments are NULL.

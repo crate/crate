@@ -26,8 +26,6 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
-
 import java.util.List;
 import java.util.Objects;
 
@@ -78,9 +76,10 @@ public class DropFunction extends Statement {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("ifExists", ifExists)
-            .add("arguments", arguments).toString();
+        return "DropFunction{" +
+            "name=" + name +
+            ", ifExists=" + ifExists +
+            ", arguments=" + arguments +
+            '}';
     }
 }

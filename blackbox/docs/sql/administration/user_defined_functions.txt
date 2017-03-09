@@ -12,7 +12,7 @@ These functions can be created like this::
      cr> CREATE FUNCTION subtract(integer, integer)
      ...  RETURNS integer
      ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function(a, b){
+     ...  AS 'function(a, b) {
      ...        return a - b;
      ...      }';
 
@@ -26,10 +26,10 @@ These functions can be created like this::
 
 ``OR REPLACE`` can be used to replace an existing function::
 
-     cr> CREATE OR REPLACE FUNCTION log10(integer)
+     cr> CREATE OR REPLACE FUNCTION log10(long)
      ...  RETURNS double
      ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function(a){
+     ...  AS 'function(a) {
      ...        return Math.log10(a);
      ...      }';
 
@@ -63,10 +63,10 @@ specified, the function will be created in the current schema.
 
 You can explicitly assign a schema like this::
 
-     cr> CREATE FUNCTION my_schema.subtract(integer, integer)
+     cr> CREATE FUNCTION my_schema.subtract(long, long)
      ...  RETURNS integer
      ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function(a, b){
+     ...  AS 'function(a, b) {
      ...        return a - b;
      ...      }';
 
@@ -85,7 +85,9 @@ Supported Types
 ---------------
 
 The argument types, and the return type of the user-defined function can be
-any of the CrateDB supported :ref:`sql_ddl_datatypes`.
+any of the CrateDB supported :ref:`sql_ddl_datatypes`. Data types of values
+passed into a user-defined function must strictly correspond to its argument
+data types.
 
 .. NOTE::
 
@@ -93,79 +95,6 @@ any of the CrateDB supported :ref:`sql_ddl_datatypes`.
    provided in the definition if required. An exception will be thrown
    if the cast is not successful.
 
-
-
-OPTIONS
--------
-
-``CALLED ON NULL INPUT``
-........................
-
-The ``CALLED ON NULL INPUT`` option indicates that the function can be called
-when some of its arguments are ``NULL``. All user-defined functions can be
-called on ``NULL`` input by default.
-
-::
-
-     cr> CREATE OR REPLACE FUNCTION custom_multiply(integer, integer)
-     ...  RETURNS integer
-     ...  LANGUAGE JAVASCRIPT
-     ...  CALLED ON NULL INPUT
-     ...  AS 'function(a, b){
-     ...        return a * b;
-     ...      }';
-
-     cr> SELECT custom_multiply(1, NULL);
-     +---------------------------+
-     | custom_multiply(1, NULL)  |
-     +---------------------------+
-     | NULL                      |
-     +---------------------------+
-     SELECT 1 rows in set (... sec)
-
-
-``RETURNS NULL ON NULL INPUT`` and ``STRICT``
-.............................................
-
-The ``RETURNS NULL ON NULL INPUT`` indicates that the function always returns
-``NULL`` when any of it's arguments are ``NULL``. The ``STRICT`` is a synonym
-and behaves in exactly the same way.
-
-Here's how to use ``RETURNS NULL ON NULL INPUT``::
-
-     cr> CREATE OR REPLACE FUNCTION custom_divide(integer, integer)
-     ...  RETURNS float
-     ...  LANGUAGE JAVASCRIPT
-     ...  RETURNS NULL ON NULL INPUT
-     ...  AS 'function(a, b){
-     ...        return a / b;
-     ...      }';
-
-     cr> SELECT custom_divide(1, NULL);
-     +-------------------------+
-     | custom_divide(1, NULL)  |
-     +-------------------------+
-     | NULL                    |
-     +-------------------------+
-     SELECT 1 rows in set (... sec)
-
-Here's how to use ``STRICT``::
-
-     cr> CREATE OR REPLACE FUNCTION custom_divide(integer, integer)
-     ...  RETURNS float
-     ...  LANGUAGE JAVASCRIPT
-     ...  STRICT
-     ...  AS 'function(a, b){
-     ...        return a / b;
-     ...      }';
-
-     cr> SELECT custom_divide(1, NULL);
-     +-------------------------+
-     | custom_divide(1, NULL)  |
-     +-------------------------+
-     | NULL                    |
-     +-------------------------+
-     SELECT 1 rows in set (... sec)
 
 OVERLOADING
 -----------
@@ -178,7 +107,7 @@ This would overload our ``subtract`` function with different argument types::
      cr> CREATE FUNCTION my_schema.subtract(long, long)
      ...  RETURNS long
      ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function(a, b){
+     ...  AS 'function(a, b) {
      ...        return a - b;
      ...      }';
 
@@ -187,7 +116,7 @@ This would overload our ``subtract`` function with more arguments::
      cr> CREATE FUNCTION my_schema.subtract(long, long, long)
      ...  RETURNS long
      ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function(a, b, c){
+     ...  AS 'function(a, b, c) {
      ...        return a - b - c;
      ...      }';
 
@@ -225,7 +154,7 @@ type, then the JavaScript function should return an ``Array``::
      cr> CREATE FUNCTION rotate_point(point geo_point, angle float)
      ...  RETURNS geo_point
      ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function(point, angle){
+     ...  AS 'function(point, angle) {
      ...        var cos = Math.cos(angle),
      ...            sin = Math.sin(angle),
      ...            x = cos * point[0] - sin * point[1],
@@ -239,7 +168,7 @@ type, then the JavaScript function should return an ``object``::
      cr> CREATE FUNCTION point_object(point geo_point)
      ...  RETURNS object
      ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function(point){
+     ...  AS 'function(point) {
      ...        return {'lon': point[0], 'lat': point[1]};
      ...      }';
 
@@ -249,7 +178,7 @@ cast into the corresponding return type ::
      cr> CREATE FUNCTION symmetric_point(point geo_point)
      ...  RETURNS geo_point
      ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function(point, angle){
+     ...  AS 'function(point, angle) {
      ...        var x = - point[0],
      ...            y = - point[1];
      ...        return \"POINT (\" + x + \", \" + y +\"; }\";

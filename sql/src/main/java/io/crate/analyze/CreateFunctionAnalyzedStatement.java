@@ -30,14 +30,12 @@ import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
 
 import java.util.List;
-import java.util.Set;
 
 public class CreateFunctionAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     private final String name;
     private final boolean replace;
     private final List<FunctionArgumentDefinition> arguments;
-    private final Set<String> options;
     private final DataType returnType;
     private final Expression language;
     private final Expression body;
@@ -46,13 +44,11 @@ public class CreateFunctionAnalyzedStatement extends AbstractDDLAnalyzedStatemen
                                            boolean replace,
                                            List<FunctionArgumentDefinition> arguments,
                                            DataType returnType,
-                                           Set<String> options,
                                            Expression language,
                                            Expression body) {
         this.name = name;
         this.replace = replace;
         this.arguments = arguments;
-        this.options = options;
         this.returnType = returnType;
         this.language = language;
         this.body = body;
@@ -69,10 +65,6 @@ public class CreateFunctionAnalyzedStatement extends AbstractDDLAnalyzedStatemen
 
     public boolean replace() {
         return replace;
-    }
-
-    public Set<String> options() {
-        return options;
     }
 
     public DataType returnType() {
