@@ -30,16 +30,40 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * evaluable function implementation
+ * Base class for Scalar functions in crate.
+ * A Scalar function is a function which has zero or more arguments and returns a value. (not rows).
+ * <p>
+ * Argument types and return types are restricted to the types supported by Crate (see {@link io.crate.types.DataType})
+ * </p>
+ *
+ * <p>
+ *     Usually functions are registered as deterministic (See {@link io.crate.metadata.FunctionInfo.Feature}.
+ *     If this is the case the function must be a pure function. Meaning that given the same input it must always produce
+ *     the same output.
+ *
+ *     Functions also MUST NOT have any internal state that influences the result of future calls.
+ *     Functions are used as singletons.
+ *     An exception is if {@link #compile(List)} returns a NEW instance.
+ * </p>
  *
  * @param <ReturnType> the class of the returned value
  */
 public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation {
 
+    /**
+     * Evaluate the function using the provided arguments
+     */
     public abstract ReturnType evaluate(Input<InputType>... args);
 
     /**
-     * Returns a optional compiled version of the scalar implementation.
+     * Called to return a "optimized" version of a scalar implementation.
+     *
+     * The returned instance will only be used in the context of a single query
+     * (or rather, a subset of a single query if executed distributed).
+     *
+     * @param arguments arguments in symbol form. If any symbols are literals, any arguments passed to
+     *                  {@link #evaluate(Input[])} will have the same value as those literals.
+     *                  (Within the scope of a single operation)
      */
     public Scalar<ReturnType, InputType> compile(List<Symbol> arguments) {
         return this;
