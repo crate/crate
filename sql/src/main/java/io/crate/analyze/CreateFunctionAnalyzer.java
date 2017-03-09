@@ -26,7 +26,6 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.FunctionArgument;
 

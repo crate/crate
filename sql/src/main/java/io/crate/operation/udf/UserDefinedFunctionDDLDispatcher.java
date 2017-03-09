@@ -22,6 +22,8 @@
 package io.crate.operation.udf;
 
 import io.crate.analyze.CreateFunctionAnalyzedStatement;
+import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.data.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
@@ -39,12 +41,17 @@ public class UserDefinedFunctionDDLDispatcher {
         this.transportActionProvider = transportActionProvider;
     }
 
-    public CompletableFuture<Long> dispatch(final CreateFunctionAnalyzedStatement statement) {
+    public CompletableFuture<Long> dispatch(final CreateFunctionAnalyzedStatement statement, Row params) {
         final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
         UserDefinedFunctionMetaData metaData = new UserDefinedFunctionMetaData(
-            statement.name(), statement.arguments(), statement.options(), statement.returnType(),
-            statement.language(), statement.body()
+            statement.name(),
+            statement.arguments(),
+            statement.options(),
+            statement.returnType(),
+            ExpressionToStringVisitor.convert(statement.language(), params),
+            ExpressionToStringVisitor.convert(statement.body(), params)
         );
+
         CreateUserDefinedFunctionRequest request = new CreateUserDefinedFunctionRequest(metaData);
         transportActionProvider.transportCreateUserDefinedFunctionAction().execute(
             request,
