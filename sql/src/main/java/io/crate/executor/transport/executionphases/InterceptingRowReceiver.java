@@ -136,4 +136,15 @@ class InterceptingRowReceiver implements RowReceiver, BiConsumer<Object, Throwab
                 });
         }
     }
+
+    @Override
+    public String toString() {
+        return "InterceptingRowReceiver{" +
+               "upstreams=" + upstreams +
+               ", jobId=" + jobId +
+               ", rowReceiver=" + rowReceiver +
+               ", rowReceiverDone=" + rowReceiverDone +
+               ", failure=" + failure +
+               '}';
+    }
 }

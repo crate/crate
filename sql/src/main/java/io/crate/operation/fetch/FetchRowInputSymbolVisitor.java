@@ -31,7 +31,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.BaseImplementationSymbolVisitor;
-import io.crate.operation.projectors.fetch.FetchProjector;
+import io.crate.operation.projectors.fetch.ArrayBackedRow;
 import io.crate.planner.node.fetch.FetchSource;
 
 import java.util.Map;
@@ -40,13 +40,13 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
 
     public static class Context {
 
-        private final FetchProjector.ArrayBackedRow[] fetchRows;
-        private FetchProjector.ArrayBackedRow[] partitionRows;
-
-        private Map<TableIdent, FetchSource> fetchSources;
-        private final FetchProjector.ArrayBackedRow inputRow = new FetchProjector.ArrayBackedRow();
+        private final ArrayBackedRow[] fetchRows;
+        private final Map<TableIdent, FetchSource> fetchSources;
+        private final ArrayBackedRow inputRow = new ArrayBackedRow();
         private final int[] fetchIdPositions;
         private final Object[][] nullCells;
+
+        private ArrayBackedRow[] partitionRows;
 
         public Context(Map<TableIdent, FetchSource> fetchSources) {
             assert !fetchSources.isEmpty() : "fetchSources must not be empty";
@@ -57,18 +57,18 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
                 numFetchIds += fetchSource.fetchIdCols().size();
             }
 
-            this.fetchRows = new FetchProjector.ArrayBackedRow[numFetchIds];
+            this.fetchRows = new ArrayBackedRow[numFetchIds];
             this.fetchIdPositions = new int[numFetchIds];
-            this.partitionRows = new FetchProjector.ArrayBackedRow[numFetchIds];
+            this.partitionRows = new ArrayBackedRow[numFetchIds];
             nullCells = new Object[numFetchIds][];
 
             int idx = 0;
             for (FetchSource fetchSource : fetchSources.values()) {
                 for (InputColumn col : fetchSource.fetchIdCols()) {
-                    fetchRows[idx] = new FetchProjector.ArrayBackedRow();
+                    fetchRows[idx] = new ArrayBackedRow();
                     fetchIdPositions[idx] = col.index();
                     if (!fetchSource.partitionedByColumns().isEmpty()) {
-                        partitionRows[idx] = new FetchProjector.ArrayBackedRow();
+                        partitionRows[idx] = new ArrayBackedRow();
                     }
                     nullCells[idx] = new Object[fetchSource.references().size()];
                     idx++;
@@ -83,15 +83,15 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
             return fetchIdPositions;
         }
 
-        public FetchProjector.ArrayBackedRow[] fetchRows() {
+        public ArrayBackedRow[] fetchRows() {
             return fetchRows;
         }
 
-        public FetchProjector.ArrayBackedRow[] partitionRows() {
+        public ArrayBackedRow[] partitionRows() {
             return partitionRows;
         }
 
-        public FetchProjector.ArrayBackedRow inputRow() {
+        public ArrayBackedRow inputRow() {
             return inputRow;
         }
 
@@ -124,11 +124,11 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
             }
             assert fs != null : "fs must not be null";
             if (partitionRows == null) {
-                partitionRows = new FetchProjector.ArrayBackedRow[fetchSources.size()];
+                partitionRows = new ArrayBackedRow[fetchSources.size()];
             }
-            FetchProjector.ArrayBackedRow row = partitionRows[fetchIdx];
+            ArrayBackedRow row = partitionRows[fetchIdx];
             if (row == null) {
-                row = new FetchProjector.ArrayBackedRow();
+                row = new ArrayBackedRow();
                 partitionRows[fetchIdx] = row;
             }
             return new RowInput(row, idx);

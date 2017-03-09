@@ -57,10 +57,18 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
         this.transports = transports;
         this.nodeFetchOperation = new NodeFetchOperation(threadPool, jobsLogs, jobContextService);
 
-        transportService.registerRequestHandler(TRANSPORT_ACTION,
+        transportService.registerRequestHandler(
+            TRANSPORT_ACTION,
             NodeFetchRequest.class,
             EXECUTOR_NAME,
-            new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) {});
+            // force execution because this handler might receive empty close requests which
+            // need to be processed to not leak the FetchContext.
+            // This shouldn't cause too much of an issue because fetch requests always happen after a query phase.
+            // If the threadPool is overloaded the query phase would fail first.
+            true,
+            false,
+            new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) {}
+        );
     }
 
     public void execute(String targetNode,
