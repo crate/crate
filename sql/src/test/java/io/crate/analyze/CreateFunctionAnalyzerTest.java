@@ -54,31 +54,13 @@ public class CreateFunctionAnalyzerTest extends CrateUnitTest {
         assertThat(analysis.arguments().get(0), is(FunctionArgumentDefinition.of(DataTypes.LONG)));
         assertThat(analysis.arguments().get(1), is(FunctionArgumentDefinition.of(DataTypes.LONG)));
         assertThat(analysis.language(), is(Literal.fromObject("javascript")));
-        assertThat(analysis.body(), is(Literal.fromObject("function(a, b) { return a + b }")));
-        assertThat(analysis.options().size(), is(0));
-    }
-
-    @Test
-    public void testCreateFunctionWithOptions() throws Exception {
-        AnalyzedStatement analyzedStatement = e.analyze("CREATE FUNCTION bar()" +
-            " RETURNS long LANGUAGE javascript STRICT AS 'function() { return 1; }'");
-        assertThat(analyzedStatement, instanceOf(CreateFunctionAnalyzedStatement.class));
-
-        CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) analyzedStatement;
-        assertThat(analysis.name(), is("bar"));
-        assertThat(analysis.replace(), is(false));
-        assertThat(analysis.returnType(), is(DataTypes.LONG));
-        assertThat(analysis.arguments().size(), is(0));
-        assertThat(analysis.language(), is(Literal.fromObject("javascript")));
-        assertThat(analysis.body(), is(Literal.fromObject("function() { return 1; }")));
-        assertThat(analysis.options().size(), is(1));
-        assertThat(analysis.options().contains("STRICT"), is(true));
+        assertThat(analysis.body(), is(Literal.fromObject("function(a, b) { return a + b; }")));
     }
 
     @Test
     public void testCreateFunctionOrReplace() throws Exception {
         AnalyzedStatement analyzedStatement = e.analyze("CREATE OR REPLACE FUNCTION bar()" +
-            " RETURNS long LANGUAGE javascript STRICT AS 'function() { return 1; }'");
+            " RETURNS long LANGUAGE javascript AS 'function() { return 1; }'");
         assertThat(analyzedStatement, instanceOf(CreateFunctionAnalyzedStatement.class));
 
         CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) analyzedStatement;
@@ -86,9 +68,7 @@ public class CreateFunctionAnalyzerTest extends CrateUnitTest {
         assertThat(analysis.replace(), is(true));
         assertThat(analysis.returnType(), is(DataTypes.LONG));
         assertThat(analysis.language(), is(Literal.fromObject("javascript")));
-        assertThat(analysis.body(), is(Literal.fromObject("function() { return 1 }")));
-        assertThat(analysis.options().size(), is(1));
-        assertThat(analysis.options().contains("STRICT"), is(true));
+        assertThat(analysis.body(), is(Literal.fromObject("function() { return 1; }")));
     }
 
     @Test

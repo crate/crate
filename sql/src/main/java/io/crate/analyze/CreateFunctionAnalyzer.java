@@ -30,7 +30,6 @@ import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.FunctionArgument;
 
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public class CreateFunctionAnalyzer {
@@ -38,14 +37,11 @@ public class CreateFunctionAnalyzer {
     private final static DataTypeAnalyzer DT_ANALYZER = new DataTypeAnalyzer();
 
     public CreateFunctionAnalyzedStatement analyze(CreateFunction node) {
-        Set<String> options = node.options().stream().map(Enum::toString).collect(Collectors.toSet());
-
         return new CreateFunctionAnalyzedStatement(
             node.name().toString(),
             node.replace(),
             analyzedFunctionArguments(node.arguments()),
             DT_ANALYZER.process(node.returnType(), null),
-            options,
             node.language(),
             node.body()
         );

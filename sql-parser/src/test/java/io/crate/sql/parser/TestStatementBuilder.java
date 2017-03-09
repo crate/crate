@@ -389,29 +389,13 @@ public class TestStatementBuilder {
             " returns string" +
             " language javascript as 'function() {return \"1\"}'");
 
-        // function options
-        printStatement("create function foo.bar(int, long)" +
-            " returns int" +
-            " language javascript" +
-            " strict as 'function(a, b) {return a + b}'");
-        printStatement("create function foo.bar(int, long)" +
-            " returns int" +
-            " language javascript" +
-            " called on null input as 'function(a, b) {return a + b}'");
-        printStatement("create function foo.bar(int, long)" +
-            " returns int" +
-            " language javascript" +
-            " returns null on null input as 'function(a, b) {return a + b}'");
-
         // argument with names
         printStatement("create function foo.bar(\"f\" int, s object)" +
             " returns object" +
-            " language javascript" +
-            " returns null on null input as 'function(f, s) {return {\"a\": 1}}'");
+            " language javascript as 'function(f, s) {return {\"a\": 1}}'");
         printStatement("create function foo.bar(location geo_point, geo_shape)" +
             " returns boolean" +
-            " language javascript" +
-            " returns null on null input as 'function(location, b) {return true}'");
+            " language javascript as 'function(location, b) {return true}'");
     }
 
     @Test

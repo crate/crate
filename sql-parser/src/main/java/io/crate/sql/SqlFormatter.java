@@ -329,7 +329,6 @@ public final class SqlFormatter {
                 .append(" RETURNS ")
                 .append(node.returnType()).append(" ")
                 .append(" LANGUAGE ").append(node.language().toString().replace("'", "")).append(" ")
-                .append(node.options().stream().map(Enum::toString).collect(Collectors.joining(" ")))
                 .append(" AS ").append(node.body().toString());
             return null;
         }

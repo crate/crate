@@ -23,7 +23,6 @@
 package io.crate.sql.parser;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
@@ -35,7 +34,9 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import java.util.*;
+import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 
 import static java.util.stream.Collectors.toList;
 
@@ -335,7 +336,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             context.REPLACE() != null,
             visit(context.functionArgument(), FunctionArgument.class),
             (ColumnType) visit(context.returnType),
-            getFunctionOptions(context.functionOptions()),
             (Expression) visit(context.language),
             (Expression) visit(context.body));
     }
@@ -1341,18 +1341,5 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "The function name is not correct! " +
                 "name [%s] does not conform the [[schema_name .] function_name] format.", functionName));
         }
-    }
-
-    private Set<CreateFunction.Option> getFunctionOptions(SqlBaseParser.FunctionOptionsContext context) {
-        if (context == null) return ImmutableSet.of();
-        Set<CreateFunction.Option> options = new HashSet<>();
-        if (context.RETURNS() != null) {
-            options.add(CreateFunction.Option.RETURNS_NULL_ON_NULL_INPUT);
-        } else if (context.CALLED() != null) {
-            options.add(CreateFunction.Option.CALLED_ON_NULL_INPUT);
-        } else {
-            options.add(CreateFunction.Option.STRICT);
-        }
-        return options;
     }
 }

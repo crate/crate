@@ -399,18 +399,12 @@ createStmt
     | CREATE (OR REPLACE)? FUNCTION name=qname
         '(' (functionArgument (',' functionArgument)*)? ')'
         RETURNS returnType=dataType
-        LANGUAGE language=parameterOrIdent functionOptions?
+        LANGUAGE language=parameterOrIdent
         AS body=parameterOrString                                                    #createFunction
     ;
 
 functionArgument
     : (name=ident)? type=dataType
-    ;
-
-functionOptions
-    : CALLED ON NULL INPUT
-    | RETURNS NULL ON NULL INPUT
-    | STRICT
     ;
 
 alterTableDefinition
