@@ -23,14 +23,11 @@ package io.crate.operation.projectors;
 
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.data.Bucket;
-import io.crate.data.Row;
-import io.crate.data.RowN;
+import io.crate.data.*;
 import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.testing.CollectingRowReceiver;
@@ -47,6 +44,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
@@ -91,45 +90,20 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             UUID.randomUUID()
         );
         writerProjector.downstream(collectingRowReceiver);
-        final RowDownstream rowDownstream = new MultiUpstreamRowReceiver(writerProjector);
 
-        final RowReceiver receiver1 = rowDownstream.newRowReceiver();
+        BatchConsumerToRowReceiver batchConsumer = new BatchConsumerToRowReceiver(writerProjector);
+        BatchIterator rowsIterator = RowsBatchIterator.newInstance(IntStream.range(0, 100)
+            .mapToObj(i -> new RowN(new Object[]{i, new BytesRef("{\"id\": " + i + ", \"name\": \"Arthur\"}")}))
+            .collect(Collectors.toList()), 2);
 
-        Thread t1 = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < 100; i++) {
-                    receiver1.setNextRow(
-                        new RowN(new Object[]{i, new BytesRef("{\"id\": " + i + ", \"name\": \"Arthur\"}")}));
-                }
-            }
-        });
-
-
-        final RowReceiver receiver2 = rowDownstream.newRowReceiver();
-        Thread t2 = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 100; i < 200; i++) {
-                    receiver2.setNextRow(
-                        new RowN(new Object[]{i, new BytesRef("{\"id\": " + i + ", \"name\": \"Trillian\"}")}));
-                }
-            }
-        });
-        t1.start();
-        t2.start();
-
-        t1.join();
-        t2.join();
-        receiver1.finish(RepeatHandle.UNSUPPORTED);
-        receiver2.finish(RepeatHandle.UNSUPPORTED);
+        batchConsumer.accept(rowsIterator, null);
         Bucket objects = collectingRowReceiver.result();
 
-        assertThat(objects, contains(isRow(200L)));
+        assertThat(objects, contains(isRow(100L)));
 
         execute("refresh table bulk_import");
         execute("select count(*) from bulk_import");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(200L));
+        assertThat(response.rows()[0][0], is(100L));
     }
 }

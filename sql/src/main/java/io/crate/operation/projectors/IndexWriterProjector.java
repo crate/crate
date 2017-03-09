@@ -123,40 +123,28 @@ public class IndexWriterProjector extends AbstractProjector {
     }
 
     @Override
+    public void downstream(RowReceiver rowReceiver) {
+        super.downstream(rowReceiver);
+    }
+
+    @Override
     public Result setNextRow(Row row) {
-        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
-            collectExpression.setNextRow(row);
-        }
-        rowShardResolver.setNextRow(row);
-        ShardUpsertRequest.Item item = new ShardUpsertRequest.Item(
-            rowShardResolver.id(), null, new Object[]{sourceInput.value()}, null);
-        if (bulkShardProcessor.add(indexNameResolver.get(), item, rowShardResolver.routing())) {
-            return Result.CONTINUE;
-        }
-        return Result.STOP;
+        throw new UnsupportedOperationException("IndexWriterCountBatchIterator must be the consumer instead");
     }
 
     @Override
     public void finish(RepeatHandle repeatHandle) {
-        BulkProcessorFutureCallback bulkProcessorFutureCallback = new BulkProcessorFutureCallback(failed, downstream);
-        bulkShardProcessor.result().whenComplete(bulkProcessorFutureCallback);
-        bulkShardProcessor.close();
+        throw new UnsupportedOperationException("IndexWriterCountBatchIterator must be the consumer instead");
     }
 
     @Override
     public void fail(Throwable throwable) {
-        BulkProcessorFutureCallback bulkProcessorFutureCallback = new BulkProcessorFutureCallback(failed, downstream);
-        bulkShardProcessor.result().whenComplete(bulkProcessorFutureCallback);
-        failed.set(true);
-        downstream.fail(throwable);
-        bulkShardProcessor.kill(throwable);
+        throw new UnsupportedOperationException("IndexWriterCountBatchIterator must be the consumer instead");
     }
 
     @Override
     public void kill(Throwable throwable) {
-        failed.set(true);
-        super.kill(throwable);
-        bulkShardProcessor.kill(throwable);
+        throw new UnsupportedOperationException("IndexWriterCountBatchIterator must be the consumer instead");
     }
 
     @Override
