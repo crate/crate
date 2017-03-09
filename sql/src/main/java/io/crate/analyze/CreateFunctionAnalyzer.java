@@ -26,7 +26,6 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.FunctionArgument;
 
@@ -40,8 +39,6 @@ public class CreateFunctionAnalyzer {
 
     public CreateFunctionAnalyzedStatement analyze(CreateFunction node) {
         Set<String> options = node.options().stream().map(Enum::toString).collect(Collectors.toSet());
-        String language = ExpressionToStringVisitor.convert(node.language(), null);
-        String body = ExpressionToStringVisitor.convert(node.body(), null);
 
         return new CreateFunctionAnalyzedStatement(
             node.name().toString(),
@@ -49,8 +46,8 @@ public class CreateFunctionAnalyzer {
             analyzedFunctionArguments(node.arguments()),
             DT_ANALYZER.process(node.returnType(), null),
             options,
-            language,
-            body
+            node.language(),
+            node.body()
         );
     }
 
