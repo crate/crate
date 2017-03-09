@@ -94,25 +94,21 @@ public class DDLStatementDispatcher {
     }
 
     public CompletableFuture<Long> dispatch(AnalyzedStatement analyzedStatement, UUID jobId, Row parameters) {
-        return innerVisitor.process(analyzedStatement, innerVisitor.createContext(jobId, parameters));
+        return innerVisitor.process(analyzedStatement, new Context(jobId, parameters));
     }
 
-    private class InnerVisitor extends AnalyzedStatementVisitor<InnerVisitor.Context, CompletableFuture<Long>> {
+    private static class Context {
 
-        class Context {
+        private final UUID jobId;
+        private final Row parameters;
 
-            private final UUID jobId;
-            private final Row parameters;
-
-            Context(UUID jobId, Row parameters) {
-                this.jobId = jobId;
-                this.parameters = parameters;
-            }
+        Context(UUID jobId, Row parameters) {
+            this.jobId = jobId;
+            this.parameters = parameters;
         }
+    }
 
-        public Context createContext(UUID jobId, Row parameters) {
-            return new Context(jobId, parameters);
-        }
+    private class InnerVisitor extends AnalyzedStatementVisitor<Context, CompletableFuture<Long>> {
 
         @Override
         protected CompletableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Context context) {
