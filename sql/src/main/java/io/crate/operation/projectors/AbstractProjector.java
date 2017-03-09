@@ -67,6 +67,13 @@ public abstract class AbstractProjector implements Projector {
         downstream.pauseProcessed(resumeable);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "{" +
+               "downstream=" + downstream +
+               '}';
+    }
+
     private static class StateCheckReceiver implements RowReceiver {
 
         private static final String STATE_ERROR = "downstream not set";

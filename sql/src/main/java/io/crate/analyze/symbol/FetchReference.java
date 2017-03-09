@@ -31,10 +31,10 @@ import java.io.IOException;
 
 public class FetchReference extends Symbol {
 
-    private final Symbol fetchId;
+    private final InputColumn fetchId;
     private final Reference ref;
 
-    public FetchReference(Symbol fetchId, Reference ref) {
+    public FetchReference(InputColumn fetchId, Reference ref) {
         this.fetchId = fetchId;
         this.ref = ref;
     }
@@ -54,7 +54,7 @@ public class FetchReference extends Symbol {
         return ref.valueType();
     }
 
-    public Symbol fetchId() {
+    public InputColumn fetchId() {
         return fetchId;
     }
 
@@ -69,5 +69,13 @@ public class FetchReference extends Symbol {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         throw new UnsupportedOperationException("FetchReference cannot be streamed");
+    }
+
+    @Override
+    public String toString() {
+        return "FetchReference{" +
+               "fetchId=" + fetchId +
+               ", ref=" + ref +
+               '}';
     }
 }

@@ -71,6 +71,9 @@ public class SimpleTopNProjector extends InputRowProjector {
     @Override
     public BatchIteratorProjector asProjector() {
         return it -> {
+            if (it == null) {
+                return null;
+            }
             if (remainingOffset > 0) {
                 it = new SkippingBatchIterator(it, remainingOffset);
             }

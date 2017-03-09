@@ -309,8 +309,8 @@ public class SymbolPrinterTest extends CrateUnitTest {
     public void testPrintFetchRefs() throws Exception {
         Field field = (Field) sqlExpressions.asSymbol("bar");
         Reference reference = ((AbstractTableRelation) field.relation()).resolveField(field);
-        Symbol fetchRef = new FetchReference(sqlExpressions.asSymbol("1"), reference);
-        assertPrint(fetchRef, "FETCH(1, doc.formatter.bar)");
+        Symbol fetchRef = new FetchReference(new InputColumn(1,reference.valueType()), reference);
+        assertPrint(fetchRef, "FETCH(INPUT(1), doc.formatter.bar)");
     }
 
     @Test
