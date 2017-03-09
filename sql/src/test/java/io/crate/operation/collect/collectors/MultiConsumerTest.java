@@ -38,7 +38,8 @@ public class MultiConsumerTest {
     @Test
     public void testSuccessfulMultiConsumerUsage() throws Exception {
         CollectingBatchConsumer batchConsumer = new CollectingBatchConsumer();
-        CompositeCollector.MultiConsumer consumer = new CompositeCollector.MultiConsumer(2, batchConsumer);
+        CompositeCollector.MultiConsumer consumer =
+            CompositeCollector.MultiConsumer.syncMultiConsumer(2, batchConsumer);
 
         consumer.accept(TestingBatchIterators.range(3, 6), null);
         consumer.accept(TestingBatchIterators.range(0, 3), null);
