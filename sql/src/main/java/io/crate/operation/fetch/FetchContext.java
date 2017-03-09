@@ -180,4 +180,11 @@ public class FetchContext extends AbstractExecutionSubContext {
         return sharedShardContext.indexService();
     }
 
+    @Override
+    public String toString() {
+        return "FetchContext{" +
+               "phase=" + phase.phaseId() +
+               ", searchers=" + Arrays.toString(searchers.keys) +
+               '}';
+    }
 }

@@ -29,6 +29,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.executor.transport.ShardDeleteRequest;
 import io.crate.executor.transport.ShardUpsertRequest;
@@ -36,7 +37,6 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.AggregationContext;
-import io.crate.data.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.RowFilter;
 import io.crate.operation.collect.CollectExpression;
@@ -436,7 +436,6 @@ public class ProjectionToProjectorVisitor
                 context.jobId,
                 projection.collectPhaseId()
             ),
-            threadPool.executor(ThreadPool.Names.SUGGEST),
             functions,
             projection.outputSymbols(),
             projectorContext,
