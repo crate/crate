@@ -54,7 +54,7 @@ public class JobExecutionContext implements CompletionListenable {
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final String coordinatorNodeId;
     private final JobsLogs jobsLogs;
-    private final CompletableFuture<Void> finishedFuture = new CompletableFuture();
+    private final CompletableFuture<Void> finishedFuture = new CompletableFuture<>();
     private final AtomicBoolean killSubContextsOngoing = new AtomicBoolean(false);
     private final Collection<String> participatedNodes;
     private volatile Throwable failure;
