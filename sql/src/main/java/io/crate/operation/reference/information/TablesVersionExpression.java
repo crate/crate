@@ -88,7 +88,7 @@ class TablesVersionExpression extends RowCollectNestedObjectExpression<TableInfo
                 version = row.versionUpgraded();
             }
 
-            return version == null ? null : Version.toMap(version).get(dbKey);
+            return version == null ? null : Version.toPrettyMap(version).get(dbKey);
         }
     }
 

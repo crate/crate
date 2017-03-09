@@ -22,6 +22,7 @@ package io.crate.operation.reference.information;
 
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Map;
@@ -77,7 +78,7 @@ abstract class InformationTablePartitionsExpression<T>
         extends InformationTablePartitionsExpression<BytesRef> {
         @Override
         public BytesRef value() {
-            return row.routingHashFunction();
+            return new BytesRef(DocIndexMetaData.getRoutingHashFunctionPrettyName(row.routingHashFunction()));
         }
     }
 }

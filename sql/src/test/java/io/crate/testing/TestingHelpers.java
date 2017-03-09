@@ -466,8 +466,8 @@ public class TestingHelpers {
         assertThat((Map<String, String>) object,
             allOf(
                 hasEntry(is(Version.Properties.CREATED.toString()),
-                    versionCreated == null ? nullValue() : is(Version.toMap(versionCreated))),
+                    versionCreated == null ? nullValue() : is(Version.toPrettyMap(versionCreated))),
                 hasEntry(is(Version.Properties.UPGRADED.toString()),
-                    versionUpgraded == null ? nullValue() : is(Version.toMap(versionUpgraded)))));
+                    versionUpgraded == null ? nullValue() : is(Version.toPrettyMap(versionUpgraded)))));
     }
 }

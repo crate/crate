@@ -27,6 +27,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.information.*;
@@ -374,8 +375,8 @@ public class InformationSchemaExpressionFactories {
                     @Override
                     public BytesRef value() {
                         if (row instanceof ShardedTable) {
-                            String routingHashFunction = ((ShardedTable) row).routingHashFunction();
-                            return routingHashFunction == null ? null : new BytesRef(routingHashFunction);
+                            return new BytesRef(DocIndexMetaData.getRoutingHashFunctionPrettyName(
+                                ((ShardedTable) row).routingHashFunction()));
                         }
                         return null;
                     }

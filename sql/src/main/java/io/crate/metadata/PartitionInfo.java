@@ -34,7 +34,7 @@ public class PartitionInfo {
     private final PartitionName name;
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
-    private final BytesRef routingHashFunction;
+    private final String routingHashFunction;
     private final Version versionCreated;
     private final Version versionUpgraded;
     private final Map<String, Object> values;
@@ -43,7 +43,7 @@ public class PartitionInfo {
     public PartitionInfo(PartitionName name,
                          int numberOfShards,
                          BytesRef numberOfReplicas,
-                         BytesRef routingHashFunction,
+                         String routingHashFunction,
                          @Nullable Version versionCreated,
                          @Nullable Version versionUpgraded,
                          Map<String, Object> values,
@@ -70,7 +70,7 @@ public class PartitionInfo {
         return numberOfReplicas;
     }
 
-    public BytesRef routingHashFunction() {
+    public String routingHashFunction() {
         return routingHashFunction;
     }
 

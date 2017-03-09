@@ -21,6 +21,7 @@
 
 package io.crate.metadata.doc;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
@@ -61,8 +62,15 @@ public class DocIndexMetaData {
     public static final String SETTING_ROUTING_HASH_FUNCTION = "routing_hash_function";
     public static final String DEFAULT_ROUTING_HASH_FUNCTION = Murmur3HashFunction.class.getName();
 
+    @VisibleForTesting
+    public static final String DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME = "Murmur3";
+
     private static final String ID = "_id";
     private static final String VERSION_STRING = "version";
+    private static final Map<String, String> routingHashFunctionPrettyNameLookupMap =
+        ImmutableMap.of("org.elasticsearch.cluster.routing.SimpleHashFunction", "Simple",
+                        "org.elasticsearch.cluster.routing.DjbHashFunction", "Djb",
+                        "org.elasticsearch.cluster.routing.Murmur3HashFunction", "Murmur3");
 
     private final IndexMetaData metaData;
     private final Map<String, Object> mappingMap;
@@ -150,8 +158,8 @@ public class DocIndexMetaData {
         return getNested(getNested(mappingMap, "_meta", null), SETTING_ROUTING_HASH_FUNCTION, null);
     }
 
-    String getRoutingHashFunction() {
-        return getRoutingHashFunction(mappingMap);
+    public static String getRoutingHashFunctionPrettyName(String routingHashFunction) {
+        return routingHashFunctionPrettyNameLookupMap.getOrDefault(routingHashFunction, routingHashFunction);
     }
 
     @Nullable
@@ -572,6 +580,10 @@ public class DocIndexMetaData {
 
     public ColumnIdent routingCol() {
         return routingCol;
+    }
+
+    String getRoutingHashFunction() {
+        return getRoutingHashFunction(mappingMap);
     }
 
     /**

@@ -152,21 +152,27 @@ public class Version {
         org.elasticsearch.Version.writeVersion(version.esVersion, out);
     }
 
-    public static Map<String, String> toMap(Version version) {
-        return MapBuilder.<String, String>newMapBuilder()
-            .put(CRATEDB_VERSION_KEY, String.valueOf(version.id))
-            .put(ES_VERSION_KEY, String.valueOf(version.esVersion.id))
+    public static Map<String, Integer> toMap(Version version) {
+        return MapBuilder.<String, Integer>newMapBuilder()
+            .put(CRATEDB_VERSION_KEY, version.id)
+            .put(ES_VERSION_KEY, version.esVersion.id)
             .map();
     }
 
     @Nullable
-    public static Version fromMap(Map<String, String> versionMap) {
+    public static Version fromMap(Map<String, Integer> versionMap) {
         if (versionMap == null || versionMap.isEmpty()) {
             return null;
         }
-        return new Version(
-            Integer.parseInt(versionMap.get("cratedb")),
+        return new Version(versionMap.get(CRATEDB_VERSION_KEY),
             null, // snapshot info is not saved
-            org.elasticsearch.Version.fromId(Integer.parseInt(versionMap.get("elasticsearch"))));
+            org.elasticsearch.Version.fromId(versionMap.get(ES_VERSION_KEY)));
+    }
+
+    public static Map<String, String> toPrettyMap(Version version) {
+        return MapBuilder.<String, String>newMapBuilder()
+            .put(CRATEDB_VERSION_KEY, version.number())
+            .put(ES_VERSION_KEY, version.number())
+            .map();
     }
 }
