@@ -26,6 +26,10 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.Option;
+import io.crate.action.sql.SessionContext;
+import io.crate.data.Row;
+import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Literal;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -33,6 +37,8 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
+
+import java.util.Collections;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -48,14 +54,40 @@ public class CreateFunctionAnalyzerTest extends CrateUnitTest {
         assertThat(analyzedStatement, instanceOf(CreateFunctionAnalyzedStatement.class));
 
         CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) analyzedStatement;
-        assertThat(analysis.name(), is("bar"));
+        assertThat(analysis.name(), is("doc.bar"));
         assertThat(analysis.replace(), is(false));
         assertThat(analysis.returnType(), is(DataTypes.LONG));
         assertThat(analysis.arguments().get(0), is(FunctionArgumentDefinition.of(DataTypes.LONG)));
         assertThat(analysis.arguments().get(1), is(FunctionArgumentDefinition.of(DataTypes.LONG)));
-        assertThat(analysis.language(), is(Literal.fromObject("javascript")));
-        assertThat(analysis.body(), is(Literal.fromObject("function(a, b) { return a + b; }")));
+        assertThat(analysis.language(),  is(Literal.fromObject("javascript")));
+        assertThat(analysis.definition(), is(Literal.fromObject("function(a, b) { return a + b; }")));
+
     }
+
+    @Test
+    public void testCreateFunctionTestSchema() throws Exception {
+
+        CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
+            SqlParser.createStatement("CREATE FUNCTION bar(long, long)" +
+        " RETURNS long LANGUAGE javascript AS 'function(a, b) { return a + b; }'"),
+            new SessionContext(0, Option.NONE, "my_schema"),
+            new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())).analyzedStatement();
+
+        assertThat(analysis.name(), is("my_schema.bar"));
+    }
+
+    @Test
+    public void testCreateFunctionTestExplicitSchema() throws Exception {
+
+        CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
+            SqlParser.createStatement("CREATE FUNCTION my_other_schema.bar(long, long)" +
+                " RETURNS long LANGUAGE javascript AS 'function(a, b) { return a + b; }'"),
+            new SessionContext(0, Option.NONE, "my_schema"),
+            new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())).analyzedStatement();
+
+        assertThat(analysis.name(), is("my_other_schema.bar"));
+    }
+
 
     @Test
     public void testCreateFunctionOrReplace() throws Exception {
@@ -64,11 +96,11 @@ public class CreateFunctionAnalyzerTest extends CrateUnitTest {
         assertThat(analyzedStatement, instanceOf(CreateFunctionAnalyzedStatement.class));
 
         CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) analyzedStatement;
-        assertThat(analysis.name(), is("bar"));
+        assertThat(analysis.name(), is("doc.bar"));
         assertThat(analysis.replace(), is(true));
         assertThat(analysis.returnType(), is(DataTypes.LONG));
         assertThat(analysis.language(), is(Literal.fromObject("javascript")));
-        assertThat(analysis.body(), is(Literal.fromObject("function() { return 1; }")));
+        assertThat(analysis.definition(), is(Literal.fromObject("function() { return 1; }")));
     }
 
     @Test

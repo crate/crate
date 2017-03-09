@@ -273,7 +273,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitCreateFunction(CreateFunction node, Analysis context) {
-            return createFunctionAnalyzer.analyze(node);
+            return createFunctionAnalyzer.analyze(node, context);
         }
 
         @Override

@@ -26,24 +26,26 @@
 
 package io.crate.analyze;
 
-import io.crate.sql.tree.CreateFunction;
-import io.crate.sql.tree.FunctionArgument;
+import io.crate.metadata.Schemas;
+import io.crate.sql.tree.*;
 
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 public class CreateFunctionAnalyzer {
 
     private final static DataTypeAnalyzer DT_ANALYZER = new DataTypeAnalyzer();
 
-    public CreateFunctionAnalyzedStatement analyze(CreateFunction node) {
+    public CreateFunctionAnalyzedStatement analyze(CreateFunction node, Analysis context) {
+
         return new CreateFunctionAnalyzedStatement(
-            node.name().toString(),
+            prependDefaultSchemaName(node.name().toString(), context),
             node.replace(),
             analyzedFunctionArguments(node.arguments()),
             DT_ANALYZER.process(node.returnType(), null),
             node.language(),
-            node.body()
+            node.definition()
         );
     }
 
@@ -53,4 +55,16 @@ public class CreateFunctionAnalyzer {
                 FunctionArgumentDefinition.of(arg.name().orElse(null), DT_ANALYZER.process(arg.type(), null))
             ).collect(Collectors.toList());
     }
+
+    private String prependDefaultSchemaName(String name , Analysis context) {
+        Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(name);
+        if(matcher.matches()){
+            return name;
+        }
+        if(context.sessionContext().defaultSchema() != null){
+            return name.format("%s.%s", context.sessionContext().defaultSchema(), name);
+        }
+        return String.format("%s.%s", Schemas.DEFAULT_SCHEMA_NAME, name);
+    }
+
 }

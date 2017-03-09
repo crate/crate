@@ -395,7 +395,7 @@ public class TestStatementBuilder {
             " language javascript as 'function(f, s) {return {\"a\": 1}}'");
         printStatement("create function foo.bar(location geo_point, geo_shape)" +
             " returns boolean" +
-            " language javascript as 'function(location, b) {return true}'");
+            " language javascript as 'function(location, b) {return true;}'");
     }
 
     @Test

@@ -36,20 +36,20 @@ public class CreateFunction extends Statement {
     private final List<FunctionArgument> arguments;
     private final ColumnType returnType;
     private final Expression language;
-    private final Expression body;
+    private final Expression definition;
 
     public CreateFunction(QualifiedName name,
                           boolean replace,
                           List<FunctionArgument> arguments,
                           ColumnType returnType,
                           Expression language,
-                          Expression body) {
+                          Expression definition) {
         this.name = name;
         this.replace = replace;
         this.arguments = arguments;
         this.returnType = returnType;
         this.language = language;
-        this.body = body;
+        this.definition = definition;
     }
 
     public QualifiedName name() {
@@ -72,8 +72,8 @@ public class CreateFunction extends Statement {
         return language;
     }
 
-    public Expression body() {
-        return body;
+    public Expression definition() {
+        return definition;
     }
 
     @Override
@@ -107,7 +107,7 @@ public class CreateFunction extends Statement {
             ", arguments=" + arguments +
             ", returnType=" + returnType +
             ", language=" + language +
-            ", body=" + body +
+            ", definition=" + definition +
             '}';
     }
 }

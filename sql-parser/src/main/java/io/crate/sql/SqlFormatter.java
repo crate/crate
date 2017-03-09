@@ -329,7 +329,7 @@ public final class SqlFormatter {
                 .append(" RETURNS ")
                 .append(node.returnType()).append(" ")
                 .append(" LANGUAGE ").append(node.language().toString().replace("'", "")).append(" ")
-                .append(" AS ").append(node.body().toString());
+                .append(" AS ").append(node.definition().toString());
             return null;
         }
 
