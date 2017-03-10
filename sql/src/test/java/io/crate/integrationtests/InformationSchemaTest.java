@@ -521,45 +521,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("string", response.rows()[1][3]);
     }
 
-    /* TODO: enable when information_schema.indices is implemented
-    @SuppressWarnings("unchecked")
-    @Test
-    public void testSelectFromTableIndices() throws Exception {
-        execute("create table test (col1 string, col2 string, " +
-                "col3 string index using fulltext, " +
-                "col4 string index off, " +
-                "index col1_col2_ft using fulltext(col1, col2) with(analyzer='english'))");
-        ensureGreen();
-        execute("select table_name, index_name, method, columns, properties " +
-                "from INFORMATION_SCHEMA.Indices");
-        assertEquals(4L, response.rowCount());
-
-        assertEquals("test", response.rows()[0][0]);
-        assertEquals("col1", response.rows()[0][1]);
-        assertEquals("plain", response.rows()[0][2]);
-        assertTrue(response.rows()[0][3] instanceof List);
-        assertThat((List<String>) response.rows()[0][3], contains("col1"));
-        assertEquals("", response.rows()[0][4]);
-
-        assertEquals("test", response.rows()[1][0]);
-        assertEquals("col2", response.rows()[1][1]);
-        assertEquals("plain", response.rows()[1][2]);
-        assertThat((List<String>) response.rows()[1][3], contains("col2"));
-        assertEquals("", response.rows()[1][4]);
-
-        assertEquals("test", response.rows()[2][0]);
-        assertEquals("col1_col2_ft", response.rows()[2][1]);
-        assertEquals("fulltext", response.rows()[2][2]);
-        assertThat((List<String>) response.rows()[2][3], contains("col1", "col2"));
-        assertEquals("analyzer=english", response.rows()[2][4]);
-
-        assertEquals("test", response.rows()[3][0]);
-        assertEquals("col3", response.rows()[3][1]);
-        assertEquals("fulltext", response.rows()[3][2]);
-        assertThat((List<String>) response.rows()[3][3], contains("col3"));
-        assertEquals("analyzer=standard", response.rows()[3][4]);
-    }*/
-
     @Test
     public void testGlobalAggregation() throws Exception {
         execute("select max(ordinal_position) from information_schema.columns");
