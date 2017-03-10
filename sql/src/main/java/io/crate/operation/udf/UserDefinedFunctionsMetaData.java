@@ -28,10 +28,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
+import java.util.*;
 
 public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Custom> implements MetaData.Custom{
 
@@ -44,20 +41,37 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
         MetaData.registerPrototype(TYPE, PROTO);
     }
 
-    private final List<UserDefinedFunctionMetaData> functions;
+    private final Map<Integer, UserDefinedFunctionMetaData> functions;
 
-    public UserDefinedFunctionsMetaData(UserDefinedFunctionMetaData... functions) {
-        this.functions = Arrays.asList(functions);
+    private UserDefinedFunctionsMetaData() {
+        this.functions = new HashMap<>();
     }
 
-    public List<UserDefinedFunctionMetaData> functions() {
-        return functions;
+    private UserDefinedFunctionsMetaData(Map<Integer, UserDefinedFunctionMetaData> functions) {
+        this.functions = functions;
+
+    }
+
+    static UserDefinedFunctionsMetaData of(UserDefinedFunctionMetaData... functions) {
+        Map<Integer, UserDefinedFunctionMetaData> udfs = new HashMap<>();
+        for (UserDefinedFunctionMetaData udf : functions) {
+            udfs.put(udf.createMethodSignature(), udf);
+        }
+        return new UserDefinedFunctionsMetaData(udfs);
+    }
+
+    public Collection<UserDefinedFunctionMetaData> functions() {
+        return functions.values();
+    }
+
+    public void put(UserDefinedFunctionMetaData function) {
+        functions.put(function.createMethodSignature(), function);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(functions.size());
-        for (UserDefinedFunctionMetaData function : functions) {
+        for (UserDefinedFunctionMetaData function : functions.values()) {
             function.writeTo(out);
         }
     }
@@ -68,12 +82,12 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
         for (int i = 0; i < functions.length; i++) {
             functions[i] = UserDefinedFunctionMetaData.fromStream(in);
         }
-        return new UserDefinedFunctionsMetaData(functions);
+        return UserDefinedFunctionsMetaData.of(functions);
     }
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        for (UserDefinedFunctionMetaData function : functions) {
+        for (UserDefinedFunctionMetaData function : functions.values()) {
             function.toXContent(builder, params);
         }
         return builder;
@@ -92,7 +106,7 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
             UserDefinedFunctionMetaData function = UserDefinedFunctionMetaData.fromXContent(parser);
             functions.add(function);
         }
-        return new UserDefinedFunctionsMetaData(functions.toArray(new UserDefinedFunctionMetaData[functions.size()]));
+        return UserDefinedFunctionsMetaData.of(functions.toArray(new UserDefinedFunctionMetaData[functions.size()]));
     }
 
     @Override

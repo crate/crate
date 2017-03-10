@@ -171,8 +171,7 @@ public final class DataTypes {
     }
 
     public static XContentBuilder toXContent(DataType type, XContentBuilder builder, ToXContent.Params params) throws IOException {
-        builder.startObject();
-        builder.field("id", type.id());
+        builder.startObject().field("id", type.id());
         type.toXContent(builder, params);
         builder.endObject();
         return builder;

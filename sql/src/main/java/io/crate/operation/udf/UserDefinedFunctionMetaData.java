@@ -39,6 +39,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
 
@@ -195,5 +196,9 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
     @Override
     public int hashCode() {
         return Objects.hash(name, arguments, returnType, functionBody, functionLanguage);
+    }
+
+    public int createMethodSignature() {
+        return Objects.hash(name, arguments.stream().map(FunctionArgumentDefinition::type).collect(Collectors.toList()));
     }
 }

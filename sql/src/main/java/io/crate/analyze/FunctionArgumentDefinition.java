@@ -117,9 +117,7 @@ public class FunctionArgumentDefinition implements Streamable, ToXContent {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field("name", name);
-        builder.field("data_type");
+        builder.startObject().field("name", name).field("data_type");
         DataTypes.toXContent(type, builder, params);
         builder.endObject();
         return builder;

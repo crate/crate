@@ -28,8 +28,8 @@ import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import static io.crate.operation.udf.UserDefinedFunctionService.putFunction;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.hasSize;
 
 public class UserDefinedFunctionServiceTest extends CrateUnitTest {
 
@@ -49,27 +49,18 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
     @Test
     public void testFirstFunction() throws Exception {
         UserDefinedFunctionsMetaData metaData = putFunction(null, same1);
-        assertThat(metaData.functions().size(), is(1));
-        assertThat(metaData.functions().get(0), is(same1));
+        assertThat(metaData.functions(), hasSize(1));
+        assertThat(metaData.functions(), contains(same1));
     }
 
     @Test
     public void testReplace() throws Exception {
         UserDefinedFunctionsMetaData metaData = putFunction(
-            new UserDefinedFunctionsMetaData(same1),
+            UserDefinedFunctionsMetaData.of(same1),
             same2
         );
-        assertThat(metaData.functions().size(), is(1));
-        assertThat(metaData.functions().get(0), is(same2));
+        assertThat(metaData.functions(), hasSize(1));
+        assertThat(metaData.functions(), contains(same2));
     }
 
-    @Test
-    public void testAddNewOne() throws Exception {
-        UserDefinedFunctionsMetaData metaData = putFunction(
-            new UserDefinedFunctionsMetaData(same1),
-            different
-        );
-        assertThat(metaData.functions().size(), is(2));
-        assertThat(metaData.functions(), containsInAnyOrder(same1, different));
-    }
 }

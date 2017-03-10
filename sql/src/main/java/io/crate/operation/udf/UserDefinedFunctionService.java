@@ -32,9 +32,6 @@ import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class UserDefinedFunctionService extends AbstractComponent implements ClusterStateListener {
 
     private final ClusterService clusterService;
@@ -74,27 +71,13 @@ public class UserDefinedFunctionService extends AbstractComponent implements Clu
         });
     }
 
-
     @VisibleForTesting
     static UserDefinedFunctionsMetaData putFunction(@Nullable UserDefinedFunctionsMetaData functions, UserDefinedFunctionMetaData function) {
         if (functions == null) {
-            return new UserDefinedFunctionsMetaData(function);
+            return UserDefinedFunctionsMetaData.of(function);
         } else {
-            List<UserDefinedFunctionMetaData> functionMetaData = new ArrayList<>(functions.functions().size() + 1);
-            boolean found = false;
-            for (UserDefinedFunctionMetaData udf : functions.functions()) {
-                if (udf.hasSameSignature(function)) {
-                    found = true;
-                    // TODO: throw error if replace is false
-                    functionMetaData.add(function);
-                } else {
-                    functionMetaData.add(udf);
-                }
-            }
-            if (!found) {
-                functionMetaData.add(function);
-            }
-            return new UserDefinedFunctionsMetaData(functionMetaData.toArray(new UserDefinedFunctionMetaData[functionMetaData.size()]));
+            functions.put(function);
+            return functions;
         }
     }
 

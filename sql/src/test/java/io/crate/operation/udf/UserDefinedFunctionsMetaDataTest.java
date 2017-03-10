@@ -71,11 +71,11 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
 
     @Test
     public void testUserDefinedFunctionToXContent() throws IOException {
-        UserDefinedFunctionsMetaData functions = new UserDefinedFunctionsMetaData(udfMeta);
+        UserDefinedFunctionsMetaData functions = UserDefinedFunctionsMetaData.of(udfMeta);
         XContentBuilder builder = XContentFactory.jsonBuilder();
         functions.toXContent(builder, ToXContent.EMPTY_PARAMS);
         XContentParser parser = JsonXContent.jsonXContent.createParser(builder.bytes());
-        UserDefinedFunctionsMetaData functions2 = (UserDefinedFunctionsMetaData)new UserDefinedFunctionsMetaData().fromXContent(parser);
+        UserDefinedFunctionsMetaData functions2 = (UserDefinedFunctionsMetaData)UserDefinedFunctionsMetaData.of().fromXContent(parser);
         assertEquals(functions, functions2);
     }
 
