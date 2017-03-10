@@ -391,7 +391,11 @@ public class SQLTransportExecutor {
             // need to use explicit `get<Type>` for some because getObject would return a wrong type.
             // E.g. int2 would return Integer instead of short.
             case "int2":
-                value = resultSet.getShort(i + 1);
+                Integer intValue = (Integer) resultSet.getObject(i + 1);
+                if (intValue == null) {
+                    return null;
+                }
+                value = intValue.shortValue();
                 break;
             case "byte":
                 value = resultSet.getByte(i + 1);
