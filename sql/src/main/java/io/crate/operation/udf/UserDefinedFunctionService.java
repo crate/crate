@@ -21,11 +21,13 @@
 
 package io.crate.operation.udf;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.*;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateRequest;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -59,30 +61,7 @@ public class UserDefinedFunctionService extends AbstractComponent implements Clu
             public ClusterState execute(ClusterState currentState) throws Exception {
                 MetaData metaData = currentState.metaData();
                 MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
-                UserDefinedFunctionsMetaData functions = metaData.custom(UserDefinedFunctionsMetaData.TYPE);
-                if (functions == null) {
-                    logger.info("put function [{}]", request.metaData.name);
-                    functions = new UserDefinedFunctionsMetaData(request.metaData);
-                } else {
-                    List<UserDefinedFunctionMetaData> functionMetaData = new ArrayList<>(functions.functions().size() + 1);
-                    boolean found = false;
-                    for (UserDefinedFunctionMetaData udf : functions.functions()) {
-                        if (udf.hasSameSignature(request.metaData)) {
-                            found = true;
-                            // TODO: throw error if replace is false
-                            functionMetaData.add(request.metaData);
-                        } else {
-                            functionMetaData.add(udf);
-                        }
-                    }
-                    if (!found) {
-                        logger.info("put function [{}]", request.metaData.name);
-                        functionMetaData.add(request.metaData);
-                    } else {
-                        logger.info("update function [{}]", request.metaData.name);
-                    }
-                    functions = new UserDefinedFunctionsMetaData(functionMetaData.toArray(new UserDefinedFunctionMetaData[functionMetaData.size()]));
-                }
+                UserDefinedFunctionsMetaData functions = putFunction(metaData.custom(UserDefinedFunctionsMetaData.TYPE), request.metaData);
                 mdBuilder.putCustom(UserDefinedFunctionsMetaData.TYPE, functions);
                 return ClusterState.builder(currentState).metaData(mdBuilder).build();
             }
@@ -93,6 +72,30 @@ public class UserDefinedFunctionService extends AbstractComponent implements Clu
             }
 
         });
+    }
+
+
+    @VisibleForTesting
+    static UserDefinedFunctionsMetaData putFunction(@Nullable UserDefinedFunctionsMetaData functions, UserDefinedFunctionMetaData function) {
+        if (functions == null) {
+            return new UserDefinedFunctionsMetaData(function);
+        } else {
+            List<UserDefinedFunctionMetaData> functionMetaData = new ArrayList<>(functions.functions().size() + 1);
+            boolean found = false;
+            for (UserDefinedFunctionMetaData udf : functions.functions()) {
+                if (udf.hasSameSignature(function)) {
+                    found = true;
+                    // TODO: throw error if replace is false
+                    functionMetaData.add(function);
+                } else {
+                    functionMetaData.add(udf);
+                }
+            }
+            if (!found) {
+                functionMetaData.add(function);
+            }
+            return new UserDefinedFunctionsMetaData(functionMetaData.toArray(new UserDefinedFunctionMetaData[functionMetaData.size()]));
+        }
     }
 
     @Override
