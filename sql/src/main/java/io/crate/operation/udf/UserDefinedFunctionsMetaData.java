@@ -78,11 +78,13 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
 
     @Override
     public MetaData.Custom readFrom(StreamInput in) throws IOException {
-        UserDefinedFunctionMetaData[] functions = new UserDefinedFunctionMetaData[in.readVInt()];
-        for (int i = 0; i < functions.length; i++) {
-            functions[i] = UserDefinedFunctionMetaData.fromStream(in);
+        int size = in.readVInt();
+        Map<Integer, UserDefinedFunctionMetaData> functions = new HashMap<>(size);
+        for (int i = 0; i < size; i++) {
+            UserDefinedFunctionMetaData function = UserDefinedFunctionMetaData.fromStream(in);
+            functions.put(function.createMethodSignature(), function);
         }
-        return UserDefinedFunctionsMetaData.of(functions);
+        return new UserDefinedFunctionsMetaData(functions);
     }
 
     @Override
@@ -101,12 +103,12 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
     @Override
     public MetaData.Custom fromXContent(XContentParser parser) throws IOException {
         XContentParser.Token token;
-        List<UserDefinedFunctionMetaData> functions = new ArrayList<>();
+        Map<Integer, UserDefinedFunctionMetaData> functions = new HashMap<>();
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT && token != null) {
             UserDefinedFunctionMetaData function = UserDefinedFunctionMetaData.fromXContent(parser);
-            functions.add(function);
+            functions.put(function.createMethodSignature(), function);
         }
-        return UserDefinedFunctionsMetaData.of(functions.toArray(new UserDefinedFunctionMetaData[functions.size()]));
+        return new UserDefinedFunctionsMetaData(functions);
     }
 
     @Override
