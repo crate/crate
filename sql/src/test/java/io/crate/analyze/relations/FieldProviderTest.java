@@ -211,4 +211,44 @@ public class FieldProviderTest extends CrateUnitTest {
         FieldProvider<Field> resolver = new FullQualifedNameFieldProvider(ImmutableMap.of(newQN("doc.t"), relation));
         resolver.resolveField(new QualifiedName(Arrays.asList("unknown")), Operation.READ);
     }
+
+    @Test
+    public void testColumnSchemaResolver() throws Exception {
+        AnalyzedRelation barT = new DummyRelation("\"Name\"");
+
+        FieldProvider<Field> resolver = new FullQualifedNameFieldProvider(ImmutableMap.of(
+            newQN("\"Bar\""), barT));
+        Field field = resolver.resolveField(newQN("\"Foo\".\"Bar\".\"Name\""), Operation.READ);
+        assertThat(field.relation(), equalTo(barT));
+    }
+
+    @Test
+    public void testColumnSchemaResolverFail() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column name unknown");
+        AnalyzedRelation barT = new DummyRelation("\"Name\"");
+        FieldProvider<Field> resolver = new FullQualifedNameFieldProvider(ImmutableMap.of(
+            newQN("bar"), barT));
+        resolver.resolveField(newQN("bar.name"), Operation.READ);
+    }
+
+    @Test
+    public void testAliasRelationNameResolver() throws Exception {
+        AnalyzedRelation barT = new DummyRelation("name");
+
+        FieldProvider<Field> resolver = new FullQualifedNameFieldProvider(ImmutableMap.of(
+            newQN("\"Bar\""), barT));
+        Field field = resolver.resolveField(newQN("\"Bar\".name"), Operation.READ);
+        assertThat(field.relation(), equalTo(barT));
+    }
+
+    @Test
+    public void testAliasRelationNameResolverFail() throws Exception {
+        expectedException.expect(RelationUnknownException.class);
+        expectedException.expectMessage("Cannot resolve relation '\"Bar\"'");
+        AnalyzedRelation barT = new DummyRelation("name");
+        FieldProvider<Field> resolver = new FullQualifedNameFieldProvider(ImmutableMap.of(
+            newQN("bar"), barT));
+        resolver.resolveField(newQN("\"Bar\".name"), Operation.READ);
+    }
 }

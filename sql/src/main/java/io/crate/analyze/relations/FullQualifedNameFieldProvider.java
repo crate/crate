@@ -62,11 +62,11 @@ public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
             case 1:
                 break;
             case 2:
-                columnTableName = parts.get(0).toLowerCase(Locale.ENGLISH);
+                columnTableName = parts.get(0);
                 break;
             case 3:
-                columnSchema = parts.get(0).toLowerCase(Locale.ENGLISH);
-                columnTableName = parts.get(1).toLowerCase(Locale.ENGLISH);
+                columnSchema = parts.get(0);
+                columnTableName = parts.get(1);
                 break;
             default:
                 throw new IllegalArgumentException("Column reference \"%s\" has too many parts. " +

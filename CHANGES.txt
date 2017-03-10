@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Case sensivity of aliases wasn't handled correctly.
+   Aliases are now fully case sensitive.
+
  - Fixed a race condition that could have caused that not all columns were
    written to the metadata when a lot of new dynamic columns were generated
    concurrently.
