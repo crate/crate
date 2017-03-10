@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Case sensivity of aliases wasn't handled correctly.
+   Aliases are now fully case sensitive.
+
  - BREAKING: The `ordinal` column at the `information_schema.columns`
    will return `NULL` now for all sub-columns (all non top-level
    columns) as the order of object columns is not guarateed.
