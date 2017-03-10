@@ -46,7 +46,6 @@ public class UserDefinedFunctionDDLDispatcher {
         UserDefinedFunctionMetaData metaData = new UserDefinedFunctionMetaData(
             statement.name(),
             statement.arguments(),
-            statement.options(),
             statement.returnType(),
             ExpressionToStringVisitor.convert(statement.language(), params),
             ExpressionToStringVisitor.convert(statement.body(), params)
