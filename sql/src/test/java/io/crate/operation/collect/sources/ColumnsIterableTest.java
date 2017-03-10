@@ -32,6 +32,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 public class ColumnsIterableTest {
@@ -58,5 +60,19 @@ public class ColumnsIterableTest {
             names.add(column.info.ident().columnIdent().name());
         }
         assertThat(names, Matchers.contains("a", "x", "i", "a", "x", "i"));
+    }
+
+    @Test
+    public void testOrdinalIsNullOnSubColumns() throws Exception {
+        InformationSchemaIterables.ColumnsIterable columns = new InformationSchemaIterables.ColumnsIterable(T3.T4_INFO);
+        ImmutableList<ColumnContext> contexts = ImmutableList.copyOf(columns);
+
+        // sub columns must have NULL ordinal value
+        assertThat(contexts.get(1).ordinal, is(new Short("2")));
+        assertThat(contexts.get(2).ordinal, nullValue());
+
+        // array of object sub columns also
+        assertThat(contexts.get(3).ordinal, is(new Short("3")));
+        assertThat(contexts.get(4).ordinal, nullValue());
     }
 }

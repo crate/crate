@@ -35,12 +35,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.*;
 
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
@@ -570,7 +565,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select max(ordinal_position) from information_schema.columns");
         assertEquals(1, response.rowCount());
 
-        short max_ordinal = 105;
+        short max_ordinal = 15;
         assertEquals(max_ordinal, response.rows()[0][0]);
 
         execute("create table t1 (id integer, col1 string)");
@@ -658,18 +653,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertEquals(4, response.rowCount());
-        assertEquals("stuff", response.rows()[0][0]);
-        short ordinal_position = 1;
-        assertEquals(ordinal_position++, response.rows()[0][1]);
-
-        assertEquals("stuff['first_name']", response.rows()[1][0]);
-        assertEquals(ordinal_position++, response.rows()[1][1]);
-
-        assertEquals("stuff['last_name']", response.rows()[2][0]);
-        assertEquals(ordinal_position++, response.rows()[2][1]);
-
-        assertEquals("title", response.rows()[3][0]);
-        assertEquals(ordinal_position, response.rows()[3][1]);
 
         execute("insert into t4 (stuff) values (?)", new Object[]{
             new HashMap<String, Object>() {{
@@ -683,23 +666,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         waitForMappingUpdateOnAll("t4", "stuff.first_name", "stuff.middle_name", "stuff.last_name");
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertEquals(5, response.rowCount());
-
-        assertEquals("stuff", response.rows()[0][0]);
-        ordinal_position = 1;
-        assertEquals(ordinal_position++, response.rows()[0][1]);
-
-        assertEquals("stuff['first_name']", response.rows()[1][0]);
-        assertEquals(ordinal_position++, response.rows()[1][1]);
-
-        assertEquals("stuff['last_name']", response.rows()[2][0]);
-        assertEquals(ordinal_position++, response.rows()[2][1]);
-
-        assertEquals("stuff['middle_name']", response.rows()[3][0]);
-        assertEquals(ordinal_position++, response.rows()[3][1]);
-
-
-        assertEquals("title", response.rows()[4][0]);
-        assertEquals(ordinal_position, response.rows()[4][1]);
     }
 
     @Test
@@ -714,18 +680,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertEquals(4, response.rowCount());
-        short ordinal_position = 1;
-        assertEquals("stuff", response.rows()[0][0]);
-        assertEquals(ordinal_position++, response.rows()[0][1]);
-
-        assertEquals("stuff['first_name']", response.rows()[1][0]);
-        assertEquals(ordinal_position++, response.rows()[1][1]);
-
-        assertEquals("stuff['last_name']", response.rows()[2][0]);
-        assertEquals(ordinal_position++, response.rows()[2][1]);
-
-        assertEquals("title", response.rows()[3][0]);
-        assertEquals(ordinal_position, response.rows()[3][1]);
 
         execute("insert into t4 (stuff) values (?)", new Object[]{
             new HashMap<String, Object>() {{
@@ -737,19 +691,6 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertEquals(4, response.rowCount());
-
-        ordinal_position = 1;
-        assertEquals("stuff", response.rows()[0][0]);
-        assertEquals(ordinal_position++, response.rows()[0][1]);
-
-        assertEquals("stuff['first_name']", response.rows()[1][0]);
-        assertEquals(ordinal_position++, response.rows()[1][1]);
-
-        assertEquals("stuff['last_name']", response.rows()[2][0]);
-        assertEquals(ordinal_position++, response.rows()[2][1]);
-
-        assertEquals("title", response.rows()[3][0]);
-        assertEquals(ordinal_position, response.rows()[3][1]);
     }
 
     @Test

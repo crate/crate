@@ -113,7 +113,7 @@ public class InformationSchemaIterables {
 
         private final Iterator<Reference> columns;
         private final TableInfo tableInfo;
-        private short ordinal = 0;
+        private Short ordinal = 1;
 
         ColumnsIterator(TableInfo tableInfo) {
             columns = StreamSupport.stream(tableInfo.spliterator(), false)
@@ -132,8 +132,11 @@ public class InformationSchemaIterables {
             if (!hasNext()) {
                 throw new NoSuchElementException("Columns iterator exhausted");
             }
-            ordinal++;
-            return new ColumnContext(tableInfo, ordinal, columns.next());
+            Reference column = columns.next();
+            if (column.ident().isColumn() == false) {
+                return new ColumnContext(tableInfo, column, null);
+            }
+            return new ColumnContext(tableInfo, column, ordinal++);
         }
     }
 }

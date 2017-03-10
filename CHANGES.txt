@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - BREAKING: The `ordinal` column at the `information_schema.columns`
+   will return `NULL` now for all sub-columns (all non top-level
+   columns) as the order of object columns is not guarateed.
+
  - Fixed a race condition that could have caused that not all columns were
    written to the metadata when a lot of new dynamic columns were generated
    concurrently.
