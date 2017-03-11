@@ -22,6 +22,7 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.data.BatchIteratorProjector;
 import io.crate.data.Row;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.operation.collect.CollectExpression;
@@ -29,14 +30,14 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Collections;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 class DMLProjector<Request extends ShardRequest> extends AbstractProjector {
 
     private final ShardId shardId;
     private final CollectExpression<Row, ?> collectIdExpression;
-    private final AtomicBoolean failed = new AtomicBoolean(false);
 
     private final BulkShardProcessor<Request> bulkShardProcessor;
     private final Function<String, ShardRequest.Item> itemFactory;
@@ -53,41 +54,37 @@ class DMLProjector<Request extends ShardRequest> extends AbstractProjector {
 
     @Override
     public Result setNextRow(Row row) {
-        // resolve the id
-        collectIdExpression.setNextRow(row);
-        BytesRef id = (BytesRef) collectIdExpression.value();
-        bulkShardProcessor.addForExistingShard(shardId, itemFactory.apply(id.utf8ToString()), null);
-        return Result.CONTINUE;
+        throw new UnsupportedOperationException("DMLProjector must be used as BatchIteratorProjector");
     }
 
     @Override
     public void finish(RepeatHandle repeatHandle) {
-        bulkShardProcessor.close();
+        throw new UnsupportedOperationException("DMLProjector must be used as BatchIteratorProjector");
     }
 
     @Override
     public void downstream(RowReceiver rowReceiver) {
         super.downstream(rowReceiver);
-        BulkProcessorFutureCallback bulkProcessorFutureCallback = new BulkProcessorFutureCallback(failed, rowReceiver);
-        bulkShardProcessor.result().whenComplete(bulkProcessorFutureCallback);
     }
 
     @Override
     public void fail(Throwable throwable) {
-        failed.set(true);
-        downstream.fail(throwable);
-
-        if (throwable instanceof InterruptedException) {
-            bulkShardProcessor.kill(throwable);
-        } else {
-            bulkShardProcessor.close();
-        }
+        throw new UnsupportedOperationException("DMLProjector must be used as BatchIteratorProjector");
     }
 
     @Override
     public void kill(Throwable throwable) {
-        failed.set(true);
-        super.kill(throwable);
-        bulkShardProcessor.kill(throwable);
+        throw new UnsupportedOperationException("DMLProjector must be used as BatchIteratorProjector");
+    }
+
+    @Override
+    public BatchIteratorProjector asProjector() {
+        Supplier<ShardRequest.Item> updateItemSupplier = () -> {
+            BytesRef id = (BytesRef) collectIdExpression.value();
+            return itemFactory.apply(id.utf8ToString());
+        };
+
+        return it -> IndexWriterCountBatchIterator.newShardInstance(it, shardId,
+            Collections.singletonList(collectIdExpression), bulkShardProcessor, updateItemSupplier);
     }
 }

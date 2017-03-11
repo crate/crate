@@ -121,7 +121,7 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
     public BatchIteratorProjector asProjector() {
         Supplier<ShardUpsertRequest.Item> updateItemSupplier = () -> new ShardUpsertRequest.Item(
             rowShardResolver.id(), assignments, insertValues.materialize(), null);
-        return it -> IndexWriterCountBatchIterator.newInstance(it, indexNameResolver,
+        return it -> IndexWriterCountBatchIterator.newIndexInstance(it, indexNameResolver,
             collectExpressions, rowShardResolver, bulkShardProcessor, updateItemSupplier);
     }
 

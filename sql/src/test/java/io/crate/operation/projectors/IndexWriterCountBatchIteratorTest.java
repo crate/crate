@@ -82,8 +82,8 @@ public class IndexWriterCountBatchIteratorTest extends SQLTransportIntegrationTe
             rowShardResolver.id(), null, new Object[]{sourceInput.value()}, null);
 
         BatchIteratorTester tester = new BatchIteratorTester(() ->
-            IndexWriterCountBatchIterator.newInstance(sourceSupplier.get(), indexNameResolver, collectExpressions,
-                rowShardResolver, bulkShardProcessor, updateItemSupplier),
+            IndexWriterCountBatchIterator.newIndexInstance(sourceSupplier.get(), indexNameResolver,
+                collectExpressions, rowShardResolver, bulkShardProcessor, updateItemSupplier),
             Collections.singletonList(new Object[]{10L}));
         tester.run();
     }
