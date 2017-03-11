@@ -24,10 +24,13 @@ package io.crate.operation.projectors;
 
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.*;
+import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
+import org.elasticsearch.common.Nullable;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.util.BitSet;
 import java.util.concurrent.CompletableFuture;
@@ -41,41 +44,70 @@ import java.util.function.Supplier;
  */
 public class IndexWriterCountBatchIterator implements BatchIterator {
 
-    private final RowShardResolver rowShardResolver;
-    private final Supplier<String> indexNameResolver;
+    @Nullable
+    private RowShardResolver rowShardResolver;
+    @Nullable
+    private Supplier<String> indexNameResolver;
+    @Nullable
+    private ShardId shardId;
+
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
     private final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor;
     private final BatchIterator source;
     private final RowColumns rowData;
     private final Row sourceRow;
     private CompletableFuture<BitSet> loading;
-    private  BitSet result;
+    private BitSet result;
     private boolean fromStart = true;
-    private Supplier<ShardUpsertRequest.Item> updateItemSupplier;
+    private Supplier<? extends ShardRequest.Item> updateItemSupplier;
 
     private IndexWriterCountBatchIterator(BatchIterator source,
-                                          Supplier<String> indexNameResolver,
                                           Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
-                                          RowShardResolver rowShardResolver,
                                           BulkShardProcessor bulkShardProcessor,
-                                          Supplier<ShardUpsertRequest.Item> updateItemSupplier) {
+                                          Supplier<? extends ShardRequest.Item> updateItemSupplier,
+                                          Supplier<String> indexNameResolver,
+                                          RowShardResolver rowShardResolver) {
         this.source = source;
-        this.indexNameResolver = indexNameResolver;
         this.collectExpressions = collectExpressions;
-        this.rowShardResolver = rowShardResolver;
         this.bulkShardProcessor = bulkShardProcessor;
         this.updateItemSupplier = updateItemSupplier;
         this.sourceRow = RowBridging.toRow(source.rowData());
         this.rowData = new RowColumns(1);
+        this.indexNameResolver = indexNameResolver;
+        this.rowShardResolver = rowShardResolver;
     }
 
-    public static BatchIterator newInstance(BatchIterator source, Supplier<String> indexNameResolver,
-                                            Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
-                                            RowShardResolver rowShardResolver,
-                                            BulkShardProcessor bulkShardProcessor,
-                                            Supplier<ShardUpsertRequest.Item> updateItemSupplier) {
-        IndexWriterCountBatchIterator delegate = new IndexWriterCountBatchIterator(source, indexNameResolver,
-            collectExpressions, rowShardResolver, bulkShardProcessor, updateItemSupplier);
+    private IndexWriterCountBatchIterator(BatchIterator source,
+                                          Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
+                                          BulkShardProcessor bulkShardProcessor,
+                                          Supplier<? extends ShardRequest.Item> updateItemSupplier,
+                                          ShardId shardId) {
+        this.source = source;
+        this.collectExpressions = collectExpressions;
+        this.bulkShardProcessor = bulkShardProcessor;
+        this.updateItemSupplier = updateItemSupplier;
+        this.sourceRow = RowBridging.toRow(source.rowData());
+        this.rowData = new RowColumns(1);
+        this.shardId = shardId;
+    }
+
+    public static BatchIterator newIndexInstance(BatchIterator source, Supplier<String> indexNameResolver,
+                                                 Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
+                                                 RowShardResolver rowShardResolver,
+                                                 BulkShardProcessor bulkShardProcessor,
+                                                 Supplier<? extends ShardRequest.Item> updateItemSupplier) {
+        IndexWriterCountBatchIterator delegate = new IndexWriterCountBatchIterator(source,
+            collectExpressions, bulkShardProcessor, updateItemSupplier, indexNameResolver,
+            rowShardResolver);
+        return new CloseAssertingBatchIterator(delegate);
+    }
+
+    public static BatchIterator newShardInstance(BatchIterator source, ShardId shardId,
+                                                 Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
+                                                 BulkShardProcessor bulkShardProcessor,
+                                                 Supplier<? extends ShardRequest.Item> updateItemSupplier) {
+        IndexWriterCountBatchIterator delegate = new IndexWriterCountBatchIterator(source,
+            collectExpressions, bulkShardProcessor, updateItemSupplier, shardId);
         return new CloseAssertingBatchIterator(delegate);
     }
 
@@ -169,9 +201,17 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(sourceRow);
         }
-        rowShardResolver.setNextRow(sourceRow);
-        ShardUpsertRequest.Item item = updateItemSupplier.get();
-        return bulkShardProcessor.add(indexNameResolver.get(), item, rowShardResolver.routing());
+
+        if (rowShardResolver != null) {
+            rowShardResolver.setNextRow(sourceRow);
+        }
+
+        ShardRequest.Item item = updateItemSupplier.get();
+        if (shardId != null) {
+            return bulkShardProcessor.addForExistingShard(shardId, item, null);
+        } else {
+            return this.bulkShardProcessor.add(indexNameResolver.get(), item, rowShardResolver.routing());
+        }
     }
 
     @Override
