@@ -167,7 +167,7 @@ public class IndexWriterProjector extends AbstractProjector {
         Supplier<ShardUpsertRequest.Item> updateItemSupplier = () -> new ShardUpsertRequest.Item(
             rowShardResolver.id(), null, new Object[]{sourceInput.value()}, null);
 
-        return it -> IndexWriterCountBatchIterator.newInstance(it, indexNameResolver,
+        return it -> IndexWriterCountBatchIterator.newIndexInstance(it, indexNameResolver,
             collectExpressions, rowShardResolver, bulkShardProcessor, updateItemSupplier);
     }
 
