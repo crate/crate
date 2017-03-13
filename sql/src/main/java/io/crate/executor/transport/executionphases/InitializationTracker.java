@@ -22,8 +22,7 @@
 
 package io.crate.executor.transport.executionphases;
 
-import com.google.common.util.concurrent.SettableFuture;
-
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -36,14 +35,13 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 class InitializationTracker {
 
-    final SettableFuture<Void> future;
+    final CompletableFuture<Void> future = new CompletableFuture<>();
     private final AtomicInteger serverToInitialize;
     private volatile Throwable failure;
 
     InitializationTracker(int numServer) {
-        future = SettableFuture.create();
         if (numServer == 0) {
-            future.set(null);
+            future.complete(null);
         }
         serverToInitialize = new AtomicInteger(numServer);
     }
@@ -52,9 +50,9 @@ class InitializationTracker {
         if (serverToInitialize.decrementAndGet() <= 0) {
             // no need to synchronize here, since there cannot be a failure after all servers have finished
             if (failure == null) {
-                future.set(null);
+                future.complete(null);
             } else {
-                future.setException(failure);
+                future.completeExceptionally(failure);
             }
         }
     }
