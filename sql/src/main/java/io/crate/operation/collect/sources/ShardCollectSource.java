@@ -274,7 +274,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             case 1:
                 CrateCollector.Builder collectorBuilder = builders.iterator().next();
                 return Collections.singletonList(collectorBuilder.build(
-                    new BatchConsumerToRowReceiver(collectorBuilder.applyProjections(firstNodeRR)), firstNodeRR));
+                    collectorBuilder.applyProjections(new BatchConsumerToRowReceiver(firstNodeRR)), firstNodeRR));
             default:
                 if (hasShardProjections) {
                     // 1 Collector per shard to benefit from concurrency (each collector is run in a thread)
@@ -285,7 +285,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     for (CrateCollector.Builder builder : builders) {
                         RowReceiver rowReceiver = multiUpstreamRowReceiver.newRowReceiver();
                         collectors.add(builder.build(
-                            new BatchConsumerToRowReceiver(builder.applyProjections(rowReceiver)), rowReceiver));
+                            builder.applyProjections(new BatchConsumerToRowReceiver(rowReceiver)), rowReceiver));
                     }
                     return collectors;
                 } else {

@@ -36,7 +36,10 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.shard.RecoveryShardReferenceResolver;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
-import io.crate.operation.projectors.*;
+import io.crate.operation.projectors.ProjectingBatchConsumer;
+import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.ProjectorFactory;
+import io.crate.operation.projectors.Requirement;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.Projections;
@@ -145,9 +148,9 @@ public abstract class ShardCollectorProvider {
                 }
 
                 @Override
-                public RowReceiver applyProjections(RowReceiver rowReceiver) {
-                    return ProjectorChain.prependProjectors(
-                        rowReceiver,
+                public BatchConsumer applyProjections(BatchConsumer consumer) {
+                    return ProjectingBatchConsumer.create(
+                        consumer,
                         shardProjections,
                         normalizedCollectNode.jobId(),
                         jobCollectContext.queryPhaseRamAccountingContext(),
