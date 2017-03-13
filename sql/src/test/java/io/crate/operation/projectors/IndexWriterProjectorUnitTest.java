@@ -24,13 +24,12 @@ package io.crate.operation.projectors;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.data.Row;
-import io.crate.data.RowN;
+import io.crate.data.*;
 import io.crate.metadata.*;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.CollectingBatchConsumer;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -48,7 +47,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 
 import static org.mockito.Mockito.mock;
 
@@ -63,53 +61,7 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
     ClusterService clusterService;
 
     @Test
-    public void testExceptionBubbling() throws Throwable {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("my dummy exception");
-
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        InputCollectExpression sourceInput = new InputCollectExpression(1);
-        List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
-
-        final IndexWriterProjector indexWriter = new IndexWriterProjector(
-            clusterService,
-            TestingHelpers.getFunctions(),
-            new IndexNameExpressionResolver(Settings.EMPTY),
-            Settings.EMPTY,
-            mock(TransportBulkCreateIndicesAction.class),
-            mock(BulkRequestExecutor.class),
-            () -> "foo",
-            mock(BulkRetryCoordinatorPool.class),
-            rawSourceReference,
-            ImmutableList.of(ID_IDENT),
-            Arrays.<Symbol>asList(new InputColumn(0)),
-            null,
-            null,
-            sourceInput,
-            collectExpressions,
-            20,
-            null, null,
-            false,
-            false,
-            null
-        );
-        indexWriter.downstream(rowReceiver);
-        indexWriter.fail(new IllegalStateException("my dummy exception"));
-
-        try {
-            rowReceiver.result();
-        } catch (InterruptedException | ExecutionException e) {
-            throw e.getCause();
-        }
-    }
-
-    @Test
     public void testNullPKValue() throws Throwable {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("A primary key value must not be NULL");
-
-
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         InputCollectExpression sourceInput = new InputCollectExpression(0);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
         final IndexWriterProjector indexWriter = new IndexWriterProjector(
@@ -134,8 +86,17 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
             false,
             UUID.randomUUID()
         );
-        indexWriter.downstream(rowReceiver);
-        indexWriter.setNextRow(new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null}));
-        indexWriter.finish(RepeatHandle.UNSUPPORTED);
+
+        BatchIteratorProjector projector = indexWriter.asProjector();
+        RowN rowN = new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null});
+        BatchIterator batchIterator = RowsBatchIterator.newInstance(Collections.singletonList(rowN), rowN.numColumns());
+        batchIterator = projector.apply(batchIterator);
+
+        CollectingBatchConsumer collectingBatchConsumer = new CollectingBatchConsumer();
+        collectingBatchConsumer.accept(batchIterator, null);
+
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("A primary key value must not be NULL");
+        collectingBatchConsumer.getResult();
     }
 }
