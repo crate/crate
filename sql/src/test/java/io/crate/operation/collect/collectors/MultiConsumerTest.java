@@ -22,7 +22,9 @@
 
 package io.crate.operation.collect.collectors;
 
+import io.crate.data.BatchConsumer;
 import io.crate.data.CollectionBucket;
+import io.crate.data.CompositeBatchIterator;
 import io.crate.testing.CollectingBatchConsumer;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingHelpers;
@@ -38,8 +40,7 @@ public class MultiConsumerTest {
     @Test
     public void testSuccessfulMultiConsumerUsage() throws Exception {
         CollectingBatchConsumer batchConsumer = new CollectingBatchConsumer();
-        CompositeCollector.MultiConsumer consumer =
-            CompositeCollector.MultiConsumer.syncMultiConsumer(2, batchConsumer);
+        BatchConsumer consumer = CompositeCollector.newMultiConsumer(2, batchConsumer, CompositeBatchIterator::new);
 
         consumer.accept(TestingBatchIterators.range(3, 6), null);
         consumer.accept(TestingBatchIterators.range(0, 3), null);
