@@ -33,9 +33,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
-import io.crate.data.Buckets;
-import io.crate.data.Row;
-import io.crate.data.RowsBatchIterator;
+import io.crate.data.*;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -278,14 +276,17 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             default:
                 if (hasShardProjections) {
                     // 1 Collector per shard to benefit from concurrency (each collector is run in a thread)
-                    // MultiUpstreamRowReceiver does synchronization (any projector after that doesn't really benefit from concurrency)
-                    // It also doesn't support repeat.
-                    MultiUpstreamRowReceiver multiUpstreamRowReceiver = new MultiUpstreamRowReceiver(firstNodeRR);
+                    // It doesn't support repeat.
+
+                    BatchConsumerToRowReceiver finalConsumer = new BatchConsumerToRowReceiver(firstNodeRR);
+                    BatchConsumer multiConsumer = CompositeCollector.newMultiConsumer(
+                        builders.size(),
+                        finalConsumer,
+                        iterators -> new AsyncCompositeBatchIterator(executor, iterators)
+                    );
                     List<CrateCollector> collectors = new ArrayList<>(builders.size());
                     for (CrateCollector.Builder builder : builders) {
-                        RowReceiver rowReceiver = multiUpstreamRowReceiver.newRowReceiver();
-                        collectors.add(builder.build(
-                            builder.applyProjections(new BatchConsumerToRowReceiver(rowReceiver)), rowReceiver));
+                        collectors.add(builder.build(builder.applyProjections(multiConsumer), firstNodeRR));
                     }
                     return collectors;
                 } else {

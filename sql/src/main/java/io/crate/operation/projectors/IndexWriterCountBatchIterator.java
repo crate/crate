@@ -156,7 +156,7 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
         if (allLoaded()) {
             return CompletableFutures.failedFuture(new IllegalStateException("All batches already loaded"));
         }
-        loading = new CompletableFuture();
+        loading = new CompletableFuture<>();
         bulkShardProcessor.result().whenComplete((BitSet r, Throwable t) -> {
             if (t == null) {
                 result = r;
