@@ -22,8 +22,6 @@
 
 package io.crate.executor.transport.executionphases;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import io.crate.data.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.kill.KillJobsRequest;
@@ -34,7 +32,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Set;
@@ -42,8 +39,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 
-class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
+class InterceptingRowReceiver implements RowReceiver, BiConsumer<Object, Throwable> {
 
     private final static ESLogger LOGGER = Loggers.getLogger(InterceptingRowReceiver.class);
 
@@ -62,7 +60,7 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
         this.jobId = jobId;
         this.rowReceiver = rowReceiver;
         this.transportKillJobsNodeAction = transportKillJobsNodeAction;
-        Futures.addCallback(jobsInitialized.future, this);
+        jobsInitialized.future.whenComplete(this);
     }
 
     @Override
@@ -108,13 +106,8 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
     }
 
     @Override
-    public void onSuccess(@Nullable Void result) {
-        tryForwardResult(null);
-    }
-
-    @Override
-    public void onFailure(@Nonnull Throwable t) {
-        tryForwardResult(t);
+    public void accept(Object o, Throwable throwable) {
+        tryForwardResult(throwable);
     }
 
     private void tryForwardResult(Throwable throwable) {
