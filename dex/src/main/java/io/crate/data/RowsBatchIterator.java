@@ -44,6 +44,10 @@ public class RowsBatchIterator implements BatchIterator {
         return newInstance(Collections.emptyList(), 0);
     }
 
+    public static BatchIterator newInstance(Row row) {
+        return newInstance(Collections.singletonList(row), row.numColumns());
+    }
+
     public static BatchIterator newInstance(Iterable<? extends Row> rows, int numCols) {
         return new CloseAssertingBatchIterator(new RowsBatchIterator(rows, numCols));
     }
