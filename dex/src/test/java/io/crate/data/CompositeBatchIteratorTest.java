@@ -61,10 +61,9 @@ public class CompositeBatchIteratorTest {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> new CompositeBatchIterator(
                 TestingBatchIterators.range(0, 5),
-                TestingBatchIterators.range(5, 10)),
-            expectedResult
+                TestingBatchIterators.range(5, 10))
         );
-        tester.run();
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     @Test
@@ -86,9 +85,8 @@ public class CompositeBatchIteratorTest {
                 new CloseAssertingBatchIterator(
                     new BatchSimulatingIterator(TestingBatchIterators.range(0, 5), 2, 6, null)),
                 TestingBatchIterators.range(5, 10)
-            ),
-            expectedResult
+            )
         );
-        tester.run();
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }

@@ -149,16 +149,16 @@ public class NodeStatsIteratorTest extends CrateUnitTest {
         when(collectPhase.orderBy()).thenReturn(new OrderBy(Collections.singletonList(idRef),
             new boolean[]{false}, new Boolean[]{true}));
 
+        List<Object[]> expectedResult = Arrays.asList(
+            new Object[]{new BytesRef("nodeOne")},
+            new Object[]{new BytesRef("nodeTwo")}
+        );
         BatchIteratorTester tester = new BatchIteratorTester(() -> NodeStatsIterator.newInstance(
             transportNodeStatsAction,
             collectPhase,
             nodes,
             new InputFactory(getFunctions())
-        ), Arrays.asList(
-            new Object[]{new BytesRef("nodeOne")},
-            new Object[]{new BytesRef("nodeTwo")}
-        )
-        );
-        tester.run();
+        ));
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }
