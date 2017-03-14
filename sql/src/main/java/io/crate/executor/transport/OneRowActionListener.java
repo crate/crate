@@ -23,9 +23,9 @@
 package io.crate.executor.transport;
 
 import com.google.common.base.Function;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.data.RowsBatchIterator;
 import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nonnull;
@@ -33,23 +33,22 @@ import java.util.function.BiConsumer;
 
 public class OneRowActionListener<Response> implements ActionListener<Response>, BiConsumer<Response, Throwable> {
 
-    private final RowReceiver rowReceiver;
+    private final BatchConsumer consumer;
     private final Function<? super Response, ? extends Row> toRowFunction;
 
-    public OneRowActionListener(RowReceiver rowReceiver, Function<? super Response, ? extends Row> toRowFunction) {
-        this.rowReceiver = rowReceiver;
+    public OneRowActionListener(BatchConsumer consumer, Function<? super Response, ? extends Row> toRowFunction) {
+        this.consumer = consumer;
         this.toRowFunction = toRowFunction;
     }
 
     @Override
     public void onResponse(Response response) {
-        rowReceiver.setNextRow(toRowFunction.apply(response));
-        rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+        consumer.accept(RowsBatchIterator.newInstance(toRowFunction.apply(response)), null);
     }
 
     @Override
     public void onFailure(@Nonnull Throwable e) {
-        rowReceiver.fail(e);
+        consumer.accept(null, e);
     }
 
     @Override

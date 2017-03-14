@@ -21,13 +21,13 @@
 
 package io.crate.executor.transport.task;
 
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.RowsBatchIterator;
 import io.crate.executor.JobTask;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.ddl.DropTablePlan;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -66,7 +66,7 @@ public class DropTableTask extends JobTask {
     }
 
     @Override
-    public void execute(final RowReceiver rowReceiver, Row parameters) {
+    public void execute(final BatchConsumer consumer, Row parameters) {
         if (tableInfo.isPartitioned()) {
             String templateName = PartitionName.templateName(tableInfo.ident().schema(), tableInfo.ident().name());
             deleteTemplateAction.execute(new DeleteIndexTemplateRequest(templateName), new ActionListener<DeleteIndexTemplateResponse>() {
@@ -76,9 +76,9 @@ public class DropTableTask extends JobTask {
                         warnNotAcknowledged();
                     }
                     if (!tableInfo.partitions().isEmpty()) {
-                        deleteESIndex(tableInfo.ident().indexName(), rowReceiver);
+                        deleteESIndex(tableInfo.ident().indexName(), consumer);
                     } else {
-                        RowReceivers.sendOneRow(rowReceiver, ROW_ONE);
+                        consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null);
                     }
                 }
 
@@ -87,18 +87,18 @@ public class DropTableTask extends JobTask {
                     e = ExceptionsHelper.unwrapCause(e);
                     if (e instanceof IndexTemplateMissingException && !tableInfo.partitions().isEmpty()) {
                         logger.warn(e.getMessage());
-                        deleteESIndex(tableInfo.ident().indexName(), rowReceiver);
+                        deleteESIndex(tableInfo.ident().indexName(), consumer);
                     } else {
-                        rowReceiver.fail(e);
+                        consumer.accept(null, e);
                     }
                 }
             });
         } else {
-            deleteESIndex(tableInfo.ident().indexName(), rowReceiver);
+            deleteESIndex(tableInfo.ident().indexName(), consumer);
         }
     }
 
-    private void deleteESIndex(String indexOrAlias, final RowReceiver rowReceiver) {
+    private void deleteESIndex(String indexOrAlias, final BatchConsumer consumer) {
         DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(indexOrAlias);
         if (tableInfo.isPartitioned()) {
             deleteIndexRequest.indicesOptions(IndicesOptions.lenientExpandOpen());
@@ -109,7 +109,7 @@ public class DropTableTask extends JobTask {
                 if (!response.isAcknowledged()) {
                     warnNotAcknowledged();
                 }
-                RowReceivers.sendOneRow(rowReceiver, ROW_ONE);
+                consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null);
             }
 
             @Override
@@ -120,9 +120,9 @@ public class DropTableTask extends JobTask {
                                 "but are not accessible.", e, tableInfo.ident().fqn());
                 }
                 if (ifExists && e instanceof IndexNotFoundException) {
-                    RowReceivers.sendOneRow(rowReceiver, ROW_ZERO);
+                    consumer.accept(RowsBatchIterator.newInstance(ROW_ZERO), null);
                 } else {
-                    rowReceiver.fail(e);
+                    consumer.accept(null, e);
                 }
             }
         });

@@ -21,10 +21,10 @@
 
 package io.crate.executor.task;
 
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
+import io.crate.data.RowsBatchIterator;
 import io.crate.executor.Task;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
 
 import java.util.Collections;
 import java.util.List;
@@ -38,8 +38,8 @@ public class NoopTask implements Task {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
-        rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+    public void execute(BatchConsumer consumer, Row parameters) {
+        consumer.accept(RowsBatchIterator.empty(), null);
     }
 
     @Override

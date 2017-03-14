@@ -21,7 +21,9 @@
 
 package io.crate.executor;
 
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
+import io.crate.operation.projectors.BatchConsumerToRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
 
 import java.util.List;
@@ -30,11 +32,18 @@ import java.util.concurrent.CompletableFuture;
 public interface Task {
 
     /**
+     * deprecated, only here for migration purposes
+     */
+    default void execute(RowReceiver rowReceiver, Row parameters) {
+        execute(new BatchConsumerToRowReceiver(rowReceiver), parameters);
+    }
+
+    /**
      * execute the task if it represents a single operation.
      * <p>
-     * The result will be fed into the RowReceiver.
+     * The consumer will receive a BatchIterator containing the result.
      */
-    void execute(RowReceiver rowReceiver, Row parameters);
+    void execute(BatchConsumer consumer, Row parameters);
 
     /**
      * execute the task if it represents a bulk operation.

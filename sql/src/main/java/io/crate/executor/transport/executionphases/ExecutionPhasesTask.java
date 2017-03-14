@@ -29,6 +29,7 @@ import io.crate.action.job.JobRequest;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.action.job.TransportJobAction;
 import io.crate.concurrent.CompletableFutures;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.executor.JobTask;
@@ -141,6 +142,11 @@ public class ExecutionPhasesTask extends JobTask {
         } catch (Throwable throwable) {
             rowReceiver.fail(throwable);
         }
+    }
+
+    @Override
+    public void execute(BatchConsumer consumer, Row parameters) {
+        throw new UnsupportedOperationException("NYI");
     }
 
     @Override
