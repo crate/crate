@@ -40,9 +40,10 @@ public class StdDevAggregationTest extends AggregationTest {
     @Test
     public void testReturnType() throws Exception {
         for (DataType<?> type : Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, Arrays.asList(DataTypes.TIMESTAMP))) {
-            FunctionIdent fi = new FunctionIdent("stddev", ImmutableList.<DataType>of(type));
+            FunctionIdent fi = new FunctionIdent();
             // Return type is fixed to Double
-            assertEquals(DataTypes.DOUBLE, functions.get(fi).info().returnType());
+            assertEquals(DataTypes.DOUBLE,
+                getFunction("stddev", ImmutableList.of(type)).info().returnType());
         }
     }
 
@@ -102,7 +103,6 @@ public class StdDevAggregationTest extends AggregationTest {
 
     @Test(expected = NullPointerException.class)
     public void testUnsupportedType() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
+        executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
     }
-
 }

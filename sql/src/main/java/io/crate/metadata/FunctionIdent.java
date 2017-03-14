@@ -21,10 +21,8 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -38,28 +36,39 @@ import java.util.List;
 
 public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
 
+    private String schema;
     private String name;
     private List<DataType> argumentTypes;
 
     public FunctionIdent() {
-
     }
 
-    public static FunctionIdent of(String name, DataType type1, DataType type2) {
-        return new FunctionIdent(name, ImmutableList.of(type1, type2));
-    }
-
-    public FunctionIdent(String name, List<DataType> argumentTypes) {
+    public FunctionIdent(String schema, String name, List<DataType> argumentTypes) {
+        this.schema = schema;
         this.name = name;
         this.argumentTypes = argumentTypes;
     }
 
-    public List<DataType> argumentTypes() {
-        return argumentTypes;
+    /**
+     * Creates a function ident without a schema.
+     *
+     * @param name          The function name.
+     * @param argumentTypes The list of argument types.
+     */
+    public FunctionIdent(String name, List<DataType> argumentTypes) {
+        this(null, name, argumentTypes);
+    }
+
+    public String schema() {
+        return schema;
     }
 
     public String name() {
         return name;
+    }
+
+    public List<DataType> argumentTypes() {
+        return argumentTypes;
     }
 
     @Override
@@ -72,34 +81,37 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
         }
 
         FunctionIdent o = (FunctionIdent) obj;
-        return name.equalsIgnoreCase(o.name) &&
-               Objects.equal(argumentTypes, o.argumentTypes);
+        return Objects.equal(schema, o.schema) &&
+            Objects.equal(name, o.name) &&
+            Objects.equal(argumentTypes, o.argumentTypes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(name, argumentTypes);
+        return Objects.hashCode(schema, name, argumentTypes);
     }
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("argumentTypes", argumentTypes)
-            .toString();
+        return "FunctionIdent{" +
+            "schema='" + schema + '\'' +
+            ", name='" + name + '\'' +
+            ", argumentTypes=" + argumentTypes +
+            '}';
     }
 
     @Override
     public int compareTo(FunctionIdent o) {
         return ComparisonChain.start()
             .compare(name, o.name)
+            .compare(schema, o.schema)
             .compare(argumentTypes, o.argumentTypes, Ordering.<DataType>natural().lexicographical())
             .result();
     }
 
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
+        schema = in.readOptionalString();
         name = in.readString();
         int numTypes = in.readVInt();
         argumentTypes = new ArrayList<>(numTypes);
@@ -111,6 +123,7 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        out.writeOptionalString(schema);
         out.writeString(name);
         out.writeVInt(argumentTypes.size());
 

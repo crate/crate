@@ -463,7 +463,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         );
 
         Function function = (Function) expressionAnalyzer.convert(node.functionCall(), context.expressionAnalysisContext());
-        FunctionImplementation functionImplementation = functions.getSafe(function.info().ident());
+        FunctionIdent ident = function.info().ident();
+        FunctionImplementation functionImplementation = functions.getSafe(ident.schema(), ident.name(), ident.argumentTypes());
         if (functionImplementation.info().type() != FunctionInfo.Type.TABLE) {
             throw new UnsupportedFeatureException(
                 "Non table function " + function.info().ident().name() + " is not supported in from clause");
