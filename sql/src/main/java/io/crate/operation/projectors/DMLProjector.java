@@ -34,7 +34,7 @@ import java.util.Collections;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-class DMLProjector<Request extends ShardRequest> extends AbstractProjector {
+class DMLProjector<Request extends ShardRequest> implements Projector {
 
     private final ShardId shardId;
     private final CollectExpression<Row, ?> collectIdExpression;
@@ -50,31 +50,6 @@ class DMLProjector<Request extends ShardRequest> extends AbstractProjector {
         this.collectIdExpression = collectIdExpression;
         this.bulkShardProcessor = bulkShardProcessor;
         this.itemFactory = itemFactory;
-    }
-
-    @Override
-    public Result setNextRow(Row row) {
-        throw new UnsupportedOperationException("DMLProjector must be used as BatchIteratorProjector");
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        throw new UnsupportedOperationException("DMLProjector must be used as BatchIteratorProjector");
-    }
-
-    @Override
-    public void downstream(RowReceiver rowReceiver) {
-        super.downstream(rowReceiver);
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        throw new UnsupportedOperationException("DMLProjector must be used as BatchIteratorProjector");
-    }
-
-    @Override
-    public void kill(Throwable throwable) {
-        throw new UnsupportedOperationException("DMLProjector must be used as BatchIteratorProjector");
     }
 
     @Override

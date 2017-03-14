@@ -24,7 +24,6 @@ package io.crate.operation.projectors;
 
 import io.crate.data.BatchIteratorProjector;
 import io.crate.data.CollectingBatchIterator;
-import io.crate.data.Row;
 import io.crate.data.Row1;
 
 import javax.annotation.Nullable;
@@ -32,28 +31,12 @@ import java.util.Collections;
 import java.util.function.Consumer;
 import java.util.stream.Collector;
 
-class SysUpdateProjector extends AbstractProjector {
+class SysUpdateProjector implements Projector {
 
     private final Consumer<Object> rowWriter;
 
     SysUpdateProjector(Consumer<Object> rowWriter)  {
         this.rowWriter = rowWriter;
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public Result setNextRow(Row row) {
-        throw new UnsupportedOperationException("SysUpdateProjector should be used as BatchIteratorProjector");
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        throw new UnsupportedOperationException("SysUpdateProjector should be used as BatchIteratorProjector");
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        throw new UnsupportedOperationException("SysUpdateProjector should be used as BatchIteratorProjector");
     }
 
     @Nullable

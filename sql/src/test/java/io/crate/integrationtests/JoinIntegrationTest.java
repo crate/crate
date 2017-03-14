@@ -33,7 +33,6 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.printRows;
 import static io.crate.testing.TestingHelpers.printedTable;
@@ -599,7 +598,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
         expectedException.expect(IndexNotFoundException.class);
         try {
-            execute(plan).completionFuture().get(1, TimeUnit.SECONDS);
+            execute(plan).getResult();
         } catch (Throwable t) {
             throw SQLExceptions.unwrap(t);
         }

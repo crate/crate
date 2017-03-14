@@ -24,30 +24,8 @@ package io.crate.operation.projectors;
 
 import io.crate.data.BatchIteratorProjector;
 import io.crate.data.CollectingBatchIterator;
-import io.crate.data.Row;
-import io.crate.data.Row1;
 
-public class MergeCountProjector extends AbstractProjector {
-
-    private long sum;
-
-    @Override
-    public Result setNextRow(Row row) {
-        Long count = (Long) row.get(0);
-        sum += count;
-        return Result.CONTINUE;
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        downstream.setNextRow(new Row1(sum));
-        downstream.finish(RepeatHandle.UNSUPPORTED);
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        downstream.fail(throwable);
-    }
+public class MergeCountProjector implements Projector {
 
     @Override
     public BatchIteratorProjector asProjector() {

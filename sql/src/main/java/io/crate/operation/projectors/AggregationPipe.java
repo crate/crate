@@ -33,20 +33,14 @@ import io.crate.operation.collect.CollectExpression;
 import java.util.Collections;
 import java.util.stream.Collectors;
 
-public class AggregationPipe extends AbstractProjector {
+public class AggregationPipe implements Projector {
 
     private final Aggregator[] aggregators;
     private final Iterable<CollectExpression<Row, ?>> expressions;
-    private final Object[] cells;
-    private final Row row;
-    private final Object[] states;
 
     public AggregationPipe(Iterable<CollectExpression<Row, ?>> expressions,
                            AggregationContext[] aggregations,
                            RamAccountingContext ramAccountingContext) {
-        cells = new Object[aggregations.length];
-        row = new RowN(cells);
-        states = new Object[aggregations.length];
         this.expressions = expressions;
         aggregators = new Aggregator[aggregations.length];
         for (int i = 0; i < aggregators.length; i++) {
@@ -56,36 +50,7 @@ public class AggregationPipe extends AbstractProjector {
                 aggregations[i].function(),
                 aggregations[i].inputs()
             );
-            // prepareState creates the aggregationState. In case of the AggregationProjector
-            // we only want to have 1 global state not 1 state per node/shard or even document.
-            states[i] = aggregators[i].prepareState();
         }
-    }
-
-    @Override
-    public Result setNextRow(Row row) {
-        for (CollectExpression<Row, ?> collectExpression : expressions) {
-            collectExpression.setNextRow(row);
-        }
-        for (int i = 0; i < aggregators.length; i++) {
-            Aggregator aggregator = aggregators[i];
-            states[i] = aggregator.processRow(states[i]);
-        }
-        return Result.CONTINUE;
-    }
-
-    @Override
-    public void fail(Throwable t) {
-        downstream.fail(t);
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        for (int i = 0; i < aggregators.length; i++) {
-            cells[i] = aggregators[i].finishCollect(states[i]);
-        }
-        downstream.setNextRow(row);
-        downstream.finish(RepeatHandle.UNSUPPORTED);
     }
 
     @Override

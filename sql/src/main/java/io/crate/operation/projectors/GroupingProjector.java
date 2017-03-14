@@ -21,9 +21,6 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Sets;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchIteratorProjector;
 import io.crate.data.CollectingBatchIterator;
@@ -34,43 +31,20 @@ import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.unit.ByteSizeValue;
 
-import javax.annotation.Nullable;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 
-import static io.crate.operation.projectors.RowReceiver.Result.CONTINUE;
-import static io.crate.operation.projectors.RowReceiver.Result.STOP;
+public class GroupingProjector implements Projector {
 
-public class GroupingProjector extends AbstractProjector {
-
-
-    private static final ESLogger logger = Loggers.getLogger(GroupingProjector.class);
-
-    private final BiConsumer<Map<Object, Object[]>, Row> accumulator;
-    private final Map<Object, Object[]> statesByKey;
-    private final Function<Map<Object, Object[]>, Iterable<Row>> finisher;
-    private final RamAccountingContext ramAccountingContext;
     private final GroupingCollector<Object> collector;
     private final int numCols;
 
-    private EnumSet<Requirement> requirements;
-    private boolean killed = false;
-    private IterableRowEmitter rowEmitter;
 
     public GroupingProjector(List<? extends DataType> keyTypes,
                              List<Input<?>> keyInputs,
                              CollectExpression<Row, ?>[] collectExpressions,
                              AggregationContext[] aggregations,
                              RamAccountingContext ramAccountingContext) {
-        this.ramAccountingContext = ramAccountingContext;
         assert keyTypes.size() == keyInputs.size() : "number of key types must match with number of key inputs";
         assert allTypesKnown(keyTypes) : "must have a known type for each key input";
 
@@ -101,59 +75,11 @@ public class GroupingProjector extends AbstractProjector {
                 keyTypes
             );
         }
-        statesByKey = collector.supplier().get();
-        accumulator = collector.accumulator();
-        finisher = collector.finisher();
         numCols = keyInputs.size() + aggregators.length;
     }
 
     private static boolean allTypesKnown(List<? extends DataType> keyTypes) {
-        return Iterables.all(keyTypes, new Predicate<DataType>() {
-            @Override
-            public boolean apply(@Nullable DataType input) {
-                return input != null && !input.equals(DataTypes.UNDEFINED);
-            }
-        });
-    }
-
-    @Override
-    public Result setNextRow(Row row) {
-        if (killed) {
-            return STOP;
-        }
-        accumulator.accept(statesByKey, row);
-        return CONTINUE;
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        rowEmitter = new IterableRowEmitter(downstream, finisher.apply(statesByKey));
-        rowEmitter.run();
-        if (logger.isDebugEnabled()) {
-            logger.debug("grouping operation size is: {}", new ByteSizeValue(ramAccountingContext.totalBytes()));
-        }
-    }
-
-    @Override
-    public void kill(Throwable throwable) {
-        killed = true;
-        if (rowEmitter != null) {
-            rowEmitter.kill(throwable);
-        }
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        downstream.fail(throwable);
-    }
-
-    @Override
-    public Set<Requirement> requirements() {
-        if (requirements == null) {
-            requirements = Sets.newEnumSet(downstream.requirements(), Requirement.class);
-            requirements.remove(Requirement.REPEAT);
-        }
-        return requirements;
+        return keyTypes.stream().noneMatch(input -> input.equals(DataTypes.UNDEFINED));
     }
 
     @Override

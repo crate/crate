@@ -28,44 +28,24 @@ import io.crate.operation.collect.CollectExpression;
 
 import java.util.List;
 
-public class SimpleTopNProjector extends InputRowProjector {
+public class SimpleTopNProjector implements Projector {
 
-    private int remainingOffset;
-    private int toCollect;
+    private final List<Input<?>> inputs;
+    private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
+    private final int offset;
+    private final int limit;
 
     public SimpleTopNProjector(List<Input<?>> inputs,
                                Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                                int limit,
                                int offset) {
-        super(inputs, collectExpressions);
-
         Preconditions.checkArgument(limit >= 0, "invalid limit: " + limit);
         Preconditions.checkArgument(offset >= 0, "invalid offset: " + offset);
-        this.remainingOffset = offset;
-        this.toCollect = limit;
-    }
 
-    @Override
-    public Result setNextRow(Row row) {
-        if (toCollect < 1) {
-            return Result.STOP;
-        }
-        if (remainingOffset > 0) {
-            remainingOffset--;
-            return Result.CONTINUE;
-        }
-        toCollect--;
-        Result result = super.setNextRow(row);
-        switch (result) {
-            case PAUSE:
-                return result;
-            case CONTINUE:
-                return toCollect < 1 ? Result.STOP : Result.CONTINUE;
-            case STOP:
-                toCollect = -1;
-                return Result.STOP;
-        }
-        throw new AssertionError("Unrecognized setNextRow result: " + result);
+        this.inputs = inputs;
+        this.collectExpressions = collectExpressions;
+        this.limit = limit;
+        this.offset = offset;
     }
 
     @Override
@@ -74,11 +54,11 @@ public class SimpleTopNProjector extends InputRowProjector {
             if (it == null) {
                 return null;
             }
-            if (remainingOffset > 0) {
-                it = new SkippingBatchIterator(it, remainingOffset);
+            if (offset > 0) {
+                it = new SkippingBatchIterator(it, offset);
             }
             return new RowTransformingBatchIterator(
-                    LimitingBatchIterator.newInstance(it, toCollect),
+                    LimitingBatchIterator.newInstance(it, limit),
                     inputs,
                     collectExpressions
             );

@@ -23,8 +23,8 @@
 package io.crate.protocols.postgres;
 
 import io.crate.Constants;
+import io.crate.action.sql.BatchConsumerToResultReceiver;
 import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.RowReceiverToResultReceiver;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
@@ -34,11 +34,10 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.ReadOnlyException;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.Executor;
 import io.crate.operation.collect.stats.JobsLogs;
-import io.crate.operation.projectors.ResumeHandle;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
@@ -66,7 +65,7 @@ public class SimplePortal extends AbstractPortal {
     private FormatCodes.FormatCode[] resultFormatCodes;
     private List<? extends DataType> outputTypes;
     private ResultReceiver resultReceiver;
-    private RowReceiverToResultReceiver rowReceiver = null;
+    private BatchConsumerToResultReceiver consumer = null;
     private int maxRows = 0;
     private int defaultLimit;
     private Row rowParams;
@@ -107,7 +106,7 @@ public class SimplePortal extends AbstractPortal {
             if (portalContext.isReadOnly()) { // Cannot have a bulk operation in read only mode
                 throw new ReadOnlyException();
             }
-            assert rowReceiver == null : "Existing portal must not have rowReceiver";
+            assert consumer == null : "Existing portal must not have a consumer";
             BulkPortal portal = new BulkPortal(
                 name,
                 this.query,
@@ -117,7 +116,7 @@ public class SimplePortal extends AbstractPortal {
                 resultReceiver, maxRows, this.params, sessionContext, portalContext);
             return portal.bind(statementName, query, statement, params, resultFormatCodes);
         } else if (this.statement != null) {
-            assert rowReceiver == null : "Existing portal must not have rowReceiver";
+            assert consumer == null : "Existing portal must not have a consumer";
             if (portalContext.isReadOnly()) { // Cannot have a batch operation in read only mode
                 throw new ReadOnlyException();
             }
@@ -183,8 +182,8 @@ public class SimplePortal extends AbstractPortal {
         CompletableFuture completableFuture = resultReceiver.completionFuture().whenComplete(jobsLogsUpdateListener);
 
         if (!resumeIfSuspended()) {
-            rowReceiver = new RowReceiverToResultReceiver(resultReceiver, maxRows);
-            portalContext.getExecutor().execute(plan, rowReceiver, this.rowParams);
+            consumer = new BatchConsumerToResultReceiver(resultReceiver, maxRows);
+            portalContext.getExecutor().execute(plan, consumer, this.rowParams);
         }
         synced = true;
         return completableFuture;
@@ -192,24 +191,24 @@ public class SimplePortal extends AbstractPortal {
 
     @Override
     public void close() {
-        if (rowReceiver != null) {
-            rowReceiver.interruptIfResumable();
+        if (consumer != null) {
+            consumer.interruptIfResumable();
         }
     }
 
     private boolean resumeIfSuspended() {
         LOGGER.trace("method=resumeIfSuspended");
-        if (rowReceiver == null) {
+        if (consumer == null) {
             return false;
         }
-        ResumeHandle resumeHandle = rowReceiver.resumeHandle();
-        if (resumeHandle == null) {
+        if (consumer.suspended()) {
+            consumer.replaceResultReceiver(resultReceiver, maxRows);
+            LOGGER.trace("Resuming {}", consumer);
+            consumer.resume();
+            return true;
+        } else {
             return false;
         }
-        rowReceiver.replaceResultReceiver(resultReceiver, maxRows);
-        LOGGER.trace("Resuming {}", resumeHandle);
-        resumeHandle.resume(true);
-        return true;
     }
 
     private void validateReadOnly(Analysis analysis) {
@@ -284,7 +283,7 @@ public class SimplePortal extends AbstractPortal {
                 new ParameterContext(portal.rowParams, Collections.<Row>emptyList()));
 
             Plan plan = planner.plan(analysis, newJobId, 0, portal.maxRows);
-            executor.execute(plan, portal.rowReceiver, portal.rowParams);
+            executor.execute(plan, portal.consumer, portal.rowParams);
         }
 
         @Override

@@ -47,10 +47,9 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-public class ColumnIndexWriterProjector extends AbstractProjector {
+public class ColumnIndexWriterProjector implements Projector {
 
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
 
@@ -59,7 +58,6 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
     private final Symbol[] assignments;
     private final InputRow insertValues;
     private BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor;
-    private final AtomicBoolean failed = new AtomicBoolean(false);
 
     protected ColumnIndexWriterProjector(ClusterService clusterService,
                                          Functions functions,
@@ -123,30 +121,5 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
             rowShardResolver.id(), assignments, insertValues.materialize(), null);
         return it -> IndexWriterCountBatchIterator.newIndexInstance(it, indexNameResolver,
             collectExpressions, rowShardResolver, bulkShardProcessor, updateItemSupplier);
-    }
-
-    @Override
-    public void downstream(RowReceiver rowReceiver) {
-        super.downstream(rowReceiver);
-    }
-
-    @Override
-    public Result setNextRow(Row row) {
-        throw new UnsupportedOperationException("IndexWriterCountBatchIterator must be the consumer instead");
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        throw new UnsupportedOperationException("IndexWriterCountBatchIterator must be the consumer instead");
-    }
-
-    @Override
-    public void kill(Throwable throwable) {
-        throw new UnsupportedOperationException("IndexWriterCountBatchIterator must be the consumer instead");
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        throw new UnsupportedOperationException("IndexWriterCountBatchIterator must be the consumer instead");
     }
 }

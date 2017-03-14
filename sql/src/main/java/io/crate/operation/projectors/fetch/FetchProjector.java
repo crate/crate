@@ -25,15 +25,13 @@ package io.crate.operation.projectors.fetch;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.AsyncOperationBatchIterator;
 import io.crate.data.BatchIteratorProjector;
-import io.crate.data.Row;
 import io.crate.metadata.Functions;
-import io.crate.operation.projectors.AbstractProjector;
-import io.crate.operation.projectors.RepeatHandle;
+import io.crate.operation.projectors.Projector;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class FetchProjector extends AbstractProjector {
+public class FetchProjector implements Projector {
 
     private final FetchOperation fetchOperation;
     private final Functions functions;
@@ -51,22 +49,6 @@ public class FetchProjector extends AbstractProjector {
         this.outputSymbols = outputSymbols;
         this.fetchProjectorContext = fetchProjectorContext;
         this.fetchSize = fetchSize;
-    }
-
-
-    @Override
-    public Result setNextRow(Row row) {
-        throw new UnsupportedOperationException("FetchProjector must be used as BatchIteratorProjector");
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatable) {
-        throw new UnsupportedOperationException("FetchProjector must be used as BatchIteratorProjector");
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        throw new UnsupportedOperationException("FetchProjector must be used as BatchIteratorProjector");
     }
 
     @Nullable

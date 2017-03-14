@@ -23,20 +23,11 @@ package io.crate.executor;
 
 import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
-import io.crate.operation.projectors.BatchConsumerToRowReceiver;
-import io.crate.operation.projectors.RowReceiver;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 public interface Task {
-
-    /**
-     * deprecated, only here for migration purposes
-     */
-    default void execute(RowReceiver rowReceiver, Row parameters) {
-        execute(new BatchConsumerToRowReceiver(rowReceiver), parameters);
-    }
 
     /**
      * execute the task if it represents a single operation.

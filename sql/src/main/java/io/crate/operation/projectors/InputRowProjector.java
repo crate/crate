@@ -25,21 +25,16 @@ package io.crate.operation.projectors;
 import io.crate.data.BatchIteratorProjector;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.operation.InputRow;
 import io.crate.operation.aggregation.RowTransformingBatchIterator;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.List;
 
 /**
- * projector that simply applies its inputs to the given row in {@link #setNextRow(Row)}
- * and returns the results to its downstream.
- * <p>
- * Differs from {@link SimpleTopNProjector} in that it does not apply any limit or offset.
+ * Projector which evaluates scalars or extends/cuts columns, see {@link RowTransformingBatchIterator}.
  */
-public class InputRowProjector extends AbstractProjector {
+public class InputRowProjector implements Projector  {
 
-    private final InputRow inputRow;
     protected final List<Input<?>> inputs;
     protected final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
 
@@ -47,25 +42,6 @@ public class InputRowProjector extends AbstractProjector {
                              Iterable<? extends CollectExpression<Row, ?>> collectExpressions) {
         this.inputs = inputs;
         this.collectExpressions = collectExpressions;
-        this.inputRow = new InputRow(inputs);
-    }
-
-    @Override
-    public Result setNextRow(Row row) {
-        for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
-            collectExpression.setNextRow(row);
-        }
-        return downstream.setNextRow(this.inputRow);
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatable) {
-        downstream.finish(repeatable);
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        downstream.fail(throwable);
     }
 
     @Override

@@ -30,7 +30,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
-import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.TestingBatchConsumer;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
@@ -62,7 +62,6 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         execute("create table bulk_import (id int primary key, name string) with (number_of_replicas=0)");
         ensureGreen();
 
-        CollectingRowReceiver collectingRowReceiver = new CollectingRowReceiver();
         InputCollectExpression sourceInput = new InputCollectExpression(1);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
@@ -89,15 +88,14 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             false,
             UUID.randomUUID()
         );
-        writerProjector.downstream(collectingRowReceiver);
 
-        BatchConsumerToRowReceiver batchConsumer = new BatchConsumerToRowReceiver(writerProjector);
         BatchIterator rowsIterator = RowsBatchIterator.newInstance(IntStream.range(0, 100)
             .mapToObj(i -> new RowN(new Object[]{i, new BytesRef("{\"id\": " + i + ", \"name\": \"Arthur\"}")}))
             .collect(Collectors.toList()), 2);
 
-        batchConsumer.accept(rowsIterator, null);
-        Bucket objects = collectingRowReceiver.result();
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        consumer.accept(writerProjector.asProjector().apply(rowsIterator), null);
+        Bucket objects = consumer.getBucket();
 
         assertThat(objects, contains(isRow(100L)));
 

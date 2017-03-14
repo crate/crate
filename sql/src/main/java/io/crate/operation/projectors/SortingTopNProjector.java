@@ -26,21 +26,14 @@ import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.projectors.sorting.RowPriorityQueue;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Set;
-import java.util.function.BiConsumer;
 
-public class SortingTopNProjector extends AbstractProjector {
+public class SortingTopNProjector implements Projector {
 
     private final SortingTopNCollector collector;
-    private final BiConsumer<RowPriorityQueue<Object[]>, Row> accumulator;
-    private final RowPriorityQueue<Object[]> pq;
-    private Set<Requirement> requirements;
-    private volatile IterableRowEmitter rowEmitter = null;
 
     /**
      * @param inputs             contains output {@link Input}s and orderBy {@link Input}s
@@ -64,43 +57,6 @@ public class SortingTopNProjector extends AbstractProjector {
             limit,
             offset
         );
-        pq = collector.supplier().get();
-        accumulator = collector.accumulator();
-    }
-
-    @Override
-    public Result setNextRow(Row row) {
-        accumulator.accept(pq, row);
-        return Result.CONTINUE;
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        rowEmitter = new IterableRowEmitter(downstream, collector.finisher().apply(pq));
-        rowEmitter.run();
-    }
-
-    @Override
-    public void kill(Throwable throwable) {
-        IterableRowEmitter emitter = rowEmitter;
-        if (emitter == null) {
-            downstream.kill(throwable);
-        } else {
-            emitter.kill(throwable);
-        }
-    }
-
-    @Override
-    public void fail(Throwable t) {
-        downstream.fail(t);
-    }
-
-    @Override
-    public Set<Requirement> requirements() {
-        if (requirements == null) {
-            requirements = Requirements.remove(downstream.requirements(), Requirement.REPEAT);
-        }
-        return requirements;
     }
 
     @Nullable
