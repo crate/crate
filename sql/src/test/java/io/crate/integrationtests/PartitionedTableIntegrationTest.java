@@ -279,12 +279,16 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     private void validateInsertPartitionedTable() {
+        Set<String> indexUUIDs = new HashSet<>(3);
+
         String partitionName = new PartitionName("parted",
             Collections.singletonList(new BytesRef(String.valueOf(13959981214861L)))
         ).asIndexName();
-        assertTrue(internalCluster().clusterService().state().metaData().hasIndex(partitionName));
-        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-            .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
+        assertThat(internalCluster().clusterService().state().metaData().hasIndex(partitionName), is(true));
+        IndexMetaData indexMetaData = client().admin().cluster().prepareState().execute().actionGet()
+            .getState().metaData().indices().get(partitionName);
+        indexUUIDs.add(indexMetaData.getIndexUUID());
+        assertThat(indexMetaData.getAliases().get("parted"), notNullValue());
         assertThat(
             client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                 .setSize(0).setQuery(new MatchAllQueryBuilder())
@@ -293,9 +297,11 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         );
 
         partitionName = new PartitionName("parted", Collections.singletonList(new BytesRef(String.valueOf(0L)))).asIndexName();
-        assertTrue(internalCluster().clusterService().state().metaData().hasIndex(partitionName));
-        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-            .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
+        assertThat(internalCluster().clusterService().state().metaData().hasIndex(partitionName), is(true));
+        indexMetaData = client().admin().cluster().prepareState().execute().actionGet()
+            .getState().metaData().indices().get(partitionName);
+        indexUUIDs.add(indexMetaData.getIndexUUID());
+        assertThat(indexMetaData.getAliases().get("parted"), notNullValue());
         assertThat(
             client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                 .setSize(0).setQuery(new MatchAllQueryBuilder())
@@ -306,15 +312,19 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         List<BytesRef> nullList = new ArrayList<>();
         nullList.add(null);
         partitionName = new PartitionName("parted", nullList).asIndexName();
-        assertTrue(internalCluster().clusterService().state().metaData().hasIndex(partitionName));
-        assertNotNull(client().admin().cluster().prepareState().execute().actionGet()
-            .getState().metaData().indices().get(partitionName).getAliases().get("parted"));
+        assertThat(internalCluster().clusterService().state().metaData().hasIndex(partitionName), is(true));
+        indexMetaData = client().admin().cluster().prepareState().execute().actionGet()
+            .getState().metaData().indices().get(partitionName);
+        indexUUIDs.add(indexMetaData.getIndexUUID());
+        assertThat(indexMetaData.getAliases().get("parted"), notNullValue());
         assertThat(
             client().prepareSearch(partitionName).setTypes(Constants.DEFAULT_MAPPING_TYPE)
                 .setSize(0).setQuery(new MatchAllQueryBuilder())
                 .execute().actionGet().getHits().totalHits(),
             is(1L)
         );
+
+        assertThat(indexUUIDs.size(), is(3));
     }
 
     @Test
