@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.TreeMapBuilder;
+import io.crate.data.BatchConsumer;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.NodeOperation;
@@ -62,7 +63,7 @@ public class DistributingDownstreamFactoryTest extends CrateUnitTest {
         );
     }
 
-    private RowReceiver createDownstream(Set<String> downstreamExecutionNodes) {
+    private BatchConsumer createDownstream(Set<String> downstreamExecutionNodes) {
         UUID jobId = UUID.randomUUID();
         Routing routing = new Routing(
             TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
@@ -97,14 +98,14 @@ public class DistributingDownstreamFactoryTest extends CrateUnitTest {
 
     @Test
     public void testCreateDownstreamOneNode() throws Exception {
-        RowReceiver downstream = createDownstream(ImmutableSet.of("downstream_node"));
-        assertThat(downstream, instanceOf(DistributingDownstream.class));
-        assertThat(((DistributingDownstream) downstream).multiBucketBuilder, instanceOf(BroadcastingBucketBuilder.class));
+        BatchConsumer downstream = createDownstream(ImmutableSet.of("downstream_node"));
+        assertThat(downstream, instanceOf(DistributingConsumer.class));
+        assertThat(((DistributingConsumer) downstream).multiBucketBuilder, instanceOf(BroadcastingBucketBuilder.class));
     }
 
     @Test
     public void testCreateDownstreamMultipleNode() throws Exception {
-        RowReceiver downstream = createDownstream(ImmutableSet.of("downstream_node1", "downstream_node2"));
-        assertThat(((DistributingDownstream) downstream).multiBucketBuilder, instanceOf(ModuloBucketBuilder.class));
+        BatchConsumer downstream = createDownstream(ImmutableSet.of("downstream_node1", "downstream_node2"));
+        assertThat(((DistributingConsumer) downstream).multiBucketBuilder, instanceOf(ModuloBucketBuilder.class));
     }
 }

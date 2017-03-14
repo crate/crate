@@ -33,7 +33,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-public class CollectingBatchConsumer implements BatchConsumer, Killable {
+public class TestingBatchConsumer implements BatchConsumer, Killable {
 
     private final CompletableFuture<List<Object[]>> result = new CompletableFuture<>();
 

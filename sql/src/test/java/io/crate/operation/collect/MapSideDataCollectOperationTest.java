@@ -32,7 +32,7 @@ import io.crate.operation.collect.sources.FileCollectSource;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingBatchConsumer;
+import io.crate.testing.TestingBatchConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.test.cluster.NoopClusterService;
@@ -102,7 +102,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
         );
         String threadPoolName = JobCollectContext.threadPoolName(collectNode, "noop_id");
 
-        CollectingBatchConsumer consumer = new CollectingBatchConsumer();
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
         JobCollectContext jobCollectContext = mock(JobCollectContext.class);
         Collection<CrateCollector> collectors = collectOperation.createCollectors(collectNode, consumer, jobCollectContext);
         collectOperation.launchCollectors(collectors, threadPoolName);

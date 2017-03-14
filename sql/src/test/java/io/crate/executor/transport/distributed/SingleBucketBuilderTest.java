@@ -62,7 +62,7 @@ public class SingleBucketBuilderTest extends CrateUnitTest {
 
     @Test
     public void testSingleBucketBuilderConsumer() throws Exception {
-        bucketBuilder.asConsumer().accept(TestingBatchIterators.range(0, 4), null);
+        bucketBuilder.accept(TestingBatchIterators.range(0, 4), null);
         Bucket rows = bucketBuilder.completionFuture().get(10, TimeUnit.SECONDS);
         assertThat(TestingHelpers.printedTable(rows),
             is("0\n" +
@@ -74,7 +74,7 @@ public class SingleBucketBuilderTest extends CrateUnitTest {
     @Test
     public void testSingleBucketBuilderWithBatchedSource() throws Exception {
         BatchIterator iterator = TestingBatchIterators.range(0, 4);
-        bucketBuilder.asConsumer().accept(new BatchSimulatingIterator(iterator, 2, 2, executor), null);
+        bucketBuilder.accept(new BatchSimulatingIterator(iterator, 2, 2, executor), null);
         Bucket rows = bucketBuilder.completionFuture().get(10, TimeUnit.SECONDS);
         assertThat(TestingHelpers.printedTable(rows),
             is("0\n" +
@@ -86,7 +86,7 @@ public class SingleBucketBuilderTest extends CrateUnitTest {
     @Test
     public void testConsumeFailingBatchIterator() throws Exception {
         FailingBatchIterator iterator = new FailingBatchIterator(TestingBatchIterators.range(0, 4), 2);
-        bucketBuilder.asConsumer().accept(iterator, null);
+        bucketBuilder.accept(iterator, null);
 
         try {
             bucketBuilder.completionFuture().get(10, TimeUnit.SECONDS);

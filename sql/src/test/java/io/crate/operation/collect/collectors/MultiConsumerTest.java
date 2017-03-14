@@ -25,7 +25,7 @@ package io.crate.operation.collect.collectors;
 import io.crate.data.BatchConsumer;
 import io.crate.data.CollectionBucket;
 import io.crate.data.CompositeBatchIterator;
-import io.crate.testing.CollectingBatchConsumer;
+import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
@@ -39,7 +39,7 @@ public class MultiConsumerTest {
 
     @Test
     public void testSuccessfulMultiConsumerUsage() throws Exception {
-        CollectingBatchConsumer batchConsumer = new CollectingBatchConsumer();
+        TestingBatchConsumer batchConsumer = new TestingBatchConsumer();
         BatchConsumer consumer = CompositeCollector.newMultiConsumer(2, batchConsumer, CompositeBatchIterator::new);
 
         consumer.accept(TestingBatchIterators.range(3, 6), null);

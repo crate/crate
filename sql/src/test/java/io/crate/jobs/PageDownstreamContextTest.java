@@ -32,7 +32,7 @@ import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.merge.SortedPagingIterator;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingBatchConsumer;
+import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -53,7 +53,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
-    private PageDownstreamContext getPageDownstreamContext(CollectingBatchConsumer batchConsumer,
+    private PageDownstreamContext getPageDownstreamContext(TestingBatchConsumer batchConsumer,
                                                            PagingIterator<Integer, Row> pagingIterator,
                                                            int numBuckets) {
         return new PageDownstreamContext(
@@ -71,7 +71,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
     @Test
     public void testCantSetSameBucketTwiceWithoutReceivingFullPage() throws Throwable {
-        CollectingBatchConsumer batchConsumer = new CollectingBatchConsumer();
+        TestingBatchConsumer batchConsumer = new TestingBatchConsumer();
 
         PageBucketReceiver ctx = getPageDownstreamContext(batchConsumer, PassThroughPagingIterator.oneShot(), 3);
 
@@ -87,7 +87,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
     @Test
     public void testKillCallsDownstream() throws Throwable {
-        CollectingBatchConsumer batchConsumer = new CollectingBatchConsumer();
+        TestingBatchConsumer batchConsumer = new TestingBatchConsumer();
         PageDownstreamContext ctx = getPageDownstreamContext(batchConsumer, PassThroughPagingIterator.oneShot(), 3);
 
         final AtomicReference<Throwable> throwable = new AtomicReference<>();
@@ -108,7 +108,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
     @Test
     public void testPagingWithSortedPagingIterator() throws Throwable {
-        CollectingBatchConsumer batchConsumer = new CollectingBatchConsumer();
+        TestingBatchConsumer batchConsumer = new TestingBatchConsumer();
         PageDownstreamContext ctx = getPageDownstreamContext(
             batchConsumer,
             new SortedPagingIterator<>(Comparator.comparingInt(r -> (int)r.get(0)), false),
@@ -148,7 +148,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
     @Test
     public void testListenersCalledWhenOtherUpstreamIsFailing() throws Exception {
-        CollectingBatchConsumer consumer = new CollectingBatchConsumer();
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
         PageDownstreamContext ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
 
         PageResultListener listener = mock(PageResultListener.class);
@@ -160,7 +160,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
     @Test
     public void testListenerCalledAfterOthersHasFailed() throws Exception {
-        CollectingBatchConsumer consumer = new CollectingBatchConsumer();
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
         PageDownstreamContext ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
 
         ctx.failure(0, new Exception("dummy"));
