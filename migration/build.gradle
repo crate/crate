@@ -1,0 +1,22 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+archivesBaseName = 'crate-migration-tool'
+
+dependencies {
+    compile project(":es:es-core")
+
+    testCompile project(":integration-testing")
+    testCompile "com.github.stefanbirkner:system-rules:${versions.system_rules}"
+}
+
+test {
+    testLogging.exceptionFormat = 'full'
+    jacoco.excludes = ["*Test*"]
+}
+
+sourceSets {
+    test {
+        resources {
+            srcDir 'src/test/resources'
+        }
+    }
+}
