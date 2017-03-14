@@ -22,11 +22,11 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.data.BatchIteratorProjector;
+import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
+import io.crate.data.Projector;
 import io.crate.data.Row1;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.function.Consumer;
 import java.util.stream.Collector;
@@ -39,10 +39,9 @@ class SysUpdateProjector implements Projector {
         this.rowWriter = rowWriter;
     }
 
-    @Nullable
     @Override
-    public BatchIteratorProjector asProjector() {
-        return bi -> CollectingBatchIterator.newInstance(bi,
+    public BatchIterator apply(BatchIterator batchIterator) {
+        return CollectingBatchIterator.newInstance(batchIterator,
             Collector.of(
                 () -> new State(rowWriter),
                 (state, row) -> {

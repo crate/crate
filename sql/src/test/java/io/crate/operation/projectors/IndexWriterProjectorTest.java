@@ -94,7 +94,7 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
             .collect(Collectors.toList()), 2);
 
         TestingBatchConsumer consumer = new TestingBatchConsumer();
-        consumer.accept(writerProjector.asProjector().apply(rowsIterator), null);
+        consumer.accept(writerProjector.apply(rowsIterator), null);
         Bucket objects = consumer.getBucket();
 
         assertThat(objects, contains(isRow(100L)));

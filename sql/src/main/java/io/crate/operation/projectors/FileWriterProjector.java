@@ -21,10 +21,7 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.data.BatchIteratorProjector;
-import io.crate.data.CollectingBatchIterator;
-import io.crate.data.Input;
-import io.crate.data.Row;
+import io.crate.data.*;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.planner.projection.WriterProjection;
@@ -72,10 +69,21 @@ public class FileWriterProjector implements Projector {
         this.uri = uri;
     }
 
-    @Nullable
     @Override
-    public BatchIteratorProjector asProjector() {
-        return it -> CollectingBatchIterator.newInstance(it, new FileWriterCountCollector(executorService, uri.toString(), compressionType, inputs,
-            collectExpressions, overwrites, outputNames, outputFormat), 1);
+    public BatchIterator apply(BatchIterator batchIterator) {
+        return CollectingBatchIterator.newInstance(
+            batchIterator,
+            new FileWriterCountCollector(
+                executorService,
+                uri.toString(),
+                compressionType,
+                inputs,
+                collectExpressions,
+                overwrites,
+                outputNames,
+                outputFormat
+            ),
+            1
+        );
     }
 }

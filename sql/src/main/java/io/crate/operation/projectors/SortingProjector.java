@@ -66,14 +66,13 @@ class SortingProjector implements Projector {
         this.offset = offset;
     }
 
+
     @Override
-    public BatchIteratorProjector asProjector() {
-        return bi -> {
-            Collector<Row, ?, Bucket> collector = Collectors.mapping(
-                this::getCells,
-                Collectors.collectingAndThen(Collectors.toList(), this::sortAndCreateBucket));
-            return CollectingBatchIterator.newInstance(bi, collector, numOutputs);
-        };
+    public BatchIterator apply(BatchIterator batchIterator) {
+        Collector<Row, ?, Bucket> collector = Collectors.mapping(
+            this::getCells,
+            Collectors.collectingAndThen(Collectors.toList(), this::sortAndCreateBucket));
+        return CollectingBatchIterator.newInstance(batchIterator, collector, numOutputs);
     }
 
     private Object[] getCells(Row row) {

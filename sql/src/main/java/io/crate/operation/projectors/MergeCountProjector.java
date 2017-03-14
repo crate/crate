@@ -22,13 +22,14 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.data.BatchIteratorProjector;
+import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
+import io.crate.data.Projector;
 
 public class MergeCountProjector implements Projector {
 
     @Override
-    public BatchIteratorProjector asProjector() {
-        return CollectingBatchIterator::summingLong;
+    public BatchIterator apply(BatchIterator batchIterator) {
+        return CollectingBatchIterator.summingLong(batchIterator);
     }
 }
