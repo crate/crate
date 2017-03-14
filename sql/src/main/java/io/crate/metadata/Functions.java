@@ -66,24 +66,66 @@ public class Functions {
         schemaFunctionResolvers.put(schema, resolvers);
     }
 
-    public void deregisterSchemaFunctionResolvers(String schema) {
-        schemaFunctionResolvers.remove(schema);
+    /**
+     * Returns the function implementation for the given schema, function name and arguments.
+     *
+     * @param schema    The schema name. The schema name is null for built-in functions.
+     * @param name      The function name.
+     * @param arguments The function arguments.
+     * @return a function implementation or null if nothing was found.
+     */
+    @Nullable
+    public FunctionImplementation get(@Nullable String schema, String name, List<DataType> arguments)
+        throws IllegalArgumentException {
+        // get a built-in function
+        if (schema == null) {
+            FunctionResolver dynamicResolver = functionResolvers.get(name);
+            if (dynamicResolver != null) {
+                List<DataType> signature = dynamicResolver.getSignature(arguments);
+                if (signature != null) {
+                    return dynamicResolver.getForTypes(signature);
+                }
+            }
+            // fallback, check if the function with the same name was defined in the default schema
+            return getSchemaFunctionImplementation(Schemas.DEFAULT_SCHEMA_NAME, name, arguments);
+        } else {
+            // Get a user defined function from the given schema. The function must be
+            // assigned a certain schema. If no schema is provided, it belongs to the default schema.
+            return getSchemaFunctionImplementation(schema, name, arguments);
+        }
+    }
+
+    private FunctionImplementation getSchemaFunctionImplementation(String schema, String name, List<DataType> arguments) {
+        Map<String, FunctionResolver> schemaResolvers = schemaFunctionResolvers.get(schema);
+        if (schemaResolvers == null) return null;
+
+        FunctionResolver schemaResolver = schemaResolvers.get(name);
+        return getFunctionImplementationForSignature(schemaResolver, arguments);
+    }
+
+    private FunctionImplementation getFunctionImplementationForSignature(FunctionResolver resolver, List<DataType> arguments) {
+        if (resolver != null) {
+            List<DataType> signature = resolver.getSignature(arguments);
+            return resolver.getForTypes(signature);
+        }
+        return null;
     }
 
     /**
-     * <p>
-     * returns the functionImplementation for the given ident.
-     * </p>
-     * <p>
-     * same as {@link #get(FunctionIdent)} but will throw an UnsupportedOperationException
-     * if no implementation is found.
+     * Returns the function implementation for the given schema, function name and arguments.
+     *
+     * @param schema    The schema name.  The schema name is null for built-in functions.
+     * @param name      The function name.
+     * @param arguments The function arguments.
+     * @return The function implementation..
+     * @throws UnsupportedOperationException if no implementation is found.
      */
-    public FunctionImplementation getSafe(FunctionIdent ident)
+    public FunctionImplementation getSafe(@Nullable String schema, String name, List<DataType> arguments)
         throws IllegalArgumentException, UnsupportedOperationException {
         FunctionImplementation implementation = null;
         String exceptionMessage = null;
         try {
-            implementation = get(ident);
+            implementation = get(schema, name, arguments);
         } catch (IllegalArgumentException e) {
             if (e.getMessage() != null && !e.getMessage().isEmpty()) {
                 exceptionMessage = e.getMessage();
@@ -91,58 +133,14 @@ public class Functions {
         }
         if (implementation == null) {
             if (exceptionMessage == null) {
-                exceptionMessage = String.format(Locale.ENGLISH, "unknown function: %s(%s)", ident.name(),
-                    Joiner.on(", ").join(ident.argumentTypes()));
+                exceptionMessage = String.format(Locale.ENGLISH, "unknown function: %s(%s)", name,
+                    Joiner.on(", ").join(arguments));
             }
             throw new UnsupportedOperationException(exceptionMessage);
         }
         return implementation;
     }
 
-    /**
-     * returns the functionImplementation for the given ident
-     * or null if nothing was found
-     */
-    @Nullable
-    public FunctionImplementation get(FunctionIdent ident) throws IllegalArgumentException {
-        FunctionResolver dynamicResolver = functionResolvers.get(ident.name());
-        if (dynamicResolver != null) {
-            FunctionImplementation function = getFunctionImplementation(ident, dynamicResolver);
-            if (function != null) return function;
-        }
-
-        FunctionResolver schemaResolver = getSchemaFunctionResolver(ident);
-        if (schemaResolver != null) {
-            return getFunctionImplementation(ident, schemaResolver);
-        }
-        return null;
-    }
-
-    private FunctionImplementation getFunctionImplementation(FunctionIdent ident, FunctionResolver dynamicResolver) {
-        List<DataType> argumentTypes = ident.argumentTypes();
-        List<DataType> signature = dynamicResolver.getSignature(argumentTypes);
-        if (signature != null) {
-            return dynamicResolver.getForTypes(signature);
-        }
-        return null;
-    }
-
-    private FunctionResolver getSchemaFunctionResolver(FunctionIdent ident) {
-        String[] parts = getSchemaFunctionName(ident);
-        Map<String, FunctionResolver> schemaFunctionResolver = schemaFunctionResolvers.get(parts[0]);
-        if (schemaFunctionResolver != null) {
-            return schemaFunctionResolver.get(Joiner.on(".").join(parts));
-        }
-        return null;
-    }
-
-    private static String[] getSchemaFunctionName(FunctionIdent ident) {
-        String[] parts = ident.name().split("\\.");
-        if (parts.length == 1) {
-            return new String[]{Schemas.DEFAULT_SCHEMA_NAME, parts[0]};
-        }
-        return parts;
-    }
 
     private static class GeneratedFunctionResolver implements FunctionResolver {
 

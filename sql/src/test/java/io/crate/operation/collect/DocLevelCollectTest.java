@@ -40,7 +40,6 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.indices.IndicesService;
@@ -150,8 +149,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCollectDocLevelWhereClause() throws Throwable {
-        EqOperator op = (EqOperator) functions.get(new FunctionIdent(EqOperator.NAME,
-            ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
+        EqOperator op = (EqOperator) functions
+            .get(null, EqOperator.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER));
         List<Symbol> toCollect = Collections.<Symbol>singletonList(testDocLevelReference);
         WhereClause whereClause = new WhereClause(new Function(
             op.info(),

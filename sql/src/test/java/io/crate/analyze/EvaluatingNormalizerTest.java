@@ -110,13 +110,13 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
     }
 
     private FunctionInfo functionInfo(String name, DataType dataType, boolean isPredicate) {
-        ImmutableList dataTypes = null;
+        ImmutableList dataTypes;
         if (isPredicate) {
             dataTypes = ImmutableList.of(dataType);
         } else {
             dataTypes = ImmutableList.of(dataType, dataType);
         }
-        return functions.get(new FunctionIdent(name, dataTypes)).info();
+        return functions.get(null, name, dataTypes).info();
     }
 
     private FunctionInfo functionInfo(String name, DataType dataType) {

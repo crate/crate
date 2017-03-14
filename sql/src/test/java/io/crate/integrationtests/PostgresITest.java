@@ -633,6 +633,18 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         }
     }
 
+    @Test
+    public void testUseBuiltInFunctionWithSetSchemaOnSession() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties)) {
+            conn.setAutoCommit(true);
+
+            conn.createStatement().execute("set session search_path to bar");
+            ResultSet resultSet = conn.createStatement().executeQuery("select concat('foo', 'bar')");
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getString(1), is("foobar"));
+        }
+    }
+
     private void assertSelectNameFromSysClusterWorks(Connection conn) throws SQLException {
         PreparedStatement stmt;// verify that queries can be made after an error occurred
         stmt = conn.prepareStatement("select name from sys.cluster");

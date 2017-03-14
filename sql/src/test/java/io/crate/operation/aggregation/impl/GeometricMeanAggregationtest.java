@@ -23,7 +23,6 @@ package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -40,9 +39,8 @@ public class GeometricMeanAggregationtest extends AggregationTest {
     @Test
     public void testReturnType() throws Exception {
         for (DataType<?> type : Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, Arrays.asList(DataTypes.TIMESTAMP))) {
-            FunctionIdent fi = new FunctionIdent("geometric_mean", ImmutableList.<DataType>of(type));
             // Return type is fixed to Double
-            assertEquals(DataTypes.DOUBLE, functions.get(fi).info().returnType());
+            assertEquals(DataTypes.DOUBLE, getFunction("geometric_mean", ImmutableList.of(type)).info().returnType());
         }
     }
 
@@ -96,6 +94,6 @@ public class GeometricMeanAggregationtest extends AggregationTest {
 
     @Test(expected = NullPointerException.class)
     public void testUnsupportedType() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}});
+        executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}});
     }
 }

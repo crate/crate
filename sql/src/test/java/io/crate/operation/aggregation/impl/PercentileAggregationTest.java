@@ -23,7 +23,6 @@ package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Literal;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.ArrayType;
@@ -47,11 +46,12 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnTypes() throws Exception {
-        FunctionIdent synopsis1 = new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.DOUBLE, DataTypes.DOUBLE));
-        assertEquals(DataTypes.DOUBLE, functions.get(synopsis1).info().returnType());
-
-        FunctionIdent synopsis2 = new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.DOUBLE, new ArrayType(DataTypes.DOUBLE)));
-        assertEquals(new ArrayType(DataTypes.DOUBLE), functions.get(synopsis2).info().returnType());
+        assertEquals(DataTypes.DOUBLE,
+            getFunction(NAME, ImmutableList.of(DataTypes.DOUBLE, DataTypes.DOUBLE)).info().returnType()
+        );
+        assertEquals(
+            new ArrayType(DataTypes.DOUBLE),
+            getFunction(NAME, ImmutableList.of(DataTypes.DOUBLE, new ArrayType(DataTypes.DOUBLE))).info().returnType());
     }
 
     @Test
@@ -90,7 +90,7 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testEmptyPercentile() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.INTEGER, new Object[][]{
+        executeAggregation(DataTypes.INTEGER, new Object[][]{
             {1, new Object[]{}},
             {10, new Object[]{}}
         });
@@ -99,7 +99,7 @@ public class PercentileAggregationTest extends AggregationTest {
     @Test(expected = IllegalArgumentException.class)
     public void testNullMultiplePercentiles() throws Exception {
         Double[] fractions = new Double[]{0.25, null};
-        Object[][] result = executeAggregation(DataTypes.INTEGER, new Object[][]{
+        executeAggregation(DataTypes.INTEGER, new Object[][]{
             {1, fractions},
             {10, fractions}
         });
@@ -107,7 +107,7 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testNegativePercentile() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.INTEGER, new Object[][]{
+        executeAggregation(DataTypes.INTEGER, new Object[][]{
             {1, -1.2},
             {10, -1.2}
         });
@@ -115,7 +115,7 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testTooLargePercentile() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.INTEGER, new Object[][]{
+        executeAggregation(DataTypes.INTEGER, new Object[][]{
             {1, 1.5},
             {10, 1.5}
         });
@@ -123,7 +123,7 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test(expected = NullPointerException.class)
     public void testUnsupportedType() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.STRING, new Object[][]{
+        executeAggregation(DataTypes.STRING, new Object[][]{
             {"Akira", 0.5},
             {"Tetsuo", 0.5}
         });

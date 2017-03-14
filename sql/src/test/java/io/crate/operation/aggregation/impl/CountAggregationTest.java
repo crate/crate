@@ -23,7 +23,6 @@ package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Streamer;
-import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -42,9 +41,9 @@ public class CountAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        FunctionIdent fi = new FunctionIdent("count", ImmutableList.<DataType>of(DataTypes.INTEGER));
         // Return type is fixed to Long
-        assertEquals(DataTypes.LONG, functions.get(fi).info().returnType());
+        assertEquals(DataTypes.LONG,
+            getFunction("count", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
     }
 
     @Test

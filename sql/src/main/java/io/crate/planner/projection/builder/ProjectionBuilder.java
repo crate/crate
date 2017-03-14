@@ -26,10 +26,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.*;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
-import io.crate.metadata.RowGranularity;
+import io.crate.metadata.*;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.projection.*;
@@ -104,9 +101,10 @@ public class ProjectionBuilder {
             }
 
             if (toStep == Aggregation.Step.PARTIAL) {
+                FunctionIdent ident = function.info().ident();
                 aggregation = Aggregation.partialAggregation(
                     function.info(),
-                    ((AggregationFunction) this.functions.get(function.info().ident())).partialType(),
+                    ((AggregationFunction) this.functions.get(ident.schema(), ident.name(), ident.argumentTypes())).partialType(),
                     aggregationInputs
                 );
             } else {
