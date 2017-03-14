@@ -28,6 +28,7 @@ import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.Columns;
 import io.crate.data.Input;
+import io.crate.exceptions.Exceptions;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.index.LeafReader;
@@ -36,6 +37,7 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.util.Bits;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Collection;
@@ -68,6 +70,7 @@ public class LuceneBatchIterator implements BatchIterator {
     private Scorer currentScorer;
     private DocIdSetIterator currentDocIdSetIt;
     private boolean closed = false;
+    private volatile Throwable killed;
 
     LuceneBatchIterator(IndexSearcher indexSearcher,
                         Query query,
@@ -102,13 +105,13 @@ public class LuceneBatchIterator implements BatchIterator {
 
     @Override
     public void moveToStart() {
-        checkClosed();
+        raiseIfClosedOrKilled();
         leavesIt = leaves.iterator();
     }
 
     @Override
     public boolean moveNext() {
-        checkClosed();
+        raiseIfClosedOrKilled();
         try {
             return innerMoveNext();
         } catch (IOException e) {
@@ -189,7 +192,7 @@ public class LuceneBatchIterator implements BatchIterator {
 
     @Override
     public boolean allLoaded() {
-        checkClosed();
+        raiseIfClosedOrKilled();
         return true;
     }
 
@@ -220,9 +223,17 @@ public class LuceneBatchIterator implements BatchIterator {
         }
     }
 
-    private void checkClosed() {
+    private void raiseIfClosedOrKilled() {
         if (closed) {
             throw new IllegalStateException("BatchIterator is closed");
         }
+        if (killed != null) {
+            Exceptions.rethrowUnchecked(killed);
+        }
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        killed = throwable;
     }
 }

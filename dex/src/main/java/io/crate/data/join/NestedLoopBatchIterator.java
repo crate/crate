@@ -25,6 +25,7 @@ package io.crate.data.join;
 import io.crate.data.BatchIterator;
 import io.crate.data.Columns;
 
+import javax.annotation.Nonnull;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -38,6 +39,7 @@ import java.util.function.Function;
  * - {@link #fullOuterJoin(BatchIterator, BatchIterator, Function)}
  */
 public class NestedLoopBatchIterator implements BatchIterator {
+
 
     /**
      * Create a BatchIterator that creates a full-outer-join of {@code left} and {@code right}.
@@ -158,4 +160,9 @@ public class NestedLoopBatchIterator implements BatchIterator {
     }
 
 
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        left.kill(throwable);
+        right.kill(throwable);
+    }
 }

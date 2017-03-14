@@ -24,6 +24,7 @@ package io.crate.data;
 
 import io.crate.concurrent.CompletableFutures;
 
+import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -147,6 +148,13 @@ public class AsyncCompositeBatchIterator implements BatchIterator {
     private void raiseIfLoading() {
         if (loading) {
             throw new IllegalStateException("BatchIterator already loading");
+        }
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        for (BatchIterator iterator : iterators) {
+            iterator.kill(throwable);
         }
     }
 }

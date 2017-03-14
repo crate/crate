@@ -91,7 +91,6 @@ public class RemoteCollectorFactory {
             jobContextService,
             ramAccountingContext,
             consumer,
-            killable,
             newCollectPhase);
     }
 

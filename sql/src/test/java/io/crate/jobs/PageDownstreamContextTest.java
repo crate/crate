@@ -62,7 +62,6 @@ public class PageDownstreamContextTest extends CrateUnitTest {
             1,
             "dummy",
             batchConsumer,
-            batchConsumer,
             pagingIterator,
             new Streamer[1],
             RAM_ACCOUNTING_CONTEXT,

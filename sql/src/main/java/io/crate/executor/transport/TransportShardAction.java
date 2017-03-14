@@ -26,6 +26,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
+import io.crate.exceptions.JobKilledException;
 import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.jobs.KillAllListener;
 import org.elasticsearch.action.support.ActionFilters;
@@ -120,7 +121,7 @@ public abstract class TransportShardAction<R extends ShardRequest>
     public void killAllJobs() {
         synchronized (activeOperations) {
             for (KillableCallable callable : activeOperations.values()) {
-                callable.kill(null);
+                callable.kill(new InterruptedException(JobKilledException.MESSAGE));
             }
             activeOperations.clear();
         }
@@ -131,7 +132,7 @@ public abstract class TransportShardAction<R extends ShardRequest>
         synchronized (activeOperations) {
             Collection<KillableCallable> operations = activeOperations.get(jobId);
             for (KillableCallable callable : operations) {
-                callable.kill(null);
+                callable.kill(new InterruptedException(JobKilledException.MESSAGE));
             }
             activeOperations.removeAll(jobId);
         }

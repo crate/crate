@@ -104,7 +104,6 @@ public class RemoteCollectorTest {
             jobContextService,
             mock(RamAccountingContext.class),
             consumer,
-            consumer,
             collectPhase
         );
     }

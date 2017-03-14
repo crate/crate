@@ -25,6 +25,7 @@ package io.crate.operation.projectors;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Row;
 
+import javax.annotation.Nonnull;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -53,7 +54,7 @@ public abstract class AbstractProjector implements Projector {
     }
 
     @Override
-    public void kill(Throwable throwable) {
+    public void kill(@Nonnull Throwable throwable) {
         downstream.kill(throwable);
     }
 

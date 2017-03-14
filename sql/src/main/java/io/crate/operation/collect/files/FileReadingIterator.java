@@ -36,6 +36,7 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -80,6 +81,7 @@ public class FileReadingIterator implements BatchIterator {
     private LineContext lineContext;
     private final Columns inputs;
 
+    private volatile Throwable killed;
 
     private FileReadingIterator(Collection<String> fileUris,
                                 List<? extends Input<?>> inputs,
@@ -103,6 +105,11 @@ public class FileReadingIterator implements BatchIterator {
     @Override
     public Columns rowData() {
         return inputs;
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        // handled by CloseAssertingBatchIterator
     }
 
     private final class ExceptionHandlingInputProxy<T> implements Input<T> {

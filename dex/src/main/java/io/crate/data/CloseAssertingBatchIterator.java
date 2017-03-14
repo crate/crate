@@ -23,13 +23,17 @@
 package io.crate.data;
 
 import io.crate.concurrent.CompletableFutures;
+import io.crate.exceptions.Exceptions;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.concurrent.CompletionStage;
 
 public class CloseAssertingBatchIterator implements BatchIterator {
 
     private final BatchIterator delegate;
     private boolean closed = false;
+    private volatile Throwable killed = null;
 
     public CloseAssertingBatchIterator(BatchIterator delegate) {
         this.delegate = delegate;
@@ -42,13 +46,13 @@ public class CloseAssertingBatchIterator implements BatchIterator {
 
     @Override
     public void moveToStart() {
-        raiseIfClosed();
+        raiseIfClosedOrKilled();
         delegate.moveToStart();
     }
 
     @Override
     public boolean moveNext() {
-        raiseIfClosed();
+        raiseIfClosedOrKilled();
         return delegate.moveNext();
     }
 
@@ -68,18 +72,27 @@ public class CloseAssertingBatchIterator implements BatchIterator {
 
     @Override
     public boolean allLoaded() {
-        raiseIfClosed();
+        raiseIfClosedOrKilled();
         return delegate.allLoaded();
     }
 
-    private void raiseIfClosed() {
+    private void raiseIfClosedOrKilled() {
         if (closed) {
             throw new IllegalStateException("Iterator is closed");
+        }
+        if (killed != null) {
+            Exceptions.rethrowUnchecked(killed);
         }
     }
 
     @Override
     public String toString() {
         return "Closing{" + delegate + '}';
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        killed = throwable;
+        delegate.kill(throwable);
     }
 }

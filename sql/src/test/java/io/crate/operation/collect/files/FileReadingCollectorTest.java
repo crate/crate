@@ -250,7 +250,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
 
     private void getObjects(Collection<String> fileUris, String compression, final S3ObjectInputStream s3InputStream, RowReceiver rowReceiver) throws Throwable {
         BatchIterator iterator = createBatchIterator(fileUris, compression, s3InputStream);
-        BatchIteratorCollectorBridge.newInstance(iterator, new BatchConsumerToRowReceiver(rowReceiver), rowReceiver).doCollect();
+        BatchIteratorCollectorBridge.newInstance(iterator, new BatchConsumerToRowReceiver(rowReceiver)).doCollect();
     }
 
     private BatchIterator createBatchIterator(Collection<String> fileUris, String compression, final S3ObjectInputStream s3InputStream) {

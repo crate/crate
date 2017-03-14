@@ -25,7 +25,7 @@ package io.crate.operation.projectors;
 import io.crate.data.*;
 import io.crate.exceptions.SQLExceptions;
 
-import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 import java.util.Objects;
 
 /**
@@ -141,7 +141,7 @@ public class BatchConsumerToRowReceiver implements BatchConsumer, Killable {
     }
 
     @Override
-    public synchronized void kill(@Nullable Throwable throwable) {
+    public synchronized void kill(@Nonnull Throwable throwable) {
         rowReceiver.kill(throwable);
         if (!running) {
             // some RowReceiver kill implementations only set a internal "stop" flag and wait for the next
