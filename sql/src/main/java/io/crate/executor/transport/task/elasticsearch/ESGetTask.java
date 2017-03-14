@@ -28,7 +28,9 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
+import io.crate.data.RowsBatchIterator;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.AbstractExecutionSubContext;
@@ -61,6 +63,7 @@ import org.elasticsearch.search.fetch.source.FetchSourceContext;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.stream.StreamSupport;
 
 public class ESGetTask extends JobTask {
 
@@ -82,17 +85,17 @@ public class ESGetTask extends JobTask {
 
 
         private final Request request;
-        protected RowReceiver downstream;
-
         private final Action transportAction;
         protected final ESGetTask task;
 
-        JobContext(ESGetTask task, Action transportAction, RowReceiver downstream) {
+        BatchConsumer consumer;
+
+        JobContext(ESGetTask task, Action transportAction, BatchConsumer consumer) {
             super(task.esGet.executionPhaseId(), LOGGER);
             this.task = task;
             this.transportAction = transportAction;
             this.request = prepareRequest(task.esGet, task.fsc);
-            this.downstream = downstream;
+            this.consumer = consumer;
         }
 
         @Nullable
@@ -102,7 +105,7 @@ public class ESGetTask extends JobTask {
         protected void innerStart() {
             if (request == null) {
                 // request can be null if id is null -> since primary keys cannot be null this is a no-match
-                downstream.finish(RepeatHandle.UNSUPPORTED);
+                consumer.accept(RowsBatchIterator.empty(), null);
                 close();
             } else {
                 transportAction.execute(request, this);
@@ -114,18 +117,18 @@ public class ESGetTask extends JobTask {
 
         MultiGetJobContext(ESGetTask task,
                            TransportMultiGetAction transportAction,
-                           RowReceiver downstream) {
-            super(task, transportAction, downstream);
+                           BatchConsumer consumer) {
+            super(task, transportAction, consumer);
             assert task.esGet.docKeys().size() > 1 : "number of docKeys must be > 1";
             assert task.projectorFactory != null : "task.projectorFactory must not be null";
         }
 
         @Override
         protected void innerPrepare() throws Exception {
-            downstream = prependProjectors(downstream);
+            consumer = prependProjectors(consumer);
         }
 
-        private RowReceiver prependProjectors(RowReceiver downstream) {
+        private BatchConsumer prependProjectors(BatchConsumer consumer) {
             if (task.esGet.limit() > TopN.NO_LIMIT || task.esGet.offset() > 0 || !task.esGet.sortSymbols().isEmpty()) {
                 List<Symbol> orderBySymbols = new ArrayList<>(task.esGet.sortSymbols().size());
                 for (Symbol symbol : task.esGet.sortSymbols()) {
@@ -150,15 +153,15 @@ public class ESGetTask extends JobTask {
                         task.esGet.nullsFirst()
                     );
                 }
-                return ProjectorChain.prependProjectors(
-                    downstream,
+                return ProjectingBatchConsumer.create(
+                    consumer,
                     Collections.singletonList(projection),
                     task.jobId(),
                     null,
                     task.projectorFactory
                 );
             } else {
-                return downstream;
+                return consumer;
             }
         }
 
@@ -170,36 +173,31 @@ public class ESGetTask extends JobTask {
         @Override
         public void onResponse(MultiGetResponse responses) {
             try {
-                loop:
-                for (MultiGetItemResponse response : responses) {
-                    if (response.isFailed() || !response.getResponse().isExists()) {
-                        continue;
-                    }
-                    for (CollectExpression<GetResponse, ?> expression : task.expressions) {
-                        expression.setNextRow(response.getResponse());
-                    }
-                    RowReceiver.Result result = downstream.setNextRow(task.inputRow);
-                    switch (result) {
-                        case CONTINUE:
-                            continue;
-                        case PAUSE:
-                            throw new UnsupportedOperationException("ESGetTask doesn't support pause");
-                        case STOP:
-                            break loop;
-                    }
-                    throw new AssertionError("Unrecognized setNextRow result: " + result);
-                }
-                downstream.finish(RepeatHandle.UNSUPPORTED);
+                Iterable<Row> rows = responseToRows(responses);
+                consumer.accept(RowsBatchIterator.newInstance(rows, task.inputRow.numColumns()), null);
                 close();
             } catch (Exception e) {
-                downstream.fail(e);
+                consumer.accept(null, e);
                 close(e);
             }
         }
 
+        private Iterable<Row> responseToRows(MultiGetResponse responses) {
+            return () -> StreamSupport.stream(responses.spliterator(), false)
+                .filter(r -> r.isFailed() == false)
+                .filter(r -> r.getResponse().isExists())
+                .map(response -> {
+                    for (CollectExpression<GetResponse, ?> expression : task.expressions) {
+                        expression.setNextRow(response.getResponse());
+                    }
+                    return (Row) task.inputRow;
+                }).iterator();
+        }
+
+
         @Override
         public void onFailure(Throwable e) {
-            downstream.fail(e);
+            consumer.accept(null, e);
             close(e);
         }
 
@@ -224,8 +222,8 @@ public class ESGetTask extends JobTask {
 
         SingleGetJobContext(ESGetTask task,
                             TransportGetAction transportAction,
-                            RowReceiver downstream) {
-            super(task, transportAction, downstream);
+                            BatchConsumer consumer) {
+            super(task, transportAction, consumer);
             assert task.esGet.docKeys().size() == 1 : "numer of docKeys must be 1";
         }
 
@@ -255,9 +253,10 @@ public class ESGetTask extends JobTask {
                 for (CollectExpression<GetResponse, ?> expression : task.expressions) {
                     expression.setNextRow(response);
                 }
-                downstream.setNextRow(task.inputRow);
+                consumer.accept(RowsBatchIterator.newInstance(task.inputRow), null);
+            } else {
+                consumer.accept(RowsBatchIterator.empty(), null);
             }
-            downstream.finish(RepeatHandle.UNSUPPORTED);
             close();
         }
 
@@ -265,10 +264,10 @@ public class ESGetTask extends JobTask {
         public void onFailure(Throwable e) {
             if (task.esGet.tableInfo().isPartitioned() && e instanceof IndexNotFoundException) {
                 // this means we have no matching document
-                downstream.finish(RepeatHandle.UNSUPPORTED);
+                consumer.accept(RowsBatchIterator.empty(), null);
                 close();
             } else {
-                downstream.fail(e);
+                consumer.accept(null, e);
                 close(e);
             }
         }
@@ -307,11 +306,12 @@ public class ESGetTask extends JobTask {
 
     @Override
     public void execute(RowReceiver rowReceiver, Row parameters) {
+        BatchConsumer consumer = new BatchConsumerToRowReceiver(rowReceiver);
         JobContext jobContext;
         if (esGet.docKeys().size() == 1) {
-            jobContext = new SingleGetJobContext(this, transportActionProvider.transportGetAction(), rowReceiver);
+            jobContext = new SingleGetJobContext(this, transportActionProvider.transportGetAction(), consumer);
         } else {
-            jobContext = new MultiGetJobContext(this, transportActionProvider.transportMultiGetAction(), rowReceiver);
+            jobContext = new MultiGetJobContext(this, transportActionProvider.transportMultiGetAction(), consumer);
         }
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
         builder.addSubContext(jobContext);
@@ -320,7 +320,7 @@ public class ESGetTask extends JobTask {
             JobExecutionContext ctx = jobContextService.createContext(builder);
             ctx.start();
         } catch (Throwable throwable) {
-            rowReceiver.fail(throwable);
+            consumer.accept(null, throwable);
         }
     }
 
