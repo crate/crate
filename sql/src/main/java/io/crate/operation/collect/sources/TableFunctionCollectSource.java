@@ -26,6 +26,7 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.Functions;
@@ -35,7 +36,6 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.*;
 import io.crate.operation.projectors.InputCondition;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.TableFunctionCollectPhase;
 import org.elasticsearch.cluster.ClusterService;
@@ -61,12 +61,12 @@ public class TableFunctionCollectSource implements CollectSource {
 
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase collectPhase,
-                                                    RowReceiver downstream,
+                                                    BatchConsumer consumer,
                                                     JobCollectContext jobCollectContext) {
         TableFunctionCollectPhase phase = (TableFunctionCollectPhase) collectPhase;
         WhereClause whereClause = phase.whereClause();
         if (whereClause.noMatch()) {
-            return Collections.singletonList(RowsCollector.empty(downstream));
+            return Collections.singletonList(RowsCollector.empty(consumer));
         }
 
         TableFunctionImplementation functionImplementation = phase.relation().functionImplementation();
@@ -94,6 +94,6 @@ public class TableFunctionCollectSource implements CollectSource {
         if (orderBy != null) {
             rows = RowsTransformer.sortRows(Iterables.transform(rows, Row::materialize), phase);
         }
-        return Collections.singletonList(RowsCollector.forRows(rows, phase.toCollect().size(), downstream));
+        return Collections.singletonList(RowsCollector.forRows(rows, phase.toCollect().size(), consumer));
     }
 }

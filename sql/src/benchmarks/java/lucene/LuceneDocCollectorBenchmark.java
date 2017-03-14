@@ -34,6 +34,7 @@ import com.carrotsearch.randomizedtesting.annotations.TimeoutSuite;
 import io.crate.data.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.projectors.BatchConsumerToRowReceiver;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.LuceneDocCollectorProvider;
@@ -183,7 +184,7 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
 
 
     private CrateCollector createCollector(String stmt, RowReceiver downstream, Integer pageSizeHint, Object... args) throws Exception {
-        return collectorProvider.createCollector(stmt, downstream, pageSizeHint, args);
+        return collectorProvider.createCollector(stmt, new BatchConsumerToRowReceiver(downstream), pageSizeHint, args);
     }
 
 

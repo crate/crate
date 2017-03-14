@@ -26,7 +26,6 @@ import io.crate.action.job.SharedShardContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Input;
-import io.crate.data.Killable;
 import io.crate.data.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.AbstractReferenceResolver;
@@ -117,7 +116,7 @@ public abstract class ShardCollectorProvider {
      * Create a CrateCollector.Builder to collect rows from a shard.
      * <p>
      * This also creates all shard-level projectors.
-     * The RowReceiver that is used for {@link CrateCollector.Builder#build(BatchConsumer, Killable)}
+     * The RowReceiver that is used for {@link CrateCollector.Builder#build(BatchConsumer)}
      * should be the first node-level projector.
      */
     public CrateCollector.Builder getCollectorBuilder(RoutedCollectPhase collectPhase,
@@ -141,8 +140,8 @@ public abstract class ShardCollectorProvider {
         } else {
             return new CrateCollector.Builder() {
                 @Override
-                public CrateCollector build(BatchConsumer batchConsumer, Killable killable) {
-                    return builder.build(batchConsumer, killable);
+                public CrateCollector build(BatchConsumer batchConsumer) {
+                    return builder.build(batchConsumer);
                 }
 
                 @Override

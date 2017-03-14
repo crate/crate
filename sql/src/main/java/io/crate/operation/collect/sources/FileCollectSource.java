@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
+import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
 import io.crate.metadata.Functions;
 import io.crate.operation.InputFactory;
@@ -34,8 +35,6 @@ import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.files.FileReadingIterator;
 import io.crate.operation.collect.files.LineCollectorExpression;
-import io.crate.operation.projectors.BatchConsumerToRowReceiver;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
@@ -62,7 +61,7 @@ public class FileCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
         FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);
@@ -85,8 +84,7 @@ public class FileCollectSource implements CollectSource {
             Arrays.binarySearch(readers, clusterService.state().nodes().getLocalNodeId())
         );
 
-        return ImmutableList.of(BatchIteratorCollectorBridge.newInstance(
-            fileReadingIterator, new BatchConsumerToRowReceiver(downstream)));
+        return ImmutableList.of(BatchIteratorCollectorBridge.newInstance(fileReadingIterator, consumer));
     }
 
     private static List<String> targetUriToStringList(Symbol targetUri) {

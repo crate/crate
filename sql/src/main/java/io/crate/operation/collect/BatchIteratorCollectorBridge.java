@@ -57,8 +57,11 @@ public final class BatchIteratorCollectorBridge {
 
         @Override
         public synchronized void doCollect() {
-            started = true;
-            consumer.accept(batchIterator, null);
+            if (!started) {
+                started = true;
+                consumer.accept(batchIterator, null);
+            }
+            // else: got killed
         }
 
         @Override
@@ -66,6 +69,7 @@ public final class BatchIteratorCollectorBridge {
             if (started) {
                 batchIterator.kill(throwable);
             } else {
+                started = true;
                 consumer.accept(null, throwable);
             }
         }

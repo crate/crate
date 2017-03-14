@@ -23,6 +23,7 @@ package io.crate.operation.collect.sources;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.metadata.ClusterReferenceResolver;
 import io.crate.metadata.Functions;
@@ -34,7 +35,6 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.inject.Inject;
@@ -57,17 +57,17 @@ public class SingleRowSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase phase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         collectPhase = collectPhase.normalize(clusterNormalizer, null);
         if (collectPhase.whereClause().noMatch()) {
-            return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
+            return ImmutableList.<CrateCollector>of(RowsCollector.empty(consumer));
         }
         assert !collectPhase.whereClause().hasQuery()
             : "WhereClause should have been normalized to either MATCH_ALL or NO_MATCH";
 
         InputFactory inputFactory = new InputFactory(functions);
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(collectPhase.toCollect());
-        return Collections.singletonList(RowsCollector.single(new InputRow(ctx.topLevelInputs()), downstream));
+        return Collections.singletonList(RowsCollector.single(new InputRow(ctx.topLevelInputs()), consumer));
     }
 }

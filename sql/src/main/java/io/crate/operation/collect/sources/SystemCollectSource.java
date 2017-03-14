@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.RowsBatchIterator;
 import io.crate.metadata.Functions;
@@ -42,9 +43,6 @@ import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsTransformer;
 import io.crate.operation.collect.files.SummitsIterable;
 import io.crate.operation.collect.stats.JobsLogs;
-import io.crate.operation.projectors.BatchConsumerToRowReceiver;
-import io.crate.operation.projectors.Requirement;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.SysRowUpdater;
 import io.crate.operation.reference.sys.check.SysCheck;
@@ -161,7 +159,7 @@ public class SystemCollectSource implements CollectSource {
 
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase phase,
-                                                    RowReceiver downstream,
+                                                    BatchConsumer consumer,
                                                     JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         // sys.operations can contain a _node column - these refs need to be normalized into literals
@@ -173,15 +171,15 @@ public class SystemCollectSource implements CollectSource {
         String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
         Supplier<CompletableFuture<? extends Iterable<?>>> iterableGetter = iterableGetters.get(table);
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";
-        boolean requiresRepeat = downstream.requirements().contains(Requirement.REPEAT);
+        boolean requiresScroll = consumer.requiresScroll();
         return ImmutableList.of(
             BatchIteratorCollectorBridge.newInstance(
                 () -> iterableGetter.get().thenApply(dataIterable ->
                     RowsBatchIterator.newInstance(
-                        dataIterableToRowsIterable(routedCollectPhase, requiresRepeat, dataIterable),
+                        dataIterableToRowsIterable(routedCollectPhase, requiresScroll, dataIterable),
                         collectPhase.toCollect().size()
                     )),
-                new BatchConsumerToRowReceiver(downstream)
+                consumer
             )
         );
     }

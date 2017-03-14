@@ -30,6 +30,7 @@ import io.crate.analyze.Analyzer;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.ParameterContext;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.jobs.JobContextService;
@@ -41,7 +42,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.consumer.ConsumerContext;
@@ -85,7 +85,7 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
             cluster.getInstance(Functions.class), ReplaceMode.COPY);
     }
 
-    private Iterable<CrateCollector> createNodeCollectors(String nodeId, RoutedCollectPhase collectPhase, RowReceiver downstream) throws Exception {
+    private Iterable<CrateCollector> createNodeCollectors(String nodeId, RoutedCollectPhase collectPhase, BatchConsumer downstream) throws Exception {
         String nodeName = cluster.clusterService().state().nodes().get(nodeId).name();
         IndicesService indicesService = cluster.getInstance(IndicesService.class, nodeName);
         JobContextService jobContextService = cluster.getInstance(JobContextService.class, nodeName);
@@ -102,7 +102,7 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
         return jobCollectContext.collectors();
     }
 
-    public CrateCollector createCollector(String statement, final RowReceiver downstream, Integer nodePageSizeHint, Object... args) throws Exception {
+    public CrateCollector createCollector(String statement, final BatchConsumer downstream, Integer nodePageSizeHint, Object... args) throws Exception {
         Analysis analysis = analyzer.boundAnalyze(
             SqlParser.createStatement(statement),
             SessionContext.SYSTEM_SESSION,

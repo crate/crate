@@ -24,7 +24,7 @@ package io.crate.action.job;
 
 import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
-import io.crate.operation.join.ListenableBatchIterator;
+import io.crate.data.ListenableBatchIterator;
 import io.crate.operation.projectors.*;
 
 import javax.annotation.Nullable;
