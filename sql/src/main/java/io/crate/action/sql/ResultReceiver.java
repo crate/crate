@@ -25,7 +25,6 @@ package io.crate.action.sql;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.Row;
 import io.crate.executor.Executor;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
 
 import javax.annotation.Nonnull;

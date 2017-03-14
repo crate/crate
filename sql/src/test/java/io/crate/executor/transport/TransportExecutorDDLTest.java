@@ -34,7 +34,7 @@ import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
-import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.TestingBatchConsumer;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -152,9 +152,9 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         String partitionName = new PartitionName("t", ImmutableList.of(new BytesRef("1"))).asIndexName();
         ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
 
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        executor.execute(plan, rowReceiver, Row.EMPTY);
-        Bucket objects = rowReceiver.result();
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        executor.execute(plan, consumer, Row.EMPTY);
+        Bucket objects = consumer.getBucket();
         assertThat(objects, contains(isRow(-1L)));
 
         execute("select * from information_schema.table_partitions where table_name = 't'");
@@ -181,9 +181,9 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         ESDeletePartition plan = new ESDeletePartition(UUID.randomUUID(), partitionName);
 
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        executor.execute(plan, rowReceiver, Row.EMPTY);
-        Bucket bucket = rowReceiver.result();
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        executor.execute(plan, consumer, Row.EMPTY);
+        Bucket bucket = consumer.getBucket();
         assertThat(bucket, contains(isRow(-1L)));
 
         execute("select * from information_schema.table_partitions where table_name = 't'");
@@ -240,8 +240,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     }
 
     private Bucket executePlan(Plan plan) throws Exception {
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        executor.execute(plan, rowReceiver, Row.EMPTY);
-        return rowReceiver.result();
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        executor.execute(plan, consumer, Row.EMPTY);
+        return consumer.getBucket();
     }
 }

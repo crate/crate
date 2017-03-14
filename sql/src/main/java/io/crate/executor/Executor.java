@@ -21,8 +21,8 @@
 
 package io.crate.executor;
 
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
 
 import java.util.List;
@@ -33,7 +33,7 @@ public interface Executor {
     long ROWCOUNT_ERROR = -2L;
     long ROWCOUNT_UNKNOWN = -1L;
 
-    void execute(Plan plan, RowReceiver rowReceiver, Row parameters);
+    void execute(Plan plan, BatchConsumer consumer, Row parameters);
 
     List<CompletableFuture<Long>> executeBulk(Plan plan);
 }

@@ -22,8 +22,8 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.action.sql.BatchConsumerToResultReceiver;
 import io.crate.action.sql.ResultReceiver;
-import io.crate.action.sql.RowReceiverToResultReceiver;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
@@ -31,12 +31,12 @@ import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.concurrent.CountdownFutureCallback;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.ReadOnlyException;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.operation.collect.stats.JobsLogs;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
@@ -143,8 +143,8 @@ class BatchPortal extends AbstractPortal {
                 .whenComplete(jobsLogsUpdateListener)
                 .whenComplete(completionCallback);
 
-            RowReceiver rowReceiver = new RowReceiverToResultReceiver(resultReceiver, 0);
-            portalContext.getExecutor().execute(plan, rowReceiver, new RowN(batchParams.toArray()));
+            BatchConsumer consumer = new BatchConsumerToResultReceiver(resultReceiver, 0);
+            portalContext.getExecutor().execute(plan, consumer, new RowN(batchParams.toArray()));
         }
         synced = true;
         return completionCallback;

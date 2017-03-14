@@ -38,7 +38,6 @@ import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.*;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.NodeOperationGrouper;

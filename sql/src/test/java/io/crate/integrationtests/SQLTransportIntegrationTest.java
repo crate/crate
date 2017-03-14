@@ -52,10 +52,10 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.GroovyTestSanitizer;
 import io.crate.test.integration.SystemPropsTestLoggingListener;
-import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
+import io.crate.testing.TestingBatchConsumer;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.Client;
@@ -306,9 +306,9 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return new PlanForNode(plan, nodeName);
     }
 
-    public CollectingRowReceiver execute(PlanForNode planForNode) {
+    public TestingBatchConsumer execute(PlanForNode planForNode) {
         TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class, planForNode.nodeName);
-        CollectingRowReceiver downstream = new CollectingRowReceiver();
+        TestingBatchConsumer downstream = new TestingBatchConsumer();
         transportExecutor.execute(planForNode.plan, downstream, Row.EMPTY);
         return downstream;
     }

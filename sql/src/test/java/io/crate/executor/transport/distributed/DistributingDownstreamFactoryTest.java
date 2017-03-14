@@ -32,7 +32,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.Paging;
 import io.crate.operation.projectors.DistributingDownstreamFactory;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;

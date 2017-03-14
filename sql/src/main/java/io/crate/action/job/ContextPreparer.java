@@ -95,7 +95,6 @@ public class ContextPreparer extends AbstractComponent {
     private final ESLogger nlContextLogger;
     private final ClusterService clusterService;
     private final CountOperation countOperation;
-    private final ThreadPool threadPool;
     private final CircuitBreaker circuitBreaker;
     private final DistributingDownstreamFactory distributingDownstreamFactory;
     private final InnerPreparer innerPreparer;
@@ -121,7 +120,6 @@ public class ContextPreparer extends AbstractComponent {
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
-        this.threadPool = threadPool;
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         this.distributingDownstreamFactory = distributingDownstreamFactory;
         innerPreparer = new InnerPreparer();

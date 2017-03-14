@@ -135,7 +135,7 @@ public class DistributingConsumer implements BatchConsumer {
         for (int i = 0; i < downstreams.size(); i++) {
             Downstream downstream = downstreams.get(i);
             if (downstream.needsMoreData == false) {
-                countdownAndMaybeCloseIt(numActiveRequests, failure, it);
+                countdownAndMaybeCloseIt(numActiveRequests, it);
             } else {
                 if (traceEnabled) {
                     logger.trace("forwardFailure targetNode={} targetPhase={}/{} bucket={} failure={}",
@@ -145,21 +145,21 @@ public class DistributingConsumer implements BatchConsumer {
                     @Override
                     public void onResponse(DistributedResultResponse response) {
                         downstream.needsMoreData = false;
-                        countdownAndMaybeCloseIt(numActiveRequests, failure, it);
+                        countdownAndMaybeCloseIt(numActiveRequests, it);
                     }
 
                     @Override
                     public void onFailure(Throwable e) {
                         logger.error("Error sending failure to downstream={} targetPhase={}/{} bucket={}", e,
                             downstream.nodeId, targetPhaseId, inputId, bucketIdx);
-                        countdownAndMaybeCloseIt(numActiveRequests, failure, it);
+                        countdownAndMaybeCloseIt(numActiveRequests, it);
                     }
                 });
             }
         }
     }
 
-    private void countdownAndMaybeCloseIt(AtomicInteger numActiveRequests, Throwable failure, @Nullable BatchIterator it) {
+    private void countdownAndMaybeCloseIt(AtomicInteger numActiveRequests, @Nullable BatchIterator it) {
         if (numActiveRequests.decrementAndGet() == 0) {
             if (it != null) {
                 it.close();

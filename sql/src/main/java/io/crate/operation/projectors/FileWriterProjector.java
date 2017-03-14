@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
-public class FileWriterProjector extends AbstractProjector {
+public class FileWriterProjector implements Projector {
 
     private final String uri;
     private final Iterable<CollectExpression<Row, ?>> collectExpressions;
@@ -48,7 +48,7 @@ public class FileWriterProjector extends AbstractProjector {
 
     /**
      * @param inputs a list of {@link Input}.
-     *               If null the row that is received in {@link #setNextRow(Row)}
+     *               If null the row that is exposed in the BatchIterator
      *               is expected to contain the raw source in its first column.
      *               That raw source is then written to the output
      *               <p/>
@@ -77,20 +77,5 @@ public class FileWriterProjector extends AbstractProjector {
     public BatchIteratorProjector asProjector() {
         return it -> CollectingBatchIterator.newInstance(it, new FileWriterCountCollector(executorService, uri.toString(), compressionType, inputs,
             collectExpressions, overwrites, outputNames, outputFormat), 1);
-    }
-
-    @Override
-    public Result setNextRow(Row row) {
-        throw new UnsupportedOperationException("FileWriterIterator must be the consumer instead");
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        throw new UnsupportedOperationException("FileWriterIterator must be the consumer instead");
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        throw new UnsupportedOperationException("FileWriterIterator must be the consumer instead");
     }
 }
