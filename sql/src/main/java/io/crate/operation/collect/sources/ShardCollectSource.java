@@ -263,7 +263,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         Map<String, List<Integer>> indexShards = locations.get(localNodeId);
         if (indexShards != null) {
             builders.addAll(
-                getDocCollectors(jobCollectContext, normalizedPhase, lastRR.requirements(), indexShards));
+                getDocCollectors(jobCollectContext, normalizedPhase, lastRR.requirements().contains(Requirement.REPEAT), indexShards));
         }
 
         switch (builders.size()) {
@@ -363,7 +363,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
     private Collection<CrateCollector.Builder> getDocCollectors(JobCollectContext jobCollectContext,
                                                                 RoutedCollectPhase collectPhase,
-                                                                Set<Requirement> downstreamRequirements,
+                                                                boolean requiresScroll,
                                                                 Map<String, List<Integer>> indexShards) {
 
         List<CrateCollector.Builder> crateCollectors = new ArrayList<>();
@@ -383,7 +383,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
                     CrateCollector.Builder collector = shardCollectorProvider.getCollectorBuilder(
                         collectPhase,
-                        downstreamRequirements,
+                        requiresScroll,
                         jobCollectContext
                     );
                     crateCollectors.add(collector);

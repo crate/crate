@@ -39,7 +39,6 @@ import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.ProjectingBatchConsumer;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
-import io.crate.operation.projectors.Requirement;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.Projections;
@@ -53,7 +52,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
 public abstract class ShardCollectorProvider {
 
@@ -123,7 +121,7 @@ public abstract class ShardCollectorProvider {
      * should be the first node-level projector.
      */
     public CrateCollector.Builder getCollectorBuilder(RoutedCollectPhase collectPhase,
-                                                      Set<Requirement> downstreamRequirements,
+                                                      boolean requiresScroll,
                                                       JobCollectContext jobCollectContext) throws Exception {
         assert collectPhase.orderBy() ==
                null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
@@ -134,7 +132,7 @@ public abstract class ShardCollectorProvider {
             builder = RowsCollector.emptyBuilder();
         } else {
             assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
-            builder = getBuilder(normalizedCollectNode, downstreamRequirements, jobCollectContext);
+            builder = getBuilder(normalizedCollectNode, requiresScroll, jobCollectContext);
         }
 
         Collection<? extends Projection> shardProjections = Projections.shardProjections(collectPhase.projections());
@@ -162,7 +160,7 @@ public abstract class ShardCollectorProvider {
     }
 
     protected abstract CrateCollector.Builder getBuilder(RoutedCollectPhase collectPhase,
-                                                         Set<Requirement> downstreamRequirements,
+                                                         boolean requiresScroll,
                                                          JobCollectContext jobCollectContext);
 
 
