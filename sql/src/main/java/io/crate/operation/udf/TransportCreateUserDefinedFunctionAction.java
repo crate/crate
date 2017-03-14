@@ -66,9 +66,10 @@ public class TransportCreateUserDefinedFunctionAction extends TransportMasterNod
                                    ClusterState state, ActionListener<CreateUserDefinedFunctionResponse> listener) throws Exception {
         userDefinedFunctionService.registerFunction(
             new UserDefinedFunctionService.RegisterUserDefinedFunctionRequest(
-                "put_udf [" + request.userDefinedFunctionMetaData().name + "]",
-                request.userDefinedFunctionMetaData().name,
-                request.userDefinedFunctionMetaData()
+                "put_udf [" + request.userDefinedFunctionMetaData().name() + "]",
+                request.userDefinedFunctionMetaData().name(),
+                request.userDefinedFunctionMetaData(),
+                request.replace()
             ).masterNodeTimeout(request.masterNodeTimeout()), // TODO: request.timeout() request.settings()
             new ActionListener<ClusterStateUpdateResponse>() {
                 @Override

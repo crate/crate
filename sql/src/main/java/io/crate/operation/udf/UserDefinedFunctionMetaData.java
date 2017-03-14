@@ -43,8 +43,8 @@ import java.util.stream.Collectors;
 
 public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
 
-    String name;
-    List<FunctionArgumentDefinition> arguments;
+    private String name;
+    private List<FunctionArgumentDefinition> arguments;
     DataType returnType;
     String language;
     String definition;
@@ -68,6 +68,14 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         UserDefinedFunctionMetaData udfMetaData = new UserDefinedFunctionMetaData();
         udfMetaData.readFrom(in);
         return udfMetaData;
+    }
+
+    public String name() {
+        return name;
+    }
+
+    public List<FunctionArgumentDefinition> arguments() {
+        return arguments;
     }
 
     @Override

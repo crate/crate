@@ -51,7 +51,7 @@ public class UserDefinedFunctionDDLDispatcher {
             ExpressionToStringVisitor.convert(statement.definition(), params)
         );
 
-        CreateUserDefinedFunctionRequest request = new CreateUserDefinedFunctionRequest(metaData);
+        CreateUserDefinedFunctionRequest request = new CreateUserDefinedFunctionRequest(metaData, statement.replace());
         transportActionProvider.transportCreateUserDefinedFunctionAction().execute(
             request,
             new ActionListener<CreateUserDefinedFunctionResponse>() {

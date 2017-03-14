@@ -45,7 +45,7 @@ public class UserDefinedFunctionFactory {
                         ((Compilable) JavaScriptUserDefinedFunction.ENGINE).compile(meta.definition);
 
                     return new JavaScriptUserDefinedFunction(
-                        new FunctionIdent(meta.name, meta.arguments.stream()
+                        new FunctionIdent(meta.name(), meta.arguments().stream()
                             .map(FunctionArgumentDefinition::type)
                             .collect(Collectors.toList())),
                         meta.returnType,

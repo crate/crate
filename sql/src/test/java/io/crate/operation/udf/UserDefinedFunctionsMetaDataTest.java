@@ -59,9 +59,9 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         UserDefinedFunctionMetaData udfMeta2 = UserDefinedFunctionMetaData.fromStream(in);
         assertThat(udfMeta, is(udfMeta2));
 
-        assertThat(udfMeta2.name, is("my_add"));
-        assertThat(udfMeta2.arguments.size(), is(2));
-        assertThat(udfMeta2.arguments.get(1), is(
+        assertThat(udfMeta2.name(), is("my_add"));
+        assertThat(udfMeta2.arguments().size(), is(2));
+        assertThat(udfMeta2.arguments().get(1), is(
             FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
         ));
         assertThat(udfMeta2.returnType, is(DataTypes.FLOAT));

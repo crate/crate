@@ -32,16 +32,23 @@ import java.io.IOException;
 public class CreateUserDefinedFunctionRequest extends MasterNodeRequest<CreateUserDefinedFunctionRequest>{
 
     private UserDefinedFunctionMetaData userDefinedFunctionMetaData;
+    private boolean replace;
 
     public CreateUserDefinedFunctionRequest() {
     }
 
-    public CreateUserDefinedFunctionRequest(UserDefinedFunctionMetaData userDefinedFunctionMetaData) {
+    public CreateUserDefinedFunctionRequest(UserDefinedFunctionMetaData userDefinedFunctionMetaData,
+                                            boolean replace) {
         this.userDefinedFunctionMetaData = userDefinedFunctionMetaData;
+        this.replace = replace;
     }
 
     public UserDefinedFunctionMetaData userDefinedFunctionMetaData() {
         return userDefinedFunctionMetaData;
+    }
+
+    boolean replace() {
+        return replace;
     }
 
     @Override
@@ -54,11 +61,13 @@ public class CreateUserDefinedFunctionRequest extends MasterNodeRequest<CreateUs
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         userDefinedFunctionMetaData = UserDefinedFunctionMetaData.fromStream(in);
+        replace = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         userDefinedFunctionMetaData.writeTo(out);
+        out.writeBoolean(replace);
     }
 }

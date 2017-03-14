@@ -68,6 +68,10 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
         functions.put(function.createMethodSignature(), function);
     }
 
+    public boolean contains(UserDefinedFunctionMetaData function) {
+        return functions.containsKey(function.createMethodSignature());
+    }
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(functions.size());

@@ -23,6 +23,7 @@
 package io.crate.operation.udf;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.junit.Test;
@@ -48,7 +49,7 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
 
     @Test
     public void testFirstFunction() throws Exception {
-        UserDefinedFunctionsMetaData metaData = putFunction(null, same1);
+        UserDefinedFunctionsMetaData metaData = putFunction(null, same1, true);
         assertThat(metaData.functions(), hasSize(1));
         assertThat(metaData.functions(), contains(same1));
     }
@@ -57,10 +58,22 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
     public void testReplace() throws Exception {
         UserDefinedFunctionsMetaData metaData = putFunction(
             UserDefinedFunctionsMetaData.of(same1),
-            same2
+            same2,
+            true
         );
         assertThat(metaData.functions(), hasSize(1));
         assertThat(metaData.functions(), contains(same2));
+    }
+
+    @Test
+    public void testReplaceIsFalse() throws Exception {
+        expectedException.expect(UserDefinedFunctionAlreadyExistsException.class);
+        expectedException.expectMessage("User defined Function 'same()' already exists.");
+        putFunction(
+            UserDefinedFunctionsMetaData.of(same1),
+            same2,
+            false
+        );
     }
 
 }

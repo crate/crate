@@ -22,6 +22,7 @@
 package io.crate.operation.udf;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.*;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateRequest;
@@ -58,7 +59,8 @@ public class UserDefinedFunctionService extends AbstractComponent implements Clu
             public ClusterState execute(ClusterState currentState) throws Exception {
                 MetaData metaData = currentState.metaData();
                 MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
-                UserDefinedFunctionsMetaData functions = putFunction(metaData.custom(UserDefinedFunctionsMetaData.TYPE), request.metaData);
+                UserDefinedFunctionsMetaData functions = putFunction(metaData.custom(UserDefinedFunctionsMetaData.TYPE),
+                    request.metaData, request.replace);
                 mdBuilder.putCustom(UserDefinedFunctionsMetaData.TYPE, functions);
                 return ClusterState.builder(currentState).metaData(mdBuilder).build();
             }
@@ -72,10 +74,14 @@ public class UserDefinedFunctionService extends AbstractComponent implements Clu
     }
 
     @VisibleForTesting
-    static UserDefinedFunctionsMetaData putFunction(@Nullable UserDefinedFunctionsMetaData functions, UserDefinedFunctionMetaData function) {
+    static UserDefinedFunctionsMetaData putFunction(@Nullable UserDefinedFunctionsMetaData functions, UserDefinedFunctionMetaData function,
+                                                    boolean replace) {
         if (functions == null) {
             return UserDefinedFunctionsMetaData.of(function);
         } else {
+            if (!replace && functions.contains(function)) {
+                throw new UserDefinedFunctionAlreadyExistsException(function);
+            }
             functions.put(function);
             return functions;
         }
@@ -103,11 +109,13 @@ public class UserDefinedFunctionService extends AbstractComponent implements Clu
         UserDefinedFunctionMetaData metaData;
         final String cause;
         final String name;
+        final boolean replace;
 
-        RegisterUserDefinedFunctionRequest(String cause, String name, UserDefinedFunctionMetaData metaData) {
+        RegisterUserDefinedFunctionRequest(String cause, String name, UserDefinedFunctionMetaData metaData, boolean replace) {
             this.cause = cause;
             this.name = name;
             this.metaData = metaData;
+            this.replace = replace;
         }
     }
 }
