@@ -127,7 +127,6 @@ public class JobExecutionContextTest extends CrateUnitTest {
             "n1",
             2, "dummy",
             batchConsumer,
-            batchConsumer,
             PassThroughPagingIterator.oneShot(),
             new Streamer[]{IntegerType.INSTANCE.streamer()},
             mock(RamAccountingContext.class),

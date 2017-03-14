@@ -181,8 +181,7 @@ public class SystemCollectSource implements CollectSource {
                         dataIterableToRowsIterable(routedCollectPhase, requiresRepeat, dataIterable),
                         collectPhase.toCollect().size()
                     )),
-                new BatchConsumerToRowReceiver(downstream),
-                downstream
+                new BatchConsumerToRowReceiver(downstream)
             )
         );
     }

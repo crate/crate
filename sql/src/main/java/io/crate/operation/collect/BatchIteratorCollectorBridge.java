@@ -24,9 +24,7 @@ package io.crate.operation.collect;
 
 import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
-import io.crate.data.Killable;
 
-import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
@@ -36,61 +34,77 @@ import java.util.function.Supplier;
  */
 public final class BatchIteratorCollectorBridge {
 
-    public static CrateCollector newInstance(BatchIterator batchIterator, BatchConsumer consumer, Killable killable) {
-        return new SyncBatchItCollector(batchIterator, consumer, killable);
+    public static CrateCollector newInstance(BatchIterator batchIterator, BatchConsumer consumer) {
+        return new SyncBatchItCollector(batchIterator, consumer);
     }
 
     public static CrateCollector newInstance(Supplier<CompletableFuture<BatchIterator>> batchIteratorFuture,
-                                             BatchConsumer consumer,
-                                             Killable killable) {
-        return new AsyncBatchItCollector(batchIteratorFuture, consumer, killable);
+                                             BatchConsumer consumer) {
+        return new AsyncBatchItCollector(batchIteratorFuture, consumer);
     }
 
     private static class SyncBatchItCollector implements CrateCollector {
 
         private final BatchIterator batchIterator;
-        private final Killable killable;
         private final BatchConsumer consumer;
 
-        SyncBatchItCollector(BatchIterator batchIterator, BatchConsumer consumer, Killable killable) {
+        private boolean started;
+
+        SyncBatchItCollector(BatchIterator batchIterator, BatchConsumer consumer) {
             this.batchIterator = batchIterator;
             this.consumer = consumer;
-            this.killable = killable;
         }
 
         @Override
-        public void doCollect() {
+        public synchronized void doCollect() {
+            started = true;
             consumer.accept(batchIterator, null);
         }
 
         @Override
-        public void kill(@Nullable Throwable throwable) {
-            killable.kill(throwable);
+        public synchronized void kill(Throwable throwable) {
+            if (started) {
+                batchIterator.kill(throwable);
+            } else {
+                consumer.accept(null, throwable);
+            }
         }
     }
 
     private static class AsyncBatchItCollector implements CrateCollector {
 
-        private final Supplier<CompletableFuture<BatchIterator>> batchIteratorFuture;
+        private final Supplier<CompletableFuture<BatchIterator>> batchIteratorSupplier;
         private final BatchConsumer consumer;
-        private final Killable killable;
 
-        AsyncBatchItCollector(Supplier<CompletableFuture<BatchIterator>> batchIteratorFuture,
-                              BatchConsumer consumer,
-                              Killable killable) {
-            this.batchIteratorFuture = batchIteratorFuture;
+        private BatchIterator batchIterator;
+        private Throwable killed = null;
+
+
+        AsyncBatchItCollector(Supplier<CompletableFuture<BatchIterator>> batchIteratorSupplier,
+                              BatchConsumer consumer) {
+            this.batchIteratorSupplier = batchIteratorSupplier;
             this.consumer = consumer;
-            this.killable = killable;
         }
 
         @Override
-        public void doCollect() {
-            batchIteratorFuture.get().whenComplete(consumer);
+        public synchronized void doCollect() {
+            if (killed == null) {
+                batchIteratorSupplier.get().whenComplete((bi, failure) -> {
+                    batchIterator = bi;
+                    consumer.accept(bi, failure);
+                });
+            } else {
+                consumer.accept(null, killed);
+            }
         }
 
         @Override
-        public void kill(@Nullable Throwable throwable) {
-            killable.kill(throwable);
+        public synchronized void kill(Throwable throwable) {
+            if (batchIterator == null) {
+                killed = throwable;
+            } else {
+                batchIterator.kill(throwable);
+            }
         }
     }
 }

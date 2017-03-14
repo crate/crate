@@ -26,6 +26,7 @@ import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
 import io.crate.data.Columns;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.PrimitiveIterator;
 import java.util.Random;
@@ -139,5 +140,10 @@ public class BatchSimulatingIterator implements BatchIterator {
     @Override
     public boolean allLoaded() {
         return delegate.allLoaded() && currentBatch >= numBatches;
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        delegate.kill(throwable);
     }
 }

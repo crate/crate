@@ -42,6 +42,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 
+import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -219,6 +220,11 @@ public class NodeStatsIterator implements BatchIterator {
         if (isLoading()) {
             throw new IllegalStateException("Iterator is loading");
         }
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        // cannot cancel remote request and if the data is already here this is fast enough to ignore the kill.
     }
 
     private static class TopLevelColumnIdentExtractor extends DefaultTraversalSymbolVisitor<Set<ColumnIdent>, Void> {

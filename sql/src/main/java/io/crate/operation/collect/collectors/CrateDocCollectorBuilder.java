@@ -77,6 +77,6 @@ public class CrateDocCollectorBuilder implements CrateCollector.Builder {
             inputs,
             expressions
         );
-        return BatchIteratorCollectorBridge.newInstance(batchIterator, consumer, killable);
+        return BatchIteratorCollectorBridge.newInstance(batchIterator, consumer);
     }
 }

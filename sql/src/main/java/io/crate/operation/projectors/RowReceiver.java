@@ -24,9 +24,10 @@ package io.crate.operation.projectors;
 
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchConsumer;
-import io.crate.data.Row;
 import io.crate.data.Killable;
+import io.crate.data.Row;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -91,7 +92,7 @@ public interface RowReceiver extends CompletionListenable, Killable {
      * If a RowReceiver doesn't delegate the kill to another RowReceiver the rowReceiver has to return false on the
      * next setNextRow call in order to stop collect operations.
      */
-    void kill(Throwable throwable);
+    void kill(@Nonnull Throwable throwable);
 
     /**
      * specifies which requirements a downstream requires from an upstream in order to work correctly.

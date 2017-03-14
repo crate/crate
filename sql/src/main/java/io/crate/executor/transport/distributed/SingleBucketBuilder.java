@@ -31,6 +31,7 @@ import io.crate.executor.transport.StreamBucket;
 import io.crate.executor.transport.StreamBucketCollector;
 import io.crate.operation.projectors.*;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Set;
@@ -82,7 +83,7 @@ public class SingleBucketBuilder implements RowReceiver {
     }
 
     @Override
-    public void kill(Throwable throwable) {
+    public void kill(@Nonnull Throwable throwable) {
         bucketFuture.completeExceptionally(throwable);
     }
 

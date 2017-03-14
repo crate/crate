@@ -25,6 +25,8 @@ package io.crate.data;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletableFutures;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
@@ -94,4 +96,8 @@ public class RowsBatchIterator implements BatchIterator {
         return true;
     }
 
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        // handled by CloseAssertingBatchIterator
+    }
 }

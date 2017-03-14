@@ -24,8 +24,6 @@ package io.crate.operation.collect;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Killable;
 
-import javax.annotation.Nullable;
-
 public interface CrateCollector {
 
     interface Builder {
@@ -47,5 +45,5 @@ public interface CrateCollector {
 
     void doCollect();
 
-    void kill(@Nullable Throwable throwable);
+    void kill(Throwable throwable);
 }
