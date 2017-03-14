@@ -23,7 +23,7 @@
 package io.crate.executor.transport.executionphases;
 
 import io.crate.action.job.JobResponse;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.data.BatchConsumer;
 import io.crate.planner.node.ExecutionPhase;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.collect.Tuple;
@@ -32,11 +32,11 @@ import java.util.List;
 
 class FailureOnlyResponseListener implements ActionListener<JobResponse> {
 
-    private final List<Tuple<ExecutionPhase, RowReceiver>> rowReceivers;
+    private final List<Tuple<ExecutionPhase, BatchConsumer>> consumers;
     private final InitializationTracker initializationTracker;
 
-    FailureOnlyResponseListener(List<Tuple<ExecutionPhase, RowReceiver>> rowReceivers, InitializationTracker initializationTracker) {
-        this.rowReceivers = rowReceivers;
+    FailureOnlyResponseListener(List<Tuple<ExecutionPhase, BatchConsumer>> consumers, InitializationTracker initializationTracker) {
+        this.consumers = consumers;
         this.initializationTracker = initializationTracker;
     }
 
@@ -44,8 +44,8 @@ class FailureOnlyResponseListener implements ActionListener<JobResponse> {
     public void onResponse(JobResponse jobResponse) {
         initializationTracker.jobInitialized();
         if (jobResponse.directResponse().size() > 0) {
-            for (Tuple<ExecutionPhase, RowReceiver> rowReceiver : rowReceivers) {
-                rowReceiver.v2().fail(new IllegalStateException("Got a directResponse but didn't expect one"));
+            for (Tuple<ExecutionPhase, BatchConsumer> consumer : consumers) {
+                consumer.v2().accept(null, new IllegalStateException("Got a directResponse but didn't expect one"));
             }
         }
     }
@@ -55,8 +55,8 @@ class FailureOnlyResponseListener implements ActionListener<JobResponse> {
         initializationTracker.jobInitialized();
         // could be a preparation failure - in that case the regular error propagation doesn't work as it hasn't been set up yet
         // so fail rowReceivers directly
-        for (Tuple<ExecutionPhase, RowReceiver> rowReceiver : rowReceivers) {
-            rowReceiver.v2().fail(e);
+        for (Tuple<ExecutionPhase, BatchConsumer> consumer : consumers) {
+            consumer.v2().accept(null, e);
         }
     }
 }

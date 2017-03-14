@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
+import io.crate.data.BatchConsumer;
 import io.crate.executor.transport.distributed.*;
 import io.crate.operation.NodeOperation;
 import io.crate.planner.distribution.DistributionInfo;
@@ -54,13 +55,13 @@ public class DistributingDownstreamFactory extends AbstractComponent {
         super(settings);
         this.clusterService = clusterService;
         this.transportDistributedResultAction = transportDistributedResultAction;
-        distributingDownstreamLogger = Loggers.getLogger(DistributingDownstream.class, settings);
+        distributingDownstreamLogger = Loggers.getLogger(DistributingConsumer.class, settings);
     }
 
-    public RowReceiver create(NodeOperation nodeOperation,
-                              DistributionInfo distributionInfo,
-                              UUID jobId,
-                              int pageSize) {
+    public BatchConsumer create(NodeOperation nodeOperation,
+                                DistributionInfo distributionInfo,
+                                UUID jobId,
+                                int pageSize) {
         Streamer<?>[] streamers = StreamerVisitor.streamersFromOutputs(nodeOperation.executionPhase());
         assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())
             : "trying to build a DistributingDownstream but nodeOperation has a directResponse downstream";
@@ -88,7 +89,7 @@ public class DistributingDownstreamFactory extends AbstractComponent {
                 throw new UnsupportedOperationException("Can't handle distributionInfo: " + distributionInfo);
         }
 
-        return new DistributingDownstream(
+        return new DistributingConsumer(
             distributingDownstreamLogger,
             jobId,
             multiBucketBuilder,

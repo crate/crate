@@ -29,7 +29,7 @@ import io.crate.metadata.*;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingBatchConsumer;
+import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -92,11 +92,11 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         BatchIterator batchIterator = RowsBatchIterator.newInstance(Collections.singletonList(rowN), rowN.numColumns());
         batchIterator = projector.apply(batchIterator);
 
-        CollectingBatchConsumer collectingBatchConsumer = new CollectingBatchConsumer();
-        collectingBatchConsumer.accept(batchIterator, null);
+        TestingBatchConsumer testingBatchConsumer = new TestingBatchConsumer();
+        testingBatchConsumer.accept(batchIterator, null);
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("A primary key value must not be NULL");
-        collectingBatchConsumer.getResult();
+        testingBatchConsumer.getResult();
     }
 }

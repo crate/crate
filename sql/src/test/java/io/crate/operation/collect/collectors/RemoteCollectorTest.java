@@ -38,7 +38,7 @@ import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
-import io.crate.testing.CollectingBatchConsumer;
+import io.crate.testing.TestingBatchConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.settings.Settings;
@@ -69,7 +69,7 @@ public class RemoteCollectorTest {
     private TransportJobAction transportJobAction;
     private TransportKillJobsNodeAction transportKillJobsNodeAction;
     private RemoteCollector remoteCollector;
-    private CollectingBatchConsumer consumer;
+    private TestingBatchConsumer consumer;
 
     @Captor
     public ArgumentCaptor<ActionListener<JobResponse>> listenerCaptor;
@@ -91,7 +91,7 @@ public class RemoteCollectorTest {
         );
         transportJobAction = mock(TransportJobAction.class);
         transportKillJobsNodeAction = mock(TransportKillJobsNodeAction.class);
-        consumer = new CollectingBatchConsumer();
+        consumer = new TestingBatchConsumer();
 
         JobsLogs jobsLogs = new JobsLogs(() -> true);
         JobContextService jobContextService = new JobContextService(Settings.EMPTY, new NoopClusterService(), jobsLogs);

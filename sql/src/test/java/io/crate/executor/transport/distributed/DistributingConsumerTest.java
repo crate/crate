@@ -28,7 +28,7 @@ import io.crate.data.CollectionBucket;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingBatchConsumer;
+import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
@@ -42,7 +42,6 @@ import org.mockito.invocation.InvocationOnMock;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import static org.hamcrest.Matchers.is;
@@ -57,7 +56,7 @@ public class DistributingConsumerTest extends CrateUnitTest {
     @Test
     public void testSendUsingDistributingConsumerAndReceiveWithPageDownstreamContext() throws Exception {
         Streamer<?>[] streamers = { DataTypes.INTEGER.streamer() };
-        CollectingBatchConsumer collectingConsumer = new CollectingBatchConsumer();
+        TestingBatchConsumer collectingConsumer = new TestingBatchConsumer();
         PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(streamers, collectingConsumer);
         TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, pageDownstreamContext);
         DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
@@ -79,7 +78,7 @@ public class DistributingConsumerTest extends CrateUnitTest {
     @Test
     public void testDistributingConsumerForwardsFailure() throws Exception {
         Streamer<?>[] streamers = { DataTypes.INTEGER.streamer() };
-        CollectingBatchConsumer collectingConsumer = new CollectingBatchConsumer();
+        TestingBatchConsumer collectingConsumer = new TestingBatchConsumer();
         PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(streamers, collectingConsumer);
         TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, pageDownstreamContext);
         DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
@@ -102,12 +101,11 @@ public class DistributingConsumerTest extends CrateUnitTest {
                 Collections.singletonList("n1"),
                 distributedResultAction,
                 streamers,
-                2, // pageSize
-                new CompletableFuture<>()
+                2 // pageSize
             );
     }
 
-    private PageDownstreamContext createPageDownstreamContext(Streamer<?>[] streamers, CollectingBatchConsumer collectingConsumer) {
+    private PageDownstreamContext createPageDownstreamContext(Streamer<?>[] streamers, TestingBatchConsumer collectingConsumer) {
         return new PageDownstreamContext(
                 logger,
                 "n1",
