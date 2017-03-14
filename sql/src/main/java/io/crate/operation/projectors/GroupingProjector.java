@@ -22,10 +22,7 @@
 package io.crate.operation.projectors;
 
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.BatchIteratorProjector;
-import io.crate.data.CollectingBatchIterator;
-import io.crate.data.Input;
-import io.crate.data.Row;
+import io.crate.data.*;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
@@ -83,7 +80,7 @@ public class GroupingProjector implements Projector {
     }
 
     @Override
-    public BatchIteratorProjector asProjector() {
-        return bi -> CollectingBatchIterator.newInstance(bi, collector, numCols);
+    public BatchIterator apply(BatchIterator batchIterator) {
+        return CollectingBatchIterator.newInstance(batchIterator, collector, numCols);
     }
 }

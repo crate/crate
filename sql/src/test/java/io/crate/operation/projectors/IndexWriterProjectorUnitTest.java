@@ -24,7 +24,10 @@ package io.crate.operation.projectors;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.data.RowsBatchIterator;
 import io.crate.metadata.*;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
@@ -87,10 +90,9 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
             UUID.randomUUID()
         );
 
-        BatchIteratorProjector projector = indexWriter.asProjector();
         RowN rowN = new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null});
         BatchIterator batchIterator = RowsBatchIterator.newInstance(Collections.singletonList(rowN), rowN.numColumns());
-        batchIterator = projector.apply(batchIterator);
+        batchIterator = indexWriter.apply(batchIterator);
 
         TestingBatchConsumer testingBatchConsumer = new TestingBatchConsumer();
         testingBatchConsumer.accept(batchIterator, null);

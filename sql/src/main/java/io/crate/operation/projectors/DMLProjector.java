@@ -22,7 +22,8 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.data.BatchIteratorProjector;
+import io.crate.data.BatchIterator;
+import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.operation.collect.CollectExpression;
@@ -53,13 +54,17 @@ class DMLProjector<Request extends ShardRequest> implements Projector {
     }
 
     @Override
-    public BatchIteratorProjector asProjector() {
+    public BatchIterator apply(BatchIterator batchIterator) {
         Supplier<ShardRequest.Item> updateItemSupplier = () -> {
             BytesRef id = (BytesRef) collectIdExpression.value();
             return itemFactory.apply(id.utf8ToString());
         };
-
-        return it -> IndexWriterCountBatchIterator.newShardInstance(it, shardId,
-            Collections.singletonList(collectIdExpression), bulkShardProcessor, updateItemSupplier);
+        return IndexWriterCountBatchIterator.newShardInstance(
+            batchIterator,
+            shardId,
+            Collections.singletonList(collectIdExpression),
+            bulkShardProcessor,
+            updateItemSupplier
+        );
     }
 }

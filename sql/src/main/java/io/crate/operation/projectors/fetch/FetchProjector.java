@@ -24,11 +24,10 @@ package io.crate.operation.projectors.fetch;
 
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.AsyncOperationBatchIterator;
-import io.crate.data.BatchIteratorProjector;
+import io.crate.data.BatchIterator;
+import io.crate.data.Projector;
 import io.crate.metadata.Functions;
-import io.crate.operation.projectors.Projector;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public class FetchProjector implements Projector {
@@ -51,11 +50,10 @@ public class FetchProjector implements Projector {
         this.fetchSize = fetchSize;
     }
 
-    @Nullable
     @Override
-    public BatchIteratorProjector asProjector() {
-        return bi -> bi == null ? null : new AsyncOperationBatchIterator(
-            bi,
+    public BatchIterator apply(BatchIterator batchIterator) {
+        return new AsyncOperationBatchIterator(
+            batchIterator,
             outputSymbols.size(),
             new FetchBatchAccumulator(
                 fetchOperation,
@@ -63,6 +61,7 @@ public class FetchProjector implements Projector {
                 outputSymbols,
                 fetchProjectorContext,
                 fetchSize
-            ));
+            )
+        );
     }
 }

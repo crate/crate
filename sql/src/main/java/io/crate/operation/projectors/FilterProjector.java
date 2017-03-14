@@ -21,10 +21,7 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.data.BatchIteratorProjector;
-import io.crate.data.FilteringBatchIterator;
-import io.crate.data.Row;
-import io.crate.data.RowBridging;
+import io.crate.data.*;
 
 import java.util.function.Predicate;
 
@@ -37,10 +34,13 @@ class FilterProjector implements Projector {
     }
 
     @Override
-    public BatchIteratorProjector asProjector() {
-        return bi -> new FilteringBatchIterator(bi, inputs -> {
-            final Row row = RowBridging.toRow(inputs);
-            return () -> rowFilterPredicate.test(row);
-        });
+    public BatchIterator apply(BatchIterator batchIterator) {
+        return new FilteringBatchIterator(
+            batchIterator,
+            inputs -> {
+                final Row row = RowBridging.toRow(inputs);
+                return () -> rowFilterPredicate.test(row);
+            }
+        );
     }
 }
