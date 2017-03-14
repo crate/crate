@@ -183,12 +183,11 @@ public class TransportBulkCreateIndicesAction
         createIndices(request, stateUpdateListener);
     }
 
+    /**
+     * This code is more or less the same as the stuff in {@link MetaDataCreateIndexService}
+     * but optimized for bulk operation without separate mapping/alias/index settings.
+     */
     ClusterState executeCreateIndices(ClusterState currentState, BulkCreateIndicesRequest request) throws Exception {
-        /**
-         * This code is more or less the same as the stuff in {@link MetaDataCreateIndexService}
-         * but optimized for bulk operation without separate mapping/alias/index settings.
-         */
-
         List<String> indicesToCreate = new ArrayList<>(request.indices().size());
         String removalReason = null;
         String testIndex = null;
@@ -210,10 +209,10 @@ public class TransportBulkCreateIndicesAction
                 addMappingFromMappingsFile(mappings, mappingsDir, request);
             }
 
-            Settings.Builder indexSettingsBuilder = createIndexSettings(currentState, templates);
+            Settings indexSettings = createIndexSettings(currentState, templates);
 
             testIndex = indicesToCreate.get(0);
-            indicesService.createIndex(testIndex, indexSettingsBuilder.build(), clusterService.localNode().getId());
+            indicesService.createIndex(testIndex, indexSettings, clusterService.localNode().getId());
 
             // now add the mappings
             IndexService indexService = indicesService.indexServiceSafe(testIndex);
@@ -256,12 +255,10 @@ public class TransportBulkCreateIndicesAction
 
             MetaData.Builder newMetaDataBuilder = MetaData.builder(currentState.metaData());
             for (String index : indicesToCreate) {
-                Settings indexSettings = indexSettingsBuilder
-                    .put(IndexMetaData.SETTING_INDEX_UUID, Strings.randomBase64UUID())
-                    .build();
+                Settings newIndexSettings = createIndexSettings(currentState, templates);
 
                 final IndexMetaData.Builder indexMetaDataBuilder =
-                    IndexMetaData.builder(index).settings(indexSettings);
+                    IndexMetaData.builder(index).settings(newIndexSettings);
 
                 for (MappingMetaData mappingMd : mappingsMetaData.values()) {
                     indexMetaDataBuilder.putMapping(mappingMd);
@@ -357,8 +354,7 @@ public class TransportBulkCreateIndicesAction
         }
     }
 
-    private Settings.Builder createIndexSettings(ClusterState currentState,
-                                                 List<IndexTemplateMetaData> templates) {
+    private Settings createIndexSettings(ClusterState currentState, List<IndexTemplateMetaData> templates) {
         Settings.Builder indexSettingsBuilder = settingsBuilder();
         // apply templates, here, in reverse order, since first ones are better matching
         for (int i = templates.size() - 1; i >= 0; i--) {
@@ -390,7 +386,7 @@ public class TransportBulkCreateIndicesAction
 
         indexSettingsBuilder.put(IndexMetaData.SETTING_INDEX_UUID, Strings.randomBase64UUID());
 
-        return indexSettingsBuilder;
+        return indexSettingsBuilder.build();
     }
 
     private void addMappings(Map<String, Map<String, Object>> mappings, File mappingsDir) {
