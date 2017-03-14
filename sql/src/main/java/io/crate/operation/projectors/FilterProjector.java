@@ -28,30 +28,12 @@ import io.crate.data.RowBridging;
 
 import java.util.function.Predicate;
 
-class FilterProjector extends AbstractProjector {
+class FilterProjector implements Projector {
 
     private final Predicate<Row> rowFilterPredicate;
 
     FilterProjector(Predicate<Row> rowFilterPredicate) {
         this.rowFilterPredicate = rowFilterPredicate;
-    }
-
-    @Override
-    public Result setNextRow(Row row) {
-        if (rowFilterPredicate.test(row)) {
-            return downstream.setNextRow(row);
-        }
-        return Result.CONTINUE;
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        downstream.finish(repeatHandle);
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        downstream.fail(throwable);
     }
 
     @Override

@@ -34,8 +34,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import java.util.concurrent.TimeUnit;
-
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
@@ -78,7 +76,7 @@ public class RemoteCollectorIntegrationTest extends SQLTransportIntegrationTest 
             .setWaitForRelocatingShards(0)
             .setTimeout(TimeValue.timeValueSeconds(5)).execute().actionGet();
 
-        execute(plan).completionFuture().get(1, TimeUnit.SECONDS);
+        execute(plan).getResult();
 
         execute("refresh table t");
         assertThat(TestingHelpers.printedTable(execute("select * from t order by id").rows()),

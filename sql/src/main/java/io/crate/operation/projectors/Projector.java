@@ -27,18 +27,7 @@ import io.crate.data.BatchIteratorProjector;
 
 import javax.annotation.Nullable;
 
-public interface Projector extends RowReceiver {
-
-    void downstream(RowReceiver rowDownstreamHandle);
-
-    /**
-     *
-     * This method returns the downstream of this projector, which should only be used for bridging purposes when
-     * replacing this projector with a batch iterator based implementation as returned by {@link #asProjector()}.
-     *
-     * @return the downstream row receiver.
-     */
-    RowReceiver downstream();
+public interface Projector {
 
     /**
      * This method returns a batch iterator projector implementation for the given Projector.

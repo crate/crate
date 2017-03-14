@@ -77,4 +77,8 @@ public class TestingBatchConsumer implements BatchConsumer, Killable {
         }
         result.completeExceptionally(throwable);
     }
+
+    public Bucket getBucket() throws Exception {
+        return new CollectionBucket(getResult());
+    }
 }

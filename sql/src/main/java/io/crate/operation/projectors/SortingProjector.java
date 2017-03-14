@@ -25,7 +25,9 @@ import com.google.common.base.Preconditions;
 import io.crate.data.*;
 import io.crate.operation.collect.CollectExpression;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -35,17 +37,14 @@ import java.util.stream.Collectors;
  * Compared to {@link SortingTopNProjector} this projector does not support limiting,
  * while the {@link SortingTopNProjector} does not work WITHOUT a limit.
  */
-class SortingProjector extends AbstractProjector {
+class SortingProjector implements Projector {
 
     private final Collection<? extends Input<?>> inputs;
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
-    private Set<Requirement> requirements;
 
     private final Comparator<Object[]> comparator;
     private final int offset;
     private final int numOutputs;
-    private final List<Object[]> rows = new ArrayList<>();
-    private IterableRowEmitter rowEmitter = null;
 
     /**
      * @param inputs             contains output {@link Input}s and orderBy {@link Input}s
@@ -65,42 +64,6 @@ class SortingProjector extends AbstractProjector {
         this.collectExpressions = collectExpressions;
         this.comparator = comparator;
         this.offset = offset;
-    }
-
-    @Override
-    public Result setNextRow(Row row) {
-        Object[] newRow = getCells(row);
-        rows.add(newRow);
-        return Result.CONTINUE;
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        rowEmitter = new IterableRowEmitter(downstream, sortAndCreateBucket(rows));
-        rowEmitter.run();
-    }
-
-    @Override
-    public void kill(Throwable throwable) {
-        IterableRowEmitter emitter = rowEmitter;
-        if (emitter == null) {
-            downstream.kill(throwable);
-        } else {
-            emitter.kill(throwable);
-        }
-    }
-
-    @Override
-    public void fail(Throwable t) {
-        downstream.fail(t);
-    }
-
-    @Override
-    public Set<Requirement> requirements() {
-        if (requirements == null) {
-            requirements = Requirements.remove(downstream.requirements(), Requirement.REPEAT);
-        }
-        return requirements;
     }
 
     @Override

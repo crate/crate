@@ -21,15 +21,16 @@
 
 package io.crate.integrationtests;
 
-import io.crate.data.Bucket;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
-import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
+
+import java.util.List;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
@@ -64,16 +65,16 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(((FetchProjection) merge.mergePhase().projections().get(0)).nodeReaders(), notNullValue());
         assertThat(((FetchProjection) merge.mergePhase().projections().get(0)).readerIndices(), notNullValue());
 
-        CollectingRowReceiver rowReceiver = execute(plan);
+        TestingBatchConsumer consumer = execute(plan);
 
-        Bucket result = rowReceiver.result();
+        List<Object[]> result = consumer.getResult();
         assertThat(result.size(), is(2));
-        assertThat(rowReceiver.rows.get(0).length, is(3));
-        assertThat(rowReceiver.rows.get(0)[0], is(1));
-        assertThat(rowReceiver.rows.get(0)[1], is(new BytesRef("Arthur")));
-        assertThat(rowReceiver.rows.get(0)[2], is(new BytesRef("rthur")));
-        assertThat(rowReceiver.rows.get(1)[0], is(2));
-        assertThat(rowReceiver.rows.get(1)[1], is(new BytesRef("Ford")));
-        assertThat(rowReceiver.rows.get(1)[2], is(new BytesRef("ord")));
+        assertThat(result.get(0).length, is(3));
+        assertThat(result.get(0)[0], is(1));
+        assertThat(result.get(0)[1], is(new BytesRef("Arthur")));
+        assertThat(result.get(0)[2], is(new BytesRef("rthur")));
+        assertThat(result.get(1)[0], is(2));
+        assertThat(result.get(1)[1], is(new BytesRef("Ford")));
+        assertThat(result.get(1)[2], is(new BytesRef("ord")));
     }
 }
