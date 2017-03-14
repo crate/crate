@@ -24,6 +24,7 @@ package io.crate.data;
 
 import io.crate.concurrent.CompletableFutures;
 
+import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
@@ -133,5 +134,11 @@ public class CollectingBatchIterator<A> implements BatchIterator {
         if (resultFuture != null && resultFuture.isDone() == false) {
             throw new IllegalStateException("BatchIterator is loading");
         }
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        resultFuture.cancel(true);
+        // rest is handled by CloseAssertingBatchIterator
     }
 }

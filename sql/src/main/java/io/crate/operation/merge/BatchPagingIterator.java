@@ -24,7 +24,9 @@ package io.crate.operation.merge;
 
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.*;
+import io.crate.exceptions.Exceptions;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
@@ -57,6 +59,7 @@ public class BatchPagingIterator<Key> implements BatchIterator {
     private CompletableFuture<Void> currentlyLoading;
 
     private boolean closed = false;
+    private volatile Throwable killed;
 
     public BatchPagingIterator(PagingIterator<Key, Row> pagingIterator,
                                Function<Key, Boolean> tryFetchMore,
@@ -78,7 +81,7 @@ public class BatchPagingIterator<Key> implements BatchIterator {
 
     @Override
     public void moveToStart() {
-        raiseIfClosed();
+        raiseIfClosedOrKilled();
         if (reachedEnd) {
             this.it = pagingIterator.repeat().iterator();
             rowData.updateRef(RowBridging.OFF_ROW);
@@ -89,7 +92,7 @@ public class BatchPagingIterator<Key> implements BatchIterator {
 
     @Override
     public boolean moveNext() {
-        raiseIfClosed();
+        raiseIfClosedOrKilled();
 
         if (it.hasNext()) {
             Row currentRow = it.next();
@@ -140,7 +143,7 @@ public class BatchPagingIterator<Key> implements BatchIterator {
 
     @Override
     public boolean allLoaded() {
-        raiseIfClosed();
+        raiseIfClosedOrKilled();
         return isUpstreamExhausted.getAsBoolean();
     }
 
@@ -152,9 +155,17 @@ public class BatchPagingIterator<Key> implements BatchIterator {
         }
     }
 
-    private void raiseIfClosed() {
+    private void raiseIfClosedOrKilled() {
         if (closed) {
             throw new IllegalStateException("Iterator is closed");
         }
+        if (killed != null) {
+            Exceptions.rethrowUnchecked(killed);
+        }
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        killed = throwable;
     }
 }

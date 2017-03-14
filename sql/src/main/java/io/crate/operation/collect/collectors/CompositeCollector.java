@@ -82,7 +82,7 @@ public class CompositeCollector implements CrateCollector {
     }
 
     @Override
-    public void kill(@Nullable Throwable throwable) {
+    public void kill(Throwable throwable) {
         for (CrateCollector collector : collectors) {
             collector.kill(throwable);
         }

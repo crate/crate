@@ -24,7 +24,9 @@ package io.crate.data;
 
 import com.google.common.collect.Iterators;
 import io.crate.concurrent.CompletableFutures;
+import io.crate.exceptions.Exceptions;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Iterator;
@@ -67,6 +69,7 @@ public class AsyncOperationBatchIterator implements BatchIterator {
     private boolean sourceExhausted = false;
     private boolean closed = false;
     private boolean loading = false;
+    private volatile Throwable killed = null;
 
     public AsyncOperationBatchIterator(BatchIterator source,
                                        int numColumns,
@@ -87,7 +90,7 @@ public class AsyncOperationBatchIterator implements BatchIterator {
 
     @Override
     public void moveToStart() {
-        raiseIfClosed();
+        raiseIfClosedOrKilled();
         raiseIfLoading();
 
         source.moveToStart();
@@ -99,7 +102,7 @@ public class AsyncOperationBatchIterator implements BatchIterator {
 
     @Override
     public boolean moveNext() {
-        raiseIfClosed();
+        raiseIfClosedOrKilled();
         raiseIfLoading();
 
         if (it.hasNext()) {
@@ -173,13 +176,16 @@ public class AsyncOperationBatchIterator implements BatchIterator {
 
     @Override
     public boolean allLoaded() {
-        raiseIfClosed();
+        raiseIfClosedOrKilled();
         return sourceExhausted;
     }
 
-    private void raiseIfClosed() {
+    private void raiseIfClosedOrKilled() {
         if (closed) {
             throw new IllegalStateException("BatchIterator is closed");
+        }
+        if (killed != null) {
+            Exceptions.rethrowUnchecked(killed);
         }
     }
 
@@ -187,5 +193,10 @@ public class AsyncOperationBatchIterator implements BatchIterator {
         if (loading) {
             throw new IllegalStateException("BatchIterator is already loading");
         }
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        killed = throwable;
     }
 }

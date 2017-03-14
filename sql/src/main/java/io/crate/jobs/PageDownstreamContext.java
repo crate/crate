@@ -28,7 +28,6 @@ import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Bucket;
-import io.crate.data.Killable;
 import io.crate.data.Row;
 import io.crate.operation.PageResultListener;
 import io.crate.operation.merge.BatchPagingIterator;
@@ -49,7 +48,6 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final Object lock = new Object();
     private final String nodeName;
     private final boolean traceEnabled;
-    private final Killable killable;
     private final Streamer<?>[] streamers;
     private final RamAccountingContext ramAccountingContext;
     private final int numBuckets;
@@ -68,7 +66,6 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
                                  int id,
                                  String name,
                                  BatchConsumer batchConsumer,
-                                 Killable killable,
                                  PagingIterator<Integer, Row> pagingIterator,
                                  Streamer<?>[] streamers,
                                  RamAccountingContext ramAccountingContext,
@@ -76,7 +73,6 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         super(id, logger);
         this.nodeName = nodeName;
         this.name = name;
-        this.killable = killable;
         this.streamers = streamers;
         this.ramAccountingContext = ramAccountingContext;
         this.numBuckets = numBuckets;
@@ -116,10 +112,9 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
             traceLog("method=setBucket", bucketIdx);
 
             if (bucketsByIdx.putIfAbsent(bucketIdx, rows) == false) {
-                killable.kill(new IllegalStateException(String.format(Locale.ENGLISH,
+                kill(new IllegalStateException(String.format(Locale.ENGLISH,
                     "Same bucket of a page set more than once. node=%s method=setBucket phaseId=%d bucket=%d",
                     nodeName, id, bucketIdx)));
-                return;
             }
             setExhaustedUpstreams();
             if (isLast) {
@@ -131,7 +126,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         }
     }
 
-    private void triggerConsumer() {
+    private synchronized void triggerConsumer() {
         if (receivingFirstPage) {
             receivingFirstPage = false;
             consumer.accept(batchPagingIterator, lastThrowable);
@@ -210,7 +205,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         traceLog("method=failure", bucketIdx, throwable);
         synchronized (lock) {
             if (bucketsByIdx.putIfAbsent(bucketIdx, Bucket.EMPTY) == false) {
-                killable.kill(new IllegalStateException(String.format(Locale.ENGLISH,
+                kill(new IllegalStateException(String.format(Locale.ENGLISH,
                     "Same bucket of a page set more than once. node=%s method=failure phaseId=%d bucket=%d",
                     nodeName, id(), bucketIdx)));
                 return;
@@ -264,10 +259,15 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     }
 
     @Override
-    protected void innerKill(@Nonnull Throwable t) {
+    protected synchronized void innerKill(@Nonnull Throwable t) {
         lastThrowable = t;
+        batchPagingIterator.kill(t); // this causes a already active consumer to fail
         batchPagingIterator.close();
-        killable.kill(t);
+        if (receivingFirstPage) {
+            // no active consumer - can "activate" it with a failure
+            receivingFirstPage = false;
+            consumer.accept(null, t); // should eventually trigger a closeCallback that releases any open listeners
+        }
     }
 
     @Override

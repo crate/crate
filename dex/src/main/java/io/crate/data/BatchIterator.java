@@ -58,7 +58,7 @@ import java.util.concurrent.CompletionStage;
  *
  * Concurrent usage of a BatchIterator is not supported.
  */
-public interface BatchIterator {
+public interface BatchIterator extends Killable {
 
     /**
      * This method returns a columns object which can be used to access the underlying data of the current iterator

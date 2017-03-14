@@ -348,8 +348,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 executor,
                 rowReceiver.requirements().contains(Requirement.REPEAT)
             ),
-            new BatchConsumerToRowReceiver(rowReceiver),
-            rowReceiver
+            new BatchConsumerToRowReceiver(rowReceiver)
         );
     }
 
@@ -458,11 +457,8 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         }
         return BatchIteratorCollectorBridge.newInstance(
             RowsBatchIterator.newInstance(
-                Iterables.transform(rows, Buckets.arrayToRowFunction()),
-                collectPhase.outputTypes().size()
-            ),
-            new BatchConsumerToRowReceiver(rowReceiver),
-            rowReceiver
+                Iterables.transform(rows, Buckets.arrayToRowFunction()), collectPhase.outputTypes().size()),
+            new BatchConsumerToRowReceiver(rowReceiver)
         );
     }
 

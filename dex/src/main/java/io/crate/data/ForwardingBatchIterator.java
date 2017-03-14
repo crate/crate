@@ -22,6 +22,7 @@
 
 package io.crate.data;
 
+import javax.annotation.Nonnull;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -62,5 +63,10 @@ public abstract class ForwardingBatchIterator implements BatchIterator {
     @Override
     public boolean allLoaded() {
         return delegate().allLoaded();
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        delegate().kill(throwable);
     }
 }

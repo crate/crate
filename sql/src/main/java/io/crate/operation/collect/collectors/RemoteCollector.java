@@ -28,7 +28,6 @@ import io.crate.action.job.JobResponse;
 import io.crate.action.job.TransportJobAction;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchConsumer;
-import io.crate.data.Killable;
 import io.crate.data.Row;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
@@ -66,7 +65,6 @@ public class RemoteCollector implements CrateCollector {
 
     private final Object killLock = new Object();
     private final boolean scrollRequired;
-    private final Killable killable;
     private JobExecutionContext context = null;
     private boolean collectorKilled = false;
 
@@ -78,7 +76,6 @@ public class RemoteCollector implements CrateCollector {
                            JobContextService jobContextService,
                            RamAccountingContext ramAccountingContext,
                            BatchConsumer consumer,
-                           Killable killable,
                            RoutedCollectPhase collectPhase) {
         this.jobId = jobId;
         this.localNode = localNode;
@@ -90,7 +87,6 @@ public class RemoteCollector implements CrateCollector {
         this.jobContextService = jobContextService;
         this.ramAccountingContext = ramAccountingContext;
         this.consumer = consumer;
-        this.killable = killable;
         this.collectPhase = collectPhase;
     }
 
@@ -170,7 +166,6 @@ public class RemoteCollector implements CrateCollector {
             RECEIVER_PHASE_ID,
             "remoteCollectReceiver",
             consumer,
-            killable,
             pagingIterator,
             DataTypes.getStreamers(collectPhase.outputTypes()),
             ramAccountingContext,

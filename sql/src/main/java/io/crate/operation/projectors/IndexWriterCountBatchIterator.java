@@ -32,6 +32,7 @@ import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nonnull;
 import java.util.BitSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -185,7 +186,6 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
 
         if (source.allLoaded()) {
             bulkShardProcessor.close();
-            return;
         } else {
             source.loadNextBatch().whenComplete((r, t) -> {
                 if (t == null) {
@@ -227,6 +227,12 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
         if (isLoading()) {
             throw new IllegalStateException("Iterator is loading");
         }
+    }
+
+    @Override
+    public void kill(@Nonnull Throwable throwable) {
+        bulkShardProcessor.kill(throwable);
+        // rest is handled by CloseAssertingBatchIterator
     }
 }
 

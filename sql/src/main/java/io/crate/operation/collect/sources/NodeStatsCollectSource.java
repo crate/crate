@@ -88,8 +88,8 @@ public class NodeStatsCollectSource implements CollectSource {
             nodes,
             inputFactory
         );
-        return ImmutableList.of(BatchIteratorCollectorBridge.newInstance(
-                nodeStatsIterator, new BatchConsumerToRowReceiver(downstream), downstream));
+        return ImmutableList.of(
+            BatchIteratorCollectorBridge.newInstance(nodeStatsIterator, new BatchConsumerToRowReceiver(downstream)));
     }
 
     @Nullable

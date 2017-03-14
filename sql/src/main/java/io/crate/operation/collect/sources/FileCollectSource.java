@@ -86,7 +86,7 @@ public class FileCollectSource implements CollectSource {
         );
 
         return ImmutableList.of(BatchIteratorCollectorBridge.newInstance(
-            fileReadingIterator, new BatchConsumerToRowReceiver(downstream), downstream));
+            fileReadingIterator, new BatchConsumerToRowReceiver(downstream)));
     }
 
     private static List<String> targetUriToStringList(Symbol targetUri) {
