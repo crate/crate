@@ -24,6 +24,7 @@ package io.crate.executor.transport.distributed;
 
 import io.crate.Streamer;
 import io.crate.data.*;
+import io.crate.exceptions.SQLExceptions;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
 
@@ -127,7 +128,8 @@ public class DistributingConsumer implements BatchConsumer {
         }
     }
 
-    private void forwardFailure(@Nullable final BatchIterator it, final Throwable failure) {
+    private void forwardFailure(@Nullable final BatchIterator it, final Throwable f) {
+        Throwable failure = SQLExceptions.unwrap(f); // make sure it's streamable
         AtomicInteger numActiveRequests = new AtomicInteger(downstreams.size());
         DistributedResultRequest request =
             new DistributedResultRequest(jobId, targetPhaseId, inputId, bucketIdx, failure, false);
