@@ -22,6 +22,8 @@
 
 package io.crate.metadata.doc;
 
+import com.google.common.collect.Sets;
+import com.google.common.primitives.Ints;
 import io.crate.Constants;
 import io.crate.Version;
 import io.crate.metadata.PartitionName;
@@ -29,15 +31,24 @@ import org.elasticsearch.cluster.metadata.CustomUpgradeService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.env.ShardLock;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardStateMetaData;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.*;
 
 /**
  * Crate specific {@link CustomUpgradeService} which hooks in into ES's {@link org.elasticsearch.gateway.GatewayMetaState}.
@@ -47,9 +58,12 @@ import java.util.Map;
 @Singleton
 public class CrateMetaDataUpgradeService extends AbstractComponent implements CustomUpgradeService {
 
+    private final NodeEnvironment nodeEnv;
+
     @Inject
-    public CrateMetaDataUpgradeService(Settings settings) {
+    public CrateMetaDataUpgradeService(Settings settings, NodeEnvironment nodeEnv) {
         super(settings);
+        this.nodeEnv = nodeEnv;
     }
 
     @Override
@@ -79,10 +93,21 @@ public class CrateMetaDataUpgradeService extends AbstractComponent implements Cu
             indexMetaData.getSettings().get(IndexMetaData.SETTING_LEGACY_ROUTING_HASH_FUNCTION));
         if (mappingMetaData != newMappingMetaData) {
             logger.info("upgraded mapping of index={}", indexMetaData.getIndex());
-            return IndexMetaData.builder(indexMetaData)
+            IndexMetaData.Builder builder = IndexMetaData.builder(indexMetaData)
                 .removeMapping(Constants.DEFAULT_MAPPING_TYPE)
-                .putMapping(newMappingMetaData)
-                .build();
+                .putMapping(newMappingMetaData);
+            // Use a new UUID for the index due to a former bug that resulted in
+            // partitions with the same index UUID when created during a bulk insert.
+            if (PartitionName.isPartition(indexMetaData.getIndex())) {
+                String indexName = indexMetaData.getIndex();
+                String newUUID = Strings.randomBase64UUID();
+                builder.settings(Settings.builder()
+                        .put(indexMetaData.getSettings())
+                        .put(IndexMetaData.SETTING_INDEX_UUID, newUUID));
+                logger.info("new UUID={} was set for index index={}", newUUID, indexName);
+                upgradeShardMetaData(nodeEnv, indexName, newUUID, logger);
+            }
+            return builder.build();
         }
         return indexMetaData;
     }
@@ -141,5 +166,65 @@ public class CrateMetaDataUpgradeService extends AbstractComponent implements Cu
         assert mappingMap != null : "mapping metadata must not be null to be marked as upgraded";
         Map<String, Object> newMetaMap = (Map<String, Object>) mappingMap.get("_meta");
         DocIndexMetaData.putVersionToMap(newMetaMap, Version.Property.UPGRADED, Version.CURRENT);
+    }
+
+    private static void upgradeShardMetaData(NodeEnvironment nodeEnv,
+                                             String indexName,
+                                             String indexUUID,
+                                             ESLogger logger) throws IOException {
+        for (ShardId shardId : findAllShardIds(nodeEnv.indexPaths(new Index(indexName)))) {
+            try (ShardLock lock = nodeEnv.shardLock(shardId, 0)) {
+
+                final Path[] paths = nodeEnv.availableShardPaths(shardId);
+                final ShardStateMetaData loaded = ShardStateMetaData.FORMAT.loadLatestState(logger, paths);
+                if (loaded == null) {
+                    throw new IllegalStateException("[" + shardId + "] no shard state found in any of: " +
+                                                    Arrays.toString(paths) +
+                                                    " please check and remove them if possible");
+                }
+
+                for (Path path : paths) {
+                    ShardStateMetaData newShardStateMetaData = new ShardStateMetaData(
+                        loaded.version,
+                        loaded.primary,
+                        indexUUID);
+                    ShardStateMetaData.FORMAT.write(newShardStateMetaData, newShardStateMetaData.version, path);
+                    logger.trace("new UUID={} was set for shard={} of index={} in path={}",
+                        indexUUID,
+                        shardId,
+                        indexName,
+                        path);
+                }
+            }
+        }
+    }
+
+    private static Set<ShardId> findAllShardIds(Path... locations) throws IOException {
+        Set<ShardId> shardIds = Sets.newHashSet();
+        for (final Path location : locations) {
+            if (Files.isDirectory(location)) {
+                shardIds.addAll(findAllShardsForIndex(location));
+            }
+        }
+        return shardIds;
+    }
+
+    private static Set<ShardId> findAllShardsForIndex(Path indexPath) throws IOException {
+        Set<ShardId> shardIds = Sets.newHashSet();
+        if (Files.isDirectory(indexPath)) {
+            try (DirectoryStream<Path> stream = Files.newDirectoryStream(indexPath)) {
+                String currentIndex = indexPath.getFileName().toString();
+                for (Path shardPath : stream) {
+                    if (Files.isDirectory(shardPath)) {
+                        Integer shardId = Ints.tryParse(shardPath.getFileName().toString());
+                        if (shardId != null) {
+                            ShardId id = new ShardId(currentIndex, shardId);
+                            shardIds.add(id);
+                        }
+                    }
+                }
+            }
+        }
+        return shardIds;
     }
 }

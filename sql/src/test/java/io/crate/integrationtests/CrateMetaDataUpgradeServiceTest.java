@@ -22,13 +22,16 @@
 
 package io.crate.integrationtests;
 
-import io.crate.metadata.doc.DocIndexMetaData;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.Version;
+import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.TestUtil;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.core.Is;
 import org.junit.After;
 import org.junit.Test;
 
@@ -36,6 +39,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.is;
 
@@ -98,6 +103,17 @@ public class CrateMetaDataUpgradeServiceTest extends SQLTransportIntegrationTest
             assertThat(row[0], is("Djb"));
             TestingHelpers.assertCrateVersion(row[1], null, Version.CURRENT);
         }
+
+        // Validate index UUIDs where upgraded
+        Set<String> indexUUIDs = new HashSet<>(3);
+        for (ObjectCursor<IndexMetaData> cursor :
+            client().admin().cluster().prepareState().execute().actionGet().getState().metaData().indices().values()) {
+            IndexMetaData indexMetaData = cursor.value;
+            if (indexMetaData.getIndex().contains("test_upgrade_required_parted")) {
+                indexUUIDs.add(indexMetaData.getIndexUUID());
+            }
+        }
+        assertThat(indexUUIDs.size(), Is.is(5));
     }
 
     @Test
