@@ -84,6 +84,11 @@ public class BatchConsumerToRowReceiver implements BatchConsumer, Killable {
         }
     }
 
+    @Override
+    public boolean requiresScroll() {
+        return rowReceiver.requirements().contains(Requirement.REPEAT);
+    }
+
     private void safeConsumeIterator(BatchIterator it) {
         try {
             consumeIterator(it);

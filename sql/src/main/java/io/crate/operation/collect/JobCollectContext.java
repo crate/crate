@@ -26,10 +26,11 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.BatchConsumer;
+import io.crate.data.ListenableBatchConsumer;
+import io.crate.data.RowsBatchIterator;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.metadata.RowGranularity;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.StopWatch;
@@ -51,7 +52,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     private final CollectPhase collectPhase;
     private final MapSideDataCollectOperation collectOperation;
     private final RamAccountingContext queryPhaseRamAccountingContext;
-    private final RowReceiver rowReceiver;
+    private final ListenableBatchConsumer consumer;
     private final SharedShardContexts sharedShardContexts;
 
     private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
@@ -64,15 +65,15 @@ public class JobCollectContext extends AbstractExecutionSubContext {
                              MapSideDataCollectOperation collectOperation,
                              String localNodeId,
                              RamAccountingContext queryPhaseRamAccountingContext,
-                             final RowReceiver rowReceiver,
+                             BatchConsumer consumer,
                              SharedShardContexts sharedShardContexts) {
         super(collectPhase.phaseId(), LOGGER);
         this.collectPhase = collectPhase;
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
         this.sharedShardContexts = sharedShardContexts;
-        this.rowReceiver = rowReceiver;
-        rowReceiver.completionFuture().whenComplete((result, ex) -> close(ex));
+        this.consumer = new ListenableBatchConsumer(consumer);
+        this.consumer.completionFuture().whenComplete((result, ex) -> close(ex));
         this.threadPoolName = threadPoolName(collectPhase, localNodeId);
     }
 
@@ -135,7 +136,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
         return "JobCollectContext{" +
                "id=" + id +
                ", sharedContexts=" + sharedShardContexts +
-               ", rowReceiver=" + rowReceiver +
+               ", consumer=" + consumer +
                ", searchContexts=" + Arrays.toString(searchers.keys) +
                ", closed=" + future.closed() +
                '}';
@@ -143,13 +144,13 @@ public class JobCollectContext extends AbstractExecutionSubContext {
 
     @Override
     public void innerPrepare() throws Exception {
-        collectors = collectOperation.createCollectors(collectPhase, rowReceiver, this);
+        collectors = collectOperation.createCollectors(collectPhase, consumer, this);
     }
 
     @Override
     protected void innerStart() {
         if (collectors.isEmpty()) {
-            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+            consumer.accept(RowsBatchIterator.empty(), null);
         } else {
             if (logger.isTraceEnabled()) {
                 measureCollectTime();
@@ -161,7 +162,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     private void measureCollectTime() {
         final StopWatch stopWatch = new StopWatch(collectPhase.phaseId() + ": " + collectPhase.name());
         stopWatch.start("starting collectors");
-        rowReceiver.completionFuture().whenComplete((result, ex) -> {
+        consumer.completionFuture().whenComplete((result, ex) -> {
             stopWatch.stop();
             logger.trace("Collectors finished: {}", stopWatch.shortSummary());
         });

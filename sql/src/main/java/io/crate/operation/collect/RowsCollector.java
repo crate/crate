@@ -21,39 +21,35 @@
 
 package io.crate.operation.collect;
 
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.RowsBatchIterator;
-import io.crate.operation.projectors.BatchConsumerToRowReceiver;
-import io.crate.operation.projectors.RowReceiver;
 
 import java.util.Collections;
 
 public final class RowsCollector {
 
-    public static CrateCollector empty(RowReceiver rowDownstream) {
-        return BatchIteratorCollectorBridge.newInstance(
-            RowsBatchIterator.empty(),
-            new BatchConsumerToRowReceiver(rowDownstream));
+    public static CrateCollector empty(BatchConsumer consumer) {
+        return BatchIteratorCollectorBridge.newInstance(RowsBatchIterator.empty(), consumer);
     }
 
-    public static CrateCollector single(Row row, RowReceiver rowDownstream) {
+    public static CrateCollector single(Row row, BatchConsumer consumer) {
         return BatchIteratorCollectorBridge.newInstance(
             RowsBatchIterator.newInstance(Collections.singletonList(row), row.numColumns()),
-            new BatchConsumerToRowReceiver(rowDownstream));
+            consumer
+        );
     }
 
-    public static CrateCollector forRows(Iterable<Row> rows, int numCols, RowReceiver rowReceiver) {
-        return BatchIteratorCollectorBridge.newInstance(
-            RowsBatchIterator.newInstance(rows, numCols), new BatchConsumerToRowReceiver(rowReceiver));
+    public static CrateCollector forRows(Iterable<Row> rows, int numCols, BatchConsumer consumer) {
+        return BatchIteratorCollectorBridge.newInstance(RowsBatchIterator.newInstance(rows, numCols), consumer);
     }
 
     static CrateCollector.Builder emptyBuilder() {
-        return (consumer, killable) -> BatchIteratorCollectorBridge.newInstance(
-            RowsBatchIterator.empty(), consumer);
+        return consumer -> BatchIteratorCollectorBridge.newInstance(RowsBatchIterator.empty(), consumer);
     }
 
     public static CrateCollector.Builder builder(final Iterable<Row> rows, int numCols) {
-        return (batchConsumer, killable) -> BatchIteratorCollectorBridge.newInstance(
+        return batchConsumer -> BatchIteratorCollectorBridge.newInstance(
             RowsBatchIterator.newInstance(rows, numCols), batchConsumer);
     }
 }

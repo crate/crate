@@ -23,10 +23,10 @@ package io.crate.operation.collect;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
+import io.crate.data.BatchConsumer;
 import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.sources.CollectSource;
 import io.crate.operation.collect.sources.CollectSourceResolver;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.CollectPhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -70,10 +70,10 @@ public class MapSideDataCollectOperation {
      * </p>
      */
     public Collection<CrateCollector> createCollectors(CollectPhase collectPhase,
-                                                       RowReceiver downstream,
+                                                       BatchConsumer consumer,
                                                        final JobCollectContext jobCollectContext) {
         CollectSource service = collectSourceResolver.getService(collectPhase);
-        return service.getCollectors(collectPhase, downstream, jobCollectContext);
+        return service.getCollectors(collectPhase, consumer, jobCollectContext);
     }
 
     public void launchCollectors(Collection<CrateCollector> shardCollectors, String threadPoolName) throws RejectedExecutionException {

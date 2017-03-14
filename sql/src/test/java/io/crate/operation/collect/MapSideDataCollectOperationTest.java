@@ -23,6 +23,7 @@ package io.crate.operation.collect;
 
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.CollectionBucket;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.collect.files.FileInputFactory;
@@ -31,7 +32,7 @@ import io.crate.operation.collect.sources.FileCollectSource;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.CollectingBatchConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.test.cluster.NoopClusterService;
@@ -101,11 +102,11 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
         );
         String threadPoolName = JobCollectContext.threadPoolName(collectNode, "noop_id");
 
-        CollectingRowReceiver cd = new CollectingRowReceiver();
+        CollectingBatchConsumer consumer = new CollectingBatchConsumer();
         JobCollectContext jobCollectContext = mock(JobCollectContext.class);
-        Collection<CrateCollector> collectors = collectOperation.createCollectors(collectNode, cd, jobCollectContext);
+        Collection<CrateCollector> collectors = collectOperation.createCollectors(collectNode, consumer, jobCollectContext);
         collectOperation.launchCollectors(collectors, threadPoolName);
-        assertThat(cd.result(), contains(
+        assertThat(new CollectionBucket(consumer.getResult()), contains(
             isRow("Arthur", 38),
             isRow("Trillian", 33)
         ));

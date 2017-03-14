@@ -82,7 +82,7 @@ public class RemoteCollectorFactory {
         final String localNodeId = clusterService.localNode().getId();
         final RoutedCollectPhase newCollectPhase = createNewCollectPhase(childJobId, collectPhase, index, shardId, remoteNodeId);
 
-        return (consumer, killable) -> new RemoteCollector(
+        return consumer -> new RemoteCollector(
             childJobId,
             localNodeId,
             remoteNodeId,

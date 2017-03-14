@@ -20,10 +20,7 @@
  * agreement.
  */
 
-package io.crate.operation.join;
-
-import io.crate.data.BatchIterator;
-import io.crate.data.ForwardingBatchIterator;
+package io.crate.data;
 
 import java.util.concurrent.CompletableFuture;
 

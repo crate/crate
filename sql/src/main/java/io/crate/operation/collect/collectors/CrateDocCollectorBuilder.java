@@ -25,7 +25,6 @@ package io.crate.operation.collect.collectors;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Input;
-import io.crate.data.Killable;
 import io.crate.operation.collect.BatchIteratorCollectorBridge;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
@@ -66,7 +65,7 @@ public class CrateDocCollectorBuilder implements CrateCollector.Builder {
     }
 
     @Override
-    public CrateCollector build(BatchConsumer consumer, Killable killable) {
+    public CrateCollector build(BatchConsumer consumer) {
         LuceneBatchIterator batchIterator = new LuceneBatchIterator(
             indexSearcher,
             query,
