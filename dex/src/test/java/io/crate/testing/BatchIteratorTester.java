@@ -125,7 +125,7 @@ public class BatchIteratorTester {
     }
 
     private void testMoveNextAfterMoveNextReturnedFalse(BatchIterator it) throws Exception {
-        CollectingBatchConsumer.moveToEnd(it).toCompletableFuture().get(10, TimeUnit.SECONDS);
+        TestingBatchConsumer.moveToEnd(it).toCompletableFuture().get(10, TimeUnit.SECONDS);
         assertThat(it.moveNext(), is(false));
     }
 
@@ -204,7 +204,7 @@ public class BatchIteratorTester {
     }
 
     private void testProperConsumption(BatchIterator it, List<Object[]> expectedResult) throws Exception {
-        CollectingBatchConsumer consumer = new CollectingBatchConsumer();
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
         consumer.accept(it, null);
 
         List<Object[]> result = consumer.getResult();

@@ -29,7 +29,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.planner.projection.WriterProjection;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.CollectingBatchConsumer;
+import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.RowGenerator;
 import io.crate.testing.TestingHelpers;
 import org.apache.lucene.util.BytesRef;
@@ -82,7 +82,7 @@ public class FileWriterProjectorTest extends CrateUnitTest {
             null, null, ImmutableSet.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT);
 
-        new CollectingBatchConsumer().accept(fileWriterProjector.asProjector().apply(sourceSupplier.get()), null);
+        new TestingBatchConsumer().accept(fileWriterProjector.asProjector().apply(sourceSupplier.get()), null);
 
         assertEquals("input line 00\n" +
                      "input line 01\n" +
@@ -102,7 +102,7 @@ public class FileWriterProjectorTest extends CrateUnitTest {
             null, null, ImmutableSet.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT);
 
-        new CollectingBatchConsumer().accept(fileWriterProjector.asProjector().apply(sourceSupplier.get()), null);
+        new TestingBatchConsumer().accept(fileWriterProjector.asProjector().apply(sourceSupplier.get()), null);
     }
 
     @Test
@@ -116,6 +116,6 @@ public class FileWriterProjectorTest extends CrateUnitTest {
             null, null, ImmutableSet.of(), new HashMap<>(),
             null, WriterProjection.OutputFormat.JSON_OBJECT);
 
-        new CollectingBatchConsumer().accept(fileWriterProjector.asProjector().apply(sourceSupplier.get()), null);
+        new TestingBatchConsumer().accept(fileWriterProjector.asProjector().apply(sourceSupplier.get()), null);
     }
 }

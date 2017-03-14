@@ -22,7 +22,6 @@
 package io.crate.jobs;
 
 import io.crate.concurrent.CompletionListenable;
-import io.crate.data.Killable;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import org.elasticsearch.common.logging.ESLogger;
 
@@ -32,7 +31,6 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
 
     private final NestedLoopPhase nestedLoopPhase;
 
-    private final Killable killable;
     @Nullable
     private final PageBucketReceiver leftBucketReceiver;
 
@@ -42,13 +40,11 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
     public NestedLoopContext(ESLogger logger,
                              NestedLoopPhase nestedLoopPhase,
                              CompletionListenable completionListenable,
-                             Killable killable,
                              @Nullable PageBucketReceiver leftBucketReceiver,
                              @Nullable PageBucketReceiver rightBucketReceiver) {
         super(nestedLoopPhase.phaseId(), logger);
 
         this.nestedLoopPhase = nestedLoopPhase;
-        this.killable = killable;
         this.leftBucketReceiver = leftBucketReceiver;
         this.rightBucketReceiver = rightBucketReceiver;
 
@@ -72,7 +68,8 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
 
     @Override
     protected void innerKill(@Nullable Throwable t) {
-        killable.kill(t);
+        // killed via PageDownstreamContexts or if they're not available the nestedLoop integrates
+        // into the previous executionPhase
     }
 
     @Override

@@ -25,7 +25,7 @@ package io.crate.data;
 import io.crate.data.join.NestedLoopBatchIterator;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.CollectingBatchConsumer;
+import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingBatchIterators;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -118,7 +118,7 @@ public class NestedLoopBatchIteratorTest {
             RowsBatchIterator.empty(),
             RowsBatchIterator.empty()
         );
-        CollectingBatchConsumer consumer = new CollectingBatchConsumer();
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
         consumer.accept(iterator, null);
         assertThat(consumer.getResult(), Matchers.empty());
     }
@@ -129,7 +129,7 @@ public class NestedLoopBatchIteratorTest {
             RowsBatchIterator.empty(),
             TestingBatchIterators.range(0, 5)
         );
-        CollectingBatchConsumer consumer = new CollectingBatchConsumer();
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
         consumer.accept(iterator, null);
         assertThat(consumer.getResult(), Matchers.empty());
     }
@@ -140,7 +140,7 @@ public class NestedLoopBatchIteratorTest {
             TestingBatchIterators.range(0, 5),
             RowsBatchIterator.empty()
         );
-        CollectingBatchConsumer consumer = new CollectingBatchConsumer();
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
         consumer.accept(iterator, null);
         assertThat(consumer.getResult(), Matchers.empty());
     }
