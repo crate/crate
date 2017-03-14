@@ -22,7 +22,6 @@
 package io.crate.operation.collect;
 
 import io.crate.data.BatchConsumer;
-import io.crate.data.Killable;
 
 public interface CrateCollector {
 
@@ -34,9 +33,8 @@ public interface CrateCollector {
          * @param batchConsumer consumer which will receive a BatchIterator to consume data after
          *                      {@link #doCollect()} has been called.
          *                      (May be async)
-         * @param killable component that will receive kill calls on {@link #kill(Throwable)}
          */
-        CrateCollector build(BatchConsumer batchConsumer, Killable killable);
+        CrateCollector build(BatchConsumer batchConsumer);
 
         default BatchConsumer applyProjections(BatchConsumer consumer) {
             return consumer;

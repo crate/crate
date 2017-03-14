@@ -27,6 +27,7 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
 import io.crate.executor.transport.TransportNodeStatsAction;
 import io.crate.metadata.*;
@@ -37,8 +38,6 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.collect.collectors.NodeStatsIterator;
-import io.crate.operation.projectors.BatchConsumerToRowReceiver;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -71,16 +70,16 @@ public class NodeStatsCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase phase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         if (collectPhase.whereClause().noMatch()) {
-            return ImmutableList.of(RowsCollector.empty(downstream));
+            return ImmutableList.of(RowsCollector.empty(consumer));
         }
         Collection<DiscoveryNode> nodes = nodeIds(collectPhase.whereClause(),
             Lists.newArrayList(clusterService.state().getNodes().iterator()),
             functions);
         if (nodes.isEmpty()) {
-            return ImmutableList.of(RowsCollector.empty(downstream));
+            return ImmutableList.of(RowsCollector.empty(consumer));
         }
         BatchIterator nodeStatsIterator = NodeStatsIterator.newInstance(
             nodeStatsAction,
@@ -89,7 +88,7 @@ public class NodeStatsCollectSource implements CollectSource {
             inputFactory
         );
         return ImmutableList.of(
-            BatchIteratorCollectorBridge.newInstance(nodeStatsIterator, new BatchConsumerToRowReceiver(downstream)));
+            BatchIteratorCollectorBridge.newInstance(nodeStatsIterator, consumer));
     }
 
     @Nullable

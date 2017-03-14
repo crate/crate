@@ -24,6 +24,7 @@ package io.crate.operation.collect.sources;
 
 import com.google.common.collect.Iterables;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.data.BatchConsumer;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
@@ -41,7 +42,6 @@ import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
@@ -182,8 +182,8 @@ public class CollectSourceResolver {
     private static class VoidCollectSource implements CollectSource {
 
         @Override
-        public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
-            return Collections.singletonList(RowsCollector.empty(downstream));
+        public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
+            return Collections.singletonList(RowsCollector.empty(consumer));
         }
     }
 }

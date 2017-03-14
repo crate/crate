@@ -45,7 +45,9 @@ import io.crate.operation.collect.*;
 import io.crate.operation.collect.collectors.CompositeCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.collect.collectors.OrderedLuceneBatchIteratorFactory;
-import io.crate.operation.projectors.*;
+import io.crate.operation.projectors.ProjectingBatchConsumer;
+import io.crate.operation.projectors.ProjectionToProjectorVisitor;
+import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
@@ -222,7 +224,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase phase,
-                                                    RowReceiver lastRR,
+                                                    BatchConsumer lastConsumer,
                                                     JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer, null);
@@ -230,8 +232,8 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         String localNodeId = clusterService.localNode().getId();
 
 
-        RowReceiver firstNodeRR = ProjectorChain.prependProjectors(
-            lastRR,
+        BatchConsumer firstConsumer = ProjectingBatchConsumer.create(
+            lastConsumer,
             Projections.nodeProjections(normalizedPhase.projections()),
             collectPhase.jobId(),
             jobCollectContext.queryPhaseRamAccountingContext(),
@@ -242,13 +244,13 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             // the rows are "pre-created" on a shard level.
             // The getShardsCollector method always only uses a single RowReceiver and not one per shard)
             return Collections.singletonList(
-                getShardsCollector(collectPhase, normalizedPhase, localNodeId, firstNodeRR));
+                getShardsCollector(collectPhase, normalizedPhase, localNodeId, firstConsumer));
         }
         OrderBy orderBy = normalizedPhase.orderBy();
         if (normalizedPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
             return ImmutableList.of(createMultiShardScoreDocCollector(
                 normalizedPhase,
-                firstNodeRR,
+                firstConsumer,
                 jobCollectContext,
                 localNodeId)
             );
@@ -263,44 +265,41 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         Map<String, List<Integer>> indexShards = locations.get(localNodeId);
         if (indexShards != null) {
             builders.addAll(
-                getDocCollectors(jobCollectContext, normalizedPhase, lastRR.requirements().contains(Requirement.REPEAT), indexShards));
+                getDocCollectors(jobCollectContext, normalizedPhase, lastConsumer.requiresScroll(), indexShards));
         }
 
         switch (builders.size()) {
             case 0:
-                return Collections.singletonList(RowsCollector.empty(firstNodeRR));
+                return Collections.singletonList(RowsCollector.empty(firstConsumer));
             case 1:
                 CrateCollector.Builder collectorBuilder = builders.iterator().next();
-                return Collections.singletonList(collectorBuilder.build(
-                    collectorBuilder.applyProjections(new BatchConsumerToRowReceiver(firstNodeRR)), firstNodeRR));
+                return Collections.singletonList(collectorBuilder.build(collectorBuilder.applyProjections(firstConsumer)));
             default:
                 if (hasShardProjections) {
                     // 1 Collector per shard to benefit from concurrency (each collector is run in a thread)
                     // It doesn't support repeat.
 
-                    BatchConsumerToRowReceiver finalConsumer = new BatchConsumerToRowReceiver(firstNodeRR);
                     BatchConsumer multiConsumer = CompositeCollector.newMultiConsumer(
                         builders.size(),
-                        finalConsumer,
+                        firstConsumer,
                         iterators -> new AsyncCompositeBatchIterator(executor, iterators)
                     );
                     List<CrateCollector> collectors = new ArrayList<>(builders.size());
                     for (CrateCollector.Builder builder : builders) {
-                        collectors.add(builder.build(builder.applyProjections(multiConsumer), firstNodeRR));
+                        collectors.add(builder.build(builder.applyProjections(multiConsumer)));
                     }
                     return collectors;
                 } else {
                     // If there are no shard-projections there is no real benefit from concurrency gained by using multiple collectors.
                     // CompositeCollector to collects single-threaded sequentially.
                     return Collections.singletonList(
-                        CompositeCollector.syncCompositeCollector(
-                            builders, new BatchConsumerToRowReceiver(firstNodeRR), firstNodeRR));
+                        CompositeCollector.syncCompositeCollector(builders, firstConsumer));
                 }
         }
     }
 
     private CrateCollector createMultiShardScoreDocCollector(RoutedCollectPhase collectPhase,
-                                                             RowReceiver rowReceiver,
+                                                             BatchConsumer consumer,
                                                              JobCollectContext jobCollectContext,
                                                              String localNodeId) {
 
@@ -320,7 +319,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     orderedDocCollectors.add(shardCollectorProvider.getOrderedCollector(collectPhase,
                         context,
                         jobCollectContext,
-                        rowReceiver.requirements().contains(Requirement.REPEAT)));
+                        consumer.requiresScroll()));
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     throw e;
                 } catch (IndexNotFoundException e) {
@@ -346,9 +345,9 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     orderBy.nullsFirst()
                 ),
                 executor,
-                rowReceiver.requirements().contains(Requirement.REPEAT)
+                consumer.requiresScroll()
             ),
-            new BatchConsumerToRowReceiver(rowReceiver)
+            consumer
         );
     }
 
@@ -408,7 +407,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private CrateCollector getShardsCollector(RoutedCollectPhase collectPhase,
                                               RoutedCollectPhase normalizedPhase,
                                               String localNodeId,
-                                              RowReceiver rowReceiver) {
+                                              BatchConsumer consumer) {
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         List<UnassignedShard> unassignedShards = new ArrayList<>();
         List<Object[]> rows = new ArrayList<>();
@@ -458,7 +457,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         return BatchIteratorCollectorBridge.newInstance(
             RowsBatchIterator.newInstance(
                 Iterables.transform(rows, Buckets.arrayToRowFunction()), collectPhase.outputTypes().size()),
-            new BatchConsumerToRowReceiver(rowReceiver)
+            consumer
         );
     }
 

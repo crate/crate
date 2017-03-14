@@ -94,4 +94,9 @@ public class ProjectingBatchConsumer implements BatchConsumer {
             consumer.accept(iterator, failure);
         }
     }
+
+    @Override
+    public boolean requiresScroll() {
+        return consumer.requiresScroll();
+    }
 }
