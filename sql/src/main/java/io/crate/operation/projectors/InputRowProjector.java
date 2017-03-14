@@ -22,8 +22,9 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.data.BatchIteratorProjector;
+import io.crate.data.BatchIterator;
 import io.crate.data.Input;
+import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.operation.aggregation.RowTransformingBatchIterator;
 import io.crate.operation.collect.CollectExpression;
@@ -45,7 +46,7 @@ public class InputRowProjector implements Projector  {
     }
 
     @Override
-    public BatchIteratorProjector asProjector() {
-        return bi -> new RowTransformingBatchIterator(bi, inputs, collectExpressions);
+    public BatchIterator apply(BatchIterator batchIterator) {
+        return new RowTransformingBatchIterator(batchIterator, inputs, collectExpressions);
     }
 }
