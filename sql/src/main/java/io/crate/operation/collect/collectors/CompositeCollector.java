@@ -22,16 +22,14 @@
 
 package io.crate.operation.collect.collectors;
 
-import io.crate.data.BatchConsumer;
-import io.crate.data.BatchIterator;
-import io.crate.data.CompositeBatchIterator;
-import io.crate.data.Killable;
+import io.crate.data.*;
 import io.crate.operation.collect.CrateCollector;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -69,7 +67,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * (...)
  * CC-RR.finish()
  * all finished -> RR.finish
- *
+ * <p>
  * Note: As this collector combines multiple collectors in 1 thread, due to current resume/repeat architecture,
  * number of collectors (shards) is limited by the configured thread stack size (default: 1024k on 64bit).
  */
@@ -77,14 +75,28 @@ public class CompositeCollector implements CrateCollector {
 
     private final List<CrateCollector> collectors;
 
-    public CompositeCollector(Collection<? extends Builder> builders, BatchConsumer finalConsumer, Killable killable) {
+    private CompositeCollector(Collection<? extends Builder> builders, MultiConsumer multiConsumer, Killable killable) {
         assert builders.size() > 1 : "CompositeCollector must not be called with less than 2 collectors";
 
         collectors = new ArrayList<>(builders.size());
-        MultiConsumer multiConsumer = new MultiConsumer(builders.size(), finalConsumer);
         for (Builder builder : builders) {
             collectors.add(builder.build(multiConsumer, killable));
         }
+    }
+
+    public static CompositeCollector syncCompositeCollector(Collection<? extends Builder> builders,
+                                                            BatchConsumer finalConsumer,
+                                                            Killable killable) {
+        MultiConsumer multiConsumer = MultiConsumer.syncMultiConsumer(builders.size(), finalConsumer);
+        return new CompositeCollector(builders, multiConsumer, killable);
+    }
+
+    public static CompositeCollector asyncCompositeCollector(Collection<? extends Builder> builders,
+                                                             BatchConsumer finalConsumer,
+                                                             Killable killable,
+                                                             ThreadPoolExecutor executor) {
+        MultiConsumer multiConsumer = MultiConsumer.asyncMultiConsumer(builders.size(), finalConsumer, executor);
+        return new CompositeCollector(builders, multiConsumer, killable);
     }
 
     @Override
@@ -108,11 +120,25 @@ public class CompositeCollector implements CrateCollector {
 
         private AtomicInteger remainingAccepts;
         private Throwable lastFailure;
+        private ThreadPoolExecutor executor;
 
-        MultiConsumer(int numAccepts, BatchConsumer consumer) {
+        private MultiConsumer(int numAccepts, BatchConsumer consumer) {
             this.remainingAccepts = new AtomicInteger(numAccepts);
             this.iterators = new BatchIterator[numAccepts];
             this.consumer = consumer;
+        }
+
+        private MultiConsumer(int numAccepts, BatchConsumer consumer, ThreadPoolExecutor executor) {
+            this(numAccepts, consumer);
+            this.executor = executor;
+        }
+
+        static MultiConsumer syncMultiConsumer(int numAccepts, BatchConsumer consumer) {
+            return new MultiConsumer(numAccepts, consumer);
+        }
+
+        static MultiConsumer asyncMultiConsumer(int numAccepts, BatchConsumer consumer, ThreadPoolExecutor executor) {
+            return new MultiConsumer(numAccepts, consumer, executor);
         }
 
         @Override
@@ -125,7 +151,12 @@ public class CompositeCollector implements CrateCollector {
                 iterators[remaining] = iterator;
             }
             if (remaining == 0) {
-                CompositeBatchIterator compositeBatchIterator = new CompositeBatchIterator(iterators);
+                BatchIterator compositeBatchIterator;
+                if (executor == null) {
+                    compositeBatchIterator = new CompositeBatchIterator(iterators);
+                } else {
+                    compositeBatchIterator = new AsyncCompositeBatchIterator(executor, iterators);
+                }
                 consumer.accept(compositeBatchIterator, lastFailure);
             }
         }

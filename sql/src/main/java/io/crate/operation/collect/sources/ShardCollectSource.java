@@ -77,6 +77,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 
@@ -278,21 +279,20 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             default:
                 if (hasShardProjections) {
                     // 1 Collector per shard to benefit from concurrency (each collector is run in a thread)
-                    // MultiUpstreamRowReceiver does synchronization (any projector after that doesn't really benefit from concurrency)
-                    // It also doesn't support repeat.
-                    MultiUpstreamRowReceiver multiUpstreamRowReceiver = new MultiUpstreamRowReceiver(firstNodeRR);
-                    List<CrateCollector> collectors = new ArrayList<>(builders.size());
-                    for (CrateCollector.Builder builder : builders) {
-                        RowReceiver rowReceiver = multiUpstreamRowReceiver.newRowReceiver();
-                        collectors.add(builder.build(
-                            new BatchConsumerToRowReceiver(builder.applyProjections(rowReceiver)), rowReceiver));
-                    }
-                    return collectors;
+                    // It doesn't support repeat.
+
+                    // TODO: handle projectors
+
+                    ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) threadPool.generic();
+                    return Collections.singletonList(
+                        CompositeCollector.asyncCompositeCollector(
+                            builders, new BatchConsumerToRowReceiver(firstNodeRR), firstNodeRR, threadPoolExecutor));
                 } else {
                     // If there are no shard-projections there is no real benefit from concurrency gained by using multiple collectors.
                     // CompositeCollector to collects single-threaded sequentially.
                     return Collections.singletonList(
-                        new CompositeCollector(builders, new BatchConsumerToRowReceiver(firstNodeRR), firstNodeRR));
+                        CompositeCollector.syncCompositeCollector(
+                            builders, new BatchConsumerToRowReceiver(firstNodeRR), firstNodeRR));
                 }
         }
     }
