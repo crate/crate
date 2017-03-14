@@ -39,11 +39,9 @@ public class RowsBatchIteratorTest {
     public void testCollectRows() throws Exception {
         List<Row> rows = Arrays.asList(new Row1(10), new Row1(20));
         Supplier<BatchIterator> batchIteratorSupplier = () -> RowsBatchIterator.newInstance(rows, 1);
-        BatchIteratorTester tester = new BatchIteratorTester(
-            batchIteratorSupplier,
-            Arrays.asList(new Object[] { 10 }, new Object[] { 20 })
-        );
-        tester.run();
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        List<Object[]> expectedResult = Arrays.asList(new Object[]{10}, new Object[]{20});
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     @Test
@@ -57,12 +55,10 @@ public class RowsBatchIteratorTest {
                 null
             )
         );
-        BatchIteratorTester tester = new BatchIteratorTester(
-            batchIteratorSupplier,
-            StreamSupport.stream(rows.spliterator(), false)
-                .map(Row::materialize)
-                .collect(Collectors.toList())
-        );
-        tester.run();
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        List<Object[]> expectedResult = StreamSupport.stream(rows.spliterator(), false)
+            .map(Row::materialize)
+            .collect(Collectors.toList());
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }

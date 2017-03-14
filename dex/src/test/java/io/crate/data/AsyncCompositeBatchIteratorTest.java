@@ -55,10 +55,9 @@ public class AsyncCompositeBatchIteratorTest {
                     executorService,
                     TestingBatchIterators.range(0, 5),
                     batchSimulatingItSupplier.get()
-                ),
-                expectedResult
+                )
             );
-            tester.run();
+            tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
         } finally {
             executorService.shutdown();
             executorService.awaitTermination(10, TimeUnit.SECONDS);

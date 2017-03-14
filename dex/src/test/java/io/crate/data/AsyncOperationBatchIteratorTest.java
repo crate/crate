@@ -58,8 +58,8 @@ public class AsyncOperationBatchIteratorTest {
         for (int i = 0; i < 10; i++) {
             expectedResult.add(new Object[] { i * 3});
         }
-        BatchIteratorTester tester = new BatchIteratorTester(biSupplier, expectedResult);
-        tester.run();
+        BatchIteratorTester tester = new BatchIteratorTester(biSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     private static class DummyBatchAccumulator implements BatchAccumulator<Row, Iterator<? extends Row>> {

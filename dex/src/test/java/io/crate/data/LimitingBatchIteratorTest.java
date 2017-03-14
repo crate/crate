@@ -40,10 +40,9 @@ public class LimitingBatchIteratorTest {
     @Test
     public void testLimitingBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> LimitingBatchIterator.newInstance(TestingBatchIterators.range(0, 10), limit),
-            expectedResult
+            () -> LimitingBatchIterator.newInstance(TestingBatchIterators.range(0, 10), limit)
         );
-        tester.run();
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     @Test
@@ -53,9 +52,8 @@ public class LimitingBatchIteratorTest {
                 BatchSimulatingIterator batchSimulatingIt = new BatchSimulatingIterator(
                     TestingBatchIterators.range(0, 10), 2, 5, null);
                 return LimitingBatchIterator.newInstance(batchSimulatingIt, limit);
-            },
-            expectedResult
+            }
         );
-        tester.run();
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }

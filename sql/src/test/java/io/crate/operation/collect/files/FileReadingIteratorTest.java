@@ -79,12 +79,11 @@ public class FileReadingIteratorTest extends CrateUnitTest {
         byte[] firstLine = "{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}".getBytes(StandardCharsets.UTF_8);
         byte[] secondLine = "{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}".getBytes(StandardCharsets.UTF_8);
 
-        BatchIteratorTester tester = new BatchIteratorTester(
-            batchIteratorSupplier,
-            Arrays.asList(new Object[]{new BytesRef(firstLine)},
-                new Object[]{new BytesRef(secondLine)})
-        );
-        tester.run();
+        List<Object[]> expectedResult = Arrays.asList(
+            new Object[]{new BytesRef(firstLine)},
+            new Object[]{new BytesRef(secondLine)});
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     private BatchIterator createBatchIterator(Collection<String> fileUris, String compression) {

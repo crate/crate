@@ -28,6 +28,7 @@ import io.crate.testing.RowGenerator;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -37,20 +38,21 @@ public class BatchPagingIteratorTest {
     @Test
     public void testBatchPagingIterator() throws Exception {
         Iterable<Row> rows = RowGenerator.range(0, 3);
+        List<Object[]> expectedResult = StreamSupport.stream(rows.spliterator(), false)
+            .map(Row::materialize)
+            .collect(Collectors.toList());
         BatchIteratorTester tester = new BatchIteratorTester(() -> {
             PassThroughPagingIterator<Integer, Row> pagingIterator = PassThroughPagingIterator.repeatable();
             pagingIterator.merge(Collections.singletonList(new KeyIterable<>(0, rows)));
-            return new BatchPagingIterator(
+            return new BatchPagingIterator<>(
                 pagingIterator,
                 exhaustedIt -> false,
                 () -> true,
-                () -> {},
+                () -> {
+                },
                 1
             );
-        }, StreamSupport.stream(rows.spliterator(), false)
-            .map(Row::materialize)
-            .collect(Collectors.toList())
-        );
-        tester.run();;
+        });
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }

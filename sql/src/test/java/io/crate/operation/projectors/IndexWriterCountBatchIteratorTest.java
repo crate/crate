@@ -81,11 +81,11 @@ public class IndexWriterCountBatchIteratorTest extends SQLTransportIntegrationTe
         Supplier<ShardUpsertRequest.Item> updateItemSupplier = () -> new ShardUpsertRequest.Item(
             rowShardResolver.id(), null, new Object[]{sourceInput.value()}, null);
 
+        List<Object[]> expectedResult = Collections.singletonList(new Object[]{10L});
         BatchIteratorTester tester = new BatchIteratorTester(() ->
             IndexWriterCountBatchIterator.newIndexInstance(sourceSupplier.get(), indexNameResolver,
-                collectExpressions, rowShardResolver, bulkShardProcessor, updateItemSupplier),
-            Collections.singletonList(new Object[]{10L}));
-        tester.run();
+                collectExpressions, rowShardResolver, bulkShardProcessor, updateItemSupplier));
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     private RowShardResolver getRowShardResolver() {

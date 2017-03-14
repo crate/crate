@@ -45,8 +45,7 @@ public class FilteringBatchIteratorTest {
             l -> new Object[]{l}).collect(Collectors.toList());
 
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> new FilteringBatchIterator(TestingBatchIterators.range(0, 20), evenRow),
-            expectedResult);
-        tester.run();
+            () -> new FilteringBatchIterator(TestingBatchIterators.range(0, 20), evenRow));
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }

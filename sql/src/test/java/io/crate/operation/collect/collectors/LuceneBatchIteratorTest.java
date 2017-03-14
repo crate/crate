@@ -87,9 +87,8 @@ public class LuceneBatchIteratorTest extends CrateUnitTest {
                     columnRefs,
                     columnRefs
                 );
-            },
-            expectedResult
+            }
         );
-        tester.run();
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }
