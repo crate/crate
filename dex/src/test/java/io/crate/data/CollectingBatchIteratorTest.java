@@ -36,9 +36,8 @@ public class CollectingBatchIteratorTest {
     @Test
     public void testCollectingBatchIterator() throws Exception {
         BatchIteratorTester tester = new BatchIteratorTester(
-            () -> CollectingBatchIterator.summingLong(TestingBatchIterators.range(0L, 10L)),
-            expectedResult
+            () -> CollectingBatchIterator.summingLong(TestingBatchIterators.range(0L, 10L))
         );
-        tester.run();
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }

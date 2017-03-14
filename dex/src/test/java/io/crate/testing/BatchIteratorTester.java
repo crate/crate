@@ -44,11 +44,9 @@ import static org.junit.Assert.fail;
 public class BatchIteratorTester {
 
     private final Supplier<BatchIterator> it;
-    private final List<Object[]> expectedResult;
 
-    public BatchIteratorTester(Supplier<BatchIterator> it, List<Object[]> expectedResult) {
+    public BatchIteratorTester(Supplier<BatchIterator> it) {
         this.it = it;
-        this.expectedResult = expectedResult;
     }
 
     private static void assertIndexOutOfBounds(Columns inputs, int index) {
@@ -85,10 +83,10 @@ public class BatchIteratorTester {
         return first;
     }
 
-    public void run() throws Exception {
-        testProperConsumption(it.get());
+    public void verifyResultAndEdgeCaseBehaviour(List<Object[]> expectedResult) throws Exception {
+        testProperConsumption(it.get(), expectedResult);
         testBehaviourAfterClose(it.get());
-        testIteratorAccessFromDifferentThreads(it.get());
+        testIteratorAccessFromDifferentThreads(it.get(), expectedResult);
         testIllegalNextBatchCall(it.get());
         testMoveNextAfterMoveNextReturnedFalse(it.get());
         testIllegalStateIsRaisedIfMoveIsCalledWhileLoadingNextBatch(it.get());
@@ -139,7 +137,7 @@ public class BatchIteratorTester {
         assertThat(completionStage.toCompletableFuture().isCompletedExceptionally(), is(true));
     }
 
-    private void testIteratorAccessFromDifferentThreads(BatchIterator it) throws Exception {
+    private void testIteratorAccessFromDifferentThreads(BatchIterator it, List<Object[]> expectedResult) throws Exception {
         if (expectedResult.size() < 2) {
             return;
         }
@@ -205,7 +203,7 @@ public class BatchIteratorTester {
         expectFailure(it::allLoaded, IllegalStateException.class, "allLoaded must fail after close");
     }
 
-    private void testProperConsumption(BatchIterator it) throws Exception {
+    private void testProperConsumption(BatchIterator it, List<Object[]> expectedResult) throws Exception {
         CollectingBatchConsumer consumer = new CollectingBatchConsumer();
         consumer.accept(it, null);
 

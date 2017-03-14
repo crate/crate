@@ -65,9 +65,8 @@ public class RowTransformingBatchIteratorTest extends CrateUnitTest {
         BatchIteratorTester tester = new BatchIteratorTester(
             () -> new RowTransformingBatchIterator(TestingBatchIterators.range(0, 10),
                 inputs,
-                expressions),
-            expectedResult
+                expressions)
         );
-        tester.run();
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }

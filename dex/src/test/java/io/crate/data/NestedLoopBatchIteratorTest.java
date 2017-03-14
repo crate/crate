@@ -96,10 +96,9 @@ public class NestedLoopBatchIteratorTest {
             () -> NestedLoopBatchIterator.crossJoin(
                 TestingBatchIterators.range(0, 3),
                 TestingBatchIterators.range(0, 3)
-            ),
-            threeXThreeRows
+            )
         );
-        tester.run();
+        tester.verifyResultAndEdgeCaseBehaviour(threeXThreeRows);
     }
 
     @Test
@@ -108,10 +107,9 @@ public class NestedLoopBatchIteratorTest {
             () -> NestedLoopBatchIterator.crossJoin(
                 new BatchSimulatingIterator(TestingBatchIterators.range(0, 3), 2, 2, null),
                 new BatchSimulatingIterator(TestingBatchIterators.range(0, 3), 2, 2, null)
-            ),
-            threeXThreeRows
+            )
         );
-        tester.run();
+        tester.verifyResultAndEdgeCaseBehaviour(threeXThreeRows);
     }
 
     @Test
@@ -155,8 +153,8 @@ public class NestedLoopBatchIteratorTest {
             TestingBatchIterators.range(2, 6),
             getCol0EqCol1JoinCondition()
         );
-        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier, leftJoinResult);
-        tester.run();
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(leftJoinResult);
     }
 
     @Test
@@ -166,8 +164,8 @@ public class NestedLoopBatchIteratorTest {
             new BatchSimulatingIterator(TestingBatchIterators.range(2, 6), 2, 2, null),
             getCol0EqCol1JoinCondition()
         );
-        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier, leftJoinResult);
-        tester.run();
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(leftJoinResult);
     }
 
     @Test
@@ -177,8 +175,8 @@ public class NestedLoopBatchIteratorTest {
             TestingBatchIterators.range(2, 6),
             getCol0EqCol1JoinCondition()
         );
-        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier, rightJoinResult);
-        tester.run();
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(rightJoinResult);
     }
 
     @Test
@@ -188,8 +186,8 @@ public class NestedLoopBatchIteratorTest {
             new BatchSimulatingIterator(TestingBatchIterators.range(2, 6), 2, 2, null),
             getCol0EqCol1JoinCondition()
         );
-        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier, rightJoinResult);
-        tester.run();
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(rightJoinResult);
     }
 
     @Test
@@ -199,8 +197,8 @@ public class NestedLoopBatchIteratorTest {
             TestingBatchIterators.range(2, 6),
             getCol0EqCol1JoinCondition()
         );
-        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier, fullJoinResult);
-        tester.run();
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(fullJoinResult);
     }
 
     @Test
@@ -210,7 +208,7 @@ public class NestedLoopBatchIteratorTest {
             new BatchSimulatingIterator(TestingBatchIterators.range(2, 6), 2, 2, null),
             getCol0EqCol1JoinCondition()
         );
-        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier, fullJoinResult);
-        tester.run();
+        BatchIteratorTester tester = new BatchIteratorTester(batchIteratorSupplier);
+        tester.verifyResultAndEdgeCaseBehaviour(fullJoinResult);
     }
 }

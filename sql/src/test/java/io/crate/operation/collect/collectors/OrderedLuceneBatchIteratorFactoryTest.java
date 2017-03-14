@@ -120,10 +120,9 @@ public class OrderedLuceneBatchIteratorFactoryTest {
                     MoreExecutors.directExecutor(),
                     true
                 );
-            },
-            expectedResult
+            }
         );
-        tester.run();
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     private LuceneOrderedDocCollector createOrderedCollector(IndexSearcher searcher, int shardId) {
