@@ -78,21 +78,4 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         UserDefinedFunctionsMetaData functions2 = (UserDefinedFunctionsMetaData) UserDefinedFunctionsMetaData.of().fromXContent(parser);
         assertEquals(functions, functions2);
     }
-
-    @Test
-    public void testHasSameSignature() throws IOException {
-        // functions with the same name and the same argument types have the same signature
-        UserDefinedFunctionMetaData same1 = new UserDefinedFunctionMetaData("my_func",
-            ImmutableList.of(FunctionArgumentDefinition.of("arg1", DataTypes.FLOAT)),
-            null, "javascript", "function(){return 3}");
-        UserDefinedFunctionMetaData same2 = new UserDefinedFunctionMetaData("my_func",
-            ImmutableList.of(FunctionArgumentDefinition.of(null, DataTypes.FLOAT)),
-            null, "javascript", "function(){return 3}");
-        UserDefinedFunctionMetaData different = new UserDefinedFunctionMetaData("my_func",
-            ImmutableList.of(FunctionArgumentDefinition.of("arg1", DataTypes.DOUBLE)),
-            null, "javascript", "function(){return 3}");
-
-        assertThat(same1.hasSameSignature(same2), is(true));
-        assertThat(same1.hasSameSignature(different), is(false));
-    }
 }

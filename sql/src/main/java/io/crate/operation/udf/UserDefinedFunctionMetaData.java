@@ -70,23 +70,6 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         return udfMetaData;
     }
 
-    public boolean hasSameSignature(UserDefinedFunctionMetaData other) {
-        if (!name.equals(other.name)) {
-            return false;
-        }
-        if (arguments.size() != other.arguments.size()) {
-            return false;
-        }
-        int i = 0;
-        for (FunctionArgumentDefinition arg : arguments) {
-            if (!arg.type().equals(other.arguments.get(i).type())) {
-                return false;
-            }
-            i++;
-        }
-        return true;
-    }
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         name = in.readString();
