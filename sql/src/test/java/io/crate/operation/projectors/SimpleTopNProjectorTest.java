@@ -24,11 +24,10 @@ package io.crate.operation.projectors;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.data.Bucket;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Scalar;
-import io.crate.data.Input;
 import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
@@ -36,7 +35,6 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.RowSender;
 import io.crate.testing.TestingHelpers;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -155,8 +153,8 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
 
     @Test
     public void testFunctionExpression() throws Throwable {
-        Scalar floor = (Scalar) TestingHelpers.getFunctions().get(
-            new FunctionIdent("floor", Collections.<DataType>singletonList(DataTypes.DOUBLE)));
+        Scalar floor = (Scalar) TestingHelpers.getFunctions()
+            .get(null, "floor", Collections.singletonList(DataTypes.DOUBLE));
         FunctionExpression<Number, ?> funcExpr = new FunctionExpression<>(floor, new Input[]{input});
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         Projector pipe = new SimpleTopNProjector(ImmutableList.<Input<?>>of(funcExpr), COLLECT_EXPRESSIONS, 10, TopN.NO_OFFSET);

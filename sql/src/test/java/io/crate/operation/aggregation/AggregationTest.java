@@ -30,6 +30,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Row;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.operation.collect.InputCollectExpression;
@@ -64,7 +65,8 @@ public abstract class AggregationTest extends CrateUnitTest {
         }
     }
 
-    public Object[][] executeAggregation(String name, DataType dataType, Object[][] data, List<DataType> argumentTypes) throws Exception {
+    public Object[][] executeAggregation(String name, DataType dataType, Object[][] data, List<DataType> argumentTypes)
+        throws Exception {
         FunctionIdent fi;
         InputCollectExpression[] inputs;
         if (dataType != null) {
@@ -77,7 +79,7 @@ public abstract class AggregationTest extends CrateUnitTest {
             fi = new FunctionIdent(name, ImmutableList.<DataType>of());
             inputs = new InputCollectExpression[0];
         }
-        AggregationFunction impl = (AggregationFunction) functions.get(fi);
+        AggregationFunction impl = (AggregationFunction) functions.get(fi.schema(), fi.name(), fi.argumentTypes());
         Object state = impl.newState(ramAccountingContext);
 
         ArrayBucket bucket = new ArrayBucket(data);
@@ -103,7 +105,12 @@ public abstract class AggregationTest extends CrateUnitTest {
             argTypes[i] = args[i].valueType();
         }
         AggregationFunction function =
-            (AggregationFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(argTypes)));
-        return function.normalizeSymbol(new Function(function.info(), Arrays.asList(args)), new TransactionContext(SessionContext.SYSTEM_SESSION));
+            (AggregationFunction) functions.get(null, functionName, Arrays.asList(argTypes));
+        return function.normalizeSymbol(
+            new Function(function.info(), Arrays.asList(args)), new TransactionContext(SessionContext.SYSTEM_SESSION));
+    }
+
+    protected FunctionImplementation getFunction(String name, List<DataType> args) {
+        return functions.get(null, name, args);
     }
 }
