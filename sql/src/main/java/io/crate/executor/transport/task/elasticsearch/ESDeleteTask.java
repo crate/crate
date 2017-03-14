@@ -24,15 +24,15 @@ package io.crate.executor.transport.task.elasticsearch;
 import io.crate.Constants;
 import io.crate.analyze.where.DocKeys;
 import io.crate.concurrent.CompletableFutures;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.RowsBatchIterator;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.JobTask;
 import io.crate.jobs.ESJobContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dml.ESDelete;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
@@ -110,19 +110,19 @@ public class ESDeleteTask extends JobTask {
     }
 
     @Override
-    public void execute(final RowReceiver rowReceiver, Row parameters) {
+    public void execute(final BatchConsumer consumer, Row parameters) {
         CompletableFuture<Long> result = results.get(0);
         try {
             startContext();
         } catch (Throwable throwable) {
-            rowReceiver.fail(throwable);
+            consumer.accept(null, throwable);
             return;
         }
         result.whenComplete((Long futureResult, Throwable t) -> {
             if (t == null) {
-                RowReceivers.sendOneRow(rowReceiver, new Row1(futureResult));
+                consumer.accept(RowsBatchIterator.newInstance(new Row1(futureResult)), null);
             } else {
-                rowReceiver.fail(t);
+                consumer.accept(null, t);
             }
         });
     }

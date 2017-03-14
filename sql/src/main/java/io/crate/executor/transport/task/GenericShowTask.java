@@ -23,11 +23,11 @@ package io.crate.executor.transport.task;
 
 import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.AbstractShowAnalyzedStatement;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.RowsBatchIterator;
 import io.crate.executor.Task;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
 
 import java.util.List;
 import java.util.UUID;
@@ -46,13 +46,15 @@ public class GenericShowTask implements Task {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
+    public void execute(BatchConsumer consumer, Row parameters) {
+        Row1 row;
         try {
-            rowReceiver.setNextRow(new Row1(showStatementDispatcher.process(statement, jobId)));
-            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+            row = new Row1(showStatementDispatcher.process(statement, jobId));
         } catch (Throwable t) {
-            rowReceiver.fail(t);
+            consumer.accept(null, t);
+            return;
         }
+        consumer.accept(RowsBatchIterator.newInstance(row), null);
     }
 
     @Override

@@ -45,7 +45,9 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.InputFactory;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.projectors.*;
+import io.crate.operation.projectors.ProjectingBatchConsumer;
+import io.crate.operation.projectors.ProjectorFactory;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.projection.OrderedTopNProjection;
 import io.crate.planner.projection.Projection;
@@ -305,8 +307,7 @@ public class ESGetTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
-        BatchConsumer consumer = new BatchConsumerToRowReceiver(rowReceiver);
+    public void execute(BatchConsumer consumer, Row parameters) {
         JobContext jobContext;
         if (esGet.docKeys().size() == 1) {
             jobContext = new SingleGetJobContext(this, transportActionProvider.transportGetAction(), consumer);
