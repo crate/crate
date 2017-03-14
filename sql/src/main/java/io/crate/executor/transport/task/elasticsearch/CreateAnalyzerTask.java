@@ -24,11 +24,11 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
@@ -49,12 +49,12 @@ public class CreateAnalyzerTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
+    public void execute(BatchConsumer consumer, Row parameters) {
         ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
         request.persistentSettings(plan.createAnalyzerSettings());
 
         OneRowActionListener<ClusterUpdateSettingsResponse> actionListener =
-            new OneRowActionListener<>(rowReceiver, TO_ONE_ROW);
+            new OneRowActionListener<>(consumer, TO_ONE_ROW);
         transport.execute(request, actionListener);
     }
 }

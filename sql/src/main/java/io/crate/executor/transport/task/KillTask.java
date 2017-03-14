@@ -22,6 +22,7 @@
 package io.crate.executor.transport.task;
 
 import com.google.common.base.Function;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.executor.JobTask;
@@ -29,7 +30,6 @@ import io.crate.executor.transport.OneRowActionListener;
 import io.crate.executor.transport.kill.KillAllRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
-import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
@@ -51,8 +51,8 @@ public class KillTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
+    public void execute(BatchConsumer consumer, Row parameters) {
         nodeAction.broadcast(new KillAllRequest(),
-            new OneRowActionListener<>(rowReceiver, KILL_RESPONSE_TO_ROW_FUNCTION));
+            new OneRowActionListener<>(consumer, KILL_RESPONSE_TO_ROW_FUNCTION));
     }
 }

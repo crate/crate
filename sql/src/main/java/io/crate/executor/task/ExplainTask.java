@@ -22,11 +22,11 @@
 
 package io.crate.executor.task;
 
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.data.RowsBatchIterator;
 import io.crate.executor.Task;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.node.management.ExplainPlan;
 
@@ -43,14 +43,16 @@ public class ExplainTask implements Task {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
+    public void execute(BatchConsumer consumer, Row parameters) {
+        Map<String, Object> map;
         try {
-            Map<String, Object> map = PlanPrinter.objectMap(explainPlan.subPlan());
-            rowReceiver.setNextRow(new Row1(map));
-            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+            map = PlanPrinter.objectMap(explainPlan.subPlan());
         } catch (Throwable t) {
-            rowReceiver.fail(t);
+            consumer.accept(null, t);
+            return;
         }
+
+        consumer.accept(RowsBatchIterator.newInstance(new Row1(map)), null);
     }
 
     @Override
