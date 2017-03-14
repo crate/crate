@@ -25,10 +25,9 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
+import io.crate.data.Input;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
-import io.crate.data.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -47,11 +46,11 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
     private TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
 
     private LogFunction getFunction(String name, DataType value) {
-        return (LogFunction) functions.get(new FunctionIdent(name, Arrays.asList(value)));
+        return (LogFunction) getFunction(name, Arrays.asList(value));
     }
 
     private LogFunction getFunction(String name, DataType value, DataType base) {
-        return (LogFunction) functions.get(new FunctionIdent(name, Arrays.asList(value, base)));
+        return (LogFunction) getFunction(name, Arrays.asList(value, base));
     }
 
     private Symbol normalizeLog(Number value, DataType valueType) {
@@ -213,5 +212,4 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
 
         assertThat(evaluateLn(null, DataTypes.DOUBLE), nullValue());
     }
-
 }

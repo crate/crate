@@ -144,7 +144,8 @@ public class EvaluatingNormalizer {
 
         @SuppressWarnings("unchecked")
         Symbol normalizeFunctionSymbol(Function function, Context context) {
-            FunctionImplementation impl = functions.get(function.info().ident());
+            FunctionIdent ident = function.info().ident();
+            FunctionImplementation impl = functions.get(ident.schema(), ident.name(), ident.argumentTypes());
             if (impl != null) {
                 return impl.normalizeSymbol(function, context.transactionContext);
             }

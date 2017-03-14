@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.*;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.operation.collect.CollectExpression;
@@ -158,7 +159,9 @@ public class InputFactoryTest extends CrateUnitTest {
         FunctionImplementation impl = (FunctionImplementation) f.get(expression);
         assertThat(impl.info(), is(function.info()));
 
-        FunctionImplementation uncompiled = expressions.functions().get(function.info().ident());
+        FunctionIdent ident = function.info().ident();
+        FunctionImplementation uncompiled =
+            expressions.functions().get(ident.schema(), ident.name(), ident.argumentTypes());
         assertThat(uncompiled, not(sameInstance(impl)));
     }
 }

@@ -31,42 +31,101 @@ import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Functions {
 
     private final Map<String, FunctionResolver> functionResolvers;
+    private final Map<String, Map<String, FunctionResolver>> schemaFunctionResolvers;
 
     @Inject
     public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
                      Map<String, FunctionResolver> functionResolvers) {
         this.functionResolvers = Maps.newHashMap(functionResolvers);
-        generateFunctionResolvers(functionImplementations);
+        this.functionResolvers.putAll(generateFunctionResolvers(functionImplementations));
+        schemaFunctionResolvers = new HashMap<>();
     }
 
-    private void generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
+    public Map<String, FunctionResolver> generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
+        Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> signatures = getSignatures(functionImplementations);
+        return signatures.keys().stream()
+            .distinct()
+            .collect(Collectors.toMap(name -> name, name -> new GeneratedFunctionResolver(signatures.get(name))));
+    }
+
+    private Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> getSignatures(
+        Map<FunctionIdent, FunctionImplementation> functionImplementations) {
         Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> signatureMap = ArrayListMultimap.create();
         for (Map.Entry<FunctionIdent, FunctionImplementation> entry : functionImplementations.entrySet()) {
             signatureMap.put(entry.getKey().name(), new Tuple<>(entry.getKey(), entry.getValue()));
         }
-        for (String name : signatureMap.keys()) {
-            functionResolvers.put(name, new GeneratedFunctionResolver(signatureMap.get(name)));
-        }
+        return signatureMap;
+    }
+
+    public void registerSchemaFunctionResolvers(String schema, Map<String, FunctionResolver> resolvers) {
+        schemaFunctionResolvers.put(schema, resolvers);
     }
 
     /**
-     * <p>
-     * returns the functionImplementation for the given ident.
-     * </p>
-     * <p>
-     * same as {@link #get(FunctionIdent)} but will throw an UnsupportedOperationException
-     * if no implementation is found.
+     * Returns the function implementation for the given schema, function name and arguments.
+     *
+     * @param schema    The schema name. The schema name is null for built-in functions.
+     * @param name      The function name.
+     * @param arguments The function arguments.
+     * @return a function implementation or null if nothing was found.
      */
-    public FunctionImplementation getSafe(FunctionIdent ident)
+    @Nullable
+    public FunctionImplementation get(@Nullable String schema, String name, List<DataType> arguments)
+        throws IllegalArgumentException {
+        // get a built-in function
+        if (schema == null) {
+            FunctionResolver dynamicResolver = functionResolvers.get(name);
+            if (dynamicResolver != null) {
+                List<DataType> signature = dynamicResolver.getSignature(arguments);
+                if (signature != null) {
+                    return dynamicResolver.getForTypes(signature);
+                }
+            }
+            // fallback, check if the function with the same name was defined in the default schema
+            return getSchemaFunctionImplementation(Schemas.DEFAULT_SCHEMA_NAME, name, arguments);
+        } else {
+            // Get a user defined function from the given schema. The function must be
+            // assigned a certain schema. If no schema is provided, it belongs to the default schema.
+            return getSchemaFunctionImplementation(schema, name, arguments);
+        }
+    }
+
+    private FunctionImplementation getSchemaFunctionImplementation(String schema, String name, List<DataType> arguments) {
+        Map<String, FunctionResolver> schemaResolvers = schemaFunctionResolvers.get(schema);
+        if (schemaResolvers == null) return null;
+
+        FunctionResolver schemaResolver = schemaResolvers.get(name);
+        return getFunctionImplementationForSignature(schemaResolver, arguments);
+    }
+
+    private FunctionImplementation getFunctionImplementationForSignature(FunctionResolver resolver, List<DataType> arguments) {
+        if (resolver != null) {
+            List<DataType> signature = resolver.getSignature(arguments);
+            return resolver.getForTypes(signature);
+        }
+        return null;
+    }
+
+    /**
+     * Returns the function implementation for the given schema, function name and arguments.
+     *
+     * @param schema    The schema name.  The schema name is null for built-in functions.
+     * @param name      The function name.
+     * @param arguments The function arguments.
+     * @return The function implementation..
+     * @throws UnsupportedOperationException if no implementation is found.
+     */
+    public FunctionImplementation getSafe(@Nullable String schema, String name, List<DataType> arguments)
         throws IllegalArgumentException, UnsupportedOperationException {
         FunctionImplementation implementation = null;
         String exceptionMessage = null;
         try {
-            implementation = get(ident);
+            implementation = get(schema, name, arguments);
         } catch (IllegalArgumentException e) {
             if (e.getMessage() != null && !e.getMessage().isEmpty()) {
                 exceptionMessage = e.getMessage();
@@ -74,30 +133,14 @@ public class Functions {
         }
         if (implementation == null) {
             if (exceptionMessage == null) {
-                exceptionMessage = String.format(Locale.ENGLISH, "unknown function: %s(%s)", ident.name(),
-                    Joiner.on(", ").join(ident.argumentTypes()));
+                exceptionMessage = String.format(Locale.ENGLISH, "unknown function: %s(%s)", name,
+                    Joiner.on(", ").join(arguments));
             }
             throw new UnsupportedOperationException(exceptionMessage);
         }
         return implementation;
     }
 
-    /**
-     * returns the functionImplementation for the given ident
-     * or null if nothing was found
-     */
-    @Nullable
-    public FunctionImplementation get(FunctionIdent ident) throws IllegalArgumentException {
-        FunctionResolver dynamicResolver = functionResolvers.get(ident.name());
-        if (dynamicResolver != null) {
-            List<DataType> argumentTypes = ident.argumentTypes();
-            List<DataType> signature = dynamicResolver.getSignature(argumentTypes);
-            if (signature != null) {
-                return dynamicResolver.getForTypes(signature);
-            }
-        }
-        return null;
-    }
 
     private static class GeneratedFunctionResolver implements FunctionResolver {
 

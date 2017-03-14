@@ -31,6 +31,7 @@ import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
@@ -192,7 +193,8 @@ public class InputFactory {
 
         @Override
         public Input<?> visitAggregation(Aggregation symbol, Void context) {
-            FunctionImplementation impl = functions.get(symbol.functionIdent());
+            FunctionIdent ident = symbol.functionIdent();
+            FunctionImplementation impl = functions.get(ident.schema(), ident.name(), ident.argumentTypes());
             if (impl == null) {
                 throw new UnsupportedOperationException(
                     SymbolFormatter.format("Can't load aggregation impl for symbol %s", symbol));
