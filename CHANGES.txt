@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2017/03/14 1.0.5
+================
+
  - Fix: Case sensivity of aliases wasn't handled correctly.
    Aliases are now fully case sensitive.
 
