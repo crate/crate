@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that prevent a node from starting on Windows if the
+   sigar-plugin is removed.
+
  - Fix: Case sensivity of aliases wasn't handled correctly.
    Aliases are now fully case sensitive.
 
