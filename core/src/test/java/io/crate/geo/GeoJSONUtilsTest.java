@@ -24,16 +24,15 @@ package io.crate.geo;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.locationtech.spatial4j.context.SpatialContext;
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
-import org.locationtech.spatial4j.shape.Shape;
-import org.locationtech.spatial4j.shape.SpatialRelation;
-import org.locationtech.spatial4j.shape.jts.JtsGeometry;
-import org.locationtech.spatial4j.shape.jts.JtsPoint;
 import com.vividsolutions.jts.geom.*;
 import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.io.WKTWriter;
+import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.jts.JtsGeometry;
+import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
 import java.util.List;
 import java.util.Map;
@@ -115,7 +114,7 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
 
     @Test
     public void testMapFromWktRoundTrip() throws Exception {
-        String wkt = "multilinestring (( 10.05  10.28 , 20.95  20.89 ),( 20.95  20.89, 31.92 21.45))";
+        String wkt = "MULTILINESTRING ((10.05 10.28, 20.95 20.89), (20.95 20.89, 31.92 21.45))";
         Shape shape = GeoJSONUtils.wkt2Shape(wkt);
         Map<String, Object> map = GeoJSONUtils.shape2Map(shape);
 
@@ -124,9 +123,8 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
         assertThat(map.get("coordinates"), is(wktMap.get("coordinates")));
 
         Shape mappedShape = GeoJSONUtils.map2Shape(map);
-        assertThat(shape.relate(mappedShape), is(SpatialRelation.INTERSECTS));
-        assertThat(shape.getCenter(), is(mappedShape.getCenter()));
-        assertThat(shape.getArea(JtsSpatialContext.GEO), is(mappedShape.getArea(SpatialContext.GEO)));
+        String wktFromMap = new WKTWriter().toString(mappedShape);
+        assertThat(wktFromMap, is(wkt));
     }
 
     @Test
