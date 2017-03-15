@@ -223,39 +223,7 @@ Run `Forbidden APIs`_::
 Benchmark
 =========
 
-There are two types of benchmarks within the project:
-
-External Benchmarks
-----------------------
-
-External benchmarks only require a crate client and execute SQL statements
-against one or more crate nodes.
-
-Those benchmarks can be run using::
-
-  $ ./gradlew externalBenchmarks
-
-It will output some results to stdout (read between the lines) and finally you
-will receive information where more detailed benchmark-results got stored.
-
-internal benchmarks
--------------------
-
-Internal benchmarks test specific components or units.
-
-We used to write them using JUnitBenchmarks, but the project has been
-deprecated in favor of `JMH`_.
-
-The benchmarks that were written using JUnitBenchmarks can still be run using::
-
-    $ ./gradlew benchmarks
-
-But they should eventually be replaced with benchmarks that use `JMH`_.
-
-Jmh
----
-
-`JMH`_ benchmarks can be executed using ``gradle``::
+Benchmarks are written using `JMH`_. They can be executed using ``gradle``::
 
     $ ./gradlew :core:jmh
     $ ./gradlew :sql:jmh
