@@ -113,7 +113,12 @@ public class CompositeCollector implements CrateCollector {
                 iterators[remaining] = iterator;
             }
             if (remaining == 0) {
-                consumer.accept(compositeBatchIteratorFactory.apply(iterators), lastFailure);
+                // null checks to avoid using the factory with potential null-entries within the iterators
+                if (lastFailure == null) {
+                    consumer.accept(compositeBatchIteratorFactory.apply(iterators), null);
+                } else {
+                    consumer.accept(null, lastFailure);
+                }
             }
         }
 
