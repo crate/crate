@@ -33,6 +33,7 @@ import java.util.List;
 
 public class CreateFunctionAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
+    private final String schema;
     private final String name;
     private final boolean replace;
     private final List<FunctionArgumentDefinition> arguments;
@@ -40,24 +41,29 @@ public class CreateFunctionAnalyzedStatement extends AbstractDDLAnalyzedStatemen
     private final Expression language;
     private final Expression definition;
 
-    public CreateFunctionAnalyzedStatement(String name,
+    public CreateFunctionAnalyzedStatement(String schema,
+                                           String name,
                                            boolean replace,
                                            List<FunctionArgumentDefinition> arguments,
                                            DataType returnType,
                                            Expression language,
                                            Expression definition) {
+        this.schema = schema;
         this.name = name;
         this.replace = replace;
         this.arguments = arguments;
         this.returnType = returnType;
         this.language = language;
         this.definition = definition;
-
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitCreateFunctionStatement(this, context);
+    }
+
+    public String schema() {
+        return schema;
     }
 
     public String name() {

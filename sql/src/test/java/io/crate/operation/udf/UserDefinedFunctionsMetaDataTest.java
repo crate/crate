@@ -41,6 +41,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
 
     private final String definition = "function(a, b) {return a - b;}";
     private final UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
+        "custom",
         "my_add",
         ImmutableList.of(FunctionArgumentDefinition.of(DataTypes.DOUBLE_ARRAY),
             FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
@@ -59,6 +60,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         UserDefinedFunctionMetaData udfMeta2 = UserDefinedFunctionMetaData.fromStream(in);
         assertThat(udfMeta, is(udfMeta2));
 
+        assertThat(udfMeta2.schema(), is("custom"));
         assertThat(udfMeta2.name(), is("my_add"));
         assertThat(udfMeta2.arguments().size(), is(2));
         assertThat(udfMeta2.arguments().get(1), is(

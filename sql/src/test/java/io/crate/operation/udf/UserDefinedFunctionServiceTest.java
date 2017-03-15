@@ -35,15 +35,15 @@ import static org.hamcrest.Matchers.hasSize;
 public class UserDefinedFunctionServiceTest extends CrateUnitTest {
 
     UserDefinedFunctionMetaData same1 = new UserDefinedFunctionMetaData(
-        "same", ImmutableList.of(), DataTypes.INTEGER,
+        "same", "same", ImmutableList.of(), DataTypes.INTEGER,
         "javascript", "function(){return 3}"
     );
     UserDefinedFunctionMetaData same2 = new UserDefinedFunctionMetaData(
-        "same", ImmutableList.of(), DataTypes.INTEGER,
+        "same", "same", ImmutableList.of(), DataTypes.INTEGER,
         "javascript", "function(){return 2}"
     );
     UserDefinedFunctionMetaData different = new UserDefinedFunctionMetaData(
-        "different", ImmutableList.of(), DataTypes.INTEGER,
+        "differnt", "different", ImmutableList.of(), DataTypes.INTEGER,
         "javascript", "function(){return 3}"
     );
 
@@ -75,5 +75,4 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
             false
         );
     }
-
 }
