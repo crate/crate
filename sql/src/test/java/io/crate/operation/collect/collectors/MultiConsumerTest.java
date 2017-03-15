@@ -25,6 +25,8 @@ package io.crate.operation.collect.collectors;
 import io.crate.data.BatchConsumer;
 import io.crate.data.CollectionBucket;
 import io.crate.data.CompositeBatchIterator;
+import io.crate.data.RowsBatchIterator;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingHelpers;
@@ -33,9 +35,8 @@ import org.junit.Test;
 import java.util.List;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
-public class MultiConsumerTest {
+public class MultiConsumerTest extends CrateUnitTest {
 
     @Test
     public void testSuccessfulMultiConsumerUsage() throws Exception {
@@ -53,5 +54,17 @@ public class MultiConsumerTest {
                "3\n" +
                "4\n" +
                "5\n"));
+    }
+
+    @Test
+    public void testFirstAcceptNullIteratorDoesNotCauseNPE() throws Exception {
+        TestingBatchConsumer batchConsumer = new TestingBatchConsumer();
+        BatchConsumer consumer = CompositeCollector.newMultiConsumer(2, batchConsumer, CompositeBatchIterator::new);
+        consumer.accept(null, new IllegalStateException("dummy"));
+        consumer.accept(RowsBatchIterator.empty(), null);
+
+        expectedException.expect(IllegalStateException.class);
+        expectedException.expectMessage("dummy");
+        batchConsumer.getResult();
     }
 }
