@@ -54,6 +54,9 @@ public class TestingBatchConsumer implements BatchConsumer, Killable {
                     it.close();
                 });
         } else {
+            if (it != null) {
+                it.close();
+            }
             result.completeExceptionally(failure);
         }
     }
