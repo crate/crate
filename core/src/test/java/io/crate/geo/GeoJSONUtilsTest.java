@@ -129,7 +129,7 @@ public class GeoJSONUtilsTest {
 
         Shape mappedShape = GeoJSONUtils.map2Shape(map);
         String wktFromMap = new WKTWriter().toString(mappedShape);
-        assertThat(wktFromMap, is("MULTILINESTRING ((10.05 10.28, 20.95 20.89), (20.95 20.89, 31.92 21.45))"));
+        assertThat(wktFromMap, is(wkt));
     }
 
     @Test
