@@ -41,15 +41,13 @@ public class UserDefinedFunctionFactory {
         switch (meta.language.toLowerCase()) {
             case "javascript":
                 try {
-                    CompiledScript compiledScript =
-                        ((Compilable) JavaScriptUserDefinedFunction.ENGINE).compile(meta.definition);
-
-                    return new JavaScriptUserDefinedFunction(
-                        new FunctionIdent(meta.name, meta.arguments.stream()
-                            .map(FunctionArgumentDefinition::type)
-                            .collect(Collectors.toList())),
-                        meta.returnType,
-                        compiledScript);
+                    CompiledScript compiledScript = ((Compilable) JavaScriptUserDefinedFunction.ENGINE)
+                        .compile(meta.definition);
+                    FunctionIdent ident = new FunctionIdent(
+                        meta.schema(),
+                        meta.name(),
+                        meta.arguments().stream().map(FunctionArgumentDefinition::type).collect(Collectors.toList()));
+                    return new JavaScriptUserDefinedFunction(ident, meta.returnType, compiledScript);
                 } catch (ScriptException e) {
                     throw new IllegalArgumentException(String.format("Cannot compile the script. [%s]", e));
                 }

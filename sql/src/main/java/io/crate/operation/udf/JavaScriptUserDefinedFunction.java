@@ -95,12 +95,11 @@ public class JavaScriptUserDefinedFunction extends UserDefinedFunction {
     private Object evaluateFunctionWithBindings(Bindings bindings, Object[] values) {
         Object result;
         try {
-            result = ((ScriptObjectMirror) bindings.get(extractFunctionName(info.ident()))).call(this, values);
+            result = ((ScriptObjectMirror) bindings.get(info.ident().name())).call(this, values);
         } catch (NullPointerException e) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "The name [%s] of the function signature doesn't match the function name in the function definition.",
-                extractFunctionName(info.ident()))
-            );
+                info.ident().name()));
         } catch (ECMAException e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "The function definition cannot be evaluated. [%s]", e)
@@ -111,11 +110,6 @@ public class JavaScriptUserDefinedFunction extends UserDefinedFunction {
             result = parseScriptObject((ScriptObjectMirror) result);
         }
         return returnType.value(result);
-    }
-
-    private String extractFunctionName(FunctionIdent ident) {
-        String[] parts = ident.name().split("\\.");
-        return parts.length == 1 ? parts[0] : parts[1];
     }
 
     private Object parseScriptObject(ScriptObjectMirror scriptObject) {
