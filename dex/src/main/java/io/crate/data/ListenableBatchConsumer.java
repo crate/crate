@@ -36,7 +36,12 @@ public class ListenableBatchConsumer implements BatchConsumer {
 
     @Override
     public void accept(BatchIterator iterator, @Nullable Throwable failure) {
-        delegate.accept(new ListenableBatchIterator(iterator, completionFuture), failure);
+        if (failure == null) {
+            delegate.accept(new ListenableBatchIterator(iterator, completionFuture), null);
+        } else {
+            delegate.accept(null, failure);
+            completionFuture.completeExceptionally(failure);
+        }
     }
 
     @Override
