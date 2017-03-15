@@ -4,7 +4,7 @@ Babel==2.3.4
 colorama==0.3.7
 crash==0.20.0
 crate==0.16.3
-crate-docs-theme==0.5.13
+crate-docs-theme==0.5.18
 sphinx-csv-filter==0.1.0
 docutils==0.12
 imagesize==0.7.1
