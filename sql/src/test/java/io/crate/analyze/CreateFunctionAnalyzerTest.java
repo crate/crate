@@ -54,40 +54,39 @@ public class CreateFunctionAnalyzerTest extends CrateUnitTest {
         assertThat(analyzedStatement, instanceOf(CreateFunctionAnalyzedStatement.class));
 
         CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) analyzedStatement;
-        assertThat(analysis.name(), is("doc.bar"));
+        assertThat(analysis.schema(), is("doc"));
+        assertThat(analysis.name(), is("bar"));
         assertThat(analysis.replace(), is(false));
         assertThat(analysis.returnType(), is(DataTypes.LONG));
         assertThat(analysis.arguments().get(0), is(FunctionArgumentDefinition.of(DataTypes.LONG)));
         assertThat(analysis.arguments().get(1), is(FunctionArgumentDefinition.of(DataTypes.LONG)));
-        assertThat(analysis.language(),  is(Literal.fromObject("javascript")));
+        assertThat(analysis.language(), is(Literal.fromObject("javascript")));
         assertThat(analysis.definition(), is(Literal.fromObject("function(a, b) { return a + b; }")));
-
     }
 
     @Test
-    public void testCreateFunctionTestSchema() throws Exception {
-
+    public void testCreateFunctionWithSessionSetSchema() throws Exception {
         CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement("CREATE FUNCTION bar(long, long)" +
-        " RETURNS long LANGUAGE javascript AS 'function(a, b) { return a + b; }'"),
+                " RETURNS long LANGUAGE javascript AS 'function(a, b) { return a + b; }'"),
             new SessionContext(0, Option.NONE, "my_schema"),
-            new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())).analyzedStatement();
+            new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
 
-        assertThat(analysis.name(), is("my_schema.bar"));
+        assertThat(analysis.schema(), is("my_schema"));
+        assertThat(analysis.name(), is("bar"));
     }
 
     @Test
-    public void testCreateFunctionTestExplicitSchema() throws Exception {
-
+    public void testCreateFunctionExplicitSchemaTakesOverSessionSchema() throws Exception {
         CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement("CREATE FUNCTION my_other_schema.bar(long, long)" +
                 " RETURNS long LANGUAGE javascript AS 'function(a, b) { return a + b; }'"),
             new SessionContext(0, Option.NONE, "my_schema"),
-            new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())).analyzedStatement();
+            new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
 
-        assertThat(analysis.name(), is("my_other_schema.bar"));
+        assertThat(analysis.schema(), is("my_other_schema"));
+        assertThat(analysis.name(), is("bar"));
     }
-
 
     @Test
     public void testCreateFunctionOrReplace() throws Exception {
@@ -96,7 +95,8 @@ public class CreateFunctionAnalyzerTest extends CrateUnitTest {
         assertThat(analyzedStatement, instanceOf(CreateFunctionAnalyzedStatement.class));
 
         CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) analyzedStatement;
-        assertThat(analysis.name(), is("doc.bar"));
+        assertThat(analysis.schema(), is("doc"));
+        assertThat(analysis.name(), is("bar"));
         assertThat(analysis.replace(), is(true));
         assertThat(analysis.returnType(), is(DataTypes.LONG));
         assertThat(analysis.language(), is(Literal.fromObject("javascript")));
@@ -110,7 +110,8 @@ public class CreateFunctionAnalyzerTest extends CrateUnitTest {
         assertThat(analyzedStatement, instanceOf(CreateFunctionAnalyzedStatement.class));
 
         CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) analyzedStatement;
-        assertThat(analysis.name(), is("foo.bar"));
+        assertThat(analysis.schema(), is("foo"));
+        assertThat(analysis.name(), is("bar"));
         assertThat(analysis.replace(), is(false));
         assertThat(analysis.returnType(), is(DataTypes.GEO_POINT));
         assertThat(analysis.arguments().get(0), is(FunctionArgumentDefinition.of(DataTypes.GEO_POINT)));
@@ -126,7 +127,8 @@ public class CreateFunctionAnalyzerTest extends CrateUnitTest {
         assertThat(analyzedStatement, instanceOf(CreateFunctionAnalyzedStatement.class));
 
         CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) analyzedStatement;
-        assertThat(analysis.name(), is("foo.bar"));
+        assertThat(analysis.schema(), is("foo"));
+        assertThat(analysis.name(), is("bar"));
         assertThat(analysis.replace(), is(false));
         assertThat(analysis.returnType(), is(new ArrayType(DataTypes.GEO_POINT)));
         assertThat(analysis.arguments().get(0), is(FunctionArgumentDefinition.of(new ArrayType(DataTypes.INTEGER))));

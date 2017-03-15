@@ -44,6 +44,7 @@ public class UserDefinedFunctionDDLDispatcher {
     public CompletableFuture<Long> dispatch(final CreateFunctionAnalyzedStatement statement, Row params) {
         final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
         UserDefinedFunctionMetaData metaData = new UserDefinedFunctionMetaData(
+            statement.schema(),
             statement.name(),
             statement.arguments(),
             statement.returnType(),

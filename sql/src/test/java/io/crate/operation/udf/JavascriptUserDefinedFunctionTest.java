@@ -62,7 +62,8 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     private void registerUserDefinedFunction(String schema, String name, DataType returnType, List<DataType> types, String definition) {
         String fName = String.format("%s.%s", schema, name);
         UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
-            fName,
+            schema,
+            name,
             types.stream().map(FunctionArgumentDefinition::of).collect(Collectors.toList()),
             returnType,
             JS,

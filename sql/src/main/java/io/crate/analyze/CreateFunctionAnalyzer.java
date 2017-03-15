@@ -27,10 +27,10 @@
 package io.crate.analyze;
 
 import io.crate.metadata.Schemas;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.CreateFunction;
+import io.crate.sql.tree.FunctionArgument;
 
 import java.util.List;
-import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 public class CreateFunctionAnalyzer {
@@ -38,9 +38,11 @@ public class CreateFunctionAnalyzer {
     private final static DataTypeAnalyzer DT_ANALYZER = new DataTypeAnalyzer();
 
     public CreateFunctionAnalyzedStatement analyze(CreateFunction node, Analysis context) {
+        List<String> parts = node.name().getParts();
 
         return new CreateFunctionAnalyzedStatement(
-            prependDefaultSchemaName(node.name().toString(), context),
+            resolveSchemaName(parts, context),
+            resolveFunctionName(parts),
             node.replace(),
             analyzedFunctionArguments(node.arguments()),
             DT_ANALYZER.process(node.returnType(), null),
@@ -49,22 +51,25 @@ public class CreateFunctionAnalyzer {
         );
     }
 
+    private String resolveSchemaName(List<String> parts, Analysis context) {
+        if (parts.size() == 1) {
+            if (context.sessionContext().defaultSchema() != null) {
+                return context.sessionContext().defaultSchema();
+            }
+            return Schemas.DEFAULT_SCHEMA_NAME;
+        } else {
+            return parts.get(0);
+        }
+    }
+
+    private String resolveFunctionName(List<String> parts) {
+        return parts.size() == 1 ? parts.get(0) : parts.get(1);
+    }
+
     private List<FunctionArgumentDefinition> analyzedFunctionArguments(List<FunctionArgument> arguments) {
         return arguments.stream()
             .map(arg ->
                 FunctionArgumentDefinition.of(arg.name().orElse(null), DT_ANALYZER.process(arg.type(), null))
             ).collect(Collectors.toList());
     }
-
-    private String prependDefaultSchemaName(String name , Analysis context) {
-        Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(name);
-        if(matcher.matches()){
-            return name;
-        }
-        if(context.sessionContext().defaultSchema() != null){
-            return name.format("%s.%s", context.sessionContext().defaultSchema(), name);
-        }
-        return String.format("%s.%s", Schemas.DEFAULT_SCHEMA_NAME, name);
-    }
-
 }
