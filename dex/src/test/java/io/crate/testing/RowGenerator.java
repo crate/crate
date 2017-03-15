@@ -40,7 +40,7 @@ public class RowGenerator {
      * @param from start (inclusive)
      * @param to   end (exclusive)
      */
-    public static Iterable<Row> range(final long from, final long to) {
+    public static Iterable<Row> range(final int from, final int to) {
         return new Iterable<Row>() {
 
             @Override
@@ -49,8 +49,8 @@ public class RowGenerator {
 
                     private Object[] columns = new Object[1];
                     private RowN sharedRow = new RowN(columns);
-                    private long i = from;
-                    private long step = from < to ? 1 : -1;
+                    private int i = from;
+                    private int step = from < to ? 1 : -1;
 
                     @Override
                     public boolean hasNext() {
