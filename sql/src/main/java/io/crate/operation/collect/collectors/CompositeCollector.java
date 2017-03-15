@@ -31,7 +31,6 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 /**
@@ -91,13 +90,13 @@ public class CompositeCollector implements CrateCollector {
         private final BatchConsumer consumer;
         private final Function<BatchIterator[], BatchIterator> compositeBatchIteratorFactory;
 
-        private AtomicInteger remainingAccepts;
+        private int remainingAccepts;
         private Throwable lastFailure;
 
         private MultiConsumer(int numAccepts,
                               BatchConsumer consumer,
                               Function<BatchIterator[], BatchIterator> compositeBatchIteratorFactory) {
-            this.remainingAccepts = new AtomicInteger(numAccepts);
+            this.remainingAccepts = numAccepts;
             this.iterators = new BatchIterator[numAccepts];
             this.consumer = consumer;
             this.compositeBatchIteratorFactory = compositeBatchIteratorFactory;
@@ -105,11 +104,13 @@ public class CompositeCollector implements CrateCollector {
 
         @Override
         public void accept(BatchIterator iterator, @Nullable Throwable failure) {
-            int remaining = remainingAccepts.decrementAndGet();
-            if (failure != null) {
-                lastFailure = failure;
-            }
+            int remaining;
             synchronized (iterators) {
+                remainingAccepts--;
+                remaining = remainingAccepts;
+                if (failure != null) {
+                    lastFailure = failure;
+                }
                 iterators[remaining] = iterator;
             }
             if (remaining == 0) {
