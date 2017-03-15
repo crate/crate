@@ -24,10 +24,9 @@ package io.crate.geo;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.spatial4j.core.context.SpatialContext;
 import com.spatial4j.core.context.jts.JtsSpatialContext;
+import com.spatial4j.core.io.WKTWriter;
 import com.spatial4j.core.shape.Shape;
-import com.spatial4j.core.shape.SpatialRelation;
 import com.spatial4j.core.shape.jts.JtsGeometry;
 import com.spatial4j.core.shape.jts.JtsPoint;
 import com.vividsolutions.jts.geom.*;
@@ -115,7 +114,7 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
 
     @Test
     public void testMapFromWktRoundTrip() throws Exception {
-        String wkt = "multilinestring (( 10.05  10.28 , 20.95  20.89 ),( 20.95  20.89, 31.92 21.45))";
+        String wkt = "MULTILINESTRING ((10.05 10.28, 20.95 20.89), (20.95 20.89, 31.92 21.45))";
         Shape shape = GeoJSONUtils.wkt2Shape(wkt);
         Map<String, Object> map = GeoJSONUtils.shape2Map(shape);
 
@@ -124,9 +123,8 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
         assertThat(map.get("coordinates"), is(wktMap.get("coordinates")));
 
         Shape mappedShape = GeoJSONUtils.map2Shape(map);
-        assertThat(shape.relate(mappedShape), is(SpatialRelation.INTERSECTS));
-        assertThat(shape.getCenter(), is(mappedShape.getCenter()));
-        assertThat(shape.getArea(JtsSpatialContext.GEO), is(mappedShape.getArea(SpatialContext.GEO)));
+        String wktFromMap = new WKTWriter().toString(mappedShape);
+        assertThat(wktFromMap, is("GEOMETRYCOLLECTION (LINESTRING (10.05 10.28, 20.95 20.89),LINESTRING (20.95 20.89, 31.92 21.45))"));
     }
 
     @Test
