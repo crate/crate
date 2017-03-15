@@ -26,9 +26,6 @@ dependencies {
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
     }
-
-    benchmarksCompile 'com.carrotsearch:junit-benchmarks:0.7.2'
-    benchmarksCompile 'com.h2database:h2:1.3.173'
 }
 
 
@@ -58,50 +55,4 @@ sourceSets {
 
         }
     }
-    benchmarks {
-        java {
-            srcDir 'src/benchmarks/java'
-            compileClasspath += main.output + test.output + configurations.benchmarksCompile
-            runtimeClasspath += main.output + test.output + configurations.benchmarksRuntime
-        }
-    }
 }
-
-task benchmarks(type: Test) {
-    description = "Run internal benchmarks"
-
-    testClassesDir = project.sourceSets.benchmarks.output.classesDir
-
-    // move lucene-test-framework to the beginning of the classpath
-    def cp = project.sourceSets.benchmarks.runtimeClasspath
-    def testFrameworkEntry = cp.find({ it.name.contains("lucene-test-framework") })
-    if (testFrameworkEntry != null) {
-        cp = files(testFrameworkEntry) + cp.filter({ !it.name.contains("lucene-test-framework") })
-    }
-    classpath = cp
-    def benchmark_dir = project.projectDir.path + '/reports/bench/'
-
-    // Properties for JUnit Benchmarks
-    systemProperty 'jub.consumers', 'CONSOLE,H2,XML'
-    systemProperty 'jub.db.file', benchmark_dir + 'results-sql'
-    systemProperty 'jub.xml.file', benchmark_dir + 'results-sql.xml'
-    systemProperty 'jub.charts.dir', benchmark_dir
-
-    // force run, see: http://gradle.1045684.n5.nabble.com/how-does-gradle-decide-when-to-run-tests-td3314172.html
-    outputs.upToDateWhen { false }
-
-    jacoco {
-        enabled = false
-    }
-}
-
-
-idea {
-    module {
-        testSourceDirs += file('src/benchmarks/java')
-        // put additional dependencies on the classpath
-        scopes.TEST.plus += [configurations.benchmarksCompile]
-        scopes.TEST.plus += [configurations.benchmarksRuntime]
-    }
-}
-
