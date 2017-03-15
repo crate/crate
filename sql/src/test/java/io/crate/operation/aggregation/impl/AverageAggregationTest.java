@@ -22,7 +22,6 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -36,12 +35,12 @@ public class AverageAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        FunctionIdent fi = new FunctionIdent("avg", ImmutableList.<DataType>of(DataTypes.INTEGER));
         // Return type is fixed to Double
-        assertEquals(DataTypes.DOUBLE, functions.get(fi).info().returnType());
+        assertEquals(DataTypes.DOUBLE,
+            getFunction("avg", ImmutableList.<DataType>of(DataTypes.INTEGER)).info().returnType());
 
-        FunctionIdent meanFi = new FunctionIdent("mean", ImmutableList.<DataType>of(DataTypes.INTEGER));
-        assertEquals(DataTypes.DOUBLE, functions.get(meanFi).info().returnType());
+        assertEquals(DataTypes.DOUBLE,
+            getFunction("mean", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
     }
 
     @Test
@@ -81,6 +80,6 @@ public class AverageAggregationTest extends AggregationTest {
 
     @Test(expected = NullPointerException.class)
     public void testUnsupportedType() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
+        executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
     }
 }

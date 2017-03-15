@@ -24,10 +24,7 @@ package io.crate.analyze.symbol.format;
 
 import io.crate.analyze.relations.RelationPrinter;
 import io.crate.analyze.symbol.*;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
+import io.crate.metadata.*;
 import io.crate.operation.operator.any.AnyOperator;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -186,7 +183,8 @@ public class SymbolPrinter {
             OperatorFormatSpec operatorFormatSpec = null;
 
             if (functions != null) {
-                FunctionImplementation impl = functions.get(function.info().ident());
+                FunctionIdent ident = function.info().ident();
+                FunctionImplementation impl = functions.get(ident.schema(), ident.name(), ident.argumentTypes());
                 if (impl instanceof FunctionFormatSpec) {
                     functionFormatSpec = (FunctionFormatSpec) impl;
                 } else if (impl instanceof OperatorFormatSpec) {

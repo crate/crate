@@ -54,19 +54,44 @@ public class Functions {
     }
 
     /**
-     * <p>
-     * returns the functionImplementation for the given ident.
-     * </p>
-     * <p>
-     * same as {@link #get(FunctionIdent)} but will throw an UnsupportedOperationException
-     * if no implementation is found.
+     * Returns the function implementation for the given schema, function name and arguments.
+     *
+     * @param schema    The schema name. The schema name is null for built-in functions.
+     * @param name      The function name.
+     * @param arguments The function arguments.
+     * @return a function implementation or null if nothing was found.
      */
-    public FunctionImplementation getSafe(FunctionIdent ident)
+    @Nullable
+    public FunctionImplementation get(@Nullable String schema, String name, List<DataType> arguments)
+        throws IllegalArgumentException {
+        // built-in functions
+        if (schema == null) {
+            FunctionResolver dynamicResolver = functionResolvers.get(name);
+            if (dynamicResolver != null) {
+                List<DataType> signature = dynamicResolver.getSignature(arguments);
+                if (signature != null) {
+                    return dynamicResolver.getForTypes(signature);
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns the function implementation for the given schema, function name and arguments.
+     *
+     * @param schema    The schema name.  The schema name is null for built-in functions.
+     * @param name      The function name.
+     * @param arguments The function arguments.
+     * @return The function implementation..
+     * @throws UnsupportedOperationException if no implementation is found.
+     */
+    public FunctionImplementation getSafe(@Nullable String schema, String name, List<DataType> arguments)
         throws IllegalArgumentException, UnsupportedOperationException {
         FunctionImplementation implementation = null;
         String exceptionMessage = null;
         try {
-            implementation = get(ident);
+            implementation = get(schema, name, arguments);
         } catch (IllegalArgumentException e) {
             if (e.getMessage() != null && !e.getMessage().isEmpty()) {
                 exceptionMessage = e.getMessage();
@@ -74,29 +99,12 @@ public class Functions {
         }
         if (implementation == null) {
             if (exceptionMessage == null) {
-                exceptionMessage = String.format(Locale.ENGLISH, "unknown function: %s(%s)", ident.name(),
-                    Joiner.on(", ").join(ident.argumentTypes()));
+                exceptionMessage = String.format(Locale.ENGLISH, "unknown function: %s(%s)", name,
+                    Joiner.on(", ").join(arguments));
             }
             throw new UnsupportedOperationException(exceptionMessage);
         }
         return implementation;
-    }
-
-    /**
-     * returns the functionImplementation for the given ident
-     * or null if nothing was found
-     */
-    @Nullable
-    public FunctionImplementation get(FunctionIdent ident) throws IllegalArgumentException {
-        FunctionResolver dynamicResolver = functionResolvers.get(ident.name());
-        if (dynamicResolver != null) {
-            List<DataType> argumentTypes = ident.argumentTypes();
-            List<DataType> signature = dynamicResolver.getSignature(argumentTypes);
-            if (signature != null) {
-                return dynamicResolver.getForTypes(signature);
-            }
-        }
-        return null;
     }
 
     private static class GeneratedFunctionResolver implements FunctionResolver {

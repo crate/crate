@@ -93,7 +93,8 @@ public class GroupingProjectorBenchmark {
         FunctionIdent minStringFuncIdent = new FunctionIdent(MinimumAggregation.NAME,
             Arrays.<DataType>asList(DataTypes.STRING));
         FunctionInfo minStringFuncInfo = new FunctionInfo(minStringFuncIdent, DataTypes.STRING, FunctionInfo.Type.AGGREGATE);
-        AggregationFunction minAgg = (AggregationFunction) functions.get(minStringFuncIdent);
+        AggregationFunction minAgg = (AggregationFunction) functions
+            .get(minStringFuncIdent.schema(), minStringFuncIdent.name(), minStringFuncIdent.argumentTypes());
         Aggregation aggregation = Aggregation.finalAggregation(minStringFuncInfo,
             Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER);
         AggregationContext aggregationContext = new AggregationContext(minAgg, aggregation);
@@ -131,7 +132,8 @@ public class GroupingProjectorBenchmark {
         FunctionIdent functionIdent = new FunctionIdent(SumAggregation.NAME,
             Arrays.<DataType>asList(DataTypes.INTEGER));
         FunctionInfo functionInfo = new FunctionInfo(functionIdent, DataTypes.INTEGER, FunctionInfo.Type.AGGREGATE);
-        AggregationFunction minAgg = (AggregationFunction) functions.get(functionIdent);
+        AggregationFunction minAgg = (AggregationFunction) functions
+            .get(functionIdent.schema(), functionIdent.name(), functionIdent.argumentTypes());
         Aggregation aggregation = Aggregation.finalAggregation(functionInfo,
             Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER);
         AggregationContext aggregationContext = new AggregationContext(minAgg, aggregation);
