@@ -21,6 +21,7 @@
 
 package io.crate.node;
 
+import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.Constants;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -51,7 +52,7 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.*;
 
 
-public class NodeSettingsTest {
+public class NodeSettingsTest extends RandomizedTest {
 
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
@@ -65,7 +66,6 @@ public class NodeSettingsTest {
         File config = tmp.newFolder("crate", "config");
 
         Settings pathSettings = Settings.builder()
-            .put("path.work", tmp.newFolder("crate", "work").getPath())
             .put("path.data", tmp.newFolder("crate", "data").getPath())
             .put("path.logs", tmp.newFolder("crate", "logs").getPath())
             .build();
