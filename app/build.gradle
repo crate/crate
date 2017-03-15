@@ -24,6 +24,8 @@ evaluationDependsOn(':es')
 evaluationDependsOn(':core')
 evaluationDependsOn(':sql')
 evaluationDependsOn(':sql-parser')
+evaluationDependsOn(':dex')
+evaluationDependsOn(':shared')
 evaluationDependsOn(':blob')
 evaluationDependsOn(':udc')
 evaluationDependsOn(':dns-discovery')
@@ -47,6 +49,8 @@ dependencies {
     compileNotTransitive project(':es:es-core')
     compileNotTransitive project(':sql')
     compileNotTransitive project(':sql-parser')
+    compileNotTransitive project(':dex')
+    compileNotTransitive project(':shared')
     compileNotTransitive project(':blob')
     compileNotTransitive project(':udc')
     compileNotTransitive project(':dns-discovery')
@@ -107,6 +111,8 @@ task myJavadocs(type: Javadoc, dependsOn: processResources) {
             project(':core').sourceSets.main.allJava +
             project(':sql').sourceSets.main.allJava +
             project(':sql-parser').sourceSets.main.allJava +
+            project(':dex').sourceSets.main.allJava +
+            project(':shared').sourceSets.main.allJava +
             project(':blob').sourceSets.main.allJava +
             project(':udc').sourceSets.main.allJava
 }
@@ -133,6 +139,8 @@ task sourceJar(type: Jar) {
             project(':core').sourceSets.main.allJava +
             project(':sql').sourceSets.main.allJava +
             project(':sql-parser').sourceSets.main.allJava +
+            project(':dex').sourceSets.main.allJava +
+            project(':shared').sourceSets.main.allJava +
             project(':blob').sourceSets.main.allJava +
             project(':udc').sourceSets.main.allJava)
     manifest {
