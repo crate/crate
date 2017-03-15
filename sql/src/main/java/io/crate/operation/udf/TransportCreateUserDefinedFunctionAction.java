@@ -70,12 +70,11 @@ public class TransportCreateUserDefinedFunctionAction extends TransportMasterNod
                 request.userDefinedFunctionMetaData().name(),
                 request.userDefinedFunctionMetaData(),
                 request.replace()
-            ).masterNodeTimeout(request.masterNodeTimeout()), // TODO: request.timeout() request.settings()
+            ).masterNodeTimeout(request.masterNodeTimeout()),
             new ActionListener<ClusterStateUpdateResponse>() {
                 @Override
                 public void onResponse(ClusterStateUpdateResponse clusterStateUpdateResponse) {
-                    // TODO: response.isAcknowledeged()
-                    listener.onResponse(new CreateUserDefinedFunctionResponse());
+                    listener.onResponse(new CreateUserDefinedFunctionResponse(clusterStateUpdateResponse.isAcknowledged()));
                 }
 
                 @Override
