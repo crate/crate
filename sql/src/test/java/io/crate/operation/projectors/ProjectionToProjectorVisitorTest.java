@@ -118,7 +118,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
 
         List<Object[]> result = consumer.getResult();
         assertThat(result.size(), is(10));
-        assertThat(result.get(0), is(new Object[] { new BytesRef("foo"), 2 }));
+        assertThat(result.get(0), is(new Object[]{new BytesRef("foo"), 2}));
     }
 
     @Test

@@ -26,7 +26,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowsBatchIterator;
 
-import java.util.stream.IntStream;
+import java.util.stream.LongStream;
 
 public class TestingBatchIterators {
 
@@ -34,15 +34,15 @@ public class TestingBatchIterators {
      * Returns a batch iterator containing a range of integers.
      */
     public static BatchIterator range(int startInclusive, int endExclusive) {
-        Iterable<Row> rows = RowGenerator.fromSingleColValues(
-            () -> IntStream.range(startInclusive, endExclusive).iterator());
-        return RowsBatchIterator.newInstance(rows, 1);
+        return RowsBatchIterator.newInstance(RowGenerator.range(startInclusive, endExclusive), 1);
     }
 
     /**
      * Returns a batch iterator containing a range of longs.
      */
     public static BatchIterator range(long startInclusive, long endExclusive) {
-        return RowsBatchIterator.newInstance(RowGenerator.range(startInclusive, endExclusive), 1);
+        Iterable<Row> rows = RowGenerator.fromSingleColValues(
+            () -> LongStream.range(startInclusive, endExclusive).iterator());
+        return RowsBatchIterator.newInstance(rows, 1);
     }
 }
