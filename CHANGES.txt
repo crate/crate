@@ -4,6 +4,9 @@ Changes for Crate
 
 Unreleased
 ==========
+ 
+ - Fixed an issue that prevent a node from starting on Windows if the
+   sigar-plugin is removed.
 
 2017/03/14 1.0.5
 ================

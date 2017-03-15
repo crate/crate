@@ -57,7 +57,7 @@ REM Ensure UTF-8 encoding by default (e.g. filenames)
 set JAVA_OPTS=%JAVA_OPTS% -Dfile.encoding=UTF-8
 
 if "%CRATE_CLASSPATH%" == "" (
-    set CRATE_CLASSPATH=%CRATE_HOME%/lib/crate-app-@version@.jar;%CRATE_HOME%/lib/*;%CRATE_HOME%/plugins/sigar/lib/*
+    set CRATE_CLASSPATH=%CRATE_HOME%/lib/crate-app-@version@.jar;%CRATE_HOME%/lib/*
 ) else (
     ECHO Error: Don't modify the classpath with CRATE_CLASSPATH. 1>&2
     ECHO Add plugins and their dependencies into the plugins/ folder instead. 1>&2
