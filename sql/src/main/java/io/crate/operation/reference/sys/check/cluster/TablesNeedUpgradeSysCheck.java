@@ -43,7 +43,7 @@ import java.util.concurrent.CompletableFuture;
 @Singleton
 public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
-    public static final int ID = 4;
+    public static final int ID = 3;
     public static final String DESCRIPTION =
         "The following tables need to be upgraded for compatibility with future versions of CrateDB: ";
 
@@ -53,7 +53,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
                                        "AND (NOT schema_name || '.' || table_name = ANY (?)) " +
                                        "order by 1";
     private static final int LIMIT = 50_000;
-    private static final String PREP_STMT_NAME = "tables_need_recrate_syscheck";
+    private static final String PREP_STMT_NAME = "tables_need_upgrade_syscheck";
 
     private final ESLogger logger;
     private final ClusterService clusterService;

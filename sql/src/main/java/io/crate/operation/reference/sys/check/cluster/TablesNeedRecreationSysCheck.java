@@ -33,7 +33,7 @@ import java.util.Collection;
 @Singleton
 public class TablesNeedRecreationSysCheck extends AbstractSysCheck {
 
-    public static final int ID = 3;
+    public static final int ID = 4;
     public static final String DESCRIPTION =
         "The following tables need to be recreated for compatibility with future versions of CrateDB: ";
 
