@@ -27,6 +27,7 @@
 package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
@@ -83,8 +84,13 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         execute("create function custom(string) returns string language javascript as 'function custom(x) { return x; }'");
         waitForFunctionCreatedOnAll("custom", ImmutableList.of(DataTypes.STRING));
 
-        execute("drop function custom(string)");
+        dropFunction("custom", ImmutableList.of(DataTypes.STRING));
+    }
+
+    private void dropFunction(String name, List<DataType> types) throws Exception {
+        execute(String.format(Locale.ENGLISH, "drop function %s(%s)",
+            name, types.stream().map(DataType::getName).collect(Collectors.joining(", "))));
         assertThat(response.rowCount(), is(1L));
-        waitForFunctionDeleted("custom", ImmutableList.of(DataTypes.STRING));
+        waitForFunctionDeleted(name, types);
     }
 }

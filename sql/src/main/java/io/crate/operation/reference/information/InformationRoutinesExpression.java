@@ -23,6 +23,7 @@ package io.crate.operation.reference.information;
 import io.crate.metadata.RoutineInfo;
 import io.crate.metadata.RowContextCollectorExpression;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.search.aggregations.support.format.ValueParser;
 
 public abstract class InformationRoutinesExpression<T>
     extends RowContextCollectorExpression<RoutineInfo, T> {
@@ -38,6 +39,43 @@ public abstract class InformationRoutinesExpression<T>
         @Override
         public BytesRef value() {
             return new BytesRef(row.type());
+        }
+    }
+
+    public static class RoutineBodyExpression extends InformationRoutinesExpression<BytesRef> {
+        @Override
+        public BytesRef value() {
+            if (row.body() == null){
+                return null;
+            }
+            return new BytesRef(row.body());
+        }
+    }
+
+    public static class RoutineDefinitionExpression extends InformationRoutinesExpression<BytesRef> {
+        @Override
+        public BytesRef value() {
+            if (row.definition() == null){
+                return null;
+            }
+            return new BytesRef(row.definition());
+        }
+    }
+
+    public static class DataTypeExpression extends InformationRoutinesExpression<BytesRef> {
+        @Override
+        public BytesRef value() {
+            if (row.dataType() == null){
+                return null;
+            }
+            return new BytesRef(row.dataType());
+        }
+    }
+
+    public static class IsDeterministicExpression extends InformationRoutinesExpression<Boolean> {
+        @Override
+        public Boolean value() {
+            return row.isDeterministic();
         }
     }
 }
