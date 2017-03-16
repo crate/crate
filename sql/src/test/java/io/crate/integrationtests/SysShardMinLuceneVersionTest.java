@@ -27,7 +27,6 @@ import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -35,8 +34,6 @@ import java.nio.file.Path;
 
 import static org.hamcrest.Matchers.is;
 
-// FIXME: fix tests!
-@Ignore
 @ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
 @UseJdbc
 public class SysShardMinLuceneVersionTest extends SQLTransportIntegrationTest {
@@ -60,18 +57,18 @@ public class SysShardMinLuceneVersionTest extends SQLTransportIntegrationTest {
                 "where schema_name IN ('doc', 'blob') " +
                 "group by table_name, routing_state, min_lucene_version order by 1, 2, 3");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("test_blob_no_upgrade_required| STARTED| 5.5.2| 2\n" +
+            is("test_blob_no_upgrade_required| STARTED| 6.2.1| 2\n" +
                "test_blob_no_upgrade_required| UNASSIGNED| NULL| 2\n" +
-               "test_blob_upgrade_required| STARTED| 5.5.2| 2\n" +
+               "test_blob_upgrade_required| STARTED| 6.2.1| 2\n" +
                "test_blob_upgrade_required| UNASSIGNED| NULL| 2\n" +
-               "test_no_upgrade_required| STARTED| 5.5.2| 2\n" +
+               "test_no_upgrade_required| STARTED| 6.2.1| 2\n" +
                "test_no_upgrade_required| UNASSIGNED| NULL| 2\n" +
-               "test_no_upgrade_required_parted| STARTED| 5.5.2| 10\n" +
+               "test_no_upgrade_required_parted| STARTED| 6.2.1| 10\n" +
                "test_no_upgrade_required_parted| UNASSIGNED| NULL| 10\n" +
-               "test_upgrade_required| STARTED| 4.10.4| 2\n" +
+               "test_upgrade_required| STARTED| 5.5.2| 2\n" +
                "test_upgrade_required| UNASSIGNED| NULL| 2\n" +
-               "test_upgrade_required_parted| STARTED| 4.10.4| 5\n" +
                "test_upgrade_required_parted| STARTED| 5.5.2| 5\n" +
+               "test_upgrade_required_parted| STARTED| 6.2.1| 5\n" +
                "test_upgrade_required_parted| UNASSIGNED| NULL| 10\n"));
     }
 
@@ -81,11 +78,11 @@ public class SysShardMinLuceneVersionTest extends SQLTransportIntegrationTest {
         execute("select table_name, routing_state, min_lucene_version, count(*) from sys.shards " +
                 "where table_name IN " +
                 "('test_upgrade_required', 'test_upgrade_required_parted', 'test_blob_upgrade_required') AND " +
-                "routing_state = 'STARTED' AND min_lucene_version <> '5.5.2' " +
+                "routing_state = 'STARTED' AND min_lucene_version <> '6.2.1' " +
                 "group by table_name, routing_state, min_lucene_version order by 1, 2, 3");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("test_upgrade_required| STARTED| 4.10.4| 2\n" +
-               "test_upgrade_required_parted| STARTED| 4.10.4| 5\n"));
+            is("test_upgrade_required| STARTED| 5.5.2| 2\n" +
+               "test_upgrade_required_parted| STARTED| 5.5.2| 5\n"));
 
         execute("optimize table test_upgrade_required, test_upgrade_required_parted, " +
                 "blob.test_blob_upgrade_required with (upgrade_segments=true)");
@@ -93,7 +90,7 @@ public class SysShardMinLuceneVersionTest extends SQLTransportIntegrationTest {
         execute("select * from sys.shards " +
                 "where table_name IN " +
                 "('test_upgrade_required', 'test_upgrade_required_parted', 'test_blob_upgrade_required') " +
-                "AND min_lucene_version = '4.10.4'");
+                "AND min_lucene_version <> '6.2.1'");
         assertThat(response.rowCount(), is(0L));
     }
 }
