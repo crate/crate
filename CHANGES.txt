@@ -5,6 +5,38 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to ``1.1.2`` which includes the following changes:
+
+    - Added node number to the status bar.
+
+    - Fixed issue that caused `Cluster Offline` message to not be displayed.
+
+    - Fixed a console results issue that caused the results table not to be 
+       visible after horizontal scrolling.
+
+    - Fixed styling issue that caused the last element in the side bar
+       list to be hidden.
+
+    - Fixed an issue that caused the notification date to be `null` in safari.
+
+    - Fixed a console results issue that caused the results table not to be 
+       displayed after horizontal scrolling.
+
+    - Fixed an issue that caused the admin-ui to load only one plugin.
+
+    - Display warning in the console view when the query result contains
+       an unsafe integer.
+
+    - Relocated the help resources section to be underneath the tweet 
+       import tutorial.
+
+    - Show loading indicator when `Execute Query ` is in progress.
+
+    - Improved console results table, including data type based colorization,
+       alternating row colorization, structured object/array formatting,
+       human-readable timestamps, Google Maps link on geo-point
+       results & lazy loading on result sets larger than 100 rows.
+
  - Fixed an issue that prevent a node from starting on Windows if the
    sigar-plugin is removed.
 
@@ -34,13 +66,6 @@ Unreleased
 
  - Fixed validation of known configuration file settings. The settings are also
    validated upon start-up.
-
- - Updated crate-admin to ``1.1.1`` which includes the following changes:
-
-    - Improved console results table, including data type based colorization,
-       alternating row colorization, structured object/array formatting,
-       human-readable timestamps, Google Maps link on geo-point
-       results & lazy loading on result sets larger than 100 rows.
 
  - BREAKING: The TableFunctionImplementation interface was streamlined
    with other function implementation semantics. This requires
