@@ -69,11 +69,11 @@ import java.util.stream.Collectors;
  *             v
  *            N1        // <-- job context created via ContextPreparer.prepareOnHandler
  *             |
- *          RowReceiver
+ *          BatchConsumer
  *
  *
  * Push Result:
- *                  // result is sent via DistributingDownstream
+ *                  // result is sent via DistributingConsumer
  *       +------------------->---+
  *       ^     ^     ^           |
  *       |     |     |           |
@@ -85,7 +85,7 @@ import java.util.stream.Collectors;
  *             |                 v  TransportDistributedResultAction
  *            N1<----------------+  and passed into a PageDownstreamContext
  *             |
- *          RowReceiver
+ *          BatchConsumer
  * </pre>
  **/
 public class ExecutionPhasesTask extends JobTask {

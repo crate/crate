@@ -99,7 +99,7 @@ class InterceptingBatchConsumer implements BatchConsumer {
 
     @Override
     public String toString() {
-        return "InterceptingRowReceiver{" +
+        return "InterceptingBatchConsumer{" +
                "consumerInvokedAndJobInitilaized=" + consumerInvokedAndJobInitialized +
                ", jobId=" + jobId +
                ", consumer=" + consumer +

@@ -23,6 +23,7 @@
 package io.crate.action.sql;
 
 import io.crate.concurrent.CompletionListenable;
+import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.executor.Executor;
 import io.crate.planner.Plan;
@@ -30,9 +31,7 @@ import io.crate.planner.Plan;
 import javax.annotation.Nonnull;
 
 /**
- * A subset / simplified form of {@link io.crate.operation.projectors.RowReceiver}.
- * <p>
- * Used to receive the Result from {@link Executor#execute(Plan, RowReceiver, Row)}
+ * Used via {@link BatchConsumerToResultReceiver} to receive results from {@link Executor#execute(Plan, BatchConsumer, Row)}
  */
 public interface ResultReceiver extends CompletionListenable {
 

@@ -116,7 +116,7 @@ public abstract class ShardCollectorProvider {
      * Create a CrateCollector.Builder to collect rows from a shard.
      * <p>
      * This also creates all shard-level projectors.
-     * The RowReceiver that is used for {@link CrateCollector.Builder#build(BatchConsumer)}
+     * The BatchConsumer that is used for {@link CrateCollector.Builder#build(BatchConsumer)}
      * should be the first node-level projector.
      */
     public CrateCollector.Builder getCollectorBuilder(RoutedCollectPhase collectPhase,
