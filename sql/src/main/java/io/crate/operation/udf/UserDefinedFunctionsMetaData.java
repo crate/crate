@@ -34,7 +34,10 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
 
 public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Custom> implements MetaData.Custom {
 
@@ -74,7 +77,15 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
     }
 
     public boolean contains(UserDefinedFunctionMetaData function) {
-        return functions.containsKey(function.createMethodSignature());
+        return contains(function.createMethodSignature());
+    }
+
+    boolean contains(Integer signature) {
+        return functions.containsKey(signature);
+    }
+
+    public void remove(Integer signature) {
+        functions.remove(signature);
     }
 
     public Collection<UserDefinedFunctionMetaData> functionsMetaData() {

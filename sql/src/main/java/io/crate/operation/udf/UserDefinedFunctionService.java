@@ -22,6 +22,7 @@
 package io.crate.operation.udf;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -67,7 +68,6 @@ public class UserDefinedFunctionService extends AbstractComponent implements Clu
         }
         clusterService.submitStateUpdateTask(request.cause,
             new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
-
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     MetaData metaData = currentState.metaData();
@@ -89,6 +89,36 @@ public class UserDefinedFunctionService extends AbstractComponent implements Clu
             });
     }
 
+    void dropFunction(final DropUserDefinedFunctionRequest request, final ActionListener<ClusterStateUpdateResponse> listener) {
+        if (!clusterService.localNode().isMasterNode()) {
+            return;
+        }
+        clusterService.submitStateUpdateTask(request.cause,
+            new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
+
+            @Override
+            public ClusterState execute(ClusterState currentState) throws Exception {
+                MetaData metaData = currentState.metaData();
+                MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
+                UserDefinedFunctionsMetaData functions = removeFunction(
+                    metaData.custom(UserDefinedFunctionsMetaData.TYPE),
+                    request.signature, request.ifExists);
+                mdBuilder.putCustom(UserDefinedFunctionsMetaData.TYPE, functions);
+                return ClusterState.builder(currentState).metaData(mdBuilder).build();
+            }
+
+            @Override
+            protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
+                return new ClusterStateUpdateResponse(acknowledged);
+            }
+
+            @Override
+            public void clusterStatePublished(ClusterState newClusterState) {
+                super.clusterStatePublished(newClusterState);
+            }
+        });
+    }
+
     @VisibleForTesting
     static UserDefinedFunctionsMetaData putFunction(@Nullable UserDefinedFunctionsMetaData oldMetaData,
                                                     UserDefinedFunctionMetaData functionMetaData,
@@ -103,6 +133,21 @@ public class UserDefinedFunctionService extends AbstractComponent implements Clu
             UserDefinedFunctionsMetaData newMetaData = UserDefinedFunctionsMetaData.newInstance(oldMetaData);
             newMetaData.put(functionMetaData);
             return newMetaData;
+        }
+    }
+
+    @VisibleForTesting
+    static UserDefinedFunctionsMetaData removeFunction(@Nullable UserDefinedFunctionsMetaData functions, Integer signature,
+                                                       boolean ifExists) {
+
+        if (!ifExists && (functions == null || !functions.contains(signature))) {
+            // throw udf doesn't exist
+            throw new ResourceUnknownException("user defined function does not exist");
+        } else if (functions == null) {
+            return UserDefinedFunctionsMetaData.of();
+        } else {
+            functions.remove(signature);
+            return functions;
         }
     }
 
@@ -134,14 +179,25 @@ public class UserDefinedFunctionService extends AbstractComponent implements Clu
 
         UserDefinedFunctionMetaData metaData;
         final String cause;
-        final String name;
         final boolean replace;
 
-        RegisterUserDefinedFunctionRequest(String cause, String name, UserDefinedFunctionMetaData metaData, boolean replace) {
+        RegisterUserDefinedFunctionRequest(String cause, UserDefinedFunctionMetaData metaData, boolean replace) {
             this.cause = cause;
-            this.name = name;
             this.metaData = metaData;
             this.replace = replace;
+        }
+    }
+
+    static class DropUserDefinedFunctionRequest extends ClusterStateUpdateRequest<DropUserDefinedFunctionRequest> {
+
+        Integer signature;
+        final String cause;
+        final boolean ifExists;
+
+        DropUserDefinedFunctionRequest(String cause, Integer signature, boolean ifExists) {
+            this.cause = cause;
+            this.signature = signature;
+            this.ifExists = ifExists;
         }
     }
 }

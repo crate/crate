@@ -22,6 +22,7 @@
 package io.crate.operation.udf;
 
 import io.crate.analyze.CreateFunctionAnalyzedStatement;
+import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
 import org.elasticsearch.action.ActionListener;
@@ -53,9 +54,9 @@ public class UserDefinedFunctionDDLDispatcher {
         CreateUserDefinedFunctionRequest request = new CreateUserDefinedFunctionRequest(metaData, statement.replace());
         createUserDefinedFunctionAction.execute(
             request,
-            new ActionListener<CreateUserDefinedFunctionResponse>() {
+            new ActionListener<TransportUserDefinedFunctionResponse>() {
                 @Override
-                public void onResponse(CreateUserDefinedFunctionResponse createUserDefinedFunctionResponse) {
+                public void onResponse(TransportUserDefinedFunctionResponse transportUserDefinedFunctionResponse) {
                     resultFuture.complete(1L);
                 }
 
@@ -66,6 +67,29 @@ public class UserDefinedFunctionDDLDispatcher {
             }
         );
 
+        return resultFuture;
+    }
+
+    public CompletableFuture<Long> dispatch(final DropFunctionAnalyzedStatement statement, Row params) {
+        final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
+        DropUserDefinedFunctionRequest request = new DropUserDefinedFunctionRequest( // TODO: add schema
+            UserDefinedFunctionMetaData.createMethodSignature(null, statement.name(), statement.arguments()),
+            statement.ifExists()
+        );
+        transportActionProvider.transportDropUserDefinedFunctionAction().execute(
+            request,
+            new ActionListener<TransportUserDefinedFunctionResponse>() {
+                @Override
+                public void onResponse(TransportUserDefinedFunctionResponse transportUserDefinedFunctionResponse) {
+                    resultFuture.complete(1L);
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    resultFuture.completeExceptionally(e);
+                }
+            }
+        );
         return resultFuture;
     }
 }

@@ -190,6 +190,10 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
     }
 
     public int createMethodSignature() {
+        return createMethodSignature(schema, name, arguments);
+    }
+
+    public static int createMethodSignature(String schema, String name, List<FunctionArgumentDefinition> arguments) {
         return Objects.hash(
             schema,
             name,
