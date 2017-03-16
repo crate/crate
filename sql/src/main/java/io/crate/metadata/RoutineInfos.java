@@ -22,6 +22,12 @@ package io.crate.metadata;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
+import io.crate.operation.udf.UserDefinedFunction;
+import io.crate.operation.udf.UserDefinedFunctionMetaData;
+import io.crate.operation.udf.UserDefinedFunctionsMetaData;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -38,11 +44,13 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
 
     private static final ESLogger logger = Loggers.getLogger(RoutineInfos.class);
     private FulltextAnalyzerResolver ftResolver;
+    private final ClusterService clusterService;
 
     private enum RoutineType {
         ANALYZER(CustomType.ANALYZER.getName().toUpperCase(Locale.ENGLISH)),
         CHAR_FILTER(CustomType.CHAR_FILTER.getName().toUpperCase(Locale.ENGLISH)),
         TOKEN_FILTER("TOKEN_FILTER"),
+        FUNCTION("FUNCTION"),
         TOKENIZER(CustomType.TOKENIZER.getName().toUpperCase(Locale.ENGLISH)),;
         private String name;
 
@@ -55,8 +63,9 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
         }
     }
 
-    public RoutineInfos(FulltextAnalyzerResolver ftResolver) {
+    public RoutineInfos(FulltextAnalyzerResolver ftResolver, ClusterService clusterService) {
         this.ftResolver = ftResolver;
+        this.clusterService = clusterService;
     }
 
     private Iterator<RoutineInfo> builtInAnalyzers() {
@@ -107,6 +116,21 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
                 public RoutineInfo apply(@Nullable String input) {
                     return new RoutineInfo(input,
                         RoutineType.TOKENIZER.getName());
+                }
+            });
+    }
+
+    private Iterator<RoutineInfo> userDefinedFunctions() {
+        MetaData metaData = clusterService.state().getMetaData();
+        UserDefinedFunctionsMetaData UDFMetaData = metaData.custom(UserDefinedFunctionsMetaData.TYPE);
+        return Iterators.transform(
+            UDFMetaData.functionsMetaData().iterator(),
+            new Function<UserDefinedFunctionMetaData, RoutineInfo>() {
+                @Override
+                public RoutineInfo apply(UserDefinedFunctionMetaData input) {
+                    assert input != null : "input must not be null";
+                    return new RoutineInfo(input.name(),
+                        RoutineType.FUNCTION.getName(), input.schema(), input.definition(), input.returnType().getName(), input.language(), true);
                 }
             });
     }
@@ -173,6 +197,7 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
         }
     }
 
+    //routines info
     @Override
     public Iterator<RoutineInfo> iterator() {
         return Iterators.concat(
@@ -180,7 +205,9 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
             builtInCharFilters(),
             builtInTokenFilters(),
             builtInTokenizers(),
-            customIterators()
+            customIterators(),
+            userDefinedFunctions()
         );
     }
+
 }

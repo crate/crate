@@ -25,12 +25,36 @@ import javax.annotation.Nonnull;
 public class RoutineInfo {
     private String name;
     private String type;
+    private String body;
+    private String schema;
+    private String dataType;
+    private Boolean isDeterministic;
+    private String definition;
 
+    public RoutineInfo(String name, String type, String schema, String definition, String body,
+                       String dataType, Boolean isDeterministic) {
+        assert name != null : "name must not be null";
+        assert type != null : "type must not be null";
+        this.name = name;
+        this.type = type;
+        this.body = body;
+        this.schema = schema;
+        this.dataType = dataType;
+        this.definition = definition;
+        this.isDeterministic = isDeterministic;
+
+    }
     public RoutineInfo(String name, String type) {
         assert name != null : "name must not be null";
         assert type != null : "type must not be null";
         this.name = name;
         this.type = type;
+        this.body = null;
+        this.schema = null;
+        this.dataType = null;
+        this.isDeterministic = null;
+        this.definition = null;
+
     }
 
     @Nonnull
@@ -43,4 +67,23 @@ public class RoutineInfo {
         return type;
     }
 
+    public String body() {
+        return body;
+    }
+
+    public String schema() {
+        return schema;
+    }
+
+    public String definition() {
+        return definition;
+    }
+
+    public String dataType() {
+        return dataType;
+    }
+
+    public Boolean isDeterministic() {
+        return isDeterministic;
+    }
 }

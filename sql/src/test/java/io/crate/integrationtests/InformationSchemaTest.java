@@ -375,6 +375,43 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSelectFunctionsFromRoutines() throws Exception {
+        execute("CREATE FUNCTION substract_test(long, long, long) " +
+            "RETURNS long " +
+            "LANGUAGE JAVASCRIPT " +
+            "AS 'function substract_test(a, b, c) { " +
+            "  return a - b - c; " +
+            "}'");
+        execute("SELECT routine_name, routine_schema, routine_body from INFORMATION_SCHEMA.routines WHERE "+
+                "routine_type='FUNCTION'");
+        assertEquals(response.rowCount(), 1);
+        assertThat(response.rows()[0][0], is("substract_test"));
+        assertThat(response.rows()[0][1], is("doc"));
+        assertThat(response.rows()[0][2], is("long"));
+        //clean up
+        execute("DROP FUNCTION IF EXISTS substract_test(long, long, long)");
+    }
+
+    @Test
+    public void testSelectFunctionsWithSchemaFromRoutines() throws Exception {
+        execute("CREATE FUNCTION my_schema.substract_test(long, long, long) " +
+            "RETURNS long " +
+            "LANGUAGE JAVASCRIPT " +
+            "AS 'function substract_test(a, b, c) { return a - b - c; }'");
+        execute("SELECT routine_name, routine_schema, routine_body, routine_definition "+
+            "from INFORMATION_SCHEMA.routines WHERE "+
+            "routine_type='FUNCTION'");
+        assertEquals(response.rowCount(), 1);
+        assertThat(response.rows()[0][0], is("substract_test"));
+        assertThat(response.rows()[0][1], is("my_schema"));
+        assertThat(response.rows()[0][2], is("long"));
+        assertThat(response.rows()[0][3], is("function substract_test(a, b, c) { return a - b - c; }"));
+
+        //clean up
+        execute("DROP FUNCTION IF EXISTS my_schema.substract_test(long, long, long)");
+    }
+
+    @Test
     public void testSelectTokenizersFromRoutines() throws Exception {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='TOKENIZER' order by " +
@@ -442,7 +479,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(371, response.rowCount());
+        assertEquals(376, response.rowCount());
     }
 
     @Test

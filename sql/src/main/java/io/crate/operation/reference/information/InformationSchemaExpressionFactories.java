@@ -66,11 +66,46 @@ public class InformationSchemaExpressionFactories {
                     return new InformationRoutinesExpression.RoutineNameExpression();
                 }
             })
+            .put(InformationRoutinesTableInfo.Columns.ROUTINE_BODY, new RowCollectExpressionFactory() {
+
+                @Override
+                public RowCollectExpression create() {
+                    return new InformationRoutinesExpression.RoutineBodyExpression();
+                }
+            })
+            .put(InformationRoutinesTableInfo.Columns.ROUTINE_SCHEMA, new RowCollectExpressionFactory() {
+
+                @Override
+                public RowCollectExpression create() {
+                    return new InformationRoutinesExpression.RoutineSchemaExpression();
+                }
+            })
+            .put(InformationRoutinesTableInfo.Columns.ROUTINE_DEFINITION, new RowCollectExpressionFactory() {
+
+                @Override
+                public RowCollectExpression create() {
+                    return new InformationRoutinesExpression.RoutineDefinitionExpression();
+                }
+            })
             .put(InformationRoutinesTableInfo.Columns.ROUTINE_TYPE, new RowCollectExpressionFactory() {
 
                 @Override
                 public RowCollectExpression create() {
                     return new InformationRoutinesExpression.RoutineTypeExpression();
+                }
+            })
+            .put(InformationRoutinesTableInfo.Columns.DATA_TYPE, new RowCollectExpressionFactory() {
+
+                @Override
+                public RowCollectExpression create() {
+                    return new InformationRoutinesExpression.DataTypeExpression();
+                }
+            })
+            .put(InformationRoutinesTableInfo.Columns.IS_DETERMINISTIC, new RowCollectExpressionFactory() {
+
+                @Override
+                public RowCollectExpression create() {
+                    return new InformationRoutinesExpression.IsDeterministicExpression();
                 }
             }).build();
     }
