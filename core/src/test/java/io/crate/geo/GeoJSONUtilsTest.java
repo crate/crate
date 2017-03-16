@@ -31,16 +31,21 @@ import com.spatial4j.core.shape.jts.JtsGeometry;
 import com.spatial4j.core.shape.jts.JtsPoint;
 import com.vividsolutions.jts.geom.*;
 import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory;
-import io.crate.test.integration.CrateUnitTest;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-public class GeoJSONUtilsTest extends CrateUnitTest {
+public class GeoJSONUtilsTest {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     static {
         ClassLoader.getSystemClassLoader().setDefaultAssertionStatus(true);
