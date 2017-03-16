@@ -23,6 +23,9 @@ package io.crate.operation.udf;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Functions;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.*;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateRequest;
@@ -33,20 +36,28 @@ import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.Map;
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toMap;
+
 public class UserDefinedFunctionService extends AbstractComponent implements ClusterStateListener {
 
     private final ClusterService clusterService;
+    private final Functions functions;
 
     @Inject
-    public UserDefinedFunctionService(Settings settings, ClusterService clusterService) {
+    public UserDefinedFunctionService(Settings settings, ClusterService clusterService, Functions functions) {
         super(settings);
         this.clusterService = clusterService;
+        this.functions = functions;
         clusterService.add(this);
     }
 
     /**
      * This method can only be called on master node
      * registers new function in the cluster
+     *
      * @param request function to register
      */
     void registerFunction(final RegisterUserDefinedFunctionRequest request, final ActionListener<ClusterStateUpdateResponse> listener) {
@@ -97,11 +108,16 @@ public class UserDefinedFunctionService extends AbstractComponent implements Clu
             return;
         }
 
-        logger.trace("processing new index repositories for state version [{}]", event.state().version());
+        Map<String, Map<FunctionIdent, FunctionImplementation>> schemaFunctions = newMetaData.functions().stream()
+            .map(UserDefinedFunctionFactory::of)
+            .collect(groupingBy(f -> f.info().ident().schema(), toMap(f -> f.info().ident(), f -> f)));
 
-        // TODO: register new udfs
-        // TODO: update changed udfs
-        // TODO: remove udfs which are no longer here
+        for (Map.Entry<String, Map<FunctionIdent, FunctionImplementation>> entry : schemaFunctions.entrySet()) {
+            functions.registerSchemaFunctionResolvers(
+                entry.getKey(),
+                functions.generateFunctionResolvers(entry.getValue())
+            );
+        }
     }
 
     static class RegisterUserDefinedFunctionRequest extends ClusterStateUpdateRequest<RegisterUserDefinedFunctionRequest> {
