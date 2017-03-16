@@ -68,11 +68,10 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.*;
 
 public class TestingHelpers {
@@ -343,15 +342,6 @@ public class TestingHelpers {
                 description.appendText(SQLPrinter.print(item));
             }
         };
-    }
-
-    public static Object[][] range(int from, int to) {
-        int size = to - from;
-        Object[][] result = new Object[to - from][];
-        for (int i = 0; i < size; i++) {
-            result[i] = new Object[]{i + from};
-        }
-        return result;
     }
 
     public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final com.google.common.base.Function<T, K> extractSortingKeyFunction) {
