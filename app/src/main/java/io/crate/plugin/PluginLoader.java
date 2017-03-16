@@ -53,6 +53,9 @@ import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
 
 public class PluginLoader {
 
+    public static final Setting<String> SETTING_CRATE_PLUGINS_PATH = Setting.simpleString(
+        "path.crate_plugins", Setting.Property.NodeScope);
+
     private static final String RESOURCE_PATH = "META-INF/services/";
 
     private final Settings settings;
@@ -67,7 +70,7 @@ public class PluginLoader {
     PluginLoader(Settings settings) {
         this.settings = settings;
 
-        String pluginFolder = settings.get("path.crate_plugins");
+        String pluginFolder = settings.get(SETTING_CRATE_PLUGINS_PATH.getKey());
         if (pluginFolder == null) {
             pluginsPath = PathUtils.get(Strings.cleanPath(settings.get("path.home"))).resolve("plugins");
         } else {

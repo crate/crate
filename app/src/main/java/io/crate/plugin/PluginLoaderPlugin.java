@@ -71,6 +71,8 @@ public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPl
         additionalSettings = Settings.builder()
             .put(pluginLoader.additionalSettings())
             .put(sqlPlugin.additionalSettings()).build();
+
+        settingList.add(PluginLoader.SETTING_CRATE_PLUGINS_PATH);
         settingList.addAll(pluginLoader.getSettings());
         settingList.addAll(sqlPlugin.getSettings());
 
