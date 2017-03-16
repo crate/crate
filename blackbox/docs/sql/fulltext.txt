@@ -48,12 +48,12 @@ To get the relevance of a matching row, a specific system column
 numeric score *relative to the other rows*: The higher, the more relevant the row::
 
     cr> select name, _score from locations where match(name_description_ft, 'time') order by _score desc;
-    +-----------+------------+
-    | name      |     _score |
-    +-----------+------------+
-    | Bartledan | 0.52200186 |
-    | Altair    | 0.4790727  |
-    +-----------+------------+
+    +-----------+-----------+
+    | name      |    _score |
+    +-----------+-----------+
+    | Bartledan | 1.5112252 |
+    | Altair    | 1.3862944 |
+    +-----------+-----------+
     SELECT 2 rows in set (... sec)
 
 The MATCH predicate in its simplest form performs a fulltext search against a single column.
@@ -241,12 +241,12 @@ the :ref:`_score <sql_administration_system_column_score>` can be selected::
 
     cr> select name, _score
     ... from locations where match(name_description_ft, 'time') order by _score desc;
-    +-----------+------------+
-    | name      |     _score |
-    +-----------+------------+
-    | Bartledan | 0.52200186 |
-    | Altair    | 0.4790727  |
-    +-----------+------------+
+    +-----------+-----------+
+    | name      |    _score |
+    +-----------+-----------+
+    | Bartledan | 1.5112252 |
+    | Altair    | 1.3862944 |
+    +-----------+-----------+
     SELECT 2 rows in set (... sec)
 
 .. note::
@@ -281,15 +281,15 @@ use ``phrase`` or ``phrase_prefix``::
     ...     (name_description_ft, race['name'] 1.5, kind 0.75),
     ...     'end of the galaxy'
     ... ) order by _score desc;
-    +-------------------+------------+
-    | name              |     _score |
-    +-------------------+------------+
-    | NULL              | 0.91878563 |
-    | Altair            | 0.11727207 |
-    | Aldebaran         | 0.10617954 |
-    | North West Ripple | 0.06788038 |
-    | Outer Eastern Rim | 0.06788038 |
-    +-------------------+------------+
+    +-------------------+-----------+
+    | name              |    _score |
+    +-------------------+-----------+
+    | NULL              | 3.3526964 |
+    | Altair            | 1.3862944 |
+    | Aldebaran         | 1.2243153 |
+    | North West Ripple | 0.796588  |
+    | Outer Eastern Rim | 0.796588  |
+    +-------------------+-----------+
     SELECT 5 rows in set (... sec)
 
 ::
@@ -298,11 +298,11 @@ use ``phrase`` or ``phrase_prefix``::
     ... where match(
     ...     (name_description_ft), 'end of the galaxy'
     ... ) using phrase with (analyzer='english', slop=4);
-    +------+-------------------------+----------+
-    | name | description             |   _score |
-    +------+-------------------------+----------+
-    | NULL | The end of the Galaxy.% | 2.296235 |
-    +------+-------------------------+----------+
+    +------+-------------------------+-----------+
+    | name | description             |    _score |
+    +------+-------------------------+-----------+
+    | NULL | The end of the Galaxy.% | 3.3526967 |
+    +------+-------------------------+-----------+
     SELECT 1 row in set (... sec)
 
 A vast amount of options exist to fine-tune your fulltext search.
@@ -350,12 +350,12 @@ Anyway let's do it here for demonstration purpose::
     cr> select name, _score
     ... from locations where match(name_description_ft, 'time')
     ... and _score >= 0.8 order by _score;
-    +-----------+------------+
-    | name      |     _score |
-    +-----------+------------+
-    | Bartledan | 0.8679331  |
-    | Altair    | 0.88735807 |
-    +-----------+------------+
+    +-----------+-----------+
+    | name      |    _score |
+    +-----------+-----------+
+    | Altair    | 2.3862944 |
+    | Bartledan | 2.5112252 |
+    +-----------+-----------+
     SELECT 2 rows in set (... sec)
 
 As you might have noticed, the :ref:`_score <sql_administration_system_column_score>` value has changed for the

@@ -1323,17 +1323,6 @@ allowed, for instance, due to forced awareness or allocation filtering.
   specific node (float). Increasing this value raises the tendency to
   equalize the number of shards per index across all nodes in the cluster.
 
-.. _cluster.routing.allocation.balance.primary:
-
-**cluster.routing.allocation.balance.primary**
-  | *Default:*   ``0.05f``
-  | *Runtime:*  ``yes``
-
-  Defines a weight factor for the number of primaries of a specific
-  index allocated on a node (float). Increasing this value raises the
-  tendency to equalize the number of primary shards across all nodes
-  in the cluster.
-
 .. _cluster.routing.allocation.balance.threshold:
 
 **cluster.routing.allocation.balance.threshold**
@@ -1418,55 +1407,6 @@ of the nodes every 30 seconds. This can also be changed by setting the
 
 Recovery
 --------
-.. _indices.recovery.concurrent_streams:
-
-**indices.recovery.concurrent_streams**
-  | *Default:*   ``3``
-  | *Runtime:*  ``yes``
-
-  Limits the number of open concurrent streams when recovering a shard
-  from a peer.
-
-.. _indices.recovery.file_chunk_size:
-
-**indices.recovery.file_chunk_size**
-  | *Default:*   ``512kb``
-  | *Runtime:*  ``yes``
-
-  Specifies the chunk size used to copy the shard data from the source
-  shard. It is compressed if `indices.recovery.compress`_ is set to ``true``.
-
-.. _indices.recovery.translog_ops:
-
-**indices.recovery.translog_ops**
-  | *Default:*   ``1000``
-  | *Runtime:*  ``yes``
-
-  Specifies how many transaction log lines should be transfered
-  between shards in a single request during the recovery process. If
-  `indices.recovery.translog_size`_ is reached first, value is ignored
-  for this request.
-
-.. _indices.recovery.translog_size:
-
-**indices.recovery.translog_size**
-  | *Default:*   ``512kb``
-  | *Runtime:*  ``yes``
-
-  Specifies how much data of the transaction log should be transfered
-  betweem shards in a single request during the recovery process. If
-  ``indices.recovery.translog_op`` is reached first, value is ignored
-  for this request.
-
-.. _indices.recovery.compress:
-
-**indices.recovery.compress**
-  | *Default:*   ``true``
-  | *Runtime:*  ``yes``
-
-  Define if transferred data should be compressed during the recovery
-  process. Setting it to ``false`` may lower the pressure on the CPU
-  while resulting in more data being transfererd over the network.
 
 .. _indices.recovery.max_bytes_per_sec:
 
@@ -1476,8 +1416,7 @@ Recovery
 
   Specifies the maximum number of bytes that can be transferred during
   shard recovery per seconds. Limiting can be disabled by setting it
-  to ``0``. Similiar to `indices.recovery.concurrent_streams`_ this
-  setting allows to control the network usage of the recovery
+  to ``0``. This setting allows to control the network usage of the recovery
   process. Higher values may result in higher network utilization, but
   also faster recovery process.
 
@@ -1525,6 +1464,16 @@ Recovery
   Defines the timeout for internal requests made as part of the
   recovery that are expected to take a long time. Defaults to twice
   :ref:`retry_internal_action_timeout <indices.recovery.retry_internal_action_timeout>`.
+
+.. _indices.recovery.recovery_activity_timeout:
+
+**indices.recovery.recovery_activity_timeout**
+  | *Default:*  ``30m``
+  | *Runtime:*  ``yes``
+
+  Recoveries that don't show any activity for more then this
+  interval will fail. Defaults to twice :ref:`retry_internal_long_action_timeout
+  <indices.recovery.retry_internal_long_action_timeout>`.
 
 .. _indices.store.throttle:
 
