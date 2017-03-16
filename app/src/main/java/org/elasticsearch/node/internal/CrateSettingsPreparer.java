@@ -21,32 +21,38 @@
 
 package org.elasticsearch.node.internal;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Charsets;
 import io.crate.Constants;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.SettingsApplier;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.transport.Netty3Plugin;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static org.elasticsearch.common.Strings.cleanPath;
-<<<<<<< HEAD
 import static org.elasticsearch.common.network.NetworkService.DEFAULT_NETWORK_HOST;
 import static org.elasticsearch.common.network.NetworkService.GLOBAL_NETWORK_HOST_SETTING;
-import static org.elasticsearch.common.settings.Settings.settingsBuilder;
-=======
 import static org.elasticsearch.common.network.NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_PORT;
 import static org.elasticsearch.transport.TransportSettings.PORT;
->>>>>>> 1c3a6de... Upgrades elasticsearch to 5.0
 
 public class CrateSettingsPreparer {
 
@@ -102,7 +108,8 @@ public class CrateSettingsPreparer {
         }
     }
 
-    private static void applyCrateDefaults(Settings.Builder settingsBuilder) {
+    @VisibleForTesting
+    static void applyCrateDefaults(Settings.Builder settingsBuilder) {
         // read also from crate.yml by default if no other config path has been set
         // if there is also a elasticsearch.yml file this file will be read first and the settings in crate.yml
         // will overwrite them.
@@ -115,11 +122,45 @@ public class CrateSettingsPreparer {
         if (settingsBuilder.get(ClusterName.CLUSTER_NAME_SETTING.getKey()).equals(ClusterName.DEFAULT.value())) {
             settingsBuilder.put(ClusterName.CLUSTER_NAME_SETTING.getKey(), "crate");
         }
+
+        // Set a random node name if none is explicitly defined
+        if (settingsBuilder.get(Node.NODE_NAME_SETTING.getKey()) == null) {
+            settingsBuilder.put(Node.NODE_NAME_SETTING.getKey(), randomNodeName());
+        }
     }
 
     private static <T> void putIfAbsent(Settings.Builder settingsBuilder, String setting, T value) {
         if (settingsBuilder.get(setting) == null) {
             settingsBuilder.put(setting, value);
+        }
+    }
+
+    private static String randomNodeName() {
+        List<String> names = nodeNames();
+        int index = ThreadLocalRandom.current().nextInt(names.size());
+        return names.get(index);
+    }
+
+    @VisibleForTesting
+    static List<String> nodeNames() {
+        InputStream input = InternalSettingsPreparer.class.getResourceAsStream("/config/names.txt");
+
+        try {
+            List<String> names = new ArrayList<>();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, Charsets.UTF_8))) {
+                String line = reader.readLine();
+                while (line != null) {
+                    String[] fields = line.split("\t");
+                    if (fields.length == 0) {
+                        throw new RuntimeException("Failed to parse the names.txt. Malformed record: " + line);
+                    }
+                    names.add(fields[0]);
+                    line = reader.readLine();
+                }
+            }
+            return names;
+        } catch (IOException e) {
+            throw new RuntimeException("Could not read node names list", e);
         }
     }
 }
