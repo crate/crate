@@ -108,17 +108,25 @@ public class BatchIteratorTester {
 
     private void testIllegalStateIsRaisedIfMoveIsCalledWhileLoadingNextBatch(final BatchIterator it) {
         while (!it.allLoaded()) {
-            final CompletableFuture<?> nextBatchFuture = it.loadNextBatch().toCompletableFuture();
+            boolean moveNextCalled = false;
             IllegalStateException moveNextFailure = null;
+            final CompletableFuture<?> nextBatchFuture = it.loadNextBatch().toCompletableFuture();
             while (!nextBatchFuture.isDone()) {
                 try {
+                    // we want to capture the fact the moveNext was called at least once (as loadNextBatch can be
+                    // very fast and the test will not catch the nextBatchFuture in an incomplete state)
+                    // and only then make assertions about the exception
+                    moveNextCalled = true;
                     it.moveNext();
                 } catch (IllegalStateException e) {
                     // expected, save exception
                     moveNextFailure = e;
                 }
             }
-            assertThat("moveNext must raise an IllegalStateException during loadNextBatch", moveNextFailure, is(notNullValue()));
+            if (moveNextCalled) {
+                assertThat("moveNext must raise an IllegalStateException during loadNextBatch",
+                    moveNextFailure, is(notNullValue()));
+            }
         }
         it.close();
     }
