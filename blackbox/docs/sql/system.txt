@@ -104,7 +104,6 @@ currently applied cluster settings.
     | settings['cluster']['routing']['allocation']['allow_rebalance']                   | string       |
     | settings['cluster']['routing']['allocation']['balance']                           | object       |
     | settings['cluster']['routing']['allocation']['balance']['index']                  | float        |
-    | settings['cluster']['routing']['allocation']['balance']['primary']                | float        |
     | settings['cluster']['routing']['allocation']['balance']['shard']                  | float        |
     | settings['cluster']['routing']['allocation']['balance']['threshold']              | float        |
     | settings['cluster']['routing']['allocation']['cluster_concurrent_rebalance']      | integer      |
@@ -152,17 +151,12 @@ currently applied cluster settings.
     | settings['indices']['breaker']['request']['limit']                                | string       |
     | settings['indices']['breaker']['request']['overhead']                             | double       |
     | settings['indices']['recovery']                                                   | object       |
-    | settings['indices']['recovery']['activity_timeout']                               | string       |
-    | settings['indices']['recovery']['compress']                                       | boolean      |
-    | settings['indices']['recovery']['concurrent_streams']                             | integer      |
-    | settings['indices']['recovery']['file_chunk_size']                                | string       |
     | settings['indices']['recovery']['internal_action_long_timeout']                   | string       |
     | settings['indices']['recovery']['internal_action_timeout']                        | string       |
     | settings['indices']['recovery']['max_bytes_per_sec']                              | string       |
+    | settings['indices']['recovery']['recovery_activity_timeout']                      | string       |
     | settings['indices']['recovery']['retry_delay_network']                            | string       |
     | settings['indices']['recovery']['retry_delay_state_sync']                         | string       |
-    | settings['indices']['recovery']['translog_ops']                                   | integer      |
-    | settings['indices']['recovery']['translog_size']                                  | string       |
     | settings['indices']['store']                                                      | object       |
     | settings['indices']['store']['throttle']                                          | object       |
     | settings['indices']['store']['throttle']['max_bytes_per_sec']                     | string       |
