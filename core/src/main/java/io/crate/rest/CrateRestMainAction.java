@@ -33,6 +33,7 @@ import org.elasticsearch.rest.*;
 
 import java.io.IOException;
 
+import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.HEAD;
 
@@ -84,9 +85,12 @@ public class CrateRestMainAction extends BaseRestHandler {
             builder.startObject();
             builder.field("ok", status.equals(RestStatus.OK));
             builder.field("status", status.getStatus());
-            if (settings.get("name") != null) {
-                builder.field("name", settings.get("name"));
+
+            String nodeName = NODE_NAME_SETTING.get(settings);
+            if (nodeName != null && !nodeName.isEmpty()) {
+                builder.field("name", nodeName);
             }
+
             builder.field("cluster_name", clusterName.value());
             builder.startObject("version")
                 .field("number", version.number())
