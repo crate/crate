@@ -23,12 +23,9 @@
 package io.crate.testing;
 
 import io.crate.data.Row;
-import io.crate.data.Row1;
 import io.crate.data.RowN;
 
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.NoSuchElementException;
 
 public class RowGenerator {
@@ -99,13 +96,5 @@ public class RowGenerator {
                 return row;
             }
         };
-    }
-
-    public static List<Row> singleColRows(Object... rows) {
-        List<Row> result = new ArrayList<>(rows.length);
-        for (Object row : rows) {
-            result.add(new Row1(row));
-        }
-        return result;
     }
 }
