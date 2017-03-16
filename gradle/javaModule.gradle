@@ -30,11 +30,6 @@ if (project.hasProperty('testLogging')) {
 forbiddenApisMain {
     bundledSignatures = ['jdk-unsafe', 'jdk-deprecated']
     signaturesFiles = files("$rootDir/gradle/forbidden-signatures.txt")
-
-    if (['app', 'sql', 'blob', 'udc'].contains(it.project.name)) {
-        signaturesFiles += files("$rootDir/gradle/es5-signatures.txt")
-    }
-
     ignoreFailures = false
 }
 
