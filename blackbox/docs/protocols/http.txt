@@ -329,6 +329,8 @@ Currently the defined error codes are:
     ----- ---------------------------------------------------------------------
     4048  Unknown Snapshot.
     ----- ---------------------------------------------------------------------
+    4049  Unknown User Defined Function
+    ----- ---------------------------------------------------------------------
     4091  A document with the same primary key exists already.
     ----- ---------------------------------------------------------------------
     4092  A VersionConflict. Might be thrown if an attempt was made to update

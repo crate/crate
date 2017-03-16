@@ -42,13 +42,13 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
     private String name;
     private List<FunctionArgumentDefinition> arguments;
     DataType returnType;
-    private List<DataType> argumentDataTypes;
+    private List<DataType> argumentTypes;
     String language;
     String definition;
 
     public UserDefinedFunctionMetaData(String name,
                                        List<FunctionArgumentDefinition> arguments,
-                                       List<DataType> argumentDataTypes,
+                                       List<DataType> argumentTypes,
                                        DataType returnType,
                                        String language,
                                        String definition) {
@@ -57,7 +57,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         this.returnType = returnType;
         this.language = language;
         this.definition = definition;
-        this.argumentDataTypes = argumentDataTypes;
+        this.argumentTypes = argumentTypes;
     }
 
     private UserDefinedFunctionMetaData() {
@@ -77,19 +77,16 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         return arguments;
     }
 
-    public static List<DataType> argumentDataTypesFrom(List<FunctionArgumentDefinition> arguments) {
+    static List<DataType> argumentTypesFrom(List<FunctionArgumentDefinition> arguments) {
         return arguments.stream().map(FunctionArgumentDefinition::type).collect(toList());
     }
 
-    public List<DataType> argumentDataTypes() {
-        return argumentDataTypes;
+    public List<DataType> argumentTypes() {
+        return argumentTypes;
     }
 
-    boolean sameSignature(UserDefinedFunctionMetaData function) {
-        if ((function == null) || !this.name().equals(function.name())) {
-            return false;
-        }
-        return this.argumentDataTypes().equals(function.argumentDataTypes());
+    boolean sameSignature(String name, List<DataType> types) {
+        return this.name().equals(name) && this.argumentTypes().equals(types);
     }
 
     @Override
@@ -100,7 +97,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         for (int i = 0; i < numArguments; i++) {
             arguments.add(FunctionArgumentDefinition.fromStream(in));
         }
-        argumentDataTypes = argumentDataTypesFrom(arguments());
+        argumentTypes = argumentTypesFrom(arguments());
         returnType = DataTypes.fromStream(in);
         language = in.readString();
         definition = in.readString();
@@ -135,7 +132,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         return builder;
     }
 
-    public static UserDefinedFunctionMetaData fromXContent(XContentParser parser) throws IOException {
+    static UserDefinedFunctionMetaData fromXContent(XContentParser parser) throws IOException {
         XContentParser.Token token;
         String name = null;
         List<FunctionArgumentDefinition> arguments = new ArrayList<>();
@@ -166,7 +163,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
                 throw new UnhandledServerException("failed to parse function");
             }
         }
-        return new UserDefinedFunctionMetaData(name, arguments, argumentDataTypesFrom(arguments), returnType, language, definition);
+        return new UserDefinedFunctionMetaData(name, arguments, argumentTypesFrom(arguments), returnType, language, definition);
     }
 
     private static String parseStringField(XContentParser parser) throws IOException {

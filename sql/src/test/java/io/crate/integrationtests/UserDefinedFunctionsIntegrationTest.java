@@ -75,4 +75,14 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         assertThat(response.rows()[0][0], is("Foo"));
         assertThat(response.rows()[1][0], is("bar"));
     }
+
+    @Test
+    public void testDropFunction() throws Exception {
+        execute("create function custom(string) returns string language javascript as 'function custom(x) { return x; }'");
+        waitForFunctionCreatedOnAll("custom", ImmutableList.of(DataTypes.STRING));
+
+        execute("drop function custom(string)");
+        assertThat(response.rowCount(), is(1L));
+        waitForFunctionDeleted("custom", ImmutableList.of(DataTypes.STRING));
+    }
 }

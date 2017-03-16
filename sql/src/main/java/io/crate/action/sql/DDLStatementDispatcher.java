@@ -214,6 +214,11 @@ public class DDLStatementDispatcher {
                                                                        Context context) {
             return userDefinedFunctionDDLDispatcher.dispatch(analysis, context.parameters);
         }
+
+        @Override
+        public CompletableFuture<Long> visitDropFunctionStatement(DropFunctionAnalyzedStatement analysis, Context context) {
+            return userDefinedFunctionDDLDispatcher.dispatch(analysis);
+        }
     }
 
     private static CompletableFuture<Long> executeMergeSegments(OptimizeTableAnalyzedStatement analysis,

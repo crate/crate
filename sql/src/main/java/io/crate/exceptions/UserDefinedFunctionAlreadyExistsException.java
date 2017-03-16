@@ -33,7 +33,7 @@ public class UserDefinedFunctionAlreadyExistsException extends ConflictException
     public UserDefinedFunctionAlreadyExistsException(UserDefinedFunctionMetaData udfMetaData) {
         super(String.format(Locale.ENGLISH, "User defined Function '%s(%s)' already exists.",
             udfMetaData.name(),
-            udfMetaData.argumentDataTypes().stream().map(DataType::getName).collect(Collectors.joining(", ")))
+            udfMetaData.argumentTypes().stream().map(DataType::getName).collect(Collectors.joining(", ")))
         );
     }
 

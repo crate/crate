@@ -39,7 +39,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.List;
 
-import static io.crate.operation.udf.UserDefinedFunctionMetaData.argumentDataTypesFrom;
+import static io.crate.operation.udf.UserDefinedFunctionMetaData.argumentTypesFrom;
 import static org.hamcrest.core.Is.is;
 
 public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
@@ -52,7 +52,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
     private UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
         "my_add",
         args,
-        argumentDataTypesFrom(args),
+        argumentTypesFrom(args),
         DataTypes.FLOAT,
         "javascript",
         definition
