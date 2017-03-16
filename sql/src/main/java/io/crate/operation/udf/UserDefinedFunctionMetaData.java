@@ -127,7 +127,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         return builder;
     }
 
-    public static UserDefinedFunctionMetaData fromXContent(XContentParser parser) throws IOException {
+    static UserDefinedFunctionMetaData fromXContent(XContentParser parser) throws IOException {
         XContentParser.Token token;
         String name = null;
         List<FunctionArgumentDefinition> arguments = new ArrayList<>();

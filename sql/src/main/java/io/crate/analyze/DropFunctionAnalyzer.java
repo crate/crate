@@ -31,7 +31,7 @@ import io.crate.sql.tree.DropFunction;
 
 import java.util.List;
 
-import static io.crate.analyze.FunctionArgumentDefinition.toFunctionArgumentDefinitions;
+import static java.util.stream.Collectors.toList;
 
 class DropFunctionAnalyzer {
 
@@ -43,6 +43,7 @@ class DropFunctionAnalyzer {
         return new DropFunctionAnalyzedStatement(
             parts.get(0),
             node.exists(),
-            toFunctionArgumentDefinitions(node.arguments()));
+            node.arguments().stream().map(i -> DataTypeAnalyzer.convert(i.type())).collect(toList())
+        );
     }
 }

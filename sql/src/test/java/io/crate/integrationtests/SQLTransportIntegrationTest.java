@@ -416,6 +416,15 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         }, 20L, TimeUnit.SECONDS);
     }
 
+    public void waitForFunctionDeleted(String name, List<DataType> types) throws Exception {
+        assertBusy(() -> {
+            Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
+            for (Functions function : functions) {
+                assertThat(function.get(name, types), Matchers.nullValue());
+            }
+        }, 20L, TimeUnit.SECONDS);
+    }
+
     public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception {
         waitForMappingUpdateOnAll(new TableIdent(null, tableOrPartition), fieldNames);
     }

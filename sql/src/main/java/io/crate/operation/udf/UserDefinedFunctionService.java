@@ -23,6 +23,7 @@ package io.crate.operation.udf;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
+import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -32,6 +33,7 @@ import org.elasticsearch.cluster.*;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateRequest;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -40,6 +42,7 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -86,9 +89,10 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
      */
     void registerFunction(final RegisterUserDefinedFunctionRequest request,
                           final ActionListener<ClusterStateUpdateResponse> listener) {
-        if (!clusterService.localNode().isMasterNode()) {
+        if (!isMaterNode()) {
             return;
         }
+
         clusterService.submitStateUpdateTask(request.cause,
             new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
 
@@ -113,6 +117,41 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
             });
     }
 
+    void dropFunction(final DropUserDefinedFunctionRequest request,
+                      final ActionListener<ClusterStateUpdateResponse> listener) {
+        if (!isMaterNode()) {
+            return;
+        }
+
+        clusterService.submitStateUpdateTask(request.cause,
+            new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
+
+                @Override
+                public ClusterState execute(ClusterState currentState) throws Exception {
+                    MetaData metaData = currentState.metaData();
+                    MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
+                    UserDefinedFunctionsMetaData functions = removeFunction(
+                        metaData.custom(UserDefinedFunctionsMetaData.TYPE),
+                        request.name,
+                        request.argumentTypes,
+                        request.ifExists
+                    );
+                    mdBuilder.putCustom(UserDefinedFunctionsMetaData.TYPE, functions);
+                    return ClusterState.builder(currentState).metaData(mdBuilder).build();
+                }
+
+                @Override
+                protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
+                    return new ClusterStateUpdateResponse(acknowledged);
+                }
+            });
+    }
+
+    private boolean isMaterNode() {
+        DiscoveryNodes nodes = clusterService.state().nodes();
+        return nodes.getMasterNodeId().equals(nodes.getLocalNodeId());
+    }
+
     @VisibleForTesting
     static UserDefinedFunctionsMetaData putFunction(@Nullable UserDefinedFunctionsMetaData oldMetaData,
                                                     UserDefinedFunctionMetaData functionMetaData,
@@ -123,7 +162,7 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
 
         // create a new instance of the metadata, to guarantee the cluster changed action.
         UserDefinedFunctionsMetaData newMetaData = UserDefinedFunctionsMetaData.newInstance(oldMetaData);
-        if (oldMetaData.contains(functionMetaData)) {
+        if (oldMetaData.contains(functionMetaData.name(), functionMetaData.argumentTypes())) {
             if (!replace) {
                 throw new UserDefinedFunctionAlreadyExistsException(functionMetaData);
             }
@@ -134,6 +173,23 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
 
         assert !newMetaData.equals(oldMetaData) : "must not be equal to guarantee the cluster change action";
         return newMetaData;
+    }
+
+    @VisibleForTesting
+    static UserDefinedFunctionsMetaData removeFunction(@Nullable UserDefinedFunctionsMetaData functions,
+                                                       String name,
+                                                       List<DataType> argumentDataTypes,
+                                                       boolean ifExists) {
+        if (!ifExists && (functions == null || !functions.contains(name, argumentDataTypes))) {
+            throw new UserDefinedFunctionUnknownException(name, argumentDataTypes);
+        } else if (functions == null) {
+            return UserDefinedFunctionsMetaData.of();
+        } else {
+            // create a new instance of the metadata, to guarantee the cluster changed action.
+            UserDefinedFunctionsMetaData newMetaData = UserDefinedFunctionsMetaData.newInstance(functions);
+            newMetaData.remove(name, argumentDataTypes);
+            return newMetaData;
+        }
     }
 
     @Override
@@ -174,14 +230,27 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
 
         private final UserDefinedFunctionMetaData metaData;
         private final String cause;
-        private final String name;
         private final boolean replace;
 
-        RegisterUserDefinedFunctionRequest(String cause, String name, UserDefinedFunctionMetaData metaData, boolean replace) {
+        RegisterUserDefinedFunctionRequest(String cause, UserDefinedFunctionMetaData metaData, boolean replace) {
             this.cause = cause;
-            this.name = name;
             this.metaData = metaData;
             this.replace = replace;
+        }
+    }
+
+    static class DropUserDefinedFunctionRequest extends ClusterStateUpdateRequest<DropUserDefinedFunctionRequest> {
+
+        final String cause;
+        final String name;
+        final List<DataType> argumentTypes;
+        final boolean ifExists;
+
+        DropUserDefinedFunctionRequest(String cause, String name, List<DataType> argumentTypes, boolean ifExists) {
+            this.cause = cause;
+            this.name = name;
+            this.argumentTypes = argumentTypes;
+            this.ifExists = ifExists;
         }
     }
 }

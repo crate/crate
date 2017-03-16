@@ -42,20 +42,21 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 @Singleton
-public class TransportCreateUserDefinedFunctionAction extends TransportMasterNodeAction<CreateUserDefinedFunctionRequest, UserDefinedFunctionResponse> {
+public class TransportDropUserDefinedFunctionAction
+    extends TransportMasterNodeAction<DropUserDefinedFunctionRequest, UserDefinedFunctionResponse> {
 
     private final UserDefinedFunctionService userDefinedFunctionService;
 
     @Inject
-    public TransportCreateUserDefinedFunctionAction(Settings settings,
-                                                    TransportService transportService,
-                                                    ClusterService clusterService,
-                                                    ThreadPool threadPool,
-                                                    UserDefinedFunctionService userDefinedFunctionService,
-                                                    ActionFilters actionFilters,
-                                                    IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "crate/sql/create_udf", transportService, clusterService, threadPool, actionFilters,
-            indexNameExpressionResolver, CreateUserDefinedFunctionRequest.class);
+    public TransportDropUserDefinedFunctionAction(Settings settings,
+                                                  TransportService transportService,
+                                                  ClusterService clusterService,
+                                                  ThreadPool threadPool,
+                                                  UserDefinedFunctionService userDefinedFunctionService,
+                                                  ActionFilters actionFilters,
+                                                  IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, "dropuserdefinedfucntion", transportService, clusterService, threadPool,
+            actionFilters, indexNameExpressionResolver, DropUserDefinedFunctionRequest.class);
         this.userDefinedFunctionService = userDefinedFunctionService;
     }
 
@@ -70,19 +71,21 @@ public class TransportCreateUserDefinedFunctionAction extends TransportMasterNod
     }
 
     @Override
-    protected void masterOperation(final CreateUserDefinedFunctionRequest request,
+    protected void masterOperation(final DropUserDefinedFunctionRequest request,
                                    ClusterState state,
                                    ActionListener<UserDefinedFunctionResponse> listener) throws Exception {
-        userDefinedFunctionService.registerFunction(
-            new UserDefinedFunctionService.RegisterUserDefinedFunctionRequest(
-                "put_udf [" + request.userDefinedFunctionMetaData().name() + "]",
-                request.userDefinedFunctionMetaData(),
-                request.replace()
+        userDefinedFunctionService.dropFunction(
+            new UserDefinedFunctionService.DropUserDefinedFunctionRequest(
+                "drop_udf [" + request.name() + " - " + request.argumentTypes() + "]",
+                request.name(),
+                request.argumentTypes(),
+                request.ifExists()
             ).masterNodeTimeout(request.masterNodeTimeout()),
             new ActionListener<ClusterStateUpdateResponse>() {
                 @Override
                 public void onResponse(ClusterStateUpdateResponse clusterStateUpdateResponse) {
-                    listener.onResponse(new UserDefinedFunctionResponse(clusterStateUpdateResponse.isAcknowledged()));
+                    listener.onResponse(
+                        new UserDefinedFunctionResponse(clusterStateUpdateResponse.isAcknowledged()));
                 }
 
                 @Override
@@ -91,11 +94,10 @@ public class TransportCreateUserDefinedFunctionAction extends TransportMasterNod
                 }
             }
         );
-
     }
 
     @Override
-    protected ClusterBlockException checkBlock(CreateUserDefinedFunctionRequest request, ClusterState state) {
+    protected ClusterBlockException checkBlock(DropUserDefinedFunctionRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_READ);
     }
 }

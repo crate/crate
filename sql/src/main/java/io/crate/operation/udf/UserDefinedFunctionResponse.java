@@ -32,12 +32,12 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-class CreateUserDefinedFunctionResponse extends AcknowledgedResponse {
+class UserDefinedFunctionResponse extends AcknowledgedResponse {
 
-    CreateUserDefinedFunctionResponse() {
+    UserDefinedFunctionResponse() {
     }
 
-    CreateUserDefinedFunctionResponse(boolean acknowledged) {
+    UserDefinedFunctionResponse(boolean acknowledged) {
         super(acknowledged);
     }
 

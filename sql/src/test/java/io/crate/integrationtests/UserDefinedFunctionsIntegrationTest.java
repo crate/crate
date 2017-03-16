@@ -59,17 +59,32 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
 
     @Test
     public void testCreateOverloadedFunction() throws Exception {
-        execute("create function foo(long)" +
-            " returns string language javascript as 'function foo(x) { return \"1\"; }'");
-        waitForFunctionCreatedOnAll("foo", ImmutableList.of(DataTypes.LONG));
+        try {
+            execute("create function foo(long)" +
+                " returns string language javascript as 'function foo(x) { return \"1\"; }'");
+            waitForFunctionCreatedOnAll("foo", ImmutableList.of(DataTypes.LONG));
 
-        execute("create function foo(string)" +
-            " returns string language javascript as 'function foo(x) { return x; }'");
-        waitForFunctionCreatedOnAll("foo", ImmutableList.of(DataTypes.STRING));
+            execute("create function foo(string)" +
+                " returns string language javascript as 'function foo(x) { return x; }'");
+            waitForFunctionCreatedOnAll("foo", ImmutableList.of(DataTypes.STRING));
 
-        execute("select foo(str), id from test order by id asc");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows()[0][0], is("Foo"));
-        assertThat(response.rows()[1][0], is("bar"));
+            execute("select foo(str), id from test order by id asc");
+            assertThat(response.rowCount(), is(2L));
+            assertThat(response.rows()[0][0], is("Foo"));
+            assertThat(response.rows()[1][0], is("bar"));
+        } finally {
+            dropFunction("foo", ImmutableList.of(DataTypes.LONG));
+            dropFunction("foo", ImmutableList.of(DataTypes.STRING));
+        }
+    }
+
+    @Test
+    public void testDropFunction() throws Exception {
+        execute("create function custom(string) returns string language javascript as 'function custom(x) { return x; }'");
+        waitForFunctionCreatedOnAll("custom", ImmutableList.of(DataTypes.STRING));
+
+        execute("drop function custom(string)");
+        assertThat(response.rowCount(), is(1L));
+        waitForFunctionDeleted("custom", ImmutableList.of(DataTypes.STRING));
     }
 }

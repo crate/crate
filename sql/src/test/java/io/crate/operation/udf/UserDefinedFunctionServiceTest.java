@@ -28,6 +28,7 @@ package io.crate.operation.udf;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
+import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.test.integration.CrateUnitTest;
@@ -36,8 +37,7 @@ import org.junit.Test;
 
 import java.util.Map;
 
-import static io.crate.operation.udf.UserDefinedFunctionService.createFunctionImplementations;
-import static io.crate.operation.udf.UserDefinedFunctionService.putFunction;
+import static io.crate.operation.udf.UserDefinedFunctionService.*;
 import static org.hamcrest.Matchers.*;
 
 public class UserDefinedFunctionServiceTest extends CrateUnitTest {
@@ -75,6 +75,28 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
             putFunction(UserDefinedFunctionsMetaData.of(same1), different, true);
         assertThat(metaData.functionsMetaData(), hasSize(2));
         assertThat(metaData.functionsMetaData(), containsInAnyOrder(same1, different));
+    }
+
+    @Test
+    public void testRemoveFunction() throws Exception {
+        UserDefinedFunctionsMetaData metaData = UserDefinedFunctionsMetaData.of(same1);
+        UserDefinedFunctionsMetaData newMetaData = removeFunction(metaData, same1.name(), same1.argumentTypes(), false);
+        assertThat(metaData, not(is(newMetaData))); // A new instance of metaData must be returned on a change
+        assertThat(newMetaData.functionsMetaData().size(), is(0));
+    }
+
+    @Test
+    public void testRemoveIfExistsEmptyMetaData() throws Exception {
+        UserDefinedFunctionsMetaData newMetaData = removeFunction(null, same1.name(), same1.argumentTypes(), true);
+        assertThat(newMetaData, is(notNullValue()));
+    }
+
+    @Test
+    public void testRemoveDoesNotExist() throws Exception {
+        expectedException.expect(UserDefinedFunctionUnknownException.class);
+        expectedException.expectMessage("Cannot resolve user defined function: 'different()'");
+        UserDefinedFunctionsMetaData metaData = UserDefinedFunctionsMetaData.of(same1);
+        removeFunction(metaData, different.name(), different.argumentTypes(), false);
     }
 
     @Test

@@ -26,6 +26,7 @@
 
 package io.crate.operation.udf;
 
+import io.crate.types.DataType;
 import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -71,19 +72,27 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
 
     public void replace(UserDefinedFunctionMetaData function) {
         for (int i = 0; i < functionsMetaData.size(); i++) {
-            if (functionsMetaData.get(i).sameSignature(function)) {
+            if (functionsMetaData.get(i).sameSignature(function.name(), function.argumentTypes())) {
                 functionsMetaData.set(i, function);
             }
         }
     }
 
-    public boolean contains(UserDefinedFunctionMetaData functionMetaData) {
+    public boolean contains(String name, List<DataType> types) {
         for (UserDefinedFunctionMetaData function : functionsMetaData) {
-            if (functionMetaData.sameSignature(function)) {
+            if (function.sameSignature(name, types)) {
                 return true;
             }
         }
         return false;
+    }
+
+    public void remove(String name, List<DataType> types) {
+        for (ListIterator<UserDefinedFunctionMetaData> iter = functionsMetaData.listIterator(); iter.hasNext(); ) {
+            if (iter.next().sameSignature(name, types)) {
+                iter.remove();
+            }
+        }
     }
 
     public Collection<UserDefinedFunctionMetaData> functionsMetaData() {

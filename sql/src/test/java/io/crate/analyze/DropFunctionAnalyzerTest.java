@@ -47,8 +47,8 @@ public class DropFunctionAnalyzerTest extends CrateUnitTest {
         DropFunctionAnalyzedStatement analysis = (DropFunctionAnalyzedStatement) analyzedStatement;
         assertThat(analysis.name(), is("bar"));
         assertThat(analysis.ifExists(), is(false));
-        assertThat(analysis.arguments().get(0), is(FunctionArgumentDefinition.of(DataTypes.LONG)));
-        assertThat(analysis.arguments().get(1), is(FunctionArgumentDefinition.of(DataTypes.OBJECT)));
+        assertThat(analysis.argumentTypes().get(0), is(DataTypes.LONG));
+        assertThat(analysis.argumentTypes().get(1), is(DataTypes.OBJECT));
     }
 
     @Test
@@ -59,7 +59,7 @@ public class DropFunctionAnalyzerTest extends CrateUnitTest {
         DropFunctionAnalyzedStatement analysis = (DropFunctionAnalyzedStatement) analyzedStatement;
         assertThat(analysis.name(), is("bar"));
         assertThat(analysis.ifExists(), is(true));
-        assertThat(analysis.arguments().get(0), is(FunctionArgumentDefinition.of("arg_long", DataTypes.LONG)));
-        assertThat(analysis.arguments().get(1), is(FunctionArgumentDefinition.of("arg_obj", DataTypes.OBJECT)));
+        assertThat(analysis.argumentTypes().get(0), is(DataTypes.LONG));
+        assertThat(analysis.argumentTypes().get(1), is(DataTypes.OBJECT));
     }
 }

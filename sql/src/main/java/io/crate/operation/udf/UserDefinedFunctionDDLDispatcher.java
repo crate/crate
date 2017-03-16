@@ -22,6 +22,7 @@
 package io.crate.operation.udf;
 
 import io.crate.analyze.CreateFunctionAnalyzedStatement;
+import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
 import org.elasticsearch.action.ActionListener;
@@ -34,10 +35,13 @@ import java.util.concurrent.CompletableFuture;
 public class UserDefinedFunctionDDLDispatcher {
 
     private final TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction;
+    private final TransportDropUserDefinedFunctionAction dropUserDefinedFunctionAction;
 
     @Inject
-    public UserDefinedFunctionDDLDispatcher(TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction) {
+    public UserDefinedFunctionDDLDispatcher(TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction,
+                                            TransportDropUserDefinedFunctionAction dropUserDefinedFunctionAction) {
         this.createUserDefinedFunctionAction = createUserDefinedFunctionAction;
+        this.dropUserDefinedFunctionAction = dropUserDefinedFunctionAction;
     }
 
     public CompletableFuture<Long> dispatch(final CreateFunctionAnalyzedStatement statement, Row params) {
@@ -52,9 +56,9 @@ public class UserDefinedFunctionDDLDispatcher {
         CreateUserDefinedFunctionRequest request = new CreateUserDefinedFunctionRequest(metaData, statement.replace());
         createUserDefinedFunctionAction.execute(
             request,
-            new ActionListener<CreateUserDefinedFunctionResponse>() {
+            new ActionListener<UserDefinedFunctionResponse>() {
                 @Override
-                public void onResponse(CreateUserDefinedFunctionResponse createUserDefinedFunctionResponse) {
+                public void onResponse(UserDefinedFunctionResponse transportUserDefinedFunctionResponse) {
                     resultFuture.complete(1L);
                 }
 
@@ -65,6 +69,30 @@ public class UserDefinedFunctionDDLDispatcher {
             }
         );
 
+        return resultFuture;
+    }
+
+    public CompletableFuture<Long> dispatch(final DropFunctionAnalyzedStatement statement) {
+        final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
+        DropUserDefinedFunctionRequest request = new DropUserDefinedFunctionRequest(
+            statement.name(),
+            statement.argumentTypes(),
+            statement.ifExists()
+        );
+        dropUserDefinedFunctionAction.execute(
+            request,
+            new ActionListener<UserDefinedFunctionResponse>() {
+                @Override
+                public void onResponse(UserDefinedFunctionResponse transportUserDefinedFunctionResponse) {
+                    resultFuture.complete(1L);
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    resultFuture.completeExceptionally(e);
+                }
+            }
+        );
         return resultFuture;
     }
 }

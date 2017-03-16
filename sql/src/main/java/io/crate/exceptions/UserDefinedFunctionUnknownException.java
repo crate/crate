@@ -24,31 +24,24 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.operation.udf;
+package io.crate.exceptions;
 
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
+import io.crate.types.DataType;
 
-import javax.script.Compilable;
-import javax.script.CompiledScript;
-import javax.script.ScriptException;
+import java.util.List;
 import java.util.Locale;
+import java.util.stream.Collectors;
 
-public class UserDefinedFunctionFactory {
+public class UserDefinedFunctionUnknownException extends ResourceUnknownException {
 
-    public static FunctionImplementation of(UserDefinedFunctionMetaData meta) throws ScriptException {
-        switch (meta.language.toLowerCase(Locale.ENGLISH)) {
-            case "javascript":
-                CompiledScript compiledScript = ((Compilable) JavaScriptUserDefinedFunction.ENGINE)
-                    .compile(meta.definition);
-                return new JavaScriptUserDefinedFunction(
-                    new FunctionIdent(meta.name(), meta.argumentTypes()),
-                    meta.returnType,
-                    compiledScript
-                );
-            default:
-                throw new UnsupportedOperationException(
-                    String.format(Locale.ENGLISH, "[%s] language is not supported.", meta.language));
-        }
+    public UserDefinedFunctionUnknownException(String name, List<DataType> types) {
+        super(String.format(Locale.ENGLISH, "Cannot resolve user defined function: '%s(%s)'",
+            name, types.stream().map(DataType::getName).collect(Collectors.joining(",")))
+        );
+    }
+
+    @Override
+    public int errorCode() {
+        return 9;
     }
 }
