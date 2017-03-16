@@ -28,8 +28,6 @@ import io.crate.operation.projectors.ProjectingBatchConsumer;
 import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.planner.node.dql.CollectPhase;
 
-import java.util.Collection;
-
 public class ProjectorSetupCollectSource implements CollectSource {
 
     private final CollectSource sourceDelegate;
@@ -41,8 +39,8 @@ public class ProjectorSetupCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
-        return sourceDelegate.getCollectors(
+    public CrateCollector getCollector(CollectPhase collectPhase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
+        return sourceDelegate.getCollector(
             collectPhase,
             ProjectingBatchConsumer.create(
                 consumer,

@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect.sources;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
@@ -44,7 +43,10 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 @Singleton
 public class FileCollectSource implements CollectSource {
@@ -61,7 +63,7 @@ public class FileCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
+    public CrateCollector getCollector(CollectPhase collectPhase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
         FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);
@@ -84,7 +86,7 @@ public class FileCollectSource implements CollectSource {
             Arrays.binarySearch(readers, clusterService.state().nodes().getLocalNodeId())
         );
 
-        return ImmutableList.of(BatchIteratorCollectorBridge.newInstance(fileReadingIterator, consumer));
+        return BatchIteratorCollectorBridge.newInstance(fileReadingIterator, consumer);
     }
 
     private static List<String> targetUriToStringList(Symbol targetUri) {

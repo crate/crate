@@ -48,7 +48,6 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -104,8 +103,8 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
 
         TestingBatchConsumer consumer = new TestingBatchConsumer();
         JobCollectContext jobCollectContext = mock(JobCollectContext.class);
-        Collection<CrateCollector> collectors = collectOperation.createCollectors(collectNode, consumer, jobCollectContext);
-        collectOperation.launchCollectors(collectors, threadPoolName);
+        CrateCollector collectors = collectOperation.createCollector(collectNode, consumer, jobCollectContext);
+        collectOperation.launchCollector(collectors, threadPoolName);
         assertThat(new CollectionBucket(consumer.getResult()), contains(
             isRow("Arthur", 38),
             isRow("Trillian", 33)

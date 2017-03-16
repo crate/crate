@@ -41,36 +41,6 @@ public class ThreadPools {
      * runs each runnable of the runnableCollection in it's own thread unless there aren't enough threads available.
      * In that case it will partition the runnableCollection to match the number of available threads.
      *
-     * @throws RejectedExecutionException in case all threads are busy and overloaded.
-     */
-    public static void runWithAvailableThreads(ThreadPoolExecutor executor,
-                                               Collection<Runnable> runnableCollection) throws RejectedExecutionException {
-        int availableThreads = Math.max(executor.getMaximumPoolSize() - executor.getActiveCount(), 2);
-        if (availableThreads < runnableCollection.size()) {
-            Iterable<List<Runnable>> partition = Iterables.partition(runnableCollection,
-                runnableCollection.size() / availableThreads);
-
-            for (final List<Runnable> runnableList : partition) {
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        for (Runnable runnable : runnableList) {
-                            runnable.run();
-                        }
-                    }
-                });
-            }
-        } else {
-            for (Runnable runnable : runnableCollection) {
-                executor.execute(runnable);
-            }
-        }
-    }
-
-    /**
-     * Similar to {@link #runWithAvailableThreads(ThreadPoolExecutor, Collection)}
-     * but this function will return a Future that wraps the futures of each callable
-     *
      * @param executor           executor that is used to execute the callableList
      * @param poolSize           the corePoolSize of the given executor
      * @param callableCollection a collection of callable that should be executed
@@ -78,7 +48,7 @@ public class ThreadPools {
      *                           executed together if the threadPool is exhausted
      * @param <T>                type of the final result
      * @return a future that will return a list of the results of the callableList
-     * @throws RejectedExecutionException
+     * @throws RejectedExecutionException in case all threads are busy and overloaded.
      */
     public static <T> ListenableFuture<List<T>> runWithAvailableThreads(
         ThreadPoolExecutor executor,

@@ -43,8 +43,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 @Singleton
@@ -60,13 +58,13 @@ public class TableFunctionCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase,
-                                                    BatchConsumer consumer,
-                                                    JobCollectContext jobCollectContext) {
+    public CrateCollector getCollector(CollectPhase collectPhase,
+                                       BatchConsumer consumer,
+                                       JobCollectContext jobCollectContext) {
         TableFunctionCollectPhase phase = (TableFunctionCollectPhase) collectPhase;
         WhereClause whereClause = phase.whereClause();
         if (whereClause.noMatch()) {
-            return Collections.singletonList(RowsCollector.empty(consumer));
+            return RowsCollector.empty(consumer);
         }
 
         TableFunctionImplementation functionImplementation = phase.relation().functionImplementation();
@@ -94,6 +92,6 @@ public class TableFunctionCollectSource implements CollectSource {
         if (orderBy != null) {
             rows = RowsTransformer.sortRows(Iterables.transform(rows, Row::materialize), phase);
         }
-        return Collections.singletonList(RowsCollector.forRows(rows, phase.toCollect().size(), consumer));
+        return RowsCollector.forRows(rows, phase.toCollect().size(), consumer);
     }
 }

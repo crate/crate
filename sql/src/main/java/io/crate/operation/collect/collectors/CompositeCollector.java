@@ -24,7 +24,6 @@ package io.crate.operation.collect.collectors;
 
 import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
-import io.crate.data.CompositeBatchIterator;
 import io.crate.operation.collect.CrateCollector;
 
 import javax.annotation.Nullable;
@@ -35,9 +34,6 @@ import java.util.function.Function;
 
 /**
  * Collector that wraps 1+ other collectors.
- * <p>
- * This is useful to execute multiple collectors non-concurrent/sequentially.
- * <p>
  */
 public class CompositeCollector implements CrateCollector {
 
@@ -47,26 +43,15 @@ public class CompositeCollector implements CrateCollector {
      * Create a BatchConsumer which accepts multiple {@link BatchConsumer#accept(BatchIterator, Throwable)} calls before
      * it uses {@code compositeBatchIteratorFactory} to create a BatchIterator which will be passed to {@code finalConsumer}
      */
-    public static BatchConsumer newMultiConsumer(int numAccepts,
-                                                 BatchConsumer finalConsumer,
-                                                 Function<BatchIterator[], BatchIterator> compositeBatchIteratorFactory) {
-        return new MultiConsumer(numAccepts, finalConsumer, compositeBatchIteratorFactory);
-    }
-
-    public static CompositeCollector syncCompositeCollector(Collection<? extends Builder> builders,
-                                                            BatchConsumer consumer) {
-        return new CompositeCollector(
-            builders,
-            new MultiConsumer(builders.size(), consumer, CompositeBatchIterator::new)
-        );
-    }
-
-    private CompositeCollector(Collection<? extends Builder> builders, MultiConsumer multiConsumer) {
+    public CompositeCollector(Collection<? extends Builder> builders,
+                              BatchConsumer finalConsumer,
+                              Function<BatchIterator[], BatchIterator> compositeBatchIteratorFactory) {
         assert builders.size() > 1 : "CompositeCollector must not be called with less than 2 collectors";
 
+        MultiConsumer multiConsumer = new MultiConsumer(builders.size(), finalConsumer, compositeBatchIteratorFactory);
         collectors = new ArrayList<>(builders.size());
         for (Builder builder : builders) {
-            collectors.add(builder.build(multiConsumer));
+            collectors.add(builder.build(builder.applyProjections(multiConsumer)));
         }
     }
 
@@ -93,9 +78,9 @@ public class CompositeCollector implements CrateCollector {
         private int remainingAccepts;
         private Throwable lastFailure;
 
-        private MultiConsumer(int numAccepts,
-                              BatchConsumer consumer,
-                              Function<BatchIterator[], BatchIterator> compositeBatchIteratorFactory) {
+        MultiConsumer(int numAccepts,
+                      BatchConsumer consumer,
+                      Function<BatchIterator[], BatchIterator> compositeBatchIteratorFactory) {
             this.remainingAccepts = numAccepts;
             this.iterators = new BatchIterator[numAccepts];
             this.consumer = consumer;

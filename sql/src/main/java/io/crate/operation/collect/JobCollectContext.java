@@ -28,7 +28,6 @@ import io.crate.action.job.SharedShardContexts;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchConsumer;
 import io.crate.data.ListenableBatchConsumer;
-import io.crate.data.RowsBatchIterator;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dql.CollectPhase;
@@ -42,7 +41,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Locale;
 
 public class JobCollectContext extends AbstractExecutionSubContext {
@@ -59,7 +57,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     private final Object subContextLock = new Object();
     private final String threadPoolName;
 
-    private Collection<CrateCollector> collectors;
+    private CrateCollector collector = null;
 
     public JobCollectContext(final CollectPhase collectPhase,
                              MapSideDataCollectOperation collectOperation,
@@ -117,10 +115,8 @@ public class JobCollectContext extends AbstractExecutionSubContext {
 
     @Override
     public void innerKill(@Nonnull Throwable throwable) {
-        if (collectors != null) {
-            for (CrateCollector collector : collectors) {
-                collector.kill(throwable);
-            }
+        if (collector != null) {
+            collector.kill(throwable);
         }
         future.bytesUsed(queryPhaseRamAccountingContext.totalBytes());
     }
@@ -144,19 +140,15 @@ public class JobCollectContext extends AbstractExecutionSubContext {
 
     @Override
     public void innerPrepare() throws Exception {
-        collectors = collectOperation.createCollectors(collectPhase, consumer, this);
+        collector = collectOperation.createCollector(collectPhase, consumer, this);
     }
 
     @Override
     protected void innerStart() {
-        if (collectors.isEmpty()) {
-            consumer.accept(RowsBatchIterator.empty(), null);
-        } else {
-            if (logger.isTraceEnabled()) {
-                measureCollectTime();
-            }
-            collectOperation.launchCollectors(collectors, threadPoolName);
+        if (logger.isTraceEnabled()) {
+            measureCollectTime();
         }
+        collectOperation.launchCollector(collector, threadPoolName);
     }
 
     private void measureCollectTime() {
@@ -194,11 +186,4 @@ public class JobCollectContext extends AbstractExecutionSubContext {
         // Anything else like INFORMATION_SCHEMA tables or sys.cluster table collector
         return ThreadPool.Names.PERCOLATE;
     }
-
-    @VisibleForTesting
-    public Collection<CrateCollector> collectors() {
-        return collectors;
-    }
-
-
 }

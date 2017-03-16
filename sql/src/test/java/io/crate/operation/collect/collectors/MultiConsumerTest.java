@@ -41,7 +41,7 @@ public class MultiConsumerTest extends CrateUnitTest {
     @Test
     public void testSuccessfulMultiConsumerUsage() throws Exception {
         TestingBatchConsumer batchConsumer = new TestingBatchConsumer();
-        BatchConsumer consumer = CompositeCollector.newMultiConsumer(2, batchConsumer, CompositeBatchIterator::new);
+        BatchConsumer consumer = new CompositeCollector.MultiConsumer(2, batchConsumer, CompositeBatchIterator::new);
 
         consumer.accept(TestingBatchIterators.range(3, 6), null);
         consumer.accept(TestingBatchIterators.range(0, 3), null);
@@ -59,7 +59,7 @@ public class MultiConsumerTest extends CrateUnitTest {
     @Test
     public void testFirstAcceptNullIteratorDoesNotCauseNPE() throws Exception {
         TestingBatchConsumer batchConsumer = new TestingBatchConsumer();
-        BatchConsumer consumer = CompositeCollector.newMultiConsumer(2, batchConsumer, CompositeBatchIterator::new);
+        BatchConsumer consumer = new CompositeCollector.MultiConsumer(2, batchConsumer, CompositeBatchIterator::new);
         consumer.accept(null, new IllegalStateException("dummy"));
         consumer.accept(RowsBatchIterator.empty(), null);
 
