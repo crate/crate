@@ -106,21 +106,19 @@ public class BatchIteratorTester {
         checkResult(firstResult, secondResult);
     }
 
-    private void testIllegalStateIsRaisedIfMoveIsCalledWhileLoadingNextBatch(BatchIterator it) {
+    private void testIllegalStateIsRaisedIfMoveIsCalledWhileLoadingNextBatch(final BatchIterator it) {
         while (!it.allLoaded()) {
-            CompletableFuture<?> nextBatchFuture = it.loadNextBatch().toCompletableFuture();
+            final CompletableFuture<?> nextBatchFuture = it.loadNextBatch().toCompletableFuture();
+            IllegalStateException moveNextFailure = null;
             while (!nextBatchFuture.isDone()) {
                 try {
                     it.moveNext();
-                    if (nextBatchFuture.isDone()) {
-                        // race condition, future completed too fast.
-                    } else {
-                        fail("moveNext must raise an IllegalStateException during loadNextBatch");
-                    }
-                } catch (IllegalStateException ignored) {
-                    // expected, pass
+                } catch (IllegalStateException e) {
+                    // expected, save exception
+                    moveNextFailure = e;
                 }
             }
+            assertThat("moveNext must raise an IllegalStateException during loadNextBatch", moveNextFailure, is(notNullValue()));
         }
         it.close();
     }
@@ -217,7 +215,7 @@ public class BatchIteratorTester {
     }
 
     private static void checkResult(List<Object[]> expected, List<Object[]> actual) {
-        if (expected.isEmpty()){
+        if (expected.isEmpty()) {
             assertThat(actual, empty());
         } else {
             assertThat(actual, Matchers.contains(expected.toArray(new Object[0])));
