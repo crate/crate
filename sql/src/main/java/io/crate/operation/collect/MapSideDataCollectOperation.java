@@ -21,10 +21,7 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
 import io.crate.data.BatchConsumer;
-import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.sources.CollectSource;
 import io.crate.operation.collect.sources.CollectSourceResolver;
 import io.crate.planner.node.dql.CollectPhase;
@@ -32,7 +29,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Collection;
+import javax.annotation.Nonnull;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -69,39 +66,19 @@ public class MapSideDataCollectOperation {
      * &nbsp; -&gt; run node level collect (cluster level)<br>
      * </p>
      */
-    public Collection<CrateCollector> createCollectors(CollectPhase collectPhase,
-                                                       BatchConsumer consumer,
-                                                       final JobCollectContext jobCollectContext) {
+    public CrateCollector createCollector(CollectPhase collectPhase,
+                                          BatchConsumer consumer,
+                                          final JobCollectContext jobCollectContext) {
         CollectSource service = collectSourceResolver.getService(collectPhase);
-        return service.getCollectors(collectPhase, consumer, jobCollectContext);
+        return service.getCollector(collectPhase, consumer, jobCollectContext);
     }
 
-    public void launchCollectors(Collection<CrateCollector> shardCollectors, String threadPoolName) throws RejectedExecutionException {
-        assert !shardCollectors.isEmpty() : "must have at least one collector to launch";
+    public void launchCollector(@Nonnull CrateCollector collector, String threadPoolName) throws RejectedExecutionException {
         Executor executor = threadPool.executor(threadPoolName);
         if (executor instanceof ThreadPoolExecutor) {
-            ThreadPools.runWithAvailableThreads(
-                (ThreadPoolExecutor) executor,
-                collectors2Runnables(shardCollectors));
+            executor.execute(collector::doCollect);
         } else {
-            // assume executor is just a wrapper to 1 thread
-            for (CrateCollector collector : shardCollectors) {
-                collector.doCollect();
-            }
+            collector.doCollect();
         }
-    }
-
-    private Collection<Runnable> collectors2Runnables(Collection<CrateCollector> collectors) {
-        return Collections2.transform(collectors, new Function<CrateCollector, Runnable>() {
-            @Override
-            public Runnable apply(final CrateCollector collector) {
-                return new Runnable() {
-                    @Override
-                    public void run() {
-                        collector.doCollect();
-                    }
-                };
-            }
-        });
     }
 }

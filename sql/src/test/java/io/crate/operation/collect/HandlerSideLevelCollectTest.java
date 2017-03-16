@@ -47,7 +47,10 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -99,8 +102,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     private Bucket collect(RoutedCollectPhase collectPhase) throws Exception {
         TestingBatchConsumer consumer = new TestingBatchConsumer();
-        Collection<CrateCollector> collectors = operation.createCollectors(collectPhase, consumer, mock(JobCollectContext.class));
-        operation.launchCollectors(collectors, JobCollectContext.threadPoolName(collectPhase, clusterService().localNode().getId()));
+        CrateCollector collector = operation.createCollector(collectPhase, consumer, mock(JobCollectContext.class));
+        operation.launchCollector(collector, JobCollectContext.threadPoolName(collectPhase, clusterService().localNode().getId()));
         return new CollectionBucket(consumer.getResult());
     }
 

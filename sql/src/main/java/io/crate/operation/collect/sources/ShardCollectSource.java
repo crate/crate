@@ -22,7 +22,6 @@
 package io.crate.operation.collect.sources;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -74,39 +73,63 @@ import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 
 import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 
 /**
- * Factory to create collectors which collect data from shards.
+ * Factory to create a collector which collects data from 1 or more shards.
+ *
  * <p>
+ *  A Collector is a component which can be used to "launch" a collect operation.
+ *  Once launched, a {@link BatchConsumer} will receive a {@link BatchIterator}, which it consumes to generate a result.
+ * </p>
+ *
  * <p>
- * There are different patterns on how shards are collected:
+ *   To support collection from multiple shards a {@link CompositeCollector} collector is used.
+ *   This CompositeCollector can have multiple sub-collectors (1 per shard)
+ * </p>
+ *
+ *
  * <p>
- * - Multiple Collectors with shard level projectors (only unordered):
- * <p>
- * C/S1   C/S2
- * |      |
- * P      P  < i/o & computation should happen here to benefit from threading
- * \     /
- * \   /
- * Merger
- * |
- * RowReceiver
- * <p>
- * <p>
- * - Ordered with one Collector that has 1+ child shard collectors
- * This single collector is switching between the child-collectors to provide a correct sorted result
- * <p>
- * +---------------------+
- * | MultiShardCollector |
- * |   S1   S2           |
- * +---------------------+
- * |
- * RowReceiver
+ *   <b>concurrent consumption</b>
+ *
+ *   For grouping and aggregation operations it's advantageous to run them concurrently. This can be done
+ *   if there are multiple shards.
+ *
+ *   Since there is just a single Collector returned by {@link #getCollector(CollectPhase, BatchConsumer, JobCollectContext)}
+ *   and there is only a single {@link BatchConsumer} receiving a {@link BatchIterator} which cannot be consumed concurrently
+ *   the following pattern is used:
+ *
+ * <pre>
+ *                  CompositeCollector
+ *
+ *             Collector1                  Collector2
+ *                |                            |
+ *             doCollect                   doCollect
+ *                |                            |
+ *         shardConsumer                   shardConsumer
+ *            accept(s1BatchIterator)       accept(s2BatchIterator)
+ *                 \                          /
+ *                  \                       /
+ *                   \                     /
+ *               +---------------------------------+
+ *               |       MultiConsumer             |
+ *               |  AsyncCompositeBatchIterator    |      loadNextBatch will run
+ *               |                                 |        s1bi.loadNextBatch + s2bi.loadNextBatch concurrently.
+ *               |   s1bi            s2bi          |
+ *               +----------------------------------        s1bi/s2bi loadNextBatch encapsulate CPU heavy
+ *                          |                               aggregation / grouping
+ *                          |
+ *                       nodeConsumer // consumes the compositeBatchIterator
+ *
+ * </pre>
+ *
  */
 @Singleton
 public class ShardCollectSource extends AbstractComponent implements CollectSource {
@@ -223,9 +246,9 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase phase,
-                                                    BatchConsumer lastConsumer,
-                                                    JobCollectContext jobCollectContext) {
+    public CrateCollector getCollector(CollectPhase phase,
+                                       BatchConsumer lastConsumer,
+                                       JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer, null);
 
@@ -243,16 +266,15 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             // it's possible to use FlatProjectorChain instead of ShardProjectorChain as a shortcut because
             // the rows are "pre-created" on a shard level.
             // The getShardsCollector method always only uses a single RowReceiver and not one per shard)
-            return Collections.singletonList(
-                getShardsCollector(collectPhase, normalizedPhase, localNodeId, firstConsumer));
+            return getShardsCollector(collectPhase, normalizedPhase, localNodeId, firstConsumer);
         }
         OrderBy orderBy = normalizedPhase.orderBy();
         if (normalizedPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
-            return ImmutableList.of(createMultiShardScoreDocCollector(
+            return createMultiShardScoreDocCollector(
                 normalizedPhase,
                 firstConsumer,
                 jobCollectContext,
-                localNodeId)
+                localNodeId
             );
         }
 
@@ -270,30 +292,21 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
         switch (builders.size()) {
             case 0:
-                return Collections.singletonList(RowsCollector.empty(firstConsumer));
+                return RowsCollector.empty(firstConsumer);
             case 1:
                 CrateCollector.Builder collectorBuilder = builders.iterator().next();
-                return Collections.singletonList(collectorBuilder.build(collectorBuilder.applyProjections(firstConsumer)));
+                return collectorBuilder.build(collectorBuilder.applyProjections(firstConsumer));
             default:
                 if (hasShardProjections) {
-                    // 1 Collector per shard to benefit from concurrency (each collector is run in a thread)
-                    // It doesn't support repeat.
-
-                    BatchConsumer multiConsumer = CompositeCollector.newMultiConsumer(
-                        builders.size(),
+                    // use AsyncCompositeBatchIterator for multi-threaded loadNextBatch
+                    // in order to process shard-based projections concurrently
+                    return new CompositeCollector(
+                        builders,
                         firstConsumer,
                         iterators -> new AsyncCompositeBatchIterator(executor, iterators)
                     );
-                    List<CrateCollector> collectors = new ArrayList<>(builders.size());
-                    for (CrateCollector.Builder builder : builders) {
-                        collectors.add(builder.build(builder.applyProjections(multiConsumer)));
-                    }
-                    return collectors;
                 } else {
-                    // If there are no shard-projections there is no real benefit from concurrency gained by using multiple collectors.
-                    // CompositeCollector to collects single-threaded sequentially.
-                    return Collections.singletonList(
-                        CompositeCollector.syncCompositeCollector(builders, firstConsumer));
+                    return new CompositeCollector(builders, firstConsumer, CompositeBatchIterator::new);
                 }
         }
     }

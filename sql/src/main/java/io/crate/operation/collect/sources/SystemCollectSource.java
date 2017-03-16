@@ -57,7 +57,6 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -158,9 +157,9 @@ public class SystemCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase phase,
-                                                    BatchConsumer consumer,
-                                                    JobCollectContext jobCollectContext) {
+    public CrateCollector getCollector(CollectPhase phase,
+                                       BatchConsumer consumer,
+                                       JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         // sys.operations can contain a _node column - these refs need to be normalized into literals
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
@@ -172,15 +171,13 @@ public class SystemCollectSource implements CollectSource {
         Supplier<CompletableFuture<? extends Iterable<?>>> iterableGetter = iterableGetters.get(table);
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";
         boolean requiresScroll = consumer.requiresScroll();
-        return ImmutableList.of(
-            BatchIteratorCollectorBridge.newInstance(
-                () -> iterableGetter.get().thenApply(dataIterable ->
-                    RowsBatchIterator.newInstance(
-                        dataIterableToRowsIterable(routedCollectPhase, requiresScroll, dataIterable),
-                        collectPhase.toCollect().size()
-                    )),
-                consumer
-            )
+        return BatchIteratorCollectorBridge.newInstance(
+            () -> iterableGetter.get().thenApply(dataIterable ->
+                RowsBatchIterator.newInstance(
+                    dataIterableToRowsIterable(routedCollectPhase, requiresScroll, dataIterable),
+                    collectPhase.toCollect().size()
+                )),
+            consumer
         );
     }
 

@@ -22,7 +22,6 @@
 package io.crate.operation.collect;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
-import com.google.common.collect.ImmutableList;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Routing;
@@ -112,16 +111,14 @@ public class JobCollectContextTest extends RandomizedTest {
 
         jobCtx.addSearcher(1, mock1);
         CrateCollector collectorMock1 = mock(CrateCollector.class);
-        CrateCollector collectorMock2 = mock(CrateCollector.class);
 
-        when(collectOperationMock.createCollectors(eq(collectPhase), any(), eq(jobCtx)))
-            .thenReturn(ImmutableList.of(collectorMock1, collectorMock2));
+        when(collectOperationMock.createCollector(eq(collectPhase), any(), eq(jobCtx)))
+            .thenReturn(collectorMock1);
         jobCtx.prepare();
         jobCtx.start();
         jobCtx.kill(null);
 
         verify(collectorMock1, times(1)).kill(any(InterruptedException.class));
-        verify(collectorMock2, times(1)).kill(any(InterruptedException.class));
         verify(mock1, times(1)).close();
         verify(ramAccountingContext, times(1)).close();
     }

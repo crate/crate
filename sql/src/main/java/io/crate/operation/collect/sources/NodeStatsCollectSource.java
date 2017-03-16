@@ -70,16 +70,16 @@ public class NodeStatsCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase phase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
+    public CrateCollector getCollector(CollectPhase phase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         if (collectPhase.whereClause().noMatch()) {
-            return ImmutableList.of(RowsCollector.empty(consumer));
+            return RowsCollector.empty(consumer);
         }
         Collection<DiscoveryNode> nodes = nodeIds(collectPhase.whereClause(),
             Lists.newArrayList(clusterService.state().getNodes().iterator()),
             functions);
         if (nodes.isEmpty()) {
-            return ImmutableList.of(RowsCollector.empty(consumer));
+            return RowsCollector.empty(consumer);
         }
         BatchIterator nodeStatsIterator = NodeStatsIterator.newInstance(
             nodeStatsAction,
@@ -87,8 +87,7 @@ public class NodeStatsCollectSource implements CollectSource {
             nodes,
             inputFactory
         );
-        return ImmutableList.of(
-            BatchIteratorCollectorBridge.newInstance(nodeStatsIterator, consumer));
+        return BatchIteratorCollectorBridge.newInstance(nodeStatsIterator, consumer);
     }
 
     @Nullable

@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect.sources;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
@@ -40,9 +39,6 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Collection;
-import java.util.Collections;
-
 @Singleton
 public class SingleRowSource implements CollectSource {
 
@@ -57,17 +53,17 @@ public class SingleRowSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase phase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
+    public CrateCollector getCollector(CollectPhase phase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         collectPhase = collectPhase.normalize(clusterNormalizer, null);
         if (collectPhase.whereClause().noMatch()) {
-            return ImmutableList.<CrateCollector>of(RowsCollector.empty(consumer));
+            return RowsCollector.empty(consumer);
         }
         assert !collectPhase.whereClause().hasQuery()
             : "WhereClause should have been normalized to either MATCH_ALL or NO_MATCH";
 
         InputFactory inputFactory = new InputFactory(functions);
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(collectPhase.toCollect());
-        return Collections.singletonList(RowsCollector.single(new InputRow(ctx.topLevelInputs()), consumer));
+        return RowsCollector.single(new InputRow(ctx.topLevelInputs()), consumer);
     }
 }
