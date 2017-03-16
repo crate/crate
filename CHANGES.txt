@@ -5,7 +5,24 @@ Changes for Crate
 Unreleased
 ==========
 
- - Updated crate-admin to ``1.1.2`` which includes the following changes:
+  - Updated crate-admin to ``1.2.0`` which includes the following changes:
+
+    - Added monitoring plugin (enterprise)
+
+    - Added Lazy loading of the stylesheet and plugins depending
+       on the enterprise settings.  
+
+    - Added buttons to collapse and expand all schemas in the tables view.
+
+    - The console now expands vertically to show the whole query if its size
+       is larger than the standard size of the console.
+
+    - SQL console keywords are now CrateDB specific.
+
+    - Improved formatted results of the `geo_area` datatype to include an external
+       link to a visualisation of that geo_area.
+
+    - Keywords in the SQL console are capitalised.
 
     - Added node number to the status bar.
 
