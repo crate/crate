@@ -45,7 +45,7 @@ public class TransportCreateUserDefinedFunctionAction extends TransportMasterNod
                                                     ThreadPool threadPool, UserDefinedFunctionService userDefinedFunctionService,
                                                     ActionFilters actionFilters,
                                                     IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "createuserdefinedfunction", transportService, clusterService, threadPool, actionFilters,
+        super(settings, CreateUserDefinedFunctionAction.NAME, transportService, clusterService, threadPool, actionFilters,
             indexNameExpressionResolver, CreateUserDefinedFunctionRequest.class);
         this.userDefinedFunctionService = userDefinedFunctionService;
 
