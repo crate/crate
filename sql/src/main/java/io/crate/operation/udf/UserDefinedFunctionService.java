@@ -23,6 +23,9 @@ package io.crate.operation.udf;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Functions;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.*;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateRequest;
@@ -33,75 +36,98 @@ import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.Map;
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toMap;
+
 public class UserDefinedFunctionService extends AbstractComponent implements ClusterStateListener {
 
     private final ClusterService clusterService;
+    private final Functions functions;
 
     @Inject
-    public UserDefinedFunctionService(Settings settings, ClusterService clusterService) {
+    public UserDefinedFunctionService(Settings settings, ClusterService clusterService, Functions functions) {
         super(settings);
         this.clusterService = clusterService;
+        this.functions = functions;
         clusterService.add(this);
     }
 
     /**
      * This method can only be called on master node
      * registers new function in the cluster
+     *
      * @param request function to register
      */
-    void registerFunction(final RegisterUserDefinedFunctionRequest request, final ActionListener<ClusterStateUpdateResponse> listener) {
+    void registerFunction(final RegisterUserDefinedFunctionRequest request,
+                          final ActionListener<ClusterStateUpdateResponse> listener) {
         if (!clusterService.localNode().isMasterNode()) {
             return;
         }
-        clusterService.submitStateUpdateTask(request.cause, new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
+        clusterService.submitStateUpdateTask(request.cause,
+            new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
 
-            @Override
-            public ClusterState execute(ClusterState currentState) throws Exception {
-                MetaData metaData = currentState.metaData();
-                MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
-                UserDefinedFunctionsMetaData functions = putFunction(metaData.custom(UserDefinedFunctionsMetaData.TYPE),
-                    request.metaData, request.replace);
-                mdBuilder.putCustom(UserDefinedFunctionsMetaData.TYPE, functions);
-                return ClusterState.builder(currentState).metaData(mdBuilder).build();
-            }
+                @Override
+                public ClusterState execute(ClusterState currentState) throws Exception {
+                    MetaData metaData = currentState.metaData();
+                    MetaData.Builder mdBuilder = MetaData.builder(metaData);
 
-            @Override
-            protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
-                return new ClusterStateUpdateResponse(acknowledged);
-            }
+                    UserDefinedFunctionsMetaData functions = putFunction(
+                        metaData.custom(UserDefinedFunctionsMetaData.TYPE),
+                        request.metaData,
+                        request.replace
+                    );
+                    mdBuilder.putCustom(UserDefinedFunctionsMetaData.TYPE, functions);
+                    return ClusterState.builder(currentState).metaData(mdBuilder).build();
+                }
 
-        });
+                @Override
+                protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
+                    return new ClusterStateUpdateResponse(acknowledged);
+                }
+            });
     }
 
     @VisibleForTesting
-    static UserDefinedFunctionsMetaData putFunction(@Nullable UserDefinedFunctionsMetaData functions, UserDefinedFunctionMetaData function,
+    static UserDefinedFunctionsMetaData putFunction(@Nullable UserDefinedFunctionsMetaData oldMetaData,
+                                                    UserDefinedFunctionMetaData functionMetaData,
                                                     boolean replace) {
-        if (functions == null) {
-            return UserDefinedFunctionsMetaData.of(function);
+        if (oldMetaData == null) {
+            return UserDefinedFunctionsMetaData.of(functionMetaData);
         } else {
-            if (!replace && functions.contains(function)) {
-                throw new UserDefinedFunctionAlreadyExistsException(function);
+            if (!replace && oldMetaData.contains(functionMetaData)) {
+                throw new UserDefinedFunctionAlreadyExistsException(functionMetaData);
             }
-            functions.put(function);
-            return functions;
+            // create a new instance of the metadata, to guarantee the cluster changed action.
+            UserDefinedFunctionsMetaData newMetaData = UserDefinedFunctionsMetaData.newInstance(oldMetaData);
+            newMetaData.put(functionMetaData);
+            return newMetaData;
         }
     }
 
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
-        UserDefinedFunctionsMetaData oldMetaData = event.previousState().getMetaData().custom(UserDefinedFunctionsMetaData.TYPE);
-        UserDefinedFunctionsMetaData newMetaData = event.state().getMetaData().custom(UserDefinedFunctionsMetaData.TYPE);
+        UserDefinedFunctionsMetaData oldMetaData = event.previousState().getMetaData()
+            .custom(UserDefinedFunctionsMetaData.TYPE);
+        UserDefinedFunctionsMetaData newMetaData = event.state().getMetaData()
+            .custom(UserDefinedFunctionsMetaData.TYPE);
 
         // Check if user defined functions got changed
         if ((oldMetaData == null && newMetaData == null) || (oldMetaData != null && oldMetaData.equals(newMetaData))) {
             return;
         }
 
-        logger.trace("processing new index repositories for state version [{}]", event.state().version());
+        Map<String, Map<FunctionIdent, FunctionImplementation>> schemaFunctions = newMetaData.functionsMetaData().stream()
+            .map(UserDefinedFunctionFactory::of)
+            .collect(groupingBy(f -> f.info().ident().schema(), toMap(f -> f.info().ident(), f -> f)));
 
-        // TODO: register new udfs
-        // TODO: update changed udfs
-        // TODO: remove udfs which are no longer here
+        for (Map.Entry<String, Map<FunctionIdent, FunctionImplementation>> entry : schemaFunctions.entrySet()) {
+            functions.registerSchemaFunctionResolvers(
+                entry.getKey(),
+                functions.generateFunctionResolvers(entry.getValue())
+            );
+        }
     }
 
     static class RegisterUserDefinedFunctionRequest extends ClusterStateUpdateRequest<RegisterUserDefinedFunctionRequest> {
