@@ -102,8 +102,8 @@ public class BatchIteratorTester {
 
         List<Object[]> secondResult = BatchRowVisitor.visitRows(
             it, Collectors.mapping(Row::materialize, Collectors.toList())).get(10, TimeUnit.SECONDS);
+        it.close();
         checkResult(firstResult, secondResult);
-        //assertThat(firstResult, Matchers.contains(secondResult.toArray(new Object[0][])));
     }
 
     private void testIllegalStateIsRaisedIfMoveIsCalledWhileLoadingNextBatch(BatchIterator it) {
@@ -122,11 +122,13 @@ public class BatchIteratorTester {
                 }
             }
         }
+        it.close();
     }
 
     private void testMoveNextAfterMoveNextReturnedFalse(BatchIterator it) throws Exception {
         TestingBatchConsumer.moveToEnd(it).toCompletableFuture().get(10, TimeUnit.SECONDS);
         assertThat(it.moveNext(), is(false));
+        it.close();
     }
 
     private void testIllegalNextBatchCall(BatchIterator it) throws Exception {
@@ -135,10 +137,12 @@ public class BatchIteratorTester {
         }
         CompletionStage<?> completionStage = it.loadNextBatch();
         assertThat(completionStage.toCompletableFuture().isCompletedExceptionally(), is(true));
+        it.close();
     }
 
     private void testIteratorAccessFromDifferentThreads(BatchIterator it, List<Object[]> expectedResult) throws Exception {
         if (expectedResult.size() < 2) {
+            it.close();
             return;
         }
         ExecutorService executor = Executors.newFixedThreadPool(3);
@@ -158,6 +162,7 @@ public class BatchIteratorTester {
         } finally {
             executor.shutdownNow();
             executor.awaitTermination(5, TimeUnit.SECONDS);
+            it.close();
         }
     }
 
