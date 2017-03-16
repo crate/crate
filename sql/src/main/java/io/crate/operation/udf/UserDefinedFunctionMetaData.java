@@ -73,6 +73,18 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         return name;
     }
 
+    public DataType returnType() {
+        return returnType;
+    }
+
+    public String language() {
+        return language;
+    }
+
+    public String definition() {
+        return definition;
+    }
+
     public List<FunctionArgumentDefinition> arguments() {
         return arguments;
     }

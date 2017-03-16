@@ -61,7 +61,7 @@ public class InformationSchemaIterables {
 
         constraints = tablesIterable.filter(i -> i != null && i.primaryKey().size() > 0);
 
-        RoutineInfos routineInfos = new RoutineInfos(ftResolver);
+        RoutineInfos routineInfos = new RoutineInfos(ftResolver, clusterService);
         routines = FluentIterable.from(routineInfos).filter(Objects::nonNull);
         sqlFeatures = new SqlFeaturesIterable();
     }

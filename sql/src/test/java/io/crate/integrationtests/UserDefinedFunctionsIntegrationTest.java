@@ -27,12 +27,16 @@
 package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
 
@@ -62,18 +66,23 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
 
     @Test
     public void testCreateOverloadedFunction() throws Exception {
-        execute("create function foo(object)" +
-            " returns string language javascript as 'function foo(x) { return \"1\"; }'");
-        waitForFunctionCreatedOnAll("foo", ImmutableList.of(DataTypes.OBJECT));
+        try {
+            execute("create function foo(object)" +
+                " returns string language javascript as 'function foo(x) { return \"1\"; }'");
+            waitForFunctionCreatedOnAll("foo", ImmutableList.of(DataTypes.OBJECT));
 
-        execute("create function foo(string)" +
-            " returns string language javascript as 'function foo(x) { return x; }'");
-        waitForFunctionCreatedOnAll("foo", ImmutableList.of(DataTypes.STRING));
+            execute("create function foo(string)" +
+                " returns string language javascript as 'function foo(x) { return x; }'");
+            waitForFunctionCreatedOnAll("foo", ImmutableList.of(DataTypes.STRING));
 
-        execute("select foo(str), id from test order by id asc");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows()[0][0], is("Foo"));
-        assertThat(response.rows()[1][0], is("bar"));
+            execute("select foo(str), id from test order by id asc");
+            assertThat(response.rowCount(), is(2L));
+            assertThat(response.rows()[0][0], is("Foo"));
+            assertThat(response.rows()[1][0], is("bar"));
+        } finally {
+            dropFunction("foo",  ImmutableList.of(DataTypes.OBJECT));
+            dropFunction("foo",  ImmutableList.of(DataTypes.STRING));
+        }
     }
 
     @Test
@@ -81,8 +90,13 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         execute("create function custom(string) returns string language javascript as 'function custom(x) { return x; }'");
         waitForFunctionCreatedOnAll("custom", ImmutableList.of(DataTypes.STRING));
 
-        execute("drop function custom(string)");
+        dropFunction("custom",  ImmutableList.of(DataTypes.STRING));
+    }
+
+    private void dropFunction(String name, List<DataType> types) throws Exception {
+        execute(String.format(Locale.ENGLISH, "drop function %s(%s)",
+            name, types.stream().map(DataType::getName).collect(Collectors.joining(", "))));
         assertThat(response.rowCount(), is(1L));
-        waitForFunctionDeleted("custom", ImmutableList.of(DataTypes.STRING));
+        waitForFunctionDeleted(name, types);
     }
 }

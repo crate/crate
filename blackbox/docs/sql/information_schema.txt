@@ -288,12 +288,15 @@ On existing tables this needs to be done with ``ALTER TABLE`` statement::
 Routines
 ========
 
-The routines table contains all custom analyzers, tokenizers, token-filters
-and char-filters and all custom analyzers created by ``CREATE ANALYZER``
-statements (see :ref:`sql-ddl-custom-analyzer`)::
+The routines table contains tokenizers, token-filters, char-filters, custom
+analyzers created by ``CREATE ANALYZER`` statements
+(see :ref:`sql-ddl-custom-analyzer`) and user defined functions created by
+``CREATE FUNCTION`` statements::
 
-    cr> select routine_name, routine_type from information_schema.routines
-    ... group by routine_name, routine_type order by routine_name asc limit 5;
+    cr> select routine_name, routine_type
+    ... from information_schema.routines
+    ... group by routine_name, routine_type
+    ... order by routine_name asc limit 5;
     +----------------------+--------------+
     | routine_name         | routine_type |
     +----------------------+--------------+
@@ -307,7 +310,8 @@ statements (see :ref:`sql-ddl-custom-analyzer`)::
 
 For example you can use this table to list existing tokenizers like this::
 
-    cr> select routine_name from information_schema.routines
+    cr> select routine_name
+    ... from information_schema.routines
     ... where routine_type='TOKENIZER'
     ... order by routine_name asc limit 10;
     +---------------+
@@ -328,8 +332,10 @@ For example you can use this table to list existing tokenizers like this::
 
 Or get an overview of how many routines and routine types are available::
 
-    cr> select count(*), routine_type from information_schema.routines
-    ... group by routine_type order by routine_type;
+    cr> select count(*), routine_type
+    ... from information_schema.routines
+    ... group by routine_type
+    ... order by routine_type;
     +----------+--------------+
     | count(*) | routine_type |
     +----------+--------------+
@@ -339,6 +345,44 @@ Or get an overview of how many routines and routine types are available::
     |       55 | TOKEN_FILTER |
     +----------+--------------+
     SELECT 4 rows in set (... sec)
+
+Columns
+-------
+
++--------------------+-------------+
+| Name               | Data Type   |
++====================+=============+
+| routine_name       | String      |
++--------------------+-------------+
+| routine_type       | String      |
++--------------------+-------------+
+| routine_body       | String      |
++--------------------+-------------+
+| data_type          | String      |
++--------------------+-------------+
+| is_deterministic   | Boolean     |
++--------------------+-------------+
+| routine_definition | String      |
++--------------------+-------------+
+
+
+:routine_name:
+    Name of the routine (might be duplicated in case of overloading)
+:routine_type:
+    Type of the routine.
+    Can be ``FUNCTION``, ``ANALYZER``, ``CHAR_FILTER``, ``TOKEN_FILTER``
+    or ``TOKEN_FILTER``.
+:routine_body:
+    The language used for the routine implementation.
+    If it doesn't apply, then ``Null``.
+:data_type:
+    The return type of the function.
+    If it doesn't apply, then ``Null``.
+:is_deterministic:
+    If the routine is deterministic then `True`, else `False` (``Null`` if it doesn't apply).
+:routine_definition:
+    The definition of the user defined function (``Null`` if it doesn't apply).
+
 
 Schemata
 ========
