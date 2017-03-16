@@ -59,6 +59,7 @@ public class GroupingBytesRefCollectorBenchmark {
 
     private GroupingCollector groupByMinCollector;
     private BatchIterator rowsIterator;
+    private List<Row> rows;
 
     @Setup
     public void createGroupingCollector() {
@@ -72,11 +73,10 @@ public class GroupingBytesRefCollectorBenchmark {
             keys.add(new BytesRef(s));
         }
 
-        List<Row> rows = new ArrayList<>(20_000_000);
+        rows = new ArrayList<>(20_000_000);
         for (int i = 0; i < 20_000_000; i++) {
             rows.add(new Row1(keys.get(i % keys.size())));
         }
-        rowsIterator = RowsBatchIterator.newInstance(rows, 1);
     }
 
     private GroupingCollector createGroupByMinBytesRefCollector(Functions functions) {
@@ -112,7 +112,7 @@ public class GroupingBytesRefCollectorBenchmark {
 
     @Benchmark
     public void measureGroupByMinBytesRef(Blackhole blackhole) throws Exception {
+        rowsIterator = RowsBatchIterator.newInstance(rows, 1);
         blackhole.consume(BatchRowVisitor.visitRows(rowsIterator, groupByMinCollector).get());
-        rowsIterator.moveToStart();
     }
 }

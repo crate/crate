@@ -25,7 +25,7 @@ package io.crate.operation.collect.collectors;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
-import io.crate.operation.reference.doc.lucene.LongColumnReference;
+import io.crate.operation.reference.doc.lucene.IntegerColumnReference;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
@@ -51,44 +51,48 @@ import static org.mockito.Mockito.mock;
 @State(Scope.Benchmark)
 public class LuceneBatchIteratorBenchmark {
 
-    private LuceneBatchIterator it;
+    public static final RamAccountingContext RAM_ACCOUNTING_CONTEXT = new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
+    private CollectorContext collectorContext;
+    private IndexSearcher indexSearcher;
+    private List<IntegerColumnReference> columnRefs;
 
     @Setup
     public void createLuceneBatchIterator() throws Exception {
         IndexWriter iw = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
         String columnName = "x";
-        for (long i = 0; i < 10_000_000; i++) {
+        for (int i = 0; i < 10_000_000; i++) {
             Document doc = new Document();
             doc.add(new NumericDocValuesField(columnName, i));
             iw.addDocument(doc);
         }
         iw.commit();
         iw.forceMerge(1, true);
-        IndexSearcher indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true));
-        LongColumnReference columnReference = new LongColumnReference(columnName);
-        List<LongColumnReference> columnRefs = Collections.singletonList(columnReference);
+        indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true));
+        IntegerColumnReference columnReference = new IntegerColumnReference(columnName);
+        columnRefs = Collections.singletonList(columnReference);
 
-        it = new LuceneBatchIterator(
-            indexSearcher,
-            new MatchAllDocsQuery(),
-            null,
-            false,
-            new CollectorContext(
-                mock(IndexFieldDataService.class),
-                new CollectorFieldsVisitor(0)
-            ),
-            new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy")),
-            columnRefs,
-            columnRefs
+        collectorContext = new CollectorContext(
+            mock(IndexFieldDataService.class),
+            new CollectorFieldsVisitor(0)
         );
     }
 
     @Benchmark
     public void measureConsumeLuceneBatchIterator(Blackhole blackhole) throws Exception {
+        LuceneBatchIterator it = new LuceneBatchIterator(
+            indexSearcher,
+            new MatchAllDocsQuery(),
+            null,
+            false,
+            collectorContext,
+            RAM_ACCOUNTING_CONTEXT,
+            columnRefs,
+            columnRefs
+        );
+
         Input<?> input = it.rowData().get(0);
         while (it.moveNext()) {
             blackhole.consume(input.value());
         }
-        it.moveToStart();
     }
 }

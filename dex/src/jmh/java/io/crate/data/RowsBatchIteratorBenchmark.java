@@ -36,7 +36,7 @@ import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 @BenchmarkMode(Mode.AverageTime)
-@OutputTimeUnit(TimeUnit.MICROSECONDS)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Benchmark)
 public class RowsBatchIteratorBenchmark {
 
@@ -47,69 +47,67 @@ public class RowsBatchIteratorBenchmark {
         .map(RowN::new)
         .collect(Collectors.toList());
 
-    // use RowsBatchIterator without any state/error handling to establish a performance baseline.
-    private BatchIterator it = new RowsBatchIterator(rows, 1);
-    private BatchIterator crossJoin = NestedLoopBatchIterator.crossJoin(
-        RowsBatchIterator.newInstance(IntStream.range(0, 1000).mapToObj(Row1::new).collect(Collectors.toList()), 1),
-        RowsBatchIterator.newInstance(IntStream.range(0, 10000).mapToObj(Row1::new).collect(Collectors.toList()), 1)
-    );
-
-    private BatchIterator leftJoin = NestedLoopBatchIterator.leftJoin(
-        RowsBatchIterator.newInstance(IntStream.range(0, 1000).mapToObj(Row1::new).collect(Collectors.toList()), 1),
-        RowsBatchIterator.newInstance(IntStream.range(0, 10000).mapToObj(Row1::new).collect(Collectors.toList()), 1),
-        columns -> new BooleanSupplier() {
-
-            Input<?> col1 = columns.get(0);
-            Input<?> col2 = columns.get(1);
-
-            @Override
-            public boolean getAsBoolean() {
-                return Objects.equals(col1.value(), col2.value());
-            }
-        }
-    );
-
-    private BatchIterator itCloseAsserting = new CloseAssertingBatchIterator(it);
-    private BatchIterator skippingIt = new SkippingBatchIterator(it, 100);
+    // used with  RowsBatchIterator without any state/error handling to establish a performance baseline.
+    private final List<Row1> oneThousandRows = IntStream.range(0, 1000).mapToObj(Row1::new).collect(Collectors.toList());
+    private final List<Row1> tenThousandRows = IntStream.range(0, 10000).mapToObj(Row1::new).collect(Collectors.toList());
 
     @Benchmark
     public void measureConsumeBatchIterator(Blackhole blackhole) throws Exception {
+        BatchIterator it = new RowsBatchIterator(rows, 1);
         final Input<?> input = it.rowData().get(0);
         while (it.moveNext()) {
             blackhole.consume(input.value());
         }
-        it.moveToStart();
     }
 
     @Benchmark
     public void measureConsumeCloseAssertingIterator(Blackhole blackhole) throws Exception {
+        BatchIterator it = new RowsBatchIterator(rows, 1);
+        BatchIterator itCloseAsserting = new CloseAssertingBatchIterator(it);
         final Input<?> input = itCloseAsserting.rowData().get(0);
         while (itCloseAsserting.moveNext()) {
             blackhole.consume(input.value());
         }
-        itCloseAsserting.moveToStart();
     }
 
     @Benchmark
     public void measureConsumeSkippingBatchIterator(Blackhole blackhole) throws Exception {
+        BatchIterator it = new RowsBatchIterator(rows, 1);
+        BatchIterator skippingIt = new SkippingBatchIterator(it, 100);
         final Input<?> input = skippingIt.rowData().get(0);
         while (skippingIt.moveNext()) {
             blackhole.consume(input.value());
         }
-        skippingIt.moveToStart();
     }
 
     @Benchmark
     public void measureConsumeNestedLoopJoin(Blackhole blackhole) throws Exception {
+        BatchIterator crossJoin = NestedLoopBatchIterator.crossJoin(
+            RowsBatchIterator.newInstance(oneThousandRows, 1),
+            RowsBatchIterator.newInstance(tenThousandRows, 1)
+        );
         final Input<?> input = crossJoin.rowData().get(0);
         while (crossJoin.moveNext()) {
             blackhole.consume(input.value());
         }
-        crossJoin.moveToStart();
     }
 
     @Benchmark
     public void measureConsumeNestedLoopLeftJoin(Blackhole blackhole) throws Exception {
+        BatchIterator leftJoin = NestedLoopBatchIterator.leftJoin(
+            RowsBatchIterator.newInstance(oneThousandRows, 1),
+            RowsBatchIterator.newInstance(tenThousandRows, 1),
+            columns -> new BooleanSupplier() {
+
+                Input<?> col1 = columns.get(0);
+                Input<?> col2 = columns.get(1);
+
+                @Override
+                public boolean getAsBoolean() {
+                    return Objects.equals(col1.value(), col2.value());
+                }
+            }
+        );
         final Input<?> input = leftJoin.rowData().get(0);
         while (leftJoin.moveNext()) {
             blackhole.consume(input.value());

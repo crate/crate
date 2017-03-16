@@ -57,6 +57,7 @@ public class GroupingIntegerCollectorBenchmark {
 
     private GroupingCollector groupBySumCollector;
     private BatchIterator rowsIterator;
+    private List<Row> rows;
 
     @Setup
     public void createGroupingCollector() {
@@ -64,11 +65,10 @@ public class GroupingIntegerCollectorBenchmark {
             .createInjector().getInstance(Functions.class);
         groupBySumCollector = createGroupBySumCollector(functions);
 
-        List<Row> rows = new ArrayList<>(20_000_000);
+        rows = new ArrayList<>(20_000_000);
         for (int i = 0; i < 20_000_000; i++) {
             rows.add(new Row1(i % 200));
         }
-        rowsIterator = RowsBatchIterator.newInstance(rows, 1);
     }
 
     private GroupingCollector createGroupBySumCollector(Functions functions) {
@@ -103,7 +103,7 @@ public class GroupingIntegerCollectorBenchmark {
 
     @Benchmark
     public void measureGroupBySumInteger(Blackhole blackhole) throws Exception {
+        rowsIterator = RowsBatchIterator.newInstance(rows, 1);
         blackhole.consume(BatchRowVisitor.visitRows(rowsIterator, groupBySumCollector).get());
-        rowsIterator.moveToStart();
     }
 }
