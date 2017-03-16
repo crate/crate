@@ -1133,9 +1133,8 @@ Example query::
   |  1 | The setting 'discovery.zen.minimum_master_nodes' must not be ... |
   |  2 | The total number of partitions of one or more partitioned tab... |
   |  3 | The following tables need to be upgraded for compatibility wi... |
-  |  4 | The following tables need to be recreated for compatibility w... |
   +----+--------------------------------------------------------------...-+
-  SELECT 4 rows in set (... sec)
+  SELECT 3 rows in set (... sec)
 
 
 Current Checks
@@ -1170,11 +1169,6 @@ Tables need to be upgraded
 This check warns if there are tables that need to be upgraded for compatibility with
 future versions of CrateDB. For help upgrading these tables,
 see :ref:`optimize_segments_upgrade`.
-
-Tables need to be recreated
-...........................
-This check warns if there are tables that need to be recreated for compatibility with
-future versions of CrateDB.
 
 .. _sys-repositories:
 
