@@ -102,7 +102,7 @@ public class PluginLoaderTest extends ESIntegTestCase {
         URL resource = PluginLoaderTest.class.getResource(pluginDir);
         Settings.Builder settings = Settings.builder();
         if (resource != null) {
-            settings.put("path.crate_plugins", new File(resource.toURI()).getAbsolutePath());
+            settings.put(PluginLoader.SETTING_CRATE_PLUGINS_PATH.getKey(), new File(resource.toURI()).getAbsolutePath());
         }
         String nodeName = internalCluster().startNode(settings);
         // We wait for a Green status
@@ -111,11 +111,11 @@ public class PluginLoaderTest extends ESIntegTestCase {
     }
 
     private PluginLoaderPlugin getCratePlugin(PluginsService pluginsService) {
-        // there are now a couple of Mock*Plugins loaded in Tests as well.. find the CrateCorePlugin
+        // find the PluginLoaderPlugin, should be the only one loaded
         List<PluginLoaderPlugin> pluginLoaderPlugins = pluginsService.filterPlugins(PluginLoaderPlugin.class);
         if (pluginLoaderPlugins.isEmpty()) {
-            throw new IllegalStateException("Couldn't find CrateCorePlugin");
+            throw new IllegalStateException("Couldn't find PluginLoaderPlugin");
         }
-        return pluginLoaderPlugins.get(1);
+        return pluginLoaderPlugins.get(0);
     }
 }
