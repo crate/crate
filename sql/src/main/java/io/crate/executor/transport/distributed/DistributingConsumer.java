@@ -150,8 +150,10 @@ public class DistributingConsumer implements BatchConsumer {
 
                     @Override
                     public void onFailure(Throwable e) {
-                        logger.error("Error sending failure to downstream={} targetPhase={}/{} bucket={}", e,
-                            downstream.nodeId, targetPhaseId, inputId, bucketIdx);
+                        if (traceEnabled) {
+                            logger.trace("Error sending failure to downstream={} targetPhase={}/{} bucket={}", e,
+                                downstream.nodeId, targetPhaseId, inputId, bucketIdx);
+                        }
                         countdownAndMaybeCloseIt(numActiveRequests, it);
                     }
                 });
