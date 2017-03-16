@@ -73,10 +73,34 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
 
     @Test
     public void testUserDefinedFunctionToXContent() throws IOException {
-        UserDefinedFunctionsMetaData functions = UserDefinedFunctionsMetaData.of(udfMeta);
         XContentBuilder builder = XContentFactory.jsonBuilder();
+
+        // reflects the logic used to process custom metadata in the cluster state
+        builder.startObject();
+        UserDefinedFunctionsMetaData functions = UserDefinedFunctionsMetaData.of(udfMeta);
         functions.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        builder.endObject();
+
         XContentParser parser = JsonXContent.jsonXContent.createParser(builder.bytes());
+        parser.nextToken(); // start object
+        parser.nextToken(); // field name
+        UserDefinedFunctionsMetaData functions2 = (UserDefinedFunctionsMetaData) UserDefinedFunctionsMetaData.of().fromXContent(parser);
+        assertEquals(functions, functions2);
+    }
+
+    @Test
+    public void testUserDefinedFunctionToXContentWithEmptyMetadata() throws IOException {
+        XContentBuilder builder = XContentFactory.jsonBuilder();
+
+        // reflects the logic used to process custom metadata in the cluster state
+        builder.startObject();
+        UserDefinedFunctionsMetaData functions = UserDefinedFunctionsMetaData.of();
+        functions.toXContent(builder, ToXContent.EMPTY_PARAMS);
+        builder.endObject();
+
+        XContentParser parser = JsonXContent.jsonXContent.createParser(builder.bytes());
+        parser.nextToken(); // start object
+        parser.nextToken(); // field name
         UserDefinedFunctionsMetaData functions2 = (UserDefinedFunctionsMetaData) UserDefinedFunctionsMetaData.of().fromXContent(parser);
         assertEquals(functions, functions2);
     }

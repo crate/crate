@@ -30,7 +30,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import java.io.IOException;
 import java.util.*;
 
-public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Custom> implements MetaData.Custom{
+public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Custom> implements MetaData.Custom {
 
     public static final String TYPE = "user_defined_functions";
 
@@ -93,9 +93,11 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
+        builder.startArray("functions");
         for (UserDefinedFunctionMetaData function : functions.values()) {
             function.toXContent(builder, params);
         }
+        builder.endArray();
         return builder;
     }
 
@@ -106,11 +108,13 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
 
     @Override
     public MetaData.Custom fromXContent(XContentParser parser) throws IOException {
-        XContentParser.Token token;
         Map<Integer, UserDefinedFunctionMetaData> functions = new HashMap<>();
-        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT && token != null) {
-            UserDefinedFunctionMetaData function = UserDefinedFunctionMetaData.fromXContent(parser);
-            functions.put(function.createMethodSignature(), function);
+        if ((parser.nextToken()) == XContentParser.Token.START_ARRAY) {
+            XContentParser.Token token;
+            while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY && token != null) {
+                UserDefinedFunctionMetaData function = UserDefinedFunctionMetaData.fromXContent(parser);
+                functions.put(function.createMethodSignature(), function);
+            }
         }
         return new UserDefinedFunctionsMetaData(functions);
     }
