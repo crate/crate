@@ -106,7 +106,11 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     @Override
     public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
         synchronized (listenersByBucketIdx) {
-            listenersByBucketIdx.put(bucketIdx, pageResultListener);
+            if (lastThrowable == null) {
+                listenersByBucketIdx.put(bucketIdx, pageResultListener);
+            } else {
+                pageResultListener.needMore(false);
+            }
         }
         synchronized (lock) {
             traceLog("method=setBucket", bucketIdx);
