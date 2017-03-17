@@ -23,8 +23,6 @@ package io.crate.operation.collect.sources;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
-import com.google.common.util.concurrent.ListeningExecutorService;
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.action.job.SharedShardContext;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.EvaluatingNormalizer;
@@ -63,6 +61,7 @@ import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
@@ -78,34 +77,34 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 
 import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 
 /**
  * Factory to create a collector which collects data from 1 or more shards.
- *
  * <p>
- *  A Collector is a component which can be used to "launch" a collect operation.
- *  Once launched, a {@link BatchConsumer} will receive a {@link BatchIterator}, which it consumes to generate a result.
+ * <p>
+ * A Collector is a component which can be used to "launch" a collect operation.
+ * Once launched, a {@link BatchConsumer} will receive a {@link BatchIterator}, which it consumes to generate a result.
  * </p>
- *
  * <p>
- *   To support collection from multiple shards a {@link CompositeCollector} collector is used.
- *   This CompositeCollector can have multiple sub-collectors (1 per shard)
+ * <p>
+ * To support collection from multiple shards a {@link CompositeCollector} collector is used.
+ * This CompositeCollector can have multiple sub-collectors (1 per shard)
  * </p>
- *
- *
  * <p>
- *   <b>concurrent consumption</b>
- *
- *   For grouping and aggregation operations it's advantageous to run them concurrently. This can be done
- *   if there are multiple shards.
- *
- *   Since there is just a single Collector returned by {@link #getCollector(CollectPhase, BatchConsumer, JobCollectContext)}
- *   and there is only a single {@link BatchConsumer} receiving a {@link BatchIterator} which cannot be consumed concurrently
- *   the following pattern is used:
- *
+ * <p>
+ * <p>
+ * <b>concurrent consumption</b>
+ * <p>
+ * For grouping and aggregation operations it's advantageous to run them concurrently. This can be done
+ * if there are multiple shards.
+ * <p>
+ * Since there is just a single Collector returned by {@link #getCollector(CollectPhase, BatchConsumer, JobCollectContext)}
+ * and there is only a single {@link BatchConsumer} receiving a {@link BatchIterator} which cannot be consumed concurrently
+ * the following pattern is used:
+ * <p>
  * <pre>
  *                  CompositeCollector
  *
@@ -129,7 +128,6 @@ import static io.crate.blob.v2.BlobIndex.isBlobIndex;
  *                       nodeConsumer // consumes the compositeBatchIterator
  *
  * </pre>
- *
  */
 @Singleton
 public class ShardCollectSource extends AbstractComponent implements CollectSource {
@@ -143,7 +141,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     private final RemoteCollectorFactory remoteCollectorFactory;
     private final SystemCollectSource systemCollectSource;
-    private final ListeningExecutorService executor;
+    private final Executor executor;
     private final EvaluatingNormalizer nodeNormalizer;
     private final ProjectorFactory sharedProjectorFactory;
     private final BlobIndicesService blobIndicesService;
@@ -180,7 +178,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.remoteCollectorFactory = remoteCollectorFactory;
         this.systemCollectSource = systemCollectSource;
-        this.executor = MoreExecutors.listeningDecorator((ExecutorService) threadPool.executor(ThreadPool.Names.SEARCH));
+        this.executor = new DirectFallbackExecutor(threadPool.executor(ThreadPool.Names.SEARCH));
         this.blobIndicesService = blobIndicesService;
         this.functions = functions;
         NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
@@ -205,6 +203,29 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         );
 
         indicesLifecycle.addListener(new LifecycleListener());
+    }
+
+    /**
+     * Executor that delegates the execution of tasks to the provided {@link Executor} until
+     * it starts rejecting tasks with {@link EsRejectedExecutionException} in which case it executes the
+     * tasks directly
+     */
+    public static class DirectFallbackExecutor implements Executor {
+
+        private Executor delegateExecutor;
+
+        public DirectFallbackExecutor(Executor delegateExecutor) {
+            this.delegateExecutor = delegateExecutor;
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            try {
+                delegateExecutor.execute(command);
+            } catch (EsRejectedExecutionException e) {
+                command.run();
+            }
+        }
     }
 
     private class LifecycleListener extends IndicesLifecycle.Listener {

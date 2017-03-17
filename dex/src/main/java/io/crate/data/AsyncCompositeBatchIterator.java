@@ -35,10 +35,14 @@ import java.util.function.Supplier;
 /**
  * Similar to {@link CompositeBatchIterator} this is a BatchIterator implementation which is backed by multiple
  * other BatchIterators.
- *
+ * <p>
  * The difference is that this will eagerly load all sources in {@link #loadNextBatch()} using a separate executor.
  * E.g. if the source BatchIterators are {@link CollectingBatchIterator} which can have a fairly expensive {@link #loadNextBatch()}
  * their work can be executed concurrently.
+ * <p>
+ * The provided {@link Executor} is expected to deal with rejected tasks (ie. via delegation to other components for
+ * execution or other strategies).
+ * This iterator does not handle rejected tasks in any way.
  */
 public class AsyncCompositeBatchIterator implements BatchIterator {
 

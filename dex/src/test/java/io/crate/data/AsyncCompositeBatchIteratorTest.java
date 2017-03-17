@@ -24,16 +24,17 @@ package io.crate.data;
 
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingBatchIterators;
 import org.junit.Test;
 
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import static org.junit.Assert.fail;
 
 public class AsyncCompositeBatchIteratorTest {
 
@@ -64,4 +65,33 @@ public class AsyncCompositeBatchIteratorTest {
         }
     }
 
+    @Test
+    public void testIteratorDoesNotHandleRejectedExecutionException() throws Exception {
+        ExecutorService executorService = new ThreadPoolExecutor(1, 1, 0L,
+            TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>(1));
+
+        try {
+            Supplier<BatchIterator> batchSimulatingItSupplier = () -> new CloseAssertingBatchIterator(
+                new BatchSimulatingIterator(
+                    TestingBatchIterators.range(0, 5), 2, 2, null)
+            );
+
+            AsyncCompositeBatchIterator batchIterator = new AsyncCompositeBatchIterator(
+                executorService,
+                batchSimulatingItSupplier.get(),
+                batchSimulatingItSupplier.get(),
+                batchSimulatingItSupplier.get(),
+                batchSimulatingItSupplier.get()
+            );
+
+            TestingBatchConsumer consumer = new TestingBatchConsumer();
+            consumer.accept(batchIterator, null);
+            fail("The AsyncBatchIterator should not handle the case when the executor rejects new tasks");
+        } catch (RejectedExecutionException ignored) {
+            // expected
+        } finally {
+            executorService.shutdown();
+            executorService.awaitTermination(10, TimeUnit.SECONDS);
+        }
+    }
 }
