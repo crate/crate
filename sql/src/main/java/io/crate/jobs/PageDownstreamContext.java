@@ -53,6 +53,8 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final BitSet exhausted;
     private final ArrayList<PageResultListener> listeners = new ArrayList<>();
 
+    private Throwable lastFailure = null;
+
     public PageDownstreamContext(ESLogger logger,
                                  String nodeName,
                                  int id,
@@ -97,7 +99,11 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     @Override
     public void setBucket(int bucketIdx, Bucket rows, boolean isLast, PageResultListener pageResultListener) {
         synchronized (listeners) {
-            listeners.add(pageResultListener);
+            if (lastFailure == null) {
+                listeners.add(pageResultListener);
+            } else {
+                pageResultListener.needMore(false);
+            }
         }
         synchronized (lock) {
             traceLog("method=setBucket", bucketIdx);
@@ -141,6 +147,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     public void failure(int bucketIdx, Throwable throwable) {
         traceLog("method=failure", bucketIdx, throwable);
         synchronized (lock) {
+            lastFailure = throwable;
             if (allFuturesSet.get(bucketIdx)) {
                 pageDownstream.fail(new IllegalStateException(String.format(Locale.ENGLISH,
                     "Same bucket of a page set more than once. node=%s method=failure phaseId=%d bucket=%d",
@@ -155,6 +162,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     public void killed(int bucketIdx, Throwable throwable) {
         traceLog("method=killed", bucketIdx, throwable);
         synchronized (lock) {
+            lastFailure = throwable;
             if (allFuturesSet.get(bucketIdx)) {
                 traceLog("method=killed future already set", bucketIdx);
                 return;
@@ -214,6 +222,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
     @Override
     protected void innerKill(@Nonnull Throwable t) {
+        lastFailure = t;
         pageDownstream.kill(t);
     }
 
