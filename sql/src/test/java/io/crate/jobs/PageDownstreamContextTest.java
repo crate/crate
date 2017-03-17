@@ -42,6 +42,8 @@ import org.junit.Test;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -168,5 +170,18 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         ctx.setBucket(1, Bucket.EMPTY, true, listener);
 
         verify(listener, times(1)).needMore(false);
+    }
+
+    @Test
+    public void testSetBucketOnAKilledCtxReleasesListener() throws Exception {
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        PageDownstreamContext ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
+        ctx.kill(new InterruptedException("killed"));
+
+        CompletableFuture<Void> listenerReleased = new CompletableFuture<>();
+        ctx.setBucket(0, Bucket.EMPTY, false, needMore -> listenerReleased.complete(null));
+
+        // Must not timeout
+        listenerReleased.get(1, TimeUnit.SECONDS);
     }
 }
