@@ -22,50 +22,21 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.data.BatchIterator;
-import io.crate.data.Projector;
-import io.crate.data.Row;
-import io.crate.executor.transport.ShardRequest;
-import io.crate.operation.collect.CollectExpression;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.bulk.BulkShardProcessor;
-import org.elasticsearch.index.shard.ShardId;
+import io.crate.data.*;
 
-import java.util.Collections;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.Iterator;
 
-class DMLProjector<Request extends ShardRequest> implements Projector {
+class DMLProjector implements Projector {
 
-    private final ShardId shardId;
-    private final CollectExpression<Row, ?> collectIdExpression;
+    private final BatchAccumulator<Row, Iterator<? extends Row>> batchAccumulator;
 
-    private final BulkShardProcessor<Request> bulkShardProcessor;
-    private final Function<String, ShardRequest.Item> itemFactory;
-
-    DMLProjector(ShardId shardId,
-                 CollectExpression<Row, ?> collectIdExpression,
-                 BulkShardProcessor<Request> bulkShardProcessor,
-                 Function<String, ShardRequest.Item> itemFactory) {
-        this.shardId = shardId;
-        this.collectIdExpression = collectIdExpression;
-        this.bulkShardProcessor = bulkShardProcessor;
-        this.itemFactory = itemFactory;
+    DMLProjector(BatchAccumulator<Row, Iterator<? extends Row>> batchAccumulator) {
+        this.batchAccumulator = batchAccumulator;
     }
 
     @Override
     public BatchIterator apply(BatchIterator batchIterator) {
-        Supplier<ShardRequest.Item> updateItemSupplier = () -> {
-            BytesRef id = (BytesRef) collectIdExpression.value();
-            return itemFactory.apply(id.utf8ToString());
-        };
-        return IndexWriterCountBatchIterator.newShardInstance(
-            batchIterator,
-            shardId,
-            Collections.singletonList(collectIdExpression),
-            bulkShardProcessor,
-            updateItemSupplier
-        );
+        return new AsyncOperationBatchIterator(batchIterator, 1, batchAccumulator);
     }
 
     @Override
