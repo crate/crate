@@ -43,4 +43,9 @@ class FilterProjector implements Projector {
             }
         );
     }
+
+    @Override
+    public boolean providesIndependentScroll() {
+        return false;
+    }
 }

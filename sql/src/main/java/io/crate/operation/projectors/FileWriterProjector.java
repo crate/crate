@@ -86,4 +86,9 @@ public class FileWriterProjector implements Projector {
             1
         );
     }
+
+    @Override
+    public boolean providesIndependentScroll() {
+        return false;
+    }
 }

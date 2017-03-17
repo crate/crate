@@ -75,6 +75,11 @@ class SortingProjector implements Projector {
         return CollectingBatchIterator.newInstance(batchIterator, collector, numOutputs);
     }
 
+    @Override
+    public boolean providesIndependentScroll() {
+        return true;
+    }
+
     private Object[] getCells(Row row) {
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);

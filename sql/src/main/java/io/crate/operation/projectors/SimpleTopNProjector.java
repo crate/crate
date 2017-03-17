@@ -62,4 +62,9 @@ public class SimpleTopNProjector implements Projector {
             collectExpressions
         );
     }
+
+    @Override
+    public boolean providesIndependentScroll() {
+        return false;
+    }
 }

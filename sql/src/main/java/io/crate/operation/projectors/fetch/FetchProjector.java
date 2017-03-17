@@ -64,4 +64,9 @@ public class FetchProjector implements Projector {
             )
         );
     }
+
+    @Override
+    public boolean providesIndependentScroll() {
+        return false;
+    }
 }

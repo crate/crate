@@ -34,7 +34,7 @@ import java.util.List;
 /**
  * Projector which evaluates scalars or extends/cuts columns, see {@link RowTransformingBatchIterator}.
  */
-public class InputRowProjector implements Projector  {
+public class InputRowProjector implements Projector {
 
     protected final List<Input<?>> inputs;
     protected final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
@@ -48,5 +48,10 @@ public class InputRowProjector implements Projector  {
     @Override
     public BatchIterator apply(BatchIterator batchIterator) {
         return new RowTransformingBatchIterator(batchIterator, inputs, collectExpressions);
+    }
+
+    @Override
+    public boolean providesIndependentScroll() {
+        return false;
     }
 }

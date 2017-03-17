@@ -29,18 +29,20 @@ import io.crate.data.Projector;
 import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 /**
  * Consumer implementation which applies projections onto the BatchIterator received on accept,
  * before passing it onto the lastConsumer.
- *
+ * <p>
  * <p>
  * Projections are applied by wrapping the BatchIterators
  * E.g.:
  * </p>
- *
+ * <p>
  * <pre>
  *  incomingBatchIterator -> limitingBI(filteringBI(incomingBatchIterator)))
  *
@@ -50,10 +52,8 @@ import java.util.UUID;
 public class ProjectingBatchConsumer implements BatchConsumer {
 
     private final BatchConsumer consumer;
-    private final Collection<? extends Projection> projections;
-    private final UUID jobId;
-    private final RamAccountingContext ramAccountingContext;
-    private final ProjectorFactory projectorFactory;
+    private final List<Projector> projectors;
+    private boolean requiresScroll;
 
     public static BatchConsumer create(BatchConsumer lastConsumer,
                                        Collection<? extends Projection> projections,
@@ -72,17 +72,28 @@ public class ProjectingBatchConsumer implements BatchConsumer {
                                     RamAccountingContext ramAccountingContext,
                                     ProjectorFactory projectorFactory) {
         this.consumer = consumer;
-        this.projections = projections;
-        this.jobId = jobId;
-        this.ramAccountingContext = ramAccountingContext;
-        this.projectorFactory = projectorFactory;
+        projectors = new ArrayList<>(projections.size());
+
+        boolean projectorsSupportIndependentScrolling = false;
+        for (Projection projection : projections) {
+            Projector projector = projectorFactory.create(projection, ramAccountingContext, jobId);
+            projectors.add(projector);
+
+            if (projector.providesIndependentScroll()) {
+                projectorsSupportIndependentScrolling = true;
+            }
+        }
+        if (consumer.requiresScroll() && !projectorsSupportIndependentScrolling) {
+            requiresScroll = true;
+        } else {
+            requiresScroll = false;
+        }
     }
 
     @Override
     public void accept(BatchIterator iterator, @Nullable Throwable failure) {
         if (failure == null) {
-            for (Projection projection : projections) {
-                Projector projector = projectorFactory.create(projection, ramAccountingContext, jobId);
+            for (Projector projector : projectors) {
                 iterator = projector.apply(iterator);
             }
             consumer.accept(iterator, null);
@@ -93,6 +104,6 @@ public class ProjectingBatchConsumer implements BatchConsumer {
 
     @Override
     public boolean requiresScroll() {
-        return consumer.requiresScroll();
+        return requiresScroll;
     }
 }

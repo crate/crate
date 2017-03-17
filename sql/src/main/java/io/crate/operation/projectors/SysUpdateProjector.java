@@ -53,6 +53,11 @@ class SysUpdateProjector implements Projector {
             ), 1);
     }
 
+    @Override
+    public boolean providesIndependentScroll() {
+        return true;
+    }
+
     private static class State {
         final Consumer<Object> rowWriter;
         long rowCount = 0;

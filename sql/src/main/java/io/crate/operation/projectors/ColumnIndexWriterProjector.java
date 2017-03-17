@@ -129,4 +129,9 @@ public class ColumnIndexWriterProjector implements Projector {
             updateItemSupplier
         );
     }
+
+    @Override
+    public boolean providesIndependentScroll() {
+        return false;
+    }
 }

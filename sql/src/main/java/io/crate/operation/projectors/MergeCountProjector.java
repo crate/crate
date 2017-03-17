@@ -32,4 +32,9 @@ public class MergeCountProjector implements Projector {
     public BatchIterator apply(BatchIterator batchIterator) {
         return CollectingBatchIterator.summingLong(batchIterator);
     }
+
+    @Override
+    public boolean providesIndependentScroll() {
+        return true;
+    }
 }
