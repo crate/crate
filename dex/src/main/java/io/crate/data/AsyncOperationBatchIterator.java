@@ -30,7 +30,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -144,10 +143,7 @@ public class AsyncOperationBatchIterator implements BatchIterator {
 
     private CompletionStage<?> processRemaining() {
         sourceExhausted = true;
-        if (idxWithinBatch > 0) {
-            return processBatch(true);
-        }
-        return CompletableFuture.completedFuture(null);
+        return processBatch(true);
     }
 
     @Nullable

@@ -30,7 +30,6 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nonnull;
 import java.util.BitSet;
@@ -49,8 +48,6 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
     private RowShardResolver rowShardResolver;
     @Nullable
     private Supplier<String> indexNameResolver;
-    @Nullable
-    private ShardId shardId;
 
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
     private final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor;
@@ -78,20 +75,6 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
         this.rowShardResolver = rowShardResolver;
     }
 
-    private IndexWriterCountBatchIterator(BatchIterator source,
-                                          Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
-                                          BulkShardProcessor bulkShardProcessor,
-                                          Supplier<? extends ShardRequest.Item> updateItemSupplier,
-                                          ShardId shardId) {
-        this.source = source;
-        this.collectExpressions = collectExpressions;
-        this.bulkShardProcessor = bulkShardProcessor;
-        this.updateItemSupplier = updateItemSupplier;
-        this.sourceRow = RowBridging.toRow(source.rowData());
-        this.rowData = new RowColumns(1);
-        this.shardId = shardId;
-    }
-
     public static BatchIterator newIndexInstance(BatchIterator source, Supplier<String> indexNameResolver,
                                                  Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                                                  RowShardResolver rowShardResolver,
@@ -100,15 +83,6 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
         IndexWriterCountBatchIterator delegate = new IndexWriterCountBatchIterator(source,
             collectExpressions, bulkShardProcessor, updateItemSupplier, indexNameResolver,
             rowShardResolver);
-        return new CloseAssertingBatchIterator(delegate);
-    }
-
-    public static BatchIterator newShardInstance(BatchIterator source, ShardId shardId,
-                                                 Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
-                                                 BulkShardProcessor bulkShardProcessor,
-                                                 Supplier<? extends ShardRequest.Item> updateItemSupplier) {
-        IndexWriterCountBatchIterator delegate = new IndexWriterCountBatchIterator(source,
-            collectExpressions, bulkShardProcessor, updateItemSupplier, shardId);
         return new CloseAssertingBatchIterator(delegate);
     }
 
@@ -196,16 +170,9 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
             collectExpression.setNextRow(sourceRow);
         }
 
-        if (rowShardResolver != null) {
-            rowShardResolver.setNextRow(sourceRow);
-        }
-
+        rowShardResolver.setNextRow(sourceRow);
         ShardRequest.Item item = updateItemSupplier.get();
-        if (shardId != null) {
-            return bulkShardProcessor.addForExistingShard(shardId, item, null);
-        } else {
-            return this.bulkShardProcessor.add(indexNameResolver.get(), item, rowShardResolver.routing());
-        }
+        return this.bulkShardProcessor.add(indexNameResolver.get(), item, rowShardResolver.routing());
     }
 
     @Override
