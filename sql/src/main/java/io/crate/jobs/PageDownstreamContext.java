@@ -130,7 +130,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         }
     }
 
-    private synchronized void triggerConsumer() {
+    private void triggerConsumer() {
         if (receivingFirstPage) {
             receivingFirstPage = false;
             consumer.accept(batchPagingIterator, lastThrowable);
@@ -238,7 +238,6 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         exhausted.set(bucketIdx);
         if (bucketsByIdx.size() == numBuckets) {
             triggerConsumer();
-            releaseListenersAndCloseContext(throwable);
         }
     }
 
@@ -263,14 +262,16 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     }
 
     @Override
-    protected synchronized void innerKill(@Nonnull Throwable t) {
-        lastThrowable = t;
-        batchPagingIterator.kill(t); // this causes a already active consumer to fail
-        batchPagingIterator.close();
-        if (receivingFirstPage) {
-            // no active consumer - can "activate" it with a failure
-            receivingFirstPage = false;
-            consumer.accept(null, t); // should eventually trigger a closeCallback that releases any open listeners
+    protected void innerKill(@Nonnull Throwable t) {
+        synchronized (lock) {
+            lastThrowable = t;
+            batchPagingIterator.kill(t); // this causes a already active consumer to fail
+            batchPagingIterator.close();
+            if (receivingFirstPage) {
+                // no active consumer - can "activate" it with a failure
+                receivingFirstPage = false;
+                consumer.accept(null, t); // should eventually trigger a closeCallback that releases any open listeners
+            }
         }
     }
 
