@@ -22,18 +22,25 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchConsumer;
+import io.crate.data.BatchIterator;
 import io.crate.data.RowsBatchIterator;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.InputFactory;
+import io.crate.operation.operator.EqOperator;
+import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.WriterProjection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchConsumer;
@@ -51,11 +58,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 
+import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
 public class ProjectingBatchConsumerTest extends CrateUnitTest {
@@ -95,6 +106,64 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
     public void after() throws Exception {
         threadPool.shutdown();
         threadPool.awaitTermination(1, TimeUnit.SECONDS);
+    }
+
+    private static class DummyBatchConsumer implements BatchConsumer {
+
+        private final boolean requiresScroll;
+
+        DummyBatchConsumer(boolean requiresScroll) {
+            this.requiresScroll = requiresScroll;
+        }
+
+        @Override
+        public void accept(BatchIterator iterator, @Nullable Throwable failure) {
+        }
+
+        @Override
+        public boolean requiresScroll() {
+            return requiresScroll;
+        }
+    }
+
+
+    @Test
+    public void testConsumerRequiresScrollAndProjectorsDontSupportScrolling() throws Exception {
+        EqOperator op = (EqOperator) functions.get(
+            new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER)));
+        Function function = new Function(op.info(), Arrays.asList(Literal.of(2), new InputColumn(1)));
+        FilterProjection filterProjection = new FilterProjection(function,
+            Arrays.asList(new InputColumn(0), new InputColumn(1)));
+
+        BatchConsumer delegateConsumerRequiresScroll = new DummyBatchConsumer(true);
+
+        BatchConsumer projectingConsumer = ProjectingBatchConsumer.create(delegateConsumerRequiresScroll,
+            Collections.singletonList(filterProjection), UUID.randomUUID(), RAM_ACCOUNTING_CONTEXT, projectorFactory);
+
+        assertThat(projectingConsumer.requiresScroll(), is(true));
+    }
+
+    @Test
+    public void testConsumerRequiresScrollAndProjectorsSupportScrolling() throws Exception {
+        GroupProjection groupProjection = new GroupProjection(new ArrayList<>(), new ArrayList<>(), RowGranularity.DOC);
+
+        BatchConsumer delegateConsumerRequiresScroll = new DummyBatchConsumer(true);
+
+        BatchConsumer projectingConsumer = ProjectingBatchConsumer.create(delegateConsumerRequiresScroll,
+            Collections.singletonList(groupProjection), UUID.randomUUID(), RAM_ACCOUNTING_CONTEXT, projectorFactory);
+
+        assertThat(projectingConsumer.requiresScroll(), is(false));
+    }
+
+    @Test
+    public void testConsumerDoesNotRequireScrollYieldsProjectingConsumerWithoutScrollRequirements() throws Exception {
+        GroupProjection groupProjection = new GroupProjection(new ArrayList<>(), new ArrayList<>(), RowGranularity.DOC);
+        BatchConsumer delegateConsumerRequiresScroll = new DummyBatchConsumer(false);
+
+        BatchConsumer projectingConsumer = ProjectingBatchConsumer.create(delegateConsumerRequiresScroll,
+            Collections.singletonList(groupProjection), UUID.randomUUID(), RAM_ACCOUNTING_CONTEXT, projectorFactory);
+
+        assertThat(projectingConsumer.requiresScroll(), is(false));
     }
 
     @Test

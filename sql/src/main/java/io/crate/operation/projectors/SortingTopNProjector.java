@@ -59,4 +59,9 @@ public class SortingTopNProjector implements Projector {
     public BatchIterator apply(BatchIterator batchIterator) {
         return CollectingBatchIterator.newInstance(batchIterator, collector, collector.numOutputs());
     }
+
+    @Override
+    public boolean providesIndependentScroll() {
+        return true;
+    }
 }

@@ -31,4 +31,14 @@ import java.util.function.UnaryOperator;
  */
 public interface Projector extends UnaryOperator<BatchIterator> {
 
+    /**
+     * Indicates that the projector supports scrolling independent of the source iterator.
+     * <p>
+     * If the projector does not support independent scrolling, the source iterator must provide the scrolling
+     * capability on its own
+     */
+    default boolean providesIndependentScroll() {
+        return false;
+    }
+
 }

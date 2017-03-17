@@ -131,6 +131,11 @@ public class IndexWriterProjector implements Projector {
             collectExpressions, rowShardResolver, bulkShardProcessor, updateItemSupplier);
     }
 
+    @Override
+    public boolean providesIndependentScroll() {
+        return false;
+    }
+
     private static class MapInput implements Input<BytesRef> {
 
         private final Input<Map<String, Object>> sourceInput;

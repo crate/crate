@@ -83,4 +83,9 @@ public class GroupingProjector implements Projector {
     public BatchIterator apply(BatchIterator batchIterator) {
         return CollectingBatchIterator.newInstance(batchIterator, collector, numCols);
     }
+
+    @Override
+    public boolean providesIndependentScroll() {
+        return true;
+    }
 }

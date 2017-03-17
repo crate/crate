@@ -67,4 +67,9 @@ class DMLProjector<Request extends ShardRequest> implements Projector {
             updateItemSupplier
         );
     }
+
+    @Override
+    public boolean providesIndependentScroll() {
+        return false;
+    }
 }

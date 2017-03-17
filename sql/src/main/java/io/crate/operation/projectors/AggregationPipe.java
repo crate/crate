@@ -58,4 +58,9 @@ public class AggregationPipe implements Projector {
                 cells -> Collections.singletonList(new RowN(cells))),
             aggregators.length);
     }
+
+    @Override
+    public boolean providesIndependentScroll() {
+        return true;
+    }
 }
