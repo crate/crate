@@ -81,7 +81,13 @@ public class AggregationPipe extends AbstractProjector {
         for (int i = 0; i < aggregators.length; i++) {
             cells[i] = aggregators[i].finishCollect(states[i]);
         }
-        downstream.setNextRow(row);
+        try {
+            downstream.setNextRow(row);
+        } catch (Throwable t) {
+            downstream.fail(t);
+            return;
+        }
+
         downstream.finish(RepeatHandle.UNSUPPORTED);
     }
 }
