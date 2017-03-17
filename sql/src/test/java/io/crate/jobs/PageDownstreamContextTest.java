@@ -25,6 +25,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row1;
 import io.crate.core.collections.SingleRowBucket;
 import io.crate.operation.PageDownstream;
@@ -40,6 +41,8 @@ import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.is;
@@ -102,5 +105,29 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         ctx.kill(null);
         assertThat(throwable.get(), Matchers.instanceOf(InterruptedException.class));
         verify(downstream, times(1)).kill(any(InterruptedException.class));
+    }
+
+    @Test
+    public void testSetBucketOnAKilledCtxReleasesListener() throws Exception {
+        PageDownstream downstream = mock(PageDownstream.class);
+        PageDownstreamContext ctx = new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",
+            1, "dummy", downstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3);
+        ctx.kill(new InterruptedException("killed"));
+
+        CompletableFuture<Void> listenerReleased = new CompletableFuture<>();
+        ctx.setBucket(0, Bucket.EMPTY, false, new PageResultListener() {
+            @Override
+            public void needMore(boolean needMore) {
+                listenerReleased.complete(null);
+            }
+
+            @Override
+            public int buckedIdx() {
+                return 0;
+            }
+        });
+
+        // Must not timeout
+        listenerReleased.get(1, TimeUnit.SECONDS);
     }
 }
