@@ -153,7 +153,7 @@ public class AsyncOperationBatchIterator implements BatchIterator {
     private CompletionStage<?> processRemaining() {
         sourceExhausted = true;
         if (idxWithinBatch > 0) {
-            return batchAccumulator.processBatch(true).thenAccept(this::concatRows);
+            return processBatch(true);
         }
         return CompletableFuture.completedFuture(null).thenAccept(ignored -> loading = false);
     }
@@ -165,13 +165,28 @@ public class AsyncOperationBatchIterator implements BatchIterator {
                 idxWithinBatch++;
                 batchAccumulator.onItem(sourceRow);
                 if (batchSize > 0 && idxWithinBatch == batchSize) {
-                    return batchAccumulator.processBatch(false).thenAccept(this::concatRows);
+                    return processBatch(false);
                 }
             }
         } catch (Throwable t) {
             return CompletableFutures.failedFuture(t);
         }
         return null;
+    }
+
+    private CompletionStage<?> processBatch(boolean isLastBatch) {
+        return batchAccumulator.processBatch(isLastBatch)
+            .exceptionally(this::maybeRaiseKilled)
+            .thenAccept(this::concatRows);
+    }
+
+    private Iterator<? extends Row> maybeRaiseKilled(Throwable throwable) {
+        if (killed == null) {
+            Exceptions.rethrowUnchecked(throwable);
+        } else {
+            Exceptions.rethrowUnchecked(killed);
+        }
+        throw new AssertionError("Previous lines must throw an exception");
     }
 
     @Override
