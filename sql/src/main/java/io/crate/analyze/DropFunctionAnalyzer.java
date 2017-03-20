@@ -27,27 +27,15 @@
 package io.crate.analyze;
 
 import io.crate.sql.tree.DropFunction;
-import io.crate.sql.tree.FunctionArgument;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import static io.crate.analyze.FunctionArgumentDefinition.toFunctionArgumentDefinitions;
 
 class DropFunctionAnalyzer {
-
-    private final static DataTypeAnalyzer DT_ANALYZER = new DataTypeAnalyzer();
-
-    private List<FunctionArgumentDefinition> analyzedFunctionArguments(List<FunctionArgument> arguments) {
-        return arguments.stream()
-            .map(arg ->
-                FunctionArgumentDefinition.of(arg.name().orElse(null), DT_ANALYZER.process(arg.type(), null))
-            ).collect(Collectors.toList());
-    }
 
     public DropFunctionAnalyzedStatement analyze(DropFunction node) {
         return new DropFunctionAnalyzedStatement(
             node.name().toString(),
             node.exists(),
-            analyzedFunctionArguments(node.arguments())
-        );
+            toFunctionArgumentDefinitions(node.arguments()));
     }
 }

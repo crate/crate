@@ -28,14 +28,12 @@ package io.crate.analyze;
 
 import io.crate.metadata.Schemas;
 import io.crate.sql.tree.CreateFunction;
-import io.crate.sql.tree.FunctionArgument;
 
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static io.crate.analyze.FunctionArgumentDefinition.toFunctionArgumentDefinitions;
 
 public class CreateFunctionAnalyzer {
-
-    private final static DataTypeAnalyzer DT_ANALYZER = new DataTypeAnalyzer();
 
     public CreateFunctionAnalyzedStatement analyze(CreateFunction node, Analysis context) {
         List<String> parts = node.name().getParts();
@@ -44,14 +42,14 @@ public class CreateFunctionAnalyzer {
             resolveSchemaName(parts, context),
             resolveFunctionName(parts),
             node.replace(),
-            analyzedFunctionArguments(node.arguments()),
-            DT_ANALYZER.process(node.returnType(), null),
+            toFunctionArgumentDefinitions(node.arguments()),
+            DataTypeAnalyzer.INSTANCE.process(node.returnType(), null),
             node.language(),
             node.definition()
         );
     }
 
-    private String resolveSchemaName(List<String> parts, Analysis context) {
+    private static String resolveSchemaName(List<String> parts, Analysis context) {
         if (parts.size() == 1) {
             if (context.sessionContext().defaultSchema() != null) {
                 return context.sessionContext().defaultSchema();
@@ -62,14 +60,7 @@ public class CreateFunctionAnalyzer {
         }
     }
 
-    private String resolveFunctionName(List<String> parts) {
+    private static String resolveFunctionName(List<String> parts) {
         return parts.size() == 1 ? parts.get(0) : parts.get(1);
-    }
-
-    private List<FunctionArgumentDefinition> analyzedFunctionArguments(List<FunctionArgument> arguments) {
-        return arguments.stream()
-            .map(arg ->
-                FunctionArgumentDefinition.of(arg.name().orElse(null), DT_ANALYZER.process(arg.type(), null))
-            ).collect(Collectors.toList());
     }
 }

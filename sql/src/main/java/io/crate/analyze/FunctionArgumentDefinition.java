@@ -28,6 +28,7 @@ package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
 import io.crate.exceptions.UnhandledServerException;
+import io.crate.sql.tree.FunctionArgument;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.internal.Nullable;
@@ -39,7 +40,9 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class FunctionArgumentDefinition implements Streamable, ToXContent {
 
@@ -68,12 +71,12 @@ public class FunctionArgumentDefinition implements Streamable, ToXContent {
         return argumentDefinition;
     }
 
-    public void name(String name) {
-        this.name = name;
-    }
-
-    public void type(DataType type) {
-        this.type = type;
+    public static List<FunctionArgumentDefinition> toFunctionArgumentDefinitions(List<FunctionArgument> arguments) {
+        return arguments.stream()
+            .map(arg -> FunctionArgumentDefinition.of(
+                arg.name().orElse(null),
+                DataTypeAnalyzer.INSTANCE.process(arg.type(), null)))
+            .collect(Collectors.toList());
     }
 
     public DataType type() {

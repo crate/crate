@@ -31,7 +31,7 @@ import io.crate.types.DataType;
 
 import java.util.List;
 
-public class CreateFunctionAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+public class CreateFunctionAnalyzedStatement implements DDLStatement {
 
     private final String schema;
     private final String name;

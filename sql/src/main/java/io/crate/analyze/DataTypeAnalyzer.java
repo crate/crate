@@ -33,6 +33,8 @@ import java.util.Locale;
 
 public class DataTypeAnalyzer extends DefaultTraversalVisitor<DataType, Void> {
 
+    public final static DataTypeAnalyzer INSTANCE = new DataTypeAnalyzer();
+
     @Override
     public DataType visitColumnType(ColumnType node, Void context) {
         String typeName = node.name();
