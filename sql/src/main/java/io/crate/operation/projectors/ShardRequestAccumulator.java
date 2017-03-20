@@ -59,7 +59,6 @@ public class ShardRequestAccumulator<TReq extends ShardRequest<TReq, TItem>, TIt
     private final BitSet responses;
     private final BiConsumer<TReq, ActionListener<ShardResponse>> transportAction;
 
-
     private TReq currentRequest;
     private int numItems = -1;
 

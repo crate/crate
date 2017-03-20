@@ -55,13 +55,13 @@ public class RetryListener<TReq, TResp> implements ActionListener<TResp> {
     }
 
     @Override
-    public void onFailure(Throwable e) {
+    public void onFailure(Exception e) {
         Throwable throwable = SQLExceptions.unwrap(e);
         if (throwable instanceof EsRejectedExecutionException && delay.hasNext()) {
             TimeValue currentDelay = delay.next();
             scheduler.schedule(retryCommand, currentDelay.millis(), TimeUnit.MILLISECONDS);
         } else {
-            delegate.onFailure(throwable);
+            delegate.onFailure(e);
         }
     }
 }

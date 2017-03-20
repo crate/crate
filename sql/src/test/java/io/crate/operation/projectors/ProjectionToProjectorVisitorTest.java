@@ -38,7 +38,6 @@ import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -86,7 +85,6 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             threadPool,
             Settings.EMPTY,
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
-            mock(BulkRetryCoordinatorPool.class),
             new InputFactory(functions),
             EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY),
             null
