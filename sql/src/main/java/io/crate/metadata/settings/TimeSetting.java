@@ -26,8 +26,6 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 
-import javax.annotation.Nullable;
-
 public abstract class TimeSetting extends Setting<TimeValue, String> {
 
     @Override
@@ -58,19 +56,6 @@ public abstract class TimeSetting extends Setting<TimeValue, String> {
     }
 
     public TimeValue extractTimeValue(Settings settings) {
-        return settings.getAsTime(settingName(), defaultValue());
-    }
-
-    public TimeValue extractTimeValue(Settings settings, @Nullable TimeValue defaultValue) {
-        return settings.getAsTime(settingName(), defaultValue != null ? defaultValue : defaultValue());
-    }
-
-    @Override
-    org.elasticsearch.common.settings.Setting<TimeValue> createESSetting() {
-        return org.elasticsearch.common.settings.Setting.timeSetting(
-            settingName(),
-            defaultValue(),
-            propertiesForUpdateConsumer()
-        );
+        return settings.getAsTime(name(), defaultValue());
     }
 }

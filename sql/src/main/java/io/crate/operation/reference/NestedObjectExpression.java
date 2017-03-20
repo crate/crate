@@ -30,7 +30,7 @@ import java.util.Map;
 
 public abstract class NestedObjectExpression implements ReferenceImplementation<Map<String, Object>> {
 
-    protected final Map<String, ReferenceImplementation> childImplementations = new HashMap<>();
+    protected Map<String, ReferenceImplementation> childImplementations = new HashMap<>();
 
     public Map<String, ReferenceImplementation> getChildImplementations() {
         return childImplementations;

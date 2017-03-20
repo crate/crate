@@ -62,10 +62,10 @@ import java.util.*;
 class CopyAnalyzer {
 
     private static final StringSetting COMPRESSION_SETTINGS =
-        new StringSetting("compression", ImmutableSet.of("gzip"), true);
+        new StringSetting("compression", ImmutableSet.of("gzip"));
 
     private static final StringSetting OUTPUT_FORMAT_SETTINGS =
-        new StringSetting("format", ImmutableSet.of("json_object", "json_array"), true);
+        new StringSetting("format", ImmutableSet.of("json_object", "json_array"));
 
     private static final ImmutableMap<String, SettingsApplier> SETTINGS_APPLIERS =
         ImmutableMap.<String, SettingsApplier>builder()

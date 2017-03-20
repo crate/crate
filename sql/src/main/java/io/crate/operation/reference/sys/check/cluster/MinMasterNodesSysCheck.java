@@ -24,7 +24,6 @@ package io.crate.operation.reference.sys.check.cluster;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import io.crate.metadata.*;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.operation.reference.sys.check.AbstractSysCheck;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
@@ -32,6 +31,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.discovery.zen.ElectMasterService;
 
 @Singleton
 public class MinMasterNodesSysCheck extends AbstractSysCheck {
@@ -48,8 +48,7 @@ public class MinMasterNodesSysCheck extends AbstractSysCheck {
         new ReferenceIdent(
             SysClusterTableInfo.IDENT,
             ClusterSettingsExpression.NAME,
-            Lists.newArrayList(Splitter.on(".")
-                .split(CrateSettings.DISCOVERY_ZEN_MIN_MASTER_NODES.settingName()))
+            Lists.newArrayList(Splitter.on(".").split(ElectMasterService.DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING.getKey()))
         ),
         RowGranularity.DOC, DataTypes.INTEGER
     );
