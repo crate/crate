@@ -56,11 +56,8 @@ import io.crate.operation.reference.sys.repositories.SysRepositoriesModule;
 import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
-import io.crate.operation.udf.CreateUserDefinedFunctionAction;
-import io.crate.operation.udf.TransportCreateUserDefinedFunctionAction;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.rest.action.RestSQLAction;
-import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterModule;
@@ -193,9 +190,5 @@ public class SQLPlugin extends Plugin {
 
     public void onModule(IndicesModule indicesModule) {
         indicesModule.registerMapper(ArrayMapper.CONTENT_TYPE, new ArrayMapper.TypeParser());
-    }
-
-    public void onModule(ActionModule module) {
-        module.registerAction(CreateUserDefinedFunctionAction.INSTANCE, TransportCreateUserDefinedFunctionAction.class);
     }
 }
