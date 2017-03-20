@@ -29,48 +29,30 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.util.Locale;
 import java.util.Set;
-import java.util.function.Function;
 
 public class StringSetting extends Setting<String, String> {
 
     private final String name;
     final Set<String> allowedValues;
-    private final boolean isRuntime;
 
     @Nullable
     private final String defaultValue;
-    @Nullable
-    private final Setting<?, ?> parent;
 
     public StringSetting(String name,
                          @Nullable Set<String> allowedValues,
-                         boolean isRuntime,
-                         @Nullable String defaultValue,
-                         @Nullable Setting<?, ?> parent) {
+                         @Nullable String defaultValue) {
 
         this.name = name;
         this.allowedValues = allowedValues;
-        this.isRuntime = isRuntime;
         this.defaultValue = defaultValue;
-        this.parent = parent;
     }
 
-    public StringSetting(String name, @javax.annotation.Nullable Set<String> allowedValues, boolean isRuntime) {
-        this(name, allowedValues, isRuntime, null, null);
+    public StringSetting(String name, @javax.annotation.Nullable Set<String> allowedValues) {
+        this(name, allowedValues, null);
     }
 
-    public StringSetting(String name, boolean isRuntime) {
-        this(name, null, isRuntime, null, null);
-    }
-
-    @Override
-    public Setting parent() {
-        return parent;
-    }
-
-    @Override
-    public boolean isRuntime() {
-        return isRuntime;
+    public StringSetting(String name) {
+        this(name, null, null);
     }
 
     @Override
@@ -90,7 +72,7 @@ public class StringSetting extends Setting<String, String> {
 
     @Override
     public String extract(Settings settings) {
-        return settings.get(settingName(), defaultValue());
+        return settings.get(name, defaultValue());
     }
 
     /**
@@ -105,15 +87,5 @@ public class StringSetting extends Setting<String, String> {
             );
         }
         return null;
-    }
-
-    @Override
-    org.elasticsearch.common.settings.Setting<String> createESSetting() {
-        return new org.elasticsearch.common.settings.Setting<>(
-            settingName(),
-            defaultValue(),
-            Function.identity(),
-            propertiesForUpdateConsumer()
-        );
     }
 }

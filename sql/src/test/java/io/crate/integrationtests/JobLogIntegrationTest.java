@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.metadata.settings.CrateSettings;
+import io.crate.operation.collect.stats.JobsLogService;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -71,7 +71,7 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
     public void testSetSingleStatement() throws Exception {
         SQLResponse response = sqlExecutor.exec("select settings['stats']['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
+        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault()));
 
         response = sqlExecutor.exec("set global persistent stats.enabled= true, stats.jobs_log_size=7");
         assertThat(response.rowCount(), is(1L));
@@ -86,8 +86,8 @@ public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
 
         response = sqlExecutor.exec("select settings['stats']['enabled'], settings['stats']['jobs_log_size'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Boolean) response.rows()[0][0], is(CrateSettings.STATS_ENABLED.defaultValue()));
-        assertThat((Integer) response.rows()[0][1], is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
+        assertThat((Boolean) response.rows()[0][0], is(JobsLogService.STATS_ENABLED_SETTING.getDefault()));
+        assertThat((Integer) response.rows()[0][1], is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault()));
 
     }
 

@@ -26,29 +26,14 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
-import javax.annotation.Nullable;
-
 public class ByteSizeSetting extends Setting<ByteSizeValue, String> {
 
     private final String name;
     private final ByteSizeValue defaultValue;
-    private final boolean isRuntime;
-    private final Setting<?, ?> parent;
 
-    public ByteSizeSetting(String name, ByteSizeValue defaultValue, boolean isRuntime) {
-        this(name, defaultValue, isRuntime, null);
-    }
-
-    ByteSizeSetting(String name, ByteSizeValue defaultValue, boolean isRuntime, @Nullable Setting<?, ?> parent) {
+    public ByteSizeSetting(String name, ByteSizeValue defaultValue) {
         this.name = name;
         this.defaultValue = defaultValue;
-        this.isRuntime = isRuntime;
-        this.parent = parent;
-    }
-
-    @Override
-    public Setting parent() {
-        return parent;
     }
 
     long maxValue() {
@@ -79,25 +64,11 @@ public class ByteSizeSetting extends Setting<ByteSizeValue, String> {
         return extractByteSizeValue(settings).toString();
     }
 
-    @Override
-    public boolean isRuntime() {
-        return isRuntime;
-    }
-
     public long extractBytes(Settings settings) {
         return extractByteSizeValue(settings).getBytes();
     }
 
     private ByteSizeValue extractByteSizeValue(Settings settings) {
-        return settings.getAsBytesSize(settingName(), defaultValue());
-    }
-
-    @Override
-    org.elasticsearch.common.settings.Setting<ByteSizeValue> createESSetting() {
-        return org.elasticsearch.common.settings.Setting.byteSizeSetting(
-            settingName(),
-            defaultValue(),
-            propertiesForUpdateConsumer()
-        );
+        return settings.getAsBytesSize(name, defaultValue());
     }
 }

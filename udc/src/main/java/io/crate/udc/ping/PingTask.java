@@ -25,6 +25,7 @@ import com.google.common.base.Joiner;
 import io.crate.ClusterIdService;
 import io.crate.Version;
 import io.crate.monitor.ExtendedNodeInfo;
+import io.crate.settings.SharedSettings;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
@@ -98,7 +99,7 @@ public class PingTask extends TimerTask {
     }
 
     String isEnterprise() {
-        return String.valueOf(settings.getAsBoolean("license.enterprise", false));
+        return SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().getRaw(settings);
     }
 
     public Map<String, Object> getCounters() {

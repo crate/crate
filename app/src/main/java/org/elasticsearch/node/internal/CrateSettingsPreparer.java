@@ -25,7 +25,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
 import io.crate.Constants;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.settings.SettingsApplier;
+import io.crate.settings.CrateSetting;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.network.NetworkService;
@@ -94,17 +94,16 @@ public class CrateSettingsPreparer {
         return new Environment(output.build());
     }
 
-    static void validateKnownSettings(Settings.Builder settings) {
-        for (Map.Entry<String, String> setting : settings.internalMap().entrySet()) {
+    static void validateKnownSettings(Settings.Builder builder) {
+        Settings settings = builder.build();
+        for (CrateSetting<?> crateSetting : CrateSettings.BUILT_IN_SETTINGS) {
             try {
-                SettingsApplier applier = CrateSettings.SUPPORTED_SETTINGS.get(setting.getKey());
-                if (applier != null) {
-                    applier.validate(setting.getValue());
-                }
+                crateSetting.setting().get(settings);
             } catch (IllegalArgumentException e) {
                 throw new RuntimeException(String.format(Locale.ENGLISH,
-                    "Invalid value [%s] for the [%s] setting.", setting.getValue(), setting.getKey()), e);
+                    "Invalid value [%s] for the [%s] setting.", crateSetting.setting().getRaw(settings), crateSetting.getKey()), e);
             }
+
         }
     }
 
