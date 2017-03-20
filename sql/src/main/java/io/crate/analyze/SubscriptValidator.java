@@ -64,6 +64,12 @@ public final class SubscriptValidator {
         }
 
         @Override
+        public Void visitObjectLiteral(ObjectLiteral node, SubscriptContext context) {
+            context.expression(node);
+            return null;
+        }
+
+        @Override
         protected Void visitCast(Cast node, SubscriptContext context) {
             context.expression(node);
             return null;

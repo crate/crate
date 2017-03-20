@@ -53,6 +53,7 @@ import io.crate.operation.operator.any.AnyOperator;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.scalar.ExtractFunctions;
 import io.crate.operation.scalar.SubscriptFunction;
+import io.crate.operation.scalar.SubscriptObjectFunction;
 import io.crate.operation.scalar.arithmetic.ArrayFunction;
 import io.crate.operation.scalar.arithmetic.MapFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
@@ -446,6 +447,7 @@ public class ExpressionAnalyzer {
             }
             assert subscriptSymbol != null : "subscriptSymbol must not be null";
             Expression index = subscriptContext.index();
+            List<String> parts = subscriptContext.parts();
             if (index != null) {
                 Symbol indexSymbol = index.accept(this, context);
                 // rewrite array access to subscript scalar
@@ -453,6 +455,18 @@ public class ExpressionAnalyzer {
                     ImmutableList.of(subscriptSymbol.valueType(), indexSymbol.valueType()));
                 return context.allocateFunction(getFunctionInfo(functionIdent),
                     Arrays.asList(subscriptSymbol, indexSymbol));
+            } else if (parts != null && subscriptExpression != null) {
+                FunctionIdent ident = new FunctionIdent(
+                    SubscriptObjectFunction.NAME,
+                    ImmutableList.of(subscriptSymbol.valueType(), DataTypes.STRING)
+                );
+                FunctionInfo info = getFunctionInfo(ident);
+
+                Symbol function = context.allocateFunction(info, Arrays.asList(subscriptSymbol, Literal.of(parts.get(0))));
+                for (int i = 1; i < parts.size(); i++) {
+                    function = context.allocateFunction(info, Arrays.asList(function, Literal.of(parts.get(i))));
+                }
+                return function;
             }
             return subscriptSymbol;
         }

@@ -30,6 +30,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public class SubscriptObjectFunction extends Scalar<Object, Map> {
@@ -71,6 +72,11 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> {
         assert element instanceof Map : "first argument must be of type Map";
         assert key instanceof BytesRef : "second argument must be of type BytesRef";
 
-        return ((Map) element).get(BytesRefs.toString(key));
+        Map m = (Map) element;
+        String k = BytesRefs.toString(key);
+        if (!m.containsKey(k)) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "The object does not contain [%s] key", k));
+        }
+        return m.get(k);
     }
 }

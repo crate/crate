@@ -15,12 +15,14 @@ the appropriate section of the docs.
 Changelog
 =========
 
+  - Added the subscript function support for object literals.
+
   - Updated crate-admin to ``1.2.0`` which includes the following changes:
 
     - Added monitoring plugin (enterprise)
 
     - Added Lazy loading of the stylesheet and plugins depending
-       on the enterprise settings.  
+       on the enterprise settings.
 
     - Added buttons to collapse and expand all schemas in the tables view.
 
@@ -38,7 +40,7 @@ Changelog
 
     - Fixed issue that caused `Cluster Offline` message to not be displayed.
 
-    - Fixed a console results issue that caused the results table not to be 
+    - Fixed a console results issue that caused the results table not to be
        visible after horizontal scrolling.
 
     - Fixed styling issue that caused the last element in the side bar
@@ -46,7 +48,7 @@ Changelog
 
     - Fixed an issue that caused the notification date to be `null` in safari.
 
-    - Fixed a console results issue that caused the results table not to be 
+    - Fixed a console results issue that caused the results table not to be
        displayed after horizontal scrolling.
 
     - Fixed an issue that caused the admin-ui to load only one plugin.
@@ -54,7 +56,7 @@ Changelog
     - Display warning in the console view when the query result contains
        an unsafe integer.
 
-    - Relocated the help resources section to be underneath the tweet 
+    - Relocated the help resources section to be underneath the tweet
        import tutorial.
 
     - Show loading indicator when `Execute Query ` is in progress.
