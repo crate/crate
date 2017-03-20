@@ -23,7 +23,6 @@
 package io.crate.executor.transport;
 
 import com.google.common.base.Objects;
-import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -142,7 +141,7 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
         }
     }
 
-    public static class Builder implements BulkShardProcessor.BulkRequestBuilder<ShardDeleteRequest> {
+    public static class Builder implements BulkRequestBuilder<ShardDeleteRequest> {
 
         private final TimeValue timeout;
         private final UUID jobId;
