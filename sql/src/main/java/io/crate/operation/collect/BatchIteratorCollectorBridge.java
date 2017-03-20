@@ -26,6 +26,7 @@ import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 /**
@@ -48,7 +49,7 @@ public final class BatchIteratorCollectorBridge {
         private final BatchIterator batchIterator;
         private final BatchConsumer consumer;
 
-        private boolean started;
+        private final AtomicBoolean running = new AtomicBoolean(false);
 
         SyncBatchItCollector(BatchIterator batchIterator, BatchConsumer consumer) {
             this.batchIterator = batchIterator;
@@ -56,21 +57,21 @@ public final class BatchIteratorCollectorBridge {
         }
 
         @Override
-        public synchronized void doCollect() {
-            if (!started) {
-                started = true;
+        public void doCollect() {
+            boolean invokeConsumer = running.compareAndSet(false, true);
+            if (invokeConsumer) {
                 consumer.accept(batchIterator, null);
             }
             // else: got killed
         }
 
         @Override
-        public synchronized void kill(Throwable throwable) {
-            if (started) {
-                batchIterator.kill(throwable);
-            } else {
-                started = true;
+        public void kill(Throwable throwable) {
+            boolean invokeConsumer = running.compareAndSet(false, true);
+            if (invokeConsumer) {
                 consumer.accept(null, throwable);
+            } else {
+                batchIterator.kill(throwable);
             }
         }
     }
@@ -91,24 +92,30 @@ public final class BatchIteratorCollectorBridge {
         }
 
         @Override
-        public synchronized void doCollect() {
-            if (killed == null) {
-                batchIteratorSupplier.get().whenComplete((bi, failure) -> {
-                    batchIterator = bi;
-                    consumer.accept(bi, failure);
-                });
-            } else {
-                consumer.accept(null, killed);
-            }
+        public void doCollect() {
+            batchIteratorSupplier.get().whenComplete(this::invokeConsumer);
         }
 
         @Override
-        public synchronized void kill(Throwable throwable) {
-            if (batchIterator == null) {
-                killed = throwable;
-            } else {
-                batchIterator.kill(throwable);
+        public void kill(Throwable throwable) {
+            synchronized (consumer) {
+                if (batchIterator == null) {
+                    killed = throwable;
+                } else {
+                    batchIterator.kill(throwable);
+                }
             }
+        }
+
+        private void invokeConsumer(BatchIterator iterator, Throwable throwable) {
+            synchronized (consumer) {
+                if (killed == null) {
+                    batchIterator = iterator;
+                } else if (throwable == null){
+                    throwable = killed;
+                }
+            }
+            consumer.accept(iterator, throwable);
         }
     }
 }

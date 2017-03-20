@@ -81,8 +81,6 @@ public class FileReadingIterator implements BatchIterator {
     private LineContext lineContext;
     private final Columns inputs;
 
-    private volatile Throwable killed;
-
     private FileReadingIterator(Collection<String> fileUris,
                                 List<? extends Input<?>> inputs,
                                 Iterable<LineCollectorExpression<?>> collectorExpressions,

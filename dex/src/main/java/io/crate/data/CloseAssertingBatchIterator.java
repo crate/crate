@@ -26,7 +26,6 @@ import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.concurrent.CompletionStage;
 
 public class CloseAssertingBatchIterator implements BatchIterator {
@@ -92,7 +91,7 @@ public class CloseAssertingBatchIterator implements BatchIterator {
 
     @Override
     public void kill(@Nonnull Throwable throwable) {
-        killed = throwable;
         delegate.kill(throwable);
+        killed = throwable;
     }
 }

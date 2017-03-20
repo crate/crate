@@ -27,6 +27,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowBridging;
 import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.SQLExceptions;
 
 import javax.annotation.Nullable;
 
@@ -81,7 +82,7 @@ public class BatchConsumerToResultReceiver implements BatchConsumer {
                     consumeIt(iterator);
                 } else {
                     iterator.close();
-                    resultReceiver.fail(f);
+                    resultReceiver.fail(SQLExceptions.unwrap(f));
                 }
             });
         }
