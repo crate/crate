@@ -79,7 +79,7 @@ public class GroupingIntegerCollectorBenchmark {
         FunctionIdent functionIdent = new FunctionIdent(SumAggregation.NAME,
             Arrays.asList(DataTypes.INTEGER));
         FunctionInfo functionInfo = new FunctionInfo(functionIdent, DataTypes.INTEGER, FunctionInfo.Type.AGGREGATE);
-        AggregationFunction sumAgg = (AggregationFunction) functions.get(functionIdent);
+        AggregationFunction sumAgg = (AggregationFunction) functions.get(functionIdent.schema(), functionIdent.name(), functionIdent.argumentTypes());
         Aggregation aggregation = Aggregation.finalAggregation(functionInfo,
             Arrays.asList(new InputColumn(0)), Aggregation.Step.ITER);
 

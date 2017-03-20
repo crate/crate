@@ -88,7 +88,7 @@ public class GroupingBytesRefCollectorBenchmark {
             Arrays.asList(DataTypes.STRING));
         FunctionInfo minBytesRefFuncInfo = new FunctionInfo(minBytesRefFuncIdent, DataTypes.INTEGER,
             FunctionInfo.Type.AGGREGATE);
-        AggregationFunction minAgg = (AggregationFunction) functions.get(minBytesRefFuncIdent);
+        AggregationFunction minAgg = (AggregationFunction) functions.get(minBytesRefFuncIdent.schema(), minBytesRefFuncIdent.name(), minBytesRefFuncIdent.argumentTypes());
         Aggregation aggregation = Aggregation.finalAggregation(minBytesRefFuncInfo,
             Arrays.asList(new InputColumn(0)), Aggregation.Step.ITER);
 
