@@ -116,7 +116,6 @@ public class SetType extends DataType implements CollectionType, Streamer<Set> {
         DataTypes.toStream(innerType, out);
     }
 
-
     @Override
     public Set readValueFrom(StreamInput in) throws IOException {
         int size = in.readVInt();

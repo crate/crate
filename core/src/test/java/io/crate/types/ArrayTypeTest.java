@@ -50,5 +50,4 @@ public class ArrayTypeTest extends CrateUnitTest {
         assertThat(readInnerArrayType.innerType(), instanceOf(StringType.class));
         assertSame(readInnerArrayType.innerType(), StringType.INSTANCE);
     }
-
 }
