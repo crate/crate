@@ -70,6 +70,12 @@ public class Functions {
     /**
      * Returns the function implementation for the given schema, function name and arguments.
      *
+     * If the explicit schema name is not provided then the first function look-up will be done
+     * in the built-in functions. If the function is not found there, then the method will
+     * check the default schema for it.
+     *
+     * In case when the schema name is given, the look-up is done directly for the schema name.
+     *
      * @param schema    The schema name. The schema name is null for built-in functions.
      * @param name      The function name.
      * @param arguments The function arguments.
@@ -87,7 +93,8 @@ public class Functions {
                     return dynamicResolver.getForTypes(signature);
                 }
             }
-            return null;
+            // check if the function without explicit schema name exists in the default schema
+            return getSchemaFunctionImplementation(Schemas.DEFAULT_SCHEMA_NAME, name, arguments);
         } else {
             // Get a user defined function from the given schema. The function must be
             // assigned a certain schema. If no schema is provided, it belongs to the default schema.
