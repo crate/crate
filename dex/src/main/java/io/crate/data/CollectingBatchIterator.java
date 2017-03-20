@@ -138,7 +138,7 @@ public class CollectingBatchIterator<A> implements BatchIterator {
 
     @Override
     public void kill(@Nonnull Throwable throwable) {
-        resultFuture.cancel(true);
+        source.kill(throwable);
         // rest is handled by CloseAssertingBatchIterator
     }
 }
