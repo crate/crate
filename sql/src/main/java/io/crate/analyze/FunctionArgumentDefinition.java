@@ -29,6 +29,7 @@ package io.crate.analyze;
 import com.google.common.base.MoreObjects;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.sql.tree.FunctionArgument;
+import io.crate.operation.udf.UserDefinedFunctionMetaData;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.internal.Nullable;
@@ -120,7 +121,7 @@ public class FunctionArgumentDefinition implements Streamable, ToXContent {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject().field("name", name).field("data_type");
-        DataTypes.toXContent(type, builder, params);
+        UserDefinedFunctionMetaData.DataTypeXContent.toXContent(type, builder, params);
         builder.endObject();
         return builder;
     }
@@ -133,7 +134,7 @@ public class FunctionArgumentDefinition implements Streamable, ToXContent {
         if (parser.nextToken() != XContentParser.Token.FIELD_NAME || !"data_type".equals(parser.currentName())) {
             throw new IllegalStateException("Can't parse FunctionArgument from XContent, expected data_type field");
         }
-        DataType type = DataTypes.fromXContent(parser);
+        DataType type = UserDefinedFunctionMetaData.DataTypeXContent.fromXContent(parser);
         parser.nextToken();
         return new FunctionArgumentDefinition(name, type);
     }

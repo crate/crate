@@ -22,8 +22,7 @@ package io.crate.operation.udf;
 
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.types.*;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -32,7 +31,9 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
@@ -117,7 +118,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         }
         builder.endArray();
         builder.field("return_type");
-        DataTypes.toXContent(returnType, builder, params);
+        DataTypeXContent.toXContent(returnType, builder, params);
         builder.field("language", language);
         builder.field("definition", definition);
         builder.endObject();
@@ -150,7 +151,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
                         arguments.add(FunctionArgumentDefinition.fromXContent(parser));
                     }
                 } else if ("return_type".equals(parser.currentName())) {
-                    returnType = DataTypes.fromXContent(parser);
+                    returnType = DataTypeXContent.fromXContent(parser);
                 } else {
                     throw new UnhandledServerException("failed to parse function");
                 }
@@ -194,5 +195,43 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
             name,
             arguments.stream().map(FunctionArgumentDefinition::type).collect(Collectors.toList())
         );
+    }
+
+    public static class DataTypeXContent {
+
+        public static XContentBuilder toXContent(DataType type, XContentBuilder builder, Params params) throws IOException {
+            builder.startObject().field("id", type.id());
+            if (type instanceof CollectionType) {
+                builder.field("inner_type");
+                toXContent(((CollectionType) type).innerType(), builder, params);
+            }
+            builder.endObject();
+            return builder;
+        }
+
+        public static DataType fromXContent(XContentParser parser) throws IOException {
+            XContentParser.Token token;
+            DataType type = null;
+            while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+                if (token == XContentParser.Token.VALUE_NUMBER) {
+                    int id = parser.intValue();
+                    if (id == ArrayType.ID || id == SetType.ID) {
+                        if (parser.nextToken() != XContentParser.Token.FIELD_NAME || !"inner_type".equals(parser.currentName())) {
+                            throw new IllegalStateException("Can't parse DataType form XContent");
+                        }
+                        DataType innerType = fromXContent(parser);
+                        if (id == ArrayType.ID) {
+                            type = new ArrayType(innerType);
+                        } else  {
+                            type = new SetType(innerType);
+                        }
+                    } else {
+                        type = DataTypes.fromId(id);
+                    }
+                }
+            }
+            return type;
+        }
+
     }
 }
