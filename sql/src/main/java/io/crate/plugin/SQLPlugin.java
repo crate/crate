@@ -57,7 +57,6 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.settings.CrateSetting;
 import org.elasticsearch.action.bulk.BulkModule;
-import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
@@ -124,7 +123,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
         return ImmutableList.of(
             DecommissioningService.class,
-            BulkRetryCoordinatorPool.class,
             NodeDisconnectJobMonitorService.class,
             PostgresNetty.class,
             JobContextService.class,
