@@ -23,6 +23,7 @@
 package io.crate.executor.transport.executionphases;
 
 import io.crate.data.Bucket;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.jobs.PageBucketReceiver;
 
 import java.util.List;
@@ -39,7 +40,7 @@ class SetBucketCallback extends SetBucketAction implements BiConsumer<List<Bucke
         if (throwable == null) {
             setBuckets(buckets);
         } else {
-            failed(throwable);
+            failed(SQLExceptions.unwrap(throwable));
         }
     }
 }
