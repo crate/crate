@@ -21,12 +21,8 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.MoreObjects;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.data.BatchIterator;
-import io.crate.data.Input;
-import io.crate.data.Projector;
-import io.crate.data.Row;
+import io.crate.data.*;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
@@ -37,10 +33,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
-import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.client.Requests;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -52,53 +45,49 @@ import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class IndexWriterProjector implements Projector {
 
-    private final Input<BytesRef> sourceInput;
-    private final RowShardResolver rowShardResolver;
-    private final Supplier<String> indexNameResolver;
-    private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
-    private final BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor;
+    private final BatchAccumulator<Row, Iterator<? extends Row>> accumulator;
 
     public IndexWriterProjector(ClusterService clusterService,
+                                ScheduledExecutorService scheduler,
                                 Functions functions,
-                                IndexNameExpressionResolver indexNameExpressionResolver,
                                 Settings settings,
                                 TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
                                 BulkRequestExecutor<ShardUpsertRequest> shardUpsertAction,
                                 Supplier<String> indexNameResolver,
-                                BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                 Reference rawSourceReference,
                                 List<ColumnIdent> primaryKeyIdents,
                                 List<? extends Symbol> primaryKeySymbols,
                                 @Nullable Symbol routingSymbol,
                                 ColumnIdent clusteredByColumn,
                                 Input<?> sourceInput,
-                                Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
+                                List<? extends CollectExpression<Row, ?>> collectExpressions,
                                 @Nullable Integer bulkActions,
                                 @Nullable String[] includes,
                                 @Nullable String[] excludes,
                                 boolean autoCreateIndices,
                                 boolean overwriteDuplicates,
                                 UUID jobId) {
-        this.indexNameResolver = indexNameResolver;
-        this.collectExpressions = collectExpressions;
+        Input<BytesRef> source;
         if (includes == null && excludes == null) {
             //noinspection unchecked
-            this.sourceInput = (Input<BytesRef>) sourceInput;
+            source = (Input<BytesRef>) sourceInput;
         } else {
             //noinspection unchecked
-            this.sourceInput =
-                new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
+            source = new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
         }
-        rowShardResolver = new RowShardResolver(functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
+        RowShardResolver rowShardResolver = new RowShardResolver(functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            BulkShardProcessor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+            ShardingShardRequestAccumulator.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             overwriteDuplicates,
             true,
             null,
@@ -106,28 +95,30 @@ public class IndexWriterProjector implements Projector {
             jobId,
             false);
 
-        bulkShardProcessor = new BulkShardProcessor<>(
+        Function<String, ShardUpsertRequest.Item> itemFactory = id ->
+            new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null);
+
+        accumulator = new ShardingShardRequestAccumulator<>(
             clusterService,
-            transportBulkCreateIndicesAction,
-            indexNameExpressionResolver,
-            settings,
-            bulkRetryCoordinatorPool,
+            scheduler,
+            10_000,
+            100,
+            jobId,
+            rowShardResolver,
+            itemFactory,
+            builder::newRequest,
+            collectExpressions,
+            indexNameResolver,
             autoCreateIndices,
-            MoreObjects.firstNonNull(bulkActions, 100),
-            builder,
             shardUpsertAction,
-            jobId
+            transportBulkCreateIndicesAction
         );
     }
 
 
     @Override
     public BatchIterator apply(BatchIterator batchIterator) {
-        Supplier<ShardUpsertRequest.Item> updateItemSupplier = () -> new ShardUpsertRequest.Item(
-            rowShardResolver.id(), null, new Object[]{sourceInput.value()}, null);
-
-        return IndexWriterCountBatchIterator.newIndexInstance(batchIterator, indexNameResolver,
-            collectExpressions, rowShardResolver, bulkShardProcessor, updateItemSupplier);
+        return new AsyncOperationBatchIterator(batchIterator, 1, accumulator);
     }
 
     @Override

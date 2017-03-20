@@ -28,7 +28,6 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.Nullable;
@@ -409,7 +408,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         }
     }
 
-    public static class Builder implements BulkShardProcessor.BulkRequestBuilder<ShardUpsertRequest> {
+    public static class Builder implements BulkRequestBuilder<ShardUpsertRequest> {
 
         private final TimeValue timeout;
         private final boolean overwriteDuplicates;

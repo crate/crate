@@ -64,9 +64,8 @@ import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.component.AbstractComponent;
@@ -106,7 +105,6 @@ public class ContextPreparer extends AbstractComponent {
                            DistributingDownstreamFactory distributingDownstreamFactory,
                            TransportActionProvider transportActionProvider,
                            IndexNameExpressionResolver indexNameExpressionResolver,
-                           BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                            Functions functions,
                            SystemCollectSource systemCollectSource) {
         super(settings);
@@ -127,7 +125,6 @@ public class ContextPreparer extends AbstractComponent {
             threadPool,
             settings,
             transportActionProvider,
-            bulkRetryCoordinatorPool,
             inputFactory,
             normalizer,
             systemCollectSource::getRowUpdater
