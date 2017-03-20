@@ -133,9 +133,7 @@ public class AsyncCompositeBatchIterator implements BatchIterator {
             (List<CompletableFuture<?>> loadNextBatchFutures) ->
                 // Future that'll wait for all loadNextBatch futures to complete
                 CompletableFuture.allOf(loadNextBatchFutures.toArray(new CompletableFuture[0]))
-                    // loading is complete when all loadNextBatch futures are complete
-                    .whenComplete((r, t) -> loading = false)
-        );
+        ).whenComplete((r, t) -> loading = false);
     }
 
     @Override
