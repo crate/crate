@@ -22,8 +22,6 @@
 
 package io.crate.exceptions;
 
-import com.google.common.base.Joiner;
-import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.operation.udf.UserDefinedFunctionMetaData;
 
 import java.util.Locale;
@@ -33,9 +31,9 @@ public class UserDefinedFunctionAlreadyExistsException extends ConflictException
 
     public UserDefinedFunctionAlreadyExistsException(UserDefinedFunctionMetaData udfMetaData) {
         super(String.format(Locale.ENGLISH, "User defined Function '%s(%s)' already exists.",
-            udfMetaData.name(), Joiner.on(", ").join(
-                udfMetaData.arguments().stream().map(FunctionArgumentDefinition::type).collect(Collectors.toList())
-            )));
+            udfMetaData.name(),
+            udfMetaData.arguments().stream().map(t -> t.type().getName()).collect(Collectors.joining(", ")))
+        );
     }
 
     @Override
