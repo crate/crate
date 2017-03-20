@@ -1176,6 +1176,10 @@ Tables need to be recreated
 This check warns if there are tables that need to be recreated for compatibility with
 future versions of CrateDB.
 
+.. NOTE::
+   See the :ref:`1_1_release_line` notes for more information about upgrading
+   and recreating tables for CrateDB 1.1.
+   
 .. _sys-repositories:
 
 Repositories
