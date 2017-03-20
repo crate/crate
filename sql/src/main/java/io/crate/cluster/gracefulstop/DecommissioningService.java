@@ -24,8 +24,9 @@ package io.crate.cluster.gracefulstop;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.settings.CrateSetting;
+import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
@@ -61,8 +62,19 @@ import java.util.concurrent.TimeoutException;
 public class DecommissioningService extends AbstractLifecycleComponent implements SignalHandler, ClusterStateListener {
 
     static final String DECOMMISSION_PREFIX = "crate.internal.decommission.";
-    public static final Setting<Settings> DECOMMISSION_INTERNAL_SETTING_GROUP = Setting.groupSetting(
-        DECOMMISSION_PREFIX, Setting.Property.NodeScope, Setting.Property.Dynamic);
+    public static final CrateSetting<Settings> DECOMMISSION_INTERNAL_SETTING_GROUP = CrateSetting.of(Setting.groupSetting(
+        DECOMMISSION_PREFIX, Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.OBJECT);
+
+    public static final CrateSetting<DataAvailability> GRACEFUL_STOP_MIN_AVAILABILITY_SETTING = CrateSetting.of(new Setting<>(
+        "cluster.graceful_stop.min_availability", DataAvailability.PRIMARIES.name(), DataAvailability::of,
+        Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.STRING);
+    public static final CrateSetting<Boolean> GRACEFUL_STOP_REALLOCATE_SETTING = CrateSetting.of(Setting.boolSetting(
+        "cluster.graceful_stop.reallocate", true, Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.BOOLEAN);
+    public static final CrateSetting<Boolean> GRACEFUL_STOP_FORCE_SETTING = CrateSetting.of(Setting.boolSetting(
+        "cluster.graceful_stop.force", false, Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.BOOLEAN);
+    public static final CrateSetting<TimeValue> GRACEFUL_STOP_TIMEOUT_SETTING = CrateSetting.of(Setting.positiveTimeSetting(
+        "cluster.graceful_stop.timeout", new TimeValue(7_200_000), Setting.Property.Dynamic, Setting.Property.NodeScope),
+        DataTypes.STRING);
 
     private final ClusterService clusterService;
     private final JobsLogs jobsLogs;
@@ -91,15 +103,14 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         this.healthAction = healthAction;
         this.updateSettingsAction = updateSettingsAction;
 
-        gracefulStopTimeout = CrateSettings.GRACEFUL_STOP_TIMEOUT.extractTimeValue(settings);
-        forceStop = CrateSettings.GRACEFUL_STOP_FORCE.extract(settings);
-        dataAvailability = DataAvailability.of(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.extract(settings));
+        gracefulStopTimeout = GRACEFUL_STOP_TIMEOUT_SETTING.setting().get(settings);
+        forceStop = GRACEFUL_STOP_FORCE_SETTING.setting().get(settings);
+        dataAvailability = GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.setting().get(settings);
 
         ClusterSettings clusterSettings = clusterService.getClusterSettings();
-
-        CrateSettings.GRACEFUL_STOP_TIMEOUT.registerUpdateConsumer(clusterSettings, this::setGracefulStopTimeout);
-        CrateSettings.GRACEFUL_STOP_FORCE.registerUpdateConsumer(clusterSettings, this::setGracefulStopForce);
-        CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.registerUpdateConsumer(clusterSettings, this::setDataAvailability);
+        clusterSettings.addSettingsUpdateConsumer(GRACEFUL_STOP_TIMEOUT_SETTING.setting(), this::setGracefulStopTimeout);
+        clusterSettings.addSettingsUpdateConsumer(GRACEFUL_STOP_FORCE_SETTING.setting(), this::setGracefulStopForce);
+        clusterSettings.addSettingsUpdateConsumer(GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.setting(), this::setDataAvailability);
 
         try {
             Signal signal = new Signal("USR2");
@@ -266,7 +277,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         this.forceStop = forceStop;
     }
 
-    private void setDataAvailability(String dataAvailability) {
-        this.dataAvailability = DataAvailability.of(dataAvailability);
+    private void setDataAvailability(DataAvailability dataAvailability) {
+        this.dataAvailability = dataAvailability;
     }
 }

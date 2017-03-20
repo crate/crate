@@ -25,20 +25,20 @@ import io.crate.operation.reference.sys.check.SysCheck.Severity;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.After;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
-@ESIntegTestCase.ClusterScope(minNumDataNodes = 2, supportsDedicatedMasters = false)
+@ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false)
 @UseJdbc
 public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testChecksPresenceAndSeverityLevels() throws Exception {
+        internalCluster().startNode();
         SQLResponse response = execute("select severity, passed from sys.checks order by id asc");
         assertThat(response.rowCount(), equalTo(3L));
         assertThat(response.rows()[0][0], is(Severity.HIGH.value()));
@@ -48,27 +48,25 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testMinimumMasterNodesCheckSetNotCorrectNumberOfMasterNodes() throws InterruptedException {
-        int setMinimumMasterNodes = numberOfMasterNodes() / 2;
-        execute("set global discovery.zen.minimum_master_nodes=?", new Object[]{setMinimumMasterNodes});
+        Settings settings = Settings.builder().put("discovery.zen.minimum_master_nodes", 1).build();
+        internalCluster().startNode(settings);
+        internalCluster().startNode(settings);
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
         assertThat(TestingHelpers.printedTable(response.rows()), is("3| false\n"));
     }
 
     @Test
-    public void testMinimumMasterNodesCheckWithResetCorrectSetting() {
-        int setMinimumMasterNodes = numberOfMasterNodes() / 2 + 1;
-        execute("set global discovery.zen.minimum_master_nodes=?", new Object[]{setMinimumMasterNodes});
+    public void testMinimumMasterNodesCheckWithCorrectSetting() {
+        Settings settings = Settings.builder().put("discovery.zen.minimum_master_nodes", 2).build();
+        internalCluster().startNode(settings);
+        internalCluster().startNode(settings);
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
         assertThat(TestingHelpers.printedTable(response.rows()), is("3| true\n"));
     }
 
-    private int numberOfMasterNodes() {
-        ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
-        return clusterState.nodes().getMasterNodes().size();
-    }
-
     @Test
     public void testNumberOfPartitionCheckPassedForDocTablesCustomAndDefaultSchemas() {
+        internalCluster().startNode();
         execute("create table foo.bar (id int) partitioned by (id)");
         execute("create table bar (id int) partitioned by (id)");
         execute("insert into foo.bar (id) values (?)", new Object[]{1});
@@ -76,11 +74,4 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{2});
         assertThat(TestingHelpers.printedTable(response.rows()), is("2| true\n"));
     }
-
-    @After
-    public void tearDown() throws Exception {
-        execute("RESET GLOBAL discovery.zen.minimum_master_nodes");
-        super.tearDown();
-    }
-
 }

@@ -20,32 +20,15 @@
  * agreement.
  */
 
-package io.crate.metadata.settings;
+package io.crate.settings;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableSet;
+import io.crate.types.DataTypes;
+import org.elasticsearch.common.settings.Setting;
 
-import javax.annotation.Nullable;
-import java.util.Locale;
-import java.util.Set;
+public class SharedSettings {
 
-public class LoggingSetting extends StringSetting {
+    public static final CrateSetting<Boolean> ENTERPRISE_LICENSE_SETTING = CrateSetting.of(Setting.boolSetting(
+        "license.enterprise", false,
+        Setting.Property.NodeScope), DataTypes.BOOLEAN);
 
-    private static final Set<String> LOGGING_VALUES = ImmutableSet.of("TRACE", "DEBUG", "INFO", "WARN", "ERROR");
-
-    public LoggingSetting(String name) {
-        super(name, LOGGING_VALUES, true);
-    }
-
-    @Nullable
-    public String validate(String value) {
-        for (String allowedValue : allowedValues) {
-            if (allowedValue.equalsIgnoreCase(value)) {
-                return null;
-            }
-        }
-        return String.format(Locale.ENGLISH, "'%s' is not an allowed value. Allowed values are: %s",
-            value, Joiner.on(", ").join(LOGGING_VALUES)
-        );
-    }
 }

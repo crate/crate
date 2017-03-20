@@ -63,7 +63,7 @@ public class RepositoryParamValidator {
             // allSettings are immutable by default, copy map
             allSettings = Maps.newHashMap(allSettings);
             for (String key : dynamicProperties.get().properties().keySet()) {
-                allSettings.put(key, new SettingsAppliers.StringSettingsApplier(new StringSetting(key, true)));
+                allSettings.put(key, new SettingsAppliers.StringSettingsApplier(new StringSetting(key)));
             }
         }
 

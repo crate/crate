@@ -26,12 +26,13 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.reference.sys.check.SysCheck.Severity;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.gateway.GatewayService;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -58,7 +59,7 @@ public class SysChecksTest extends CrateUnitTest {
         assertThat(minMasterNodesCheck.id(), is(1));
         assertThat(minMasterNodesCheck.severity(), is(Severity.HIGH));
         assertThat(minMasterNodesCheck.validate(2,
-            CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.defaultValue()), is(false));
+            GatewayService.RECOVER_AFTER_MASTER_NODES_SETTING.getDefault(Settings.EMPTY)), is(false));
     }
 
     @Test

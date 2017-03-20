@@ -100,8 +100,8 @@ public class SnapshotRestoreDDLDispatcher {
     public CompletableFuture<Long> dispatch(final CreateSnapshotAnalyzedStatement statement) {
         final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
 
-        boolean waitForCompletion = statement.snapshotSettings().getAsBoolean(WAIT_FOR_COMPLETION.settingName(), WAIT_FOR_COMPLETION.defaultValue());
-        boolean ignoreUnavailable = statement.snapshotSettings().getAsBoolean(IGNORE_UNAVAILABLE.settingName(), IGNORE_UNAVAILABLE.defaultValue());
+        boolean waitForCompletion = statement.snapshotSettings().getAsBoolean(WAIT_FOR_COMPLETION.name(), WAIT_FOR_COMPLETION.defaultValue());
+        boolean ignoreUnavailable = statement.snapshotSettings().getAsBoolean(IGNORE_UNAVAILABLE.name(), IGNORE_UNAVAILABLE.defaultValue());
 
         // ignore_unavailable as set by statement
         IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());
@@ -144,8 +144,8 @@ public class SnapshotRestoreDDLDispatcher {
     }
 
     public CompletableFuture<Long> dispatch(final RestoreSnapshotAnalyzedStatement analysis) {
-        boolean waitForCompletion = analysis.settings().getAsBoolean(WAIT_FOR_COMPLETION.settingName(), WAIT_FOR_COMPLETION.defaultValue());
-        boolean ignoreUnavailable = analysis.settings().getAsBoolean(IGNORE_UNAVAILABLE.settingName(), IGNORE_UNAVAILABLE.defaultValue());
+        boolean waitForCompletion = analysis.settings().getAsBoolean(WAIT_FOR_COMPLETION.name(), WAIT_FOR_COMPLETION.defaultValue());
+        boolean ignoreUnavailable = analysis.settings().getAsBoolean(IGNORE_UNAVAILABLE.name(), IGNORE_UNAVAILABLE.defaultValue());
 
         // ignore_unavailable as set by statement
         IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());

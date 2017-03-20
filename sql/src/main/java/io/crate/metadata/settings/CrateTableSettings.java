@@ -30,15 +30,15 @@ import org.elasticsearch.common.unit.TimeValue;
 
 public class CrateTableSettings {
 
-    public static final BoolSetting READ_ONLY = new BoolSetting(TableParameterInfo.READ_ONLY, false, true);
+    public static final BoolSetting READ_ONLY = new BoolSetting(TableParameterInfo.READ_ONLY, false);
 
-    public static final BoolSetting BLOCKS_READ = new BoolSetting(TableParameterInfo.BLOCKS_READ, false, true);
+    public static final BoolSetting BLOCKS_READ = new BoolSetting(TableParameterInfo.BLOCKS_READ, false);
 
-    public static final BoolSetting BLOCKS_WRITE = new BoolSetting(TableParameterInfo.BLOCKS_WRITE, false, true);
+    public static final BoolSetting BLOCKS_WRITE = new BoolSetting(TableParameterInfo.BLOCKS_WRITE, false);
 
-    public static final BoolSetting BLOCKS_METADATA = new BoolSetting(TableParameterInfo.BLOCKS_METADATA, false, true);
+    public static final BoolSetting BLOCKS_METADATA = new BoolSetting(TableParameterInfo.BLOCKS_METADATA, false);
 
-    public static final IntSetting TOTAL_SHARDS_PER_NODE = new IntSetting(TableParameterInfo.TOTAL_SHARDS_PER_NODE, -1, true);
+    public static final IntSetting TOTAL_SHARDS_PER_NODE = new IntSetting(TableParameterInfo.TOTAL_SHARDS_PER_NODE, -1);
 
     public static final StringSetting ROUTING_ALLOCATION_ENABLE = new StringSetting(
         TableParameterInfo.ROUTING_ALLOCATION_ENABLE,
@@ -47,19 +47,17 @@ public class CrateTableSettings {
             "none",
             "all"
         ),
-        true,
-        "all",
-        null
+        "all"
     );
 
     public static final StringSetting RECOVERY_INITIAL_SHARDS = new StringSetting(
-        TableParameterInfo.RECOVERY_INITIAL_SHARDS, null, true, "quorum", null);
+        TableParameterInfo.RECOVERY_INITIAL_SHARDS, null, "quorum");
 
 
     public static final ByteSizeSetting FLUSH_THRESHOLD_SIZE = new ByteSizeSetting(
-        TableParameterInfo.FLUSH_THRESHOLD_SIZE, new ByteSizeValue(200, ByteSizeUnit.MB), true);
+        TableParameterInfo.FLUSH_THRESHOLD_SIZE, new ByteSizeValue(200, ByteSizeUnit.MB));
 
-    public static final BoolSetting WARMER_ENABLED = new BoolSetting(TableParameterInfo.WARMER_ENABLED, true, true);
+    public static final BoolSetting WARMER_ENABLED = new BoolSetting(TableParameterInfo.WARMER_ENABLED, true);
 
     public static final TimeSetting TRANSLOG_SYNC_INTERVAL = new TimeSetting() {
         @Override
@@ -70,11 +68,6 @@ public class CrateTableSettings {
         @Override
         public TimeValue defaultValue() {
             return TimeValue.timeValueSeconds(5);
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return false;
         }
     };
 
@@ -88,11 +81,6 @@ public class CrateTableSettings {
         public TimeValue defaultValue() {
             return TimeValue.timeValueMillis(1000);
         }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
     };
 
     public static final TimeSetting UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = new TimeSetting() {
@@ -104,11 +92,6 @@ public class CrateTableSettings {
         @Override
         public TimeValue defaultValue() {
             return TimeValue.timeValueMinutes(1);
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
         }
     };
 }

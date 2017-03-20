@@ -14,6 +14,7 @@ dependencies {
     compile project(':dex')
     compile project(':blob')
     compile project(':sql-parser')
+    compile project(':udc')
     compile "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
     compile "org.apache.commons:commons-math3:${versions.commonsmath}"
 

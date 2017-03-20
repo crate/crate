@@ -22,11 +22,11 @@
 
 package io.crate.operation.reference.sys.check.node;
 
-import io.crate.metadata.settings.CrateSettings;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.gateway.GatewayService;
 
 @Singleton
 public class RecoveryAfterNodesSysCheck extends AbstractSysNodeCheck {
@@ -49,8 +49,8 @@ public class RecoveryAfterNodesSysCheck extends AbstractSysNodeCheck {
     @Override
     public boolean validate() {
         return validate(
-            CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.extract(settings),
-            CrateSettings.GATEWAY_EXPECTED_NODES.extract(settings)
+            GatewayService.RECOVER_AFTER_NODES_SETTING.get(settings),
+            GatewayService.EXPECTED_NODES_SETTING.get(settings)
         );
     }
 
