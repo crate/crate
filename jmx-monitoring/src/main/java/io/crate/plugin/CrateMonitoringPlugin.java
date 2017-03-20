@@ -21,6 +21,7 @@ package io.crate.plugin;
 import com.google.common.collect.ImmutableList;
 import io.crate.Plugin;
 import io.crate.module.CrateMonitoringModule;
+import io.crate.settings.SharedSettings;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
 
@@ -33,7 +34,7 @@ public class CrateMonitoringPlugin implements Plugin {
     private final boolean isEnterprise;
 
     public CrateMonitoringPlugin(Settings settings) {
-        isEnterprise = settings.getAsBoolean("license.enterprise", false);
+        isEnterprise = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
     }
 
     @Override

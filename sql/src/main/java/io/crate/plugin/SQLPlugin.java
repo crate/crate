@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.breaker.CircuitBreakerModule;
-import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.jobs.JobContextService;
@@ -57,6 +56,7 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.rest.action.RestSQLAction;
+import io.crate.settings.CrateSetting;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -104,13 +104,13 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
         // add our dynamic cluster settings
         List<org.elasticsearch.common.settings.Setting<?>> settings = new ArrayList<>();
         settings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTING_GROUP);
-        settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING);
-        settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING);
-        settings.add(DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP);
         settings.add(SQLOperations.NODE_READ_ONLY_SETTING);
         settings.add(MonitorModule.NODE_INFO_EXTENDED_TYPE_SETTING);
 
-        addESSettings(settings::add, CrateSettings.CRATE_SETTINGS);
+        for (CrateSetting crateSetting : CrateSettings.CRATE_CLUSTER_SETTINGS) {
+            settings.add(crateSetting.setting());
+        }
+
         return settings;
     }
 

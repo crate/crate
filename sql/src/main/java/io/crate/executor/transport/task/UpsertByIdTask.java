@@ -31,7 +31,6 @@ import io.crate.executor.JobTask;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.jobs.*;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.node.dml.UpsertById;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -214,7 +213,7 @@ public class UpsertByIdTask extends JobTask {
         assert upsertById.updateColumns() != null || upsertById.insertColumns() != null :
             "upsertById.updateColumns() or upsertById.insertColumns() must not be null";
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
+            BulkShardProcessor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             false, // do not overwrite duplicates
             upsertById.numBulkResponses() > 0 ||
             upsertById.items().size() > 1 ||

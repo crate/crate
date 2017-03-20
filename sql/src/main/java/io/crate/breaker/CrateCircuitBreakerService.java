@@ -21,6 +21,8 @@
 
 package io.crate.breaker;
 
+import io.crate.settings.CrateSetting;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -41,24 +43,22 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
 
     public static final String QUERY = "query";
 
-    public static final Setting<ByteSizeValue> QUERY_CIRCUIT_BREAKER_LIMIT_SETTING = Setting.memorySizeSetting(
-        "indices.breaker.query.limit", "60%", Setting.Property.Dynamic, Setting.Property.NodeScope);
-    public static final Setting<Double> QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING = Setting.doubleSetting(
-        "indices.breaker.query.overhead", 1.09d, 0.0d, Setting.Property.Dynamic, Setting.Property.NodeScope);
-    static final Setting<CircuitBreaker.Type> QUERY_CIRCUIT_BREAKER_TYPE_SETTING = new Setting<>(
-        "indices.breaker.query.type", "memory", CircuitBreaker.Type::parseValue, Setting.Property.NodeScope);
+    public static final CrateSetting<ByteSizeValue> QUERY_CIRCUIT_BREAKER_LIMIT_SETTING = CrateSetting.of(Setting.memorySizeSetting(
+        "indices.breaker.query.limit", "60%", Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.STRING);
+    public static final CrateSetting<Double> QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING = CrateSetting.of(Setting.doubleSetting(
+        "indices.breaker.query.overhead", 1.09d, 0.0d, Setting.Property.Dynamic, Setting.Property.NodeScope),DataTypes.DOUBLE);
 
     public static final String JOBS_LOG = "jobs_log";
-    public static final Setting<ByteSizeValue> JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = Setting.memorySizeSetting(
-        "stats.breaker.log.jobs.limit", "5%", Setting.Property.Dynamic, Setting.Property.NodeScope);
-    public static final Setting<Double> JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING = Setting.doubleSetting(
-        "stats.breaker.log.jobs.overhead", 1.0d, 0.0d, Setting.Property.Dynamic, Setting.Property.NodeScope);
+    public static final CrateSetting<ByteSizeValue> JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = CrateSetting.of(Setting.memorySizeSetting(
+        "stats.breaker.log.jobs.limit", "5%", Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.STRING);
+    public static final CrateSetting<Double> JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING = CrateSetting.of(Setting.doubleSetting(
+        "stats.breaker.log.jobs.overhead", 1.0d, 0.0d, Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.DOUBLE);
 
     public static final String OPERATIONS_LOG = "operations_log";
-    public static final Setting<ByteSizeValue> OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = Setting.memorySizeSetting(
-        "stats.breaker.log.operations.limit", "5%", Setting.Property.Dynamic, Setting.Property.NodeScope);
-    public static final Setting<Double> OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING = Setting.doubleSetting(
-        "stats.breaker.log.operations.overhead", 1.0d, 0.0d, Setting.Property.Dynamic, Setting.Property.NodeScope);
+    public static final CrateSetting<ByteSizeValue> OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = CrateSetting.of(Setting.memorySizeSetting(
+        "stats.breaker.log.operations.limit", "5%", Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.STRING);
+    public static final CrateSetting<Double> OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING = CrateSetting.of(Setting.doubleSetting(
+        "stats.breaker.log.operations.overhead", 1.0d, 0.0d, Setting.Property.Dynamic, Setting.Property.NodeScope), DataTypes.DOUBLE);
 
     static final String BREAKING_EXCEPTION_MESSAGE =
         "[query] Data too large, data for [%s] would be larger than limit of [%d/%s]";
@@ -76,32 +76,32 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
         this.esCircuitBreakerService = esCircuitBreakerService;
 
         queryBreakerSettings = new BreakerSettings(QUERY,
-            QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.get(settings).getBytes(),
-            QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.get(settings),
-            QUERY_CIRCUIT_BREAKER_TYPE_SETTING.get(settings)
+            QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.setting().get(settings).getBytes(),
+            QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.setting().get(settings),
+            CircuitBreaker.Type.MEMORY
         );
 
         logJobsBreakerSettings = new BreakerSettings(JOBS_LOG,
-            JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.get(settings).getBytes(),
-            JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING.get(settings),
+            JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.setting().get(settings).getBytes(),
+            JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING.setting().get(settings),
             CircuitBreaker.Type.MEMORY);
 
         logOperationsBreakerSettings = new BreakerSettings(OPERATIONS_LOG,
-            OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.get(settings).getBytes(),
-            OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING.get(settings),
+            OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.setting().get(settings).getBytes(),
+            OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING.setting().get(settings),
             CircuitBreaker.Type.MEMORY);
 
         registerBreaker(queryBreakerSettings);
         registerBreaker(logJobsBreakerSettings);
         registerBreaker(logOperationsBreakerSettings);
 
-        clusterSettings.addSettingsUpdateConsumer(QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
+        clusterSettings.addSettingsUpdateConsumer(QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.setting(), QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.setting(),
             (newLimit, newOverhead) ->
                 setQueryBreakerLimit(queryBreakerSettings, QUERY, s -> this.queryBreakerSettings = s, newLimit, newOverhead));
-        clusterSettings.addSettingsUpdateConsumer(JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
+        clusterSettings.addSettingsUpdateConsumer(JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.setting(),
             (newLimit) ->
                 setQueryBreakerLimit(logJobsBreakerSettings, QUERY, s -> this.logJobsBreakerSettings = s, newLimit, null));
-        clusterSettings.addSettingsUpdateConsumer(OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
+        clusterSettings.addSettingsUpdateConsumer(OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.setting(),
             (newLimit) ->
                 setQueryBreakerLimit(logOperationsBreakerSettings, QUERY, s -> this.logOperationsBreakerSettings = s, newLimit, null));
     }

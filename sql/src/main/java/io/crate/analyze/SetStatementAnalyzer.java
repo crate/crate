@@ -45,7 +45,7 @@ class SetStatementAnalyzer {
             // parser does not allow using the parameter expressions as setting names in the SET statements,
             // therefore it is fine to convert the expression to string here.
             String settingName = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
-            Set<String> nameParts = CrateSettings.settingNamesByPrefix(settingName);
+            List<String> nameParts = CrateSettings.settingNamesByPrefix(settingName);
             if (nameParts.size() != 0) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL", settingName));
@@ -69,9 +69,9 @@ class SetStatementAnalyzer {
         for (Expression expression : node.columns()) {
             String settingsName = ExpressionToStringVisitor.convert(expression, Row.EMPTY);
             if (!settingsToRemove.contains(settingsName)) {
-                Set<String> settingNames = CrateSettings.settingNamesByPrefix(settingsName);
+                List<String> settingNames = CrateSettings.settingNamesByPrefix(settingsName);
                 if (settingNames.size() == 0) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "setting '%s' not supported", settingsName));
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Setting '%s' not supported", settingsName));
                 }
                 for (String setting : settingNames) {
                     CrateSettings.checkIfRuntimeSetting(setting);

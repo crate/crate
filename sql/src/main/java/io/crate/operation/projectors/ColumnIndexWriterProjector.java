@@ -33,7 +33,6 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
@@ -94,7 +93,7 @@ public class ColumnIndexWriterProjector implements Projector {
             assignments = convert.v2();
         }
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
+            BulkShardProcessor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             false, // overwriteDuplicates
             true, // continueOnErrors
             updateColumnNames,

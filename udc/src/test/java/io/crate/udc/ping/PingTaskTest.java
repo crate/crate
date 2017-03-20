@@ -28,6 +28,7 @@ import io.crate.http.HttpTestServer;
 import io.crate.monitor.ExtendedNetworkInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.ExtendedOsInfo;
+import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
@@ -109,7 +110,7 @@ public class PingTaskTest extends CrateUnitTest {
             clusterIdService,
             extendedNodeInfo,
             "http://dummy",
-            Settings.builder().put("license.enterprise", true).build()
+            Settings.builder().put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true).build()
         );
         assertThat(pingTask.isEnterprise(), is("true"));
     }

@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
-import io.crate.metadata.settings.CrateSettings;
+import io.crate.operation.collect.stats.JobsLogService;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
@@ -495,8 +495,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         SQLResponse response = execute(
             "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
-        assertThat((Boolean) response.rows()[0][1], is(CrateSettings.STATS_ENABLED.defaultValue()));
+        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
+        assertThat((Boolean) response.rows()[0][1], is(JobsLogService.STATS_ENABLED_SETTING.getDefault()));
 
         response = execute("set global persistent stats.operations_log_size=1024, stats.enabled=false");
         assertThat(response.rowCount(), is(1L));
@@ -514,8 +514,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         response = execute(
             "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
-        assertThat((Boolean) response.rows()[0][1], is(CrateSettings.STATS_ENABLED.defaultValue()));
+        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
+        assertThat((Boolean) response.rows()[0][1], is(JobsLogService.STATS_ENABLED_SETTING.getDefault()));
     }
 
     @Test
@@ -524,11 +524,11 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
             execute("set global persistent stats.operations_log_size=-1024");
             fail("expected SQLActionException, none was thrown");
         } catch (SQLActionException e) {
-            assertThat(e.getMessage(), containsString("Invalid value for argument 'stats.operations_log_size'"));
+            assertThat(e.getMessage(), containsString("Failed to parse value [-1024] for setting [stats.operations_log_size] must be >= 0"));
 
             SQLResponse response = execute("select settings['stats']['operations_log_size'] from sys.cluster");
             assertThat(response.rowCount(), is(1L));
-            assertThat((Integer) response.rows()[0][0], is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
+            assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
         }
     }
 

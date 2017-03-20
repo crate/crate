@@ -30,8 +30,8 @@ import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.data.Row;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.types.DataType;
+import io.crate.settings.CrateSetting;
+import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
@@ -51,8 +51,9 @@ import java.util.function.Consumer;
 @Singleton
 public class TableStatsService extends AbstractComponent implements Runnable {
 
-    public static final Setting<TimeValue> STATS_SERVICE_REFRESH_INTERVAL_SETTING = Setting.timeSetting(
-        "stats.service.interval", TimeValue.timeValueHours(1), Setting.Property.NodeScope, Setting.Property.Dynamic);
+    public static final CrateSetting<TimeValue> STATS_SERVICE_REFRESH_INTERVAL_SETTING = CrateSetting.of(Setting.timeSetting(
+        "stats.service.interval", TimeValue.timeValueHours(1), Setting.Property.NodeScope, Setting.Property.Dynamic),
+        DataTypes.STRING);
 
     static final String TABLE_STATS = "table_stats";
     static final int DEFAULT_SOFT_LIMIT = 10_000;
@@ -79,11 +80,12 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         resultReceiver = new TableStatsResultReceiver(tableStats::updateTableStats);
-        refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.get(settings);
+        refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.setting().get(settings);
         refreshScheduledTask = scheduleRefresh(refreshInterval);
         sqlDirectExecutor = sqlOperations.createSQLDirectExecutor("sys", TABLE_STATS, STMT, DEFAULT_SOFT_LIMIT);
 
-        clusterService.getClusterSettings().addSettingsUpdateConsumer(STATS_SERVICE_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
+        clusterService.getClusterSettings().addSettingsUpdateConsumer(
+            STATS_SERVICE_REFRESH_INTERVAL_SETTING.setting(), this::setRefreshInterval);
     }
 
     @Override
