@@ -24,13 +24,12 @@ package io.crate.integrationtests;
 import com.google.common.base.Splitter;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.operation.collect.stats.JobsLogService;
-import io.crate.operation.udf.UserDefinedFunctionService;
+import io.crate.operation.projectors.ShardingShardRequestAccumulator;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
 import io.crate.testing.UseJdbc;
 import io.crate.udc.service.UDCService;
 import org.apache.lucene.store.StoreRateLimiting;
-import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.MemorySizeValue;
@@ -52,7 +51,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         Settings.Builder builder = Settings.builder().put(super.nodeSettings(nodeOrdinal));
-        builder.put(BulkShardProcessor.BULK_REQUEST_TIMEOUT_SETTING.getKey(), "42s");
+        builder.put(ShardingShardRequestAccumulator.BULK_REQUEST_TIMEOUT_SETTING.getKey(), "42s");
         return builder.build();
     }
 

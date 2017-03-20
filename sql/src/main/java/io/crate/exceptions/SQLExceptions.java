@@ -171,8 +171,7 @@ public class SQLExceptions {
             return new SQLParseException(e.getMessage(), (Exception) e);
         } else if (e instanceof UnsupportedOperationException) {
             return new UnsupportedFeatureException(e.getMessage(), (Exception) e);
-        } else if (e instanceof VersionConflictEngineException
-                   && e.getMessage().contains("document already exists")) {
+        } else if (isDocumentAlreadyExistsException(e)) {
             return new DuplicateKeyException(
                 "A document with the same primary key exists already", e);
         } else if (e instanceof IndexAlreadyExistsException) {
@@ -203,5 +202,10 @@ public class SQLExceptions {
             return new SnapshotAlreadyExistsExeption(creationException.getRepositoryName(), creationException.getSnapshotName());
         }
         return e;
+    }
+
+    public static boolean isDocumentAlreadyExistsException(Throwable e) {
+        return e instanceof VersionConflictEngineException
+                   && e.getMessage().contains("document already exists");
     }
 }

@@ -41,7 +41,6 @@ import io.crate.operation.reference.ReferenceResolver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.Projections;
-import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
@@ -65,7 +64,6 @@ public abstract class ShardCollectorProvider {
                            ThreadPool threadPool,
                            Settings settings,
                            TransportActionProvider transportActionProvider,
-                           BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                            IndexShard indexShard) {
         this.inputFactory = new InputFactory(functions);
         this.shardNormalizer = new EvaluatingNormalizer(
@@ -82,7 +80,6 @@ public abstract class ShardCollectorProvider {
             threadPool,
             settings,
             transportActionProvider,
-            bulkRetryCoordinatorPool,
             inputFactory,
             shardNormalizer,
             null,

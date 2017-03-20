@@ -47,7 +47,6 @@ import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.TableFunctionCollectPhase;
-import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -78,7 +77,6 @@ public class CollectSourceResolver {
                                  Settings settings,
                                  ThreadPool threadPool,
                                  TransportActionProvider transportActionProvider,
-                                 BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                  InformationSchemaInfo informationSchemaInfo,
                                  SysSchemaInfo sysSchemaInfo,
                                  PgCatalogSchemaInfo pgCatalogSchemaInfo,
@@ -98,7 +96,6 @@ public class CollectSourceResolver {
             threadPool,
             settings,
             transportActionProvider,
-            bulkRetryCoordinatorPool,
             new InputFactory(functions),
             normalizer,
             systemCollectSource::getRowUpdater

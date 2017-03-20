@@ -27,8 +27,8 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.collect.stats.JobsLogService;
+import io.crate.operation.projectors.ShardingShardRequestAccumulator;
 import io.crate.operation.reference.NestedObjectExpression;
-import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.planner.TableStatsService;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.settings.CrateSetting;
@@ -37,7 +37,6 @@ import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.InternalClusterInfoService;
@@ -83,7 +82,7 @@ public class CrateSettings implements ClusterStateListener {
             CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
 
             // BULK
-            BulkShardProcessor.BULK_REQUEST_TIMEOUT_SETTING,
+            ShardingShardRequestAccumulator.BULK_REQUEST_TIMEOUT_SETTING,
 
             // GRACEFUL STOP
             DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP,
