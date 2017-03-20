@@ -112,6 +112,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
                 pageResultListener.needMore(false);
             }
         }
+        boolean shouldTriggerConsumer = false;
         synchronized (lock) {
             traceLog("method=setBucket", bucketIdx);
 
@@ -125,20 +126,31 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
                 exhausted.set(bucketIdx);
             }
             if (bucketsByIdx.size() == numBuckets) {
-                mergeAndTriggerConsumer();
+                shouldTriggerConsumer = true;
             }
+        }
+        if (shouldTriggerConsumer) {
+            mergeAndTriggerConsumer();
         }
     }
 
     private void triggerConsumer() {
-        if (receivingFirstPage) {
-            receivingFirstPage = false;
-            consumer.accept(batchPagingIterator, lastThrowable);
-        } else {
-            batchPagingIterator.completeLoad(lastThrowable);
+        boolean invokeConsumer = false;
+        Throwable throwable;
+        synchronized (lock) {
+            if (receivingFirstPage) {
+                receivingFirstPage = false;
+                invokeConsumer = true;
+            }
+            throwable = lastThrowable;
         }
-        if (lastThrowable != null) {
-            releaseListenersAndCloseContext(lastThrowable);
+        if (invokeConsumer) {
+            consumer.accept(batchPagingIterator, throwable);
+        } else {
+            batchPagingIterator.completeLoad(throwable);
+        }
+        if (throwable != null) {
+            releaseListenersAndCloseContext(throwable);
         }
     }
 
@@ -207,6 +219,8 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     @Override
     public void failure(int bucketIdx, Throwable throwable) {
         traceLog("method=failure", bucketIdx, throwable);
+
+        boolean shouldTriggerConsumer;
         synchronized (lock) {
             if (bucketsByIdx.putIfAbsent(bucketIdx, Bucket.EMPTY) == false) {
                 kill(new IllegalStateException(String.format(Locale.ENGLISH,
@@ -214,31 +228,37 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
                     nodeName, id(), bucketIdx)));
                 return;
             }
-            setBucketFailure(bucketIdx, throwable);
+            shouldTriggerConsumer = setBucketFailure(bucketIdx, throwable);
+        }
+        if (shouldTriggerConsumer) {
+            triggerConsumer();
         }
     }
 
     @Override
     public void killed(int bucketIdx, Throwable throwable) {
         traceLog("method=killed", bucketIdx, throwable);
+
+        boolean shouldTriggerConsumer;
         synchronized (lock) {
             if (bucketsByIdx.putIfAbsent(bucketIdx, Bucket.EMPTY) == false) {
                 traceLog("method=killed future already set", bucketIdx);
                 return;
             }
-            setBucketFailure(bucketIdx, throwable);
+            shouldTriggerConsumer = setBucketFailure(bucketIdx, throwable);
+        }
+        if (shouldTriggerConsumer) {
+            triggerConsumer();
         }
     }
 
-    private void setBucketFailure(int bucketIdx, Throwable throwable) {
+    private boolean setBucketFailure(int bucketIdx, Throwable throwable) {
         // can't trigger failure on pageDownstream immediately as it would remove the context which the other
         // upstreams still require
 
         lastThrowable = throwable;
         exhausted.set(bucketIdx);
-        if (bucketsByIdx.size() == numBuckets) {
-            triggerConsumer();
-        }
+        return bucketsByIdx.size() == numBuckets;
     }
 
     /**
@@ -263,6 +283,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
     @Override
     protected void innerKill(@Nonnull Throwable t) {
+        boolean shouldTriggerConsumer = false;
         synchronized (lock) {
             lastThrowable = t;
             batchPagingIterator.kill(t); // this causes a already active consumer to fail
@@ -270,8 +291,11 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
             if (receivingFirstPage) {
                 // no active consumer - can "activate" it with a failure
                 receivingFirstPage = false;
-                consumer.accept(null, t); // should eventually trigger a closeCallback that releases any open listeners
+                shouldTriggerConsumer = true;
             }
+        }
+        if (shouldTriggerConsumer) {
+            consumer.accept(null, t);
         }
     }
 
