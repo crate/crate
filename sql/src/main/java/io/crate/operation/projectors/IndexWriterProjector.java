@@ -31,7 +31,6 @@ import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import org.apache.logging.log4j.Logger;
@@ -99,7 +98,7 @@ public class IndexWriterProjector implements Projector {
         }
         rowShardResolver = new RowShardResolver(functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
+            BulkShardProcessor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             overwriteDuplicates,
             true,
             null,

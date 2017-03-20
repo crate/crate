@@ -32,33 +32,25 @@ public class IntSetting extends Setting<Integer, Integer> {
 
     private final String name;
     private final Integer defaultValue;
-    private final boolean isRuntimeSetting;
     private Integer minValue = Integer.MIN_VALUE;
     private Integer maxValue = Integer.MAX_VALUE;
-    private Setting parent;
 
-    public IntSetting(String name, Integer defaultValue, boolean isRuntimeSetting) {
+    public IntSetting(String name, Integer defaultValue) {
         this.name = name;
         this.defaultValue = defaultValue;
-        this.isRuntimeSetting = isRuntimeSetting;
     }
 
     public IntSetting(String name,
                       Integer defaultValue,
-                      boolean isRuntimeSetting,
                       @Nullable Integer minValue,
-                      @Nullable Integer maxValue,
-                      @Nullable Setting parent,
-                      @Nullable org.elasticsearch.common.settings.Setting<Integer> esSetting) {
-        this(name, defaultValue, isRuntimeSetting);
+                      @Nullable Integer maxValue) {
+        this(name, defaultValue);
         if (minValue != null) {
             this.minValue = minValue;
         }
         if (maxValue != null) {
             this.maxValue = maxValue;
         }
-        this.parent = parent;
-        this.esSetting = esSetting;
     }
 
     @Override
@@ -69,16 +61,6 @@ public class IntSetting extends Setting<Integer, Integer> {
     @Override
     public Integer defaultValue() {
         return defaultValue;
-    }
-
-    @Override
-    public boolean isRuntime() {
-        return isRuntimeSetting;
-    }
-
-    @Override
-    public Setting parent() {
-        return parent;
     }
 
     Integer maxValue() {
@@ -96,19 +78,10 @@ public class IntSetting extends Setting<Integer, Integer> {
 
     @Override
     public Integer extract(Settings settings) {
-        return settings.getAsInt(settingName(), defaultValue());
+        return settings.getAsInt(name, defaultValue());
     }
 
     public Integer extract(Settings settings, @Nonnull Integer defaultValue) {
-        return settings.getAsInt(settingName(), defaultValue);
-    }
-
-    @Override
-    org.elasticsearch.common.settings.Setting<Integer> createESSetting() {
-        return org.elasticsearch.common.settings.Setting.intSetting(
-            settingName(),
-            defaultValue(),
-            propertiesForUpdateConsumer()
-        );
+        return settings.getAsInt(name, defaultValue);
     }
 }

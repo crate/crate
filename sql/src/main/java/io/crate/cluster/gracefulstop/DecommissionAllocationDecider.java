@@ -23,7 +23,6 @@
 package io.crate.cluster.gracefulstop;
 
 import com.google.common.collect.ImmutableSet;
-import io.crate.metadata.settings.CrateSettings;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
@@ -53,11 +52,12 @@ public class DecommissionAllocationDecider extends AllocationDecider {
         super(settings);
         ClusterSettings clusterSettings = clusterService.getClusterSettings();
         updateDecommissioningNodes(settings);
-        updateMinAvailability(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.extract(settings));
+        dataAvailability = DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.setting().get(settings);
+
         clusterSettings.addSettingsUpdateConsumer(
-            DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP, this::updateDecommissioningNodes);
+            DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP.setting(), this::updateDecommissioningNodes);
         clusterSettings.addSettingsUpdateConsumer(
-            CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.esSetting(), this::updateMinAvailability);
+            DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.setting(), this::updateMinAvailability);
     }
 
     private void updateDecommissioningNodes(Settings settings) {
@@ -65,8 +65,8 @@ public class DecommissionAllocationDecider extends AllocationDecider {
         decommissioningNodes = decommissionMap.keySet();
     }
 
-    private void updateMinAvailability(String availability) {
-        dataAvailability = DataAvailability.of(availability);
+    private void updateMinAvailability(DataAvailability availability) {
+        dataAvailability = availability;
     }
 
     @Override

@@ -26,6 +26,7 @@ import io.crate.Streamer;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.unit.TimeValue;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -77,6 +78,9 @@ public class StringType extends DataType<BytesRef> implements DataTypeFactory, S
         if (value instanceof Map || value.getClass().isArray()) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Cannot cast %s to type string", value));
+        }
+        if (value instanceof TimeValue) {
+            return new BytesRef(((TimeValue) value).getStringRep());
         }
         return new BytesRef(value.toString());
     }

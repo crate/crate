@@ -163,11 +163,9 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             analysis.settingsToRemove(),
             containsInAnyOrder(
                 "stats.breaker.log.operations.limit",
-                "stats.breaker.log.operations",
+                "stats.breaker.log.operations.overhead",
                 "stats.breaker.log.jobs.limit",
-                "stats.breaker.log.jobs",
-                "stats.breaker.log",
-                "stats.breaker",
+                "stats.breaker.log.jobs.overhead",
                 "stats.enabled",
                 "stats.jobs_log_size",
                 "stats.jobs_log_expiration",
@@ -180,28 +178,28 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSetNonRuntimeSetting() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("setting 'gateway.recover_after_time' cannot be set/reset at runtime");
+        expectedException.expectMessage("Setting 'gateway.recover_after_time' cannot be set/reset at runtime");
         analyze("SET GLOBAL TRANSIENT gateway.recover_after_time = '5m'");
     }
 
     @Test
     public void testResetNonRuntimeSetting() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
+        expectedException.expectMessage("Setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
         analyze("RESET GLOBAL gateway.recover_after_nodes");
     }
 
     @Test
     public void testSetNonRuntimeSettingObject() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
+        expectedException.expectMessage("Setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
         analyze("SET GLOBAL TRANSIENT gateway = {recover_after_nodes = 3}");
     }
 
     @Test
     public void testResetNonRuntimeSettingObject() {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
+        expectedException.expectMessage("Setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
         analyze("RESET GLOBAL gateway");
     }
 

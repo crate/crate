@@ -22,12 +22,12 @@
 
 package io.crate.operation.reference.sys.check.node;
 
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.monitor.MonitorService;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -46,7 +46,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         assertThat(recoveryExpectedNodesCheck.id(), is(1));
         assertThat(recoveryExpectedNodesCheck.severity(), is(SysCheck.Severity.HIGH));
         assertThat(recoveryExpectedNodesCheck.validate(1,
-            CrateSettings.GATEWAY_EXPECTED_NODES.defaultValue()), is(true));
+            GatewayService.EXPECTED_NODES_SETTING.getDefault(Settings.EMPTY)), is(true));
     }
 
     @Test
@@ -87,8 +87,8 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         assertThat(recoveryAfterNodesCheck.id(), is(2));
         assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.HIGH));
         assertThat(recoveryAfterNodesCheck.validate(
-            CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.defaultValue(),
-            CrateSettings.GATEWAY_EXPECTED_NODES.defaultValue()
+            GatewayService.RECOVER_AFTER_NODES_SETTING.getDefault(Settings.EMPTY),
+            GatewayService.EXPECTED_NODES_SETTING.getDefault(Settings.EMPTY)
         ), is(true));
     }
 
@@ -140,9 +140,9 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         assertThat(recoveryAfterNodesCheck.id(), is(3));
         assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
         assertThat(recoveryAfterNodesCheck.validate(
-            CrateSettings.GATEWAY_RECOVER_AFTER_TIME.defaultValue(),
-            CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.defaultValue(),
-            CrateSettings.GATEWAY_EXPECTED_NODES.defaultValue()
+            GatewayService.RECOVER_AFTER_TIME_SETTING.getDefault(Settings.EMPTY),
+            GatewayService.RECOVER_AFTER_NODES_SETTING.getDefault(Settings.EMPTY),
+            GatewayService.EXPECTED_NODES_SETTING.getDefault(Settings.EMPTY)
         ), is(true));
     }
 

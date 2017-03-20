@@ -26,7 +26,7 @@ import io.crate.metadata.settings.BoolSetting;
 
 public class SnapshotSettings {
 
-    public static final BoolSetting IGNORE_UNAVAILABLE = new BoolSetting("ignore_unavailable", false, false);
+    public static final BoolSetting IGNORE_UNAVAILABLE = new BoolSetting("ignore_unavailable", false);
 
-    public static final BoolSetting WAIT_FOR_COMPLETION = new BoolSetting("wait_for_completion", false, false);
+    public static final BoolSetting WAIT_FOR_COMPLETION = new BoolSetting("wait_for_completion", false);
 }

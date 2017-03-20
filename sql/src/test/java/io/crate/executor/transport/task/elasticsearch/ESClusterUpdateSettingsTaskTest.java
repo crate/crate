@@ -29,6 +29,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -41,20 +42,9 @@ import static org.hamcrest.core.Is.is;
 public class ESClusterUpdateSettingsTaskTest extends CrateUnitTest {
 
     @Test
-    public void testUpdateSettingsWithInvalidTimeValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'cluster.graceful_stop.timeout'");
-
-        Map<String, List<Expression>> settings = new HashMap<String, List<Expression>>() {{
-            put("cluster.graceful_stop.timeout", ImmutableList.<Expression>of(new ParameterExpression(1)));
-        }};
-        ESClusterUpdateSettingsTask.buildSettingsFrom(settings, new RowN(new Object[]{"-1h"}));
-    }
-
-    @Test
     public void testUpdateSettingsWithStringValue() throws Exception {
         Map<String, List<Expression>> settings = new HashMap<String, List<Expression>>() {{
-            put("cluster.graceful_stop.min_availability", ImmutableList.<Expression>of(new StringLiteral("full")));
+            put("cluster.graceful_stop.min_availability", ImmutableList.of(new StringLiteral("full")));
         }};
         Settings expected = Settings.builder()
             .put("cluster.graceful_stop.min_availability", "full")
@@ -65,8 +55,8 @@ public class ESClusterUpdateSettingsTaskTest extends CrateUnitTest {
     @Test
     public void testUpdateMultipleSettingsWithParameters() throws Exception {
         Map<String, List<Expression>> settings = new HashMap<String, List<Expression>>() {{
-            put("stats.operations_log_size", ImmutableList.<Expression>of(new ParameterExpression(1)));
-            put("stats.jobs_log_size", ImmutableList.<Expression>of(new ParameterExpression(2)));
+            put("stats.operations_log_size", ImmutableList.of(new ParameterExpression(1)));
+            put("stats.jobs_log_size", ImmutableList.of(new ParameterExpression(2)));
         }};
         Settings expected = Settings.builder()
             .put("stats.operations_log_size", 10)
@@ -76,5 +66,39 @@ public class ESClusterUpdateSettingsTaskTest extends CrateUnitTest {
             ESClusterUpdateSettingsTask.buildSettingsFrom(settings, new RowN(new Object[]{10, 25})),
             is(expected)
         );
+    }
+
+    @Test
+    public void testUpdateObjectWithParameter() throws Exception {
+        Map<String, List<Expression>> settings = new HashMap<String, List<Expression>>() {{
+            put("stats", ImmutableList.of(new ParameterExpression(1)));
+        }};
+        Map<String, Object> param = MapBuilder.<String, Object>newMapBuilder()
+            .put("enabled", true)
+            .put("breaker",
+                MapBuilder.newMapBuilder()
+                .put("log", MapBuilder.newMapBuilder()
+                    .put("jobs", MapBuilder.newMapBuilder()
+                        .put("overhead", 1.05d).map()
+                    ).map()
+                ).map()
+            ).map();
+
+        Settings expected = Settings.builder()
+            .put("stats.enabled", true)
+            .put("stats.breaker.log.jobs.overhead", 1.05d)
+            .build();
+        assertThat(ESClusterUpdateSettingsTask.buildSettingsFrom(settings, new RowN(new Object[]{param})), is(expected));
+    }
+
+    @Test
+    public void testUnsupportedSetting() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Setting 'unsupported_setting' is not supported");
+
+        Map<String, List<Expression>> settings = new HashMap<String, List<Expression>>() {{
+            put("unsupported_setting", ImmutableList.of(new StringLiteral("foo")));
+        }};
+        ESClusterUpdateSettingsTask.buildSettingsFrom(settings, Row.EMPTY);
     }
 }
