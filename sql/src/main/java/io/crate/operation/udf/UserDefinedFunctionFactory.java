@@ -28,6 +28,7 @@ package io.crate.operation.udf;
 
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 
 import javax.script.Compilable;
 import javax.script.CompiledScript;
@@ -37,7 +38,7 @@ import java.util.stream.Collectors;
 
 public class UserDefinedFunctionFactory {
 
-    public static UserDefinedFunction of(UserDefinedFunctionMetaData meta) {
+    public static FunctionImplementation of(UserDefinedFunctionMetaData meta) {
         switch (meta.language.toLowerCase()) {
             case "javascript":
                 try {

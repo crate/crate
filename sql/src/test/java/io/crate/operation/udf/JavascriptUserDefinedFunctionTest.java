@@ -90,53 +90,53 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     @Test
     public void testArrayReturnType() {
         registerUserDefinedFunction("doc", "f", DataTypes.DOUBLE_ARRAY, ImmutableList.of(), "function f() { return [1, 2]; }");
-        assertEvaluate("f()", new double[]{1.0, 2.0});
+        assertEvaluate("doc.f()", new double[]{1.0, 2.0});
     }
 
     @Test
     public void testTimestampReturnType() {
         registerUserDefinedFunction("doc", "f", DataTypes.TIMESTAMP, ImmutableList.of(),
             "function f() { return \"1990-01-01T00:00:00\"; }");
-        assertEvaluate("f()", 631152000000L);
+        assertEvaluate("doc.f()", 631152000000L);
     }
 
     @Test
     public void testIpReturnType() {
         registerUserDefinedFunction("doc", "f", DataTypes.IP, ImmutableList.of(), "function f() { return \"127.0.0.1\"; }");
-        assertEvaluate("f()", DataTypes.IP.value("127.0.0.1"));
+        assertEvaluate("doc.f()", DataTypes.IP.value("127.0.0.1"));
     }
 
     @Test
     public void testPrimitiveReturnType() {
         registerUserDefinedFunction("doc", "f", DataTypes.INTEGER, ImmutableList.of(), "function f() { return 10; }");
-        assertEvaluate("f()", 10);
+        assertEvaluate("doc.f()", 10);
     }
 
     @Test
     public void testObjectReturnTypeAndInputArguments() {
         registerUserDefinedFunction("doc", "f", DataTypes.FLOAT, ImmutableList.of(DataTypes.DOUBLE, DataTypes.SHORT),
             "function f(x, y) { return x + y; }");
-        assertEvaluate(" f(double_val, short_val)", 3.0f, Literal.of(1), Literal.of(2));
+        assertEvaluate("doc.f(double_val, short_val)", 3.0f, Literal.of(1), Literal.of(2));
     }
 
     @Test
     public void testPrimitiveReturnTypeAndInputArguments() {
         registerUserDefinedFunction("doc", "f", DataTypes.FLOAT, ImmutableList.of(DataTypes.DOUBLE, DataTypes.SHORT),
             "function f(x, y) { return x + y; }");
-        assertEvaluate(" f(double_val, short_val)", 3.0f, Literal.of(1), Literal.of(2));
+        assertEvaluate("doc.f(double_val, short_val)", 3.0f, Literal.of(1), Literal.of(2));
     }
 
     @Test
     public void testGeoTypeReturnTypeWithDoubleArray() {
         registerUserDefinedFunction("doc", "f", DataTypes.GEO_POINT, ImmutableList.of(), "function f() { return [1, 1]; }");
-        assertEvaluate("f()", new double[]{1.0, 1.0});
+        assertEvaluate("doc.f()", new double[]{1.0, 1.0});
     }
 
     @Test
     public void testGeoTypeReturnTypeWithWKT() {
         registerUserDefinedFunction("doc", "f", DataTypes.GEO_POINT, ImmutableList.of(),
             "function f() { return \"POINT (1.0 2.0)\"; }");
-        assertEvaluate("f()", new double[]{1.0, 2.0});
+        assertEvaluate("doc.f()", new double[]{1.0, 2.0});
     }
 
     @Test
@@ -145,9 +145,9 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
         registerUserDefinedFunction("doc", "f", DataTypes.LONG, ImmutableList.of(DataTypes.LONG), "function f(x) { return x; }");
         registerUserDefinedFunction("doc", "f", DataTypes.LONG, ImmutableList.of(DataTypes.LONG, DataTypes.INTEGER),
             "function f(x, y) { return x + y; }");
-        assertEvaluate("f()", 1L);
-        assertEvaluate("f(x)", 2L, Literal.of(2));
-        assertEvaluate("f(x, a)", 3L, Literal.of(2), Literal.of(1));
+        assertEvaluate("doc.f()", 1L);
+        assertEvaluate("doc.f(x)", 2L, Literal.of(2));
+        assertEvaluate("doc.f(x, a)", 3L, Literal.of(2), Literal.of(1));
     }
 
     @Test
@@ -155,8 +155,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
         exception.expect(UnsupportedOperationException.class);
         exception.expectMessage(containsString("The name [test] of the function signature doesn't"));
         registerUserDefinedFunction("doc", "test", DataTypes.LONG, ImmutableList.of(), "function f() { return 1; }");
-        assertEvaluate("test" +
-            "()", 1L);
+        assertEvaluate("doc.test()", 1L);
     }
 
     @Test
@@ -165,7 +164,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
         exception.expectMessage(containsString("The function definition cannot be evaluated"));
         registerUserDefinedFunction("doc", "f", DataTypes.OBJECT, ImmutableList.of(),
             "function f() { return JSON.parse('{\"foo\": a}'); }");
-        assertEvaluate("f()", 1L);
+        assertEvaluate("doc.f()", 1L);
     }
 
     @Test

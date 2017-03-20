@@ -27,7 +27,9 @@
 package io.crate.operation.udf;
 
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.types.*;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
@@ -39,17 +41,23 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class JavaScriptUserDefinedFunction extends UserDefinedFunction {
+public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
 
     static final ScriptEngine ENGINE = new ScriptEngineManager().getEngineByName("nashorn");
 
-    private final FunctionIdent ident;
+    private final FunctionInfo info;
     private final CompiledScript compiledScript;
+    private final DataType returnType;
 
     JavaScriptUserDefinedFunction(FunctionIdent ident, DataType returnType, CompiledScript compiledScript) {
-        super(ident, returnType);
-        this.ident = ident;
+        this.info = new FunctionInfo(ident, returnType);
+        this.returnType = returnType;
         this.compiledScript = compiledScript;
+    }
+
+    @Override
+    public FunctionInfo info() {
+        return info;
     }
 
     @Override
@@ -61,28 +69,35 @@ public class JavaScriptUserDefinedFunction extends UserDefinedFunction {
         } catch (ScriptException e) {
             throw new IllegalArgumentException(String.format("Cannot evaluate the script. [%s]", e));
         }
-        return new CompiledJavaScriptUserDefinedFunction(ident, returnType, bindings);
+        return new CompiledJavaScriptUserDefinedFunction(info().ident(), returnType, bindings);
     }
 
-    private class CompiledJavaScriptUserDefinedFunction extends UserDefinedFunction {
 
+    private class CompiledJavaScriptUserDefinedFunction extends Scalar<Object, Object> {
+
+        private final FunctionInfo info;
         private final Bindings bindings;
 
-        CompiledJavaScriptUserDefinedFunction(FunctionIdent ident,
-                                              DataType returnType,
-                                              Bindings bindings) {
-            super(ident, returnType);
+        private CompiledJavaScriptUserDefinedFunction(FunctionIdent ident,
+                                                      DataType returnType,
+                                                      Bindings bindings) {
+            this.info = new FunctionInfo(ident, returnType);
             this.bindings = bindings;
         }
 
         @Override
-        protected Object evaluateUserDefinedFunction(Object[] values) {
+        public FunctionInfo info() {
+            return info;
+        }
+
+        @Override
+        public final Object evaluate(Input<Object>[] values) {
             return evaluateFunctionWithBindings(bindings, values);
         }
     }
 
     @Override
-    protected Object evaluateUserDefinedFunction(Object[] values) {
+    public Object evaluate(Input<Object>[] values) {
         Bindings bindings = ENGINE.createBindings();
         try {
             compiledScript.eval(bindings);
@@ -92,10 +107,14 @@ public class JavaScriptUserDefinedFunction extends UserDefinedFunction {
         return evaluateFunctionWithBindings(bindings, values);
     }
 
-    private Object evaluateFunctionWithBindings(Bindings bindings, Object[] values) {
+    private Object evaluateFunctionWithBindings(Bindings bindings, Input<Object>[] values) {
         Object result;
         try {
-            result = ((ScriptObjectMirror) bindings.get(info.ident().name())).call(this, values);
+            Object[] args = new Object[values.length];
+            for (int i = 0; i < values.length; i++) {
+                args[i] = values[i].value();
+            }
+            result = ((ScriptObjectMirror) bindings.get(info.ident().name())).call(this, args);
         } catch (NullPointerException e) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "The name [%s] of the function signature doesn't match the function name in the function definition.",

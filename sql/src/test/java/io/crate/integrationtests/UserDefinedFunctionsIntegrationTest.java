@@ -40,7 +40,7 @@ import static org.hamcrest.CoreMatchers.is;
 public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegrationTest {
 
     private final Object[][] rows = new Object[][]{
-        new Object[]{1L, "foo", new HashMap<String, Long>() {{
+        new Object[]{1L, "Foo", new HashMap<String, Long>() {{
             put("foo", 2L);
         }}, new Object[]{1L, 2L}
         },
@@ -95,5 +95,20 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         execute("select test.custom_function(str) from test where id = 2");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], is("bar"));
+    }
+
+    @Test
+    public void testCreateFunctionInDefaultSchemaWithSameNameAsBuiltinFunction() throws Exception {
+        execute("create function lower(string) returns string language javascript as 'function lower(x) { return x; }'");
+        waitForFunctionCreatedOnAll("doc", "lower", ImmutableList.of(DataTypes.STRING));
+
+        execute("select lower(str) from test where id = 1");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], is("foo"));
+
+        // can be accessed only via schema name
+        execute("select doc.lower(str) from test where id = 1");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], is("Foo"));
     }
 }

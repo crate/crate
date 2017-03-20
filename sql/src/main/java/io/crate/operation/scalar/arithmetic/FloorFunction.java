@@ -97,9 +97,6 @@ public abstract class FloorFunction extends Scalar<Number, Number> {
 
         @Override
         public Number evaluate(Input<Number>[] args) {
-            if (args == null) {
-                return null;
-            }
             return args[0].value();
         }
 

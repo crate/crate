@@ -31,6 +31,7 @@ import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class Functions {
@@ -43,7 +44,7 @@ public class Functions {
                      Map<String, FunctionResolver> functionResolvers) {
         this.functionResolvers = Maps.newHashMap(functionResolvers);
         this.functionResolvers.putAll(generateFunctionResolvers(functionImplementations));
-        schemaFunctionResolvers = new HashMap<>();
+        schemaFunctionResolvers = new ConcurrentHashMap<>();
     }
 
     public Map<String, FunctionResolver> generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
@@ -86,8 +87,7 @@ public class Functions {
                     return dynamicResolver.getForTypes(signature);
                 }
             }
-            // fallback, check if the function with the same name was defined in the default schema
-            return getSchemaFunctionImplementation(Schemas.DEFAULT_SCHEMA_NAME, name, arguments);
+            return null;
         } else {
             // Get a user defined function from the given schema. The function must be
             // assigned a certain schema. If no schema is provided, it belongs to the default schema.

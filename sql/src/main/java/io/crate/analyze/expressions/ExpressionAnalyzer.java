@@ -156,12 +156,17 @@ public class ExpressionAnalyzer {
         List<String> nameParts = node.getName().getParts();
         String schema;
         String name;
+
         if (nameParts.size() == 1) {
             schema = null;
             name = nameParts.get(0);
-        } else {
+        } else if (nameParts.size() == 2) {
             schema = nameParts.get(0);
             name = nameParts.get(1);
+        } else {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "The function format must have \"[schema.] name\" format, but was [%s]", node.getName())
+            );
         }
 
         FunctionInfo functionInfo;
