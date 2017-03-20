@@ -34,6 +34,8 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.metadata.PartitionName;
+import io.crate.settings.CrateSetting;
+import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
@@ -44,7 +46,9 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
@@ -54,6 +58,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -65,6 +70,10 @@ import java.util.concurrent.atomic.AtomicReference;
  * the {@link #add} method will start to block.
  */
 public class BulkShardProcessor<Request extends ShardRequest> {
+
+    public static final CrateSetting<TimeValue> BULK_REQUEST_TIMEOUT_SETTING = CrateSetting.of(Setting.positiveTimeSetting(
+        "bulk.request_timeout", new TimeValue(1, TimeUnit.MINUTES),
+        Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING);
 
     public static final int DEFAULT_BULK_SIZE = 10_000;
 

@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableList;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.BlockingEvictingQueue;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
@@ -88,10 +87,10 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     public void testDefaultSettings() {
         JobsLogService stats = new JobsLogService(Settings.EMPTY, clusterSettings, scheduler, breakerService);
         assertThat(stats.isEnabled(), is(false));
-        assertThat(stats.jobsLogSize, is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
-        assertThat(stats.operationsLogSize, is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
-        assertThat(stats.jobsLogExpiration, is(CrateSettings.STATS_JOBS_LOG_EXPIRATION.defaultValue()));
-        assertThat(stats.operationsLogExpiration, is(CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.defaultValue()));
+        assertThat(stats.jobsLogSize, is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault()));
+        assertThat(stats.operationsLogSize, is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault()));
+        assertThat(stats.jobsLogExpiration, is(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault()));
+        assertThat(stats.operationsLogExpiration, is(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault()));
 
         // even though jobsLog size and opertionsLog size are > 0 it must be a NoopQueue because the stats are disabled
         assertThat(stats.jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
@@ -101,14 +100,14 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testEnableStats() throws Exception {
         Settings settings = Settings.builder()
-            .put(CrateSettings.STATS_ENABLED.settingName(), false)
-            .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 100)
-            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 100)
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), false)
+            .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 100)
+            .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 100)
             .build();
         JobsLogService stats = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
 
         clusterService.getClusterSettings().applySettings(Settings.builder()
-            .put(CrateSettings.STATS_ENABLED.settingName(), true)
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
             .build());
 
         assertThat(stats.isEnabled(), is(true));
@@ -121,9 +120,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSettingsChanges() throws Exception {
         Settings settings = Settings.builder()
-            .put(CrateSettings.STATS_ENABLED.settingName(), true)
-            .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 100)
-            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 100)
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
+            .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 100)
+            .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 100)
             .build();
         JobsLogService stats = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
 
@@ -137,8 +136,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             Matchers.instanceOf(BlockingEvictingQueue.class));
 
         clusterSettings.applySettings(Settings.builder()
-            .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "10s")
-            .put(CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.settingName(), "10s")
+            .put(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey(), "10s")
+            .put(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getKey(), "10s")
             .build());
 
         assertThat(inspectRamAccountingQueue((QueueSink) stats.jobsLogSink),
@@ -148,19 +147,19 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
         // set all to 0 but don't disable stats
         clusterSettings.applySettings(Settings.builder()
-            .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 0)
-            .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "0s")
-            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 0)
-            .put(CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.settingName(), "0s")
+            .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 0)
+            .put(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey(), "0s")
+            .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 0)
+            .put(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getKey(), "0s")
             .build());
         assertThat(stats.jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
         assertThat(stats.operationsLogSink, Matchers.instanceOf(NoopLogSink.class));
         assertThat(stats.isEnabled(), is(true));
 
         clusterSettings.applySettings(Settings.builder()
-            .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 200)
-            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 200)
-            .put(CrateSettings.STATS_ENABLED.settingName(), true)
+            .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 200)
+            .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 200)
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
             .build());
         assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
         assertThat(inspectRamAccountingQueue((QueueSink) stats.jobsLogSink),
@@ -171,7 +170,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
         // disable stats
         clusterSettings.applySettings(Settings.builder()
-            .put(CrateSettings.STATS_ENABLED.settingName(), false)
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), false)
             .build());
         assertThat(stats.isEnabled(), is(false));
         assertThat(stats.jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
@@ -190,14 +189,14 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testLogsArentWipedOnSizeChange() {
         Settings settings = Settings.builder()
-            .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
         JobsLogService stats = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
 
         stats.jobsLogSink.add(new JobContextLog(new JobContext(UUID.randomUUID(), "select 1", 1L), null));
 
         clusterSettings.applySettings(Settings.builder()
-            .put(CrateSettings.STATS_ENABLED.settingName(), true)
-            .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 200).build());
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
+            .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 200).build());
 
         assertThat(ImmutableList.copyOf(stats.jobsLogSink.iterator()).size(), is(1));
 
@@ -207,8 +206,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             new OperationContext(1, UUID.randomUUID(), "foo", 3L), null));
 
         clusterSettings.applySettings(Settings.builder()
-            .put(CrateSettings.STATS_ENABLED.settingName(), true)
-            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 1).build());
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
+            .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 1).build());
 
         assertThat(ImmutableList.copyOf(stats.jobsLogSink.iterator()).size(), is(1));
     }

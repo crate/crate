@@ -33,7 +33,6 @@ import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.operation.collect.RowShardResolver;
@@ -104,7 +103,7 @@ public class IndexWriterCountBatchIteratorTest extends SQLTransportIntegrationTe
     private BulkShardProcessor<ShardUpsertRequest> getBulkShardProcessor() {
         UUID jobId = UUID.randomUUID();
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(Settings.EMPTY),
+            BulkShardProcessor.BULK_REQUEST_TIMEOUT_SETTING.getDefault(),
             false,
             true,
             null,

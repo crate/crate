@@ -22,7 +22,7 @@
 
 package io.crate.cluster.gracefulstop;
 
-import io.crate.metadata.settings.CrateSettings;
+import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -34,13 +34,13 @@ import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import java.util.HashSet;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.is;
@@ -59,10 +59,8 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
 
     @Override
     protected Set<Setting<?>> additionalClusterSettings() {
-        Set<Setting<?>> settings = new HashSet<>();
-        settings.add(DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP);
-        settings.add(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.esSetting());
-        return settings;
+        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
+        return Sets.newHashSet(sqlPlugin.getSettings());
     }
 
     @Before
@@ -108,7 +106,7 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
     @Test
     public void testCanAlwaysAllocateIfDataAvailabilityIsNone() throws Exception {
         Settings settings = Settings.builder()
-            .put(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName(), "none")
+            .put(DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.getKey(), "none")
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
         DecommissionAllocationDecider allocationDecider =
             new DecommissionAllocationDecider(settings, clusterService);
@@ -123,7 +121,7 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
     @Test
     public void testReplicasCanRemainButCannotAllocateOnDecommissionedNodeWithPrimariesDataAvailability() throws Exception {
         Settings settings = Settings.builder()
-            .put(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName(), "primaries")
+            .put(DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.getKey(), "primaries")
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
 
         DecommissionAllocationDecider allocationDecider =
@@ -139,7 +137,7 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
     @Test
     public void testCannotAllocatePrimaryOrReplicaIfDataAvailabilityIsFull() throws Exception {
         Settings settings = Settings.builder()
-            .put(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName(), "full")
+            .put(DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.getKey(), "full")
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
 
         DecommissionAllocationDecider allocationDecider =

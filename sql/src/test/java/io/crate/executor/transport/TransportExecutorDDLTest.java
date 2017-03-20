@@ -211,7 +211,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         objects = executePlan(node);
 
         assertThat(objects, contains(isRow(1L)));
-        assertEquals("123000ms", client().admin().cluster().prepareState().execute().actionGet().getState().metaData()
+        assertEquals("123s", client().admin().cluster().prepareState().execute().actionGet().getState().metaData()
             .transientSettings().get(transientSetting)
         );
 
@@ -230,7 +230,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         MetaData md = client().admin().cluster().prepareState().execute().actionGet().getState().metaData();
         assertThat(objects, contains(isRow(1L)));
         assertEquals("false", md.persistentSettings().get(persistentSetting));
-        assertEquals("243000ms", md.transientSettings().get(transientSetting));
+        assertEquals("243s", md.transientSettings().get(transientSetting));
     }
 
     private Bucket executePlan(Plan plan) throws Exception {
