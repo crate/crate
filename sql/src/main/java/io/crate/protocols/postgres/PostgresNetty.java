@@ -26,7 +26,8 @@ import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
-import io.crate.metadata.settings.CrateSettings;
+import io.crate.settings.CrateSetting;
+import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -35,6 +36,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -58,11 +60,19 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 
 @Singleton
 public class PostgresNetty extends AbstractLifecycleComponent {
+
+    public static final CrateSetting<Boolean> PSQL_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
+        "psql.enabled", true,
+        Setting.Property.NodeScope), DataTypes.BOOLEAN);
+    public static final CrateSetting<String> PSQL_PORT_SETTING = CrateSetting.of(new Setting<>(
+        "psql.port", "5432-5532",
+        Function.identity(), Setting.Property.NodeScope), DataTypes.STRING);
 
     private final SQLOperations sqlOperations;
     private final NetworkService networkService;
@@ -85,8 +95,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
 
-        enabled = CrateSettings.PSQL_ENABLED.extract(settings);
-        port = CrateSettings.PSQL_PORT.extract(settings);
+        enabled = PSQL_ENABLED_SETTING.setting().get(settings);
+        port = PSQL_PORT_SETTING.setting().get(settings);
     }
 
     @Nullable

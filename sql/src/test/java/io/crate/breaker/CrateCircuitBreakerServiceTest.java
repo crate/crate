@@ -21,13 +21,13 @@
 
 package io.crate.breaker;
 
+import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.CircuitBreakerStats;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
@@ -35,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Matchers;
 
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 
@@ -49,15 +50,10 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
 
     @Before
     public void registerSettings() {
-        Set<Setting<?>> settings = Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
-        settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING);
-        settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING);
-        settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_TYPE_SETTING);
-        settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_TYPE_SETTING);
-        settings.add(CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING);
-        settings.add(CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING);
-        settings.add(CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING);
-        settings.add(CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING);
+        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
+        Set<Setting<?>> settings = new HashSet<>();
+        settings.addAll(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
+        settings.addAll(sqlPlugin.getSettings());
         clusterSettings = new ClusterSettings(Settings.EMPTY, settings);
     }
 

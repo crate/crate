@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.breaker.CircuitBreakerModule;
-import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.jobs.JobContextService;
@@ -39,7 +38,6 @@ import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.pg_catalog.PgCatalogModule;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.settings.Setting;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -57,10 +55,12 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.rest.action.RestSQLAction;
+import io.crate.settings.CrateSetting;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.ArrayTypeParser;
@@ -71,7 +71,6 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestHandler;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -100,30 +99,18 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
     }
 
     @Override
-    public List<org.elasticsearch.common.settings.Setting<?>> getSettings() {
+    public List<Setting<?>> getSettings() {
         // add our dynamic cluster settings
         List<org.elasticsearch.common.settings.Setting<?>> settings = new ArrayList<>();
         settings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTING_GROUP);
-        settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING);
-        settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING);
-        settings.add(DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP);
         settings.add(SQLOperations.NODE_READ_ONLY_SETTING);
         settings.add(MonitorModule.NODE_INFO_EXTENDED_TYPE_SETTING);
 
-        addESSettings(settings::add, CrateSettings.CRATE_SETTINGS);
-        return settings;
-    }
-
-    private static void addESSettings(Consumer<org.elasticsearch.common.settings.Setting<?>> consumer,
-                                      Iterable<Setting> crateSettings) {
-        for (Setting crateSetting : crateSettings) {
-            org.elasticsearch.common.settings.Setting esSetting = crateSetting.esSetting();
-            if (esSetting == null) {
-                addESSettings(consumer, crateSetting.children());
-                continue;
-            }
-            consumer.accept(esSetting);
+        for (CrateSetting crateSetting : CrateSettings.CRATE_CLUSTER_SETTINGS) {
+            settings.add(crateSetting.setting());
         }
+
+        return settings;
     }
 
     public String name() {

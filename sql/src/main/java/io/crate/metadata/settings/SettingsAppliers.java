@@ -23,14 +23,11 @@
 package io.crate.metadata.settings;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Joiner;
 import io.crate.analyze.expressions.*;
 import io.crate.data.Row;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.types.BooleanType;
-import io.crate.types.DoubleType;
-import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.settings.Settings;
@@ -39,14 +36,13 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class SettingsAppliers {
 
     public static abstract class AbstractSettingsApplier implements SettingsApplier {
         protected final String name;
-        protected final Settings defaultSettings;
+        final Settings defaultSettings;
 
         public AbstractSettingsApplier(String name, Settings defaultSettings) {
             this.name = name;
@@ -73,12 +69,12 @@ public class SettingsAppliers {
             return value;
         }
 
-        public IllegalArgumentException invalidException(Exception cause) {
+        protected IllegalArgumentException invalidException(Exception cause) {
             return new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Invalid value for argument '%s'", name), cause);
         }
 
-        public IllegalArgumentException invalidException() {
+        protected IllegalArgumentException invalidException() {
             return new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Invalid value for argument '%s'", name));
         }
@@ -93,7 +89,7 @@ public class SettingsAppliers {
 
         protected final Setting setting;
 
-        public NumberSettingsApplier(Setting setting) {
+        NumberSettingsApplier(Setting setting) {
             super(setting.settingName(), setting.defaultValue() == null ? Settings.EMPTY :
                 Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
             this.setting = setting;
@@ -108,68 +104,6 @@ public class SettingsAppliers {
             }
         }
 
-    }
-
-    public static class MemoryValueSettingsApplier extends AbstractSettingsApplier {
-
-        public MemoryValueSettingsApplier(Setting setting) {
-            super(setting.settingName(),
-                Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
-        }
-
-        @Override
-        public void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression) {
-            try {
-                applyValue(settingsBuilder, ExpressionToMemoryValueVisitor.convert(expression, parameters, name));
-            } catch (IllegalArgumentException e) {
-                throw invalidException(e);
-            }
-        }
-
-    }
-
-    public static class ObjectSettingsApplier extends AbstractSettingsApplier {
-
-        public ObjectSettingsApplier(NestedSetting settings) {
-            super(settings.settingName(),
-                Settings.builder().put(settings.settingName(), settings.defaultValue()).build());
-        }
-
-        static final Joiner dotJoiner = Joiner.on('.');
-
-        protected void flattenSettings(Settings.Builder settingsBuilder,
-                                       String key, Object value) {
-            if (value instanceof Map) {
-                for (Map.Entry<String, Object> setting : ((Map<String, Object>) value).entrySet()) {
-                    flattenSettings(settingsBuilder, dotJoiner.join(key, setting.getKey()),
-                        setting.getValue());
-                }
-            } else {
-                SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(key);
-                settingsApplier.applyValue(settingsBuilder, value);
-            }
-        }
-
-        @Override
-        public void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression) {
-            Object value;
-            try {
-                value = ExpressionToObjectVisitor.convert(expression, parameters);
-            } catch (IllegalArgumentException e) {
-                throw invalidException(e);
-            }
-            if (!(value instanceof Map)) {
-                throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Only object values are allowed at '%s'", name));
-            }
-            flattenSettings(settingsBuilder, this.name, value);
-        }
-
-        @Override
-        public void applyValue(Settings.Builder settingsBuilder, Object value) {
-            throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "Only object values are allowed at '%s'", name));
-        }
     }
 
     public static class BooleanSettingsApplier extends AbstractSettingsApplier {
@@ -212,42 +146,6 @@ public class SettingsAppliers {
         }
     }
 
-    public static class FloatSettingsApplier extends NumberSettingsApplier {
-
-        public FloatSettingsApplier(FloatSetting setting) {
-            super(setting);
-        }
-
-        @Override
-        @VisibleForTesting
-        public Object validate(Object value) {
-            Float convertedValue = FloatType.INSTANCE.value(value);
-            FloatSetting setting = (FloatSetting) this.setting;
-            if (convertedValue < setting.minValue() || convertedValue > setting.maxValue()) {
-                throw invalidException();
-            }
-            return convertedValue;
-        }
-    }
-
-    public static class DoubleSettingsApplier extends NumberSettingsApplier {
-
-        public DoubleSettingsApplier(DoubleSetting setting) {
-            super(setting);
-        }
-
-        @Override
-        @VisibleForTesting
-        public Object validate(Object value) {
-            Double convertedValue = DoubleType.INSTANCE.value(value);
-            DoubleSetting setting = (DoubleSetting) this.setting;
-            if (convertedValue < setting.minValue() || convertedValue > setting.maxValue()) {
-                throw invalidException();
-            }
-            return convertedValue;
-        }
-    }
-
     public static class ByteSizeSettingsApplier extends AbstractSettingsApplier {
 
         private final ByteSizeSetting setting;
@@ -282,7 +180,7 @@ public class SettingsAppliers {
             applyValue(settingsBuilder, byteSizeValue);
         }
 
-        public void applyValue(Settings.Builder settingsBuilder, ByteSizeValue value) {
+        void applyValue(Settings.Builder settingsBuilder, ByteSizeValue value) {
             value = validate(value);
             settingsBuilder.put(name, value.getBytes(), ByteSizeUnit.BYTES);
         }
@@ -336,54 +234,6 @@ public class SettingsAppliers {
         }
     }
 
-    public static class PercentageOrAbsoluteByteSettingApplier extends StringSettingsApplier {
-
-        private final StringSetting setting;
-
-        public PercentageOrAbsoluteByteSettingApplier(StringSetting setting) {
-            super(setting);
-            this.setting = setting;
-        }
-
-        @Override
-        @VisibleForTesting
-        public Object validate(Object value) {
-            String validation = (String) value;
-            if (validation != null && validation.endsWith("%")) {
-                validateAsPercentageValue(validation);
-            } else {
-                validateAsByteSizeValue(validation);
-            }
-            return value;
-        }
-
-        private void validateAsPercentageValue(String value) {
-            final String percentage = value.substring(0, value.length() - 1);
-            try {
-                final double percent = Double.parseDouble(percentage);
-                if (percent < 0 || percent > 100) {
-                    throw new InvalidSettingValueContentException(String.format(Locale.ENGLISH,
-                        "percentage should be in [0-100], got [%s]", percentage)
-                    );
-                }
-            } catch (NumberFormatException e) {
-                throw new InvalidSettingValueContentException(String.format(Locale.ENGLISH,
-                    "failed to parse [%s] as a double", percentage)
-                );
-            }
-        }
-
-        private void validateAsByteSizeValue(String value) {
-            try {
-                ByteSizeValue.parseBytesSizeValue(value, setting.settingName());
-            } catch (ElasticsearchParseException e) {
-                throw new InvalidSettingValueContentException(String.format(Locale.ENGLISH,
-                    "failed to parse [%s] as a byte size value", value)
-                );
-            }
-        }
-    }
-
     public static class TimeSettingsApplier extends SettingsAppliers.AbstractSettingsApplier {
 
         private final TimeSetting setting;
@@ -413,7 +263,7 @@ public class SettingsAppliers {
             applyValue(settingsBuilder, time.millis());
         }
 
-        public void applyValue(Settings.Builder settingsBuilder, TimeValue value) {
+        void applyValue(Settings.Builder settingsBuilder, TimeValue value) {
             value = validate(value);
             settingsBuilder.put(name, value.getMillis(), TimeUnit.MILLISECONDS);
         }
