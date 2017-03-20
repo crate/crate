@@ -771,7 +771,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table computed (" +
                 " ts timestamp," +
                 " gen_col as extract(year from ts)" +
-                ") clustered into 1 shards with (number_of_replicas=0)");
+                ") with (number_of_replicas=0)");
         ensureYellow();
 
         execute("insert into computed (ts) values (1)");
