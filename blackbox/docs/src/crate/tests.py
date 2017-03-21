@@ -70,16 +70,17 @@ def wait_for_schema_update(schema, table, column):
                     (schema, table, column))
         count = c.fetchone()[0]
 
-def wait_for_function(schema, name, signatures_count=1):
+def wait_for_function(schema, name):
     conn = connect('localhost:' + str(CRATE_HTTP_PORT))
     c = conn.cursor()
-    count = 0
-    while count >= signatures_count:
+    while True:
         c.execute(('select count(*) from information_schema.routines '
                    'where routine_schema = ? and routine_name = ? '
                    'and routine_type = ?'),
                   (schema, name, 'FUNCTION'))
-        count = c.fetchone()[0]
+        if int(c.fetchone()[0]) != 0:
+            break
+
 
 def bash_transform(s):
     # The examples in the docs show the real port '4200' to a reader.
@@ -324,6 +325,8 @@ def tearDownCountries(test):
 def setUpLocationsAndQuotes(test):
     setUpLocations(test)
     setUpQuotes(test)
+    test.globs['wait_for_function'] = wait_for_function
+
 
 def tearDownLocationsAndQuotes(test):
     tearDownLocations(test)

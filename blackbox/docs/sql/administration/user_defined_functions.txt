@@ -25,17 +25,18 @@ These functions can be created like this::
     +----------------+
     | subtract(3, 1) |
     +----------------+
-    | 2              |
+    |              2 |
     +----------------+
-    SELECT 1 rows in set (... sec)
+    SELECT 1 row in set (... sec)
 
 ``OR REPLACE`` can be used to replace an existing function::
 
-    cr> CREATE OR REPLACE FUNCTION log10(long)
+    cr> CREATE FUNCTION log10(long)
     ...  RETURNS double
     ...  LANGUAGE JAVASCRIPT
-    ...  AS 'function log10(a) { return Math.log10(a); }';
+    ...  AS 'function log10(a) { return Math.log(a)/Math.log(10); }';
     CREATE OK, 1 row affected  (... sec)
+
 
 .. hide:
 
@@ -45,9 +46,9 @@ These functions can be created like this::
     +----------------+
     | log10(10)      |
     +----------------+
-    | 1              |
+    |            1.0 |
     +----------------+
-    SELECT 1 rows in set (... sec)
+    SELECT 1 row in set (... sec)
 
 Arguments can be named in the function definition.
 
@@ -92,9 +93,9 @@ Functions can be accessed from any schema if the full name is provided::
     +-------------------------+
     | my_schema.subtract(1, 2)|
     +-------------------------+
-    | -1                      |
+    |                      -1 |
     +-------------------------+
-    SELECT 1 rows in set (... sec)
+    SELECT 1 row in set (... sec)
 
 
 Supported Types
@@ -166,33 +167,41 @@ JavaScript user-defined functions can handle all CrateDB data types, but
 
 If a user-defined function requires ``geo_point`` as a return type, then the
 JavaScript function must return either a ``double array`` of size 2 or
-a ``WKT String``::
+a ``WKT String``, or a ``GeoJson``.
+
+Here is an example of a JavaScript function returning a ``double array``::
+
 
     cr> CREATE FUNCTION rotate_point(point geo_point, angle float)
     ...  RETURNS geo_point
     ...  LANGUAGE JAVASCRIPT
     ...  AS 'function rotate_point(point, angle) {
-    ...        var cos = Math.cos(angle),
-    ...            sin = Math.sin(angle),
-    ...            x = cos * point[0] - sin * point[1],
-    ...            y = sin * point[0] + cos * point[1];
+    ...        var cos = Math.cos(angle);
+    ...        var sin = Math.sin(angle);
+    ...        var x = cos * point[0] - sin * point[1];
+    ...        var y = sin * point[0] + cos * point[1];
     ...        return [x, y];
     ...      }';
     CREATE OK, 1 row affected  (... sec)
 
-Similarly, if the function specifies ``geo_shape`` or ``object`` as a return
-type, then the JavaScript function should return an ``object``::
+Here is an example of a JavaScript function returning a ``GeoJson``::
 
-     cr> CREATE FUNCTION point_object(point geo_point)
-     ...  RETURNS object
-     ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function point_object(point) {
-     ...        return {'lon': point[0], 'lat': point[1]};
-     ...      }';
+
+    cr> CREATE OR REPLACE FUNCTION rotate_point(point geo_point, angle float)
+    ...  RETURNS geo_point
+    ...  LANGUAGE JAVASCRIPT
+    ...  AS 'function rotate_point(point, angle) {
+    ...        var cos = Math.cos(angle);
+    ...        var sin = Math.sin(angle);
+    ...        var x = cos * point[0] - sin * point[1];
+    ...        var y = sin * point[0] + cos * point[1];
+    ...        return { "type": "Point", "coordinates": [x, y] };
+    ...      }';
     CREATE OK, 1 row affected  (... sec)
 
-Furthermore, if the javascript function returns a ``WKT String``, it will be
-casted to the corresponding return geo type::
+Below is an example of a JavaScript function returning ``WKT String``,
+which will be casted into a ``geo_point``::
+
 
      cr> CREATE FUNCTION symmetric_point(point geo_point)
      ...  RETURNS geo_point
@@ -200,9 +209,22 @@ casted to the corresponding return geo type::
      ...  AS 'function(point, angle) {
      ...        var x = - point[0],
      ...            y = - point[1];
-     ...        return \"POINT (\" + x + \", \" + y +\"; }\";
+     ...        return "POINT (\" + x + \", \" + y +\")";
      ...      }';
-    CREATE OK, 1 row affected  (... sec)
+     CREATE OK, 1 row affected  (... sec)
+
+Similarly, if the function specifies ``geo_shape`` or ``object``
+as a return type, then the JavaScript function should return
+an ``object`` or a ``GeoJson``::
+
+
+     cr> CREATE FUNCTION point_object(point geo_point)
+     ...  RETURNS object
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function point_object(point) {
+     ...        return {'lon': point[0], 'lat': point[1]};
+     ...      }';
+     CREATE OK, 1 row affected  (... sec)
 
 .. NOTE::
 
