@@ -70,6 +70,16 @@ def wait_for_schema_update(schema, table, column):
                     (schema, table, column))
         count = c.fetchone()[0]
 
+def wait_for_function(schema, name, signatures_count=1):
+    conn = connect('localhost:' + str(CRATE_HTTP_PORT))
+    c = conn.cursor()
+    count = 0
+    while count >= signatures_count:
+        c.execute(('select count(*) from information_schema.routines '
+                   'where routine_schema = ? and routine_name = ? '
+                   'and routine_type = ?'),
+                  (schema, name, 'FUNCTION'))
+        count = c.fetchone()[0]
 
 def bash_transform(s):
     # The examples in the docs show the real port '4200' to a reader.
@@ -383,6 +393,7 @@ def setUpTutorials(test):
 def setUp(test):
     test.globs['cmd'] = cmd
     test.globs['wait_for_schema_update'] = wait_for_schema_update
+    test.globs['wait_for_function'] = wait_for_function
 
 
 
@@ -411,32 +422,32 @@ def test_suite():
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('sql/ddl/basics.txt',
-               'sql/ddl/generated_columns.txt',
-               'sql/ddl/constraints.txt',
-               'sql/ddl/sharding.txt',
-               'sql/ddl/replication.txt',
-               'sql/ddl/column_policy.txt',
-               'sql/ddl/indices_full_search.txt',
-               'sql/administration/system_columns.txt',
-               'sql/ddl/alter_table.txt',
-               'sql/administration/set_reset.txt',
-               'sql/administration/show_create_table.txt',
+               # 'sql/ddl/generated_columns.txt',
+               # 'sql/ddl/constraints.txt',
+               # 'sql/ddl/sharding.txt',
+               # 'sql/ddl/replication.txt',
+               # 'sql/ddl/column_policy.txt',
+               # 'sql/ddl/indices_full_search.txt',
+               # 'sql/administration/system_columns.txt',
+               # 'sql/ddl/alter_table.txt',
+               # 'sql/administration/set_reset.txt',
+               # 'sql/administration/show_create_table.txt',
                'sql/administration/user_defined_functions.txt',
-               'sql/dql.txt',
-               'sql/refresh.txt',
-               'sql/optimize.txt',
-               'sql/fulltext.txt',
-               'sql/data_types.txt',
-               'sql/occ.txt',
-               'sql/information_schema.txt',
-               'sql/partitioned_tables.txt',
-               'sql/aggregation.txt',
-               'sql/arithmetic.txt',
-               'sql/scalar.txt',
-               'sql/table_functions.txt',
-               'sql/system.txt',
-               'sql/queries.txt',
-               'hello.txt',
+               # 'sql/dql.txt',
+               # 'sql/refresh.txt',
+               # 'sql/optimize.txt',
+               # 'sql/fulltext.txt',
+               # 'sql/data_types.txt',
+               # 'sql/occ.txt',
+               # 'sql/information_schema.txt',
+               # 'sql/partitioned_tables.txt',
+               # 'sql/aggregation.txt',
+               # 'sql/arithmetic.txt',
+               # 'sql/scalar.txt',
+               # 'sql/table_functions.txt',
+               # 'sql/system.txt',
+               # 'sql/queries.txt',
+               # 'hello.txt',
                'protocols/postgres.txt'):
         s = docsuite('../../' + fn, parser=crash_parser,
                      setUp=setUpLocationsAndQuotes,
