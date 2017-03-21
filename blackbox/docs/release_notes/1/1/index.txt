@@ -9,7 +9,10 @@
 Versions
 ========
 
-No released versions.
+.. toctree::
+    :maxdepth: 1
+
+    0
 
 Upgrade Notes
 =============
@@ -108,7 +111,7 @@ Verify Checks
 `````````````
 
 Open your CrateDB `admin console`_ and verify that your cluster checks are
-green. This indicates that all tables have been recreated or upgraded and are 
+green. This indicates that all tables have been recreated or upgraded and are
 compatible with future versions of CrateDB.
 
 If your cluster checks are not green, you may have missed some tables. Please
