@@ -224,11 +224,11 @@ public class LuceneBatchIterator implements BatchIterator {
     }
 
     private void raiseIfClosedOrKilled() {
-        if (closed) {
-            throw new IllegalStateException("BatchIterator is closed");
-        }
         if (killed != null) {
             Exceptions.rethrowUnchecked(killed);
+        }
+        if (closed) {
+            throw new IllegalStateException("BatchIterator is closed");
         }
     }
 
