@@ -30,6 +30,8 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
+import io.crate.data.RowsBatchIterator;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
@@ -39,6 +41,9 @@ import io.crate.operation.InputFactory;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.WriterProjection;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.TestingBatchConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
@@ -46,12 +51,12 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
-import org.mockito.MockitoAnnotations;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -61,11 +66,10 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
-public class ProjectingBatchConsumerTest {
+public class ProjectingBatchConsumerTest extends CrateUnitTest {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
@@ -76,7 +80,6 @@ public class ProjectingBatchConsumerTest {
 
     @Before
     public void prepare() {
-        MockitoAnnotations.initMocks(this);
         functions = getFunctions();
         threadPool = new ThreadPool("testing");
         projectorFactory = new ProjectionToProjectorVisitor(
@@ -88,8 +91,14 @@ public class ProjectingBatchConsumerTest {
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
             mock(BulkRetryCoordinatorPool.class),
             new InputFactory(functions),
-            EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY),
-            null
+            new EvaluatingNormalizer(
+                functions,
+                RowGranularity.SHARD,
+                ReplaceMode.COPY,
+                r -> Literal.of(r.valueType(), r.valueType().value("1")),
+                null),
+            null,
+            new ShardId("dummy", 0)
         );
     }
 
@@ -155,5 +164,31 @@ public class ProjectingBatchConsumerTest {
             Collections.singletonList(groupProjection), UUID.randomUUID(), RAM_ACCOUNTING_CONTEXT, projectorFactory);
 
         assertThat(projectingConsumer.requiresScroll(), is(false));
+    }
+
+    @Test
+    public void testErrorHandlingIfProjectorApplicationFails() throws Exception {
+        WriterProjection writerProjection = new WriterProjection(
+            Collections.singletonList(new InputColumn(0, DataTypes.STRING)),
+            Literal.of("/x/y/z/hopefully/invalid/on/your/system/"),
+            null,
+            Collections.emptyMap(),
+            Collections.emptyList(),
+            WriterProjection.OutputFormat.JSON_OBJECT);
+
+        TestingBatchConsumer consumer = new TestingBatchConsumer();
+        BatchConsumer batchConsumer = ProjectingBatchConsumer.create(
+            consumer,
+            Collections.singletonList(writerProjection),
+            UUID.randomUUID(),
+            RAM_ACCOUNTING_CONTEXT,
+            projectorFactory
+        );
+
+        batchConsumer.accept(RowsBatchIterator.empty(), null);
+
+        expectedException.expect(UnhandledServerException.class);
+        expectedException.expectMessage("Failed to open output");
+        consumer.getResult();
     }
 }

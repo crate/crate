@@ -94,7 +94,12 @@ public class ProjectingBatchConsumer implements BatchConsumer {
     public void accept(BatchIterator iterator, @Nullable Throwable failure) {
         if (failure == null) {
             for (Projector projector : projectors) {
-                iterator = projector.apply(iterator);
+                try {
+                    iterator = projector.apply(iterator);
+                } catch (Throwable t) {
+                    consumer.accept(null, t);
+                    return;
+                }
             }
             consumer.accept(iterator, null);
         } else {
