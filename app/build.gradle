@@ -272,6 +272,7 @@ distTar {
     extension = 'tar.gz'
     doFirst {
         version = project(':core').getVersion.version
+        chooseReleaseNotes.execute()
     }
 }
 
@@ -280,6 +281,13 @@ distZip {
     baseName = 'crate'
     doFirst {
         version = project(':core').getVersion.version
+        chooseReleaseNotes.execute()
+    }
+}
+
+installDist {
+    doFirst {
+        chooseReleaseNotes.execute()
     }
 }
 
@@ -289,19 +297,47 @@ ext {
 }
 
 def rootDir = project.parent.projectDir
-
 def libs = project.configurations.runtime
+
+// For releases choose the file under the release_notes structure
+// and for all other builds choose CHANGES.txt which contains the unreleased changes
+task chooseReleaseNotes(dependsOn: [':core:getVersion']) {
+    doLast {
+        def versions = project(':core').getVersion.version.split('\\.')
+        def releaseNotesDir = "$rootDir/blackbox/docs/release_notes/" + versions[0] + "/" + versions[1]
+        def releaseNotesFile = versions[2] + '.txt'
+        if (new File(releaseNotesDir + "/" + releaseNotesFile).exists()) {
+            copy {
+                from("$releaseNotesDir") {
+                    include "$releaseNotesFile"
+                }
+                into project.buildDir.path + "/releaseNotes"
+                rename releaseNotesFile, 'CHANGES.txt'
+            }
+        } else {
+            copy {
+                from("$rootDir") {
+                    include 'CHANGES.txt'
+                }
+                into project.buildDir.path + "/releaseNotes"
+            }
+        }
+    }
+}
 
 distributions {
     main {
         baseName = 'crate'
         contents {
             into("") {
-                from "$rootDir"
-                include 'LICENSE.txt'
-                include 'NOTICE'
-                include 'README.rst'
-                include 'CHANGES.txt'
+                from("$rootDir") {
+                    include 'LICENSE.txt'
+                    include 'NOTICE'
+                    include 'README.rst'
+                }
+                from(project.buildDir.path + "/releaseNotes") {
+                    include 'CHANGES.txt'
+                }
             }
             into("lib") {
                 from libs
