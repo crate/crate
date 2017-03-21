@@ -43,8 +43,8 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
-import org.elasticsearch.search.internal.SearchContext;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -362,5 +362,14 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
         public long cost() {
             return iterator.cost();
         }
+    }
+
+    @Override
+    public String toString() {
+        ShardId shardId = searchContext.indexShard().shardId();
+        return "CrateDocCollector{" +
+               "index=" + shardId.getIndex() +
+               ", shard=" + shardId.getId() +
+               '}';
     }
 }
