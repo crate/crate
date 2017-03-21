@@ -28,14 +28,15 @@ import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class AggregationPipe implements Projector {
 
     private final Aggregator[] aggregators;
-    private final Iterable<CollectExpression<Row, ?>> expressions;
+    private final List<CollectExpression<Row, ?>> expressions;
 
-    public AggregationPipe(Iterable<CollectExpression<Row, ?>> expressions,
+    public AggregationPipe(List<CollectExpression<Row, ?>> expressions,
                            AggregationContext[] aggregations,
                            RamAccountingContext ramAccountingContext) {
         this.expressions = expressions;

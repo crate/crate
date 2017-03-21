@@ -27,6 +27,7 @@ import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -39,10 +40,10 @@ import java.util.stream.Collector;
  */
 public class AggregateCollector implements Collector<Row, Object[], Object[]> {
 
-    private final Iterable<? extends CollectExpression<Row, ?>> expressions;
+    private final List<? extends CollectExpression<Row, ?>> expressions;
     private final Aggregator[] aggregators;
 
-    public AggregateCollector(Iterable<? extends CollectExpression<Row, ?>> expressions,
+    public AggregateCollector(List<? extends CollectExpression<Row, ?>> expressions,
                               Aggregator[] aggregators) {
         this.expressions = expressions;
         this.aggregators = aggregators;
@@ -82,7 +83,8 @@ public class AggregateCollector implements Collector<Row, Object[], Object[]> {
     }
 
     private void processRow(Object[] state, Row item) {
-        for (CollectExpression<Row, ?> expression : expressions) {
+        for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
+            CollectExpression<Row, ?> expression = expressions.get(i);
             expression.setNextRow(item);
         }
         for (int i = 0; i < aggregators.length; i++) {
