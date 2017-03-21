@@ -426,7 +426,12 @@ public class NestedLoopOperation implements CompletionListenable {
                     return Result.PAUSE;
                 } else if (left.lastRow == null) {
                     assert left.upstreamFinished : "If left acquired lead it should either set a lastRow or be finished";
-                    return Result.STOP;
+
+                    if (joinType == JoinType.RIGHT || joinType == JoinType.FULL) {
+                        left.lastRow = leftNullRow;
+                    } else {
+                        return Result.STOP;
+                    }
                 }
             }
             return emitRow(rightRow);

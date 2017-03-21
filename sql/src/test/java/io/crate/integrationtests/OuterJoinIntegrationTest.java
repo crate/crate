@@ -22,9 +22,12 @@
 
 package io.crate.integrationtests;
 
+import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.UseJdbc;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Arrays;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
@@ -168,5 +171,23 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()),
             is("Douglas Adams| Chief Office\n" +
                "Ford Perfect| NULL\n"));
+    }
+
+    @Test
+    public void testUnSortedRightJoinWithLeftTableEmpty() throws Exception {
+        execute("create table t1 (x int) ");
+        execute("create table t2 (x int) ");
+        ensureYellow();
+
+        execute("insert into t1 (x) values (1), (2)");
+        execute("refresh table t1");
+
+        execute("select * from t2 right join t1 on t1.x = t2.x");
+        OrderingByPosition<Object[]> comparator = OrderingByPosition.arrayOrdering(1, false, null);
+        Arrays.sort(response.rows(), comparator);
+
+        assertThat(printedTable(response.rows()),
+            is("NULL| 2\n" +
+               "NULL| 1\n"));
     }
 }

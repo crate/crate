@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition in an unsorted right outer join with one empty table
+   that could lead to incorrect results.
+
  - Division by aggregation that resulted in 0
    (e.g. SELECT max(long_col) / min(long_col) from t) now correctly returns
    ArtithmeticException and does not hang any more.
