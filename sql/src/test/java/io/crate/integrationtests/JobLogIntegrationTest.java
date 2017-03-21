@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLResponse;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -31,7 +31,7 @@ import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 @UseJdbc
 public class JobLogIntegrationTest extends SQLTransportIntegrationTest {
 
