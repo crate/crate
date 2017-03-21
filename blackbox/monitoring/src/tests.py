@@ -45,9 +45,9 @@ class JmxTermClient(object):
 
     JAVA_HOME = os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-8-openjdk/')
     JMX_TERM_VERSION = '1.0-alpha-4'
-    JMX_TERM_SOURCE = '''https://sourceforge.net/
-        projects/cyclops-group/files/jmxterm/{version}
-        /jmxterm-{version}-uber.jar'''.format(version=JMX_TERM_VERSION)
+    JMX_TERM_SOURCE = "https://sourceforge.net/projects/cyclops-group/files/" \
+                      "jmxterm/{version}/jmxterm-{version}-uber.jar" \
+                      .format(version=JMX_TERM_VERSION)
 
     CACHE_DIR = os.environ.get(
         'XDG_CACHE_HOME',
