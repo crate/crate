@@ -76,11 +76,11 @@ public class CloseAssertingBatchIterator implements BatchIterator {
     }
 
     private void raiseIfClosedOrKilled() {
-        if (closed) {
-            throw new IllegalStateException("Iterator is closed");
-        }
         if (killed != null) {
             Exceptions.rethrowUnchecked(killed);
+        }
+        if (closed) {
+            throw new IllegalStateException("Iterator is closed");
         }
     }
 
