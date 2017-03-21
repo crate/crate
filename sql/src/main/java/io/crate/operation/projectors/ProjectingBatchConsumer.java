@@ -83,7 +83,12 @@ public class ProjectingBatchConsumer implements BatchConsumer {
         if (failure == null) {
             for (Projection projection : projections) {
                 Projector projector = projectorFactory.create(projection, ramAccountingContext, jobId);
-                iterator = projector.apply(iterator);
+                try {
+                    iterator = projector.apply(iterator);
+                } catch (Throwable t) {
+                    consumer.accept(null, t);
+                    return;
+                }
             }
             consumer.accept(iterator, null);
         } else {
