@@ -142,6 +142,27 @@ User-defined functions are considered deterministic, meaning that they will
 always return the same result value when called with the same argument values.
 These return values are then cached, preventing multiple function executions.
 
+
+DROP FUNCTION
+-------------
+
+User defined functions can be dropped like this::
+
+     cr> DROP FUNCTION log10(integer, integer);
+
+Adding ``IF EXISITS`` prevents from raising an error if the function doesn't exist::
+
+     cr> DROP FUNCTION IF EXISITS log10(integer, integer);
+
+If a function was created within a specific schema it can be dropped like this::
+
+     cr> DROP FUNCTION IF EXISTS my_schema.subtract(integer, integer);
+
+Optionally, argument names can be specified within the drop statement::
+
+     cr> DROP FUNCTION IF EXISTS calculate_distance(start geo_point, end geo_point);
+
+
 Supported Languages
 -------------------
 
