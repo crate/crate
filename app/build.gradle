@@ -305,7 +305,7 @@ task chooseReleaseNotes(dependsOn: [':core:getVersion']) {
     doLast {
         def versions = project(':core').getVersion.version.split('\\.')
         def releaseNotesDir = "$rootDir/blackbox/docs/release_notes/" + versions[0] + "/" + versions[1]
-        def releaseNotesFile = versions[2] + '.txt'
+        def releaseNotesFile = versions[2].replaceAll('-.*', '') + '.txt'
         if (new File(releaseNotesDir + "/" + releaseNotesFile).exists()) {
             copy {
                 from("$releaseNotesDir") {

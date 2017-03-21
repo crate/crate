@@ -53,7 +53,7 @@ then
 fi
 
 # install locally so we can get the version
-./gradlew installDist
+./gradlew clean installDist
 # get the version
 VERSION=`./app/build/install/crate/bin/crate -v | cut -d " " -f 2 | tr -d ','`
 
@@ -68,7 +68,7 @@ then
 fi
 
 # check if VERSION is in head of CHANGES.txt
-REV_NOTE=`grep "[0-9/]\{10\} $VERSION" CHANGES.txt`
+REV_NOTE=`grep "Version $VERSION" ./app/build/install/crate/CHANGES.txt`
 if [ -z "$REV_NOTE" ]
 then
     echo "No notes for revision $VERSION found in CHANGES.txt"
