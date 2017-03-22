@@ -126,4 +126,20 @@ public class AnyIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t");
         execute("select * from t where 4 < ANY (x) ");
     }
+
+    @Test
+    public void testNotAnyInWhereClauseDoesNotFilterOutEmptyArrays() {
+        execute("create table t (b integer, labels array(string))");
+        ensureYellow();
+        execute("insert into t (b, labels) values (1, ['one', 'two'])," +
+                "(2, ['two', 'three'])," +
+                "(3, ['three', 'four'])," +
+                "(4, [])");
+        refresh();
+        execute("select b from t where not 'two' = ANY(labels) order by b");
+
+        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rows()[0][0], is(3));
+        assertThat(response.rows()[1][0], is(4));
+    }
 }
