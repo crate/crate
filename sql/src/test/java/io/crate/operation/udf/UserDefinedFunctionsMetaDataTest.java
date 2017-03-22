@@ -29,22 +29,30 @@ import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.*;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.List;
 
+import static io.crate.operation.udf.UserDefinedFunctionMetaData.argumentDataTypesFrom;
 import static org.hamcrest.core.Is.is;
 
 public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
 
-    private final String definition = "function(a, b) {return a - b;}";
-    private final UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
+    private String definition = "function(a, b) {return a - b;}";
+    private List<FunctionArgumentDefinition> args = ImmutableList.of(
+        FunctionArgumentDefinition.of(DataTypes.DOUBLE_ARRAY),
+        FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
+    );
+    private UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
         "my_add",
-        ImmutableList.of(FunctionArgumentDefinition.of(DataTypes.DOUBLE_ARRAY),
-            FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
-        ),
+        args,
+        argumentDataTypesFrom(args),
         DataTypes.FLOAT,
         "javascript",
         definition

@@ -115,15 +115,21 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
                                                     boolean replace) {
         if (oldMetaData == null) {
             return UserDefinedFunctionsMetaData.of(functionMetaData);
-        } else {
-            if (!replace && oldMetaData.contains(functionMetaData)) {
+        }
+
+        // create a new instance of the metadata, to guarantee the cluster changed action.
+        UserDefinedFunctionsMetaData newMetaData = UserDefinedFunctionsMetaData.newInstance(oldMetaData);
+        if (oldMetaData.contains(functionMetaData)) {
+            if (!replace) {
                 throw new UserDefinedFunctionAlreadyExistsException(functionMetaData);
             }
-            // create a new instance of the metadata, to guarantee the cluster changed action.
-            UserDefinedFunctionsMetaData newMetaData = UserDefinedFunctionsMetaData.newInstance(oldMetaData);
-            newMetaData.put(functionMetaData);
-            return newMetaData;
+            newMetaData.replace(functionMetaData);
+        } else {
+            newMetaData.add(functionMetaData);
         }
+
+        assert !newMetaData.equals(oldMetaData): "must not be equal to guarantee the cluster change action";
+        return newMetaData;
     }
 
     @Override

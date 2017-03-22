@@ -26,7 +26,6 @@
 
 package io.crate.operation.udf;
 
-import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 
@@ -34,7 +33,6 @@ import javax.script.Compilable;
 import javax.script.CompiledScript;
 import javax.script.ScriptException;
 import java.util.Locale;
-import java.util.stream.Collectors;
 
 public class UserDefinedFunctionFactory {
 
@@ -44,10 +42,11 @@ public class UserDefinedFunctionFactory {
                 try {
                     CompiledScript compiledScript = ((Compilable) JavaScriptUserDefinedFunction.ENGINE)
                         .compile(meta.definition);
-                    FunctionIdent ident = new FunctionIdent(
-                        meta.name(),
-                        meta.arguments().stream().map(FunctionArgumentDefinition::type).collect(Collectors.toList()));
-                    return new JavaScriptUserDefinedFunction(ident, meta.returnType, compiledScript);
+                    return new JavaScriptUserDefinedFunction(
+                        new FunctionIdent(meta.name(), meta.argumentDataTypes()),
+                        meta.returnType,
+                        compiledScript
+                    );
                 } catch (ScriptException e) {
                     throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "Cannot compile the script. [%s]", e));

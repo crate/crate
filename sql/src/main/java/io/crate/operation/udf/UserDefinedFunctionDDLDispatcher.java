@@ -30,6 +30,8 @@ import org.elasticsearch.common.inject.Singleton;
 
 import java.util.concurrent.CompletableFuture;
 
+import static io.crate.operation.udf.UserDefinedFunctionMetaData.argumentDataTypesFrom;
+
 @Singleton
 public class UserDefinedFunctionDDLDispatcher {
 
@@ -45,6 +47,7 @@ public class UserDefinedFunctionDDLDispatcher {
         UserDefinedFunctionMetaData metaData = new UserDefinedFunctionMetaData(
             statement.name(),
             statement.arguments(),
+            argumentDataTypesFrom(statement.arguments()),
             statement.returnType(),
             ExpressionToStringVisitor.convert(statement.language(), params),
             ExpressionToStringVisitor.convert(statement.definition(), params)
