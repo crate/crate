@@ -26,6 +26,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActionFilters;
+import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -85,10 +86,10 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         final ShardDeleteRequest request = new ShardDeleteRequest(shardId, null, UUID.randomUUID());
         request.add(1, new ShardDeleteRequest.Item("1"));
 
-        ShardResponse shardResponse = transportShardDeleteAction.processRequestItems(
+        TransportWriteAction.WriteResult<ShardResponse> result = transportShardDeleteAction.processRequestItems(
             shardId, request, new AtomicBoolean(true));
 
-        assertThat(shardResponse.failure(), instanceOf(InterruptedException.class));
+        assertThat(result.getResponse().failure(), instanceOf(InterruptedException.class));
         assertThat(request.skipFromLocation(), is(1));
     }
 

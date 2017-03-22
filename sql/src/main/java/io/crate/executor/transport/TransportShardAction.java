@@ -82,9 +82,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         KillableWrapper<WriteResult<ShardResponse>> callable = new KillableWrapper<WriteResult<ShardResponse>>() {
             @Override
             public WriteResult<ShardResponse> call() throws Exception {
-                // FIXME: get Translog.Location
-                ShardResponse shardResponse = processRequestItems(shardRequest.shardId(), shardRequest, killed);
-                return new WriteResult<>(shardResponse, null);
+                return processRequestItems(shardRequest.shardId(), shardRequest, killed);
             }
         };
         return wrapOperationInKillable(shardRequest, callable);
@@ -96,16 +94,12 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         KillableWrapper<Translog.Location> callable = new KillableWrapper<Translog.Location>() {
             @Override
             public Translog.Location call() throws Exception {
-                // FIXME: get Translog.Location
-                processRequestItemsOnReplica(shardRequest.shardId(), shardRequest);
-                return null;
+                return processRequestItemsOnReplica(shardRequest.shardId(), shardRequest);
             }
 
         };
         return wrapOperationInKillable(shardRequest, callable);
     }
-
-
 
     private <WrapperResponse> WrapperResponse wrapOperationInKillable(Request request, KillableCallable<WrapperResponse> callable) {
         activeOperations.put(request.jobId(), callable);
@@ -143,9 +137,9 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         }
     }
 
-    protected abstract ShardResponse processRequestItems(ShardId shardId, Request request, AtomicBoolean killed) throws InterruptedException;
+    protected abstract WriteResult<ShardResponse> processRequestItems(ShardId shardId, Request request, AtomicBoolean killed) throws InterruptedException;
 
-    protected abstract void processRequestItemsOnReplica(ShardId shardId, Request request);
+    protected abstract Translog.Location processRequestItemsOnReplica(ShardId shardId, Request request);
 
     static abstract class KillableWrapper<WrapperResponse> implements KillableCallable<WrapperResponse> {
 

@@ -37,6 +37,7 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -62,10 +63,11 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     }
 
     @Override
-    protected ShardResponse processRequestItems(ShardId shardId, ShardDeleteRequest request, AtomicBoolean killed) throws InterruptedException {
+    protected WriteResult<ShardResponse> processRequestItems(ShardId shardId, ShardDeleteRequest request, AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.getShard(shardId.id());
+        Translog.Location translogLocation = null;
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
             ShardDeleteRequest.Item item = request.items().get(i);
@@ -78,8 +80,9 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                 break;
             }
             try {
-                boolean found = shardDeleteOperationOnPrimary(request, item, indexShard);
-                if (found) {
+                DeleteResult deleteResult = shardDeleteOperationOnPrimary(request, item, indexShard);
+                translogLocation = deleteResult.location;
+                if (deleteResult.found) {
                     logger.debug("{} successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
                     shardResponse.add(location);
                 } else {
@@ -107,13 +110,14 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             }
         }
 
-        return shardResponse;
+        return new WriteResult<>(shardResponse, translogLocation);
     }
 
     @Override
-    protected void processRequestItemsOnReplica(ShardId shardId, ShardDeleteRequest request) {
+    protected Translog.Location processRequestItemsOnReplica(ShardId shardId, ShardDeleteRequest request) {
         IndexService indexService = indicesService.indexServiceSafe(request.shardId().getIndex());
         IndexShard indexShard = indexService.getShard(shardId.id());
+        Translog.Location translogLocation = null;
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
             if (request.skipFromLocation() == location) {
@@ -125,10 +129,12 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             Engine.Delete delete = indexShard.prepareDeleteOnReplica(request.type(), item.id(), item.version(), item.versionType());
             indexShard.delete(delete);
             logger.trace("{} REPLICA: successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
+            translogLocation = delete.getTranslogLocation();
         }
+        return translogLocation;
     }
 
-    private boolean shardDeleteOperationOnPrimary(ShardDeleteRequest request, ShardDeleteRequest.Item item, IndexShard indexShard) {
+    private DeleteResult shardDeleteOperationOnPrimary(ShardDeleteRequest request, ShardDeleteRequest.Item item, IndexShard indexShard) {
         Engine.Delete delete = indexShard.prepareDeleteOnPrimary(request.type(), item.id(), item.version(), item.versionType());
         indexShard.delete(delete);
         // update the request with the version so it will go to the replicas
@@ -137,6 +143,16 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
 
         assert item.versionType().validateVersionForWrites(item.version()) : "item.version() must be valid";
 
-        return delete.found();
+        return new DeleteResult(delete.found(), delete.getTranslogLocation());
+    }
+
+    private static class DeleteResult {
+        private final boolean found;
+        private final Translog.Location location;
+
+        DeleteResult(boolean found, Translog.Location location) {
+            this.found = found;
+            this.location = location;
+        }
     }
 }
