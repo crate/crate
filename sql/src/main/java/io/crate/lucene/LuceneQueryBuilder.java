@@ -36,6 +36,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.match.CrateRegexCapabilities;
@@ -44,7 +45,6 @@ import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.data.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.DocInputFactory;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
@@ -56,6 +56,7 @@ import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.operation.scalar.conditional.CoalesceFunction;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.types.CollectionType;
@@ -150,7 +151,7 @@ public class LuceneQueryBuilder {
     private static List asList(Literal literal) {
         Object val = literal.value();
         if (val instanceof Object[]) {
-            return Stream.of((Object[])val).filter(Objects::nonNull).collect(Collectors.toList());
+            return Stream.of((Object[]) val).filter(Objects::nonNull).collect(Collectors.toList());
         }
         return (List) val;
     }
@@ -468,7 +469,7 @@ public class LuceneQueryBuilder {
 
             private class SymbolToNotNullContext {
                 private final HashSet<Reference> references = new HashSet<>();
-                boolean containsNullCanMatchFunction = false;
+                boolean hasStrictThreeValuedLogicFunction = false;
 
                 boolean add(Reference symbol) {
                     return references.add(symbol);
@@ -481,10 +482,26 @@ public class LuceneQueryBuilder {
 
             private class SymbolToNotNullRangeQueryArgs extends SymbolVisitor<SymbolToNotNullContext, Void> {
 
-                private final Set<String> NULL_CAN_MATCH_FUNCTIONS = ImmutableSet.of("any", "coalesce");
+                /**
+                 * Three valued logic systems are defined in logic as systems in which there are 3 truth values: true,
+                 * false and an indeterminate third value (in our case null is the third value).
+                 * <p>
+                 * This is a set of functions for which inputs evaluating to null needs to be explicitly included or
+                 * excluded (in the case of 'not ...') in the boolean queries
+                 */
+                private final Set<String> STRICT_3VL_FUNCTIONS =
+                    ImmutableSet.of(AnyEqOperator.NAME,
+                        AnyNeqOperator.NAME,
+                        AnyGteOperator.NAME,
+                        AnyGtOperator.NAME,
+                        AnyLikeOperator.NAME,
+                        AnyNotLikeOperator.NAME,
+                        AnyLteOperator.NAME,
+                        AnyLtOperator.NAME,
+                        CoalesceFunction.NAME);
 
-                private boolean nullCanMatch(Function symbol) {
-                    return NULL_CAN_MATCH_FUNCTIONS.contains(symbol.info().ident().name());
+                private boolean isStrictThreeValuedLogicFunction(Function symbol) {
+                    return STRICT_3VL_FUNCTIONS.contains(symbol.info().ident().name());
                 }
 
                 @Override
@@ -495,12 +512,12 @@ public class LuceneQueryBuilder {
 
                 @Override
                 public Void visitFunction(Function symbol, SymbolToNotNullContext context) {
-                    if (!nullCanMatch(symbol)) {
-                        for (Symbol arg: symbol.arguments()) {
+                    if (!isStrictThreeValuedLogicFunction(symbol)) {
+                        for (Symbol arg : symbol.arguments()) {
                             process(arg, context);
                         }
                     } else {
-                        context.containsNullCanMatchFunction = true;
+                        context.hasStrictThreeValuedLogicFunction = true;
                     }
                     return null;
                 }
@@ -538,7 +555,7 @@ public class LuceneQueryBuilder {
                     }
                     builder.add(fieldType.rangeQuery(null, null, true, true), BooleanClause.Occur.MUST);
                 }
-                if (ctx.containsNullCanMatchFunction) {
+                if (ctx.hasStrictThreeValuedLogicFunction) {
                     FunctionInfo isNullInfo = IsNullPredicate.generateInfo(Collections.singletonList(arg.valueType()));
                     Function isNullFunction = new Function(isNullInfo, Collections.singletonList(arg));
                     builder.add(

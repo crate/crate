@@ -15,6 +15,9 @@ the appropriate section of the docs.
 Changelog
 =========
 
+ - Fixed an issued that caused conditions like ``not x = any( )`` to not 
+   find empty lists when used in WHERE clauses.
+
  - Improved error handling when using LIMIT/OFFSET that exceed Integer range
 
  - Fixed a regression introduced in 1.1.0 that caused statements like ``COPY t
