@@ -115,9 +115,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @Override
-    protected ShardResponse processRequestItems(ShardId shardId,
-                                                ShardUpsertRequest request,
-                                                AtomicBoolean killed) throws InterruptedException {
+    protected WriteResult<ShardResponse> processRequestItems(ShardId shardId,
+                                                             ShardUpsertRequest request,
+                                                             AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
         DocTableInfo tableInfo = schemas.getWritableTable(TableIdent.fromIndexName(request.index()));
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
@@ -171,20 +171,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         (e instanceof VersionConflictEngineException)));
             }
         }
-        if (indexShard.getTranslogDurability() == Translog.Durability.REQUEST && translogLocation != null) {
-            indexShard.sync(translogLocation, ex -> {
-                if (ex != null) {
-                    logger.error("error during sync", ex);
-                }
-            });
-        }
-        return shardResponse;
+        return new WriteResult<>(shardResponse, translogLocation);
     }
 
     @Override
-    protected void processRequestItemsOnReplica(ShardId shardId, ShardUpsertRequest request) {
+    protected Translog.Location processRequestItemsOnReplica(ShardId shardId, ShardUpsertRequest request) {
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.getShard(shardId.id());
+        Translog.Location location = null;
         for (ShardUpsertRequest.Item item : request.items()) {
             if (item.source() == null) {
                 if (logger.isTraceEnabled()) {
@@ -193,8 +187,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
                 continue;
             }
-            shardIndexOperationOnReplica(request, item, indexShard);
+            location = shardIndexOperationOnReplica(request, item, indexShard);
         }
+        return location;
     }
 
     protected Translog.Location indexItem(DocTableInfo tableInfo,
@@ -423,10 +418,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     private Engine.Index updateMappingIfRequired(ShardUpsertRequest request,
-                                                             ShardUpsertRequest.Item item,
-                                                             long version,
-                                                             IndexShard indexShard,
-                                                             Engine.Index operation) throws Exception {
+                                                 ShardUpsertRequest.Item item,
+                                                 long version,
+                                                 IndexShard indexShard,
+                                                 Engine.Index operation) throws Exception {
         Mapping update = operation.parsedDoc().dynamicMappingsUpdate();
         if (update != null) {
             validateMapping(update.root().iterator());
@@ -444,7 +439,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
     @VisibleForTesting
     static void validateMapping(Iterator<Mapper> mappers) {
-        while(mappers.hasNext()) {
+        while (mappers.hasNext()) {
             Mapper mapper = mappers.next();
             AnalyzedColumnDefinition.validateName(mapper.simpleName());
             validateMapping(mapper.iterator());
@@ -452,9 +447,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
     }
 
-    private void shardIndexOperationOnReplica(ShardUpsertRequest request,
-                                              ShardUpsertRequest.Item item,
-                                              IndexShard indexShard) {
+    private Translog.Location shardIndexOperationOnReplica(ShardUpsertRequest request,
+                                                           ShardUpsertRequest.Item item,
+                                                           IndexShard indexShard) {
         SourceToParse sourceToParse = SourceToParse.source(SourceToParse.Origin.REPLICA, request.index(), request.type(), item.id(), item.source())
             .routing(request.routing());
 
@@ -468,6 +463,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         Engine.Index index = indexShard.prepareIndexOnReplica(
             sourceToParse, item.version(), item.versionType(), -1, request.isRetry());
         indexShard.index(index);
+
+        return index.getTranslogLocation();
     }
 
     private Map<String, Object> processGeneratedColumnsOnInsert(DocTableInfo tableInfo,
@@ -664,15 +661,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     private static class GetResultFieldExtractorFactory implements FieldExtractorFactory<GetResult, SymbolToFieldExtractor.Context> {
         @Override
         public Function<GetResult, Object> build(final Reference reference, SymbolToFieldExtractor.Context context) {
-            return new Function<GetResult, Object>() {
-                @Override
-                public Object apply(GetResult getResult) {
-                    if (getResult == null) {
-                        return null;
-                    }
-                    return reference.valueType().value(XContentMapValues.extractValue(
-                        reference.ident().columnIdent().fqn(), getResult.sourceAsMap()));
+            return getResult -> {
+                if (getResult == null) {
+                    return null;
                 }
+                return reference.valueType().value(XContentMapValues.extractValue(
+                    reference.ident().columnIdent().fqn(), getResult.sourceAsMap()));
             };
         }
     }

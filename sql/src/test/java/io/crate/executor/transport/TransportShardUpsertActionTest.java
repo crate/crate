@@ -33,6 +33,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActionFilters;
+import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -184,10 +185,10 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId, null);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
-        ShardResponse shardResponse = transportShardUpsertAction.processRequestItems(
+        TransportWriteAction.WriteResult<ShardResponse> result = transportShardUpsertAction.processRequestItems(
             shardId, request, new AtomicBoolean(false));
 
-        assertThat(shardResponse.failure(), instanceOf(VersionConflictEngineException.class));
+        assertThat(result.getResponse().failure(), instanceOf(VersionConflictEngineException.class));
     }
 
     @Test
@@ -203,9 +204,10 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId, null);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
-        ShardResponse response = transportShardUpsertAction.processRequestItems(
+        TransportWriteAction.WriteResult<ShardResponse> result = transportShardUpsertAction.processRequestItems(
             shardId, request, new AtomicBoolean(false));
 
+        ShardResponse response = result.getResponse();
         assertThat(response.failures().size(), is(1));
         assertThat(response.failures().get(0).message(),
                    is("VersionConflictEngineException[[default][1]: version conflict, " +
@@ -435,10 +437,10 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId, null);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
-        ShardResponse shardResponse = transportShardUpsertAction.processRequestItems(
+        TransportWriteAction.WriteResult<ShardResponse> result = transportShardUpsertAction.processRequestItems(
             shardId, request, new AtomicBoolean(true));
 
-        assertThat(shardResponse.failure(), instanceOf(InterruptedException.class));
+        assertThat(result.getResponse().failure(), instanceOf(InterruptedException.class));
     }
 
     @Test
