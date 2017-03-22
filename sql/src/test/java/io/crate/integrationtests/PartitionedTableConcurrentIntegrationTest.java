@@ -333,8 +333,8 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
                 "with (number_of_replicas = 0)");
         ensureYellow();
 
-        int bulkSize = 100;
-        int numCols = 100;
+        int bulkSize = 10;
+        int numCols = 5;
         String[] buckets = new String[]{"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"};
         final CountDownLatch countDownLatch = new CountDownLatch(buckets.length);
         for (String bucket : buckets) {
