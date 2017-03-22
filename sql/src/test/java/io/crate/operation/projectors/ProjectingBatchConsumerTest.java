@@ -103,7 +103,7 @@ public class ProjectingBatchConsumerTest {
 
         private final boolean requiresScroll;
 
-        public DummyBatchConsumer(boolean requiresScroll) {
+        DummyBatchConsumer(boolean requiresScroll) {
             this.requiresScroll = requiresScroll;
         }
 
@@ -113,13 +113,13 @@ public class ProjectingBatchConsumerTest {
 
         @Override
         public boolean requiresScroll() {
-            return true;
+            return requiresScroll;
         }
     }
 
 
     @Test
-    public void consumerRequiresScrollAndProjectorsDontSupportScrolling() throws Exception {
+    public void testConsumerRequiresScrollAndProjectorsDontSupportScrolling() throws Exception {
         EqOperator op = (EqOperator) functions.get(
             new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER)));
         Function function = new Function(op.info(), Arrays.asList(Literal.of(2), new InputColumn(1)));
@@ -135,7 +135,7 @@ public class ProjectingBatchConsumerTest {
     }
 
     @Test
-    public void consumerRequiresScrollAndProjectorsSupportScrolling() throws Exception {
+    public void testConsumerRequiresScrollAndProjectorsSupportScrolling() throws Exception {
         GroupProjection groupProjection = new GroupProjection(new ArrayList<>(), new ArrayList<>(), RowGranularity.DOC);
 
         BatchConsumer delegateConsumerRequiresScroll = new DummyBatchConsumer(true);
@@ -147,7 +147,7 @@ public class ProjectingBatchConsumerTest {
     }
 
     @Test
-    public void consumerDoesNotRequireScrollYieldsProjectingConsumerWithoutScrollRequirements() throws Exception {
+    public void testConsumerDoesNotRequireScrollYieldsProjectingConsumerWithoutScrollRequirements() throws Exception {
         GroupProjection groupProjection = new GroupProjection(new ArrayList<>(), new ArrayList<>(), RowGranularity.DOC);
         BatchConsumer delegateConsumerRequiresScroll = new DummyBatchConsumer(false);
 
