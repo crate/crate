@@ -134,9 +134,8 @@ Example::
     SELECT 1 row in set (... sec)
 
 ``min`` returns ``NULL`` if the column does not contain any value but ``NULL``.
-It is allowed on numeric columns (``byte``, ``short``, ``integer``, ``long``, ``float``, ``double``),
-on ``timestamp`` and ``string`` columns. On ``string`` columns it will return the lexicographically
-smallest.::
+It is allowed on columns with primitive data types. On ``string`` columns it
+will return the lexicographically smallest.::
 
     cr> select min(name), kind from locations
     ... group by kind order by kind asc;
@@ -195,7 +194,7 @@ sum
 ===
 
 The ``sum`` aggregation function returns the sum of all the values in a column that are not ``NULL``
-as a double value. Its single argument is the column name of a numeric column or timestamp column.
+as a double value. Its single argument is the column name of a primitive numeric column.
 ``sum`` can not be used on other column types.
 
 ::
