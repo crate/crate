@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved error handling when using LIMIT/OFFSET that exceed Integer range
+
  - Fixed a race condition in an unsorted right outer join with one empty table
    that could lead to incorrect results.
 

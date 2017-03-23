@@ -28,6 +28,7 @@ import io.crate.core.collections.Row;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.sorting.RowPriorityQueue;
+import org.apache.lucene.util.ArrayUtil;
 
 import java.util.Collection;
 import java.util.Set;
@@ -58,8 +59,8 @@ public class SortingTopNProjector extends AbstractProjector {
                                 Ordering<Object[]> ordering,
                                 int limit,
                                 int offset) {
-        Preconditions.checkArgument(limit > 0, "invalid limit %s, this projector only supports positive limits", limit);
-        Preconditions.checkArgument(offset >= 0, "invalid offset %s", offset);
+        Preconditions.checkArgument(limit > 0, "Invalid LIMIT: value must be > 0; got: " + limit);
+        Preconditions.checkArgument(offset >= 0, "Invalid OFFSET: value must be >= 0; got: " + offset);
 
         this.inputs = inputs;
         this.numOutputs = numOutputs;
@@ -67,6 +68,12 @@ public class SortingTopNProjector extends AbstractProjector {
         this.offset = offset;
 
         int maxSize = this.offset + limit;
+        if (maxSize >= ArrayUtil.MAX_ARRAY_LENGTH || maxSize < 0)  {
+            // Throw exception to prevent confusing OOME in PriorityQueue
+            // 1) if offset + limit exceeds maximum array length
+            // 2) if offset + limit exceeds Integer.MAX_VALUE (then maxSize is negative!)
+            throw new IllegalArgumentException("Invalid LIMIT + OFFSET: value must be <= " + (ArrayUtil.MAX_ARRAY_LENGTH - 1) + "; got: " + maxSize);
+        }
         pq = new RowPriorityQueue<>(maxSize, ordering);
     }
 

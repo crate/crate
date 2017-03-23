@@ -38,9 +38,8 @@ public class SimpleTopNProjector extends InputRowProjector {
                                int limit,
                                int offset) {
         super(inputs, collectExpressions);
-
-        Preconditions.checkArgument(limit >= 0, "invalid limit: " + limit);
-        Preconditions.checkArgument(offset >= 0, "invalid offset: " + offset);
+        Preconditions.checkArgument(limit >= 0, "Invalid LIMIT: value must be >= 0; got: " + limit);
+        Preconditions.checkArgument(offset >= 0, "Invalid OFFSET: value must be >= 0; got: " + offset);
         this.remainingOffset = offset;
         this.toCollect = limit;
     }

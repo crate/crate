@@ -109,7 +109,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testInvalidNegativeLimit() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid limit -1, this projector only supports positive limits");
+        expectedException.expectMessage("Invalid LIMIT: value must be > 0; got: -1");
 
         new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, -1, 0);
     }
@@ -117,7 +117,7 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testInvalidZeroLimit() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid limit 0, this projector only supports positive limits");
+        expectedException.expectMessage("Invalid LIMIT: value must be > 0; got: 0");
 
         new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, 0, 0);
     }
@@ -125,8 +125,26 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testInvalidOffset() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid offset -1");
+        expectedException.expectMessage("Invalid OFFSET: value must be >= 0; got: -1");
 
         new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, 1, -1);
+    }
+
+    @Test
+    public void testInvalidMaxSize() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid LIMIT + OFFSET: value must be <= 2147483630; got: 2147483646");
+
+        int i = Integer.MAX_VALUE / 2;
+        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, i, i);
+    }
+
+    @Test
+    public void testInvalidMaxSizeExceedsIntegerRange() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid LIMIT + OFFSET: value must be <= 2147483630; got: -2147483648");
+
+        int i = Integer.MAX_VALUE / 2 + 1;
+        new SortingTopNProjector(INPUT_LITERAL_LIST, COLLECT_EXPRESSIONS, 2, FIRST_CELL_ORDERING, i, i);
     }
 }
