@@ -29,6 +29,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.sorting.RowPriorityQueue;
+import org.apache.lucene.util.ArrayUtil;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -51,8 +52,8 @@ public class SortingTopNCollector implements Collector<Row, RowPriorityQueue<Obj
     private final Iterable<? extends CollectExpression<Row, ?>> expressions;
     private final int numOutputs;
     private final Comparator<Object[]> comparator;
-    private final int limit;
     private final int offset;
+    private final int maxSize;
 
     private Object[] spare;
 
@@ -70,15 +71,22 @@ public class SortingTopNCollector implements Collector<Row, RowPriorityQueue<Obj
                                 Comparator<Object[]> comparator,
                                 int limit,
                                 int offset) {
-        Preconditions.checkArgument(limit > 0, "invalid limit %s, this collector only supports positive limits", limit);
-        Preconditions.checkArgument(offset >= 0, "invalid offset %s", offset);
+        Preconditions.checkArgument(limit > 0, "Invalid LIMIT: value must be > 0; got: " + limit);
+        Preconditions.checkArgument(offset >= 0, "Invalid OFFSET: value must be >= 0; got: " + offset);
 
         this.inputs = inputs;
         this.expressions = expressions;
         this.numOutputs = numOutputs;
         this.comparator = comparator;
-        this.limit = limit;
         this.offset = offset;
+        this.maxSize = limit + offset;
+
+        if (maxSize >= ArrayUtil.MAX_ARRAY_LENGTH || maxSize < 0)  {
+            // Throw exception to prevent confusing OOME in PriorityQueue
+            // 1) if offset + limit exceeds maximum array length
+            // 2) if offset + limit exceeds Integer.MAX_VALUE (then maxSize is negative!)
+            throw new IllegalArgumentException("Invalid LIMIT + OFFSET: value must be <= " + (ArrayUtil.MAX_ARRAY_LENGTH - 1) + "; got: " + maxSize);
+        }
     }
 
     public int numOutputs() {
@@ -87,7 +95,7 @@ public class SortingTopNCollector implements Collector<Row, RowPriorityQueue<Obj
 
     @Override
     public Supplier<RowPriorityQueue<Object[]>> supplier() {
-        return () -> new RowPriorityQueue<>(offset + limit, comparator);
+        return () -> new RowPriorityQueue<>(maxSize, comparator);
     }
 
     @Override
