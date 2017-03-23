@@ -48,7 +48,7 @@ import java.util.concurrent.CompletionStage;
 /**
  * BatchIterator implementation which exposes the data stored in a lucene index.
  * It supports filtering the data using a lucene {@link Query} or via {@code minScore}.
- *
+ * <p>
  * Row data depends on {@code inputs} and {@code expressions}. The data is unordered.
  */
 public class LuceneBatchIterator implements BatchIterator {
@@ -60,7 +60,7 @@ public class LuceneBatchIterator implements BatchIterator {
     private final boolean doScores;
     private final LuceneCollectorExpression[] expressions;
     private final List<LeafReaderContext> leaves;
-    private final Weight weight;
+    private Weight weight;
     private final Columns inputs;
     private final CollectorFieldsVisitor visitor;
     private final Float minScore;
@@ -91,11 +91,6 @@ public class LuceneBatchIterator implements BatchIterator {
         this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
         leaves = indexSearcher.getTopReaderContext().leaves();
         leavesIt = leaves.iterator();
-        try {
-            weight = createWeight();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @Override
@@ -112,6 +107,14 @@ public class LuceneBatchIterator implements BatchIterator {
     @Override
     public boolean moveNext() {
         raiseIfClosedOrKilled();
+        if (weight == null) {
+            try {
+                weight = createWeight();
+            } catch (IOException e) {
+                Exceptions.rethrowUnchecked(e);
+            }
+        }
+
         try {
             return innerMoveNext();
         } catch (IOException e) {
