@@ -15,6 +15,9 @@ the appropriate section of the docs.
 Changelog
 =========
 
+ - Fixed bug introduced in 1.1.0 which caused all partitioned tables to
+   become unusable.
+
  - Fixed an issued that caused conditions like ``not x = any( )`` to not 
    find empty lists when used in WHERE clauses.
 
