@@ -54,9 +54,9 @@ public class InputFactoryTest extends CrateUnitTest {
         Function countX = (Function) expressions.asSymbol("count(x)");
         Function avgX = (Function) expressions.asSymbol("avg(x)");
 
-        List<Symbol> aggregations = Arrays.<Symbol>asList(
-            Aggregation.finalAggregation(countX.info(), Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER),
-            Aggregation.finalAggregation(avgX.info(), Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER)
+        List<Symbol> aggregations = Arrays.asList(
+            new Aggregation(countX.info(), countX.info().returnType(), Arrays.asList(new InputColumn(0)), Aggregation.Mode.ITER_FINAL),
+            new Aggregation(avgX.info(), countX.info().returnType(), Arrays.asList(new InputColumn(0)), Aggregation.Mode.ITER_FINAL)
         );
 
         InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations();
@@ -110,10 +110,11 @@ public class InputFactoryTest extends CrateUnitTest {
         Function countX = (Function) expressions.asSymbol("count(x)");
 
         // values: [ count(in(0)) ]
-        List<Aggregation> values = Arrays.asList(Aggregation.partialAggregation(
+        List<Aggregation> values = Arrays.asList(new Aggregation(
             countX.info(),
             countX.valueType(),
-            Arrays.<Symbol>asList(new InputColumn(0))
+            Arrays.<Symbol>asList(new InputColumn(0)),
+            Aggregation.Mode.PARTIAL_FINAL
         ));
 
         InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations();

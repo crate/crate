@@ -98,8 +98,7 @@ class DistributedGroupByConsumer implements Consumer {
                 splitPoints.leaves(),
                 groupBy,
                 splitPoints.aggregates(),
-                Aggregation.Step.ITER,
-                Aggregation.Step.PARTIAL,
+                Aggregation.Mode.ITER_PARTIAL,
                 RowGranularity.SHARD);
 
             Planner.Context plannerContext = context.plannerContext();
@@ -129,8 +128,7 @@ class DistributedGroupByConsumer implements Consumer {
                 collectOutputs,
                 groupBy,
                 splitPoints.aggregates(),
-                Aggregation.Step.PARTIAL,
-                Aggregation.Step.FINAL,
+                Aggregation.Mode.PARTIAL_FINAL,
                 RowGranularity.CLUSTER)
             );
 

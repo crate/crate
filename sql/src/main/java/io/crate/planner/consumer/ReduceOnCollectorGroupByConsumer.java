@@ -121,8 +121,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
                 splitPoints.leaves(),
                 groupKeys,
                 splitPoints.aggregates(),
-                Aggregation.Step.ITER,
-                Aggregation.Step.FINAL,
+                Aggregation.Mode.ITER_FINAL,
                 RowGranularity.SHARD
             );
             projections.add(groupProjection);

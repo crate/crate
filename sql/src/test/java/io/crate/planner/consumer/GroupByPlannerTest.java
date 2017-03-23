@@ -169,16 +169,14 @@ public class GroupByPlannerTest extends CrateUnitTest {
         assertThat(((InputColumn) firstGroupProjection.outputs().get(0)).index(), is(0));
         assertThat(firstGroupProjection.outputs().get(1), is(instanceOf(Aggregation.class)));
         assertThat(((Aggregation) firstGroupProjection.outputs().get(1)).functionIdent().name(), is("count"));
-        assertThat(((Aggregation) firstGroupProjection.outputs().get(1)).fromStep(), is(Aggregation.Step.ITER));
-        assertThat(((Aggregation) firstGroupProjection.outputs().get(1)).toStep(), is(Aggregation.Step.PARTIAL));
+        assertThat(((Aggregation) firstGroupProjection.outputs().get(1)).mode(), is(Aggregation.Mode.ITER_PARTIAL));
 
         assertThat(merge.mergePhase().projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(EvalProjection.class)));
 
         Projection secondGroupProjection = merge.mergePhase().projections().get(0);
-        assertThat(((Aggregation) secondGroupProjection.outputs().get(1)).fromStep(), is(Aggregation.Step.PARTIAL));
-        assertThat(((Aggregation) secondGroupProjection.outputs().get(1)).toStep(), is(Aggregation.Step.FINAL));
+        assertThat(((Aggregation) secondGroupProjection.outputs().get(1)).mode(), is(Aggregation.Mode.PARTIAL_FINAL));
     }
 
     @Test
@@ -298,7 +296,7 @@ public class GroupByPlannerTest extends CrateUnitTest {
         assertThat(groupProjection.values().size(), is(1));
 
         Aggregation aggregation = groupProjection.values().get(0);
-        assertThat(aggregation.toStep(), is(Aggregation.Step.PARTIAL));
+        assertThat(aggregation.mode(), is(Aggregation.Mode.ITER_PARTIAL));
         Symbol aggregationInput = aggregation.inputs().get(0);
         assertThat(aggregationInput.symbolType(), is(SymbolType.INPUT_COLUMN));
 
@@ -314,7 +312,7 @@ public class GroupByPlannerTest extends CrateUnitTest {
 
         assertThat(groupProjection.values().get(0), instanceOf(Aggregation.class));
         Aggregation aggregationStep2 = groupProjection.values().get(0);
-        assertThat(aggregationStep2.toStep(), is(Aggregation.Step.FINAL));
+        assertThat(aggregationStep2.mode(), is(Aggregation.Mode.PARTIAL_FINAL));
 
         OrderedTopNProjection topNProjection = (OrderedTopNProjection) mergePhase.projections().get(1);
         Symbol collection_count = topNProjection.outputs().get(0);

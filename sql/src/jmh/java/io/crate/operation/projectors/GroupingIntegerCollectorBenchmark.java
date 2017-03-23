@@ -44,6 +44,7 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -80,8 +81,12 @@ public class GroupingIntegerCollectorBenchmark {
             Arrays.asList(DataTypes.INTEGER));
         FunctionInfo functionInfo = new FunctionInfo(functionIdent, DataTypes.INTEGER, FunctionInfo.Type.AGGREGATE);
         AggregationFunction sumAgg = (AggregationFunction) functions.get(functionIdent);
-        Aggregation aggregation = Aggregation.finalAggregation(functionInfo,
-            Arrays.asList(new InputColumn(0)), Aggregation.Step.ITER);
+        Aggregation aggregation = new Aggregation(
+            functionInfo,
+            functionInfo.returnType(),
+            Collections.singletonList(new InputColumn(0)),
+            Aggregation.Mode.ITER_FINAL
+        );
 
         Aggregator[] aggregators = new Aggregator[]{
             new Aggregator(

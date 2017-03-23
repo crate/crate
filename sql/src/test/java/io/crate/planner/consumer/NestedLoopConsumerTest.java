@@ -265,8 +265,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         ));
         AggregationProjection aggregationProjection = (AggregationProjection) nlPhase.projections().get(1);
         Aggregation minAgg = aggregationProjection.aggregations().get(0);
-        assertThat(minAgg.fromStep(), is(Aggregation.Step.ITER));
-        assertThat(minAgg.toStep(), is(Aggregation.Step.FINAL));
+        assertThat(minAgg.mode(), is(Aggregation.Mode.ITER_FINAL));
     }
 
     @Test

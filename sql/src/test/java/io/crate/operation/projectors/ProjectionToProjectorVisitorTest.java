@@ -148,14 +148,16 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     @Test
     public void testAggregationProjector() throws Exception {
         AggregationProjection projection = new AggregationProjection(Arrays.asList(
-            Aggregation.finalAggregation(
+            new Aggregation(
                 avgInfo,
+                avgInfo.returnType(),
                 Collections.singletonList(new InputColumn(1)),
-                Aggregation.Step.ITER),
-            Aggregation.finalAggregation(
+                Aggregation.Mode.ITER_FINAL),
+            new Aggregation(
                 countInfo,
+                countInfo.returnType(),
                 Collections.singletonList(new InputColumn(0)),
-                Aggregation.Step.ITER)
+                Aggregation.Mode.ITER_FINAL)
         ), RowGranularity.SHARD);
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
 
@@ -181,14 +183,16 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         // select  race, avg(age), count(race), gender  ... group by race, gender
         List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.STRING), new InputColumn(2, DataTypes.STRING));
         List<Aggregation> aggregations = Arrays.asList(
-            Aggregation.finalAggregation(
+            new Aggregation(
                 avgInfo,
+                avgInfo.returnType(),
                 Collections.singletonList(new InputColumn(1)),
-                Aggregation.Step.ITER),
-            Aggregation.finalAggregation(
+                Aggregation.Mode.ITER_FINAL),
+            new Aggregation(
                 countInfo,
+                countInfo.returnType(),
                 Collections.singletonList(new InputColumn(0)),
-                Aggregation.Step.ITER)
+                Aggregation.Mode.ITER_FINAL)
         );
         GroupProjection projection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
 

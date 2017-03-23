@@ -87,8 +87,7 @@ class GlobalAggregateConsumer implements Consumer {
             AggregationProjection finalAggregation = projectionBuilder.aggregationProjection(
                 splitPoints.toCollect(),
                 splitPoints.aggregates(),
-                Aggregation.Step.ITER,
-                Aggregation.Step.FINAL,
+                Aggregation.Mode.ITER_FINAL,
                 RowGranularity.CLUSTER
             );
             plan.addProjection(finalAggregation, null, null, splitPoints.aggregates().size(), null);
@@ -100,8 +99,7 @@ class GlobalAggregateConsumer implements Consumer {
             AggregationProjection partialAggregation = projectionBuilder.aggregationProjection(
                 splitPoints.toCollect(),
                 splitPoints.aggregates(),
-                Aggregation.Step.ITER,
-                Aggregation.Step.PARTIAL,
+                Aggregation.Mode.ITER_PARTIAL,
                 RowGranularity.CLUSTER
             );
             plan.addProjection(partialAggregation, null, null, splitPoints.aggregates().size(), null);
@@ -109,8 +107,7 @@ class GlobalAggregateConsumer implements Consumer {
             AggregationProjection finalAggregation = projectionBuilder.aggregationProjection(
                 splitPoints.aggregates(),
                 splitPoints.aggregates(),
-                Aggregation.Step.PARTIAL,
-                Aggregation.Step.FINAL,
+                Aggregation.Mode.PARTIAL_FINAL,
                 RowGranularity.CLUSTER
             );
             postAggregationProjections.add(0, finalAggregation);
@@ -173,8 +170,7 @@ class GlobalAggregateConsumer implements Consumer {
         AggregationProjection ap = projectionBuilder.aggregationProjection(
             splitPoints.leaves(),
             splitPoints.aggregates(),
-            Aggregation.Step.ITER,
-            Aggregation.Step.PARTIAL,
+            Aggregation.Mode.ITER_PARTIAL,
             projectionGranularity
         );
         RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
@@ -188,8 +184,7 @@ class GlobalAggregateConsumer implements Consumer {
         AggregationProjection aggregationProjection = projectionBuilder.aggregationProjection(
             splitPoints.aggregates(),
             splitPoints.aggregates(),
-            Aggregation.Step.PARTIAL,
-            Aggregation.Step.FINAL,
+            Aggregation.Mode.PARTIAL_FINAL,
             RowGranularity.CLUSTER);
         List<Projection> postAggregationProjections = createPostAggregationProjections(querySpec, splitPoints, plannerContext);
         postAggregationProjections.add(0, aggregationProjection);

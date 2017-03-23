@@ -22,8 +22,10 @@
 package io.crate.analyze.symbol;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -38,47 +40,49 @@ public class Aggregation extends Symbol {
         functionInfo = new FunctionInfo();
         functionInfo.readFrom(in);
 
-        fromStep = Step.readFrom(in);
-        toStep = Step.readFrom(in);
+        mode = Mode.readFrom(in);
 
         valueType = DataTypes.fromStream(in);
         inputs = Symbols.listFromStream(in);
     }
 
-    public enum Step {
-        ITER, PARTIAL, FINAL;
+    public enum Mode {
+        ITER_PARTIAL {
+            @Override
+            public DataType returnType(AggregationFunction function) {
+                return function.partialType();
+            }
+        },
+        ITER_FINAL,
+        PARTIAL_FINAL;
 
-        static void writeTo(Step step, StreamOutput out) throws IOException {
+        private static final List<Mode> VALUES = ImmutableList.copyOf(values());
+
+        public DataType returnType(AggregationFunction function) {
+            return function.info().returnType();
+        }
+
+        static void writeTo(Mode step, StreamOutput out) throws IOException {
             out.writeVInt(step.ordinal());
         }
 
-        static Step readFrom(StreamInput in) throws IOException {
-            return values()[in.readVInt()];
+        static Mode readFrom(StreamInput in) throws IOException {
+            return VALUES.get(in.readVInt());
         }
     }
 
     private FunctionInfo functionInfo;
     private List<Symbol> inputs;
     private DataType valueType;
-    private Step fromStep;
-    private Step toStep;
+    private Mode mode;
 
-    public static Aggregation partialAggregation(FunctionInfo functionInfo, DataType partialType, List<Symbol> inputs) {
-        return new Aggregation(functionInfo, partialType, inputs, Step.ITER, Step.PARTIAL);
-    }
-
-    public static Aggregation finalAggregation(FunctionInfo functionInfo, List<Symbol> inputs, Step fromStep) {
-        return new Aggregation(functionInfo, functionInfo.returnType(), inputs, fromStep, Step.FINAL);
-    }
-
-    private Aggregation(FunctionInfo functionInfo, DataType valueType, List<Symbol> inputs, Step fromStep, Step toStep) {
+    public Aggregation(FunctionInfo functionInfo, DataType valueType, List<Symbol> inputs, Mode mode) {
         Preconditions.checkNotNull(inputs, "inputs are null");
-        assert fromStep != Step.FINAL : "Can't start from FINAL";
+
         this.valueType = valueType;
         this.functionInfo = functionInfo;
         this.inputs = inputs;
-        this.fromStep = fromStep;
-        this.toStep = toStep;
+        this.mode = mode;
     }
 
     @Override
@@ -104,22 +108,15 @@ public class Aggregation extends Symbol {
         return inputs;
     }
 
-    public Step fromStep() {
-        return fromStep;
-    }
-
-
-    public Step toStep() {
-        return toStep;
+    public Mode mode() {
+        return mode;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         functionInfo.writeTo(out);
 
-        Step.writeTo(fromStep, out);
-        Step.writeTo(toStep, out);
-
+        Mode.writeTo(mode, out);
         DataTypes.toStream(valueType, out);
         Symbols.toStream(inputs, out);
     }
