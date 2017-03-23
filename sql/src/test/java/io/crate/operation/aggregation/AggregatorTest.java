@@ -23,11 +23,12 @@ package io.crate.operation.aggregation;
 
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
-import io.crate.data.Input;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
@@ -59,10 +60,11 @@ public class AggregatorTest extends CrateUnitTest {
 
     @Test
     public void testAggregationFromPartial() {
-        Aggregation aggregation = Aggregation.finalAggregation(
+        Aggregation aggregation = new Aggregation(
             countImpl.info(),
+            countImpl.info().returnType(),
             Collections.<Symbol>singletonList(new InputColumn(0)),
-            Aggregation.Step.PARTIAL
+            Aggregation.Mode.PARTIAL_FINAL
         );
         Input dummyInput = new Input() {
             CountAggregation.LongState state = new CountAggregation.LongState(10L);
@@ -85,19 +87,14 @@ public class AggregatorTest extends CrateUnitTest {
 
     @Test
     public void testAggregationFromIterToFinal() {
-        Aggregation aggregation = Aggregation.finalAggregation(
+        Aggregation aggregation = new Aggregation(
             countImpl.info(),
+            countImpl.info().returnType(),
             Collections.<Symbol>singletonList(new InputColumn(0)),
-            Aggregation.Step.ITER
+            Aggregation.Mode.ITER_FINAL
         );
 
-        Input dummyInput = new Input() {
-
-            @Override
-            public Object value() {
-                return 300L;
-            }
-        };
+        Input dummyInput = Literal.of(300L);
 
         Aggregator collector = new Aggregator(RAM_ACCOUNTING_CONTEXT, aggregation, countImpl, dummyInput);
         Object state = collector.prepareState();

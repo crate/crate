@@ -128,8 +128,7 @@ class NonDistributedGroupByConsumer implements Consumer {
                 splitPoints.leaves(),
                 groupKeys,
                 splitPoints.aggregates(),
-                Aggregation.Step.ITER,
-                Aggregation.Step.PARTIAL,
+                Aggregation.Mode.ITER_PARTIAL,
                 groupProjectionGranularity);
 
             RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
@@ -157,8 +156,7 @@ class NonDistributedGroupByConsumer implements Consumer {
                 collectOutputs,
                 groupKeys,
                 splitPoints.aggregates(),
-                Aggregation.Step.PARTIAL,
-                Aggregation.Step.FINAL,
+                Aggregation.Mode.PARTIAL_FINAL,
                 RowGranularity.CLUSTER
             ));
 

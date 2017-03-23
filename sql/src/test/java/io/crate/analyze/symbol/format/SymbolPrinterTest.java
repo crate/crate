@@ -134,9 +134,13 @@ public class SymbolPrinterTest extends CrateUnitTest {
 
     @Test
     public void testFormatAggregation() throws Exception {
-        Aggregation a = Aggregation.partialAggregation(new FunctionInfo(
-            new FunctionIdent("agg", Collections.<DataType>singletonList(DataTypes.INTEGER)), DataTypes.LONG, FunctionInfo.Type.AGGREGATE
-        ), DataTypes.LONG, Collections.<Symbol>singletonList(Literal.of(-127)));
+        FunctionInfo functionInfo = new FunctionInfo(
+            new FunctionIdent("agg", Collections.singletonList(DataTypes.INTEGER)),
+            DataTypes.LONG,
+            FunctionInfo.Type.AGGREGATE
+        );
+        Aggregation a = new Aggregation(
+            functionInfo, DataTypes.LONG, Collections.singletonList(Literal.of(-127)), Aggregation.Mode.PARTIAL_FINAL);
 
         assertPrint(a, "agg(-127)");
     }

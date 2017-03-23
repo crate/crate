@@ -44,7 +44,7 @@ import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -81,23 +81,26 @@ public class GroupingBytesRefCollectorBenchmark {
 
     private GroupingCollector createGroupByMinBytesRefCollector(Functions functions) {
         InputCollectExpression keyInput = new InputCollectExpression(0);
-        List<Input<?>> keyInputs = Arrays.<Input<?>>asList(keyInput);
+        List<Input<?>> keyInputs = Collections.singletonList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 
         FunctionIdent minBytesRefFuncIdent = new FunctionIdent(MinimumAggregation.NAME,
-            Arrays.asList(DataTypes.STRING));
+            Collections.singletonList(DataTypes.STRING));
         FunctionInfo minBytesRefFuncInfo = new FunctionInfo(minBytesRefFuncIdent, DataTypes.INTEGER,
             FunctionInfo.Type.AGGREGATE);
         AggregationFunction minAgg = (AggregationFunction) functions.get(minBytesRefFuncIdent);
-        Aggregation aggregation = Aggregation.finalAggregation(minBytesRefFuncInfo,
-            Arrays.asList(new InputColumn(0)), Aggregation.Step.ITER);
+        Aggregation aggregation = new Aggregation(
+            minBytesRefFuncInfo,
+            minBytesRefFuncInfo.returnType(),
+            Collections.singletonList(new InputColumn(0)),
+            Aggregation.Mode.ITER_FINAL);
 
         Aggregator[] aggregators = new Aggregator[]{
             new Aggregator(
                 RAM_ACCOUNTING_CONTEXT,
                 aggregation,
                 minAgg,
-                new Input[]{keyInput}
+                keyInput
             )
         };
 

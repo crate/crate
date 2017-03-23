@@ -25,8 +25,6 @@ import io.crate.analyze.symbol.Aggregation;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 
-import java.util.Locale;
-
 /**
  * A wrapper around an AggregationFunction that is aware of the aggregation steps (iter, partial, final)
  * and will call the correct functions on the aggregationFunction depending on these steps.
@@ -42,36 +40,29 @@ public class Aggregator {
                       Aggregation a,
                       AggregationFunction aggregationFunction,
                       Input... inputs) {
-        if (a.fromStep() == Aggregation.Step.PARTIAL && inputs.length > 1) {
+        if (a.mode() == Aggregation.Mode.PARTIAL_FINAL && inputs.length > 1) {
             throw new UnsupportedOperationException("Aggregation from PARTIAL is only allowed with one input.");
         }
 
-        switch (a.fromStep()) {
-            case ITER:
+        switch (a.mode()) {
+            case ITER_FINAL:
                 fromImpl = new FromIter(ramAccountingContext);
-                break;
-            case PARTIAL:
-                fromImpl = new FromPartial(ramAccountingContext);
-                break;
-            case FINAL:
-                throw new UnsupportedOperationException("Can't start from FINAL");
-            default:
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "invalid from step %s", a.fromStep().name()));
-        }
-
-        switch (a.toStep()) {
-            case ITER:
-                throw new UnsupportedOperationException("Can't aggregate to ITER");
-            case PARTIAL:
-                toImpl = new ToPartial(ramAccountingContext);
-                break;
-            case FINAL:
                 toImpl = new ToFinal(ramAccountingContext);
                 break;
-            default:
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "invalid to step %s", a.toStep().name()));
-        }
 
+            case ITER_PARTIAL:
+                fromImpl = new FromIter(ramAccountingContext);
+                toImpl = new ToPartial(ramAccountingContext);
+                break;
+
+            case PARTIAL_FINAL:
+                fromImpl = new FromPartial(ramAccountingContext);
+                toImpl = new ToFinal(ramAccountingContext);
+                break;
+
+            default:
+                throw new UnsupportedOperationException("invalid mode " + a.mode().name());
+        }
         this.inputs = inputs;
         this.aggregationFunction = aggregationFunction;
     }

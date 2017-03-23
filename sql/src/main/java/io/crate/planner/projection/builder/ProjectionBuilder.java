@@ -64,11 +64,10 @@ public class ProjectionBuilder {
 
     public AggregationProjection aggregationProjection(Collection<? extends Symbol> inputs,
                                                        Collection<Function> aggregates,
-                                                       Aggregation.Step fromStep,
-                                                       Aggregation.Step toStep,
+                                                       Aggregation.Mode mode,
                                                        RowGranularity granularity) {
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
-        ArrayList<Aggregation> aggregations = getAggregations(aggregates, fromStep, toStep, context);
+        ArrayList<Aggregation> aggregations = getAggregations(aggregates, mode, context);
         return new AggregationProjection(aggregations, granularity);
     }
 
@@ -76,42 +75,45 @@ public class ProjectionBuilder {
         Collection<Symbol> inputs,
         Collection<Symbol> keys,
         Collection<Function> values,
-        Aggregation.Step fromStep,
-        Aggregation.Step toStep,
+        Aggregation.Mode mode,
         RowGranularity requiredGranularity) {
 
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
-        ArrayList<Aggregation> aggregations = getAggregations(values, fromStep, toStep, context);
+        ArrayList<Aggregation> aggregations = getAggregations(values, mode, context);
         return new GroupProjection(inputVisitor.process(keys, context), aggregations, requiredGranularity);
     }
 
     private ArrayList<Aggregation> getAggregations(Collection<Function> functions,
-                                                   Aggregation.Step fromStep,
-                                                   Aggregation.Step toStep,
+                                                   Aggregation.Mode mode,
                                                    InputCreatingVisitor.Context context) {
         ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {
             assert function.info().type() == FunctionInfo.Type.AGGREGATE :
                 "function type must be " + FunctionInfo.Type.AGGREGATE;
-            Aggregation aggregation;
             List<Symbol> aggregationInputs;
-            if (fromStep == Aggregation.Step.PARTIAL) {
-                aggregationInputs = ImmutableList.<Symbol>of(context.inputs.get(function));
-            } else {
-                // ITER means that there is no aggregation part upfront, therefore the input
-                // symbols need to be in arguments
-                aggregationInputs = inputVisitor.process(function.arguments(), context);
+            switch (mode) {
+                case ITER_FINAL:
+                case ITER_PARTIAL:
+                    // ITER means that there is no aggregation part upfront, therefore the input
+                    // symbols need to be in arguments
+                    aggregationInputs = inputVisitor.process(function.arguments(), context);
+
+                    break;
+
+                case PARTIAL_FINAL:
+                    aggregationInputs = ImmutableList.of(context.inputs.get(function));
+                    break;
+
+                default:
+                    throw new AssertionError("Invalid mode: " + mode.name());
             }
 
-            if (toStep == Aggregation.Step.PARTIAL) {
-                aggregation = Aggregation.partialAggregation(
-                    function.info(),
-                    ((AggregationFunction) this.functions.get(function.info().ident())).partialType(),
-                    aggregationInputs
-                );
-            } else {
-                aggregation = Aggregation.finalAggregation(function.info(), aggregationInputs, fromStep);
-            }
+            Aggregation aggregation = new Aggregation(
+                function.info(),
+                mode.returnType(((AggregationFunction) this.functions.get(function.info().ident()))),
+                aggregationInputs,
+                mode
+            );
             aggregations.add(aggregation);
         }
         return aggregations;

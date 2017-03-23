@@ -21,13 +21,10 @@
 
 package io.crate.planner.node;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.aggregation.impl.CountAggregation;
@@ -60,10 +57,12 @@ public class MergeNodeTest extends CrateUnitTest {
         Reference nameRef = TestingHelpers.createReference("name", DataTypes.STRING);
         List<Symbol> keys = Collections.singletonList(nameRef);
         List<Aggregation> aggregations = Collections.singletonList(
-            Aggregation.finalAggregation(
-                new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.of()), DataTypes.LONG),
-                ImmutableList.of(),
-                Aggregation.Step.PARTIAL)
+            new Aggregation(
+                CountAggregation.COUNT_STAR_FUNCTION,
+                CountAggregation.COUNT_STAR_FUNCTION.returnType(),
+                Collections.emptyList(),
+                Aggregation.Mode.PARTIAL_FINAL
+            )
         );
         GroupProjection groupProjection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
         TopNProjection topNProjection = new TopNProjection(10, 0, InputColumn.numInputs(keys.size() + aggregations.size()));

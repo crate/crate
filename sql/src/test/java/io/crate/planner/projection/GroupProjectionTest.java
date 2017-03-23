@@ -67,10 +67,11 @@ public class GroupProjectionTest extends CrateUnitTest {
         Reference nameRef = createReference("name", DataTypes.STRING);
         List<Symbol> keys = Collections.singletonList(nameRef);
         List<Aggregation> aggregations = Collections.singletonList(
-            Aggregation.finalAggregation(
-                new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.of()), DataTypes.LONG),
-                ImmutableList.of(),
-                Aggregation.Step.PARTIAL
+            new Aggregation(
+                CountAggregation.COUNT_STAR_FUNCTION,
+                CountAggregation.COUNT_STAR_FUNCTION.returnType(),
+                Collections.emptyList(),
+                Aggregation.Mode.PARTIAL_FINAL
             )
         );
         GroupProjection groupProjection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
