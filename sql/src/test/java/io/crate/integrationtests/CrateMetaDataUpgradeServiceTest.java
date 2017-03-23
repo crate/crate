@@ -31,16 +31,12 @@ import org.apache.lucene.util.TestUtil;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.core.Is;
-import org.junit.After;
 import org.junit.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.Set;
 
 import static org.hamcrest.Matchers.is;
 
@@ -48,11 +44,14 @@ import static org.hamcrest.Matchers.is;
 @UseJdbc
 public class CrateMetaDataUpgradeServiceTest extends SQLTransportIntegrationTest {
 
-    private void startUpNodeWithDataDir() throws IOException {
-        Path zippedIndexDir = getDataPath("/indices/data_home/cratedata_lucene_min_version.zip");
+    private void startUpNodeWithDataDir(String dataPathNode1, String dataPathNode2) throws IOException {
+        Path zippedIndexDir = getDataPath(dataPathNode1);
         Settings nodeSettings = prepareBackwardsDataDir(zippedIndexDir);
         internalCluster().startNode(nodeSettings);
-        ensureYellow();
+        zippedIndexDir = getDataPath(dataPathNode2);
+        nodeSettings = prepareBackwardsDataDir(zippedIndexDir);
+        internalCluster().startNode(nodeSettings);
+        ensureGreen();
     }
 
     private Path startUpNodeWithRepoDir() throws IOException {
@@ -75,14 +74,11 @@ public class CrateMetaDataUpgradeServiceTest extends SQLTransportIntegrationTest
         return repoDir;
     }
 
-    @After
-    public void shutdown() throws IOException {
-        internalCluster().stopCurrentMasterNode();
-    }
-
     @Test
     public void testUpgradeRequiredTables() throws Exception {
-        startUpNodeWithDataDir();
+        startUpNodeWithDataDir(
+            "/indices/data_home/cratedata_upgrade_required-node1.zip",
+            "/indices/data_home/cratedata_upgrade_required-node2.zip");
         execute("select routing_hash_function, version " +
                 "from information_schema.tables where table_name in " +
                 "('test_blob_upgrade_required', 'test_upgrade_required', 'test_upgrade_required_parted') " +
@@ -96,7 +92,7 @@ public class CrateMetaDataUpgradeServiceTest extends SQLTransportIntegrationTest
         TestingHelpers.assertCrateVersion(response.rows()[2][1], null, Version.CURRENT);
 
         execute("select routing_hash_function, version " +
-                "from information_schema.table_partitions "+
+                "from information_schema.table_partitions " +
                 "where table_name = 'test_upgrade_required_parted'");
         assertThat(response.rowCount(), is(5L));
         for (Object[] row : response.rows()) {
@@ -105,15 +101,39 @@ public class CrateMetaDataUpgradeServiceTest extends SQLTransportIntegrationTest
         }
 
         // Validate index UUIDs where upgraded
-        Set<String> indexUUIDs = new HashSet<>(3);
         for (ObjectCursor<IndexMetaData> cursor :
             client().admin().cluster().prepareState().execute().actionGet().getState().metaData().indices().values()) {
             IndexMetaData indexMetaData = cursor.value;
             if (indexMetaData.getIndex().contains("test_upgrade_required_parted")) {
-                indexUUIDs.add(indexMetaData.getIndexUUID());
+                assertThat(indexMetaData.getIndexUUID(), is(indexMetaData.getIndex()));
             }
         }
-        assertThat(indexUUIDs.size(), Is.is(5));
+    }
+
+    @Test
+    public void testFixIndexUUIDForBuggyTables() throws Exception {
+        startUpNodeWithDataDir(
+            "/indices/data_home/cratedata_upgraded_with_bug-node1.zip",
+            "/indices/data_home/cratedata_upgraded_with_bug-node2.zip");
+        execute("select routing_hash_function, version " +
+                "from information_schema.table_partitions " +
+                "where table_name = 'test_upgrade_required_parted'");
+        assertThat(response.rowCount(), is(5L));
+        for (Object[] row : response.rows()) {
+            TestingHelpers.assertCrateVersion(row[1], null, Version.CURRENT);
+        }
+
+        // Validate index UUIDs where upgraded
+        for (ObjectCursor<IndexMetaData> cursor :
+            client().admin().cluster().prepareState().execute().actionGet().getState().metaData().indices().values()) {
+            IndexMetaData indexMetaData = cursor.value;
+            if (indexMetaData.getIndex().contains("test_upgrade_required_parted")) {
+                assertThat(indexMetaData.getIndexUUID(), is(indexMetaData.getIndex()));
+            }
+        }
+
+        execute("select * from test_upgrade_required_parted order by 2");
+        assertThat(response.rowCount(), is(5L));
     }
 
     @Test
@@ -127,7 +147,7 @@ public class CrateMetaDataUpgradeServiceTest extends SQLTransportIntegrationTest
         ensureYellow();
 
         execute("select routing_hash_function, version " +
-                "from information_schema.tables "+
+                "from information_schema.tables " +
                 "where table_name in ('test_upgrade_required', 'test_upgrade_required_parted') order by table_name");
         assertThat(response.rowCount(), is(2L));
         assertThat(response.rows()[0][0], is("Djb"));
@@ -136,7 +156,7 @@ public class CrateMetaDataUpgradeServiceTest extends SQLTransportIntegrationTest
         TestingHelpers.assertCrateVersion(response.rows()[1][1], null, Version.CURRENT);
 
         execute("select routing_hash_function, version " +
-                "from information_schema.table_partitions "+
+                "from information_schema.table_partitions " +
                 "where table_name = 'test_upgrade_required_parted'");
         assertThat(response.rowCount(), is(5L));
         for (Object[] row : response.rows()) {

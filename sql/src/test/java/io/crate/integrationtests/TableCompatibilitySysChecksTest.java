@@ -68,14 +68,14 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
 
     @Test
     public void testUpgradeRequired() throws Exception {
-        startUpNodeWithDataDir("/indices/data_home/cratedata_upgrade_required.zip");
+        startUpNodeWithDataDir("/indices/data_home/cratedata_upgrade_required-node1.zip");
         execute("select * from sys.checks where passed = false");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][1], is(TablesNeedUpgradeSysCheck.ID));
         assertThat(response.rows()[0][3], is(SysCheck.Severity.MEDIUM.value()));
         assertThat(response.rows()[0][0],
             is(TablesNeedUpgradeSysCheck.DESCRIPTION +
-               "[doc.testneedsupgrade, doc.testneedsupgrade_parted] " +
+               "[doc.test_upgrade_required, doc.test_upgrade_required_parted] " +
                LINK_PATTERN + TablesNeedUpgradeSysCheck.ID));
     }
 

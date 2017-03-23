@@ -44,6 +44,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardStateMetaData;
 
 import javax.annotation.Nullable;
+import javax.print.Doc;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -91,25 +92,40 @@ public class CrateMetaDataUpgradeService extends AbstractComponent implements Cu
         MappingMetaData newMappingMetaData = saveRoutingHashFunctionToMapping(
             mappingMetaData,
             indexMetaData.getSettings().get(IndexMetaData.SETTING_LEGACY_ROUTING_HASH_FUNCTION));
+
+        Version indexVersion = DocIndexMetaData.getVersionUpgraded(
+            mappingMetaData == null ? null :mappingMetaData.sourceAsMap());
+        if (mappingMetaData == newMappingMetaData && (indexVersion == null || indexVersion.id > 1010099)) {
+            return indexMetaData;
+        }
+
+        IndexMetaData.Builder builder = IndexMetaData.builder(indexMetaData);
+        // Use indexName as a new UUID for the index due to a former bug that resulted in
+        // partitions with the same index UUID when created during a bulk insert.
+        if (PartitionName.isPartition(indexMetaData.getIndex())) {
+            String indexName = indexMetaData.getIndex();
+            String newUUID = indexName;
+            builder.settings(Settings.builder()
+                .put(indexMetaData.getSettings())
+                .put(IndexMetaData.SETTING_INDEX_UUID, newUUID));
+            logger.info("new UUID={} was set for index={}", newUUID, indexName);
+            upgradeShardMetaData(nodeEnv, indexName, newUUID, logger);
+
+            // Mark as Upgraded
+            if (mappingMetaData == newMappingMetaData) {
+                Map<String, Object> newMappingMap = newMappingMetaData.sourceAsMap();
+                markAsUpgraded(newMappingMap);
+                Map<String, Object> typeAndMapping = new HashMap<>(1);
+                typeAndMapping.put(Constants.DEFAULT_MAPPING_TYPE, newMappingMap);
+                newMappingMetaData = new MappingMetaData(typeAndMapping);
+            }
+        }
+
         if (mappingMetaData != newMappingMetaData) {
             logger.info("upgraded mapping of index={}", indexMetaData.getIndex());
-            IndexMetaData.Builder builder = IndexMetaData.builder(indexMetaData)
-                .removeMapping(Constants.DEFAULT_MAPPING_TYPE)
-                .putMapping(newMappingMetaData);
-            // Use a new UUID for the index due to a former bug that resulted in
-            // partitions with the same index UUID when created during a bulk insert.
-            if (PartitionName.isPartition(indexMetaData.getIndex())) {
-                String indexName = indexMetaData.getIndex();
-                String newUUID = Strings.randomBase64UUID();
-                builder.settings(Settings.builder()
-                        .put(indexMetaData.getSettings())
-                        .put(IndexMetaData.SETTING_INDEX_UUID, newUUID));
-                logger.info("new UUID={} was set for index index={}", newUUID, indexName);
-                upgradeShardMetaData(nodeEnv, indexName, newUUID, logger);
-            }
-            return builder.build();
+            builder.removeMapping(Constants.DEFAULT_MAPPING_TYPE).putMapping(newMappingMetaData);
         }
-        return indexMetaData;
+        return builder.build();
     }
 
     private IndexTemplateMetaData upgradeTemplateMapping(IndexTemplateMetaData indexTemplateMetaData) throws IOException {
