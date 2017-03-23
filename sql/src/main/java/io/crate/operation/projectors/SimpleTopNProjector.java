@@ -39,8 +39,8 @@ public class SimpleTopNProjector implements Projector {
                                Iterable<? extends CollectExpression<Row, ?>> collectExpressions,
                                int limit,
                                int offset) {
-        Preconditions.checkArgument(limit >= 0, "invalid limit: " + limit);
-        Preconditions.checkArgument(offset >= 0, "invalid offset: " + offset);
+        Preconditions.checkArgument(limit >= 0, "Invalid LIMIT: value must be >= 0; got: " + limit);
+        Preconditions.checkArgument(offset >= 0, "Invalid OFFSET: value must be >= 0; got: " + offset);
 
         this.inputs = inputs;
         this.collectExpressions = collectExpressions;

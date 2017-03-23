@@ -139,14 +139,14 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testNegativeOffset() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid offset");
+        expectedException.expectMessage("Invalid OFFSET");
         new SimpleTopNProjector(INPUTS, COLLECT_EXPRESSIONS, 10, -10);
     }
 
     @Test
     public void testNegativeLimit() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid limit");
+        expectedException.expectMessage("Invalid LIMIT");
         new SimpleTopNProjector(INPUTS, COLLECT_EXPRESSIONS, -100, TopN.NO_OFFSET);
     }
 
@@ -215,7 +215,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testProjectNoLimitNoOffset() throws Throwable {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid limit");
+        expectedException.expectMessage("Invalid LIMIT");
 
         prepareProjector(TopN.NO_LIMIT, TopN.NO_OFFSET);
     }

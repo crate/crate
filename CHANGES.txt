@@ -15,5 +15,7 @@ the appropriate section of the docs.
 Changelog
 =========
 
+ - Improved error handling when using LIMIT/OFFSET that exceed Integer range
+
  - Fixed a regression introduced in 1.1.0 that caused statements like ``COPY t
    TO '/invalid/directory/'`` to get stuck instead of resulting in an error.
