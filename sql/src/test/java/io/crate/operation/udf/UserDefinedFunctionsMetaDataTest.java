@@ -81,7 +81,6 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
 
         XContentParser parser = JsonXContent.jsonXContent.createParser(builder.bytes());
         parser.nextToken(); // start object
-        parser.nextToken(); // field name
         UserDefinedFunctionsMetaData functions2 =
             (UserDefinedFunctionsMetaData) UserDefinedFunctionsMetaData.of().fromXContent(parser);
         assertEquals(functions, functions2);

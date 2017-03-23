@@ -42,11 +42,6 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
 
     public static final UserDefinedFunctionsMetaData PROTO = new UserDefinedFunctionsMetaData();
 
-    static {
-        // register non plugin custom metadata
-        MetaData.registerPrototype(TYPE, PROTO);
-    }
-
     private final Map<Integer, UserDefinedFunctionMetaData> functionsBySignatureHash;
 
     private UserDefinedFunctionsMetaData() {
@@ -118,11 +113,13 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
     @Override
     public MetaData.Custom fromXContent(XContentParser parser) throws IOException {
         Map<Integer, UserDefinedFunctionMetaData> functions = new HashMap<>();
-        if ((parser.nextToken()) == XContentParser.Token.START_ARRAY) {
-            XContentParser.Token token;
-            while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY && token != null) {
-                UserDefinedFunctionMetaData function = UserDefinedFunctionMetaData.fromXContent(parser);
-                functions.put(function.createMethodSignature(), function);
+        if (parser.nextToken() == XContentParser.Token.FIELD_NAME &&  parser.currentName() == "functions") {
+            if ((parser.nextToken()) == XContentParser.Token.START_ARRAY) {
+                XContentParser.Token token;
+                while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY && token != null) {
+                    UserDefinedFunctionMetaData function = UserDefinedFunctionMetaData.fromXContent(parser);
+                    functions.put(function.createMethodSignature(), function);
+                }
             }
         }
         return new UserDefinedFunctionsMetaData(functions);
@@ -130,7 +127,7 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
 
     @Override
     public EnumSet<MetaData.XContentContext> context() {
-        return MetaData.API_AND_SNAPSHOT;
+        return EnumSet.of(MetaData.XContentContext.GATEWAY, MetaData.XContentContext.SNAPSHOT);
     }
 
     @Override

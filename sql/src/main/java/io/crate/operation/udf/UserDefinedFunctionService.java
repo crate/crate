@@ -39,10 +39,16 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.Map;
 
+import static io.crate.operation.udf.UserDefinedFunctionsMetaData.PROTO;
 import static java.util.stream.Collectors.toMap;
 
 @Singleton
 public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserDefinedFunctionService> implements ClusterStateListener {
+
+    static {
+        // register non plugin custom metadata
+        MetaData.registerPrototype(UserDefinedFunctionsMetaData.TYPE, PROTO);
+    }
 
     private final ClusterService clusterService;
     private final Functions functions;
