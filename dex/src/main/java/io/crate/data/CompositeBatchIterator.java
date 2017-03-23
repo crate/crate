@@ -27,6 +27,7 @@ import io.crate.concurrent.CompletableFutures;
 import javax.annotation.Nonnull;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -41,7 +42,7 @@ public class CompositeBatchIterator implements BatchIterator {
     private final CompositeColumns columns;
     private int idx = 0;
 
-    private boolean loading = false;
+    private final CompletableFuture[] loadingStatus = new CompletableFuture[1];
 
     /**
      * @param iterators underlying iterators to use; order of consumption may change if some of them are unloaded
@@ -102,17 +103,24 @@ public class CompositeBatchIterator implements BatchIterator {
 
     @Override
     public CompletionStage<?> loadNextBatch() {
-        if (loading) {
+        if (isLoading()) {
             return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already loading"));
         }
         for (BatchIterator iterator : iterators) {
             if (iterator.allLoaded()) {
                 continue;
             }
-            loading = true;
-            return iterator.loadNextBatch().whenComplete((r, t) -> loading = false);
+            CompletableFuture<?> loadingFuture = iterator.loadNextBatch().toCompletableFuture();
+            loadingStatus[0] = loadingFuture;
+            loadingFuture.whenComplete((r, t) -> loadingStatus[0] = null);
+            return loadingFuture;
         }
         return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already fully loaded"));
+    }
+
+    private boolean isLoading() {
+        CompletableFuture loadingFuture = loadingStatus[0];
+        return loadingFuture != null && loadingFuture.isDone() == false;
     }
 
     @Override
@@ -127,7 +135,7 @@ public class CompositeBatchIterator implements BatchIterator {
     }
 
     private void raiseIfLoading() {
-        if (loading) {
+        if (isLoading()) {
             throw new IllegalStateException("BatchIterator already loading");
         }
     }
