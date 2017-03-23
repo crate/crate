@@ -22,11 +22,16 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.analyze.symbol.Aggregation;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -39,13 +44,41 @@ import java.util.stream.Collector;
  */
 public class AggregateCollector implements Collector<Row, Object[], Object[]> {
 
-    private final Iterable<? extends CollectExpression<Row, ?>> expressions;
-    private final Aggregator[] aggregators;
+    private final List<? extends CollectExpression<Row, ?>> expressions;
+    private final RamAccountingContext ramAccounting;
+    private final AggregationFunction[] aggregations;
+    private final Input[][] inputs;
+    private final BiConsumer<Object[], Row> accumulator;
+    private final Function<Object[], Object[]> finisher;
 
-    public AggregateCollector(Iterable<? extends CollectExpression<Row, ?>> expressions,
-                              Aggregator[] aggregators) {
+    public AggregateCollector(List<? extends CollectExpression<Row, ?>> expressions,
+                              RamAccountingContext ramAccounting,
+                              Aggregation.Mode mode,
+                              AggregationFunction[] aggregations,
+                              Input[]... inputs) {
         this.expressions = expressions;
-        this.aggregators = aggregators;
+        this.ramAccounting = ramAccounting;
+        this.aggregations = aggregations;
+        this.inputs = inputs;
+        switch (mode) {
+            case ITER_PARTIAL:
+                accumulator = this::iterate;
+                finisher = s -> s;
+                break;
+
+            case ITER_FINAL:
+                accumulator = this::iterate;
+                finisher = this::finishCollect;
+                break;
+
+            case PARTIAL_FINAL:
+                accumulator = this::reduce;
+                finisher = this::finishCollect;
+                break;
+
+            default:
+                throw new AssertionError("Invalid mode: " + mode.name());
+        }
     }
 
     @Override
@@ -55,7 +88,7 @@ public class AggregateCollector implements Collector<Row, Object[], Object[]> {
 
     @Override
     public BiConsumer<Object[], Row> accumulator() {
-        return this::processRow;
+        return accumulator;
     }
 
     @Override
@@ -65,7 +98,7 @@ public class AggregateCollector implements Collector<Row, Object[], Object[]> {
 
     @Override
     public Function<Object[], Object[]> finisher() {
-        return this::finishCollect;
+        return finisher;
     }
 
     @Override
@@ -74,27 +107,37 @@ public class AggregateCollector implements Collector<Row, Object[], Object[]> {
     }
 
     private Object[] prepareState() {
-        Object[] states = new Object[aggregators.length];
-        for (int i = 0; i < aggregators.length; i++) {
-            states[i] = aggregators[i].prepareState();
+        Object[] states = new Object[aggregations.length];
+        for (int i = 0; i < aggregations.length; i++) {
+            states[i] = aggregations[i].newState(ramAccounting);
         }
         return states;
     }
 
-    private void processRow(Object[] state, Row item) {
-        for (CollectExpression<Row, ?> expression : expressions) {
-            expression.setNextRow(item);
+    private void iterate(Object[] state, Row row) {
+        setRow(row);
+        for (int i = 0; i < aggregations.length; i++) {
+            state[i] = aggregations[i].iterate(ramAccounting, state[i], inputs[i]);
         }
-        for (int i = 0; i < aggregators.length; i++) {
-            state[i] = aggregators[i].processRow(state[i]);
+    }
+
+    private void reduce(Object[] state, Row row) {
+        setRow(row);
+        for (int i = 0; i < aggregations.length; i++) {
+            state[i] = aggregations[i].reduce(ramAccounting, state[i], inputs[i][0].value());
         }
     }
 
     private Object[] finishCollect(Object[] state) {
-        Object[] cells = new Object[aggregators.length];
-        for (int i = 0; i < aggregators.length; i++) {
-            cells[i] = aggregators[i].finishCollect(state[i]);
+        for (int i = 0; i < aggregations.length; i++) {
+            state[i] = aggregations[i].terminatePartial(ramAccounting, state[i]);
         }
-        return cells;
+        return state;
+    }
+
+    private void setRow(Row row) {
+        for (int i = 0, expressionsSize = expressions.size(); i < expressionsSize; i++) {
+            expressions.get(i).setNextRow(row);
+        }
     }
 }

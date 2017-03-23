@@ -21,15 +21,17 @@
 
 package io.crate.operation.aggregation.impl;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.data.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+
+import java.util.Collections;
 
 public class SumAggregation extends AggregationFunction<Double, Double> {
 
@@ -39,14 +41,17 @@ public class SumAggregation extends AggregationFunction<Double, Double> {
 
     public static void register(AggregationImplModule mod) {
         for (DataType t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            mod.register(new SumAggregation(new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)),
-                DataTypes.DOUBLE, FunctionInfo.Type.AGGREGATE)));
+            mod.register(new SumAggregation(t));
         }
-
     }
 
-    SumAggregation(FunctionInfo info) {
-        this.info = info;
+    @VisibleForTesting
+    public SumAggregation(DataType inputType) {
+        this.info = new FunctionInfo(
+            new FunctionIdent(NAME, Collections.singletonList(inputType)),
+            DataTypes.DOUBLE,
+            FunctionInfo.Type.AGGREGATE
+        );
     }
 
     @Override

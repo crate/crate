@@ -24,39 +24,39 @@ package io.crate.operation.projectors;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.*;
 import io.crate.operation.AggregationContext;
-import io.crate.operation.aggregation.Aggregator;
+import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class AggregationPipe implements Projector {
 
-    private final Aggregator[] aggregators;
-    private final Iterable<CollectExpression<Row, ?>> expressions;
+    private final AggregateCollector collector;
+    private final int numAggregations;
 
-    public AggregationPipe(Iterable<CollectExpression<Row, ?>> expressions,
+    public AggregationPipe(List<CollectExpression<Row, ?>> expressions,
                            AggregationContext[] aggregations,
                            RamAccountingContext ramAccountingContext) {
-        this.expressions = expressions;
-        aggregators = new Aggregator[aggregations.length];
-        for (int i = 0; i < aggregators.length; i++) {
-            aggregators[i] = new Aggregator(
-                ramAccountingContext,
-                aggregations[i].symbol(),
-                aggregations[i].function(),
-                aggregations[i].inputs()
-            );
-        }
+        numAggregations = aggregations.length;
+        collector = new AggregateCollector(
+            expressions,
+            ramAccountingContext,
+            aggregations[0].symbol().mode(),
+            Stream.of(aggregations).map(AggregationContext::function).toArray(AggregationFunction[]::new),
+            Stream.of(aggregations).map(AggregationContext::inputs).toArray(Input[][]::new)
+        );
     }
 
     @Override
     public BatchIterator apply(BatchIterator batchIterator) {
         return CollectingBatchIterator.newInstance(batchIterator,
             Collectors.collectingAndThen(
-                new AggregateCollector(expressions, aggregators),
+                collector,
                 cells -> Collections.singletonList(new RowN(cells))),
-            aggregators.length);
+            numAggregations);
     }
 
     @Override
