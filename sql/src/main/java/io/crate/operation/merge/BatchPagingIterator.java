@@ -96,7 +96,7 @@ public class BatchPagingIterator<Key> implements BatchIterator {
 
         if (it.hasNext()) {
             Row currentRow = it.next();
-            assert currentRow.numColumns() >= rowData.size():
+            assert currentRow.numColumns() >= rowData.size() :
                 "size of row: " + currentRow.numColumns() + " is smaller than rowData: " + rowData().size();
             rowData.updateRef(currentRow);
             return true;
@@ -120,7 +120,7 @@ public class BatchPagingIterator<Key> implements BatchIterator {
         if (illegalState == null) {
             currentlyLoading = new CompletableFuture<>();
             if (tryFetchMore.apply(pagingIterator.exhaustedIterable())) {
-                return currentlyLoading.whenComplete((r, t) -> currentlyLoading = null);
+                return currentlyLoading;
             }
             return CompletableFutures.failedFuture(new IllegalStateException("Although isLoaded is false, tryFetchMoreFailed"));
         }
@@ -134,9 +134,6 @@ public class BatchPagingIterator<Key> implements BatchIterator {
         }
         if (allLoaded()) {
             return "All data already loaded";
-        }
-        if (currentlyLoading != null) {
-            return "Already loading";
         }
         return null;
     }

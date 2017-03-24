@@ -41,8 +41,6 @@ public class CompositeBatchIterator implements BatchIterator {
     private final CompositeColumns columns;
     private int idx = 0;
 
-    private boolean loading = false;
-
     /**
      * @param iterators underlying iterators to use; order of consumption may change if some of them are unloaded
      *                  to prefer loaded iterators over unloaded.
@@ -63,7 +61,6 @@ public class CompositeBatchIterator implements BatchIterator {
 
     @Override
     public void moveToStart() {
-        raiseIfLoading();
         for (BatchIterator iterator : iterators) {
             iterator.moveToStart();
         }
@@ -77,7 +74,6 @@ public class CompositeBatchIterator implements BatchIterator {
 
     @Override
     public boolean moveNext() {
-        raiseIfLoading();
         while (idx < iterators.length) {
             BatchIterator iterator = iterators[idx];
             if (iterator.moveNext()) {
@@ -102,34 +98,23 @@ public class CompositeBatchIterator implements BatchIterator {
 
     @Override
     public CompletionStage<?> loadNextBatch() {
-        if (loading) {
-            return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already loading"));
-        }
         for (BatchIterator iterator : iterators) {
             if (iterator.allLoaded()) {
                 continue;
             }
-            loading = true;
-            return iterator.loadNextBatch().whenComplete((r, t) -> loading = false);
+            return iterator.loadNextBatch();
         }
         return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already fully loaded"));
     }
 
     @Override
     public boolean allLoaded() {
-        raiseIfLoading();
         for (BatchIterator iterator : iterators) {
             if (iterator.allLoaded() == false) {
                 return false;
             }
         }
         return true;
-    }
-
-    private void raiseIfLoading() {
-        if (loading) {
-            throw new IllegalStateException("BatchIterator already loading");
-        }
     }
 
     @Override

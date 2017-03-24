@@ -96,7 +96,6 @@ public class CollectingBatchIterator<A> implements BatchIterator {
 
     @Override
     public boolean moveNext() {
-        raiseIfLoading();
         if (it.hasNext()) {
             rowData.updateRef(it.next());
             return true;
@@ -128,12 +127,6 @@ public class CollectingBatchIterator<A> implements BatchIterator {
     @Override
     public boolean allLoaded() {
         return resultFuture != null;
-    }
-
-    private void raiseIfLoading() {
-        if (resultFuture != null && resultFuture.isDone() == false) {
-            throw new IllegalStateException("BatchIterator is loading");
-        }
     }
 
     @Override

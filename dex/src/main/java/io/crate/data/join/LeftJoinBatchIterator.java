@@ -46,7 +46,6 @@ class LeftJoinBatchIterator extends NestedLoopBatchIterator {
 
     private final BooleanSupplier joinCondition;
     private boolean hadMatch = false;
-    private boolean loading = false;
 
     LeftJoinBatchIterator(BatchIterator left,
                           BatchIterator right,
@@ -57,9 +56,6 @@ class LeftJoinBatchIterator extends NestedLoopBatchIterator {
 
     @Override
     public boolean moveNext() {
-        if (loading) {
-            throw new IllegalStateException("BatchIterator is loading");
-        }
         while (true) {
             rowData.resetRight();
             if (activeIt == left) {
@@ -88,15 +84,15 @@ class LeftJoinBatchIterator extends NestedLoopBatchIterator {
 
     @Override
     public CompletionStage<?> loadNextBatch() {
-        loading = true;
-        return super.loadNextBatch().whenComplete((result, failure) -> loading = false);
+        return super.loadNextBatch();
     }
 
     /**
      * try to move the right side
+     *
      * @return true  -> moved and matched
-     *         false -> need to load more data
-     *         null  -> reached it's end and moved back to start -> left side needs to continue
+     * false -> need to load more data
+     * null  -> reached it's end and moved back to start -> left side needs to continue
      */
     private Boolean tryAdvanceRight() {
         while (right.moveNext()) {

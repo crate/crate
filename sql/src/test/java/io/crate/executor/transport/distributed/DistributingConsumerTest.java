@@ -28,6 +28,7 @@ import io.crate.data.CollectionBucket;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingHelpers;
@@ -43,6 +44,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
@@ -55,24 +59,35 @@ public class DistributingConsumerTest extends CrateUnitTest {
 
     @Test
     public void testSendUsingDistributingConsumerAndReceiveWithPageDownstreamContext() throws Exception {
-        Streamer<?>[] streamers = { DataTypes.INTEGER.streamer() };
-        TestingBatchConsumer collectingConsumer = new TestingBatchConsumer();
-        PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(streamers, collectingConsumer);
-        TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, pageDownstreamContext);
-        DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
+        ExecutorService executorService = Executors.newFixedThreadPool(3);
+        try {
+            Streamer<?>[] streamers = {DataTypes.INTEGER.streamer()};
+            TestingBatchConsumer collectingConsumer = new TestingBatchConsumer();
+            PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(streamers, collectingConsumer);
+            TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, pageDownstreamContext);
+            DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
 
-        distributingConsumer.accept(TestingBatchIterators.range(0, 5), null);
+            BatchSimulatingIterator batchSimulatingIterator =
+                new BatchSimulatingIterator(TestingBatchIterators.range(0, 5),
+                    2,
+                    3,
+                    executorService);
+            distributingConsumer.accept(batchSimulatingIterator, null);
 
-        List<Object[]> result = collectingConsumer.getResult();
-        assertThat(TestingHelpers.printedTable(new CollectionBucket(result)),
-            is("0\n" +
-               "1\n" +
-               "2\n" +
-               "3\n" +
-               "4\n"));
+            List<Object[]> result = collectingConsumer.getResult();
+            assertThat(TestingHelpers.printedTable(new CollectionBucket(result)),
+                is("0\n" +
+                   "1\n" +
+                   "2\n" +
+                   "3\n" +
+                   "4\n"));
 
-        // pageSize=2 and 5 rows causes 3x pushResult
-        verify(distributedResultAction, times(3)).pushResult(anyString(), any(), any());
+            // pageSize=2 and 5 rows causes 3x pushResult
+            verify(distributedResultAction, times(3)).pushResult(anyString(), any(), any());
+        } finally {
+            executorService.shutdown();
+            executorService.awaitTermination(10, TimeUnit.SECONDS);
+        }
     }
 
     @Test
