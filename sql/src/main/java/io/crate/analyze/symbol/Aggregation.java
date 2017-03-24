@@ -22,10 +22,8 @@
 package io.crate.analyze.symbol;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -40,43 +38,18 @@ public class Aggregation extends Symbol {
         functionInfo = new FunctionInfo();
         functionInfo.readFrom(in);
 
-        mode = Mode.readFrom(in);
+        mode = AggregateMode.readFrom(in);
 
         valueType = DataTypes.fromStream(in);
         inputs = Symbols.listFromStream(in);
     }
 
-    public enum Mode {
-        ITER_PARTIAL {
-            @Override
-            public DataType returnType(AggregationFunction function) {
-                return function.partialType();
-            }
-        },
-        ITER_FINAL,
-        PARTIAL_FINAL;
-
-        private static final List<Mode> VALUES = ImmutableList.copyOf(values());
-
-        public DataType returnType(AggregationFunction function) {
-            return function.info().returnType();
-        }
-
-        static void writeTo(Mode step, StreamOutput out) throws IOException {
-            out.writeVInt(step.ordinal());
-        }
-
-        static Mode readFrom(StreamInput in) throws IOException {
-            return VALUES.get(in.readVInt());
-        }
-    }
-
     private FunctionInfo functionInfo;
     private List<Symbol> inputs;
     private DataType valueType;
-    private Mode mode;
+    private AggregateMode mode;
 
-    public Aggregation(FunctionInfo functionInfo, DataType valueType, List<Symbol> inputs, Mode mode) {
+    public Aggregation(FunctionInfo functionInfo, DataType valueType, List<Symbol> inputs, AggregateMode mode) {
         Preconditions.checkNotNull(inputs, "inputs are null");
 
         this.valueType = valueType;
@@ -108,7 +81,7 @@ public class Aggregation extends Symbol {
         return inputs;
     }
 
-    public Mode mode() {
+    public AggregateMode mode() {
         return mode;
     }
 
@@ -116,7 +89,7 @@ public class Aggregation extends Symbol {
     public void writeTo(StreamOutput out) throws IOException {
         functionInfo.writeTo(out);
 
-        Mode.writeTo(mode, out);
+        AggregateMode.writeTo(mode, out);
         DataTypes.toStream(valueType, out);
         Symbols.toStream(inputs, out);
     }

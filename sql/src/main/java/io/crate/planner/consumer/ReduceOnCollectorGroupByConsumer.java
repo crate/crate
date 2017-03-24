@@ -27,7 +27,7 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
@@ -121,7 +121,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
                 splitPoints.leaves(),
                 groupKeys,
                 splitPoints.aggregates(),
-                Aggregation.Mode.ITER_FINAL,
+                AggregateMode.ITER_FINAL,
                 RowGranularity.SHARD
             );
             projections.add(groupProjection);

@@ -22,15 +22,12 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.analyze.symbol.Aggregation;
-import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.*;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.collect.CollectExpression;
@@ -86,27 +83,13 @@ public class GroupingBytesRefCollectorBenchmark {
 
         FunctionIdent minBytesRefFuncIdent = new FunctionIdent(MinimumAggregation.NAME,
             Collections.singletonList(DataTypes.STRING));
-        FunctionInfo minBytesRefFuncInfo = new FunctionInfo(minBytesRefFuncIdent, DataTypes.INTEGER,
-            FunctionInfo.Type.AGGREGATE);
         AggregationFunction minAgg = (AggregationFunction) functions.get(minBytesRefFuncIdent);
-        Aggregation aggregation = new Aggregation(
-            minBytesRefFuncInfo,
-            minBytesRefFuncInfo.returnType(),
-            Collections.singletonList(new InputColumn(0)),
-            Aggregation.Mode.ITER_FINAL);
-
-        Aggregator[] aggregators = new Aggregator[]{
-            new Aggregator(
-                RAM_ACCOUNTING_CONTEXT,
-                aggregation,
-                minAgg,
-                keyInput
-            )
-        };
 
         return GroupingCollector.singleKey(
             collectExpressions,
-            aggregators,
+            AggregateMode.ITER_FINAL,
+            new AggregationFunction[] { minAgg },
+            new Input[][] { new Input[] { keyInput }},
             RAM_ACCOUNTING_CONTEXT,
             keyInputs.get(0),
             DataTypes.STRING

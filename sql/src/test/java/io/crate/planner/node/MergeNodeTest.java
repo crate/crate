@@ -22,6 +22,7 @@
 package io.crate.planner.node;
 
 import com.google.common.collect.Sets;
+import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
@@ -61,7 +62,7 @@ public class MergeNodeTest extends CrateUnitTest {
                 CountAggregation.COUNT_STAR_FUNCTION,
                 CountAggregation.COUNT_STAR_FUNCTION.returnType(),
                 Collections.emptyList(),
-                Aggregation.Mode.PARTIAL_FINAL
+                AggregateMode.PARTIAL_FINAL
             )
         );
         GroupProjection groupProjection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);

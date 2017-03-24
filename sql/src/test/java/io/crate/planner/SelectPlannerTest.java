@@ -289,7 +289,7 @@ public class SelectPlannerTest extends CrateUnitTest {
         assertThat(aggregationProjection.aggregations().size(), is(1));
 
         Aggregation aggregation = aggregationProjection.aggregations().get(0);
-        assertThat(aggregation.mode(), is(Aggregation.Mode.ITER_PARTIAL));
+        assertThat(aggregation.mode(), is(AggregateMode.ITER_PARTIAL));
         Symbol aggregationInput = aggregation.inputs().get(0);
         assertThat(aggregationInput.symbolType(), is(SymbolType.INPUT_COLUMN));
 

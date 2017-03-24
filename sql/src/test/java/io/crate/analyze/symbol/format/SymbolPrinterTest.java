@@ -140,7 +140,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
             FunctionInfo.Type.AGGREGATE
         );
         Aggregation a = new Aggregation(
-            functionInfo, DataTypes.LONG, Collections.singletonList(Literal.of(-127)), Aggregation.Mode.PARTIAL_FINAL);
+            functionInfo, DataTypes.LONG, Collections.singletonList(Literal.of(-127)), AggregateMode.PARTIAL_FINAL);
 
         assertPrint(a, "agg(-127)");
     }

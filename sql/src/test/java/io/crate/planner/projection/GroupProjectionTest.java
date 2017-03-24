@@ -22,10 +22,9 @@
 package io.crate.planner.projection;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.aggregation.impl.CountAggregation;
@@ -71,7 +70,7 @@ public class GroupProjectionTest extends CrateUnitTest {
                 CountAggregation.COUNT_STAR_FUNCTION,
                 CountAggregation.COUNT_STAR_FUNCTION.returnType(),
                 Collections.emptyList(),
-                Aggregation.Mode.PARTIAL_FINAL
+                AggregateMode.PARTIAL_FINAL
             )
         );
         GroupProjection groupProjection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);

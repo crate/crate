@@ -22,7 +22,7 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -61,7 +61,7 @@ public class AggregateCollectorBenchmark {
         colllector = new AggregateCollector(
             Collections.singletonList(inExpr0),
             RAM_ACCOUNTING_CONTEXT,
-            Aggregation.Mode.ITER_FINAL,
+            AggregateMode.ITER_FINAL,
             new AggregationFunction[] { sumAggregation },
             new Input[] { inExpr0 }
         );

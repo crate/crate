@@ -22,12 +22,11 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.collect.CollectExpression;
 
 import java.util.Collections;
@@ -53,7 +52,7 @@ public class AggregateCollector implements Collector<Row, Object[], Object[]> {
 
     public AggregateCollector(List<? extends CollectExpression<Row, ?>> expressions,
                               RamAccountingContext ramAccounting,
-                              Aggregation.Mode mode,
+                              AggregateMode mode,
                               AggregationFunction[] aggregations,
                               Input[]... inputs) {
         this.expressions = expressions;

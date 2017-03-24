@@ -21,15 +21,17 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.analyze.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.*;
 import io.crate.operation.AggregationContext;
-import io.crate.operation.aggregation.Aggregator;
+import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 public class GroupingProjector implements Projector {
 
@@ -45,19 +47,21 @@ public class GroupingProjector implements Projector {
         assert keyTypes.size() == keyInputs.size() : "number of key types must match with number of key inputs";
         assert allTypesKnown(keyTypes) : "must have a known type for each key input";
 
-        Aggregator[] aggregators = new Aggregator[aggregations.length];
-        for (int i = 0; i < aggregations.length; i++) {
-            aggregators[i] = new Aggregator(
-                ramAccountingContext,
-                aggregations[i].symbol(),
-                aggregations[i].function(),
-                aggregations[i].inputs()
-            );
-        }
+
+        AggregationFunction[] functions = Stream.of(aggregations)
+            .map(AggregationContext::function)
+            .toArray(AggregationFunction[]::new);
+        Input[][] inputs = Stream.of(aggregations)
+            .map(AggregationContext::inputs)
+            .toArray(Input[][]::new);
+
+        AggregateMode mode = aggregations.length > 0 ? aggregations[0].symbol().mode() : AggregateMode.ITER_FINAL;
         if (keyInputs.size() == 1) {
             collector = GroupingCollector.singleKey(
                 collectExpressions,
-                aggregators,
+                mode,
+                functions,
+                inputs,
                 ramAccountingContext,
                 keyInputs.get(0),
                 keyTypes.get(0)
@@ -66,13 +70,15 @@ public class GroupingProjector implements Projector {
             //noinspection unchecked
             collector = (GroupingCollector<Object>) (GroupingCollector) GroupingCollector.manyKeys(
                 collectExpressions,
-                aggregators,
+                mode,
+                functions,
+                inputs,
                 ramAccountingContext,
                 keyInputs,
                 keyTypes
             );
         }
-        numCols = keyInputs.size() + aggregators.length;
+        numCols = keyInputs.size() + functions.length;
     }
 
     private static boolean allTypesKnown(List<? extends DataType> keyTypes) {
