@@ -60,7 +60,9 @@ public class RamAccountingQueue<T> extends ForwardingQueue<T> {
     public boolean offer(T o) {
         context.addBytesWithoutBreaking(sizeEstimator.estimateSize(o));
         if (context.exceededBreaker() && exceeded.compareAndSet(false, true)) {
-            LOGGER.error("Memory limit for breaker [{}] was exceeded. Queue [{}] is cleared.", breaker.getName(), context.contextId());
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("Memory limit for breaker [{}] was exceeded. Queue [{}] is cleared.", breaker.getName(), context.contextId());
+            }
             // clear queue, close context and create new one
             close();
             context = new RamAccountingContext(contextId(), breaker);
