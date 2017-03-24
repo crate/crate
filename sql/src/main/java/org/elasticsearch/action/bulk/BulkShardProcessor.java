@@ -30,8 +30,8 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
 import io.crate.Constants;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.metadata.PartitionName;
@@ -87,6 +87,8 @@ public class BulkShardProcessor<Request extends ShardRequest> {
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private final BitSet responses;
     private final Object responsesLock = new Object();
+    private final boolean isTraceEnabled;
+    private final boolean isDebugEnabled;
     private volatile boolean closed = false;
 
     private final ClusterService clusterService;
@@ -120,6 +122,8 @@ public class BulkShardProcessor<Request extends ShardRequest> {
         this.bulkSize = bulkSize;
         this.jobId = jobId;
         this.createIndicesBulkSize = Math.min(bulkSize, MAX_CREATE_INDICES_BULK_SIZE);
+        this.isTraceEnabled = LOGGER.isTraceEnabled();
+        this.isDebugEnabled = LOGGER.isDebugEnabled();
 
 
         if (autoCreateIndices) {
@@ -271,7 +275,9 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                             // it can happen after an valid request already succeeded and data was written.
                             // so never bubble, but rather mark all items of this request as failed.
                             markItemsAsFailedAndReleaseRetryLock(request, Optional.absent());
-                            LOGGER.warn("ShardUpsert: {} items failed", t, request.items().size());
+                            if (isDebugEnabled) {
+                                LOGGER.debug("ShardUpsert: {} items failed", t, request.items().size());
+                            }
                             return;
                         }
                         processFailure(t, shardId, request, Optional.absent());
@@ -308,7 +314,9 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
 
         if (pendings.size() > 0 || indices.size() > 0) {
-            LOGGER.debug("create {} pending indices in bulk...", indices.size());
+            if (isDebugEnabled) {
+                LOGGER.debug("create {} pending indices in bulk...", indices.size());
+            }
             BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(indices, jobId);
 
             final FutureCallback<Void> indicesCreatedCallback = new FutureCallback<Void>() {
@@ -429,8 +437,8 @@ public class BulkShardProcessor<Request extends ShardRequest> {
             int location = response.itemIndices().get(i);
             ShardResponse.Failure failure = response.failures().get(i);
             boolean succeeded = failure == null;
-            if (LOGGER.isWarnEnabled() && !succeeded) {
-                LOGGER.warn("ShardUpsert Item {} failed: {}", location, failure);
+            if (!succeeded && isDebugEnabled) {
+                LOGGER.debug("ShardUpsert Item {} failed: {}", location, failure);
             }
             synchronized (responsesLock) {
                 responses.set(location, succeeded);
@@ -510,7 +518,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
     }
 
     private void trace(String message, Object... args) {
-        if (LOGGER.isTraceEnabled()) {
+        if (isTraceEnabled) {
             LOGGER.trace("BulkShardProcessor: pending: {}; {}",
                 pending.get(),
                 String.format(Locale.ENGLISH, message, args));
