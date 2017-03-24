@@ -25,6 +25,7 @@ package io.crate.data.join;
 import io.crate.data.BatchIterator;
 import io.crate.data.Columns;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BooleanSupplier;
 import java.util.function.Function;
@@ -46,7 +47,7 @@ class LeftJoinBatchIterator extends NestedLoopBatchIterator {
 
     private final BooleanSupplier joinCondition;
     private boolean hadMatch = false;
-    private boolean loading = false;
+    private final CompletableFuture[] loadingStatus = new CompletableFuture[1];
 
     LeftJoinBatchIterator(BatchIterator left,
                           BatchIterator right,
@@ -57,9 +58,7 @@ class LeftJoinBatchIterator extends NestedLoopBatchIterator {
 
     @Override
     public boolean moveNext() {
-        if (loading) {
-            throw new IllegalStateException("BatchIterator is loading");
-        }
+        raiseIfLoading();
         while (true) {
             rowData.resetRight();
             if (activeIt == left) {
@@ -88,15 +87,30 @@ class LeftJoinBatchIterator extends NestedLoopBatchIterator {
 
     @Override
     public CompletionStage<?> loadNextBatch() {
-        loading = true;
-        return super.loadNextBatch().whenComplete((result, failure) -> loading = false);
+        raiseIfLoading();
+        CompletableFuture<?> loadingFuture = super.loadNextBatch().toCompletableFuture();
+        loadingStatus[0] = loadingFuture;
+        loadingFuture.whenComplete((result, failure) -> loadingStatus[0] = null);
+        return loadingFuture;
+    }
+
+    private void raiseIfLoading() {
+        if (isLoading()) {
+            throw new IllegalStateException("BatchIterator is loading");
+        }
+    }
+
+    private boolean isLoading() {
+        CompletableFuture loadingFuture = loadingStatus[0];
+        return loadingFuture != null && loadingFuture.isDone() == false;
     }
 
     /**
      * try to move the right side
+     *
      * @return true  -> moved and matched
-     *         false -> need to load more data
-     *         null  -> reached it's end and moved back to start -> left side needs to continue
+     * false -> need to load more data
+     * null  -> reached it's end and moved back to start -> left side needs to continue
      */
     private Boolean tryAdvanceRight() {
         while (right.moveNext()) {

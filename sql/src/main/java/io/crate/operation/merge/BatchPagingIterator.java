@@ -36,15 +36,15 @@ import java.util.function.Function;
 
 /**
  * BatchIterator implementation that is backed by a {@link PagingIterator}.
- *
+ * <p>
  * It needs an upstream with which it communicates via
- *
- *  - {@link #tryFetchMore},        (to request more data from an upstream)
- *  - {@link #isUpstreamExhausted}, (to check if an upstream can deliver more data)
- *  - {@link #closeCallback}        (called once the iterator is closed)
- *
- *  - {@link #completeLoad(Throwable)}  (used by the upstream to inform the
- *                                       BatchPagingIterator that the pagingIterator has been filled)
+ * <p>
+ * - {@link #tryFetchMore},        (to request more data from an upstream)
+ * - {@link #isUpstreamExhausted}, (to check if an upstream can deliver more data)
+ * - {@link #closeCallback}        (called once the iterator is closed)
+ * <p>
+ * - {@link #completeLoad(Throwable)}  (used by the upstream to inform the
+ * BatchPagingIterator that the pagingIterator has been filled)
  */
 public class BatchPagingIterator<Key> implements BatchIterator {
 
@@ -56,7 +56,7 @@ public class BatchPagingIterator<Key> implements BatchIterator {
 
     private Iterator<Row> it;
     private boolean reachedEnd = false;
-    private CompletableFuture<Void> currentlyLoading;
+    private final CompletableFuture[] loadingStatus = new CompletableFuture[1];
 
     private boolean closed = false;
     private volatile Throwable killed;
@@ -96,7 +96,7 @@ public class BatchPagingIterator<Key> implements BatchIterator {
 
         if (it.hasNext()) {
             Row currentRow = it.next();
-            assert currentRow.numColumns() >= rowData.size():
+            assert currentRow.numColumns() >= rowData.size() :
                 "size of row: " + currentRow.numColumns() + " is smaller than rowData: " + rowData().size();
             rowData.updateRef(currentRow);
             return true;
@@ -118,9 +118,11 @@ public class BatchPagingIterator<Key> implements BatchIterator {
     public CompletionStage<?> loadNextBatch() {
         String illegalState = getIllegalState();
         if (illegalState == null) {
-            currentlyLoading = new CompletableFuture<>();
+            CompletableFuture<Void> loadingFuture = new CompletableFuture<>();
             if (tryFetchMore.apply(pagingIterator.exhaustedIterable())) {
-                return currentlyLoading.whenComplete((r, t) -> currentlyLoading = null);
+                loadingStatus[0] = loadingFuture;
+                loadingFuture.whenComplete((r, t) -> loadingStatus[0] = null);
+                return loadingFuture;
             }
             return CompletableFutures.failedFuture(new IllegalStateException("Although isLoaded is false, tryFetchMoreFailed"));
         }
@@ -135,10 +137,15 @@ public class BatchPagingIterator<Key> implements BatchIterator {
         if (allLoaded()) {
             return "All data already loaded";
         }
-        if (currentlyLoading != null) {
+        if (isLoading()) {
             return "Already loading";
         }
         return null;
+    }
+
+    private boolean isLoading() {
+        CompletableFuture loadingFuture = loadingStatus[0];
+        return loadingFuture != null && loadingFuture.isDone() == false;
     }
 
     @Override
@@ -148,10 +155,11 @@ public class BatchPagingIterator<Key> implements BatchIterator {
     }
 
     public void completeLoad(@Nullable Throwable t) {
+        CompletableFuture loadingFuture = loadingStatus[0];
         if (t == null) {
-            currentlyLoading.complete(null);
+            loadingFuture.complete(null);
         } else {
-            currentlyLoading.completeExceptionally(t);
+            loadingFuture.completeExceptionally(t);
         }
     }
 

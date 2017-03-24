@@ -51,7 +51,7 @@ public class AsyncCompositeBatchIterator implements BatchIterator {
     private final Executor executor;
 
     private int idx = 0;
-    private boolean loading = false;
+    private final CompletableFuture[] loadingStatus = new CompletableFuture[1];
 
     public AsyncCompositeBatchIterator(Executor executor, BatchIterator... iterators) {
         assert iterators.length > 0 : "Must have at least 1 iterator";
@@ -104,7 +104,7 @@ public class AsyncCompositeBatchIterator implements BatchIterator {
 
     @Override
     public CompletionStage<?> loadNextBatch() {
-        if (loading) {
+        if (isLoading()) {
             return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already loading"));
         }
         if (allLoaded()) {
@@ -112,7 +112,6 @@ public class AsyncCompositeBatchIterator implements BatchIterator {
         }
 
         List<CompletableFuture<CompletableFuture<?>>> asyncInvocationFutures = new ArrayList<>();
-        loading = true;
         for (BatchIterator iterator : iterators) {
             if (iterator.allLoaded()) {
                 continue;
@@ -129,11 +128,14 @@ public class AsyncCompositeBatchIterator implements BatchIterator {
         CompletableFuture<List<CompletableFuture<?>>> loadNextBatchListFuture =
             CompletableFutures.allAsList(asyncInvocationFutures);
 
-        return loadNextBatchListFuture.thenCompose(
+        CompletableFuture loadingFuture = loadNextBatchListFuture.thenCompose(
             (List<CompletableFuture<?>> loadNextBatchFutures) ->
                 // Future that'll wait for all loadNextBatch futures to complete
                 CompletableFuture.allOf(loadNextBatchFutures.toArray(new CompletableFuture[0]))
-        ).whenComplete((r, t) -> loading = false);
+        );
+        loadingStatus[0] = loadingFuture;
+        loadingFuture.whenComplete((r, t) -> loadingStatus[0] = null);
+        return loadingFuture;
     }
 
     @Override
@@ -147,8 +149,13 @@ public class AsyncCompositeBatchIterator implements BatchIterator {
         return true;
     }
 
+    private boolean isLoading() {
+        CompletableFuture loadingFuture = loadingStatus[0];
+        return loadingFuture != null && loadingFuture.isDone() == false;
+    }
+
     private void raiseIfLoading() {
-        if (loading) {
+        if (isLoading()) {
             throw new IllegalStateException("BatchIterator already loading");
         }
     }

@@ -34,7 +34,6 @@ import java.util.stream.StreamSupport;
 
 public class BatchPagingIteratorTest {
 
-
     @Test
     public void testBatchPagingIterator() throws Exception {
         Iterable<Row> rows = RowGenerator.range(0, 3);

@@ -34,7 +34,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * An BatchIterator implementation which delegates to another one, but adds "fake" batches.
@@ -49,12 +48,12 @@ public class BatchSimulatingIterator implements BatchIterator {
 
     private int numSuccessMoveNextCallsInBatch = 0;
     private int currentBatch = 0;
-    private final AtomicBoolean currentlyLoading = new AtomicBoolean(false);
+    private final CompletableFuture[] loadingStatus = new CompletableFuture[1];
 
     /**
-     * @param batchSize how many {@link #moveNext()} calls are allowed per batch before it returns false
+     * @param batchSize                how many {@link #moveNext()} calls are allowed per batch before it returns false
      * @param maxAdditionalFakeBatches how many {@link #loadNextBatch()} calls are allowed after {@code delegate.allLoaded()} is true.
-     *                   (This is an upper limit, if a consumer calls moveNext correctly, the actual number may be lower)
+     *                                 (This is an upper limit, if a consumer calls moveNext correctly, the actual number may be lower)
      */
     public BatchSimulatingIterator(BatchIterator delegate,
                                    int batchSize,
@@ -103,7 +102,7 @@ public class BatchSimulatingIterator implements BatchIterator {
     }
 
     private void ensureNotLoading() {
-        if (currentlyLoading.get()) {
+        if (isLoading()) {
             throw new IllegalStateException("Call not allowed during load operation");
         }
     }
@@ -115,26 +114,37 @@ public class BatchSimulatingIterator implements BatchIterator {
 
     @Override
     public CompletionStage<?> loadNextBatch() {
-        if (!currentlyLoading.compareAndSet(false, true)) {
+        if (isLoading()) {
             return CompletableFutures.failedFuture(new IllegalStateException("loadNextBatch call during load operation"));
         }
         if (delegate.allLoaded()) {
             currentBatch++;
             if (currentBatch > numBatches) {
-                currentlyLoading.compareAndSet(true, false);
+                loadingStatus[0] = null;
                 return CompletableFutures.failedFuture(new IllegalStateException("Iterator already fully loaded"));
             }
-            return CompletableFuture.runAsync(() -> {
+            CompletableFuture loadingFuture = CompletableFuture.runAsync(() -> {
                 try {
                     Thread.sleep(loadNextDelays.nextLong());
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
                 numSuccessMoveNextCallsInBatch = 0;
-            }, executor).thenAccept(i -> currentlyLoading.compareAndSet(true, false));
+            }, executor);
+            loadingStatus[0] = loadingFuture;
+            loadingFuture.whenComplete((r, t) -> loadingStatus[0] = null);
+            return loadingFuture;
         } else {
-            return delegate.loadNextBatch().thenAccept(i -> currentlyLoading.compareAndSet(true, false));
+            CompletableFuture loadingFuture = delegate.loadNextBatch().toCompletableFuture();
+            loadingStatus[0] = loadingFuture;
+            loadingFuture.whenComplete((r, t) -> loadingStatus[0] = null);
+            return loadingFuture;
         }
+    }
+
+    private boolean isLoading() {
+        CompletableFuture loadingFuture = loadingStatus[0];
+        return loadingFuture != null && loadingFuture.isDone() == false;
     }
 
     @Override
