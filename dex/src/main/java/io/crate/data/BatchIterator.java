@@ -114,7 +114,7 @@ public interface BatchIterator extends Killable {
      *
      * <p>
      * NOTE: while loading takes place the iterator must not be moved.
-     * An attempt to do so will result in a IllegalStateException
+     * The iterator behaviour in this case is undetermined.
      *
      * @return a future which will be completed once the loading is done.
      *         Once the future completes the iterator is still in an "off-row" state, but {@link #moveNext()}

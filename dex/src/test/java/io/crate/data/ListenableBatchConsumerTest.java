@@ -39,7 +39,6 @@ public class ListenableBatchConsumerTest {
 
         listenableBatchConsumer.accept(null, new IllegalStateException("dummy"));
 
-
         // both the delegate consumer must receive the error and also the listenableBatchConsumers future must trigger
         try {
             consumer.getResult();

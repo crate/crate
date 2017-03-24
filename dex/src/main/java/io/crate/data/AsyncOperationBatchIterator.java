@@ -68,7 +68,6 @@ public class AsyncOperationBatchIterator implements BatchIterator {
     private int idxWithinBatch = 0;
     private boolean sourceExhausted = false;
     private boolean closed = false;
-    private boolean loading = false;
     private volatile Throwable killed = null;
 
     public AsyncOperationBatchIterator(BatchIterator source,
@@ -91,7 +90,6 @@ public class AsyncOperationBatchIterator implements BatchIterator {
     @Override
     public void moveToStart() {
         raiseIfClosedOrKilled();
-        raiseIfLoading();
 
         source.moveToStart();
         batchAccumulator.reset();
@@ -103,7 +101,6 @@ public class AsyncOperationBatchIterator implements BatchIterator {
     @Override
     public boolean moveNext() {
         raiseIfClosedOrKilled();
-        raiseIfLoading();
 
         if (it.hasNext()) {
             rowData.updateRef(it.next());
@@ -123,7 +120,6 @@ public class AsyncOperationBatchIterator implements BatchIterator {
     private void concatRows(Iterator<? extends Row> rows) {
         idxWithinBatch = 0;
         it = Iterators.concat(it, rows);
-        loading = false;
     }
 
     @Override
@@ -131,14 +127,10 @@ public class AsyncOperationBatchIterator implements BatchIterator {
         if (sourceExhausted) {
             return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already fully loaded"));
         }
-        if (loading) {
-            return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already loading"));
-        }
         return uncheckedLoadNextBatch();
     }
 
     private CompletionStage<?> uncheckedLoadNextBatch() {
-        loading = true;
         CompletionStage<?> batchProcessResult = tryProcessBatchFromLoadedSource();
         if (batchProcessResult == null) {
             if (source.allLoaded()) {
@@ -155,7 +147,7 @@ public class AsyncOperationBatchIterator implements BatchIterator {
         if (idxWithinBatch > 0) {
             return processBatch(true);
         }
-        return CompletableFuture.completedFuture(null).thenAccept(ignored -> loading = false);
+        return CompletableFuture.completedFuture(null);
     }
 
     @Nullable
@@ -201,12 +193,6 @@ public class AsyncOperationBatchIterator implements BatchIterator {
         }
         if (closed) {
             throw new IllegalStateException("BatchIterator is closed");
-        }
-    }
-
-    private void raiseIfLoading() {
-        if (loading) {
-            throw new IllegalStateException("BatchIterator is already loading");
         }
     }
 

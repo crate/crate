@@ -51,7 +51,6 @@ public class AsyncCompositeBatchIterator implements BatchIterator {
     private final Executor executor;
 
     private int idx = 0;
-    private boolean loading = false;
 
     public AsyncCompositeBatchIterator(Executor executor, BatchIterator... iterators) {
         assert iterators.length > 0 : "Must have at least 1 iterator";
@@ -68,7 +67,6 @@ public class AsyncCompositeBatchIterator implements BatchIterator {
 
     @Override
     public void moveToStart() {
-        raiseIfLoading();
         for (BatchIterator iterator : iterators) {
             iterator.moveToStart();
         }
@@ -82,7 +80,6 @@ public class AsyncCompositeBatchIterator implements BatchIterator {
 
     @Override
     public boolean moveNext() {
-        raiseIfLoading();
         while (idx < iterators.length) {
             BatchIterator iterator = iterators[idx];
             if (iterator.moveNext()) {
@@ -104,15 +101,11 @@ public class AsyncCompositeBatchIterator implements BatchIterator {
 
     @Override
     public CompletionStage<?> loadNextBatch() {
-        if (loading) {
-            return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already loading"));
-        }
         if (allLoaded()) {
             return CompletableFutures.failedFuture(new IllegalStateException("BatchIterator already loaded"));
         }
 
         List<CompletableFuture<CompletableFuture<?>>> asyncInvocationFutures = new ArrayList<>();
-        loading = true;
         for (BatchIterator iterator : iterators) {
             if (iterator.allLoaded()) {
                 continue;
@@ -133,24 +126,17 @@ public class AsyncCompositeBatchIterator implements BatchIterator {
             (List<CompletableFuture<?>> loadNextBatchFutures) ->
                 // Future that'll wait for all loadNextBatch futures to complete
                 CompletableFuture.allOf(loadNextBatchFutures.toArray(new CompletableFuture[0]))
-        ).whenComplete((r, t) -> loading = false);
+        );
     }
 
     @Override
     public boolean allLoaded() {
-        raiseIfLoading();
         for (BatchIterator iterator : iterators) {
             if (iterator.allLoaded() == false) {
                 return false;
             }
         }
         return true;
-    }
-
-    private void raiseIfLoading() {
-        if (loading) {
-            throw new IllegalStateException("BatchIterator already loading");
-        }
     }
 
     @Override

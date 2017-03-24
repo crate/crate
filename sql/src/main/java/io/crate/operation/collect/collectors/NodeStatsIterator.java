@@ -160,14 +160,12 @@ public class NodeStatsIterator implements BatchIterator {
 
     @Override
     public void moveToStart() {
-        raiseIfLoading();
         it = rows.iterator();
         rowData.updateRef(OFF_ROW);
     }
 
     @Override
     public boolean moveNext() {
-        raiseIfLoading();
         if (it.hasNext()) {
             rowData.updateRef(it.next());
             return true;
@@ -182,10 +180,6 @@ public class NodeStatsIterator implements BatchIterator {
 
     @Override
     public CompletionStage<?> loadNextBatch() {
-        if (isLoading()) {
-            return CompletableFutures.failedFuture(new IllegalStateException("Iterator is already loading"));
-        }
-
         if (allLoaded()) {
             return CompletableFutures.failedFuture(new IllegalStateException("All batches already loaded"));
         }
@@ -210,16 +204,6 @@ public class NodeStatsIterator implements BatchIterator {
     @Override
     public boolean allLoaded() {
         return loading != null;
-    }
-
-    private boolean isLoading() {
-        return loading != null && loading.isDone() == false;
-    }
-
-    private void raiseIfLoading() {
-        if (isLoading()) {
-            throw new IllegalStateException("Iterator is loading");
-        }
     }
 
     @Override

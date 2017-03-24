@@ -119,7 +119,6 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
 
     @Override
     public void moveToStart() {
-        raiseIfLoading();
         rowData.updateRef(RowBridging.OFF_ROW);
         fromStart = true;
     }
@@ -129,7 +128,6 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
         if (loading == null) {
             return false;
         }
-        raiseIfLoading();
 
         if (fromStart) {
             long rowCount = result == null ? 0 : result.cardinality();
@@ -150,10 +148,6 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
 
     @Override
     public CompletionStage<?> loadNextBatch() {
-        if (isLoading()) {
-            return CompletableFutures.failedFuture(new IllegalStateException("Iterator is already loading"));
-        }
-
         if (allLoaded()) {
             return CompletableFutures.failedFuture(new IllegalStateException("All batches already loaded"));
         }
@@ -217,16 +211,6 @@ public class IndexWriterCountBatchIterator implements BatchIterator {
     @Override
     public boolean allLoaded() {
         return loading != null;
-    }
-
-    private boolean isLoading() {
-        return loading != null && loading.isDone() == false;
-    }
-
-    private void raiseIfLoading() {
-        if (isLoading()) {
-            throw new IllegalStateException("Iterator is loading");
-        }
     }
 
     @Override
