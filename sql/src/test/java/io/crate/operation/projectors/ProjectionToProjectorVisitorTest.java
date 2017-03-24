@@ -152,12 +152,12 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 avgInfo,
                 avgInfo.returnType(),
                 Collections.singletonList(new InputColumn(1)),
-                Aggregation.Mode.ITER_FINAL),
+                AggregateMode.ITER_FINAL),
             new Aggregation(
                 countInfo,
                 countInfo.returnType(),
                 Collections.singletonList(new InputColumn(0)),
-                Aggregation.Mode.ITER_FINAL)
+                AggregateMode.ITER_FINAL)
         ), RowGranularity.SHARD);
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
 
@@ -187,12 +187,12 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 avgInfo,
                 avgInfo.returnType(),
                 Collections.singletonList(new InputColumn(1)),
-                Aggregation.Mode.ITER_FINAL),
+                AggregateMode.ITER_FINAL),
             new Aggregation(
                 countInfo,
                 countInfo.returnType(),
                 Collections.singletonList(new InputColumn(0)),
-                Aggregation.Mode.ITER_FINAL)
+                AggregateMode.ITER_FINAL)
         );
         GroupProjection projection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
 

@@ -27,7 +27,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.exceptions.VersionInvalidException;
@@ -98,7 +98,7 @@ class DistributedGroupByConsumer implements Consumer {
                 splitPoints.leaves(),
                 groupBy,
                 splitPoints.aggregates(),
-                Aggregation.Mode.ITER_PARTIAL,
+                AggregateMode.ITER_PARTIAL,
                 RowGranularity.SHARD);
 
             Planner.Context plannerContext = context.plannerContext();
@@ -128,7 +128,7 @@ class DistributedGroupByConsumer implements Consumer {
                 collectOutputs,
                 groupBy,
                 splitPoints.aggregates(),
-                Aggregation.Mode.PARTIAL_FINAL,
+                AggregateMode.PARTIAL_FINAL,
                 RowGranularity.CLUSTER)
             );
 

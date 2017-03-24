@@ -87,7 +87,7 @@ class GlobalAggregateConsumer implements Consumer {
             AggregationProjection finalAggregation = projectionBuilder.aggregationProjection(
                 splitPoints.toCollect(),
                 splitPoints.aggregates(),
-                Aggregation.Mode.ITER_FINAL,
+                AggregateMode.ITER_FINAL,
                 RowGranularity.CLUSTER
             );
             plan.addProjection(finalAggregation, null, null, splitPoints.aggregates().size(), null);
@@ -99,7 +99,7 @@ class GlobalAggregateConsumer implements Consumer {
             AggregationProjection partialAggregation = projectionBuilder.aggregationProjection(
                 splitPoints.toCollect(),
                 splitPoints.aggregates(),
-                Aggregation.Mode.ITER_PARTIAL,
+                AggregateMode.ITER_PARTIAL,
                 RowGranularity.CLUSTER
             );
             plan.addProjection(partialAggregation, null, null, splitPoints.aggregates().size(), null);
@@ -107,7 +107,7 @@ class GlobalAggregateConsumer implements Consumer {
             AggregationProjection finalAggregation = projectionBuilder.aggregationProjection(
                 splitPoints.aggregates(),
                 splitPoints.aggregates(),
-                Aggregation.Mode.PARTIAL_FINAL,
+                AggregateMode.PARTIAL_FINAL,
                 RowGranularity.CLUSTER
             );
             postAggregationProjections.add(0, finalAggregation);
@@ -170,7 +170,7 @@ class GlobalAggregateConsumer implements Consumer {
         AggregationProjection ap = projectionBuilder.aggregationProjection(
             splitPoints.leaves(),
             splitPoints.aggregates(),
-            Aggregation.Mode.ITER_PARTIAL,
+            AggregateMode.ITER_PARTIAL,
             projectionGranularity
         );
         RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
@@ -184,7 +184,7 @@ class GlobalAggregateConsumer implements Consumer {
         AggregationProjection aggregationProjection = projectionBuilder.aggregationProjection(
             splitPoints.aggregates(),
             splitPoints.aggregates(),
-            Aggregation.Mode.PARTIAL_FINAL,
+            AggregateMode.PARTIAL_FINAL,
             RowGranularity.CLUSTER);
         List<Projection> postAggregationProjections = createPostAggregationProjections(querySpec, splitPoints, plannerContext);
         postAggregationProjections.add(0, aggregationProjection);

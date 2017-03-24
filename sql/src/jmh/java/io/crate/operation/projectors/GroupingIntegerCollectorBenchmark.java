@@ -22,15 +22,12 @@
 
 package io.crate.operation.projectors;
 
-import io.crate.analyze.symbol.Aggregation;
-import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.*;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.operation.aggregation.Aggregator;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.SumAggregation;
 import io.crate.operation.collect.CollectExpression;
@@ -44,7 +41,6 @@ import org.openjdk.jmh.infra.Blackhole;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -77,29 +73,14 @@ public class GroupingIntegerCollectorBenchmark {
         List<Input<?>> keyInputs = Arrays.<Input<?>>asList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 
-        FunctionIdent functionIdent = new FunctionIdent(SumAggregation.NAME,
-            Arrays.asList(DataTypes.INTEGER));
-        FunctionInfo functionInfo = new FunctionInfo(functionIdent, DataTypes.INTEGER, FunctionInfo.Type.AGGREGATE);
+        FunctionIdent functionIdent = new FunctionIdent(SumAggregation.NAME, Arrays.asList(DataTypes.INTEGER));
         AggregationFunction sumAgg = (AggregationFunction) functions.get(functionIdent);
-        Aggregation aggregation = new Aggregation(
-            functionInfo,
-            functionInfo.returnType(),
-            Collections.singletonList(new InputColumn(0)),
-            Aggregation.Mode.ITER_FINAL
-        );
-
-        Aggregator[] aggregators = new Aggregator[]{
-            new Aggregator(
-                RAM_ACCOUNTING_CONTEXT,
-                aggregation,
-                sumAgg,
-                new Input[]{keyInput}
-            )
-        };
 
         return GroupingCollector.singleKey(
             collectExpressions,
-            aggregators,
+            AggregateMode.ITER_FINAL,
+            new AggregationFunction[] { sumAgg },
+            new Input[][] { new Input[] { keyInput }},
             RAM_ACCOUNTING_CONTEXT,
             keyInputs.get(0),
             DataTypes.INTEGER

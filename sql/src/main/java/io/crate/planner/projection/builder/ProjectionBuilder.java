@@ -64,7 +64,7 @@ public class ProjectionBuilder {
 
     public AggregationProjection aggregationProjection(Collection<? extends Symbol> inputs,
                                                        Collection<Function> aggregates,
-                                                       Aggregation.Mode mode,
+                                                       AggregateMode mode,
                                                        RowGranularity granularity) {
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(aggregates, mode, context);
@@ -75,7 +75,7 @@ public class ProjectionBuilder {
         Collection<Symbol> inputs,
         Collection<Symbol> keys,
         Collection<Function> values,
-        Aggregation.Mode mode,
+        AggregateMode mode,
         RowGranularity requiredGranularity) {
 
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
@@ -84,7 +84,7 @@ public class ProjectionBuilder {
     }
 
     private ArrayList<Aggregation> getAggregations(Collection<Function> functions,
-                                                   Aggregation.Mode mode,
+                                                   AggregateMode mode,
                                                    InputCreatingVisitor.Context context) {
         ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {

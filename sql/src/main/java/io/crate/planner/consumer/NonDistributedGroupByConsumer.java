@@ -27,7 +27,7 @@ import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
@@ -128,7 +128,7 @@ class NonDistributedGroupByConsumer implements Consumer {
                 splitPoints.leaves(),
                 groupKeys,
                 splitPoints.aggregates(),
-                Aggregation.Mode.ITER_PARTIAL,
+                AggregateMode.ITER_PARTIAL,
                 groupProjectionGranularity);
 
             RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
@@ -156,7 +156,7 @@ class NonDistributedGroupByConsumer implements Consumer {
                 collectOutputs,
                 groupKeys,
                 splitPoints.aggregates(),
-                Aggregation.Mode.PARTIAL_FINAL,
+                AggregateMode.PARTIAL_FINAL,
                 RowGranularity.CLUSTER
             ));
 
