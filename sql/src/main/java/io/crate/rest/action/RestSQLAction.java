@@ -64,10 +64,9 @@ public class RestSQLAction extends BaseRestHandler {
             return;
         }
 
-        SQLXContentSourceContext context = new SQLXContentSourceContext();
-        SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
+        SQLXContentSourceContext context;
         try {
-            parser.parseSource(request.content());
+            context = SQLXContentSourceParser.parseSource(request.content());
         } catch (SQLParseException e) {
             StringWriter stackTrace = new StringWriter();
             e.printStackTrace(new PrintWriter(stackTrace));
@@ -84,6 +83,7 @@ public class RestSQLAction extends BaseRestHandler {
                     4000, RestStatus.BAD_REQUEST)));
             return;
         }
+
         if (bulkArgs != null && bulkArgs.length > 0) {
             executeBulkRequest(context, request, channel);
         } else {

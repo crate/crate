@@ -32,25 +32,22 @@ class SQLArgsParseElement implements SQLParseElement {
     @Override
     public void parse(XContentParser parser, SQLXContentSourceContext context) throws Exception {
         XContentParser.Token token = parser.currentToken();
-
         if (token != XContentParser.Token.START_ARRAY) {
             throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
         }
-
-        Object[] params = parseSubArray(context, parser);
-        context.args(params);
+        context.args(parseSubArray(parser));
     }
 
-    Object[] parseSubArray(SQLXContentSourceContext context, XContentParser parser)
+    static Object[] parseSubArray(XContentParser parser)
         throws IOException {
         XContentParser.Token token;
-        List<Object> subList = new ArrayList<Object>();
+        List<Object> subList = new ArrayList<>();
 
         while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
             if (token.isValue()) {
                 subList.add(parser.objectText());
             } else if (token == XContentParser.Token.START_ARRAY) {
-                subList.add(parseSubArray(context, parser));
+                subList.add(parseSubArray(parser));
             } else if (token == XContentParser.Token.START_OBJECT) {
                 subList.add(parser.map());
             } else if (token == XContentParser.Token.VALUE_NULL) {
@@ -59,7 +56,6 @@ class SQLArgsParseElement implements SQLParseElement {
                 throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
             }
         }
-
         return subList.toArray(new Object[subList.size()]);
     }
 }
