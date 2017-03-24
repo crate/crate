@@ -14,6 +14,9 @@ the appropriate section of the docs.
 
 Changelog
 =========
+ 
+ - Added possible data type conversion to a timestamp array.
+   e.g. ``cast(['2017-01-01','2017-12-31'] as array(timestamp))``
 
  - Fixed bug introduced in 1.1.0 which caused all partitioned tables to
    become unusable.
