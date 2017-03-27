@@ -60,15 +60,9 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         ),
         "properties", ImmutableMap.of(
             "id", ImmutableMap.builder()
-                .put("type", "integer")
-                .put("store", false)
-                .put("index", "not_analyzed")
-                .put("doc_values", true).build(),
+                .put("type", "integer").build(),
             "names", ImmutableMap.builder()
-                .put("type", "string")
-                .put("store", false)
-                .put("index", "not_analyzed")
-                .put("doc_values", false).build()
+                .put("type", "keyword").build()
         ));
     private final static Settings TEST_SETTINGS = Settings.builder()
         .put("number_of_replicas", 0)

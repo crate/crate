@@ -30,6 +30,7 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.ddl.GeoSettingsApplier;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
@@ -59,7 +60,7 @@ public class AnalyzedColumnDefinition {
     private String name;
     private String dataType;
     private String collectionType;
-    private String index;
+    private Reference.IndexType indexType;
     private String geoTree;
     private String analyzer;
     private String objectType = "true"; // dynamic = true
@@ -104,12 +105,13 @@ public class AnalyzedColumnDefinition {
         this.analyzer = analyzer;
     }
 
-    void indexConstraint(String index) {
-        this.index = index;
+    void indexConstraint(Reference.IndexType indexType) {
+        this.indexType = indexType;
     }
 
-    String indexConstraint() {
-        return MoreObjects.firstNonNull(index, "not_analyzed");
+    @Nullable
+    Reference.IndexType indexConstraint() {
+        return indexType;
     }
 
     void geoTree(String geoTree) {
@@ -149,12 +151,6 @@ public class AnalyzedColumnDefinition {
         this.collectionType = type;
     }
 
-    private boolean docValues() {
-        return !isIndexColumn()
-               && collectionType == null
-               && indexConstraint().equals("not_analyzed");
-    }
-
     boolean isIndexColumn() {
         return isIndex;
     }
@@ -184,14 +180,13 @@ public class AnalyzedColumnDefinition {
     }
 
     public void validate() {
-
         if (analyzer != null && !"not_analyzed".equals(analyzer) && !STRING_TYPES.contains(dataType)) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Can't use an Analyzer on column %s because analyzers are only allowed on columns of type \"string\".",
                     ident.sqlFqn()
                 ));
         }
-        if (index != null && UNSUPPORTED_INDEX_TYPES.contains(dataType)) {
+        if (indexType != null && UNSUPPORTED_INDEX_TYPES.contains(dataType)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "INDEX constraint cannot be used on columns of type \"%s\"", dataType));
         }
@@ -228,21 +223,16 @@ public class AnalyzedColumnDefinition {
         String dataType = addTypeOptions(mapping);
         mapping.put("type", dataType);
 
-        if (!NO_DOC_VALUES_SUPPORT.contains(dataType)) {
-            mapping.put("doc_values", docValues());
-            if (index != null) {
-                mapping.put("index", index);
-            }
-            mapping.put("store", false);
+        if (indexType == Reference.IndexType.NO) {
+            mapping.put("index", "false");
         }
-
         if (copyToTargets != null) {
             mapping.put("copy_to", copyToTargets);
         }
+
         if ("array".equals(collectionType)) {
-            Map<String, Object> outerMapping = new HashMap<String, Object>() {{
-                put("type", "array");
-            }};
+            Map<String, Object> outerMapping = new HashMap<>();
+            outerMapping.put("type", "array");
             if (dataType().equals("object")) {
                 objectMapping(mapping);
             }

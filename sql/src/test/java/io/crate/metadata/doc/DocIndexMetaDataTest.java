@@ -96,11 +96,9 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                                 .startObject("properties")
                                     .startObject("city")
                                         .field("type", "string")
-                                        .field("index", "not_analyzed")
                                     .endObject()
                                     .startObject("country")
                                         .field("type", "string")
-                                        .field("index", "not_analyzed")
                                     .endObject()
                                 .endObject()
                             .endObject()
@@ -125,7 +123,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("name")
             .field("type", "string")
-            .field("index", "not_analyzed")
             .endObject()
             .endObject()
             .endObject()
@@ -134,11 +131,9 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("name")
             .field("type", "string")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("age")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .endObject()
             .endObject()
@@ -147,11 +142,9 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("name")
             .field("type", "string")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("age")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .endObject()
             .endObject()
@@ -160,7 +153,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("age")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .endObject()
             .endObject()
@@ -178,76 +170,107 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testExtractColumnDefinitions() throws Exception {
+        // @formatter:off
         XContentBuilder builder = XContentFactory.jsonBuilder()
             .startObject()
-            .startObject("_meta")
-            .field("primary_keys", "id")
-            .endObject()
-            .startObject("properties")
-            .startObject("id")
-            .field("type", "integer")
-            .field("index", "not_analyzed")
-            .endObject()
-            .startObject("title")
-            .field("type", "string")
-            .field("index", "no")
-            .endObject()
-            .startObject("datum")
-            .field("type", "date")
-            .endObject()
-            .startObject("content")
-            .field("type", "string")
-            .field("index", "analyzed")
-            .field("analyzer", "standard")
-            .endObject()
-            .startObject("person")
-            .startObject("properties")
-            .startObject("first_name")
-            .field("type", "string")
-            .field("index", "not_analyzed")
-            .endObject()
-            .startObject("birthday")
-            .field("type", "date")
-            .field("index", "not_analyzed")
-            .endObject()
-            .endObject()
-            .endObject()
-            .startObject("nested")
-            .field("type", "nested")
-            .startObject("properties")
-            .startObject("inner_nested")
-            .field("type", "date")
-            .field("index", "not_analyzed")
-            .endObject()
-            .endObject()
-            .endObject()
-            .endObject()
+                .startObject("_meta")
+                    .field("primary_keys", "integerIndexed")
+                .endObject()
+                .startObject("properties")
+                    .startObject("integerIndexed")
+                        .field("type", "integer")
+                    .endObject()
+                    .startObject("integerIndexedBWC")
+                        .field("type", "integer")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                    .startObject("integerNotIndexed")
+                        .field("type", "integer")
+                        .field("index", "false")
+                    .endObject()
+                    .startObject("integerNotIndexedBWC")
+                        .field("type", "integer")
+                        .field("index", "no")
+                    .endObject()
+                    .startObject("stringNotIndexed")
+                        .field("type", "string")
+                        .field("index", "false")
+                    .endObject()
+                    .startObject("stringNotIndexedBWC")
+                        .field("type", "string")
+                        .field("index", "no")
+                    .endObject()
+                    .startObject("stringNotAnalyzed")
+                        .field("type", "keyword")
+                    .endObject()
+                    .startObject("stringNotAnalyzedBWC")
+                        .field("type", "string")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                    .startObject("stringAnalyzed")
+                        .field("type", "text")
+                        .field("analyzer", "standard")
+                    .endObject()
+                    .startObject("stringAnalyzedBWC")
+                        .field("type", "string")
+                        .field("index", "analyzed")
+                        .field("analyzer", "standard")
+                    .endObject()
+                    .startObject("person")
+                        .startObject("properties")
+                            .startObject("first_name")
+                                .field("type", "string")
+                            .endObject()
+                            .startObject("birthday")
+                                .field("type", "date")
+                            .endObject()
+                        .endObject()
+                    .endObject()
+                .endObject()
             .endObject();
-
+        // @formatter:on
 
         IndexMetaData metaData = getIndexMetaData("test1", builder);
         DocIndexMetaData md = newMeta(metaData, "test1");
 
-        assertEquals(6, md.columns().size());
-        assertEquals(16, md.references().size());
-
-        ImmutableList<Reference> columns = ImmutableList.copyOf(md.columns());
-
-        assertThat(columns.get(0).ident().columnIdent().name(), is("content"));
-        assertEquals(DataTypes.STRING, columns.get(0).valueType());
-        assertEquals(Reference.IndexType.ANALYZED, columns.get(0).indexType());
-        assertThat(columns.get(0).ident().tableIdent().name(), is("test1"));
-
-        ImmutableList<Reference> references = ImmutableList.copyOf(md.references().values());
-
+        assertThat(md.columns().size(), is(11));
+        assertThat(md.references().size(), is(20));
 
         Reference birthday = md.references().get(new ColumnIdent("person", "birthday"));
-        assertEquals(DataTypes.TIMESTAMP, birthday.valueType());
-        assertEquals(Reference.IndexType.NOT_ANALYZED, birthday.indexType());
+        assertThat(birthday.valueType(), is(DataTypes.TIMESTAMP));
+        assertThat(birthday.indexType(), is(Reference.IndexType.NOT_ANALYZED));
 
-        Reference title = md.references().get(new ColumnIdent("title"));
-        assertEquals(Reference.IndexType.NO, title.indexType());
+        Reference integerIndexed = md.references().get(new ColumnIdent("integerIndexed"));
+        assertThat(integerIndexed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
 
+        Reference integerIndexedBWC = md.references().get(new ColumnIdent("integerIndexedBWC"));
+        assertThat(integerIndexedBWC.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+
+        Reference integerNotIndexed = md.references().get(new ColumnIdent("integerNotIndexed"));
+        assertThat(integerNotIndexed.indexType(), is(Reference.IndexType.NO));
+
+        Reference integerNotIndexedBWC = md.references().get(new ColumnIdent("integerNotIndexedBWC"));
+        assertThat(integerNotIndexedBWC.indexType(), is(Reference.IndexType.NO));
+
+        Reference stringNotIndexed = md.references().get(new ColumnIdent("stringNotIndexed"));
+        assertThat(stringNotIndexed.indexType(), is(Reference.IndexType.NO));
+
+        Reference stringNotIndexedBWC = md.references().get(new ColumnIdent("stringNotIndexedBWC"));
+        assertThat(stringNotIndexedBWC.indexType(), is(Reference.IndexType.NO));
+
+        Reference stringNotAnalyzed = md.references().get(new ColumnIdent("stringNotAnalyzed"));
+        assertThat(stringNotAnalyzed.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+
+        Reference stringNotAnalyzedBWC = md.references().get(new ColumnIdent("stringNotAnalyzedBWC"));
+        assertThat(stringNotAnalyzedBWC.indexType(), is(Reference.IndexType.NOT_ANALYZED));
+
+        Reference stringAnalyzed = md.references().get(new ColumnIdent("stringAnalyzed"));
+        assertThat(stringAnalyzed.indexType(), is(Reference.IndexType.ANALYZED));
+
+        Reference stringAnalyzedBWC = md.references().get(new ColumnIdent("stringAnalyzedBWC"));
+        assertThat(stringAnalyzedBWC.indexType(), is(Reference.IndexType.ANALYZED));
+
+        ImmutableList<Reference> references = ImmutableList.copyOf(md.references().values());
         List<String> fqns = Lists.transform(references, new Function<Reference, String>() {
             @Nullable
             @Override
@@ -255,11 +278,12 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                 return input.ident().columnIdent().fqn();
             }
         });
-
         assertThat(fqns, Matchers.is(
-            ImmutableList.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "content", "datum", "id", "nested", "nested.inner_nested",
-                "person", "person.birthday", "person.first_name", "title")));
-
+            ImmutableList.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version",
+                "integerIndexed", "integerIndexedBWC", "integerNotIndexed", "integerNotIndexedBWC",
+                "person", "person.birthday", "person.first_name",
+                "stringAnalyzed", "stringAnalyzedBWC", "stringNotAnalyzed", "stringNotAnalyzedBWC",
+                "stringNotIndexed", "stringNotIndexedBWC")));
     }
 
     @Test
@@ -277,26 +301,23 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("title")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .startObject("content")
             .field("type", "string")
-            .field("index", "analyzed")
+            .field("index", "true")
             .field("analyzer", "standard")
             .endObject()
             .startObject("person")
             .startObject("properties")
             .startObject("first_name")
             .field("type", "string")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("birthday")
             .field("type", "date")
-            .field("index", "not_analyzed")
             .endObject()
             .endObject()
             .endObject()
@@ -305,7 +326,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("inner_nested")
             .field("type", "date")
-            .field("index", "not_analyzed")
             .endObject()
             .endObject()
             .endObject()
@@ -338,11 +358,9 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("datum")
             .field("type", "date")
-            .field("index", "not_analyzed")
             .endObject()
             .endObject()
             .endObject();
@@ -369,14 +387,12 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("nested")
             .field("type", "nested")
             .startObject("properties")
             .startObject("datum")
             .field("type", "date")
-            .field("index", "not_analyzed")
             .endObject()
             .endObject()
             .endObject()
@@ -448,7 +464,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("content")
             .field("type", "string")
-            .field("index", "not_analyzed")
             .endObject()
             .endObject()
             .endObject()
@@ -477,18 +492,17 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("title")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .startObject("datum")
             .field("type", "date")
             .endObject()
             .startObject("content")
             .field("type", "string")
-            .field("index", "analyzed")
+            .field("index", "true")
             .field("analyzer", "standard")
             .endObject()
             .endObject()
@@ -507,7 +521,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("content")
             .field("type", "string")
-            .field("index", "not_analyzed")
             .endObject()
             .endObject()
             .endObject()
@@ -536,11 +549,10 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("title")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .endObject()
             .endObject()
@@ -561,11 +573,10 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("title")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .endObject()
             .endObject()
@@ -585,11 +596,10 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("title")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .endObject()
             .endObject()
@@ -613,11 +623,10 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("title")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .endObject()
             .endObject()
@@ -670,7 +679,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("title")
             .field("type", "multi_field")
@@ -678,11 +686,10 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("fields")
             .startObject("title")
             .field("type", "string")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("ft")
             .field("type", "string")
-            .field("index", "analyzed")
+            .field("index", "true")
             .field("analyzer", "english")
             .endObject()
             .endObject()
@@ -696,11 +703,11 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("fields")
             .startObject("content")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .startObject("ft")
             .field("type", "string")
-            .field("index", "analyzed")
+            .field("index", "true")
             .field("analyzer", "english")
             .endObject()
             .endObject()
@@ -718,7 +725,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("content")
             .field("type", "string")
-            .field("index", "not_analyzed")
             .endObject()
             .endObject()
             .endObject()
@@ -737,15 +743,13 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("num")
             .field("type", "long")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("content")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .endObject()
             .endObject()
@@ -790,7 +794,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                     .startObject("properties")
                         .startObject("id")
                             .field("type", "integer")
-                            .field("index", "not_analyzed")
                         .endObject()
                     .endObject()
                 .endObject()
@@ -809,7 +812,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                     .startObject("properties")
                         .startObject("content_de")
                             .field("type", "text")
-                            .field("index", "analyzed")
+                            .field("index", "true")
                             .field("analyzer", "german")
                         .endObject()
                         .startObject("content_en")
@@ -963,11 +966,10 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("content")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .endObject()
             .endObject()
@@ -982,11 +984,10 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("content")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .endObject()
             .endObject()
@@ -1001,11 +1002,10 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("content")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .endObject()
             .endObject()
@@ -1019,11 +1019,10 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("content")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .endObject()
             .endObject()
@@ -1038,11 +1037,10 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("content")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .endObject()
             .endObject()
@@ -1112,22 +1110,19 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("title")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .startObject("array_col")
             .field("type", "ip")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("nested")
             .field("type", "nested")
             .startObject("properties")
             .startObject("inner_nested")
             .field("type", "date")
-            .field("index", "not_analyzed")
             .endObject()
             .endObject()
             .endObject()
@@ -1153,17 +1148,15 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("id")
             .field("type", "integer")
-            .field("index", "not_analyzed")
             .endObject()
             .startObject("title")
             .field("type", "string")
-            .field("index", "no")
+            .field("index", "false")
             .endObject()
             .startObject("array_col")
             .field("type", "array")
             .startObject("inner")
             .field("type", "ip")
-            .field("index", "not_analyzed")
             .endObject()
             .endObject()
             .startObject("nested")
@@ -1173,7 +1166,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .field("type", "array")
             .startObject("inner")
             .field("type", "date")
-            .field("index", "not_analyzed")
             .endObject()
             .endObject()
             .endObject()
@@ -1201,7 +1193,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                 .startObject("properties")
                     .startObject("id")
                         .field("type", "integer")
-                        .field("index", "not_analyzed")
                     .endObject()
                 .endObject()
             .endObject();
@@ -1305,7 +1296,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             .startObject("properties")
             .startObject("description")
             .field("type", "string")
-            .field("index", "not_analyzed")
             .array("copy_to", "description_ft")
             .endObject()
             .startObject("description_ft")
@@ -1342,7 +1332,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                 .startObject("properties")
                     .startObject("id")
                         .field("type", "integer")
-                        .field("index", "not_analyzed")
                     .endObject()
                 .endObject()
             .endObject();

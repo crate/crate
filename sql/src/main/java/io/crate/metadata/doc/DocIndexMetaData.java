@@ -350,9 +350,10 @@ public class DocIndexMetaData {
             }
             return Reference.IndexType.NOT_ANALYZED;
         }
-        if (Boolean.FALSE.equals(index) || "no".equals(index)) {
+        if (Boolean.FALSE.equals(index) || "no".equals(index) || "false".equals(index)) {
             return Reference.IndexType.NO;
         }
+
         if ("not_analyzed".equals(index)) {
             return Reference.IndexType.NOT_ANALYZED;
         }

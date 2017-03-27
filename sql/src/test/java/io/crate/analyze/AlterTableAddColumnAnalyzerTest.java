@@ -192,7 +192,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         assertThat(mapToSortedString(friends.toMapping()), is("inner={" +
                                                                 "dynamic=true, " +
                                                                 "properties={" +
-                                                                    "is_nice={doc_values=true, store=false, type=boolean}" +
+                                                                    "is_nice={type=boolean}" +
                                                                 "}, " +
                                                                 "type=object" +
                                                               "}, type=array"));
@@ -227,13 +227,10 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         assertThat(name.dataType(), is("string"));
 
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
-        assertThat(mapToSortedString(mapping), is("_all={enabled=false}, " +
-                                                  "_meta={primary_keys=[id]}, " +
-                                                  "properties={details={dynamic=true, properties={" +
-                                                  "foo={dynamic=true, properties={" +
-                                                  "name={doc_values=true, store=false, type=keyword}, " +
-                                                  "score={doc_values=true, store=false, type=float}}, type=object}}, type=object}, " +
-                                                  "id={doc_values=true, store=false, type=long}}"));
+        assertThat(mapToSortedString(mapping),
+            is("_all={enabled=false}, _meta={primary_keys=[id]}, properties={details={dynamic=true, " +
+               "properties={foo={dynamic=true, properties={name={type=keyword}, score={type=float}}, type=object}}, " +
+               "type=object}, id={type=long}}"));
     }
 
     @Test
@@ -290,12 +287,10 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
         assertThat(price.dataType(), is("string"));
 
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
-        assertThat(mapToSortedString(mapping), is("_all={enabled=false}, _meta={}, properties={details={" +
-                                                  "dynamic=true, properties={stuff={dynamic=true, " +
-                                                  "properties={foo={dynamic=true, " +
-                                                  "properties={price={doc_values=true, store=false, type=keyword}, " +
-                                                  "score={doc_values=true, store=false, type=float}}, type=object}}, " +
-                                                  "type=object}}, type=object}}"));
+        assertThat(mapToSortedString(mapping),
+            is("_all={enabled=false}, _meta={}, properties={details={dynamic=true, " +
+               "properties={stuff={dynamic=true, properties={foo={dynamic=true, properties={price={type=keyword}, " +
+               "score={type=float}}, type=object}}, type=object}}, type=object}}"));
     }
 
     @Test
