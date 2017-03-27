@@ -22,11 +22,14 @@
 package io.crate.executor.transport.task;
 
 import io.crate.Constants;
+import io.crate.action.FutureActionListener;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowsBatchIterator;
+import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.Executor;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.ShardUpsertRequest;
@@ -34,8 +37,6 @@ import io.crate.jobs.*;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.planner.node.dml.UpsertById;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
@@ -146,17 +147,6 @@ public class UpsertByIdTask extends JobTask {
         } catch (Throwable throwable) {
             return Collections.singletonList(CompletableFutures.failedFuture(throwable));
         }
-    }
-
-    private void executeUpsertRequest(final UpsertById.Item item, final CompletableFuture<Long> future) {
-        CompletableFuture<Long> f = executeUpsertRequest(item);
-        f.whenComplete((Long result, Throwable t) -> {
-            if (t == null) {
-                future.complete(result);
-            } else {
-                future.completeExceptionally(t);
-            }
-        });
     }
 
     private CompletableFuture<Long> executeUpsertRequest(final UpsertById.Item item) {
@@ -316,26 +306,20 @@ public class UpsertByIdTask extends JobTask {
     }
 
     private CompletableFuture<Long> createIndexAndExecuteUpsertRequest(final UpsertById.Item item) {
-        final CompletableFuture<Long> future = new CompletableFuture<>();
+        FutureActionListener<CreateIndexResponse, CreateIndexResponse> listener = new FutureActionListener<>(r -> r);
         transportCreateIndexAction.execute(
             new CreateIndexRequest(item.index()).cause("upsert single item"),
-            new ActionListener<CreateIndexResponse>() {
-                @Override
-                public void onResponse(CreateIndexResponse createIndexResponse) {
-                    executeUpsertRequest(item, future);
+            listener
+        );
+        return listener
+            .exceptionally(e -> {
+                e = SQLExceptions.unwrap(e);
+                if (e instanceof IndexAlreadyExistsException) {
+                    return null; // swallow and execute upsert
                 }
-
-                @Override
-                public void onFailure(Throwable e) {
-                    e = ExceptionsHelper.unwrapCause(e);
-                    if (e instanceof IndexAlreadyExistsException) {
-                        executeUpsertRequest(item, future);
-                    } else {
-                        future.completeExceptionally(e);
-                    }
-
-                }
-            });
-        return future;
+                Exceptions.rethrowUnchecked(e);
+                return null;
+            })
+            .thenCompose(r -> executeUpsertRequest(item));
     }
 }
