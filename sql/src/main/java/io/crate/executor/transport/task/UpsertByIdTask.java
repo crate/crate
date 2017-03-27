@@ -261,11 +261,10 @@ public class UpsertByIdTask extends JobTask {
                     for (int i = 0; i < numResults; i++) {
                         resultList.get(i).complete(resultRowCount[i]);
                     }
-                    bulkShardProcessorContext.close();
                 } else {
                     setAllToFailed(t, resultList);
-                    bulkShardProcessorContext.close();
                 }
+                bulkShardProcessorContext.close();
             });
             return resultList;
         }
@@ -310,15 +309,9 @@ public class UpsertByIdTask extends JobTask {
         return results;
     }
 
-    private void setAllToFailed(@Nullable Throwable throwable, List<CompletableFuture<Long>> futures) {
-        if (throwable == null) {
-            for (CompletableFuture<Long> future : futures) {
-                future.complete(Executor.ROWCOUNT_ERROR);
-            }
-        } else {
-            for (CompletableFuture<Long> future : futures) {
-                future.completeExceptionally(throwable);
-            }
+    private static void setAllToFailed(Throwable throwable, List<CompletableFuture<Long>> futures) {
+        for (CompletableFuture<Long> future : futures) {
+            future.completeExceptionally(throwable);
         }
     }
 
