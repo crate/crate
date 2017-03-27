@@ -25,14 +25,17 @@ package io.crate.plugin;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.module.PluginLoaderModule;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.plugins.ActionPlugin;
+import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestHandler;
@@ -45,7 +48,7 @@ import java.io.InputStream;
 import java.security.KeyStore;
 import java.util.*;
 
-public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPlugin {
+public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
     private static final Logger LOGGER = Loggers.getLogger(PluginLoaderPlugin.class);
 
@@ -122,6 +125,11 @@ public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPl
         Map<String, Mapper.TypeParser> mappers = new HashMap<>();
         mappers.putAll(sqlPlugin.getMappers());
         return mappers;
+    }
+
+    @Override
+    public Collection<AllocationDecider> createAllocationDeciders(Settings settings, ClusterSettings clusterSettings) {
+        return sqlPlugin.createAllocationDeciders(settings, clusterSettings);
     }
 
     @Override
