@@ -17,7 +17,7 @@ Changelog
  - Fix: Index columns based on string arrays are correctly populated with
    values.
 
- - Updated crate-admin to ``1.0.5`` which includes the following change:
+ - Updated crate-admin to 1.0.5 which includes the following change:
 
     - Fixed a console results issue that caused the results table not to be
       displayed after horizontal scrolling.
