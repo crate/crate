@@ -243,12 +243,7 @@ public class UpsertByIdTask extends JobTask {
             resultList.add(futureResult);
             bulkShardProcessor.result().whenComplete((BitSet result, Throwable t) -> {
                 if (t == null) {
-                    if (result == null) {
-                        // unknown rowcount
-                        futureResult.complete(Executor.ROWCOUNT_UNKNOWN);
-                    } else {
-                        futureResult.complete((long) result.cardinality());
-                    }
+                    futureResult.complete((long) result.cardinality());
                     bulkShardProcessorContext.close();
                 } else {
                     futureResult.completeExceptionally(t);
@@ -262,11 +257,6 @@ public class UpsertByIdTask extends JobTask {
 
             bulkShardProcessor.result().whenComplete((BitSet result, Throwable t) -> {
                 if (t == null) {
-                    if (result == null) {
-                        setAllToFailed(null, resultList);
-                        return;
-                    }
-
                     long[] resultRowCount = createBulkResponse(result);
                     for (int i = 0; i < numResults; i++) {
                         resultList.get(i).complete(resultRowCount[i]);
