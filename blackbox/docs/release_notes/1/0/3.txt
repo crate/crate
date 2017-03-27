@@ -7,6 +7,9 @@ Released on 2017/02/10.
 Changelog
 =========
 
+ - DEPRECATED: multicast discovery has been deprecated in this release, and will
+   be removed in the 1.1 release. Multicast discovery is disabled by default.
+
  - Fix: Allow scalar functions on the `HAVING` clause if the scalar function is
    used as a `GROUP BY` symbol.
 

@@ -15,5 +15,5 @@ Changelog
    concurrently.
 
  - Fixed an issue that caused joins on ``information_schema.columns`` to
-   produce a wrong result if ``information_schema.columns`` was used as the right
-   table.
+   produce a wrong result if ``information_schema.columns`` was used as the
+   right table.
