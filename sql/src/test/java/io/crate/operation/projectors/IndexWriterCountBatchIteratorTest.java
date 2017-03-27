@@ -53,6 +53,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -86,6 +87,12 @@ public class IndexWriterCountBatchIteratorTest extends SQLTransportIntegrationTe
             IndexWriterCountBatchIterator.newIndexInstance(sourceSupplier.get(), indexNameResolver,
                 collectExpressions, rowShardResolver, bulkShardProcessor, updateItemSupplier));
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+
+        try {
+            bulkShardProcessor.result().get(10, TimeUnit.SECONDS);
+        } finally {
+            bulkShardProcessor.close();
+        }
     }
 
     private RowShardResolver getRowShardResolver() {
