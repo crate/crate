@@ -35,6 +35,8 @@ import io.crate.types.*;
 import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 import jdk.nashorn.internal.runtime.ECMAException;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.script.*;
 import java.util.List;
@@ -113,7 +115,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
         try {
             Object[] args = new Object[values.length];
             for (int i = 0; i < values.length; i++) {
-                args[i] = values[i].value();
+                args[i] = processBytesRefInputIfNeeded(values[i].value());
             }
             result = ((ScriptObjectMirror) bindings.get(info.ident().name())).call(this, args);
         } catch (NullPointerException e) {
@@ -130,6 +132,42 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
             result = parseScriptObject((ScriptObjectMirror) result);
         }
         return returnType.value(result);
+    }
+
+    private static Object processBytesRefInputIfNeeded(Object value) {
+        if (value instanceof BytesRef) {
+            value = BytesRefs.toString(value);
+        } else if (value instanceof Map) {
+            convertBytesRefToStringInMap((Map<String, Object>) value);
+        } else if (value instanceof Object[]) {
+            convertBytesRefToStringInList((Object[]) value);
+        }
+        return value;
+    }
+
+    private static void convertBytesRefToStringInMap(Map<String, Object> value) {
+        for (Map.Entry<String, Object> entry : value.entrySet()) {
+            Object item = entry.getValue();
+            if (item instanceof BytesRef) {
+                entry.setValue(BytesRefs.toString(entry.getValue()));
+            } else if (item instanceof Object[]) {
+                convertBytesRefToStringInList((Object[]) item);
+                entry.setValue(item);
+            } else if (item instanceof Map) {
+                convertBytesRefToStringInMap((Map<String, Object>) entry.getValue());
+            }
+        }
+    }
+
+    private static void convertBytesRefToStringInList(Object[] value) {
+        for (int i = 0; i < value.length; i++) {
+            Object item = value[i];
+            if (item instanceof BytesRef) {
+                value[i] = BytesRefs.toString(item);
+            } else if (item instanceof Object[]) {
+                convertBytesRefToStringInList((Object[]) value[i]);
+            }
+        }
     }
 
     private Object parseScriptObject(ScriptObjectMirror scriptObject) {

@@ -32,8 +32,10 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
@@ -191,5 +193,36 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
         registerUserDefinedFunction("f", DataTypes.LONG, ImmutableList.of(DataTypes.LONG),
             "function f(x) { var File = Java.type(\"java.io.File\"); return x; }");
         assertEvaluate("f(x)", 1L, Literal.of(1L));
+    }
+
+    @Test
+    public void testEvaluateBytesRefConvertedToString() throws Exception {
+        registerUserDefinedFunction("f", DataTypes.STRING, ImmutableList.of(DataTypes.STRING),
+            "function f(name) { return 'foo' + name; }");
+        assertEvaluate("f(name)", "foobar", Literal.of("bar"));
+    }
+
+    @Test
+    public void testEvaluateBytesRefInObjectIsConvertedToString() throws Exception {
+        registerUserDefinedFunction("f", DataTypes.OBJECT, ImmutableList.of(DataTypes.OBJECT),
+            "function f(o) { return {'foo' :o['outer']['foo'][0], 'bar': o['outer']['bar']}; }");
+        Map<String, Object> outer = new HashMap<>();
+        Map<String, Object> inner = new HashMap<>();
+        inner.put("foo", new Object[]{new BytesRef("bar")});
+        inner.put("bar", new BytesRef("foo"));
+        outer.put("outer", inner);
+
+        Map<String, Object> expected = new HashMap<>();
+        expected.put("bar", "foo");
+        expected.put("foo", "bar");
+        assertEvaluate("f(obj)", expected, Literal.of(outer));
+    }
+
+    @Test
+    public void testEvaluateBytesRefInArrayIsConvertedToString() throws Exception {
+        registerUserDefinedFunction("f", DataTypes.STRING, ImmutableList.of(new ArrayType(new ArrayType(DataTypes.STRING))),
+            "function f(arr) { return arr[0][0]; }");
+        assertEvaluate("f(array_string_array)", "foo",
+            Literal.of(new Object[][]{new Object[]{new BytesRef("foo")}}, new ArrayType(new ArrayType(DataTypes.STRING))));
     }
 }
