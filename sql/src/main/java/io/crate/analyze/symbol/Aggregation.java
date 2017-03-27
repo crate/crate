@@ -38,8 +38,6 @@ public class Aggregation extends Symbol {
         functionInfo = new FunctionInfo();
         functionInfo.readFrom(in);
 
-        mode = AggregateMode.readFrom(in);
-
         valueType = DataTypes.fromStream(in);
         inputs = Symbols.listFromStream(in);
     }
@@ -47,15 +45,13 @@ public class Aggregation extends Symbol {
     private FunctionInfo functionInfo;
     private List<Symbol> inputs;
     private DataType valueType;
-    private AggregateMode mode;
 
-    public Aggregation(FunctionInfo functionInfo, DataType valueType, List<Symbol> inputs, AggregateMode mode) {
+    public Aggregation(FunctionInfo functionInfo, DataType valueType, List<Symbol> inputs) {
         Preconditions.checkNotNull(inputs, "inputs are null");
 
         this.valueType = valueType;
         this.functionInfo = functionInfo;
         this.inputs = inputs;
-        this.mode = mode;
     }
 
     @Override
@@ -81,15 +77,10 @@ public class Aggregation extends Symbol {
         return inputs;
     }
 
-    public AggregateMode mode() {
-        return mode;
-    }
-
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         functionInfo.writeTo(out);
 
-        AggregateMode.writeTo(mode, out);
         DataTypes.toStream(valueType, out);
         Symbols.toStream(inputs, out);
     }

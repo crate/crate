@@ -151,14 +151,12 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             new Aggregation(
                 avgInfo,
                 avgInfo.returnType(),
-                Collections.singletonList(new InputColumn(1)),
-                AggregateMode.ITER_FINAL),
+                Collections.singletonList(new InputColumn(1))),
             new Aggregation(
                 countInfo,
                 countInfo.returnType(),
-                Collections.singletonList(new InputColumn(0)),
-                AggregateMode.ITER_FINAL)
-        ), RowGranularity.SHARD);
+                Collections.singletonList(new InputColumn(0)))
+        ), RowGranularity.SHARD, AggregateMode.ITER_FINAL);
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
 
         assertThat(projector, instanceOf(AggregationPipe.class));
@@ -186,15 +184,14 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             new Aggregation(
                 avgInfo,
                 avgInfo.returnType(),
-                Collections.singletonList(new InputColumn(1)),
-                AggregateMode.ITER_FINAL),
+                Collections.singletonList(new InputColumn(1))),
             new Aggregation(
                 countInfo,
                 countInfo.returnType(),
-                Collections.singletonList(new InputColumn(0)),
-                AggregateMode.ITER_FINAL)
+                Collections.singletonList(new InputColumn(0)))
         );
-        GroupProjection projection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
+        GroupProjection projection = new GroupProjection(
+            keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER);
 
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         assertThat(projector, instanceOf(GroupingProjector.class));

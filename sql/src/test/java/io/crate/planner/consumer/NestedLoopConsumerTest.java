@@ -29,7 +29,6 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.symbol.AggregateMode;
-import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.*;
@@ -265,8 +264,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
             instanceOf(EvalProjection.class)
         ));
         AggregationProjection aggregationProjection = (AggregationProjection) nlPhase.projections().get(1);
-        Aggregation minAgg = aggregationProjection.aggregations().get(0);
-        assertThat(minAgg.mode(), is(AggregateMode.ITER_FINAL));
+        assertThat(aggregationProjection.mode(), is(AggregateMode.ITER_FINAL));
     }
 
     @Test

@@ -23,6 +23,7 @@ package io.crate.planner.projection;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
@@ -40,6 +41,7 @@ import java.util.List;
 public class AggregationProjection extends Projection {
 
     private RowGranularity contextGranularity;
+    private AggregateMode mode;
     private List<Aggregation> aggregations = ImmutableList.of();
 
     public AggregationProjection(StreamInput in) throws IOException {
@@ -49,11 +51,14 @@ public class AggregationProjection extends Projection {
             aggregations.add((Aggregation) Symbols.fromStream(in));
         }
         contextGranularity = RowGranularity.fromStream(in);
+        mode = AggregateMode.readFrom(in);
     }
 
-    public AggregationProjection(List<Aggregation> aggregations, RowGranularity contextGranularity) {
-        this.contextGranularity = contextGranularity;
+    public AggregationProjection(List<Aggregation> aggregations, RowGranularity contextGranularity, AggregateMode mode) {
         assert aggregations != null : "aggregations must not be null";
+
+        this.contextGranularity = contextGranularity;
+        this.mode = mode;
         this.aggregations = aggregations;
     }
 
@@ -89,6 +94,7 @@ public class AggregationProjection extends Projection {
     public void writeTo(StreamOutput out) throws IOException {
         Symbols.toStream(aggregations, out);
         RowGranularity.toStream(contextGranularity, out);
+        AggregateMode.writeTo(mode, out);
     }
 
     @Override
@@ -102,4 +108,7 @@ public class AggregationProjection extends Projection {
         return true;
     }
 
+    public AggregateMode mode() {
+        return mode;
+    }
 }

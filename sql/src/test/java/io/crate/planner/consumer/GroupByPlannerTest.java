@@ -165,18 +165,18 @@ public class GroupByPlannerTest extends CrateUnitTest {
             is(DataTypes.STRING)));
 
         GroupProjection firstGroupProjection = (GroupProjection) collectPhase.projections().get(0);
+        assertThat(firstGroupProjection.mode(), is(AggregateMode.ITER_PARTIAL));
         assertThat(firstGroupProjection.keys().size(), is(1));
         assertThat(((InputColumn) firstGroupProjection.outputs().get(0)).index(), is(0));
         assertThat(firstGroupProjection.outputs().get(1), is(instanceOf(Aggregation.class)));
         assertThat(((Aggregation) firstGroupProjection.outputs().get(1)).functionIdent().name(), is("count"));
-        assertThat(((Aggregation) firstGroupProjection.outputs().get(1)).mode(), is(AggregateMode.ITER_PARTIAL));
 
         assertThat(merge.mergePhase().projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(EvalProjection.class)));
 
         Projection secondGroupProjection = merge.mergePhase().projections().get(0);
-        assertThat(((Aggregation) secondGroupProjection.outputs().get(1)).mode(), is(AggregateMode.PARTIAL_FINAL));
+        assertThat(((GroupProjection) secondGroupProjection).mode(), is(AggregateMode.PARTIAL_FINAL));
     }
 
     @Test
@@ -294,9 +294,9 @@ public class GroupByPlannerTest extends CrateUnitTest {
         assertThat(groupKey, instanceOf(InputColumn.class));
         assertThat(((InputColumn) groupKey).index(), is(1));
         assertThat(groupProjection.values().size(), is(1));
+        assertThat(groupProjection.mode(), is(AggregateMode.ITER_PARTIAL));
 
         Aggregation aggregation = groupProjection.values().get(0);
-        assertThat(aggregation.mode(), is(AggregateMode.ITER_PARTIAL));
         Symbol aggregationInput = aggregation.inputs().get(0);
         assertThat(aggregationInput.symbolType(), is(SymbolType.INPUT_COLUMN));
 
@@ -309,10 +309,8 @@ public class GroupByPlannerTest extends CrateUnitTest {
         groupProjection = (GroupProjection) groupProjection1;
         assertThat(groupProjection.keys().get(0), instanceOf(InputColumn.class));
         assertThat(((InputColumn) groupProjection.keys().get(0)).index(), is(0));
-
+        assertThat(groupProjection.mode(), is(AggregateMode.PARTIAL_FINAL));
         assertThat(groupProjection.values().get(0), instanceOf(Aggregation.class));
-        Aggregation aggregationStep2 = groupProjection.values().get(0);
-        assertThat(aggregationStep2.mode(), is(AggregateMode.PARTIAL_FINAL));
 
         OrderedTopNProjection topNProjection = (OrderedTopNProjection) mergePhase.projections().get(1);
         Symbol collection_count = topNProjection.outputs().get(0);

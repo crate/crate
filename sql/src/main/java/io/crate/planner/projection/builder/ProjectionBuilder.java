@@ -68,7 +68,7 @@ public class ProjectionBuilder {
                                                        RowGranularity granularity) {
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(aggregates, mode, context);
-        return new AggregationProjection(aggregations, granularity);
+        return new AggregationProjection(aggregations, granularity, mode);
     }
 
     public GroupProjection groupProjection(
@@ -80,7 +80,7 @@ public class ProjectionBuilder {
 
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(values, mode, context);
-        return new GroupProjection(inputVisitor.process(keys, context), aggregations, requiredGranularity);
+        return new GroupProjection(inputVisitor.process(keys, context), aggregations, mode, requiredGranularity);
     }
 
     private ArrayList<Aggregation> getAggregations(Collection<Function> functions,
@@ -111,8 +111,7 @@ public class ProjectionBuilder {
             Aggregation aggregation = new Aggregation(
                 function.info(),
                 mode.returnType(((AggregationFunction) this.functions.get(function.info().ident()))),
-                aggregationInputs,
-                mode
+                aggregationInputs
             );
             aggregations.add(aggregation);
         }

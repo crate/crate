@@ -39,7 +39,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 /**
- * Collector implementation which uses {@link Aggregator}s to aggregate the rows it will receive.
+ * Collector implementation which uses {@link AggregationFunction}s to aggregate the rows it will receive.
  */
 public class AggregateCollector implements Collector<Row, Object[], Object[]> {
 
