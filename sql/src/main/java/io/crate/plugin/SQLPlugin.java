@@ -38,7 +38,6 @@ import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.pg_catalog.PgCatalogModule;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.settings.Setting;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -61,6 +60,7 @@ import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.ArrayTypeParser;
@@ -71,7 +71,6 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestHandler;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -100,7 +99,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
     }
 
     @Override
-    public List<org.elasticsearch.common.settings.Setting<?>> getSettings() {
+    public List<Setting<?>> getSettings() {
         // add our dynamic cluster settings
         List<org.elasticsearch.common.settings.Setting<?>> settings = new ArrayList<>();
         settings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTING_GROUP);
@@ -112,18 +111,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
         }
 
         return settings;
-    }
-
-    private static void addESSettings(Consumer<org.elasticsearch.common.settings.Setting<?>> consumer,
-                                      Iterable<Setting> crateSettings) {
-        for (Setting crateSetting : crateSettings) {
-            org.elasticsearch.common.settings.Setting esSetting = crateSetting.esSetting();
-            if (esSetting == null) {
-                addESSettings(consumer, crateSetting.children());
-                continue;
-            }
-            consumer.accept(esSetting);
-        }
     }
 
     public String name() {
