@@ -106,56 +106,25 @@ Translog
   transferred (flushed) to disk. Whenever a record is inserted into a table
   (or updated) that change is appended both to an in-memory buffer **and** the
   translog. When the translog reaches a certain size
-  (see :ref:`flush.threshold.size <flush_threshold_size>`), or holds a certain
-  amount of operations (see :ref:`flush.threshold.ops <flush_threshold_ops>`), or
-  after a certain interval (see :ref:`flush.threshold.period <flush_threshold_period>`)
+  (see :ref:`flush.threshold.size <flush_threshold_size>`)
   the translog is ``fsynced``, flushed to disk, and cleared.
-
-.. _flush_threshold_ops:
-
-**translog.flush_threshold_ops**
-  | *Default:*   ``unlimited``
-  | *Runtime:*   ``yes``
-
-  Sets the number of operations before flushing.
 
 .. _flush_threshold_size:
 
 **translog.flush_threshold_size**
-  | *Default:*   ``200mb``
+  | *Default:*   ``512mb``
   | *Runtime:*   ``yes``
 
   Sets size of transaction log prior to flushing.
-
-.. _flush_threshold_period:
-
-**translog.flush_threshold_period**
-  | *Default:*   ``30m``
-  | *Runtime:*   ``yes``
-
-  Sets period of no flushing after which force flush occurs.
-
-**translog.disable_flush**
-  | *Default:*    ``false``
-  | *Runtime:*   ``yes``
-
-  Disable/enable flushing.
-
-**translog.interval**
-  | *Default:*    ``5s``
-  | *Runtime:*   ``yes``
-
-  How often to check if a flush is needed, randomized between the interval
-  value and 2x the interval value.
 
 **translog.sync_interval**
   | *Default:*    ``5s``
   | *Runtime:*   ``no``
 
   Setting ``index.translog.sync_interval`` controls the period after which the
-  translog is ``fsynced`` to disk (defaults to 5 s). When setting this
-  interval, please keep in mind that changes logged during this interval and
-  not synced to disk may get lost in case of a failure.
+  translog is ``fsynced`` to disk (defaults to 5 s). Value cannot be set below 100ms.
+  When setting this interval, please keep in mind that changes logged during this
+  interval and not synced to disk may get lost in case of a failure.
 
 Allocation
 ----------
@@ -1324,7 +1293,7 @@ allowed, for instance, due to forced awareness or allocation filtering.
 .. _cluster.routing.allocation.balance.index:
 
 **cluster.routing.allocation.balance.index**
-  | *Default:*   ``0.5f``
+  | *Default:*   ``0.55f``
   | *Runtime:*  ``yes``
 
   Defines a factor to the number of shards per index allocated on a
@@ -1480,7 +1449,7 @@ Recovery
   | *Runtime:*  ``yes``
 
   Recoveries that don't show any activity for more then this
-  interval will fail. Defaults to twice :ref:`retry_internal_long_action_timeout
+  interval will fail. Defaults to :ref:`retry_internal_long_action_timeout
   <indices.recovery.retry_internal_long_action_timeout>`.
 
 .. _indices.store.throttle:
@@ -1490,7 +1459,7 @@ Store Level Throttling
 .. _indices.store.throttle.type:
 
 **indices.store.throttle.type**
-  | *Default:*   ``merge``
+  | *Default:*  ``none``
   | *Runtime:*  ``yes``
   | *Allowed Values:*  ``all | merge | none``
 
@@ -1499,7 +1468,7 @@ Store Level Throttling
 .. _indices.store.throttle.max_bytes_per_sec:
 
 **indices.store.throttle.max_bytes_per_sec**
-  | *Default:*   ``20mb``
+  | *Default:*   ``0b``
   | *Runtime:*  ``yes``
 
   If throttling is enabled by `indices.store.throttle.type`_, this
@@ -1560,7 +1529,7 @@ per request. If a single request exceeds the specified amount of memory,
 an exception is raised.
 
 **indices.breaker.request.limit**
-  | *Default:*   ``40%``
+  | *Default:*   ``60%``
   | *Runtime:*  ``yes``
 
   Specifies the JVM heap limit for the request circuit breaker.
@@ -1655,7 +1624,7 @@ Metadata Gateway
 .. _gateway.recover_after_time:
 
 **gateway.recover_after_time**
-  | *Default:*   ``5m``
+  | *Default:*   ``0ms``
   | *Runtime:*  ``no``
 
   The ``gateway.recover_after_time`` setting defines the time to wait before
