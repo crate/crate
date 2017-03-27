@@ -72,11 +72,11 @@ currently applied cluster settings.
 ::
 
     cr> select settings from sys.cluster;
-    +---------------------------------------------------------------------------------------------------------------------...-+
-    | settings                                                                                                                |
-    +---------------------------------------------------------------------------------------------------------------------...-+
-    | {"bulk": {...}, "cluster": {...}, "routing": {...}, "discovery": {...}, "indices": {...}, "logger": [], "stats": {...}} |
-    +---------------------------------------------------------------------------------------------------------------------...-+
+    +--------------------------------------------------------------------------------------------------------------------------------------------------------------------...-+
+    | settings                                                                                                                                                               |
+    +--------------------------------------------------------------------------------------------------------------------------------------------------------------------...-+
+    | {"bulk": {...}, "cluster": {...}, "discovery": {...}, "gateway": {...}, "indices": {...}, "license": {...}, "logger": [], "psql": {...}, "stats": {...}, "udc": {...}} |
+    +--------------------------------------------------------------------------------------------------------------------------------------------------------------------...-+
     SELECT 1 row in set (... sec)
 
 ::
@@ -166,18 +166,25 @@ currently applied cluster settings.
     | settings['logger']                                                                | object_array |
     | settings['logger']['level']                                                       | string       |
     | settings['logger']['name']                                                        | string       |
+    | settings['psql']                                                                  | object       |
+    | settings['psql']['enabled']                                                       | boolean      |
+    | settings['psql']['port']                                                          | string       |
     | settings['stats']                                                                 | object       |
     | settings['stats']['breaker']                                                      | object       |
     | settings['stats']['breaker']['log']                                               | object       |
     | settings['stats']['breaker']['log']['jobs']                                       | object       |
     | settings['stats']['breaker']['log']['jobs']['limit']                              | string       |
+    | settings['stats']['breaker']['log']['jobs']['overhead']                           | double       |
     | settings['stats']['breaker']['log']['operations']                                 | object       |
     | settings['stats']['breaker']['log']['operations']['limit']                        | string       |
+    | settings['stats']['breaker']['log']['operations']['overhead']                     | double       |
     | settings['stats']['enabled']                                                      | boolean      |
     | settings['stats']['jobs_log_expiration']                                          | string       |
     | settings['stats']['jobs_log_size']                                                | integer      |
     | settings['stats']['operations_log_expiration']                                    | string       |
     | settings['stats']['operations_log_size']                                          | integer      |
+    | settings['stats']['service']                                                      | object       |
+    | settings['stats']['service']['interval']                                          | string       |
     | settings['udc']                                                                   | object       |
     | settings['udc']['enabled']                                                        | boolean      |
     | settings['udc']['initial_delay']                                                  | string       |
