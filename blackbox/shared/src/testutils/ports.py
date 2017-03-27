@@ -27,10 +27,11 @@ class PortPool(object):
     def __init__(self):
         self.ports = set()
         self.lock = Lock()
+        self.range_lock = Lock()
 
-    def random_available_port(self, addr):
+    def bind_port(self, addr, port):
         sock = socket.socket()
-        sock.bind((addr, 0))
+        sock.bind((addr, port))
         port = sock.getsockname()[1]
         try:
             sock.shutdown(socket.SHUT_RDWR)
@@ -39,6 +40,9 @@ class PortPool(object):
             pass
         sock.close()
         return port
+
+    def random_available_port(self, addr):
+        return self.bind_port(addr, 0)
 
     def get(self, addr='127.0.0.1'):
         retries = 0
@@ -52,6 +56,26 @@ class PortPool(object):
                     raise OSError("Could not get free port. Max retries exceeded.")
             self.ports.add(port)
         return port
+
+    def get_range(self, addr='127.0.0.1', range_size=1):
+        retries = 0
+        with self.range_lock:
+            while True:
+                port_start = self.get(addr)
+                port_end = port_start + range_size + 1
+                for i in range(port_start, port_end):
+                    if i in self.ports:
+                        continue
+                try:
+                    for i in range(port_start, port_end):
+                        self.bind_port(addr, i)
+                        self.ports.add(i)
+                except:
+                    retries += 1
+                    if retries > self.MAX_RETRIES:
+                        raise OSError("Could not get free port. Max retries exceeded.")
+                    continue
+                return "{}-{}".format(port_start, port_end - 1)
 
 
 GLOBAL_PORT_POOL = PortPool()
