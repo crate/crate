@@ -52,10 +52,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class UpsertByIdTask extends JobTask {
@@ -261,11 +258,7 @@ public class UpsertByIdTask extends JobTask {
             return resultList;
         } else {
             final int numResults = upsertById.numBulkResponses();
-            final Integer[] resultsRowCount = new Integer[numResults];
-            final List<CompletableFuture<Long>> resultList = new ArrayList<>(numResults);
-            for (int i = 0; i < numResults; i++) {
-                resultList.add(new CompletableFuture<>());
-            }
+            final List<CompletableFuture<Long>> resultList = prepareResultList(numResults);
 
             bulkShardProcessor.result().whenComplete((BitSet result, Throwable t) -> {
                 if (t == null) {
@@ -274,27 +267,10 @@ public class UpsertByIdTask extends JobTask {
                         return;
                     }
 
-                    for (int i = 0; i < result.length(); i++) {
-                        int resultIdx = upsertById.bulkIndices().get(i);
-
-                        if (resultsRowCount[resultIdx] == null) {
-                            resultsRowCount[resultIdx] = result.get(i) ? 1 : -2;
-                        } else if (resultsRowCount[resultIdx] >= 0 && result.get(i)) {
-                            resultsRowCount[resultIdx]++;
-                        }
-                    }
-
+                    long[] resultRowCount = createBulkResponse(result);
                     for (int i = 0; i < numResults; i++) {
-                        CompletableFuture<Long> future = resultList.get(i);
-                        Integer rowCount = resultsRowCount[i];
-                        if (rowCount != null && rowCount >= 0) {
-                            future.complete((long) rowCount);
-                        } else {
-                            // failure
-                            future.complete(Executor.ROWCOUNT_ERROR);
-                        }
+                        resultList.get(i).complete(resultRowCount[i]);
                     }
-
                     bulkShardProcessorContext.close();
                 } else {
                     setAllToFailed(t, resultList);
@@ -303,6 +279,45 @@ public class UpsertByIdTask extends JobTask {
             });
             return resultList;
         }
+    }
+
+    /**
+     * Create bulk-response depending on number of bulk responses
+     * <p>
+     *  Example:
+     * </p>
+     * <pre>
+     *     responses BitSet: [1, 1, 1, 1]
+     *
+     *     insert into t (x) values (?), (?)   -- bulkParams: [[1, 2], [3, 4]]
+     *     Response:
+     *      [2, 2]
+     *
+     *     insert into t (x) values (?)        -- bulkParams: [[1], [2], [3], [4]]
+     *     Response:
+     *      [1, 1, 1, 1]
+     * </pre>
+     */
+    private long[] createBulkResponse(BitSet responses) {
+        long[] resultRowCount = new long[upsertById.numBulkResponses()];
+        Arrays.fill(resultRowCount, 0L);
+        for (int i = 0; i < upsertById.items().size(); i++) {
+            int resultIdx = upsertById.bulkIndices().get(i);
+            if (responses.get(i)) {
+                resultRowCount[resultIdx]++;
+            } else {
+                resultRowCount[resultIdx] = Executor.ROWCOUNT_ERROR;
+            }
+        }
+        return resultRowCount;
+    }
+
+    private static List<CompletableFuture<Long>> prepareResultList(int numResponses) {
+        ArrayList<CompletableFuture<Long>> results = new ArrayList<>(numResponses);
+        for (int i = 0; i < numResponses; i++) {
+            results.add(new CompletableFuture<>());
+        }
+        return results;
     }
 
     private void setAllToFailed(@Nullable Throwable throwable, List<CompletableFuture<Long>> futures) {
