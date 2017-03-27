@@ -102,7 +102,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     }
 
     @Test
-    public void testRedirect() throws IOException {
+    public void testNodeWhichHasTheBlobDoesntRedirect() throws IOException {
         // One of the head requests must be redirected:
         String digest = uploadSmallBlob();
 
@@ -112,7 +112,8 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         int numberOfRedirects2 = getNumberOfRedirects(blobUri(digest), address2);
         assertThat(numberOfRedirects2, greaterThanOrEqualTo(0));
 
-        assertThat(numberOfRedirects1, is(not(numberOfRedirects2)));
+        assertThat("The node where the blob resides should not issue a redirect",
+            numberOfRedirects1, is(not(numberOfRedirects2)));
     }
 
     @Test
