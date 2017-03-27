@@ -32,6 +32,7 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
 import io.crate.types.*;
+import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 import jdk.nashorn.internal.runtime.ECMAException;
 
@@ -43,7 +44,7 @@ import java.util.stream.Collectors;
 
 public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
 
-    static final ScriptEngine ENGINE = new ScriptEngineManager().getEngineByName("nashorn");
+    static final ScriptEngine ENGINE = new NashornScriptEngineFactory().getScriptEngine("--no-java");
 
     private final FunctionInfo info;
     private final CompiledScript compiledScript;

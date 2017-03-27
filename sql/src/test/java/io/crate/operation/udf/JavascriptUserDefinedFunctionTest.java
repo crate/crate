@@ -183,4 +183,13 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
             "function f(x) { return x; }");
         assertNormalize("f('bar')", isLiteral("bar"));
     }
+
+    @Test
+    public void testAccessJavaClasses() throws Exception {
+        exception.expect(IllegalArgumentException.class);
+        exception.expectMessage(containsString("has no such function \"type\""));
+        registerUserDefinedFunction("f", DataTypes.LONG, ImmutableList.of(DataTypes.LONG),
+            "function f(x) { var File = Java.type(\"java.io.File\"); return x; }");
+        assertEvaluate("f(x)", 1L, Literal.of(1L));
+    }
 }
