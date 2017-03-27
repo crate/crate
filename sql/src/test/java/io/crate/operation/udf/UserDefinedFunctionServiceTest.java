@@ -91,7 +91,7 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
     @Test
     public void testRemoveDoesNotExist() throws Exception {
         expectedException.expect(UserDefinedFunctionUnknownException.class);
-        expectedException.expectMessage("Cannot resolve user defined function with signature '-837942785'");
+        expectedException.expectMessage("Cannot resolve user defined function: 'different()'");
         UserDefinedFunctionsMetaData metaData = UserDefinedFunctionsMetaData.of(same1);
         removeFunction(metaData, different.name(), different.argumentTypes(), false);
     }

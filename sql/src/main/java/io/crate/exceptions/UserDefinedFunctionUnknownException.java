@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public class UserDefinedFunctionUnknownException extends ResourceUnknownException {
 
     public UserDefinedFunctionUnknownException(String name, List<DataType> types) {
-        super(String.format(Locale.ENGLISH, "Cannot resolve user defined function: '%s'(%s)",
+        super(String.format(Locale.ENGLISH, "Cannot resolve user defined function: '%s(%s)'",
             name, types.stream().map(DataType::getName).collect(Collectors.joining(",")))
         );
     }
