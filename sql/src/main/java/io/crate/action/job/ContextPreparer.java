@@ -205,7 +205,7 @@ public class ContextPreparer extends AbstractComponent {
                 preparerContext.opCtx.nodeOperationMap,
                 preparerContext.leafs,
                 preparerContext.opCtx.targetToSourceMap,
-                t.getMessage()),
+                t.getClass().getSimpleName() + ": " + t.getMessage()),
                 t);
         }
     }
