@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.breaker.CircuitBreakerModule;
+import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.jobs.JobContextService;
@@ -58,14 +59,17 @@ import io.crate.rest.action.RestSQLAction;
 import io.crate.settings.CrateSetting;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
+import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.ArrayTypeParser;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.plugins.ActionPlugin;
+import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestHandler;
@@ -74,7 +78,7 @@ import java.util.*;
 
 import static com.google.common.collect.Lists.newArrayList;
 
-public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
+public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
     private final Settings settings;
 
@@ -169,5 +173,10 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
     @Override
     public Map<String, Mapper.TypeParser> getMappers() {
         return Collections.singletonMap(ArrayMapper.CONTENT_TYPE, new ArrayTypeParser());
+    }
+
+    @Override
+    public Collection<AllocationDecider> createAllocationDeciders(Settings settings, ClusterSettings clusterSettings) {
+        return ImmutableList.of(new DecommissionAllocationDecider(settings, clusterSettings));
     }
 }

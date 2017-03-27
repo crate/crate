@@ -94,7 +94,7 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
 
         DecommissionAllocationDecider allocationDecider =
-            new DecommissionAllocationDecider(settings, clusterService);
+            new DecommissionAllocationDecider(settings, clusterService.getClusterSettings());
 
         Decision decision = allocationDecider.canAllocate(primaryShard, n1, routingAllocation);
         assertThat(decision.type(), is(Decision.Type.NO));
@@ -109,7 +109,7 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
             .put(DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.getKey(), "none")
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
         DecommissionAllocationDecider allocationDecider =
-            new DecommissionAllocationDecider(settings, clusterService);
+            new DecommissionAllocationDecider(settings, clusterService.getClusterSettings());
 
         Decision decision = allocationDecider.canAllocate(primaryShard, n1, routingAllocation);
         assertThat(decision.type(), is(Decision.Type.YES));
@@ -125,7 +125,7 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
 
         DecommissionAllocationDecider allocationDecider =
-            new DecommissionAllocationDecider(settings, clusterService);
+            new DecommissionAllocationDecider(settings, clusterService.getClusterSettings());
 
         Decision decision = allocationDecider.canAllocate(replicaShard, n1, routingAllocation);
         assertThat(decision.type(), is(Decision.Type.NO));
@@ -141,7 +141,7 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
 
         DecommissionAllocationDecider allocationDecider =
-            new DecommissionAllocationDecider(settings, clusterService);
+            new DecommissionAllocationDecider(settings, clusterService.getClusterSettings());
 
         Decision decision = allocationDecider.canAllocate(replicaShard, n1, routingAllocation);
         assertThat(decision.type(), is(Decision.Type.NO));
@@ -151,6 +151,20 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
         decision = allocationDecider.canAllocate(primaryShard, n1, routingAllocation);
         assertThat(decision.type(), is(Decision.Type.NO));
         decision = allocationDecider.canRemain(primaryShard, n1, routingAllocation);
+        assertThat(decision.type(), is(Decision.Type.NO));
+    }
+
+    @Test
+    public void testDecommissionSettingsAreUpdated() {
+        DecommissionAllocationDecider allocationDecider =
+            new DecommissionAllocationDecider(Settings.EMPTY, clusterService.getClusterSettings());
+
+        Settings settings = Settings.builder()
+            .put(DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.getKey(), "full")
+            .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
+        clusterService.getClusterSettings().applySettings(settings);
+
+        Decision decision = allocationDecider.canAllocate(primaryShard, n1, routingAllocation);
         assertThat(decision.type(), is(Decision.Type.NO));
     }
 }
