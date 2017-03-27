@@ -15,6 +15,27 @@ the appropriate section of the docs.
 Changelog
 =========
 
+ - Updated crate-admin to ``1.2.1`` which includes the following changes:
+
+   - Removed blog feed from side bar.
+
+   - increase base font size.
+
+   - Fixed issue that caused tables to display a healthy status even though
+     their partitions were in critical state
+
+   - Added fallback to unformatted results if no column types are returned.
+
+   - Display notification warning only when a new CrateDB version is released.
+
+   - Added lineWrapping option to console Editor. 
+
+   - Fixed issue that cause the console text to appear on top of the settings
+   tab.
+
+   - Fixed load reading display when the readings were invalid (for example,
+     on Windows).
+
  - Querying the admin-ui from '/_plugin/crate-admin/' will now
    redirect to '/'.
  
