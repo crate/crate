@@ -199,6 +199,7 @@ public class ProjectionToProjectorVisitor
             Symbols.extractTypes(projection.keys()),
             keyInputs,
             Iterables.toArray(ctx.expressions(), CollectExpression.class),
+            projection.mode(),
             ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccountingContext
         );
@@ -215,6 +216,7 @@ public class ProjectionToProjectorVisitor
         ctx.add(projection.aggregations());
         return new AggregationPipe(
             ctx.expressions(),
+            projection.mode(),
             ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccountingContext);
     }

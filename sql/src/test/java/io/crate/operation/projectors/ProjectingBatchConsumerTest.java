@@ -24,6 +24,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
@@ -145,7 +146,8 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
 
     @Test
     public void testConsumerRequiresScrollAndProjectorsSupportScrolling() throws Exception {
-        GroupProjection groupProjection = new GroupProjection(new ArrayList<>(), new ArrayList<>(), RowGranularity.DOC);
+        GroupProjection groupProjection = new GroupProjection(
+            new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.DOC);
 
         BatchConsumer delegateConsumerRequiresScroll = new DummyBatchConsumer(true);
 
@@ -157,7 +159,8 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
 
     @Test
     public void testConsumerDoesNotRequireScrollYieldsProjectingConsumerWithoutScrollRequirements() throws Exception {
-        GroupProjection groupProjection = new GroupProjection(new ArrayList<>(), new ArrayList<>(), RowGranularity.DOC);
+        GroupProjection groupProjection = new GroupProjection(
+            new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.DOC);
         BatchConsumer delegateConsumerRequiresScroll = new DummyBatchConsumer(false);
 
         BatchConsumer projectingConsumer = ProjectingBatchConsumer.create(delegateConsumerRequiresScroll,

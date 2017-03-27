@@ -50,7 +50,7 @@ public class GroupProjectionTest extends CrateUnitTest {
             createReference("bar", DataTypes.SHORT)
         );
         ImmutableList<Aggregation> aggregations = ImmutableList.of();
-        GroupProjection p = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
+        GroupProjection p = new GroupProjection(keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER);
 
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
@@ -69,11 +69,11 @@ public class GroupProjectionTest extends CrateUnitTest {
             new Aggregation(
                 CountAggregation.COUNT_STAR_FUNCTION,
                 CountAggregation.COUNT_STAR_FUNCTION.returnType(),
-                Collections.emptyList(),
-                AggregateMode.PARTIAL_FINAL
+                Collections.emptyList()
             )
         );
-        GroupProjection groupProjection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
+        GroupProjection groupProjection = new GroupProjection(
+            keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.CLUSTER);
 
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(groupProjection, out);
@@ -93,7 +93,7 @@ public class GroupProjectionTest extends CrateUnitTest {
             createReference("bar", DataTypes.SHORT)
         );
         ImmutableList<Aggregation> aggregations = ImmutableList.of();
-        GroupProjection p = new GroupProjection(keys, aggregations, RowGranularity.SHARD);
+        GroupProjection p = new GroupProjection(keys, aggregations, AggregateMode.ITER_FINAL, RowGranularity.SHARD);
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
 

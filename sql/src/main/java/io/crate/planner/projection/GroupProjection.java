@@ -22,6 +22,7 @@
 package io.crate.planner.projection;
 
 import com.google.common.base.Function;
+import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
@@ -40,15 +41,21 @@ public class GroupProjection extends Projection {
     private List<Aggregation> values;
     private List<Symbol> outputs;
 
+    private AggregateMode mode;
     private RowGranularity requiredGranularity = RowGranularity.CLUSTER;
 
-    public GroupProjection(List<Symbol> keys, List<Aggregation> values, RowGranularity requiredGranularity) {
+    public GroupProjection(List<Symbol> keys,
+                           List<Aggregation> values,
+                           AggregateMode mode,
+                           RowGranularity requiredGranularity) {
         this.keys = keys;
         this.values = values;
+        this.mode = mode;
         this.requiredGranularity = requiredGranularity;
     }
 
     public GroupProjection(StreamInput in) throws IOException {
+        mode = AggregateMode.readFrom(in);
         keys = Symbols.listFromStream(in);
         int size = in.readVInt();
         values = new ArrayList<>(size);
@@ -98,6 +105,7 @@ public class GroupProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        AggregateMode.writeTo(mode, out);
         Symbols.toStream(keys, out);
         Symbols.toStream(values, out);
         RowGranularity.toStream(requiredGranularity, out);
@@ -119,5 +127,9 @@ public class GroupProjection extends Projection {
     @Override
     public RowGranularity requiredGranularity() {
         return requiredGranularity;
+    }
+
+    public AggregateMode mode() {
+        return mode;
     }
 }

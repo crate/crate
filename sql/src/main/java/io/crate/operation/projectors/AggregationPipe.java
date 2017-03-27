@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.analyze.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.*;
 import io.crate.operation.AggregationContext;
@@ -30,7 +31,6 @@ import io.crate.operation.collect.CollectExpression;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class AggregationPipe implements Projector {
 
@@ -38,15 +38,23 @@ public class AggregationPipe implements Projector {
     private final int numAggregations;
 
     public AggregationPipe(List<CollectExpression<Row, ?>> expressions,
+                           AggregateMode aggregateMode,
                            AggregationContext[] aggregations,
                            RamAccountingContext ramAccountingContext) {
         numAggregations = aggregations.length;
+        AggregationFunction[] functions = new AggregationFunction[aggregations.length];
+        Input[][] inputs = new Input[aggregations.length][];
+        for (int i = 0; i < aggregations.length; i++) {
+            AggregationContext aggregation = aggregations[i];
+            functions[i] = aggregation.function();
+            inputs[i] = aggregation.inputs();
+        }
         collector = new AggregateCollector(
             expressions,
             ramAccountingContext,
-            aggregations[0].symbol().mode(),
-            Stream.of(aggregations).map(AggregationContext::function).toArray(AggregationFunction[]::new),
-            Stream.of(aggregations).map(AggregationContext::inputs).toArray(Input[][]::new)
+            aggregateMode,
+            functions,
+            inputs
         );
     }
 

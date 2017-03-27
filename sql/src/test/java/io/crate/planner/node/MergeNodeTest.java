@@ -61,11 +61,11 @@ public class MergeNodeTest extends CrateUnitTest {
             new Aggregation(
                 CountAggregation.COUNT_STAR_FUNCTION,
                 CountAggregation.COUNT_STAR_FUNCTION.returnType(),
-                Collections.emptyList(),
-                AggregateMode.PARTIAL_FINAL
+                Collections.emptyList()
             )
         );
-        GroupProjection groupProjection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
+        GroupProjection groupProjection = new GroupProjection(
+            keys, aggregations, AggregateMode.PARTIAL_FINAL, RowGranularity.CLUSTER);
         TopNProjection topNProjection = new TopNProjection(10, 0, InputColumn.numInputs(keys.size() + aggregations.size()));
 
         List<Projection> projections = Arrays.asList(groupProjection, topNProjection);

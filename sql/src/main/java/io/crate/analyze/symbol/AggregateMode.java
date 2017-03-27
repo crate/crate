@@ -67,11 +67,11 @@ public enum AggregateMode {
         return function.terminatePartial(ramAccounting, state);
     }
 
-    static void writeTo(AggregateMode step, StreamOutput out) throws IOException {
-        out.writeVInt(step.ordinal());
+    public static void writeTo(AggregateMode mode, StreamOutput out) throws IOException {
+        out.writeVInt(mode.ordinal());
     }
 
-    static AggregateMode readFrom(StreamInput in) throws IOException {
+    public static AggregateMode readFrom(StreamInput in) throws IOException {
         return VALUES.get(in.readVInt());
     }
 }

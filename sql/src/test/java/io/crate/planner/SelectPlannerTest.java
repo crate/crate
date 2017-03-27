@@ -287,9 +287,9 @@ public class SelectPlannerTest extends CrateUnitTest {
         assertThat(projection, instanceOf(AggregationProjection.class));
         AggregationProjection aggregationProjection = (AggregationProjection) projection;
         assertThat(aggregationProjection.aggregations().size(), is(1));
+        assertThat(aggregationProjection.mode(), is(AggregateMode.ITER_PARTIAL));
 
         Aggregation aggregation = aggregationProjection.aggregations().get(0);
-        assertThat(aggregation.mode(), is(AggregateMode.ITER_PARTIAL));
         Symbol aggregationInput = aggregation.inputs().get(0);
         assertThat(aggregationInput.symbolType(), is(SymbolType.INPUT_COLUMN));
 

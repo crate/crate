@@ -31,7 +31,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.List;
-import java.util.stream.Stream;
 
 public class GroupingProjector implements Projector {
 
@@ -42,20 +41,20 @@ public class GroupingProjector implements Projector {
     public GroupingProjector(List<? extends DataType> keyTypes,
                              List<Input<?>> keyInputs,
                              CollectExpression<Row, ?>[] collectExpressions,
+                             AggregateMode mode,
                              AggregationContext[] aggregations,
                              RamAccountingContext ramAccountingContext) {
         assert keyTypes.size() == keyInputs.size() : "number of key types must match with number of key inputs";
         assert allTypesKnown(keyTypes) : "must have a known type for each key input";
 
 
-        AggregationFunction[] functions = Stream.of(aggregations)
-            .map(AggregationContext::function)
-            .toArray(AggregationFunction[]::new);
-        Input[][] inputs = Stream.of(aggregations)
-            .map(AggregationContext::inputs)
-            .toArray(Input[][]::new);
-
-        AggregateMode mode = aggregations.length > 0 ? aggregations[0].symbol().mode() : AggregateMode.ITER_FINAL;
+        AggregationFunction[] functions = new AggregationFunction[aggregations.length];
+        Input[][] inputs = new Input[aggregations.length][];
+        for (int i = 0; i < aggregations.length; i++) {
+            AggregationContext aggregation = aggregations[i];
+            functions[i] = aggregation.function();
+            inputs[i] = aggregation.inputs();
+        }
         if (keyInputs.size() == 1) {
             collector = GroupingCollector.singleKey(
                 collectExpressions,
