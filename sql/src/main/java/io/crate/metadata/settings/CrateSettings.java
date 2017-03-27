@@ -171,6 +171,7 @@ public class CrateSettings implements ClusterStateListener {
             CrateSetting.of(RecoverySettings.INDICES_RECOVERY_RETRY_DELAY_NETWORK_SETTING, DataTypes.STRING),
             CrateSetting.of(RecoverySettings.INDICES_RECOVERY_INTERNAL_ACTION_TIMEOUT_SETTING, DataTypes.STRING),
             CrateSetting.of(RecoverySettings.INDICES_RECOVERY_INTERNAL_LONG_ACTION_TIMEOUT_SETTING, DataTypes.STRING),
+            CrateSetting.of(RecoverySettings.INDICES_RECOVERY_ACTIVITY_TIMEOUT_SETTING, DataTypes.STRING),
             CrateSetting.of(IndexStoreConfig.INDICES_STORE_THROTTLE_TYPE_SETTING, DataTypes.STRING),
             CrateSetting.of(IndexStoreConfig.INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC_SETTING, DataTypes.STRING),
             CrateSetting.of(HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_LIMIT_SETTING, DataTypes.STRING),
