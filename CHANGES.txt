@@ -14,6 +14,9 @@ the appropriate section of the docs.
 
 Changelog
 =========
+
+ - Querying the admin-ui from '/_plugin/crate-admin/' will now
+   redirect to '/'.
  
  - Added possible data type conversion to a timestamp array.
    e.g. ``cast(['2017-01-01','2017-12-31'] as array(timestamp))``

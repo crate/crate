@@ -56,6 +56,25 @@ public class AdminUIIntegrationTest extends AdminUIHttpIntegrationTest {
     }
 
     @Test
+    public void testPluginURLRedirect() throws IOException, URISyntaxException {
+        //request to '/_plugin/crate-admin' is redirected to '/'
+        Header[] headers = {
+            browserHeader()
+        };
+
+        List<URI> allRedirectLocations = getAllRedirectLocations("/_plugin/crate-admin", headers);
+
+        // all redirect locations should contain the crateAdminUI URI
+        assertThat(allRedirectLocations.contains(adminURI()), is(true));
+    }
+
+    @Test
+    public void testPluginURLRedirectReturnsIndex() throws IOException, URISyntaxException {
+        //request to '/_plugins/crate-admin' is redirected to '/index.html'
+        assertIsIndexResponse(browserGet("/_plugin/crate-admin"));
+    }
+
+    @Test
     public void testPostForbidden() throws IOException {
         CloseableHttpResponse response = post("/static/");
         //status should be 403 FORBIDDEN
