@@ -46,18 +46,22 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.planner.TableStats;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.TableStats;
 import io.crate.sql.parser.SqlParser;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -65,15 +69,16 @@ import java.util.UUID;
 
 import static io.crate.analyze.TableDefinitions.*;
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static org.apache.lucene.util.LuceneTestCase.createTempDir;
 import static org.mockito.Mockito.mock;
 
 /**
  * Lightweight alternative to {@link SQLTransportExecutor}.
  *
- * Can be used for unit-tests tests which don't require the full execution-layer/nodes to be started.
+ * Can be used for unit-tests testss which don't require the full execution-layer/nodes to be started.
  */
 public class SQLExecutor {
+
+    private static final Logger LOGGER = Loggers.getLogger(SQLExecutor.class);
 
     private final Functions functions;
     public final Analyzer analyzer;
@@ -99,8 +104,8 @@ public class SQLExecutor {
         /**
          * Adds a couple of tables which are defined in {@link T3} and {@link io.crate.analyze.TableDefinitions}.
          * <p>
-         *     Note that these tables do have a static routing which doesn't necessarily match the nodes that
-         *     are part of the clusterState of the {@code clusterService} provided to the builder.
+         * Note that these tables do have a static routing which doesn't necessarily match the nodes that
+         * are part of the clusterState of the {@code clusterService} provided to the builder.
          * </p>
          */
         public Builder enableDefaultTables() {
@@ -128,6 +133,7 @@ public class SQLExecutor {
             if (!blobTables.isEmpty()) {
                 schemas.put(BlobSchemaInfo.NAME, new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
             }
+            File tempDir = createTempDir();
             return new SQLExecutor(
                 functions,
                 new Analyzer(
@@ -141,8 +147,8 @@ public class SQLExecutor {
                     clusterService,
                     new AnalysisRegistry(
                         new Environment(Settings.builder()
-                                                .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir().toString())
-                                                .build()),
+                            .put(Environment.PATH_HOME_SETTING.getKey(), tempDir.toString())
+                            .build()),
                         Collections.emptyMap(),
                         Collections.emptyMap(),
                         Collections.emptyMap(),
@@ -163,6 +169,21 @@ public class SQLExecutor {
                     tableStats
                 )
             );
+        }
+
+        private static File createTempDir() {
+            int attempt = 0;
+            while (attempt < 3) {
+                try {
+                    attempt++;
+                    File tempDir = File.createTempFile("temp", Long.toString(System.nanoTime()));
+                    tempDir.deleteOnExit();
+                    return tempDir;
+                } catch (IOException e) {
+                    LOGGER.warn("Unable to create temp dir on attempt {} due to {}", attempt, e.getMessage());
+                }
+            }
+            throw new IllegalStateException("Cannot create temp dir");
         }
 
         public Builder addSchema(SchemaInfo schema) {
