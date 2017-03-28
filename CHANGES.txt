@@ -15,6 +15,10 @@ the appropriate section of the docs.
 Changelog
 =========
 
+ - Updated crate-admin to ``1.2.2`` which includes the following changes:
+
+   - Fixed issue where arrays in formatted objects were not displayed.
+
  - BREAKING: Changed default bind and publish address from ``0.0.0.0`` to
    the system ``loopback`` addresses.
 
