@@ -2,9 +2,9 @@
  BREAKING CHANGES due to ES 5.x upgrade
 ========================================
 
-- Tables created with Crate versions older than 0.46.0 will have to be 
-  recreated. This is due to the way numeric docvalues are stored starting with  
-  Crate 0.46.0 (sorted numeric instead of binary) which uses ES 1.4 
+- Tables created with Crate versions older than 0.46.0 will have to be
+  recreated. This is due to the way numeric docvalues are stored starting with
+  Crate 0.46.0 (sorted numeric instead of binary) which uses ES 1.4
   The backwards compatibility layer for binary docvalues was removed in ES 5.x
 
 - -Des cannot be used anymore, ES 5.0 needs -Eparam=value which is passed as command line argument
@@ -15,6 +15,8 @@
   resulting in an empty result.
 
 - Discovery using `Multicast` is removed. `Unicast` is the default discovery mechanism.
+
+- CrateDB by default binds and publishes itself to the loopback addresses on the system instead of 0.0.0.0
 
 - `COPY FROM` now requires column names to be quoted in the JSON file being imported.
 

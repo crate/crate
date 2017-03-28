@@ -113,7 +113,6 @@ public class CrateSettingsPreparer {
         putIfAbsent(settingsBuilder, TRANSPORT_TYPE_DEFAULT_KEY, Netty3Plugin.NETTY_TRANSPORT_NAME);
         putIfAbsent(settingsBuilder, SETTING_HTTP_PORT.getKey(), Constants.HTTP_PORT_RANGE);
         putIfAbsent(settingsBuilder, PORT.getKey(), Constants.TRANSPORT_PORT_RANGE);
-        putIfAbsent(settingsBuilder, NetworkService.GLOBAL_NETWORK_HOST_SETTING.getKey(), "0.0.0.0");
 
         // Set the default cluster name if not explicitly defined
         if (settingsBuilder.get(ClusterName.CLUSTER_NAME_SETTING.getKey()).equals(ClusterName.DEFAULT.value())) {
