@@ -49,6 +49,6 @@ public final class FetchId {
     }
 
     public static long encode(int readerId, int docId) {
-        return ((long) readerId << 32) | (docId & 0xfffL);
+        return ((long) readerId << 32) | (docId & 0xffffffffL);
     }
 }

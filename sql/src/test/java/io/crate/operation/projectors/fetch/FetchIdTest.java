@@ -22,18 +22,25 @@
 
 package io.crate.operation.projectors.fetch;
 
+import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import java.util.stream.LongStream;
 
-public class FetchIdTest {
+import static org.hamcrest.core.Is.is;
+
+public class FetchIdTest extends CrateUnitTest {
 
     @Test
     public void testEncodeAndDecode() throws Exception {
-        long fetchId = FetchId.encode(10, 3248);
+        LongStream longs = random().longs(50, 0, Long.MAX_VALUE);
+        longs.forEach(this::assertEncodeDecodeMatches);
+    }
 
-        assertThat(FetchId.decodeDocId(fetchId), is(3248));
-        assertThat(FetchId.decodeReaderId(fetchId), is(10));
+    private void assertEncodeDecodeMatches(long val) {
+        int docId = FetchId.decodeDocId(val);
+        int readerId = FetchId.decodeReaderId(val);
+
+        assertThat(FetchId.encode(readerId, docId), is(val));
     }
 }
