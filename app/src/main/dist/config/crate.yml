@@ -294,12 +294,17 @@
 
 ############################## Network And HTTP ###############################
 
-# Crate, by default, binds itself to the 0.0.0.0 address, and listens
+# Crate, by default, binds itself to the loopback addresses on the system, and listens
 # on port [4200-4300] for HTTP traffic and on port [4300-4400] for node-to-node
 # communication. (the range means that if the port is busy, it will automatically
 # try the next port).
+# Apart from IPv4 and IPv6 addresses there are some special values that can be used:
+# _local_ Any loopback addresses on the system, for example 127.0.0.1.
+# _site_ Any site-local addresses on the system, for example 192.168.0.1.
+# _global_ Any globally-scoped addresses on the system, for example 8.8.8.8.
+# _[networkInterface]_  Addresses of a network interface, for example _en0_.
 
-# Set the bind address specifically (IPv4 or IPv6):
+# Set the bind address specifically (IPv4, IPv6 or special value):
 #
 #network.bind_host: 192.168.0.1
 

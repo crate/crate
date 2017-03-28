@@ -6,7 +6,7 @@ Postgres Wire Protocol
 Crate contains experimental support for the `PostgreSQL wire protocol v3`_.
 
 If a node is started with postgres support enabled it will bind to
-``0.0.0.0:5432`` by default. To use a custom port,
+port ``5432`` by default. To use a custom port,
 set the corresponding :ref:`conf_ports`
 in the :doc:`Configuration <../configuration>`.
 
