@@ -15,6 +15,10 @@ the appropriate section of the docs.
 Changelog
 =========
 
+ - Updated crate-admin to ``1.2.2`` which includes the following changes:
+
+   - Fixed issue where arrays in formatted objects were not displayed.
+
  - Fixed a regression introduced in 1.1.0 which could cause queries to return
    wrong values.
 
