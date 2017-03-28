@@ -15,6 +15,9 @@ the appropriate section of the docs.
 Changelog
 =========
 
+ - BREAKING: Changed default bind and publish address from ``0.0.0.0`` to
+   the system ``loopback`` addresses.
+
  - Fixed a regression introduced in 1.1.0 which could cause queries to return
    wrong values.
 
@@ -31,7 +34,7 @@ Changelog
 
    - Display notification warning only when a new CrateDB version is released.
 
-   - Added lineWrapping option to console Editor. 
+   - Added lineWrapping option to console Editor.
 
    - Fixed issue that cause the console text to appear on top of the settings
    tab.
@@ -41,14 +44,14 @@ Changelog
 
  - Querying the admin-ui from '/_plugin/crate-admin/' will now
    redirect to '/'.
- 
+
  - Added possible data type conversion to a timestamp array.
    e.g. ``cast(['2017-01-01','2017-12-31'] as array(timestamp))``
 
  - Fixed bug introduced in 1.1.0 which caused all partitioned tables to
    become unusable.
 
- - Fixed an issued that caused conditions like ``not x = any( )`` to not 
+ - Fixed an issued that caused conditions like ``not x = any( )`` to not
    find empty lists when used in WHERE clauses.
 
  - Improved error handling when using LIMIT/OFFSET that exceed Integer range

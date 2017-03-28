@@ -35,6 +35,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import static org.elasticsearch.common.Strings.cleanPath;
+import static org.elasticsearch.common.network.NetworkService.DEFAULT_NETWORK_HOST;
 import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 public class CrateSettingsPreparer {
@@ -96,7 +97,7 @@ public class CrateSettingsPreparer {
         putIfAbsent(settingsBuilder, "transport.tcp.port", Constants.TRANSPORT_PORT_RANGE);
         putIfAbsent(settingsBuilder, "thrift.port", Constants.THRIFT_PORT_RANGE);
         putIfAbsent(settingsBuilder, "discovery.zen.ping.multicast.enabled", false);
-        putIfAbsent(settingsBuilder, "network.host", "0.0.0.0");
+        putIfAbsent(settingsBuilder, "network.host", DEFAULT_NETWORK_HOST);
 
         // Set the default cluster name if not explicitly defined
         if (settingsBuilder.get(ClusterName.SETTING).equals(ClusterName.DEFAULT.value())) {

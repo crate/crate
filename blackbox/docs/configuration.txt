@@ -326,7 +326,7 @@ Hosts
 .. _network.host:
 
 **network.host**
-  | *Default:*    ``0.0.0.0``
+  | *Default:*   ``_local_``
   | *Runtime:*   ``no``
 
   The IP address CrateDB will bind itself to. This setting sets
@@ -335,24 +335,32 @@ Hosts
 .. _network.bind_host:
 
 **network.bind_host**
-  | *Default:*    ``0.0.0.0``
+  | *Default:*   ``_local_``
   | *Runtime:*   ``no``
 
-  This setting determines to which address CrateDB should bind itself
-  to. To only bind to localhost, set it to any local address or ``_local_``.
+  This setting determines to which address CrateDB should bind itself to.
 
 .. _network.publish_host:
 
 **network.publish_host**
+  | *Default:*   ``_local_``
   | *Runtime:*   ``no``
 
   This setting is used by a CrateDB node to publish its own address
-  to the rest of the cluster. Per default it is the first non local address.
+  to the rest of the cluster.
 
-  To explicitly bind CrateDB to a specific interface use the interface
-  name between underscores. For example ``_eth0_``. This resolves to
-  the ip address of this interface. With ``_eth0:ipv{4,6}_`` you
-  explicitly listen on an ipv6 or ipv4 address.
+  .. note::
+
+    Apart from IPv4 and IPv6 addresses there are some special values that can be used
+    for all above settings:
+
+    =========================   =================================================================
+    **_local_**                 Any loopback addresses on the system, for example 127.0.0.1.
+    **_site_**                  Any site-local addresses on the system, for example 192.168.0.1.
+    **_global_**                Any globally-scoped addresses on the system, for example 8.8.8.8.
+    **_[networkInterface]_**    Addresses of a network interface, for example _en0_.
+    =========================   =================================================================
+
 
 .. _conf_ports:
 
