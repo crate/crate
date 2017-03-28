@@ -95,7 +95,6 @@ public class AzureDiscoveryPlugin extends Plugin {
         return services;
     }
 
-    // FIXME: on DiscoveryModule is not supported anymore, find way to register type
     public void onModule(DiscoveryModule discoveryModule) {
         if (AzureModule.isDiscoveryReady(settings, logger)) {
             discoveryModule.addDiscoveryType("azure", AzureDiscovery.class);
