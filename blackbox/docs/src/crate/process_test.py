@@ -103,12 +103,14 @@ class GracefulStopTest(unittest.TestCase):
         self.crates = []
         self.clients = []
         self.node_names = []
+        # auto-discovery with unicast on the same host only works if all nodes are configured with the same port range
+        transport_port_range = GLOBAL_PORT_POOL.get_range(range_size=num_servers)
         for i in range(num_servers):
             layer = GracefulStopCrateLayer(
                 self.node_name(i),
                 crate_path(),
                 port=GLOBAL_PORT_POOL.get(),
-                transport_port=GLOBAL_PORT_POOL.get(),
+                transport_port=transport_port_range,
                 cluster_name=self.__class__.__name__)
             client = Client(layer.crate_servers)
             self.crates.append(layer)
