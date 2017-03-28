@@ -63,7 +63,7 @@ public class AdminUIStaticFileRequestFilter extends RestFilter {
     @Override
     public void process(RestRequest request, RestChannel channel, RestFilterChain filterChain) throws IOException {
         if (request.rawPath().equals("/_plugin/crate-admin/")){
-            BytesRestResponse resp = new BytesRestResponse(RestStatus.TEMPORARY_REDIRECT);
+            BytesRestResponse resp = new BytesRestResponse(RestStatus.MOVED_PERMANENTLY);
             resp.addHeader("Location", "/");
             channel.sendResponse(resp);
             return;
