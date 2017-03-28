@@ -25,26 +25,38 @@ import io.crate.analyze.CreateFunctionAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
+import io.crate.metadata.settings.CrateSettings;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class UserDefinedFunctionDDLDispatcher {
 
+    private final boolean isEnabled;
     private final TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction;
     private final TransportDropUserDefinedFunctionAction dropUserDefinedFunctionAction;
 
     @Inject
-    public UserDefinedFunctionDDLDispatcher(TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction,
+    public UserDefinedFunctionDDLDispatcher(Settings settings,
+                                            TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction,
                                             TransportDropUserDefinedFunctionAction dropUserDefinedFunctionAction) {
         this.createUserDefinedFunctionAction = createUserDefinedFunctionAction;
         this.dropUserDefinedFunctionAction = dropUserDefinedFunctionAction;
+        this.isEnabled = settings.getAsBoolean(CrateSettings.UDF_ENABLED.settingName(), false);
+    }
+
+    private void checkUdfEnabled() {
+        if (!isEnabled) {
+            throw new UnsupportedOperationException("The experimental User Defined Functions feature is disabled.");
+        }
     }
 
     public CompletableFuture<Long> dispatch(final CreateFunctionAnalyzedStatement statement, Row params) {
+        checkUdfEnabled();
         final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
         UserDefinedFunctionMetaData metaData = new UserDefinedFunctionMetaData(
             statement.name(),
@@ -73,6 +85,7 @@ public class UserDefinedFunctionDDLDispatcher {
     }
 
     public CompletableFuture<Long> dispatch(final DropFunctionAnalyzedStatement statement) {
+        checkUdfEnabled();
         final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
         DropUserDefinedFunctionRequest request = new DropUserDefinedFunctionRequest(
             statement.name(),

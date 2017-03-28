@@ -1555,8 +1555,32 @@ public class CrateSettings {
         }
     };
 
+    public static final NestedSetting UDF = new NestedSetting() {
+        @Override
+        public String name() {
+            return "udf";
+        }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.of(UDF_ENABLED);
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return false;
+        }
+    };
+
+    public static final BoolSetting UDF_ENABLED = new BoolSetting("enabled", false, false) {
+        @Override
+        public Setting parent() {
+            return UDF;
+        }
+    };
+
     public static final List<Setting> SETTINGS = ImmutableList.of(
-        STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC, PSQL, LICENSE);
+        STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC, PSQL, LICENSE, UDF);
 
     public static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
         .put(CrateSettings.STATS.settingName(),
@@ -1753,6 +1777,10 @@ public class CrateSettings {
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.LICENSE))
         .put(CrateSettings.LICENSE_ENTERPRISE.settingName(),
             new SettingsAppliers.BooleanSettingsApplier(CrateSettings.LICENSE_ENTERPRISE))
+        .put(CrateSettings.UDF.settingName(),
+            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.UDF))
+        .put(CrateSettings.UDF_ENABLED.settingName(),
+            new SettingsAppliers.BooleanSettingsApplier(CrateSettings.UDF_ENABLED))
         .build();
 
     /**

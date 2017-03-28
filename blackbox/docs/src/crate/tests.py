@@ -147,6 +147,7 @@ crate_layer = ConnectingCrateLayer(
     transport_port=CRATE_TRANSPORT_PORT,
     settings={
         'cluster.routing.schedule': '30ms',
+        'udf.enabled': 'true',
     }
 )
 

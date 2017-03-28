@@ -27,6 +27,7 @@ import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.*;
@@ -69,7 +70,9 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
 
     @Override
     protected void doStart() {
-        clusterService.add(this);
+        if (settings.getAsBoolean(CrateSettings.UDF_ENABLED.settingName(), false)) {
+            clusterService.add(this);
+        }
     }
 
     @Override

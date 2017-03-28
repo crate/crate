@@ -27,8 +27,10 @@
 package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,6 +48,13 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         new Object[]{1L, "Foo"},
         new Object[]{3L, "bar"}
     };
+
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return Settings.builder()
+            .put(super.nodeSettings(nodeOrdinal))
+            .put(CrateSettings.UDF_ENABLED.settingName(), true).build();
+    }
 
     @Before
     public void beforeTest() {
