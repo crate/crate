@@ -875,3 +875,9 @@
 # valid Enterprise or Subscription Agreement with Crate.io. Your use of
 # features of the Enterprise Edition is governed by the terms and conditions of
 # your Enterprise or Subscription Agreement with Crate.io.
+
+
+######################### User Defined Functions ########################
+
+# Setting this to `true` enables the User Defined Functions functionality.
+#udf.enabled: true

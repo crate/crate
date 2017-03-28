@@ -1,7 +1,12 @@
 .. _sql_administration_udf:
 
-User defined Functions
+User Defined Functions
 ======================
+
+.. NOTE::
+
+   The User Defined Functions is an experimental feature. It is disabled by default.
+   You can enable the :ref:`conf_udf_enabled` via the CrateDB configuration file.
 
 CREATE OR REPLACE
 -----------------
@@ -20,6 +25,8 @@ These functions can be created like this::
 .. hide:
 
     cr> _wait_for_function('subtract', 1)
+
+::
 
     cr> SELECT subtract(3, 1);
     +----------------+
@@ -40,6 +47,8 @@ These functions can be created like this::
 .. hide:
 
     cr> _wait_for_function('log10', 1)
+
+::
 
     cr> SELECT log10(10);
     +-----------+
@@ -120,7 +129,8 @@ This would overload our ``multiply`` function with more arguments::
    It is considered bad practice to create functions that have the same name
    as the CrateDB built-in functions.
 
-.. Hide:
+.. hide:
+
     cr> _wait_for_function('multiply', 3)
 
 Determinism

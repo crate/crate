@@ -207,4 +207,13 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         Map<String, Object> licence = (Map<String, Object>) settings.get(CrateSettings.LICENSE.name());
         assertThat(licence.get(CrateSettings.LICENSE_ENTERPRISE.name()), is(false));
     }
+
+    @Test
+    public void testDefaultUDFSetting() {
+        execute("select settings from sys.cluster");
+        assertEquals(1L, response.rowCount());
+        Map<String, Object> settings = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> udf = (Map<String, Object>) settings.get(CrateSettings.UDF.name());
+        assertThat(udf.get(CrateSettings.UDF_ENABLED.name()), is(false));
+    }
 }

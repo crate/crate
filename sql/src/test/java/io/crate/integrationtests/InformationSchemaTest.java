@@ -28,13 +28,14 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.doc.DocIndexMetaData;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
-import org.junit.After;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -48,6 +49,13 @@ import static org.hamcrest.Matchers.*;
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
     private final Joiner commaJoiner = Joiner.on(", ");
+
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return Settings.builder()
+            .put(super.nodeSettings(nodeOrdinal))
+            .put(CrateSettings.UDF_ENABLED.settingName(), true).build();
+    }
 
     private void serviceSetup() {
         execute("create table t1 (col1 integer primary key, " +
@@ -474,7 +482,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(391, response.rowCount());
+        assertEquals(393, response.rowCount());
     }
 
     @Test

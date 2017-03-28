@@ -27,8 +27,10 @@
 package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,6 +53,13 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
             put("foo", 2L);
         }}}
     };
+
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return Settings.builder()
+            .put(super.nodeSettings(nodeOrdinal))
+            .put(CrateSettings.UDF_ENABLED.settingName(), true).build();
+    }
 
     @Before
     public void beforeTest() {
@@ -80,8 +89,8 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
             assertThat(response.rows()[0][0], is("Foo"));
             assertThat(response.rows()[1][0], is("bar"));
         } finally {
-            dropFunction("foo",  ImmutableList.of(DataTypes.OBJECT));
-            dropFunction("foo",  ImmutableList.of(DataTypes.STRING));
+            dropFunction("foo", ImmutableList.of(DataTypes.OBJECT));
+            dropFunction("foo", ImmutableList.of(DataTypes.STRING));
         }
     }
 
@@ -90,7 +99,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         execute("create function custom(string) returns string language javascript as 'function custom(x) { return x; }'");
         waitForFunctionCreatedOnAll("custom", ImmutableList.of(DataTypes.STRING));
 
-        dropFunction("custom",  ImmutableList.of(DataTypes.STRING));
+        dropFunction("custom", ImmutableList.of(DataTypes.STRING));
     }
 
     private void dropFunction(String name, List<DataType> types) throws Exception {
