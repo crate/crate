@@ -15,6 +15,9 @@ the appropriate section of the docs.
 Changelog
 =========
 
+ - Fixed a regression introduced in 1.1.0 which could cause queries to return
+   wrong values.
+
  - Updated crate-admin to ``1.2.1`` which includes the following changes:
 
    - Removed blog feed from side bar.
