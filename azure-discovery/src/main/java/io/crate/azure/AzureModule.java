@@ -106,7 +106,7 @@ public class AzureModule extends AbstractModule {
             isPropertyMissing(settings, Management.APP_SECRET)
             ) {
             logger.warn("one or more azure discovery settings are missing. " +
-                        "Check elasticsearch.yml file. Should have [{}], [{}], [{}] and [{}].",
+                        "Check crate.yml file. Should have [{}], [{}], [{}] and [{}].",
                 Management.SUBSCRIPTION_ID,
                 Management.RESOURCE_GROUP_NAME,
                 Management.TENANT_ID,
