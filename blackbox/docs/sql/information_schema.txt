@@ -360,6 +360,8 @@ Columns
 +--------------------+-------------+
 | routine_body       | String      |
 +--------------------+-------------+
+| routine_schema     | String      |
++--------------------+-------------+
 | data_type          | String      |
 +--------------------+-------------+
 | is_deterministic   | Boolean     |
@@ -374,6 +376,9 @@ Columns
     Type of the routine.
     Can be ``FUNCTION``, ``ANALYZER``, ``CHAR_FILTER``, ``TOKEN_FILTER``
     or ``TOKEN_FILTER``.
+:routine_schema:
+    The schema where the routine was defined.
+    If it doesn't apply, then ``Null``.
 :routine_body:
     The language used for the routine implementation.
     If it doesn't apply, then ``Null``.

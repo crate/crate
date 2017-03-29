@@ -26,7 +26,10 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.action.sql.Option;
+import io.crate.action.sql.SessionContext;
+import io.crate.data.Row;
+import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Literal;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -34,6 +37,8 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
+
+import java.util.Collections;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -49,6 +54,7 @@ public class CreateFunctionAnalyzerTest extends CrateUnitTest {
         assertThat(analyzedStatement, instanceOf(CreateFunctionAnalyzedStatement.class));
 
         CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) analyzedStatement;
+        assertThat(analysis.schema(), is("doc"));
         assertThat(analysis.name(), is("bar"));
         assertThat(analysis.replace(), is(false));
         assertThat(analysis.returnType(), is(DataTypes.LONG));
@@ -60,9 +66,34 @@ public class CreateFunctionAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testCreateFunctionWithSchemaName() {
-        expectedException.expect(UnsupportedFeatureException.class);
-        e.analyze("CREATE FUNCTION foo.bar(long, long)" +
+        CreateFunctionAnalyzedStatement analyzedStatement = e.analyze("CREATE FUNCTION foo.bar(long, long)" +
             " RETURNS long LANGUAGE javascript AS 'function(a, b) { return a + b; }'");
+        assertThat(analyzedStatement.schema(), is("foo"));
+        assertThat(analyzedStatement.name(), is("bar"));
+    }
+
+    @Test
+    public void testCreateFunctionWithSessionSetSchema() throws Exception {
+        CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
+            SqlParser.createStatement("CREATE FUNCTION bar(long, long)" +
+                " RETURNS long LANGUAGE javascript AS 'function(a, b) { return a + b; }'"),
+            new SessionContext(0, Option.NONE, "my_schema"),
+            new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
+
+        assertThat(analysis.schema(), is("my_schema"));
+        assertThat(analysis.name(), is("bar"));
+    }
+
+    @Test
+    public void testCreateFunctionExplicitSchemaSupersedesSessionSchema() throws Exception {
+        CreateFunctionAnalyzedStatement analysis = (CreateFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
+            SqlParser.createStatement("CREATE FUNCTION my_other_schema.bar(long, long)" +
+                " RETURNS long LANGUAGE javascript AS 'function(a, b) { return a + b; }'"),
+            new SessionContext(0, Option.NONE, "my_schema"),
+            new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
+
+        assertThat(analysis.schema(), is("my_other_schema"));
+        assertThat(analysis.name(), is("bar"));
     }
 
     @Test

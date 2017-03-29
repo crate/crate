@@ -42,16 +42,22 @@ import java.util.List;
 public class DropUserDefinedFunctionRequest extends MasterNodeRequest<CreateUserDefinedFunctionRequest> {
 
     private String name;
+    private String schema;
     private List<DataType> argumentTypes = ImmutableList.of();
     private boolean ifExists;
 
     public DropUserDefinedFunctionRequest() {
     }
 
-    public DropUserDefinedFunctionRequest(String name, List<DataType> argumentTypes, boolean ifExists) {
+    public DropUserDefinedFunctionRequest(String schema, String name, List<DataType> argumentTypes, boolean ifExists) {
+        this.schema = schema;
         this.name = name;
         this.argumentTypes = argumentTypes;
         this.ifExists = ifExists;
+    }
+
+    public String schema() {
+        return schema;
     }
 
     public String name() {
@@ -77,6 +83,7 @@ public class DropUserDefinedFunctionRequest extends MasterNodeRequest<CreateUser
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
+        schema = in.readString();
         name = in.readString();
 
         int n = in.readVInt();
@@ -93,6 +100,7 @@ public class DropUserDefinedFunctionRequest extends MasterNodeRequest<CreateUser
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
+        out.writeString(schema);
         out.writeString(name);
 
         int n = argumentTypes.size();

@@ -27,6 +27,7 @@
 package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -72,13 +73,14 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         try {
             execute("create function foo(long)" +
                 " returns string language javascript as 'function foo(x) { return \"1\"; }'");
-            waitForFunctionCreatedOnAll("foo", ImmutableList.of(DataTypes.LONG));
+            waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.LONG));
 
             execute("create function foo(string)" +
                 " returns string language javascript as 'function foo(x) { return x; }'");
-            waitForFunctionCreatedOnAll("foo", ImmutableList.of(DataTypes.STRING));
+            waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.STRING));
 
-            execute("select foo(str), id from test order by id asc");
+            Thread.sleep(5);
+            execute("select doc.foo(str), id from test order by id asc");
             assertThat(response.rowCount(), is(2L));
             assertThat(response.rows()[0][0], is("Foo"));
             assertThat(response.rows()[1][0], is("bar"));
@@ -91,7 +93,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     @Test
     public void testDropFunction() throws Exception {
         execute("create function custom(string) returns string language javascript as 'function custom(x) { return x; }'");
-        waitForFunctionCreatedOnAll("custom", ImmutableList.of(DataTypes.STRING));
+        waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of(DataTypes.STRING));
 
         dropFunction("custom", ImmutableList.of(DataTypes.STRING));
     }
@@ -100,6 +102,6 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         execute(String.format(Locale.ENGLISH, "drop function %s(%s)",
             name, types.stream().map(DataType::getName).collect(Collectors.joining(", "))));
         assertThat(response.rowCount(), is(1L));
-        waitForFunctionDeleted(name, types);
+        waitForFunctionDeleted(Schemas.DEFAULT_SCHEMA_NAME, name, types);
     }
 }

@@ -26,6 +26,7 @@ import zc.customdoctests
 from crate.testing.layer import CrateLayer
 import os
 import shutil
+import time
 import re
 import tempfile
 import glob
@@ -65,20 +66,28 @@ def wait_for_schema_update(schema, table, column):
     count = 0
     while count == 0:
         c.execute(('select count(*) from information_schema.columns '
-                    'where table_schema = ? and table_name = ? '
-                    'and column_name = ?'),
-                    (schema, table, column))
+                   'where table_schema = ? and table_name = ? '
+                   'and column_name = ?'),
+                   (schema, table, column))
         count = c.fetchone()[0]
 
-def wait_for_function(name, signatures = 1):
+
+def wait_for_function(signature):
     conn = connect('localhost:' + str(CRATE_HTTP_PORT))
     c = conn.cursor()
-    count = 0
-    while count < signatures:
-        c.execute(('select count(*) from information_schema.routines '
-                   'where routine_name = ? and routine_type = ?'),
-                  (name, 'FUNCTION'))
-        count = c.fetchone()[0]
+    wait = 0.0
+
+    while True:
+        try:
+            c.execute('SELECT ' + signature)
+        except Exception as e:
+            wait += 0.1
+            if wait >= 2.0:
+                raise e
+            else:
+                time.sleep(0.1)
+        else:
+            break
 
 
 def bash_transform(s):
@@ -153,6 +162,7 @@ crate_layer = ConnectingCrateLayer(
 
 
 def setUpLocations(test):
+    test.globs['wait_for_function'] = wait_for_function
     test.globs['cmd'] = cmd
     cmd.stmt("""
         create table locations (
@@ -325,8 +335,6 @@ def tearDownCountries(test):
 def setUpLocationsAndQuotes(test):
     setUpLocations(test)
     setUpQuotes(test)
-    test.globs['wait_for_function'] = wait_for_function
-
 
 def tearDownLocationsAndQuotes(test):
     tearDownLocations(test)
@@ -396,8 +404,6 @@ def setUpTutorials(test):
 def setUp(test):
     test.globs['cmd'] = cmd
     test.globs['wait_for_schema_update'] = wait_for_schema_update
-    test.globs['wait_for_function'] = wait_for_function
-
 
 
 docsuite = partial(doctest.DocFileSuite,

@@ -92,10 +92,9 @@ public class ProjectionBuilder {
                 default:
                     throw new AssertionError("Invalid mode: " + mode.name());
             }
-            FunctionIdent ident = function.info().ident();
             Aggregation aggregation = new Aggregation(
                 function.info(),
-                mode.returnType(((AggregationFunction) this.functions.getQualified(ident))),
+                mode.returnType(((AggregationFunction) this.functions.getQualified(function.info().ident()))),
                 aggregationInputs
             );
             aggregations.add(aggregation);

@@ -144,10 +144,15 @@ public class ExpressionAnalyzer {
         return impl.info();
     }
 
-    private FunctionInfo getBuiltinOrUdfFunctionInfo(String name, List<DataType> argumentTypes) {
-        FunctionImplementation impl = functions.getBuiltin(name, argumentTypes);
-        if (impl == null) {
-            impl = functions.getUserDefined(name, argumentTypes);
+    private FunctionInfo getBuiltinOrUdfFunctionInfo(@Nullable String schema, String name, List<DataType> argumentTypes) {
+        FunctionImplementation impl;
+        if (schema == null) {
+            impl = functions.getBuiltin(name, argumentTypes);
+            if (impl == null) {
+                impl = functions.getUserDefined(sessionContext.defaultSchema(), name, argumentTypes);
+            }
+        } else {
+            impl = functions.getUserDefined(schema, name, argumentTypes);
         }
         return impl.info();
     }
@@ -162,6 +167,16 @@ public class ExpressionAnalyzer {
             arguments.add(argSymbol);
         }
 
+        List<String> parts = node.getName().getParts();
+        String schema = null;
+        String name;
+        if (parts.size() == 1) {
+            name = parts.get(0);
+        } else {
+            schema = parts.get(0);
+            name = parts.get(1);
+        }
+
         FunctionInfo functionInfo;
         if (node.isDistinct()) {
             if (argumentTypes.size() > 1) {
@@ -170,23 +185,23 @@ public class ExpressionAnalyzer {
             }
             // define the inner function. use the arguments/argumentTypes from above
             Symbol innerFunction = context.allocateFunction(
-                getBuiltinOrUdfFunctionInfo(CollectSetAggregation.NAME, argumentTypes),
+                getBuiltinOrUdfFunctionInfo(schema, CollectSetAggregation.NAME, argumentTypes),
                 arguments
             );
 
             // define the outer function which contains the inner function as argument.
-            String nodeName = "collection_" + node.getName().toString();
+            String nodeName = "collection_" + name;
             List<Symbol> outerArguments =  Arrays.asList(innerFunction); // needs to be mutable
             List<DataType> outerArgumentTypes = ImmutableList.of(new SetType(argumentTypes.get(0))); // can be immutable
             try {
                 functionInfo = getBuiltinFunctionInfo(nodeName, outerArgumentTypes);
             } catch (UnsupportedOperationException ex) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "unknown function %s(DISTINCT %s)", node.getName(), argumentTypes.get(0)), ex);
+                    "unknown function %s(DISTINCT %s)", name, argumentTypes.get(0)), ex);
             }
             arguments = outerArguments;
         } else {
-            functionInfo = getBuiltinOrUdfFunctionInfo(node.getName().toString(), argumentTypes);
+            functionInfo = getBuiltinOrUdfFunctionInfo(schema, name, argumentTypes);
         }
         return context.allocateFunction(functionInfo, arguments);
     }

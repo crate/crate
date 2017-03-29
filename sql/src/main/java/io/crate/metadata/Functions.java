@@ -31,23 +31,22 @@ import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class Functions {
 
     private final Map<String, FunctionResolver> functionResolvers;
-    private final AtomicReference< Map<String, FunctionResolver>> udfFunctionResolvers = new AtomicReference<>();
+    private final Map<String, Map<String, FunctionResolver>> udfFunctionResolvers = new ConcurrentHashMap<>();
 
     @Inject
     public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
                      Map<String, FunctionResolver> functionResolvers) {
         this.functionResolvers = Maps.newHashMap(functionResolvers);
         this.functionResolvers.putAll(generateFunctionResolvers(functionImplementations));
-        udfFunctionResolvers.set(new HashMap<>());
     }
 
-    public Map<String, FunctionResolver> generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
+    private Map<String, FunctionResolver> generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
         Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> signatures = getSignatures(functionImplementations);
         return signatures.keys().stream()
             .distinct()
@@ -63,8 +62,12 @@ public class Functions {
         return signatureMap;
     }
 
-    public void registerSchemaFunctionResolvers(Map<String, FunctionResolver> resolvers) {
-        udfFunctionResolvers.set(resolvers);
+    public void registerSchemaFunctionResolvers(String schema, Map<FunctionIdent, FunctionImplementation> functions) {
+        udfFunctionResolvers.put(schema, generateFunctionResolvers(functions));
+    }
+
+    public void deregisterSchemaFunctions() {
+        udfFunctionResolvers.clear();
     }
 
     private static FunctionImplementation resolveFunctionForArgumentTypes(List<DataType> types, @Nullable FunctionResolver resolver) {
@@ -98,9 +101,12 @@ public class Functions {
      * @return a function implementation.
      * @throws UnsupportedOperationException if no implementation is found.
      */
-    public FunctionImplementation getUserDefined(String name, List<DataType> argumentsTypes) throws UnsupportedOperationException {
-        FunctionResolver dynamicResolver = udfFunctionResolvers.get().get(name);
-        FunctionImplementation impl = resolveFunctionForArgumentTypes(argumentsTypes, dynamicResolver);
+    public FunctionImplementation getUserDefined(String schema, String name, List<DataType> argumentsTypes) throws UnsupportedOperationException {
+        Map<String, FunctionResolver> functionResolvers = udfFunctionResolvers.get(schema);
+        if (functionResolvers == null) {
+            throw createUnknownFunctionException(name, argumentsTypes);
+        }
+        FunctionImplementation impl = resolveFunctionForArgumentTypes(argumentsTypes, functionResolvers.get(name));
         if (impl == null) {
             throw createUnknownFunctionException(name, argumentsTypes);
         }
@@ -118,7 +124,10 @@ public class Functions {
     public FunctionImplementation getQualified(FunctionIdent ident) throws UnsupportedOperationException {
         FunctionImplementation impl = getBuiltin(ident.name(), ident.argumentTypes());
         if (impl == null) {
-            impl = getUserDefined(ident.name(), ident.argumentTypes());
+            if (ident.schema() == null) {
+                throw createUnknownFunctionException(ident.name(), ident.argumentTypes());
+            }
+            impl = getUserDefined(ident.schema(), ident.name(), ident.argumentTypes());
         }
         return impl;
     }

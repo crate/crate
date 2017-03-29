@@ -49,6 +49,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.crate.operation.udf.UserDefinedFunctionsMetaData.PROTO;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.toList;
 
 @Singleton
 public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserDefinedFunctionService> implements ClusterStateListener {
@@ -151,6 +153,7 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
                     MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
                     UserDefinedFunctionsMetaData functions = removeFunction(
                         metaData.custom(UserDefinedFunctionsMetaData.TYPE),
+                        request.schema,
                         request.name,
                         request.argumentTypes,
                         request.ifExists
@@ -181,7 +184,7 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
 
         // create a new instance of the metadata, to guarantee the cluster changed action.
         UserDefinedFunctionsMetaData newMetaData = UserDefinedFunctionsMetaData.newInstance(oldMetaData);
-        if (oldMetaData.contains(functionMetaData.name(), functionMetaData.argumentTypes())) {
+        if (oldMetaData.contains(functionMetaData.schema(), functionMetaData.name(), functionMetaData.argumentTypes())) {
             if (!replace) {
                 throw new UserDefinedFunctionAlreadyExistsException(functionMetaData);
             }
@@ -196,17 +199,18 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
 
     @VisibleForTesting
     UserDefinedFunctionsMetaData removeFunction(@Nullable UserDefinedFunctionsMetaData functions,
+                                                String schema,
                                                 String name,
                                                 List<DataType> argumentDataTypes,
                                                 boolean ifExists) {
-        if (!ifExists && (functions == null || !functions.contains(name, argumentDataTypes))) {
-            throw new UserDefinedFunctionUnknownException(name, argumentDataTypes);
+        if (!ifExists && (functions == null || !functions.contains(schema, name, argumentDataTypes))) {
+            throw new UserDefinedFunctionUnknownException(schema, name, argumentDataTypes);
         } else if (functions == null) {
             return UserDefinedFunctionsMetaData.of();
         } else {
             // create a new instance of the metadata, to guarantee the cluster changed action.
             UserDefinedFunctionsMetaData newMetaData = UserDefinedFunctionsMetaData.newInstance(functions);
-            newMetaData.remove(name, argumentDataTypes);
+            newMetaData.remove(schema, name, argumentDataTypes);
             return newMetaData;
         }
     }
@@ -222,16 +226,23 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
         if ((oldMetaData == null && newMetaData == null) || (oldMetaData != null && oldMetaData.equals(newMetaData))) {
             return;
         }
-        functions.registerSchemaFunctionResolvers(
-            functions.generateFunctionResolvers(createFunctionImplementations(newMetaData, logger))
-        );
+
+        functions.deregisterSchemaFunctions();
+
+        // group by schema
+        Map<String, List<UserDefinedFunctionMetaData>> schemaMetadataFunctions = newMetaData.functionsMetaData().stream()
+            .collect(groupingBy(UserDefinedFunctionMetaData::schema, toList()));
+
+        for (Map.Entry<String, List<UserDefinedFunctionMetaData>> entry : schemaMetadataFunctions.entrySet()) {
+            functions.registerSchemaFunctionResolvers(entry.getKey(), toFunctionImpl(entry.getValue(), logger));
+        }
     }
 
     @VisibleForTesting
-    Map<FunctionIdent, FunctionImplementation> createFunctionImplementations(UserDefinedFunctionsMetaData metaData,
-                                                                                     ESLogger logger) {
+    Map<FunctionIdent, FunctionImplementation> toFunctionImpl(List<UserDefinedFunctionMetaData> functionsMetadata,
+                                                              ESLogger logger) {
         Map<FunctionIdent, FunctionImplementation> udfFunctions = new HashMap<>();
-        for (UserDefinedFunctionMetaData function : metaData.functionsMetaData()) {
+        for (UserDefinedFunctionMetaData function : functionsMetadata) {
             try {
                 UDFLanguage lang = getLanguage(function.language());
                 FunctionImplementation impl = lang.createFunctionImplementation(function);
@@ -262,12 +273,14 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
 
     static class DropUserDefinedFunctionRequest extends ClusterStateUpdateRequest<DropUserDefinedFunctionRequest> {
 
+        final String schema;
         final String cause;
         final String name;
         final List<DataType> argumentTypes;
         final boolean ifExists;
 
-        DropUserDefinedFunctionRequest(String cause, String name, List<DataType> argumentTypes, boolean ifExists) {
+        DropUserDefinedFunctionRequest(String cause, String schema, String name, List<DataType> argumentTypes, boolean ifExists) {
+            this.schema = schema;
             this.cause = cause;
             this.name = name;
             this.argumentTypes = argumentTypes;

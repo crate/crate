@@ -31,6 +31,7 @@ import org.elasticsearch.common.Nullable;
 import javax.annotation.Nonnull;
 
 public class RoutineInfo {
+    private final String schema;
     private final String name;
     private final String type;
     private final String body;
@@ -40,6 +41,7 @@ public class RoutineInfo {
 
     public RoutineInfo(String name,
                        String type,
+                       @Nullable String schema,
                        @Nullable String definition,
                        @Nullable String body,
                        @Nullable String dataType,
@@ -47,6 +49,7 @@ public class RoutineInfo {
         assert name != null : "name must not be null";
         assert type != null : "type must not be null";
         this.name = name;
+        this.schema = schema;
         this.type = type;
         this.body = body;
         this.dataType = dataType;
@@ -59,6 +62,7 @@ public class RoutineInfo {
         assert type != null : "type must not be null";
         this.name = name;
         this.type = type;
+        this.schema = null;
         this.body = null;
         this.dataType = null;
         this.definition = null;
@@ -77,6 +81,10 @@ public class RoutineInfo {
 
     public String body() {
         return body;
+    }
+
+    public String schema() {
+        return schema;
     }
 
     public String definition() {

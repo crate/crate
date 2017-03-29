@@ -406,7 +406,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         }, 20L, TimeUnit.SECONDS);
     }
 
-    public void waitForFunctionCreatedOnAll(String name, List<DataType> types) throws Exception {
+    public void waitForFunctionCreatedOnAll(String schema, String name, List<DataType> types) throws Exception {
         awaitBusy(input -> {
             int count = 0;
             int expected = 0;
@@ -414,7 +414,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             for (Functions function : functions) {
                 expected += 1;
                 try {
-                    function.getUserDefined(name, types);
+                    function.getUserDefined(schema, name, types);
                     count += 1;
                 } catch (UnsupportedOperationException e) {
                     // pass
@@ -424,13 +424,13 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         });
     }
 
-    public void waitForFunctionDeleted(String name, List<DataType> types) throws Exception {
+    public void waitForFunctionDeleted(String schema, String name, List<DataType> types) throws Exception {
         awaitBusy(input -> {
             int count = 0;
             Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
             for (Functions function : functions) {
                 try {
-                    function.getUserDefined(name, types);
+                    function.getUserDefined(schema, name, types);
                     count += 1;
                 } catch (UnsupportedOperationException e) {
                     // pass

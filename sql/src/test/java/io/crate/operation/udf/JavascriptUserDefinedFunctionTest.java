@@ -80,6 +80,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     private void registerUserDefinedFunction(String name, DataType returnType, List<DataType> types, String definition) throws ScriptException {
         UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
+            Schemas.DEFAULT_SCHEMA_NAME,
             name,
             types.stream().map(FunctionArgumentDefinition::of).collect(Collectors.toList()),
             returnType,
@@ -87,8 +88,8 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
             definition
         );
 
-        functionImplementations.put(new FunctionIdent(name, types), udfService.getLanguage(JS).createFunctionImplementation(udfMeta));
-        functions.registerSchemaFunctionResolvers(functions.generateFunctionResolvers(functionImplementations));
+        functionImplementations.put(new FunctionIdent(Schemas.DEFAULT_SCHEMA_NAME, name, types), udfService.getLanguage(JS).createFunctionImplementation(udfMeta));
+        functions.registerSchemaFunctionResolvers(Schemas.DEFAULT_SCHEMA_NAME, functionImplementations);
     }
 
     @After

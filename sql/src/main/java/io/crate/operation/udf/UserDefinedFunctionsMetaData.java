@@ -72,30 +72,30 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
 
     public void replace(UserDefinedFunctionMetaData function) {
         for (int i = 0; i < functionsMetaData.size(); i++) {
-            if (functionsMetaData.get(i).sameSignature(function.name(), function.argumentTypes())) {
+            if (functionsMetaData.get(i).sameSignature(function.schema(), function.name(), function.argumentTypes())) {
                 functionsMetaData.set(i, function);
             }
         }
     }
 
-    public boolean contains(String name, List<DataType> types) {
+    public boolean contains(String schema, String name, List<DataType> types) {
         for (UserDefinedFunctionMetaData function : functionsMetaData) {
-            if (function.sameSignature(name, types)) {
+            if (function.sameSignature(schema, name, types)) {
                 return true;
             }
         }
         return false;
     }
 
-    public void remove(String name, List<DataType> types) {
+    public void remove(String schema, String name, List<DataType> types) {
         for (ListIterator<UserDefinedFunctionMetaData> iter = functionsMetaData.listIterator(); iter.hasNext(); ) {
-            if (iter.next().sameSignature(name, types)) {
+            if (iter.next().sameSignature(schema, name, types)) {
                 iter.remove();
             }
         }
     }
 
-    public Collection<UserDefinedFunctionMetaData> functionsMetaData() {
+    public List<UserDefinedFunctionMetaData> functionsMetaData() {
         return functionsMetaData;
     }
 

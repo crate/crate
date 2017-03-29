@@ -40,17 +40,20 @@ import static java.util.stream.Collectors.toList;
 public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
 
     private String name;
+    private String schema;
     private List<FunctionArgumentDefinition> arguments;
     DataType returnType;
     private List<DataType> argumentTypes;
     String language;
     String definition;
 
-    public UserDefinedFunctionMetaData(String name,
+    public UserDefinedFunctionMetaData(String schema,
+                                       String name,
                                        List<FunctionArgumentDefinition> arguments,
                                        DataType returnType,
                                        String language,
                                        String definition) {
+        this.schema = schema;
         this.name = name;
         this.arguments = arguments;
         this.returnType = returnType;
@@ -66,6 +69,10 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         UserDefinedFunctionMetaData udfMetaData = new UserDefinedFunctionMetaData();
         udfMetaData.readFrom(in);
         return udfMetaData;
+    }
+
+    public String schema() {
+        return schema;
     }
 
     public String name() {
@@ -92,12 +99,13 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         return argumentTypes;
     }
 
-    boolean sameSignature(String name, List<DataType> types) {
-        return this.name().equals(name) && this.argumentTypes().equals(types);
+    boolean sameSignature(String schema, String name, List<DataType> types) {
+        return this.schema().equals(schema) && this.name().equals(name) && this.argumentTypes().equals(types);
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
+        schema = in.readString();
         name = in.readString();
         int numArguments = in.readVInt();
         arguments = new ArrayList<>(numArguments);
@@ -112,6 +120,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(schema);
         out.writeString(name);
         out.writeVInt(arguments.size());
         for (FunctionArgumentDefinition argument : arguments) {
@@ -125,6 +134,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
+        builder.field("schema", schema);
         builder.field("name", name);
         builder.startArray("arguments");
         for (FunctionArgumentDefinition argument : arguments) {
@@ -141,6 +151,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
 
     static UserDefinedFunctionMetaData fromXContent(XContentParser parser) throws IOException {
         XContentParser.Token token;
+        String schema = null;
         String name = null;
         List<FunctionArgumentDefinition> arguments = new ArrayList<>();
         DataType returnType = null;
@@ -148,7 +159,9 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         String definition = null;
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
-                if ("name".equals(parser.currentName())) {
+                if ("schema".equals(parser.currentName())) {
+                    schema = parseStringField(parser);
+                } else if ("name".equals(parser.currentName())) {
                     name = parseStringField(parser);
                 } else if ("language".equals(parser.currentName())) {
                     language = parseStringField(parser);
@@ -170,7 +183,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
                 throw new UnhandledServerException("failed to parse function");
             }
         }
-        return new UserDefinedFunctionMetaData(name, arguments, returnType, language, definition);
+        return new UserDefinedFunctionMetaData(schema, name, arguments, returnType, language, definition);
     }
 
     private static String parseStringField(XContentParser parser) throws IOException {
@@ -187,7 +200,8 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         if (o == null || getClass() != o.getClass()) return false;
 
         UserDefinedFunctionMetaData that = (UserDefinedFunctionMetaData) o;
-        return Objects.equals(name, that.name) &&
+        return Objects.equals(schema, that.schema) &&
+            Objects.equals(name, that.name) &&
             Objects.equals(arguments, that.arguments) &&
             Objects.equals(returnType, that.returnType) &&
             Objects.equals(language, that.language) &&
@@ -196,7 +210,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, arguments, returnType, definition, language);
+        return Objects.hash(schema, name, arguments, returnType, definition, language);
     }
 
     public static class DataTypeXContent {
@@ -236,7 +250,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         }
     }
 
-    private static List<DataType> argumentTypesFrom(List<FunctionArgumentDefinition> arguments) {
+    static List<DataType> argumentTypesFrom(List<FunctionArgumentDefinition> arguments) {
         return arguments.stream().map(FunctionArgumentDefinition::type).collect(toList());
     }
 
