@@ -32,7 +32,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.shard.RecoveryShardReferenceResolver;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.ProjectingBatchConsumer;
@@ -73,7 +72,7 @@ public abstract class ShardCollectorProvider {
             functions,
             RowGranularity.SHARD,
             ReplaceMode.COPY,
-            new RecoveryShardReferenceResolver(shardResolver, indexShard),
+            shardResolver,
             null
         );
         projectorFactory = new ProjectionToProjectorVisitor(

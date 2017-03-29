@@ -44,7 +44,7 @@ public class BlobShardReferenceResolver {
     public static ReferenceResolver<ReferenceImplementation<?>> create(BlobShard blobShard) {
         IndexShard indexShard = blobShard.indexShard();
         ShardId shardId = indexShard.shardId();
-        HashMap<ReferenceIdent, ReferenceImplementation> implementations = new HashMap<>(14);
+        HashMap<ReferenceIdent, ReferenceImplementation> implementations = new HashMap<>(15);
         implementations.put(SysShardsTableInfo.ReferenceIdents.ID, new LiteralReferenceImplementation<>(shardId.id()));
         implementations.put(SysShardsTableInfo.ReferenceIdents.NUM_DOCS, new BlobShardNumDocsExpression(blobShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.PRIMARY, new ShardPrimaryExpression(indexShard));
@@ -64,6 +64,7 @@ public class BlobShardReferenceResolver {
         implementations.put(SysShardsTableInfo.ReferenceIdents.BLOB_PATH, new BlobShardBlobPathExpression(blobShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.MIN_LUCENE_VERSION,
             new ShardMinLuceneVersionExpression(indexShard));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.RECOVERY, new ShardRecoveryExpression(indexShard));
         return new MapBackedRefResolver(implementations);
     }
 }

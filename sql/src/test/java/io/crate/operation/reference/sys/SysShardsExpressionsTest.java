@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
-import io.crate.metadata.shard.RecoveryShardReferenceResolver;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
@@ -82,12 +81,11 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
             clusterService,
             new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()))
         );
-        ReferenceResolver<ReferenceImplementation<?>> shardRefResolver = ShardReferenceResolver.create(
+        resolver = ShardReferenceResolver.create(
             clusterService,
             schemas,
             indexShard
         );
-        resolver = new RecoveryShardReferenceResolver(shardRefResolver, indexShard);
     }
 
     private IndexShard mockIndexShard() {
