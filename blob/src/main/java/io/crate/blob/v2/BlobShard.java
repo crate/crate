@@ -46,13 +46,18 @@ public class BlobShard {
     private final BlobContainer blobContainer;
     private final IndexShard indexShard;
     private final ESLogger logger;
+    private final Path blobDir;
 
     public BlobShard(IndexShard indexShard, @Nullable Path globalBlobPath) {
         this.indexShard = indexShard;
         logger = Loggers.getLogger(BlobShard.class, indexShard.indexSettings(), indexShard.shardId());
-        Path blobDir = getBlobDataDir(indexShard.indexSettings(), indexShard.shardPath(), globalBlobPath);
+        blobDir = getBlobDataDir(indexShard.indexSettings(), indexShard.shardPath(), globalBlobPath);
         logger.info("creating BlobContainer at {}", blobDir);
         this.blobContainer = new BlobContainer(blobDir);
+    }
+
+    public Path getBlobDir() {
+        return blobDir;
     }
 
     public IndexShard indexShard() {

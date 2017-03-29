@@ -15,3 +15,5 @@ the appropriate section of the docs.
 Changelog
 =========
 
+ - Fixed issue which prevents blob directories from being removed after a
+   ``drop blob table`` command when a custom blob location is configured.
