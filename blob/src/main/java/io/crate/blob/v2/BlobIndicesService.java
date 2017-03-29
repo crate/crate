@@ -98,7 +98,7 @@ public class BlobIndicesService extends AbstractComponent {
         public void afterIndexCreated(IndexService indexService) {
             String indexName = indexService.index().getName();
             if (isBlobIndex(indexName)) {
-                BlobIndex oldBlobIndex = indices.put(indexName, new BlobIndex(globalBlobPath));
+                BlobIndex oldBlobIndex = indices.put(indexName, new BlobIndex(logger, globalBlobPath));
                 assert oldBlobIndex == null : "There must not be an index present if a new index is created";
             }
         }
