@@ -35,7 +35,6 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -46,12 +45,8 @@ import static org.hamcrest.CoreMatchers.is;
 public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegrationTest {
 
     private Object[][] rows = new Object[][]{
-        new Object[]{1L, "Foo", new HashMap<String, Long>() {{
-            put("foo", 2L);
-        }}},
-        new Object[]{3L, "bar", new HashMap<String, Long>() {{
-            put("foo", 2L);
-        }}}
+        new Object[]{1L, "Foo"},
+        new Object[]{3L, "bar"}
     };
 
     @Override
@@ -67,18 +62,17 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         // records reside on two different nodes configured in the test setup.
         // So then it would be possible to test that a function is created and
         // applied on all of nodes.
-        execute("create table test (id long, str string, obj object) " +
-            "clustered by(id) into 2 shards");
-        execute("insert into test (id, str, obj) values (?, ?, ?)", rows);
+        execute("create table test (id long, str string) clustered by(id) into 2 shards");
+        execute("insert into test (id, str) values (?, ?)", rows);
         refresh();
     }
 
     @Test
     public void testCreateOverloadedFunction() throws Exception {
         try {
-            execute("create function foo(object)" +
+            execute("create function foo(long)" +
                 " returns string language javascript as 'function foo(x) { return \"1\"; }'");
-            waitForFunctionCreatedOnAll("foo", ImmutableList.of(DataTypes.OBJECT));
+            waitForFunctionCreatedOnAll("foo", ImmutableList.of(DataTypes.LONG));
 
             execute("create function foo(string)" +
                 " returns string language javascript as 'function foo(x) { return x; }'");
@@ -89,14 +83,15 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
             assertThat(response.rows()[0][0], is("Foo"));
             assertThat(response.rows()[1][0], is("bar"));
         } finally {
-            dropFunction("foo", ImmutableList.of(DataTypes.OBJECT));
+            dropFunction("foo", ImmutableList.of(DataTypes.LONG));
             dropFunction("foo", ImmutableList.of(DataTypes.STRING));
         }
     }
 
     @Test
     public void testDropFunction() throws Exception {
-        execute("create function custom(string) returns string language javascript as 'function custom(x) { return x; }'");
+        execute("create function custom(string)" +
+            " returns string language javascript as 'function custom(x) { return x; }'");
         waitForFunctionCreatedOnAll("custom", ImmutableList.of(DataTypes.STRING));
 
         dropFunction("custom", ImmutableList.of(DataTypes.STRING));

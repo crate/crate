@@ -27,6 +27,7 @@
 package io.crate.operation.udf;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.analyze.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
@@ -80,9 +81,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     public void testObjectReturnType() {
         registerUserDefinedFunction("f", DataTypes.OBJECT, ImmutableList.of(),
             "function f() { return JSON.parse('{\"foo\": \"bar\"}'); }");
-        assertEvaluate("f()", new HashMap<String, String>() {{
-            put("foo", "bar");
-        }});
+        assertEvaluate("f()", ImmutableMap.of("foo", "bar"));
     }
 
     @Test
@@ -205,17 +204,12 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     @Test
     public void testEvaluateBytesRefInObjectIsConvertedToString() throws Exception {
         registerUserDefinedFunction("f", DataTypes.OBJECT, ImmutableList.of(DataTypes.OBJECT),
-            "function f(o) { return {'foo' :o['outer']['foo'][0], 'bar': o['outer']['bar']}; }");
-        Map<String, Object> outer = new HashMap<>();
+            "function f(o) { return {'key1' : o['inner']['key1'][0], 'key2': o['inner']['key2']}; }");
+        // the map will be modified
         Map<String, Object> inner = new HashMap<>();
-        inner.put("foo", new Object[]{new BytesRef("bar")});
-        inner.put("bar", new BytesRef("foo"));
-        outer.put("outer", inner);
-
-        Map<String, Object> expected = new HashMap<>();
-        expected.put("bar", "foo");
-        expected.put("foo", "bar");
-        assertEvaluate("f(obj)", expected, Literal.of(outer));
+        inner.put("key1", new Object[]{new BytesRef("bar")});
+        inner.put("key2", new BytesRef("foo"));
+        assertEvaluate("f(obj)", ImmutableMap.of("key1", "bar", "key2", "foo"), Literal.of(ImmutableMap.of("inner", inner)));
     }
 
     @Test
