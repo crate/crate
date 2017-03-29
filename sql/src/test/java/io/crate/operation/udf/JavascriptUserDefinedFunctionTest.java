@@ -202,6 +202,19 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     }
 
     @Test
+    public void testJavaScriptFunctionReturnsUndefined() throws Exception {
+        registerUserDefinedFunction("f", DataTypes.STRING, ImmutableList.of(DataTypes.STRING),
+            "function f(name) { }");
+        assertEvaluate("f(name)", null, Literal.of("bar"));
+    }
+
+    @Test
+    public void testJavaScriptFunctionReturnsNull() throws Exception {
+        registerUserDefinedFunction("f", DataTypes.STRING, ImmutableList.of(), "function f() { return null; }");
+        assertEvaluate("f()", null);
+    }
+
+    @Test
     public void testEvaluateBytesRefInObjectIsConvertedToString() throws Exception {
         registerUserDefinedFunction("f", DataTypes.OBJECT, ImmutableList.of(DataTypes.OBJECT),
             "function f(o) { return {'key1' : o['inner']['key1'][0], 'key2': o['inner']['key2']}; }");

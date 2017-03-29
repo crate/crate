@@ -35,6 +35,7 @@ import io.crate.types.*;
 import jdk.nashorn.api.scripting.NashornScriptEngineFactory;
 import jdk.nashorn.api.scripting.ScriptObjectMirror;
 import jdk.nashorn.internal.runtime.ECMAException;
+import jdk.nashorn.internal.runtime.Undefined;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
@@ -129,9 +130,12 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
         }
 
         if (result instanceof ScriptObjectMirror) {
-            result = parseScriptObject((ScriptObjectMirror) result);
+            return returnType.value(parseScriptObject((ScriptObjectMirror) result));
+        } else if (result instanceof Undefined) {
+            return null;
+        } else {
+            return returnType.value(result);
         }
-        return returnType.value(result);
     }
 
     private static Object processBytesRefInputIfNeeded(Object value) {
