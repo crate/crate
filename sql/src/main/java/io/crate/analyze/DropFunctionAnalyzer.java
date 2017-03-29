@@ -26,7 +26,6 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.sql.tree.DropFunction;
 
 import java.util.List;
@@ -35,13 +34,12 @@ import static java.util.stream.Collectors.toList;
 
 class DropFunctionAnalyzer {
 
-    public DropFunctionAnalyzedStatement analyze(DropFunction node) {
+    public DropFunctionAnalyzedStatement analyze(DropFunction node, Analysis context) {
         List<String> parts = node.name().getParts();
-        if (parts.size() > 1) {
-            throw new UnsupportedFeatureException("The schema name in user defined functions is not supported.");
-        }
+
         return new DropFunctionAnalyzedStatement(
-            parts.get(0),
+            CreateFunctionAnalyzer.resolveSchemaName(parts, context.sessionContext().defaultSchema()),
+            CreateFunctionAnalyzer.resolveFunctionName(parts),
             node.exists(),
             node.arguments().stream().map(i -> DataTypeAnalyzer.convert(i.type())).collect(toList())
         );
