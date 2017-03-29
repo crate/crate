@@ -28,8 +28,8 @@ import io.crate.data.BatchConsumer;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.metadata.AbstractReferenceResolver;
 import io.crate.metadata.Functions;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.shard.RecoveryShardReferenceResolver;
@@ -38,6 +38,7 @@ import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.ProjectingBatchConsumer;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.Projections;
@@ -59,7 +60,7 @@ public abstract class ShardCollectorProvider {
     final EvaluatingNormalizer shardNormalizer;
 
     ShardCollectorProvider(ClusterService clusterService,
-                           AbstractReferenceResolver shardResolver,
+                           ReferenceResolver<ReferenceImplementation<?>> shardResolver,
                            Functions functions,
                            IndexNameExpressionResolver indexNameExpressionResolver,
                            ThreadPool threadPool,

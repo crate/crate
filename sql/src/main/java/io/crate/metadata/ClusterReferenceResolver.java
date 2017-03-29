@@ -21,14 +21,22 @@
 
 package io.crate.metadata;
 
+import io.crate.operation.reference.ReferenceResolver;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.Map;
 
-public class ClusterReferenceResolver extends AbstractReferenceResolver {
+public class ClusterReferenceResolver implements ReferenceResolver<ReferenceImplementation<?>> {
+
+    private final Map<ReferenceIdent, ReferenceImplementation> implementations;
 
     @Inject
     public ClusterReferenceResolver(Map<ReferenceIdent, ReferenceImplementation> implementations) {
-        this.implementations.putAll(implementations);
+        this.implementations = implementations;
+    }
+
+    @Override
+    public ReferenceImplementation<?> getImplementation(Reference ref) {
+        return MapBackedRefResolver.lookupMapWithChildTraversal(implementations, ref.ident());
     }
 }

@@ -23,6 +23,8 @@ package io.crate.metadata;
 
 import io.crate.data.Input;
 
+import java.util.List;
+
 public interface ReferenceImplementation<T> extends Input<T> {
 
     /**
@@ -34,5 +36,16 @@ public interface ReferenceImplementation<T> extends Input<T> {
      */
     default ReferenceImplementation getChildImplementation(String name) {
         return null;
+    }
+
+
+    static ReferenceImplementation<?> findInChildImplementations(ReferenceImplementation<?> impl, List<String> path) {
+        for (int i = 0; i < path.size(); i++) {
+            impl = impl.getChildImplementation(path.get(i));
+            if (impl == null) {
+                return null;
+            }
+        }
+        return impl;
     }
 }

@@ -71,7 +71,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         TransportActionProvider transportActionProvider,
                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                         IndexShard indexShard) {
-        super(clusterService, new ShardReferenceResolver(clusterService, schemas, indexShard), functions,
+        super(clusterService, ShardReferenceResolver.create(clusterService, schemas, indexShard), functions,
             indexNameExpressionResolver, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool,
             indexShard);
         this.luceneQueryBuilder = luceneQueryBuilder;

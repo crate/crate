@@ -60,11 +60,9 @@ import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.refInfo;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @SuppressWarnings("ConstantConditions")
 public class SysShardsExpressionsTest extends CrateUnitTest {
@@ -84,7 +82,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
             clusterService,
             new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()))
         );
-        ShardReferenceResolver shardRefResolver = new ShardReferenceResolver(
+        ReferenceResolver<ReferenceImplementation<?>> shardRefResolver = ShardReferenceResolver.create(
             clusterService,
             schemas,
             indexShard
