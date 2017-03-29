@@ -22,23 +22,13 @@
 
 package io.crate.operation;
 
-import com.google.common.base.Function;
 import io.crate.data.Input;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
-import javax.annotation.Nullable;
+import java.util.function.Function;
 
 public class Inputs {
 
-    public static final Function<Input<?>, BytesRef> TO_BYTES_REF = new Function<Input<?>, BytesRef>() {
-        @Nullable
-        @Override
-        public BytesRef apply(@Nullable Input<?> input) {
-            if (input == null) {
-                return null;
-            }
-            return BytesRefs.toBytesRef(input.value());
-        }
-    };
+    public static final Function<Input<?>, BytesRef> TO_BYTES_REF = input -> BytesRefs.toBytesRef(input.value());
 }

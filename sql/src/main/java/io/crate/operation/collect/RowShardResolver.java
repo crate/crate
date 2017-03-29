@@ -25,10 +25,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
-import io.crate.data.Input;
 import io.crate.operation.InputFactory;
 import io.crate.operation.Inputs;
 import org.apache.lucene.util.BytesRef;
@@ -38,11 +38,12 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 @NotThreadSafe
 public class RowShardResolver {
 
-    private final com.google.common.base.Function<List<BytesRef>, String> idFunction;
+    private final Function<List<BytesRef>, String> idFunction;
     private final List<Input<?>> primaryKeyInputs;
     private final Input<?> routingInput;
     private final Iterable<CollectExpression<Row, ?>> expressions;
@@ -84,11 +85,11 @@ public class RowShardResolver {
         }
     }
 
-    private List<BytesRef> pkValues(List<Input<?>> primaryKeyInputs) {
+    private static List<BytesRef> pkValues(List<Input<?>> primaryKeyInputs) {
         if (primaryKeyInputs.isEmpty()) {
             return ImmutableList.of(); // avoid object creation in Lists.transform if the list is empty
         }
-        return Lists.transform(primaryKeyInputs, Inputs.TO_BYTES_REF);
+        return Lists.transform(primaryKeyInputs, Inputs.TO_BYTES_REF::apply);
     }
 
     /**
