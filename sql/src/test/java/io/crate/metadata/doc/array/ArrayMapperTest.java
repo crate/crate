@@ -42,6 +42,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.mapper.*;
 import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.TermsQueryBuilder;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -49,8 +50,8 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -434,8 +435,8 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
         SearchResponse searchResponse = client().prepareSearch(INDEX).setTypes("type")
             .setFetchSource(true).addStoredField("array_field")
+            .setQuery(new TermsQueryBuilder("_id", new int[]{123}))
             .execute().actionGet();
-            // TODO: .setQuery(new TermsQueryBuilder("_id", 123)).execute().actionGet();
         assertThat(searchResponse.getHits().getTotalHits(), is(1L));
         assertThat(Joiner.on(',').withKeyValueSeparator(":").join(
             searchResponse.getHits().getAt(0).getSource()),

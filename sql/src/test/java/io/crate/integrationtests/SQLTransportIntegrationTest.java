@@ -434,7 +434,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
         for (IndexMetaData indexMetaData : metaData) {
-            builder.startObject(indexMetaData.getIndex().getName()); // TODO:, XContentBuilder.FieldCaseConversion.NONE);
+            builder.startObject(indexMetaData.getIndex().getName());
             builder.startObject("settings");
             Settings settings = indexMetaData.getSettings();
             for (Map.Entry<String, String> entry : settings.getAsMap().entrySet()) {

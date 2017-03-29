@@ -116,7 +116,6 @@ public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPl
     @Override
     public List<Class<? extends RestHandler>> getRestHandlers() {
         List<Class<? extends RestHandler>> restHandlers = new ArrayList<>();
-        // FIXME: add resthandlers from the pluginLoader
         restHandlers.addAll(sqlPlugin.getRestHandlers());
         return restHandlers;
     }
@@ -124,14 +123,12 @@ public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPl
     @Override
     public Map<String, Mapper.TypeParser> getMappers() {
         Map<String, Mapper.TypeParser> mappers = new HashMap<>();
-        // FIXME: add mappers from the pluginLoader
         mappers.putAll(sqlPlugin.getMappers());
         return mappers;
     }
 
     @Override
     public Collection<AllocationDecider> createAllocationDeciders(Settings settings, ClusterSettings clusterSettings) {
-        // FIXME: add allocationDeciders from the pluginLoader
         return sqlPlugin.createAllocationDeciders(settings, clusterSettings);
     }
 

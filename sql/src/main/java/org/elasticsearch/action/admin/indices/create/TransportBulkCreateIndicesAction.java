@@ -291,8 +291,6 @@ public class TransportBulkCreateIndicesAction
 
     private void createIndices(final BulkCreateIndicesRequest request,
                                final ActionListener<ClusterStateUpdateResponse> listener) {
-
-        // TODO: wrap listener to wait for active shards? See MetaDataCreateIndexService.createIndex
         clusterService.submitStateUpdateTask(
             "bulk-create-indices",
             request,
@@ -371,7 +369,6 @@ public class TransportBulkCreateIndicesAction
             indexSettingsBuilder.put(IndexMetaData.SETTING_CREATION_DATE, new DateTime(DateTimeZone.UTC).getMillis());
         }
 
-        // TODO: needed? indexSettingsBuilder.put(IndexMetaData.SETTING_INDEX_PROVIDED_NAME, request.getProvidedName());
         indexSettingsBuilder.put(IndexMetaData.SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
 
         return indexSettingsBuilder.build();
