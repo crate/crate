@@ -36,7 +36,6 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -93,15 +92,15 @@ public class BlobSslEnabledITest extends BlobHttpIntegrationTest {
 
         CloseableHttpClient client = HttpClients.custom().disableRedirectHandling().build();
         List<String> redirectLocations = getRedirectLocations(client, blobUri, address);
-        InetSocketAddress correctAddress;
+        String redirectUri;
         if (redirectLocations.isEmpty()) {
-            correctAddress = address;
+            redirectUri = String.format(Locale.ENGLISH,
+                "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), blobUri);
         } else {
-            correctAddress = address2;
+            redirectUri = redirectLocations.get(0).replace("https", "http");
         }
 
-        HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH,
-            "http://%s:%s/_blobs/%s", correctAddress.getHostName(), correctAddress.getPort(), blobUri));
+        HttpGet httpGet = new HttpGet(redirectUri);
 
         CloseableHttpResponse response = client.execute(httpGet);
         assertEquals(1500, response.getEntity().getContentLength());
