@@ -42,18 +42,20 @@ import static org.hamcrest.Matchers.*;
 
 public class UserDefinedFunctionServiceTest extends CrateUnitTest {
 
+
     private final UserDefinedFunctionMetaData same1 = new UserDefinedFunctionMetaData(
-        "same", ImmutableList.of(), DataTypes.INTEGER,
+        "doc", "same", ImmutableList.of(), DataTypes.INTEGER,
         "javascript", "function same(){ return 3; }"
     );
     private final UserDefinedFunctionMetaData same2 = new UserDefinedFunctionMetaData(
-        "same", ImmutableList.of(), DataTypes.INTEGER,
+        "doc", "same", ImmutableList.of(), DataTypes.INTEGER,
         "javascript", "function same() { return 2; }"
     );
     private final UserDefinedFunctionMetaData different = new UserDefinedFunctionMetaData(
-        "different", ImmutableList.of(), DataTypes.INTEGER,
+        "doc", "different", ImmutableList.of(), DataTypes.INTEGER,
         "javascript", "function different() { return 3; }"
     );
+
 
     @Test
     public void testFirstFunction() throws Exception {
@@ -80,36 +82,36 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
     @Test
     public void testRemoveFunction() throws Exception {
         UserDefinedFunctionsMetaData metaData = UserDefinedFunctionsMetaData.of(same1);
-        UserDefinedFunctionsMetaData newMetaData = removeFunction(metaData, same1.name(), same1.argumentTypes(), false);
+        UserDefinedFunctionsMetaData newMetaData = removeFunction(metaData, same1.schema(), same1.name(), same1.argumentTypes(), false);
         assertThat(metaData, not(is(newMetaData))); // A new instance of metaData must be returned on a change
         assertThat(newMetaData.functionsMetaData().size(), is(0));
     }
 
     @Test
     public void testRemoveIfExistsEmptyMetaData() throws Exception {
-        UserDefinedFunctionsMetaData newMetaData = removeFunction(null, same1.name(), same1.argumentTypes(), true);
+        UserDefinedFunctionsMetaData newMetaData = removeFunction(null, same1.schema(), same1.name(), same1.argumentTypes(), true);
         assertThat(newMetaData, is(notNullValue()));
     }
 
     @Test
     public void testRemoveDoesNotExist() throws Exception {
         expectedException.expect(UserDefinedFunctionUnknownException.class);
-        expectedException.expectMessage("Cannot resolve user defined function: 'different()'");
+        expectedException.expectMessage("Cannot resolve user defined function: 'doc.different()'");
         UserDefinedFunctionsMetaData metaData = UserDefinedFunctionsMetaData.of(same1);
-        removeFunction(metaData, different.name(), different.argumentTypes(), false);
+        removeFunction(metaData, different.schema(), different.name(), different.argumentTypes(), false);
     }
 
     @Test
     public void testReplaceIsFalse() throws Exception {
         expectedException.expect(UserDefinedFunctionAlreadyExistsException.class);
-        expectedException.expectMessage("User defined Function 'same()' already exists.");
+        expectedException.expectMessage("User defined Function 'doc.same()' already exists.");
         putFunction(UserDefinedFunctionsMetaData.of(same1), same2, false);
     }
 
     @Test
     public void testInvalidFunction() throws Exception {
         UserDefinedFunctionMetaData invalid = new UserDefinedFunctionMetaData(
-            "invalid", ImmutableList.of(), DataTypes.INTEGER,
+            "doc", "invalid", ImmutableList.of(), DataTypes.INTEGER,
             "javascript", "function invalid(){ this is not valid javascript code }"
         );
         UserDefinedFunctionsMetaData metaData = UserDefinedFunctionsMetaData.of(invalid, same1);

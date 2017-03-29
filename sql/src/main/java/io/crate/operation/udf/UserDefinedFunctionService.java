@@ -135,6 +135,7 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
                     MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
                     UserDefinedFunctionsMetaData functions = removeFunction(
                         metaData.custom(UserDefinedFunctionsMetaData.TYPE),
+                        request.schema,
                         request.name,
                         request.argumentTypes,
                         request.ifExists
@@ -165,7 +166,7 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
 
         // create a new instance of the metadata, to guarantee the cluster changed action.
         UserDefinedFunctionsMetaData newMetaData = UserDefinedFunctionsMetaData.newInstance(oldMetaData);
-        if (oldMetaData.contains(functionMetaData.name(), functionMetaData.argumentTypes())) {
+        if (oldMetaData.contains(functionMetaData.schema(), functionMetaData.name(), functionMetaData.argumentTypes())) {
             if (!replace) {
                 throw new UserDefinedFunctionAlreadyExistsException(functionMetaData);
             }
@@ -180,17 +181,18 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
 
     @VisibleForTesting
     static UserDefinedFunctionsMetaData removeFunction(@Nullable UserDefinedFunctionsMetaData functions,
+                                                       String schema,
                                                        String name,
                                                        List<DataType> argumentDataTypes,
                                                        boolean ifExists) {
-        if (!ifExists && (functions == null || !functions.contains(name, argumentDataTypes))) {
-            throw new UserDefinedFunctionUnknownException(name, argumentDataTypes);
+        if (!ifExists && (functions == null || !functions.contains(schema, name, argumentDataTypes))) {
+            throw new UserDefinedFunctionUnknownException(schema, name, argumentDataTypes);
         } else if (functions == null) {
             return UserDefinedFunctionsMetaData.of();
         } else {
             // create a new instance of the metadata, to guarantee the cluster changed action.
             UserDefinedFunctionsMetaData newMetaData = UserDefinedFunctionsMetaData.newInstance(functions);
-            newMetaData.remove(name, argumentDataTypes);
+            newMetaData.remove(schema, name, argumentDataTypes);
             return newMetaData;
         }
     }
@@ -243,12 +245,14 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
 
     static class DropUserDefinedFunctionRequest extends ClusterStateUpdateRequest<DropUserDefinedFunctionRequest> {
 
+        final String schema;
         final String cause;
         final String name;
         final List<DataType> argumentTypes;
         final boolean ifExists;
 
-        DropUserDefinedFunctionRequest(String cause, String name, List<DataType> argumentTypes, boolean ifExists) {
+        DropUserDefinedFunctionRequest(String cause, String schema, String name, List<DataType> argumentTypes, boolean ifExists) {
+            this.schema = schema;
             this.cause = cause;
             this.name = name;
             this.argumentTypes = argumentTypes;
