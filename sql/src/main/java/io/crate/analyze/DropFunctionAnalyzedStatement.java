@@ -32,11 +32,13 @@ import java.util.List;
 
 public class DropFunctionAnalyzedStatement implements DDLStatement {
 
+    private final String schema;
     private final String name;
     private final boolean ifExists;
     private final List<DataType> argumentTypes;
 
-    public DropFunctionAnalyzedStatement(String name, boolean ifExists, List<DataType> argumentTypes) {
+    public DropFunctionAnalyzedStatement(String schema, String name, boolean ifExists, List<DataType> argumentTypes) {
+        this.schema = schema;
         this.name = name;
         this.ifExists = ifExists;
         this.argumentTypes = argumentTypes;
@@ -49,6 +51,10 @@ public class DropFunctionAnalyzedStatement implements DDLStatement {
 
     public String name() {
         return name;
+    }
+
+    public String schema() {
+        return schema;
     }
 
     public List<DataType> argumentTypes() {

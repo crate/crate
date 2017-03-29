@@ -26,7 +26,7 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.Schemas;
 import io.crate.sql.tree.CreateFunction;
 
 import java.util.List;
@@ -35,18 +35,31 @@ import static io.crate.analyze.FunctionArgumentDefinition.toFunctionArgumentDefi
 
 public class CreateFunctionAnalyzer {
 
-    public CreateFunctionAnalyzedStatement analyze(CreateFunction node) {
+    public CreateFunctionAnalyzedStatement analyze(CreateFunction node, Analysis context) {
+
         List<String> parts = node.name().getParts();
-        if (parts.size() > 1) {
-            throw new UnsupportedFeatureException("The schema name in user defined functions is not supported.");
-        }
         return new CreateFunctionAnalyzedStatement(
-            parts.get(0),
+            resolveSchemaName(parts, context.sessionContext().defaultSchema()),
+            resolveFunctionName(parts),
             node.replace(),
             toFunctionArgumentDefinitions(node.arguments()),
             DataTypeAnalyzer.convert(node.returnType()),
             node.language(),
             node.definition()
         );
+    }
+
+    public static String resolveFunctionName(List<String> parts) {
+        return parts.size() == 1 ? parts.get(0) : parts.get(1);
+    }
+
+    public static String resolveSchemaName(List<String> parts, String defaultSchema) {
+        if (parts.size() == 1) {
+            if (defaultSchema != null) {
+                return defaultSchema;
+            }
+            return Schemas.DEFAULT_SCHEMA_NAME;
+        }
+        return parts.get(0);
     }
 }

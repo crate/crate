@@ -26,11 +26,17 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.Option;
+import io.crate.action.sql.SessionContext;
+import io.crate.data.Row;
+import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
+
+import java.util.Collections;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -45,10 +51,33 @@ public class DropFunctionAnalyzerTest extends CrateUnitTest {
         assertThat(analyzedStatement, instanceOf(DropFunctionAnalyzedStatement.class));
 
         DropFunctionAnalyzedStatement analysis = (DropFunctionAnalyzedStatement) analyzedStatement;
+        assertThat(analysis.schema(), is("doc"));
         assertThat(analysis.name(), is("bar"));
         assertThat(analysis.ifExists(), is(false));
         assertThat(analysis.argumentTypes().get(0), is(DataTypes.LONG));
         assertThat(analysis.argumentTypes().get(1), is(DataTypes.OBJECT));
+    }
+
+    @Test
+    public void testDropFunctionWithSessionSetSchema() throws Exception {
+        DropFunctionAnalyzedStatement analysis = (DropFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
+            SqlParser.createStatement("DROP FUNCTION bar(long, object)"),
+            new SessionContext(0, Option.NONE, "my_schema"),
+            new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
+
+        assertThat(analysis.schema(), is("my_schema"));
+        assertThat(analysis.name(), is("bar"));
+    }
+
+    @Test
+    public void testDropFunctionExplicitSchemaSupersedesSessionSchema() throws Exception {
+        DropFunctionAnalyzedStatement analysis = (DropFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
+            SqlParser.createStatement("DROP FUNCTION my_other_schema.bar(long, object)"),
+            new SessionContext(0, Option.NONE, "my_schema"),
+            new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
+
+        assertThat(analysis.schema(), is("my_other_schema"));
+        assertThat(analysis.name(), is("bar"));
     }
 
     @Test
