@@ -1,3 +1,5 @@
+.. _version_1.1.1:
+
 =============
 Version 1.1.1
 =============
@@ -7,10 +9,29 @@ Released on 2017/03/27.
 Changelog
 =========
 
- - Fixed a regression introduced in 1.1.0 which could cause queries to return
-   wrong values.
+ - Fixed a regression introduced in 1.1.1 which could cause
+   queries to return wrong values.
 
- - Updated crate-admin to ``1.2.2`` which includes the following changes:
+ - Querying the admin UI from ``/_plugin/crate-admin/`` will now
+   redirect to ``/``.
+
+ - Added possible data type conversion to a timestamp array.
+   e.g. ``cast(['2017-01-01','2017-12-31'] as array(timestamp))``
+
+ - Fixed bug introduced in 1.1.0 which caused all partitioned tables to
+   become unusable.
+
+ - Fixed an issued that caused conditions like ``not x = any( )`` to not
+   find empty lists when used in ``WHERE`` clauses.
+
+ - Improved error handling when using ``LIMIT``/``OFFSET`` that exceed Integer
+   range.
+
+ - Fixed a regression introduced in 1.1.0 that caused statements like
+   ``COPY TO '/invalid/directory/'`` to get stuck instead of resulting in an
+   error.
+
+ - Updated crate-admin to 1.2.2, which includes the following changes:
 
    - Fixed issue where arrays in formatted objects were not displayed.
 
@@ -25,27 +46,10 @@ Changelog
 
    - Display notification warning only when a new CrateDB version is released.
 
-   - Added lineWrapping option to console Editor.
+   - Added ``lineWrapping`` option to console Editor.
 
    - Fixed issue that cause the console text to appear on top of the settings
      tab.
 
-   - Fixed load reading display when the readings were invalid (for example,
-     on Windows).
-
- - Querying the admin-ui from '/_plugin/crate-admin/' will now
-   redirect to '/'.
-
- - Added possible data type conversion to a timestamp array.
-   e.g. ``cast(['2017-01-01','2017-12-31'] as array(timestamp))``
-
- - Fixed bug introduced in 1.1.0 which caused all partitioned tables to
-   become unusable.
-
- - Fixed an issued that caused conditions like ``not x = any( )`` to not
-   find empty lists when used in WHERE clauses.
-
- - Improved error handling when using LIMIT/OFFSET that exceed Integer range
-
- - Fixed a regression introduced in 1.1.0 that caused statements like
-   ``COPY TO '/invalid/directory/'`` to get stuck instead of resulting in an error.
+   - Fixed load reading display when the readings were invalid (for example, on
+     Windows).
