@@ -29,6 +29,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.NoSuchElementException;
 
 public class Lists2 {
 
@@ -65,5 +66,26 @@ public class Lists2 {
             copy.add(replaceFunc.apply(item));
         }
         return copy;
+    }
+
+    /**
+     * Return the first element of a list or raise an IllegalArgumentException if there are more than 1 items.
+     *
+     * Similar to {@link com.google.common.collect.Iterables#getOnlyElement(Iterable)}, but avoids an iterator allocation
+     *
+     * @throws NoSuchElementException If the list is empty
+     * @throws IllegalArgumentException If the list has more than 1 element
+     */
+    public static <T> T getOnlyElement(List<T> items) {
+        switch (items.size()) {
+            case 0:
+                throw new NoSuchElementException("List is empty");
+
+            case 1:
+                return items.get(0);
+
+            default:
+                throw new IllegalArgumentException("Expected 1 element, got: " + items.size());
+        }
     }
 }

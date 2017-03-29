@@ -22,7 +22,6 @@
 
 package io.crate.operation.reference.sys.check.node;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.Id;
 import io.crate.operation.reference.sys.check.AbstractSysCheck;
@@ -31,6 +30,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 
 import java.util.List;
+import java.util.function.Function;
 
 public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements SysNodeCheck {
 

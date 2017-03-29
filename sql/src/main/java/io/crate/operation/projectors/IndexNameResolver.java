@@ -26,19 +26,18 @@ import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.Lists;
+import io.crate.data.Input;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
-import io.crate.data.Input;
 import io.crate.operation.Inputs;
 import org.apache.lucene.util.BytesRef;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 public class IndexNameResolver {
 
@@ -77,11 +76,10 @@ public class IndexNameResolver {
                 }
             });
         return () -> {
-            // copy because transform returns a view and the values of the inputs are mutable
-            List<BytesRef> partitions = Collections.unmodifiableList(
-                Lists.newArrayList(Lists.transform(
-                    partitionedByInputs,
-                    Inputs.TO_BYTES_REF)));
+            // copy because the values of the inputs are mutable
+            List<BytesRef> partitions = partitionedByInputs.stream()
+                .map(Inputs.TO_BYTES_REF)
+                .collect(Collectors.toList());
             try {
                 return cache.get(partitions);
             } catch (ExecutionException e) {

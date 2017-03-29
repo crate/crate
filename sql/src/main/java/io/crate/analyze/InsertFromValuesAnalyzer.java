@@ -197,7 +197,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         try {
             DocTableInfo tableInfo = statement.tableInfo();
             int numPks = tableInfo.primaryKey().size();
-            com.google.common.base.Function<List<BytesRef>, String> idFunction =
+            Function<List<BytesRef>, String> idFunction =
                 Id.compileWithNullValidation(tableInfo.primaryKey(), tableInfo.clusteredBy());
             if (parameterContext.numBulkParams() > 0) {
                 for (int i = 0; i < parameterContext.numBulkParams(); i++) {
@@ -257,7 +257,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                            InsertFromValuesAnalyzedStatement context,
                            ReferenceToLiteralConverter.Context referenceToLiteralContext,
                            int numPrimaryKeys,
-                           com.google.common.base.Function<List<BytesRef>, String> idFunction,
+                           Function<List<BytesRef>, String> idFunction,
                            int bulkIdx) throws IOException {
         if (context.tableInfo().isPartitioned()) {
             context.newPartitionMap();
