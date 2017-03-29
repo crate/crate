@@ -22,20 +22,29 @@
 package io.crate.metadata.shard.blob;
 
 import io.crate.blob.v2.BlobShard;
-import io.crate.metadata.AbstractReferenceResolver;
+import io.crate.metadata.MapBackedRefResolver;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.sys.shard.*;
-import io.crate.operation.reference.sys.shard.blob.*;
+import io.crate.operation.reference.sys.shard.blob.BlobShardBlobPathExpression;
+import io.crate.operation.reference.sys.shard.blob.BlobShardNumDocsExpression;
+import io.crate.operation.reference.sys.shard.blob.BlobShardSizeExpression;
+import io.crate.operation.reference.sys.shard.blob.BlobShardTableNameExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
-public class BlobShardReferenceResolver extends AbstractReferenceResolver {
+import java.util.HashMap;
 
-    public BlobShardReferenceResolver(BlobShard blobShard) {
+public class BlobShardReferenceResolver {
+
+    public static ReferenceResolver<ReferenceImplementation<?>> create(BlobShard blobShard) {
         IndexShard indexShard = blobShard.indexShard();
         ShardId shardId = indexShard.shardId();
+        HashMap<ReferenceIdent, ReferenceImplementation> implementations = new HashMap<>(14);
         implementations.put(SysShardsTableInfo.ReferenceIdents.ID, new LiteralReferenceImplementation<>(shardId.id()));
         implementations.put(SysShardsTableInfo.ReferenceIdents.NUM_DOCS, new BlobShardNumDocsExpression(blobShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.PRIMARY, new ShardPrimaryExpression(indexShard));
@@ -55,5 +64,6 @@ public class BlobShardReferenceResolver extends AbstractReferenceResolver {
         implementations.put(SysShardsTableInfo.ReferenceIdents.BLOB_PATH, new BlobShardBlobPathExpression(blobShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.MIN_LUCENE_VERSION,
             new ShardMinLuceneVersionExpression(indexShard));
+        return new MapBackedRefResolver(implementations);
     }
 }

@@ -23,29 +23,30 @@ package io.crate.metadata;
 
 import io.crate.operation.reference.ReferenceResolver;
 
-import java.util.HashMap;
 import java.util.Map;
 
-public abstract class AbstractReferenceResolver implements ReferenceResolver<ReferenceImplementation<?>> {
+public final class MapBackedRefResolver implements ReferenceResolver<ReferenceImplementation<?>> {
 
-    protected final Map<ReferenceIdent, ReferenceImplementation> implementations = new HashMap<>();
+    private final Map<ReferenceIdent, ReferenceImplementation> implByIdent;
+
+    public MapBackedRefResolver(Map<ReferenceIdent, ReferenceImplementation> implByIdent) {
+        this.implByIdent = implByIdent;
+    }
 
     @Override
-    public ReferenceImplementation getImplementation(Reference refInfo) {
-        ReferenceIdent ident = refInfo.ident();
+    public ReferenceImplementation getImplementation(Reference ref) {
+        return lookupMapWithChildTraversal(implByIdent, ref.ident());
+    }
+
+    static ReferenceImplementation lookupMapWithChildTraversal(Map<ReferenceIdent, ReferenceImplementation> implByIdent,
+                                                               ReferenceIdent ident) {
         if (ident.isColumn()) {
-            return implementations.get(ident);
+            return implByIdent.get(ident);
         }
-        ReferenceImplementation impl = implementations.get(ident.columnReferenceIdent());
+        ReferenceImplementation<?> impl = implByIdent.get(ident.columnReferenceIdent());
         if (impl == null) {
             return null;
         }
-        for (String part : ident.columnIdent().path()) {
-            impl = impl.getChildImplementation(part);
-            if (impl == null) {
-                return null;
-            }
-        }
-        return impl;
+        return ReferenceImplementation.findInChildImplementations(impl, ident.columnIdent().path());
     }
 }

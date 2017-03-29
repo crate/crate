@@ -21,10 +21,10 @@
 
 package io.crate.operation.reference;
 
-import io.crate.metadata.Reference;
 import io.crate.data.Input;
+import io.crate.metadata.Reference;
 
 public interface ReferenceResolver<E extends Input<?>> {
 
-    E getImplementation(Reference refInfo);
+    E getImplementation(Reference ref);
 }

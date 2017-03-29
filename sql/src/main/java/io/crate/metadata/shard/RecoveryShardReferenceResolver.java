@@ -22,7 +22,7 @@
 
 package io.crate.metadata.shard;
 
-import io.crate.metadata.AbstractReferenceResolver;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.sys.SysShardsTableInfo;
@@ -31,7 +31,9 @@ import io.crate.operation.reference.sys.shard.ShardRecoveryExpression;
 import org.elasticsearch.index.shard.IndexShard;
 
 
-public class RecoveryShardReferenceResolver extends AbstractReferenceResolver {
+public class RecoveryShardReferenceResolver implements ReferenceResolver<ReferenceImplementation<?>> {
+
+    private final static ColumnIdent RECOVERY = SysShardsTableInfo.Columns.RECOVERY;
 
     /**
      * <p>
@@ -46,19 +48,22 @@ public class RecoveryShardReferenceResolver extends AbstractReferenceResolver {
      * </code>
      */
 
-    private final ReferenceResolver<ReferenceImplementation<?>> staticReferencesResolver;
+    private final ReferenceResolver<ReferenceImplementation<?>> shardRefResolver;
+    private final ShardRecoveryExpression shardRecoveryExpression;
 
     public RecoveryShardReferenceResolver(ReferenceResolver<ReferenceImplementation<?>> shardResolver, IndexShard indexShard) {
-        staticReferencesResolver = shardResolver;
-        implementations.put(SysShardsTableInfo.ReferenceIdents.RECOVERY,
-            new ShardRecoveryExpression(indexShard));
+        shardRefResolver = shardResolver;
+        shardRecoveryExpression = new ShardRecoveryExpression(indexShard);
     }
 
     @Override
-    public ReferenceImplementation getImplementation(Reference refInfo) {
-        ReferenceImplementation impl = staticReferencesResolver.getImplementation(refInfo);
+    public ReferenceImplementation getImplementation(Reference ref) {
+        ReferenceImplementation impl = shardRefResolver.getImplementation(ref);
         if (impl == null) {
-            impl = super.getImplementation(refInfo);
+            ColumnIdent columnIdent = ref.ident().columnIdent();
+            if (columnIdent.equals(RECOVERY) || columnIdent.isChildOf(RECOVERY)) {
+                return ReferenceImplementation.findInChildImplementations(shardRecoveryExpression, columnIdent.path());
+            }
         }
         return impl;
     }

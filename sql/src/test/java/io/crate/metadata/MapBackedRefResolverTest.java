@@ -22,30 +22,26 @@
 
 package io.crate.metadata;
 
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.types.DataTypes;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
-public class AbstractReferenceResolverTest {
+public class MapBackedRefResolverTest {
 
-    static final TableIdent USERS_TI = new TableIdent(null, "users");
-
-    static class RefResolver extends AbstractReferenceResolver {
-
-        public RefResolver() {
-            ReferenceIdent ident = new ReferenceIdent(USERS_TI, new ColumnIdent("obj"));
-            implementations.put(ident, mock(ReferenceImplementation.class));
-        }
-    }
+    private static final TableIdent USERS_TI = new TableIdent(null, "users");
 
     @Test
     public void testGetImplementation() throws Exception {
-        RefResolver refResolver = new RefResolver();
+        ReferenceIdent ident = new ReferenceIdent(USERS_TI, new ColumnIdent("obj"));
+        ReferenceResolver<ReferenceImplementation<?>> refResolver = new MapBackedRefResolver(
+            Collections.singletonMap(ident, mock(ReferenceImplementation.class)));
         ReferenceImplementation implementation = refResolver.getImplementation(new Reference(
             new ReferenceIdent(USERS_TI, new ColumnIdent("obj", Arrays.asList("x", "z"))), RowGranularity.DOC, DataTypes.STRING));
 

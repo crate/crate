@@ -55,7 +55,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                       Settings settings,
                                       TransportActionProvider transportActionProvider,
                                       BulkRetryCoordinatorPool bulkRetryCoordinatorPool) {
-        super(clusterService, new BlobShardReferenceResolver(blobShard), functions, indexNameExpressionResolver, threadPool, settings,
+        super(clusterService, BlobShardReferenceResolver.create(blobShard), functions, indexNameExpressionResolver, threadPool, settings,
             transportActionProvider, bulkRetryCoordinatorPool, blobShard.indexShard());
         inputFactory = new InputFactory(functions);
         this.blobShard = blobShard;
