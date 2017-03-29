@@ -92,7 +92,7 @@ public class ExpressionAnalyzer {
     private final static DataTypeAnalyzer DATA_TYPE_ANALYZER = new DataTypeAnalyzer();
     private final static NegativeLiteralVisitor NEGATIVE_LITERAL_VISITOR = new NegativeLiteralVisitor();
     private final SessionContext sessionContext;
-    private final com.google.common.base.Function<ParameterExpression, Symbol> convertParamFunction;
+    private final java.util.function.Function<ParameterExpression, Symbol> convertParamFunction;
     private final FieldProvider<?> fieldProvider;
 
     @Nullable
@@ -105,7 +105,7 @@ public class ExpressionAnalyzer {
 
     public ExpressionAnalyzer(Functions functions,
                               SessionContext sessionContext,
-                              com.google.common.base.Function<ParameterExpression, Symbol> convertParamFunction,
+                              java.util.function.Function<ParameterExpression, Symbol> convertParamFunction,
                               FieldProvider fieldProvider,
                               @Nullable SubqueryAnalyzer subQueryAnalyzer) {
         this.functions = functions;

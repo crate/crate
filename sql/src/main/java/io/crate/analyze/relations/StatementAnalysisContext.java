@@ -21,7 +21,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.base.Function;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
@@ -30,6 +29,7 @@ import io.crate.sql.tree.ParameterExpression;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 public class StatementAnalysisContext {
 

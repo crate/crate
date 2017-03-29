@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Function;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -36,6 +35,7 @@ import io.crate.sql.tree.ParameterExpression;
 import io.crate.types.DataTypes;
 
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * ExpressionAnalyzer that supports the VALUES ( columnRef ) expression
