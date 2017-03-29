@@ -34,19 +34,22 @@ import java.util.List;
 public class CreateFunctionAnalyzedStatement implements DDLStatement {
 
     private final String name;
+    private final String schema;
     private final boolean replace;
     private final List<FunctionArgumentDefinition> arguments;
     private final DataType returnType;
     private final Expression language;
     private final Expression definition;
 
-    public CreateFunctionAnalyzedStatement(String name,
+    public CreateFunctionAnalyzedStatement(String schema,
+                                           String name,
                                            boolean replace,
                                            List<FunctionArgumentDefinition> arguments,
                                            DataType returnType,
                                            Expression language,
                                            Expression definition) {
         this.name = name;
+        this.schema = schema;
         this.replace = replace;
         this.arguments = arguments;
         this.returnType = returnType;
@@ -61,6 +64,10 @@ public class CreateFunctionAnalyzedStatement implements DDLStatement {
 
     public String name() {
         return name;
+    }
+
+    public String schema() {
+        return schema;
     }
 
     public boolean replace() {
