@@ -43,20 +43,16 @@ import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.operation.InputFactory;
-import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.operation.collect.sources.SystemCollectSource;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.*;
-import io.crate.planner.distribution.DistributionType;
-import io.crate.planner.distribution.UpstreamPhase;
-import io.crate.planner.node.ExecutionPhase;
-import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDelete;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertById;
-import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.ESGet;
+import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.GenericShowPlan;
@@ -73,8 +69,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
@@ -340,8 +337,6 @@ public class TransportExecutor implements Executor {
 
     static class BulkNodeOperationTreeGenerator extends PlanVisitor<BulkNodeOperationTreeGenerator.Context, Void> {
 
-        NodeOperationTreeGenerator nodeOperationTreeGenerator = new NodeOperationTreeGenerator();
-
         List<NodeOperationTree> createNodeOperationTrees(Plan plan, String localNodeId) {
             Context context = new Context(localNodeId);
             process(plan, context);
@@ -351,14 +346,14 @@ public class TransportExecutor implements Executor {
         @Override
         public Void visitUpsert(Upsert node, Context context) {
             for (Plan plan : node.nodes()) {
-                context.nodeOperationTrees.add(nodeOperationTreeGenerator.fromPlan(plan, context.localNodeId));
+                context.nodeOperationTrees.add(NodeOperationTreeGenerator.fromPlan(plan, context.localNodeId));
             }
             return null;
         }
 
         @Override
         protected Void visitPlan(Plan plan, Context context) {
-            context.nodeOperationTrees.add(nodeOperationTreeGenerator.fromPlan(plan, context.localNodeId));
+            context.nodeOperationTrees.add(NodeOperationTreeGenerator.fromPlan(plan, context.localNodeId));
             return null;
         }
 
@@ -372,208 +367,4 @@ public class TransportExecutor implements Executor {
         }
     }
 
-    /**
-     * class used to generate the NodeOperationTree
-     * <p>
-     * <p>
-     * E.g. a plan like NL:
-     *
-     * <pre>
-     *              NL
-     *           1 NLPhase
-     *           2 MergePhase
-     *        /               \
-     *       /                 \
-     *     QAF                 QAF
-     *   3 CollectPhase      5 CollectPhase
-     *   4 MergePhase        6 MergePhase
-     * </pre>
-     *
-     * Will have a data flow like this:
-     *
-     * <pre>
-     *   3 -- 4
-     *          -- 1 -- 2
-     *   5 -- 6
-     * </pre>
-     * The NodeOperation tree will have 5 NodeOperations (3-4, 4-1, 5-6, 6-1, 1-2)
-     * And leaf will be 2 (the Phase which will provide the final result)
-     * <p>
-     * <p>
-     * Implementation detail:
-     * <p>
-     * <p>
-     * The phases are added in the following order
-     * <p>
-     * 2 - 1 [new branch 0]  4 - 3
-     * [new branch 1]  5 - 6
-     * <p>
-     * every time addPhase is called a NodeOperation is added
-     * that connects the previous phase (if there is one) to the current phase
-     */
-    static class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationTreeGenerator.NodeOperationTreeContext, Void> {
-
-        private static class Branch {
-            private final Deque<ExecutionPhase> phases = new ArrayDeque<>();
-            private final byte inputId;
-
-            Branch(byte inputId) {
-                this.inputId = inputId;
-            }
-        }
-
-        static class NodeOperationTreeContext {
-            private final String localNodeId;
-            private final List<NodeOperation> nodeOperations = new ArrayList<>();
-
-            private final Deque<Branch> branches = new ArrayDeque<>();
-            private final Branch root;
-            private Branch currentBranch;
-
-            NodeOperationTreeContext(String localNodeId) {
-                this.localNodeId = localNodeId;
-                root = new Branch((byte) 0);
-                currentBranch = root;
-            }
-
-            /**
-             * adds a Phase to the "NodeOperation execution tree"
-             * should be called in the reverse order of how data flows.
-             * <p>
-             * E.g. in a plan where data flows from CollectPhase to MergePhase
-             * it should be called first for MergePhase and then for CollectPhase
-             */
-            void addPhase(@Nullable ExecutionPhase executionPhase) {
-                addPhase(executionPhase, nodeOperations, true);
-            }
-
-            void addContextPhase(@Nullable ExecutionPhase executionPhase) {
-                addPhase(executionPhase, nodeOperations, false);
-            }
-
-            private void addPhase(@Nullable ExecutionPhase executionPhase,
-                                  List<NodeOperation> nodeOperations,
-                                  boolean setDownstreamNodes) {
-                if (executionPhase == null) {
-                    return;
-                }
-                if (branches.size() == 0 && currentBranch.phases.isEmpty()) {
-                    currentBranch.phases.add(executionPhase);
-                    return;
-                }
-
-                byte inputId;
-                ExecutionPhase previousPhase;
-                if (currentBranch.phases.isEmpty()) {
-                    previousPhase = branches.peekLast().phases.getLast();
-                    inputId = currentBranch.inputId;
-                } else {
-                    previousPhase = currentBranch.phases.getLast();
-                    // same branch, so use the default input id
-                    inputId = 0;
-                }
-                if (setDownstreamNodes) {
-                    assert saneConfiguration(executionPhase, previousPhase.nodeIds()) : String.format(Locale.ENGLISH,
-                        "NodeOperation with %s and %s as downstreams cannot work",
-                        ExecutionPhases.debugPrint(executionPhase), previousPhase.nodeIds());
-
-                    nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, inputId, localNodeId));
-                } else {
-                    nodeOperations.add(NodeOperation.withoutDownstream(executionPhase));
-                }
-                currentBranch.phases.add(executionPhase);
-            }
-
-            private boolean saneConfiguration(ExecutionPhase executionPhase, Collection<String> downstreamNodes) {
-                if (executionPhase instanceof UpstreamPhase &&
-                    ((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
-                    DistributionType.SAME_NODE) {
-                    return downstreamNodes.isEmpty() || downstreamNodes.equals(executionPhase.nodeIds());
-                }
-                return true;
-            }
-
-            void branch(byte inputId) {
-                branches.add(currentBranch);
-                currentBranch = new Branch(inputId);
-            }
-
-            void leaveBranch() {
-                currentBranch = branches.pollLast();
-            }
-
-            Collection<NodeOperation> nodeOperations() {
-                return nodeOperations;
-            }
-        }
-
-        NodeOperationTree fromPlan(Plan plan, String localNodeId) {
-            NodeOperationTreeContext nodeOperationTreeContext = new NodeOperationTreeContext(localNodeId);
-            process(plan, nodeOperationTreeContext);
-            return new NodeOperationTree(nodeOperationTreeContext.nodeOperations(),
-                nodeOperationTreeContext.root.phases.getFirst());
-        }
-
-        @Override
-        public Void visitDistributedGroupBy(DistributedGroupBy node, NodeOperationTreeContext context) {
-            context.addPhase(node.reducerMergeNode());
-            context.addPhase(node.collectPhase());
-            return null;
-        }
-
-        @Override
-        public Void visitCountPlan(CountPlan plan, NodeOperationTreeContext context) {
-            context.addPhase(plan.mergePhase());
-            context.addPhase(plan.countPhase());
-            return null;
-        }
-
-        @Override
-        public Void visitCollect(Collect plan, NodeOperationTreeContext context) {
-            context.addPhase(plan.collectPhase());
-            return null;
-        }
-
-        @Override
-        public Void visitMerge(Merge merge, NodeOperationTreeContext context) {
-            context.addPhase(merge.mergePhase());
-            process(merge.subPlan(), context);
-            return null;
-        }
-
-        public Void visitQueryThenFetch(QueryThenFetch node, NodeOperationTreeContext context) {
-            process(node.subPlan(), context);
-            context.addContextPhase(node.fetchPhase());
-            return null;
-        }
-
-        @Override
-        public Void visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, NodeOperationTreeContext context) {
-            // MultiPhasePlan's should be executed by the MultiPhaseExecutor, but it doesn't remove
-            // them from the tree in order to avoid re-creating plans with the MultiPhasePlan removed,
-            // so here it's fine to just skip over the multiPhasePlan because it has already been executed
-            process(multiPhasePlan.rootPlan(), context);
-            return null;
-        }
-
-        @Override
-        public Void visitNestedLoop(NestedLoop plan, NodeOperationTreeContext context) {
-            context.addPhase(plan.nestedLoopPhase());
-
-            context.branch((byte) 0);
-            process(plan.left(), context);
-            context.leaveBranch();
-
-            context.branch((byte) 1);
-            process(plan.right(), context);
-            context.leaveBranch();
-
-            return null;
-        }
-
-        @Override
-        protected Void visitPlan(Plan plan, NodeOperationTreeContext context) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't create NodeOperationTree from plan %s", plan));
-        }
-    }
 }
