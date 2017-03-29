@@ -59,8 +59,9 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
 
     private Map<FunctionIdent, FunctionImplementation> functionImplementations = new HashMap<>();
 
-    private void registerUserDefinedFunction(String name, DataType returnType, List<DataType> types, String definition) {
+    private void registerUserDefinedFunction(String schema, String name, DataType returnType, List<DataType> types, String definition) {
         UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
+            schema,
             name,
             types.stream().map(FunctionArgumentDefinition::of).collect(Collectors.toList()),
             types,
@@ -70,6 +71,10 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
         );
         functionImplementations.put(new FunctionIdent(name, types), UserDefinedFunctionFactory.of(udfMeta));
         functions.registerSchemaFunctionResolvers(functions.generateFunctionResolvers(functionImplementations));
+    }
+
+    private void registerUserDefinedFunction(String name, DataType returnType, List<DataType> types, String definition) {
+        registerUserDefinedFunction("doc", name, returnType, types, definition);
     }
 
     @After

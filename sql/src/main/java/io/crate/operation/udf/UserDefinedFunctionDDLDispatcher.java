@@ -61,6 +61,7 @@ public class UserDefinedFunctionDDLDispatcher {
         checkUdfEnabled();
         final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
         UserDefinedFunctionMetaData metaData = new UserDefinedFunctionMetaData(
+            statement.schema(),
             statement.name(),
             statement.arguments(),
             argumentTypesFrom(statement.arguments()),
@@ -91,6 +92,7 @@ public class UserDefinedFunctionDDLDispatcher {
         checkUdfEnabled();
         final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
         DropUserDefinedFunctionRequest request = new DropUserDefinedFunctionRequest(
+            statement.schema(),
             statement.name(),
             statement.argumentTypes(),
             statement.ifExists()

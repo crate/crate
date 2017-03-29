@@ -76,7 +76,8 @@ public class TransportDropUserDefinedFunctionAction
                                    ActionListener<UserDefinedFunctionResponse> listener) throws Exception {
         userDefinedFunctionService.dropFunction(
             new UserDefinedFunctionService.DropUserDefinedFunctionRequest(
-                "drop_udf [" + request.name() + " - " + request.argumentTypes() + "]",
+                "drop_udf [" + request.schema() + "." + request.name() + " - " + request.argumentTypes() + "]",
+                request.schema(),
                 request.name(),
                 request.argumentTypes(),
                 request.ifExists()

@@ -50,6 +50,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
     );
     private UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
+        "my_schema",
         "my_add",
         args,
         argumentTypesFrom(args),
@@ -67,6 +68,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         UserDefinedFunctionMetaData udfMeta2 = UserDefinedFunctionMetaData.fromStream(in);
         assertThat(udfMeta, is(udfMeta2));
 
+        assertThat(udfMeta2.schema(), is("my_schema"));
         assertThat(udfMeta2.name(), is("my_add"));
         assertThat(udfMeta2.arguments().size(), is(2));
         assertThat(udfMeta2.arguments().get(1), is(
@@ -120,5 +122,13 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         XContentParser parser = JsonXContent.jsonXContent.createParser(builder.bytes());
         ArrayType type2 = (ArrayType) UserDefinedFunctionMetaData.DataTypeXContent.fromXContent(parser);
         assertTrue(type.equals(type2));
+    }
+
+    @Test
+    public void testSameSignature() throws Exception {
+        assertThat(udfMeta.sameSignature("my_schema", "my_add", argumentTypesFrom(args)), is(true));
+        assertThat(udfMeta.sameSignature("different_schema", "my_add", argumentTypesFrom(args)), is(false));
+        assertThat(udfMeta.sameSignature("my_schema", "different_name", argumentTypesFrom(args)), is(false));
+        assertThat(udfMeta.sameSignature("my_schema", "my_add", ImmutableList.of()), is(false));
     }
 }
