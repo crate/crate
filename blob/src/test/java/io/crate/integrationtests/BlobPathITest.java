@@ -35,7 +35,9 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -92,6 +94,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
             assertThat(files.anyMatch(i -> digest.equals(i.getFileName().toString())), is(true));
         }
     }
+
     @Test
     public void testDataIsStoredInTableSpecificBlobPath() throws Exception {
         launchNodeAndInitClient(configureGlobalBlobPath());
@@ -108,6 +111,28 @@ public class BlobPathITest extends BlobIntegrationTestBase {
         try (Stream<Path> files = Files.walk(tableBlobPath)) {
             assertThat(files.anyMatch(i -> digest.equals(i.getFileName().toString())), is(true));
         }
+    }
+
+    @Test
+    public void testDataIsDeletedSpecificIndexBlobPath() throws Exception {
+        launchNodeAndInitClient(configureGlobalBlobPath());
+
+        Path tableBlobPath = createTempDir("tableBlobPath");
+        Settings indexSettings = Settings.builder()
+            .put(oneShardAndZeroReplicas())
+            .put(BlobIndicesService.SETTING_INDEX_BLOBS_PATH, tableBlobPath.toString())
+            .build();
+        blobAdminClient.createBlobTable("test", indexSettings).get();
+        client.put("test", "abcdefg");
+        blobAdminClient.dropBlobTable("test");
+        String blobRootPath = String.format("%s/nodes/0/indices/.blob_test", tableBlobPath.toString());
+
+        assertBusy(new Runnable() {
+            @Override
+            public void run() {
+                assertFalse(Files.exists(Paths.get(blobRootPath)));
+            }
+        }, 5, TimeUnit.SECONDS);
     }
 
     @Test

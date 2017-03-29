@@ -21,10 +21,14 @@
 
 package io.crate.blob.v2;
 
+import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -65,10 +69,11 @@ public class BlobIndex {
 
     private final Map<Integer, BlobShard> shards = new ConcurrentHashMap<>();
     private final Path globalBlobPath;
+    private final ESLogger logger;
 
-
-    BlobIndex(@Nullable Path globalBlobPath) {
+    BlobIndex(ESLogger logger, @Nullable Path globalBlobPath) {
         this.globalBlobPath = globalBlobPath;
+        this.logger = logger;
     }
 
     void createShard(IndexShard indexShard) {
@@ -76,11 +81,56 @@ public class BlobIndex {
     }
 
     BlobShard removeShard(ShardId shardId) {
+        Path blobRoot = null;
         BlobShard shard = shards.remove(shardId.id());
         if (shard != null) {
+            if (shards.size() == 0) {
+                blobRoot = this.retrieveBlobRootDir(shard);
+            }
             shard.deleteShard();
+            if (blobRoot != null) {
+                this.deleteIndex(blobRoot, shardId.getIndex());
+            }
         }
+
         return shard;
+    }
+
+    /**
+     * Traverse the path down until the shard index was found
+     * and return the root path of the blob directory.
+     */
+    private Path retrieveBlobRootDir(BlobShard blobShard) {
+        Path blobDir = blobShard.getBlobDir();
+        String indexName = blobShard.indexShard().shardId().getIndex();
+        do {
+            if (blobDir.getFileName().endsWith(indexName)) {
+                break;
+            }
+            blobDir = blobDir.getParent();
+
+            if (blobDir == null) {
+                logger.debug("Blob index directory not found for index '{}'", indexName);
+            }
+        } while (blobDir != null);
+
+        return blobDir;
+    }
+
+    /**
+     * Deletes the directory for the given path.
+     */
+    private void deleteIndex(Path blobRoot, String index) {
+        if (Files.exists(blobRoot)) {
+            logger.debug("[{}] Deleting blob index directory '{}'", index, blobRoot);
+            try {
+                IOUtils.rm(blobRoot);
+            } catch (IOException e) {
+                logger.warn("Could not delete blob index directory {}", blobRoot);
+            }
+        } else {
+            logger.warn("Wanted to delete blob index directory {} but it was already gone", blobRoot);
+        }
     }
 
     BlobShard getShard(int shardId) {
