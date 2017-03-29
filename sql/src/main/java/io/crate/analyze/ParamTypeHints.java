@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Function;
 import io.crate.analyze.symbol.ParameterSymbol;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.sql.tree.ParameterExpression;
@@ -32,6 +31,7 @@ import io.crate.types.DataTypes;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 public class ParamTypeHints implements Function<ParameterExpression, Symbol> {
 

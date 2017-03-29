@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Function;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.*;
@@ -37,6 +36,8 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.ParameterExpression;
+
+import java.util.function.Function;
 
 class DeleteAnalyzer {
 

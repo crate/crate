@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Function;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
@@ -35,12 +34,12 @@ import io.crate.analyze.symbol.SymbolType;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
+import io.crate.data.Input;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-import io.crate.data.Input;
 import io.crate.sql.tree.*;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
@@ -49,6 +48,7 @@ import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Function;
 
 class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
@@ -197,8 +197,8 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         try {
             DocTableInfo tableInfo = statement.tableInfo();
             int numPks = tableInfo.primaryKey().size();
-            Function<List<BytesRef>, String> idFunction = Id.compileWithNullValidation(tableInfo.primaryKey(),
-                tableInfo.clusteredBy());
+            com.google.common.base.Function<List<BytesRef>, String> idFunction =
+                Id.compileWithNullValidation(tableInfo.primaryKey(), tableInfo.clusteredBy());
             if (parameterContext.numBulkParams() > 0) {
                 for (int i = 0; i < parameterContext.numBulkParams(); i++) {
                     parameterContext.setBulkIdx(i);
@@ -257,7 +257,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                            InsertFromValuesAnalyzedStatement context,
                            ReferenceToLiteralConverter.Context referenceToLiteralContext,
                            int numPrimaryKeys,
-                           Function<List<BytesRef>, String> idFunction,
+                           com.google.common.base.Function<List<BytesRef>, String> idFunction,
                            int bulkIdx) throws IOException {
         if (context.tableInfo().isPartitioned()) {
             context.newPartitionMap();
