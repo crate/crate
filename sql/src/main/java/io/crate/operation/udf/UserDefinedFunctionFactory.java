@@ -36,21 +36,16 @@ import java.util.Locale;
 
 public class UserDefinedFunctionFactory {
 
-    public static FunctionImplementation of(UserDefinedFunctionMetaData meta) {
+    public static FunctionImplementation of(UserDefinedFunctionMetaData meta) throws ScriptException {
         switch (meta.language.toLowerCase(Locale.ENGLISH)) {
             case "javascript":
-                try {
-                    CompiledScript compiledScript = ((Compilable) JavaScriptUserDefinedFunction.ENGINE)
-                        .compile(meta.definition);
-                    return new JavaScriptUserDefinedFunction(
-                        new FunctionIdent(meta.name(), meta.argumentTypes()),
-                        meta.returnType,
-                        compiledScript
-                    );
-                } catch (ScriptException e) {
-                    throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Cannot compile the script. [%s]", e));
-                }
+                CompiledScript compiledScript = ((Compilable) JavaScriptUserDefinedFunction.ENGINE)
+                    .compile(meta.definition);
+                return new JavaScriptUserDefinedFunction(
+                    new FunctionIdent(meta.name(), meta.argumentTypes()),
+                    meta.returnType,
+                    compiledScript
+                );
             default:
                 throw new UnsupportedOperationException(
                     String.format(Locale.ENGLISH, "[%s] language is not supported.", meta.language));

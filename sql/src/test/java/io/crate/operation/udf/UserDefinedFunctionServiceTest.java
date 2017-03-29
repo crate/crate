@@ -29,12 +29,15 @@ package io.crate.operation.udf;
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import static io.crate.operation.udf.UserDefinedFunctionService.putFunction;
-import static io.crate.operation.udf.UserDefinedFunctionService.removeFunction;
+import java.util.Map;
+
+import static io.crate.operation.udf.UserDefinedFunctionService.*;
 import static org.hamcrest.Matchers.*;
 
 public class UserDefinedFunctionServiceTest extends CrateUnitTest {
@@ -101,5 +104,19 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
         expectedException.expect(UserDefinedFunctionAlreadyExistsException.class);
         expectedException.expectMessage("User defined Function 'same()' already exists.");
         putFunction(UserDefinedFunctionsMetaData.of(same1), same2, false);
+    }
+
+    @Test
+    public void testInvalidFunction() throws Exception {
+        UserDefinedFunctionMetaData invalid = new UserDefinedFunctionMetaData(
+            "invalid", ImmutableList.of(), DataTypes.INTEGER,
+            "javascript", "function invalid(){ this is not valid javascript code }"
+        );
+        UserDefinedFunctionsMetaData metaData = UserDefinedFunctionsMetaData.of(invalid, same1);
+        // if a function can't be evaluated, it won't be registered
+        Map<FunctionIdent, FunctionImplementation> functionImpl = createFunctionImplementations(metaData, logger);
+        assertThat(functionImpl.size(), is(1));
+        // the valid functions will be registered
+        assertThat(functionImpl.entrySet().iterator().next().getKey().name(), is("same"));
     }
 }

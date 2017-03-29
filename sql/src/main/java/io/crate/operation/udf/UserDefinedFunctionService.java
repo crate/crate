@@ -39,13 +39,16 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.settings.Settings;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.crate.operation.udf.UserDefinedFunctionsMetaData.PROTO;
-import static java.util.stream.Collectors.toMap;
 
 @Singleton
 public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserDefinedFunctionService> implements ClusterStateListener {
@@ -203,12 +206,26 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
         if ((oldMetaData == null && newMetaData == null) || (oldMetaData != null && oldMetaData.equals(newMetaData))) {
             return;
         }
+        functions.registerSchemaFunctionResolvers(
+            functions.generateFunctionResolvers(createFunctionImplementations(newMetaData, logger))
+        );
+    }
 
-        Map<FunctionIdent, FunctionImplementation> udfFunctions = newMetaData.functionsMetaData().stream()
-            .map(UserDefinedFunctionFactory::of)
-            .collect(toMap(f -> f.info().ident(), f -> f));
-
-        functions.registerSchemaFunctionResolvers(functions.generateFunctionResolvers(udfFunctions));
+    static Map<FunctionIdent, FunctionImplementation> createFunctionImplementations(UserDefinedFunctionsMetaData metaData, ESLogger logger) {
+        Map<FunctionIdent, FunctionImplementation> udfFunctions = new HashMap<>();
+        for (UserDefinedFunctionMetaData function : metaData.functionsMetaData()) {
+            try {
+                FunctionImplementation impl = UserDefinedFunctionFactory.of(function);
+                udfFunctions.put(impl.info().ident(), impl);
+            } catch (javax.script.ScriptException e) {
+                logger.warn(
+                    String.format(Locale.ENGLISH, "Can't create user defined function '%s(%s)'",
+                        function.name(),
+                        function.argumentTypes().stream().map(DataType::getName).collect(Collectors.joining(", "))
+                    ), e);
+            }
+        }
+        return udfFunctions;
     }
 
     static class RegisterUserDefinedFunctionRequest extends ClusterStateUpdateRequest<RegisterUserDefinedFunctionRequest> {
