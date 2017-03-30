@@ -80,6 +80,21 @@ For example, if you wanted to name two ``geo_point`` arguments ``start_point`` a
    Argument names are used for query documentation purposes only. You cannot
    reference arguments by name in the function body.
 
+Optionally, you can specify a schema for the function. If you omit the schema,
+the current session schema is used.
+
+You can explicitly assign a schema like this::
+
+    cr> CREATE OR REPLACE FUNCTION my_schema.log10(long)
+    ...  RETURNS double
+    ...  LANGUAGE JAVASCRIPT
+    ...  AS 'function log10(a) { return Math.log(a)/Math.log(10); }';
+    CREATE OK, 1 row affected  (... sec)
+
+.. hide:
+
+    cr> _wait_for_function('log10', 2)
+
 
 Supported Types
 ---------------
@@ -99,10 +114,10 @@ data types.
 OVERLOADING
 -----------
 
-You can overload functions by defining two functions with the same name that
-have a different set of arguments::
+Within a specific schema, you can overload functions by defining two functions with the
+same name that have a different set of arguments::
 
-    cr> CREATE FUNCTION multiply(integer, integer)
+    cr> CREATE FUNCTION my_schema.multiply(integer, integer)
     ...  RETURNS integer
     ...  LANGUAGE JAVASCRIPT
     ...  AS 'function multiply(a, b) { return a * b; }';
@@ -110,7 +125,7 @@ have a different set of arguments::
 
 This would overload our ``multiply`` function with different argument types::
 
-    cr> CREATE FUNCTION multiply(long, long)
+    cr> CREATE FUNCTION my_schema.multiply(long, long)
     ...  RETURNS long
     ...  LANGUAGE JAVASCRIPT
     ...  AS 'function multiply(a, b) { return a * b; }';
@@ -118,7 +133,7 @@ This would overload our ``multiply`` function with different argument types::
 
 This would overload our ``multiply`` function with more arguments::
 
-    cr> CREATE FUNCTION multiply(long, long, long)
+    cr> CREATE FUNCTION my_schema.multiply(long, long, long)
     ...  RETURNS long
     ...  LANGUAGE JAVASCRIPT
     ...  AS 'function multiply(a, b, c) { return a * b * c; }';
@@ -127,7 +142,11 @@ This would overload our ``multiply`` function with more arguments::
 .. NOTE::
 
    It is considered bad practice to create functions that have the same name
-   as the CrateDB built-in functions.
+   as the CrateDB built-in functions. If you call a function without a schema
+   name, CrateDB will look up the builtin functions first and then the
+   user-defined functions in the session schema. Therefore a built-in function
+   with the same name as a user defined function will hide the latter. However,
+   such user-defined functions can still be called if the schema name is explicitly provided.
 
 .. hide:
 
@@ -159,6 +178,10 @@ Optionally, argument names can be specified within the drop statement::
      cr> DROP FUNCTION IF EXISTS calculate_distance(start_point geo_point, end_point geo_point);
      DROP OK, 1 row affected  (... sec)
 
+Optionally, you can provide a schema::
+
+     cr> DROP FUNCTION my_schema.log10(long);
+     DROP OK, 1 row affected  (... sec)
 
 Supported Languages
 -------------------
@@ -241,13 +264,13 @@ the JavaScript function should return a ``GeoJson`` object or``WKT`` string::
     cr> DROP FUNCTION subtract(integer, integer);
     DROP OK, 1 row affected  (... sec)
 
-    cr> DROP FUNCTION multiply(integer, integer);
+    cr> DROP FUNCTION my_schema.multiply(integer, integer);
     DROP OK, 1 row affected  (... sec)
 
-    cr> DROP FUNCTION multiply(long, long, long);
+    cr> DROP FUNCTION my_schema.multiply(long, long, long);
     DROP OK, 1 row affected  (... sec)
 
-    cr> DROP FUNCTION multiply(long, long);
+    cr> DROP FUNCTION my_schema.multiply(long, long);
     DROP OK, 1 row affected  (... sec)
 
     cr> DROP FUNCTION rotate_point(point geo_point, angle float);
