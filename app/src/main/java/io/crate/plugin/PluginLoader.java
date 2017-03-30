@@ -71,7 +71,7 @@ public class PluginLoader {
         this.settings = settings;
 
         String pluginFolder = SETTING_CRATE_PLUGINS_PATH.get(settings);
-        if (pluginFolder == null) {
+        if (pluginFolder.isEmpty()) {
             pluginsPath = PathUtils.get(Strings.cleanPath(settings.get("path.home"))).resolve("plugins");
         } else {
             pluginsPath = PathUtils.get(Strings.cleanPath(pluginFolder));
