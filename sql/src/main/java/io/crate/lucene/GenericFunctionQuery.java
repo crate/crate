@@ -22,7 +22,6 @@
 
 package io.crate.lucene;
 
-import com.google.common.base.Throwables;
 import io.crate.analyze.symbol.Function;
 import io.crate.data.Input;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
@@ -91,15 +90,11 @@ class GenericFunctionQuery extends Query {
             public Explanation explain(LeafReaderContext context, int doc) throws IOException {
                 final Scorer s = scorer(context);
                 final boolean match;
-                if (s == null) {
-                    match = false;
+                final TwoPhaseIterator twoPhase = s.twoPhaseIterator();
+                if (twoPhase == null) {
+                    match = s.iterator().advance(doc) == doc;
                 } else {
-                    final TwoPhaseIterator twoPhase = s.twoPhaseIterator();
-                    if (twoPhase == null) {
-                        match = s.iterator().advance(doc) == doc;
-                    } else {
-                        match = twoPhase.approximation().advance(doc) == doc && twoPhase.matches();
-                    }
+                    match = twoPhase.approximation().advance(doc) == doc && twoPhase.matches();
                 }
                 if (match) {
                     assert s.score() == 0f : "score must be 0";
@@ -120,28 +115,16 @@ class GenericFunctionQuery extends Query {
 
             @Override
             public Scorer scorer(LeafReaderContext context) throws IOException {
-                final DocIdSet set = getDocIdSet(context);
-                if (set == null) {
-                    return null;
-                }
-                // lucene 5.5.0 FilteredQuery switches to random-access logic if bits are present.
-                // this logic isn't part of this GenericFunctionQuery because FilteredDocIdSet never has bits
-                // this assertion is a safety measure - if bits() suddenly is no longer null this code here should be updated
-                assert set.bits() == null : "bits should never be set because getDocIdSet returns FilteredDocIdSet";
-                final DocIdSetIterator iterator = set.iterator();
-                if (iterator == null) {
-                    return null;
-                }
-                return new ConstantScoreScorer(this, 0f, iterator);
+                return new ConstantScoreScorer(this, 0f, getTwoPhaseIterator(context));
             }
         };
     }
 
-    private DocIdSet getDocIdSet(final LeafReaderContext context) throws IOException {
+    private FilteredTwoPhaseIterator getTwoPhaseIterator(final LeafReaderContext context) throws IOException {
         for (LuceneCollectorExpression expression : expressions) {
             expression.setNextReader(context);
         }
-        return new FilteredDocIdSet(context.reader(), collectorContext.visitor(), condition, expressions);
+        return new FilteredTwoPhaseIterator(context.reader(), collectorContext.visitor(), condition, expressions);
     }
 
     @Override
@@ -149,7 +132,7 @@ class GenericFunctionQuery extends Query {
         return function.toString();
     }
 
-    private static class FilteredDocIdSet extends DocIdSet {
+    private static class FilteredTwoPhaseIterator extends TwoPhaseIterator {
 
         private final LeafReader reader;
         private final CollectorFieldsVisitor fieldsVisitor;
@@ -157,10 +140,11 @@ class GenericFunctionQuery extends Query {
         private final LuceneCollectorExpression[] expressions;
         private final boolean fieldsVisitorEnabled;
 
-        FilteredDocIdSet(LeafReader reader,
-                         @Nullable CollectorFieldsVisitor fieldsVisitor,
-                         Input<Boolean> condition,
-                         LuceneCollectorExpression[] expressions) {
+        FilteredTwoPhaseIterator(LeafReader reader,
+                                 @Nullable CollectorFieldsVisitor fieldsVisitor,
+                                 Input<Boolean> condition,
+                                 LuceneCollectorExpression[] expressions) {
+            super(DocIdSetIterator.all(reader.maxDoc()));
             this.reader = reader;
             this.fieldsVisitor = fieldsVisitor;
             this.fieldsVisitorEnabled = fieldsVisitor != null && fieldsVisitor.required();
@@ -169,18 +153,14 @@ class GenericFunctionQuery extends Query {
         }
 
         @Override
-        public DocIdSetIterator iterator() throws IOException {
-            final DocIdSetIterator docIdSetIt = DocIdSetIterator.all(reader.maxDoc());
-            return new FilteredDocIdSetIterator(docIdSetIt);
-        }
-
-        private boolean match(int doc) {
+        public boolean matches() throws IOException {
+            int doc = approximation.docID();
             if (fieldsVisitorEnabled) {
                 fieldsVisitor.reset();
                 try {
                     reader.document(doc, fieldsVisitor);
                 } catch (IOException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
             for (LuceneCollectorExpression expression : expressions) {
@@ -190,47 +170,9 @@ class GenericFunctionQuery extends Query {
         }
 
         @Override
-        public long ramBytesUsed() {
-            return 0;
-        }
-
-        private class FilteredDocIdSetIterator extends DocIdSetIterator {
-
-            private final DocIdSetIterator docIdSetIt;
-            private int doc = -1;
-
-            FilteredDocIdSetIterator(DocIdSetIterator docIdSetIt) {
-                this.docIdSetIt = docIdSetIt;
-            }
-
-            @Override
-            public int docID() {
-                return doc;
-            }
-
-            @Override
-            public int nextDoc() throws IOException {
-                while ((doc = docIdSetIt.nextDoc()) != NO_MORE_DOCS) {
-                    if (match(doc)) {
-                        return doc;
-                    }
-                }
-                return doc;
-            }
-
-            @Override
-            public int advance(int target) throws IOException {
-                doc = docIdSetIt.advance(target);
-                if (doc == NO_MORE_DOCS || match(doc)) {
-                    return doc;
-                }
-                return nextDoc();
-            }
-
-            @Override
-            public long cost() {
-                return docIdSetIt.cost();
-            }
+        public float matchCost() {
+            // Arbitrary number, we don't have a way to get the cost of the condition
+            return 10;
         }
     }
 }
