@@ -25,7 +25,6 @@ package io.crate.operation.projectors;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.*;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -81,9 +80,8 @@ public class GroupingBytesRefCollectorBenchmark {
         List<Input<?>> keyInputs = Collections.singletonList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 
-        FunctionIdent minBytesRefFuncIdent = new FunctionIdent(MinimumAggregation.NAME,
-            Collections.singletonList(DataTypes.STRING));
-        AggregationFunction minAgg = (AggregationFunction) functions.get(minBytesRefFuncIdent);
+        AggregationFunction minAgg =
+            (AggregationFunction) functions.get(MinimumAggregation.NAME, Collections.singletonList(DataTypes.STRING));
 
         return GroupingCollector.singleKey(
             collectExpressions,

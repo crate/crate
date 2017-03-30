@@ -116,7 +116,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         } else {
             dataTypes = ImmutableList.of(dataType, dataType);
         }
-        return functions.get(new FunctionIdent(name, dataTypes)).info();
+        return functions.get(name, dataTypes).info();
     }
 
     private FunctionInfo functionInfo(String name, DataType dataType) {

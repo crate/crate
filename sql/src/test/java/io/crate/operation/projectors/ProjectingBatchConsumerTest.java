@@ -34,7 +34,6 @@ import io.crate.data.BatchIterator;
 import io.crate.data.RowsBatchIterator;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
@@ -130,8 +129,7 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
 
     @Test
     public void testConsumerRequiresScrollAndProjectorsDontSupportScrolling() throws Exception {
-        EqOperator op = (EqOperator) functions.get(
-            new FunctionIdent(EqOperator.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER)));
+        EqOperator op = (EqOperator) functions.get(EqOperator.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER));
         Function function = new Function(op.info(), Arrays.asList(Literal.of(2), new InputColumn(1)));
         FilterProjection filterProjection = new FilterProjection(function,
             Arrays.asList(new InputColumn(0), new InputColumn(1)));

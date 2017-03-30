@@ -54,19 +54,19 @@ public class Functions {
     }
 
     /**
-     * <p>
-     * returns the functionImplementation for the given ident.
-     * </p>
-     * <p>
-     * same as {@link #get(FunctionIdent)} but will throw an UnsupportedOperationException
-     * if no implementation is found.
+     * Returns the function implementation for the given function name and arguments.
+     *
+     * @param name           The function name.
+     * @param argumentsTypes The function argument types.
+     * @return The function implementation..
+     * @throws UnsupportedOperationException if an implementation is not found.
      */
-    public FunctionImplementation getSafe(FunctionIdent ident)
+    public FunctionImplementation getSafe(String name, List<DataType> argumentsTypes)
         throws IllegalArgumentException, UnsupportedOperationException {
         FunctionImplementation implementation = null;
         String exceptionMessage = null;
         try {
-            implementation = get(ident);
+            implementation = get(name, argumentsTypes);
         } catch (IllegalArgumentException e) {
             if (e.getMessage() != null && !e.getMessage().isEmpty()) {
                 exceptionMessage = e.getMessage();
@@ -74,8 +74,8 @@ public class Functions {
         }
         if (implementation == null) {
             if (exceptionMessage == null) {
-                exceptionMessage = String.format(Locale.ENGLISH, "unknown function: %s(%s)", ident.name(),
-                    Joiner.on(", ").join(ident.argumentTypes()));
+                exceptionMessage = String.format(Locale.ENGLISH, "unknown function: %s(%s)", name,
+                    Joiner.on(", ").join(argumentsTypes));
             }
             throw new UnsupportedOperationException(exceptionMessage);
         }
@@ -83,15 +83,17 @@ public class Functions {
     }
 
     /**
-     * returns the functionImplementation for the given ident
-     * or null if nothing was found
+     * Returns the function implementation for the given function name and arguments.
+     *
+     * @param name           The function name.
+     * @param argumentsTypes The function argument types.
+     * @return a function implementation or null if it was not found.
      */
     @Nullable
-    public FunctionImplementation get(FunctionIdent ident) throws IllegalArgumentException {
-        FunctionResolver dynamicResolver = functionResolvers.get(ident.name());
+    public FunctionImplementation get(String name, List<DataType> argumentsTypes) throws IllegalArgumentException {
+        FunctionResolver dynamicResolver = functionResolvers.get(name);
         if (dynamicResolver != null) {
-            List<DataType> argumentTypes = ident.argumentTypes();
-            List<DataType> signature = dynamicResolver.getSignature(argumentTypes);
+            List<DataType> signature = dynamicResolver.getSignature(argumentsTypes);
             if (signature != null) {
                 return dynamicResolver.getForTypes(signature);
             }

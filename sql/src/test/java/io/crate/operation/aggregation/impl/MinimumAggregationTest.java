@@ -22,7 +22,6 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -37,8 +36,7 @@ public class MinimumAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        FunctionIdent fi = new FunctionIdent("min", ImmutableList.<DataType>of(DataTypes.INTEGER));
-        assertEquals(DataTypes.INTEGER, functions.get(fi).info().returnType());
+        assertEquals(DataTypes.INTEGER, functions.get("min", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
     }
 
     @Test

@@ -24,7 +24,6 @@ package io.crate.operation.projectors;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.data.*;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Scalar;
 import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.operation.collect.CollectExpression;
@@ -34,7 +33,6 @@ import io.crate.testing.RowGenerator;
 import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingHelpers;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -152,8 +150,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
 
     @Test
     public void testFunctionExpression() throws Throwable {
-        Scalar floor = (Scalar) TestingHelpers.getFunctions().get(
-            new FunctionIdent("floor", Collections.<DataType>singletonList(DataTypes.DOUBLE)));
+        Scalar floor = (Scalar) TestingHelpers.getFunctions().get("floor", Collections.singletonList(DataTypes.DOUBLE));
         FunctionExpression<Number, ?> funcExpr = new FunctionExpression<>(floor, new Input[]{input});
         Projector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(funcExpr), COLLECT_EXPRESSIONS, 10, TopN.NO_OFFSET);
 

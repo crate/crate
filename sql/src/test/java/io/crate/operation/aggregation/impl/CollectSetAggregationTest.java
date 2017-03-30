@@ -22,7 +22,6 @@
 package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.DataType;
@@ -45,8 +44,8 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        FunctionIdent fi = new FunctionIdent("collect_set", ImmutableList.<DataType>of(DataTypes.INTEGER));
-        assertEquals(new SetType(DataTypes.INTEGER), functions.get(fi).info().returnType());
+        assertEquals(new SetType(DataTypes.INTEGER),
+            functions.get("collect_set", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
     }
 
     @Test
@@ -60,8 +59,7 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testLongSerialization() throws Exception {
-        FunctionIdent fi = new FunctionIdent("collect_set", ImmutableList.<DataType>of(DataTypes.LONG));
-        AggregationFunction impl = (AggregationFunction) functions.get(fi);
+        AggregationFunction impl = (AggregationFunction) functions.get("collect_set", ImmutableList.of(DataTypes.LONG));
 
         Object state = impl.newState(ramAccountingContext);
 

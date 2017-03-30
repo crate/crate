@@ -25,7 +25,6 @@ package io.crate.operation.projectors;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.*;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -73,8 +72,8 @@ public class GroupingIntegerCollectorBenchmark {
         List<Input<?>> keyInputs = Arrays.<Input<?>>asList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 
-        FunctionIdent functionIdent = new FunctionIdent(SumAggregation.NAME, Arrays.asList(DataTypes.INTEGER));
-        AggregationFunction sumAgg = (AggregationFunction) functions.get(functionIdent);
+        AggregationFunction sumAgg =
+            (AggregationFunction) functions.get(SumAggregation.NAME, Arrays.asList(DataTypes.INTEGER));
 
         return GroupingCollector.singleKey(
             collectExpressions,

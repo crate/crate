@@ -23,7 +23,6 @@ package io.crate.operation.aggregation.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Literal;
-import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.aggregation.AggregationTest;
 import io.crate.types.ArrayType;
@@ -47,11 +46,10 @@ public class PercentileAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnTypes() throws Exception {
-        FunctionIdent synopsis1 = new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.DOUBLE, DataTypes.DOUBLE));
-        assertEquals(DataTypes.DOUBLE, functions.get(synopsis1).info().returnType());
-
-        FunctionIdent synopsis2 = new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.DOUBLE, new ArrayType(DataTypes.DOUBLE)));
-        assertEquals(new ArrayType(DataTypes.DOUBLE), functions.get(synopsis2).info().returnType());
+        assertEquals(DataTypes.DOUBLE,
+            functions.get(NAME, ImmutableList.of(DataTypes.DOUBLE, DataTypes.DOUBLE)).info().returnType());
+        assertEquals(new ArrayType(DataTypes.DOUBLE),
+            functions.get(NAME, ImmutableList.of(DataTypes.DOUBLE, new ArrayType(DataTypes.DOUBLE))).info().returnType());
     }
 
     @Test
