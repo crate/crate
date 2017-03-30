@@ -42,6 +42,16 @@ public abstract class InformationRoutinesExpression<T>
         }
     }
 
+    public static class RoutineSchemaExpression extends InformationRoutinesExpression<BytesRef> {
+        @Override
+        public BytesRef value() {
+            if (row.schema() == null){
+                return null;
+            }
+            return new BytesRef(row.schema());
+        }
+    }
+
     public static class RoutineBodyExpression extends InformationRoutinesExpression<BytesRef> {
         @Override
         public BytesRef value() {

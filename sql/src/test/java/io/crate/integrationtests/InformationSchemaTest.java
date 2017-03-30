@@ -400,7 +400,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "as 'function substract_test(a, b, c) { return a - b - c; }'");
             waitForFunctionCreatedOnAll("substract_test", ImmutableList.of(DataTypes.LONG, DataTypes.LONG, DataTypes.LONG));
 
-            execute("select routine_name, routine_body, data_type, routine_definition" +
+            execute("select routine_name, routine_body, data_type, routine_definition, routine_schema" +
                 " from information_schema.routines " +
                 " where routine_type = 'FUNCTION'");
             assertThat(response.rowCount(), is(1L));
@@ -408,6 +408,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
             assertThat(response.rows()[0][1], is("javascript"));
             assertThat(response.rows()[0][2], is("long"));
             assertThat(response.rows()[0][3], is("function substract_test(a, b, c) { return a - b - c; }"));
+            assertThat(response.rows()[0][4], is("doc"));
         }
         finally {
             execute("drop function if exists substract_test(long, long, long)");
@@ -482,7 +483,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(393, response.rowCount());
+        assertEquals(394, response.rowCount());
     }
 
     @Test

@@ -75,6 +75,13 @@ public class InformationSchemaExpressionFactories {
                     return new InformationRoutinesExpression.RoutineTypeExpression();
                 }
             })
+            .put(InformationRoutinesTableInfo.Columns.ROUTINE_SCHEMA, new RowCollectExpressionFactory() {
+
+                @Override
+                public RowCollectExpression create() {
+                    return new InformationRoutinesExpression.RoutineSchemaExpression();
+                }
+            })
             .put(InformationRoutinesTableInfo.Columns.ROUTINE_BODY, new RowCollectExpressionFactory() {
 
                 @Override
