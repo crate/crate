@@ -21,28 +21,19 @@
 
 package io.crate.operation.reference.sys.shard.blob;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import io.crate.blob.v2.BlobShard;
 import io.crate.metadata.ReferenceImplementation;
 
-import java.util.concurrent.TimeUnit;
-
 public class BlobShardSizeExpression implements ReferenceImplementation<Long> {
 
-    private final Supplier<Long> totalUsageSupplier;
+    private final BlobShard blobShard;
 
     public BlobShardSizeExpression(final BlobShard blobShard) {
-        totalUsageSupplier = Suppliers.memoizeWithExpiration(new Supplier<Long>() {
-            @Override
-            public Long get() {
-                return blobShard.blobStats().totalUsage();
-            }
-        }, 10, TimeUnit.SECONDS);
+        this.blobShard = blobShard;
     }
 
     @Override
     public Long value() {
-        return totalUsageSupplier.get();
+        return blobShard.getTotalSize();
     }
 }
