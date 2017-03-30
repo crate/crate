@@ -40,15 +40,15 @@ import static org.hamcrest.Matchers.*;
 public class UserDefinedFunctionServiceTest extends CrateUnitTest {
 
     private final UserDefinedFunctionMetaData same1 = new UserDefinedFunctionMetaData(
-        "same", ImmutableList.of(), ImmutableList.of(), DataTypes.INTEGER,
+        "same", ImmutableList.of(), DataTypes.INTEGER,
         "javascript", "function same(){ return 3; }"
     );
     private final UserDefinedFunctionMetaData same2 = new UserDefinedFunctionMetaData(
-        "same", ImmutableList.of(), ImmutableList.of(), DataTypes.INTEGER,
+        "same", ImmutableList.of(), DataTypes.INTEGER,
         "javascript", "function same() { return 2; }"
     );
     private final UserDefinedFunctionMetaData different = new UserDefinedFunctionMetaData(
-        "different", ImmutableList.of(), ImmutableList.of(), DataTypes.INTEGER,
+        "different", ImmutableList.of(), DataTypes.INTEGER,
         "javascript", "function different() { return 3; }"
     );
 

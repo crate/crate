@@ -39,7 +39,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.List;
 
-import static io.crate.operation.udf.UserDefinedFunctionMetaData.argumentTypesFrom;
 import static org.hamcrest.core.Is.is;
 
 public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
@@ -52,7 +51,6 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
     private UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
         "my_add",
         args,
-        argumentTypesFrom(args),
         DataTypes.FLOAT,
         "javascript",
         definition
@@ -72,6 +70,8 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         assertThat(udfMeta2.arguments().get(1), is(
             FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
         ));
+        assertThat(udfMeta2.argumentTypes().size(), is(2));
+        assertThat(udfMeta2.argumentTypes().get(1), is(DataTypes.DOUBLE));
         assertThat(udfMeta2.returnType, is(DataTypes.FLOAT));
         assertThat(udfMeta2.language, is("javascript"));
         assertThat(udfMeta2.definition, is(definition));

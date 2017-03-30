@@ -48,7 +48,6 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
 
     public UserDefinedFunctionMetaData(String name,
                                        List<FunctionArgumentDefinition> arguments,
-                                       List<DataType> argumentTypes,
                                        DataType returnType,
                                        String language,
                                        String definition) {
@@ -57,7 +56,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         this.returnType = returnType;
         this.language = language;
         this.definition = definition;
-        this.argumentTypes = argumentTypes;
+        this.argumentTypes = argumentTypesFrom(arguments);
     }
 
     private UserDefinedFunctionMetaData() {
@@ -87,10 +86,6 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
 
     public List<FunctionArgumentDefinition> arguments() {
         return arguments;
-    }
-
-    static List<DataType> argumentTypesFrom(List<FunctionArgumentDefinition> arguments) {
-        return arguments.stream().map(FunctionArgumentDefinition::type).collect(toList());
     }
 
     public List<DataType> argumentTypes() {
@@ -175,7 +170,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
                 throw new UnhandledServerException("failed to parse function");
             }
         }
-        return new UserDefinedFunctionMetaData(name, arguments, argumentTypesFrom(arguments), returnType, language, definition);
+        return new UserDefinedFunctionMetaData(name, arguments, returnType, language, definition);
     }
 
     private static String parseStringField(XContentParser parser) throws IOException {
@@ -241,4 +236,9 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         }
 
     }
+
+    private static List<DataType> argumentTypesFrom(List<FunctionArgumentDefinition> arguments) {
+        return arguments.stream().map(FunctionArgumentDefinition::type).collect(toList());
+    }
+
 }

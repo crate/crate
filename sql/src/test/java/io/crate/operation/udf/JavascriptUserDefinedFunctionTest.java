@@ -63,7 +63,6 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
         UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
             name,
             types.stream().map(FunctionArgumentDefinition::of).collect(Collectors.toList()),
-            types,
             returnType,
             JS,
             definition
