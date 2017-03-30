@@ -29,7 +29,6 @@ package io.crate.analyze;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.data.Row;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Literal;
 import io.crate.test.integration.CrateUnitTest;
@@ -67,9 +66,10 @@ public class CreateFunctionAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testCreateFunctionWithSchemaName() {
-        expectedException.expect(UnsupportedFeatureException.class);
-        e.analyze("CREATE FUNCTION foo.bar(long, long)" +
+        CreateFunctionAnalyzedStatement analyzedStatement = e.analyze("CREATE FUNCTION foo.bar(long, long)" +
             " RETURNS long LANGUAGE javascript AS 'function(a, b) { return a + b; }'");
+        assertThat(analyzedStatement.schema(), is("foo"));
+        assertThat(analyzedStatement.name(), is("bar"));
     }
 
     @Test
