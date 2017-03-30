@@ -32,6 +32,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class BlobIndex {
 
@@ -76,8 +77,8 @@ public class BlobIndex {
         this.logger = logger;
     }
 
-    void createShard(IndexShard indexShard) {
-        shards.put(indexShard.shardId().id(), new BlobShard(indexShard, globalBlobPath));
+    void createShard(IndexShard indexShard, ScheduledExecutorService scheduler) {
+        shards.put(indexShard.shardId().id(), new BlobShard(indexShard, globalBlobPath, scheduler));
     }
 
     BlobShard removeShard(ShardId shardId) {

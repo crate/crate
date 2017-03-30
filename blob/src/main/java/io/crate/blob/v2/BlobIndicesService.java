@@ -36,6 +36,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesLifecycle;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -63,16 +64,19 @@ public class BlobIndicesService extends AbstractComponent {
 
     @Nullable
     private final Path globalBlobPath;
+    private final ThreadPool threadPool;
 
     @Inject
     public BlobIndicesService(Settings settings,
                               ClusterService clusterService,
-                              IndicesLifecycle indicesLifecycle) {
+                              IndicesLifecycle indicesLifecycle,
+                              ThreadPool threadPool) {
         super(settings);
         this.clusterService = clusterService;
         this.indicesLifecycle = indicesLifecycle;
         indicesLifecycle.addListener(new LifecycleListener());
         globalBlobPath = getGlobalBlobPath(settings);
+        this.threadPool = threadPool;
         logger.setLevel("debug");
     }
 
@@ -113,7 +117,7 @@ public class BlobIndicesService extends AbstractComponent {
             if (isBlobIndex(index)) {
                 BlobIndex blobIndex = indices.get(index);
                 assert blobIndex != null : "blobIndex must exists if a shard is created in it";
-                blobIndex.createShard(indexShard);
+                blobIndex.createShard(indexShard, threadPool.scheduler());
             }
         }
 
