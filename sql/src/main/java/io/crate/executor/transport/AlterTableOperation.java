@@ -94,7 +94,7 @@ public class AlterTableOperation {
                 String.format(Locale.ENGLISH, "SELECT COUNT(*) FROM \"%s\".\"%s\"", ident.schema(), ident.name());
 
             SQLOperations.SQLDirectExecutor sqlDirectExecutor = sqlOperations.createSQLDirectExecutor(
-                ident.schema(),
+                null,
                 SQLOperations.Session.UNNAMED,
                 stmt,
                 1);
