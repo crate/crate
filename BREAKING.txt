@@ -2,9 +2,9 @@
  BREAKING CHANGES due to ES 5.x upgrade
 ========================================
 
-- Tables created with Crate versions older than 0.46.0 will have to be 
-  recreated. This is due to the way numeric docvalues are stored starting with  
-  Crate 0.46.0 (sorted numeric instead of binary) which uses ES 1.4 
+- Tables created with Crate versions older than 0.46.0 will have to be
+  recreated. This is due to the way numeric docvalues are stored starting with
+  Crate 0.46.0 (sorted numeric instead of binary) which uses ES 1.4
   The backwards compatibility layer for binary docvalues was removed in ES 5.x
 
 - -Des cannot be used anymore, ES 5.0 needs -Eparam=value which is passed as command line argument
@@ -63,4 +63,10 @@
     - added `fingerprint`, `keep_types`, `min_hash`, `serbian_normalization`
     - removed `keyword_repeat`, `type_as_payload`
 
+- When trying to start a node with both compatible and incompatible tables then bootstrap fails
+  in IndexFolderUpgrader for the 1st incompatible table it finds and before any segment upgrade can
+  happen for any index. Therefore the compatible tables are not upgraded and the user can rollback to
+  the previous Crate version without problem.
+  WARNING: If a node is started with all compatible tables then the tables are upgraded so they become unusable
+  for previous Crate versions and user cannot rollback to them.
 
