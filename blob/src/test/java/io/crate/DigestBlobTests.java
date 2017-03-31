@@ -36,13 +36,14 @@ import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.UUID;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertTrue;
 
 public class DigestBlobTests extends CrateUnitTest {
 
     @Rule
     public TemporaryFolder tmpFolder = new TemporaryFolder();
-
 
     @Test
     public void testDigestBlobResumeHeadAndAddContent() throws IOException {

@@ -31,9 +31,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.Semaphore;
 
 public class BlobContainer {
 
@@ -54,11 +56,13 @@ public class BlobContainer {
     private final Path baseDirectory;
     private final Path tmpDirectory;
     private final Path varDirectory;
+    private final BlobCoordinator blobCoordinator;
 
     public BlobContainer(Path baseDirectory) {
         this.baseDirectory = baseDirectory;
         this.tmpDirectory = baseDirectory.resolve("tmp");
         this.varDirectory = baseDirectory.resolve("var");
+        this.blobCoordinator = new BlobCoordinator();
         try {
             Files.createDirectories(this.varDirectory);
             createSubDirectories(this.varDirectory);
@@ -138,6 +142,23 @@ public class BlobContainer {
         }
 
         return newNames.toArray(new String[newNames.size()]);
+    }
+
+    /**
+     * Walks the blobs data tree directory and visits all items using the provided {@link FileVisitor}
+     *
+     * NOTE: USE WITH CAUTION!
+     * NOTE: THIS IS AN EXPENSIVE OPERATION AS IT ITERATES OVER THE ENTIRE BLOB CONTAINER
+     *
+     * @param visitor
+     * @throws IOException
+     */
+    public void visitBlobs(FileVisitor<Path> visitor) throws IOException {
+        Files.walkFileTree(varDirectory, visitor);
+    }
+
+    public Semaphore digestCoordinator(String digest) {
+        return blobCoordinator.digestCoordinator(digest);
     }
 
     public Path getBaseDirectory() {

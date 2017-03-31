@@ -34,7 +34,6 @@ public class BlobShardNumDocsExpression implements ReferenceImplementation<Long>
 
     @Override
     public Long value() {
-        // TODO: cache stats result
-        return blobShard.blobStats().count();
+        return blobShard.getBlobsCount();
     }
 }

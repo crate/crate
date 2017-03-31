@@ -1,6 +1,8 @@
 package io.crate.integrationtests;
 
 
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobShard;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -9,9 +11,12 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -19,8 +24,10 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.*;
 
 import static org.hamcrest.Matchers.*;
 
@@ -258,7 +265,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
 
         BufferedReader reader = new BufferedReader(
             new InputStreamReader(socket.getInputStream(),
-            StandardCharsets.UTF_8));
+                StandardCharsets.UTF_8));
         String line;
         List<String> lines = new ArrayList<>();
         while ((line = reader.readLine()) != null) {
@@ -305,4 +312,84 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
             is("{\"_index\":\"test_no_blobs\",\"_type\":\"default\"," +
                "\"_id\":\"1\",\"_version\":1,\"_shards\":{\"total\":1,\"successful\":1,\"failed\":0},\"created\":true}"));
     }
+
+    @Test
+    public void testBlobShardIncrementalStatsUpdate() throws IOException {
+        String digest = uploadSmallBlob();
+        BlobShard blobShard = getBlobShard(digest);
+
+        if (blobShard == null) {
+            fail("Unable to find blob shard");
+        }
+
+        assertThat(blobShard.getBlobsCount(), is(1L));
+        assertThat(blobShard.getTotalSize(), greaterThan(0L));
+
+        String uri = blobUri(digest);
+        delete(uri);
+        assertThat(blobShard.getBlobsCount(), is(0L));
+        assertThat(blobShard.getTotalSize(), is(0L));
+
+        // attempting to delete the same digest multiple times doesn't modify the stats
+        delete(uri);
+        assertThat(blobShard.getBlobsCount(), is(0L));
+        assertThat(blobShard.getTotalSize(), is(0L));
+    }
+
+    @Test
+    public void testBlobShardStatsWhenTheSameBlobIsConcurrentlyUploaded() throws Exception {
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
+
+        CountDownLatch latch = new CountDownLatch(2);
+        List<CompletableFuture<String>> blobUploads = new ArrayList<>(2);
+        for (int i = 0; i < 2; i++) {
+            blobUploads.add(CompletableFuture.supplyAsync(() -> {
+                try {
+                    latch.countDown();
+                    latch.await(10, TimeUnit.SECONDS);
+                    return uploadBigBlob();
+                } catch (Exception e) {
+                    fail("Expecting successful upload but got: " + e.getMessage());
+                }
+                return null;
+            }, executorService));
+        }
+
+        try {
+            String digest = null;
+            for (CompletableFuture<String> blobUpload : blobUploads) {
+                digest = blobUpload.join();
+            }
+
+            BlobShard blobShard = getBlobShard(digest);
+            if (blobShard == null) {
+                fail("Unable to find blob shard");
+            }
+
+            assertThat(blobShard.getBlobsCount(), is(1L));
+        } finally {
+            executorService.shutdown();
+            executorService.awaitTermination(10, TimeUnit.SECONDS);
+        }
+    }
+
+    @Nullable
+    private BlobShard getBlobShard(String digest) {
+        Iterable<BlobIndicesService> services = internalCluster().getInstances(BlobIndicesService.class);
+        Iterator<BlobIndicesService> it = services.iterator();
+        BlobShard blobShard = null;
+        while (it.hasNext()) {
+            BlobIndicesService nextService = it.next();
+            try {
+                blobShard = nextService.localBlobShard(".blob_test", digest);
+            } catch (ShardNotFoundException | IndexNotFoundException e) {
+                continue;
+            }
+            if (blobShard != null) {
+                break;
+            }
+        }
+        return blobShard;
+    }
+
 }

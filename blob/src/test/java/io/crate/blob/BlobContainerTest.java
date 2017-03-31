@@ -29,7 +29,13 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -55,6 +61,26 @@ public class BlobContainerTest {
         assertThat(fileIterator.next().exists(), is(true));
         assertThat(fileIterator.next().exists(), is(true));
         assertThat(fileIterator.hasNext(), is(false));
+    }
+
+    @Test
+    public void testContainerVisitor() throws Exception {
+        File blobsPath = temporaryFolder.newFolder();
+        BlobContainer blobContainer = new BlobContainer(blobsPath.toPath());
+        blobContainer.getFile(digest("Content A")).createNewFile();
+        blobContainer.getFile(digest("Content B")).createNewFile();
+        blobContainer.getFile(digest("Content C")).createNewFile();
+
+        final AtomicInteger blobsCount = new AtomicInteger(0);
+        blobContainer.visitBlobs(new SimpleFileVisitor<Path>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                blobsCount.getAndIncrement();
+                return FileVisitResult.CONTINUE;
+            }
+        });
+
+        assertThat(blobsCount.get(), is(3));
     }
 
     private static String digest(String content) {

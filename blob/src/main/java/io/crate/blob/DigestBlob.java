@@ -22,6 +22,7 @@
 package io.crate.blob;
 
 import com.google.common.io.ByteStreams;
+import io.crate.blob.exceptions.BlobAlreadyExistsException;
 import io.crate.blob.exceptions.DigestMismatchException;
 import io.crate.bp.Netty3Utils;
 import io.crate.common.Hex;
@@ -34,11 +35,13 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class DigestBlob implements Closeable {
@@ -152,7 +155,7 @@ public class DigestBlob implements Closeable {
         }
     }
 
-    public File commit() throws DigestMismatchException {
+    public File commit() throws DigestMismatchException, BlobAlreadyExistsException {
         if (headLength > 0) {
             calculateDigest();
         }
@@ -169,8 +172,25 @@ public class DigestBlob implements Closeable {
             headFileChannel = null;
         }
         File newFile = container.getFile(digest);
-        file.renameTo(newFile);
-        file = null;
+        Semaphore semaphore = container.digestCoordinator(digest);
+        try {
+            semaphore.acquire();
+
+            try {
+                if (Files.exists(newFile.toPath())) {
+                    throw new BlobAlreadyExistsException(digest);
+                }
+                file.renameTo(newFile);
+                file = null;
+            } finally {
+                // semaphore was acquired successfully, release it
+                semaphore.release();
+            }
+        } catch (InterruptedException e) {
+            logger.error("Unable to commit blob {}", e, file.getName());
+            throw new IllegalStateException("Unable to commit blob because exclusive execution could not be achieved");
+        }
+
         return newFile;
     }
 

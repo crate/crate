@@ -118,6 +118,15 @@ public class BlobIndicesService extends AbstractComponent {
         }
 
         @Override
+        public void beforeIndexShardPostRecovery(IndexShard indexShard) {
+            String index = indexShard.indexService().index().getName();
+            if (isBlobIndex(index)) {
+                BlobIndex blobIndex = indices.get(index);
+                blobIndex.initializeShard(indexShard);
+            }
+        }
+
+        @Override
         public void afterIndexShardDeleted(ShardId shardId, Settings indexSettings) {
             String index = shardId.getIndex();
             if (isBlobIndex(index)) {

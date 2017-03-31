@@ -21,6 +21,9 @@ Breaking Changes
 Changes
 =======
 
+ - Improved performance of blob stats computation by calculating them in an 
+   incremental manner.
+
  - Optimized performance of negation queries on ``NOT NULL`` columns.
    e.g.::
 

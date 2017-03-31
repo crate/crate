@@ -80,6 +80,14 @@ public class BlobIndex {
         shards.put(indexShard.shardId().id(), new BlobShard(indexShard, globalBlobPath));
     }
 
+    void initializeShard(IndexShard indexShard) {
+        BlobShard blobShard = shards.get(indexShard.shardId().id());
+        if (blobShard == null) {
+            throw new IllegalStateException("Shard needs to be created before it is initialized");
+        }
+        blobShard.initialize();
+    }
+
     BlobShard removeShard(ShardId shardId) {
         Path blobRoot = null;
         BlobShard shard = shards.remove(shardId.id());

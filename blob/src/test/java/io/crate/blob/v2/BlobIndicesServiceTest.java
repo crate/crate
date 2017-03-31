@@ -40,7 +40,6 @@ import static org.mockito.Mockito.when;
 
 public class BlobIndicesServiceTest extends CrateUnitTest {
 
-
     @Test
     public void testBlobComponentsAreNotCreatedForNonBlobIndex() throws Exception {
         CompletableFuture<IndicesLifecycle.Listener> listenerFuture = new CompletableFuture<>();

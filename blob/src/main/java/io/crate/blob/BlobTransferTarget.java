@@ -21,6 +21,7 @@
 
 package io.crate.blob;
 
+import io.crate.blob.exceptions.BlobAlreadyExistsException;
 import io.crate.blob.exceptions.DigestMismatchException;
 import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
 import io.crate.blob.pending_transfer.BlobInfoRequest;
@@ -108,13 +109,19 @@ public class BlobTransferTarget extends AbstractComponent {
         if (request.isLast()) {
             try {
                 digestBlob.commit();
+                blobShard.incrementStats(digestBlob.size());
                 response.status(RemoteDigestBlob.Status.FULL);
             } catch (DigestMismatchException e) {
                 response.status(RemoteDigestBlob.Status.MISMATCH);
+            } catch (BlobAlreadyExistsException e) {
+                response.size(digestBlob.size());
+                response.status(RemoteDigestBlob.Status.EXISTS);
+            } catch (Exception e) {
+                response.status(RemoteDigestBlob.Status.FAILED);
             }
         } else {
             BlobTransferStatus status = new BlobTransferStatus(
-                request.index(), request.transferId(), digestBlob
+                request.shardId(), request.transferId(), digestBlob
             );
             activeTransfers.put(request.transferId(), status);
             response.status(RemoteDigestBlob.Status.PARTIAL);
@@ -173,7 +180,7 @@ public class BlobTransferTarget extends AbstractComponent {
         assert digestBlob != null : "DigestBlob couldn't be restored";
 
         BlobTransferStatus status;
-        status = new BlobTransferStatus(transferInfoResponse.index, request.transferId, digestBlob);
+        status = new BlobTransferStatus(request.shardId(), request.transferId, digestBlob);
         activeTransfers.put(request.transferId, status);
         logger.trace("Restored transferStatus for digest {} transferId: {}",
             transferInfoResponse.digest, request.transferId
@@ -203,9 +210,16 @@ public class BlobTransferTarget extends AbstractComponent {
             digestBlob.waitForHead();
             try {
                 digestBlob.commit();
+                BlobShard blobShard = blobIndicesService.blobShardSafe(status.shardId());
+                blobShard.incrementStats(digestBlob.size());
                 response.status(RemoteDigestBlob.Status.FULL);
             } catch (DigestMismatchException e) {
                 response.status(RemoteDigestBlob.Status.MISMATCH);
+            } catch (BlobAlreadyExistsException e) {
+                response.size(digestBlob.size());
+                response.status(RemoteDigestBlob.Status.EXISTS);
+            } catch (Exception e) {
+                response.status(RemoteDigestBlob.Status.FAILED);
             } finally {
                 removeTransferAfterRecovery(status.transferId());
             }
