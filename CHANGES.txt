@@ -15,11 +15,91 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+ - Parsing support of time values has been changed:
+
+   - The unit ``w`` representing weeks is no longer supported.
+
+   - Fractional time values (e.g. ``0.5s``) are no longer
+     supported. For example, this means when setting timeouts,
+     ``0.5s`` will be rejected and should instead be input as ``500ms``.
+
+ - The already unused ``path.work`` node setting has been removed.
+
+ - The node setting ``bootstrap.mlockall`` has been renamed to
+   ``bootstrap.memory_lock``.
+
+ - The ``keyword_repeat`` and ``type_as_payload`` built-in token
+   filter have been removed.
+
+ - The ``classic`` built-in analyzer has been removed.
+
+ - The shard balance related cluster settings
+   ``cluster.routing.allocation.balance.primary`` and
+   ``cluster.routing.allocation.balance.replica`` have been removed.
+
+ - Some ``recovery`` related cluster settings have been removed or replaced:
+
+   - The ``indices.recovery.concurrent_streams`` cluster setting is
+     now superseded by
+     ``cluster.routing.allocation.node_concurrent_recoveries``.
+
+   - The ``indices.recovery.activity_timeout`` cluster setting have
+     beend renamed to ``indices.recovery.recovery_activity_timeout``.
+
+   - Following ``recovery`` cluster settings are removed:
+
+     - ``indices.recovery.file_chunk_size``
+
+     - ``indices.recovery.translog_ops``
+
+     - ``indices.recovery.translog_size``
+
+     - ``indices.recovery.compress``
+
+ - Logging is now configured by ``log4j2.properties`` instead of ``logging.yml``.
+
+ - The Plugin interface has changed, injecting classes on ``shard`` or
+   ``index`` levels is no longer supported.
+
+ - It's no longer possible to run crate as the unix ``root`` user.
+
+ - Some ``translog`` related table settings have been removed or replaced:
+
+   - The ``index.translog.interval``, ``translog.disable_flush`` and
+     ``translog.flush_threshold_period`` table settings have been removed.
+
+   - The ``index.translog.sync_interval`` table setting doesn’t accept a
+     value less than 100ms which prevents fsyncing too often if async
+     durability is enabled. The special value ``0`` is no longer supported.
+
+   - The ``index.translog.flush_threshold_ops`` table setting is not
+     supported anymore. In order to control flushes based on the
+     transaction log growth use
+     ``index.translog.flush_threshold_size`` instead.
+
+ - The ``COPY FROM`` statement now requires column names to be quoted in
+   the JSON file being imported.
+
+ - Queries on columns with ``INDEX OFF`` will now fail instead of
+   always resulting in an empty result.
+
+ - Configuration support using system properties has been dropped.
+
+ - It's no longer possible to use ``Hadoop 1.x`` as a ``repository``
+   for snapshots.
+
  - Changed default bind and publish address from ``0.0.0.0`` to the system
    ``loopback`` addresses.
 
 Changes
 =======
+
+ - Added built-in ``fingerprint``, ``keep_types``, ``min_hash`` and
+   ``serbian_normalization`` token filter.
+
+ - Added a ``fingerprint`` built-in analyzer.
+
+ - Upgraded to Elasticsearch 5.0.2
 
  - Improved performance of blob stats computation by calculating them in an 
    incremental manner.

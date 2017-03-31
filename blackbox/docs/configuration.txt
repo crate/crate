@@ -22,8 +22,8 @@ this::
 Any setting can be configured either by the config file or via the ``-C``
 option upon startup.
 
-For example, configuring the cluster name by using system properties
-will work this way::
+For example, configuring the cluster name by using command line
+properties will work this way::
 
     sh$ ./bin/crate -Ccluster.name=cluster
 
@@ -38,9 +38,8 @@ Settings will get applied in the following order where the latter one
 will overwrite the prior one:
 
  1. internal defaults
- 2. system properties
- 3. options from config file
- 4. command-line properties
+ 2. options from config file
+ 3. command-line properties
 
 
 .. _conf_table_settings:
@@ -418,14 +417,6 @@ Paths
   Crate finds striped shards at the provided locations (from CrateDB <0.55.0),
   these shards will be migrated automatically on startup.
 
-
-**path.work**
-  | *Runtime:* ``no``
-
-  Filesystem path to a directory holding temporary files created and used
-  during operation. This directory contains mostly internal files which should not
-  be tinkered with.
-
 **path.logs**
   | *Runtime:* ``no``
 
@@ -468,7 +459,7 @@ Plugins
 Memory
 ------
 
-**bootstrap.mlockall**
+**bootstrap.memory_lock**
   | *Runtime:* ``no``
   | *Default:* ``false``
 
