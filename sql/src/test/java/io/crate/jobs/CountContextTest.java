@@ -53,7 +53,7 @@ public class CountContextTest extends CrateUnitTest {
         countContext.prepare();
         countContext.start();
         future.set(1L);
-        assertTrue(countContext.future.closed());
+        assertTrue(countContext.isClosed());
         // assure that there was no exception
         countContext.completionFuture().get();
 
@@ -65,7 +65,7 @@ public class CountContextTest extends CrateUnitTest {
         countContext.prepare();
         countContext.start();
         future.setException(new UnknownUpstreamFailure());
-        assertTrue(countContext.future.closed());
+        assertTrue(countContext.isClosed());
         expectedException.expectCause(CauseMatcher.cause(UnknownUpstreamFailure.class));
         countContext.completionFuture().get();
     }
@@ -82,7 +82,7 @@ public class CountContextTest extends CrateUnitTest {
         countContext.kill(null);
 
         verify(future, times(1)).cancel(true);
-        assertTrue(countContext.future.closed());
+        assertTrue(countContext.isClosed());
     }
 
     private static class FakeCountOperation implements CountOperation {

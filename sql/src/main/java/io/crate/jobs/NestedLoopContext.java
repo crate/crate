@@ -48,13 +48,8 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
         this.leftBucketReceiver = leftBucketReceiver;
         this.rightBucketReceiver = rightBucketReceiver;
 
-        completionListenable.completionFuture().whenComplete((Object result, Throwable t) -> {
-            if (t == null) {
-                future.close(null);
-            } else {
-                future.close(t);
-            }
-        });
+        completionListenable.completionFuture()
+            .whenComplete((Object result, Throwable t) -> close(t));
     }
 
     @Override
@@ -87,7 +82,7 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
                "id=" + id() +
                ", leftCtx=" + leftBucketReceiver +
                ", rightCtx=" + rightBucketReceiver +
-               ", closed=" + future.closed() +
+               ", closed=" + isClosed() +
                '}';
     }
 
