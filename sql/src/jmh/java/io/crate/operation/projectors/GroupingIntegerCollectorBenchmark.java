@@ -73,7 +73,7 @@ public class GroupingIntegerCollectorBenchmark {
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 
         AggregationFunction sumAgg =
-            (AggregationFunction) functions.get(SumAggregation.NAME, Arrays.asList(DataTypes.INTEGER));
+            (AggregationFunction) functions.get(null, SumAggregation.NAME, Arrays.asList(DataTypes.INTEGER));
 
         return GroupingCollector.singleKey(
             collectExpressions,

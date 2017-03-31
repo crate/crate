@@ -160,7 +160,8 @@ public class InputFactoryTest extends CrateUnitTest {
         assertThat(impl.info(), is(function.info()));
 
         FunctionIdent ident = function.info().ident();
-        FunctionImplementation uncompiled = expressions.functions().get(ident.name(), ident.argumentTypes());
+        FunctionImplementation uncompiled = expressions.functions()
+            .get(ident.schema(), ident.name(), ident.argumentTypes());
         assertThat(uncompiled, not(sameInstance(impl)));
     }
 }

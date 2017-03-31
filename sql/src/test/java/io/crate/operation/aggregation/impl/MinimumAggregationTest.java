@@ -36,7 +36,7 @@ public class MinimumAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        assertEquals(DataTypes.INTEGER, functions.get("min", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+        assertEquals(DataTypes.INTEGER, getFunction("min", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
     }
 
     @Test

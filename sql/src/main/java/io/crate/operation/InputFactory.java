@@ -194,7 +194,7 @@ public class InputFactory {
         @Override
         public Input<?> visitAggregation(Aggregation symbol, Void context) {
             FunctionIdent ident = symbol.functionIdent();
-            FunctionImplementation impl = functions.get(ident.name(), ident.argumentTypes());
+            FunctionImplementation impl = functions.get(ident.schema(), ident.name(), ident.argumentTypes());
             if (impl == null) {
                 throw new UnsupportedOperationException(
                     SymbolFormatter.format("Can't load aggregation impl for symbol %s", symbol));

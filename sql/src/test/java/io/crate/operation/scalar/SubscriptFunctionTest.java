@@ -52,7 +52,7 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
     public void testNotRegisteredForSets() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("unknown function: subscript(integer_set, integer)");
-        functions.getSafe(SubscriptFunction.NAME, Arrays.asList(new SetType(DataTypes.INTEGER), DataTypes.INTEGER));
+        functions.getSafe(null, SubscriptFunction.NAME, Arrays.asList(new SetType(DataTypes.INTEGER), DataTypes.INTEGER));
     }
 
     @Test

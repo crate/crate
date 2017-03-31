@@ -42,7 +42,7 @@ public class RandomFunctionTest extends AbstractScalarFunctionsTest {
 
     @Before
     public void prepareRandom() {
-        random = (RandomFunction) functions.get(RandomFunction.NAME, Collections.emptyList());
+        random = (RandomFunction) functions.get(null, RandomFunction.NAME, Collections.emptyList());
 
     }
 
