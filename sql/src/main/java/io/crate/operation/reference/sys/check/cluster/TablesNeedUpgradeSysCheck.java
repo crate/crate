@@ -27,6 +27,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.data.Row;
 import io.crate.operation.reference.sys.check.AbstractSysCheck;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.Version;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -48,8 +49,8 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
         "The following tables need to be upgraded for compatibility with future versions of CrateDB: ";
 
     private static final String STMT = "select schema_name || '.' || table_name, min_lucene_version " +
-                                       "from sys.shards where min_lucene_version <> '" +
-                                       org.apache.lucene.util.Version.LATEST.toString() + "' " +
+                                       "from sys.shards where min_lucene_version not like '" +
+                                       Version.LATEST.major+ ".%.%' " +
                                        "AND (NOT schema_name || '.' || table_name = ANY (?)) " +
                                        "order by 1";
     private static final int LIMIT = 50_000;

@@ -104,4 +104,11 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
         execute("select * from sys.checks where passed = false");
         assertThat(response.rowCount(), is(0L));
     }
+
+    @Test
+    public void testSameMajorLuceneVersion() throws Exception {
+        startUpNodeWithDataDir("/indices/data_home/cratedata_same_major_lcn_version.zip");
+        execute("select * from sys.checks where passed = false");
+        assertThat(response.rowCount(), is(0L));
+    }
 }
