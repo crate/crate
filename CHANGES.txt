@@ -16,7 +16,7 @@ Changelog
 =========
 
  - Fixed cluster check, which warns about tables that need upgrade for
-   future compatibility, to include only tables tables that differ from
+   future compatibility, to include only tables that differ from
    current storage engine major version number.
 
  - Fixed issue which prevents blob directories from being removed after a
