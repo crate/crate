@@ -24,7 +24,6 @@ package io.crate.operation.projectors.fetch;
 
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectMap;
-import com.google.common.base.Function;
 import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
 import io.crate.data.Bucket;
@@ -32,22 +31,14 @@ import io.crate.executor.transport.NodeFetchRequest;
 import io.crate.executor.transport.NodeFetchResponse;
 import io.crate.executor.transport.TransportFetchNodeAction;
 
-import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 public class TransportFetchOperation implements FetchOperation {
 
-    private static final Function<NodeFetchResponse, IntObjectMap<? extends Bucket>> GET_FETCHED =
-        new Function<NodeFetchResponse, IntObjectMap<? extends Bucket>>() {
-
-            @Nullable
-            @Override
-            public IntObjectMap<? extends Bucket> apply(@Nullable NodeFetchResponse input) {
-                return input == null ? null : input.fetched();
-            }
-        };
+    private static final Function<NodeFetchResponse, IntObjectMap<? extends Bucket>> GET_FETCHED = NodeFetchResponse::fetched;
     private final TransportFetchNodeAction transportFetchNodeAction;
     private final Map<String, ? extends IntObjectMap<Streamer[]>> nodeIdToReaderIdToStreamers;
     private final UUID jobId;

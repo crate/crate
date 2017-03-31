@@ -23,7 +23,6 @@
 package io.crate.executor.transport;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Functions;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.CreateSnapshotAnalyzedStatement;
@@ -150,7 +149,7 @@ public class SnapshotRestoreDDLDispatcher {
 
         // ignore_unavailable as set by statement
         IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());
-        FutureActionListener<RestoreSnapshotResponse, Long> listener = new FutureActionListener<>(Functions.constant(1L));
+        FutureActionListener<RestoreSnapshotResponse, Long> listener = new FutureActionListener<>(r -> 1L);
         resolveIndexNames(analysis.restoreTables(), ignoreUnavailable, transportActionProvider.transportGetSnapshotsAction(), analysis.repositoryName())
             .whenComplete((List<String> indexNames, Throwable t) -> {
                 if (t == null) {
