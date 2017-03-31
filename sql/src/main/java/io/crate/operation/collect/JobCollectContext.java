@@ -76,7 +76,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     }
 
     public void addSearcher(int searcherId, Engine.Searcher searcher) {
-        if (future.closed()) {
+        if (isClosed()) {
             // if this is closed and addContext is called this means the context got killed.
             searcher.close();
             return;
@@ -101,7 +101,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
 
     @Override
     protected void innerClose(@Nullable Throwable throwable) {
-        future.bytesUsed(queryPhaseRamAccountingContext.totalBytes());
+        setBytesUsed(queryPhaseRamAccountingContext.totalBytes());
     }
 
     private void closeSearchContexts() {
@@ -118,7 +118,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
         if (collector != null) {
             collector.kill(throwable);
         }
-        future.bytesUsed(queryPhaseRamAccountingContext.totalBytes());
+        setBytesUsed(queryPhaseRamAccountingContext.totalBytes());
     }
 
     @Override
@@ -134,7 +134,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
                ", sharedContexts=" + sharedShardContexts +
                ", consumer=" + consumer +
                ", searchContexts=" + Arrays.toString(searchers.keys) +
-               ", closed=" + future.closed() +
+               ", closed=" + isClosed() +
                '}';
     }
 

@@ -35,7 +35,6 @@ import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 
 public class UpsertByIdContext extends AbstractExecutionSubContext {
@@ -67,7 +66,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
         transportShardUpsertActionDelegate.execute(request, new ActionListener<ShardResponse>() {
             @Override
             public void onResponse(ShardResponse updateResponse) {
-                if (future.closed()) {
+                if (isClosed()) {
                     return;
                 }
                 if (updateResponse.failure() != null) {
@@ -80,7 +79,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
 
             @Override
             public void onFailure(Throwable e) {
-                if (future.closed()) {
+                if (isClosed()) {
                     return;
                 }
                 e = ExceptionsHelper.unwrapCause(e);
@@ -103,21 +102,9 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
         });
     }
 
-
     @Override
     public void innerKill(@Nonnull Throwable throwable) {
         resultFuture.cancel(false);
-    }
-
-    @Override
-    protected void innerClose(@Nullable Throwable t) {
-        if (!resultFuture.isDone()) {
-            if (t == null) {
-                resultFuture.cancel(false);
-            } else {
-                resultFuture.completeExceptionally(t);
-            }
-        }
     }
 
     @Override
