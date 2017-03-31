@@ -42,7 +42,7 @@ public class CountAggregationTest extends AggregationTest {
     @Test
     public void testReturnType() throws Exception {
         // Return type is fixed to Long
-        assertEquals(DataTypes.LONG, functions.get("count", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+        assertEquals(DataTypes.LONG, getFunction("count", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
     }
 
     @Test

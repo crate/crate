@@ -40,7 +40,7 @@ public class VarianceAggregationTest extends AggregationTest {
     public void testReturnType() throws Exception {
         for (DataType<?> type : Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, Arrays.asList(DataTypes.TIMESTAMP))) {
             // Return type is fixed to Double
-            assertEquals(DataTypes.DOUBLE, functions.get("variance", ImmutableList.of(type)).info().returnType());
+            assertEquals(DataTypes.DOUBLE, getFunction("variance", ImmutableList.of(type)).info().returnType());
         }
     }
 

@@ -118,7 +118,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         }
         Symbol tableNameRef = toCollect.get(8);
 
-        FunctionImplementation eqImpl = functions.get(EqOperator.NAME,
+        FunctionImplementation eqImpl = functions.get(null,
+            EqOperator.NAME,
             ImmutableList.of(DataTypes.STRING, DataTypes.STRING));
         Function whereClause = new Function(eqImpl.info(),
             Arrays.asList(tableNameRef, Literal.of("shards")));

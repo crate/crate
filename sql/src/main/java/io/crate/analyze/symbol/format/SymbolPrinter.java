@@ -184,7 +184,7 @@ public class SymbolPrinter {
 
             if (functions != null) {
                 FunctionIdent ident = function.info().ident();
-                FunctionImplementation impl = functions.get(ident.name(), ident.argumentTypes());
+                FunctionImplementation impl = functions.get(ident.schema(), ident.name(), ident.argumentTypes());
                 if (impl instanceof FunctionFormatSpec) {
                     functionFormatSpec = (FunctionFormatSpec) impl;
                 } else if (impl instanceof OperatorFormatSpec) {

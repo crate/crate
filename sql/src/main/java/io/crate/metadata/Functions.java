@@ -54,19 +54,21 @@ public class Functions {
     }
 
     /**
-     * Returns the function implementation for the given function name and arguments.
+     * Returns the function implementation for the given function schema, name and arguments.
+     * <p>
      *
+     * @param schema         The schema name.
      * @param name           The function name.
      * @param argumentsTypes The function argument types.
-     * @return The function implementation..
+     * @return a function implementation
      * @throws UnsupportedOperationException if an implementation is not found.
      */
-    public FunctionImplementation getSafe(String name, List<DataType> argumentsTypes)
+    public FunctionImplementation getSafe(@Nullable String schema, String name, List<DataType> argumentsTypes)
         throws IllegalArgumentException, UnsupportedOperationException {
         FunctionImplementation implementation = null;
         String exceptionMessage = null;
         try {
-            implementation = get(name, argumentsTypes);
+            implementation = get(schema, name, argumentsTypes);
         } catch (IllegalArgumentException e) {
             if (e.getMessage() != null && !e.getMessage().isEmpty()) {
                 exceptionMessage = e.getMessage();
@@ -83,14 +85,17 @@ public class Functions {
     }
 
     /**
-     * Returns the function implementation for the given function name and arguments.
+     * Returns the function implementation for the given function schema, name and arguments.
+     * <p>
      *
+     * @param schema         The schema name.
      * @param name           The function name.
      * @param argumentsTypes The function argument types.
-     * @return a function implementation or null if it was not found.
+     * @return a function implementation or null if nothing was found.
      */
     @Nullable
-    public FunctionImplementation get(String name, List<DataType> argumentsTypes) throws IllegalArgumentException {
+    public FunctionImplementation get(String schema, String name, List<DataType> argumentsTypes) throws
+        IllegalArgumentException {
         FunctionResolver dynamicResolver = functionResolvers.get(name);
         if (dynamicResolver != null) {
             List<DataType> signature = dynamicResolver.getSignature(argumentsTypes);

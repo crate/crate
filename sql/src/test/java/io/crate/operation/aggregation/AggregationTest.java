@@ -30,11 +30,13 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Row;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Before;
@@ -77,7 +79,7 @@ public abstract class AggregationTest extends CrateUnitTest {
             fi = new FunctionIdent(name, ImmutableList.<DataType>of());
             inputs = new InputCollectExpression[0];
         }
-        AggregationFunction impl = (AggregationFunction) functions.get(fi.name(), fi.argumentTypes());
+        AggregationFunction impl = (AggregationFunction) functions.get(fi.schema(), fi.name(), fi.argumentTypes());
         Object state = impl.newState(ramAccountingContext);
 
         ArrayBucket bucket = new ArrayBucket(data);
@@ -102,8 +104,15 @@ public abstract class AggregationTest extends CrateUnitTest {
         for (int i = 0; i < args.length; i++) {
             argTypes[i] = args[i].valueType();
         }
-        AggregationFunction function =
-            (AggregationFunction) functions.get(functionName, Arrays.asList(argTypes));
+        AggregationFunction function = (AggregationFunction) getFunction(functionName, Arrays.asList(argTypes));
         return function.normalizeSymbol(new Function(function.info(), Arrays.asList(args)), new TransactionContext(SessionContext.SYSTEM_SESSION));
+    }
+
+    /**
+     * Retuns a built-in function.
+     */
+    @Nullable
+    protected FunctionImplementation getFunction(String name, List<DataType> argumentTypes) {
+        return functions.get(null, name, argumentTypes);
     }
 }

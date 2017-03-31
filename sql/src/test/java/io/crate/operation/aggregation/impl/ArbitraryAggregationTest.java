@@ -38,7 +38,7 @@ public class ArbitraryAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        assertEquals(DataTypes.INTEGER, functions.get("arbitrary", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+        assertEquals(DataTypes.INTEGER, getFunction("arbitrary", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
     }
 
     @Test
