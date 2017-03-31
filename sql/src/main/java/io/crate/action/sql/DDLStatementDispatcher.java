@@ -21,11 +21,13 @@
 
 package io.crate.action.sql;
 
-import com.google.common.base.Functions;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.*;
 import io.crate.blob.v2.BlobAdminClient;
-import io.crate.executor.transport.*;
+import io.crate.executor.transport.AlterTableOperation;
+import io.crate.executor.transport.RepositoryService;
+import io.crate.executor.transport.SnapshotRestoreDDLDispatcher;
+import io.crate.executor.transport.TableCreator;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.forcemerge.TransportForceMergeAction;
@@ -43,7 +45,6 @@ import org.elasticsearch.common.inject.Singleton;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 /**
  * visitor that dispatches requests based on Analysis class to different actions.
@@ -132,34 +133,27 @@ public class DDLStatementDispatcher {
             request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
             FutureActionListener<RefreshResponse, Long> listener =
-                new FutureActionListener<>(Functions.constant((long) analysis.indexNames().size()));
+                new FutureActionListener<>(r -> (long) analysis.indexNames().size());
             transportRefreshActionProvider.get().execute(request, listener);
             return listener;
         }
 
 
         @Override
-        public CompletableFuture<Long> visitCreateBlobTableStatement(
-            CreateBlobTableAnalyzedStatement analysis, UUID jobId) {
-            return wrapRowCountFuture(
-                blobAdminClient.get().createBlobTable(
-                    analysis.tableName(),
-                    analysis.tableParameter().settings()
-                ),
-                1L
-            );
+        public CompletableFuture<Long> visitCreateBlobTableStatement(CreateBlobTableAnalyzedStatement analysis,
+                                                                     UUID jobId) {
+            return blobAdminClient.get().createBlobTable( analysis.tableName(), analysis.tableParameter().settings());
         }
 
         @Override
         public CompletableFuture<Long> visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, UUID jobId) {
-            return wrapRowCountFuture(
-                blobAdminClient.get().alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings()),
-                1L);
+            return blobAdminClient.get()
+                .alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings());
         }
 
         @Override
         public CompletableFuture<Long> visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, UUID jobId) {
-            return wrapRowCountFuture(blobAdminClient.get().dropBlobTable(analysis.table().ident().name()), 1L);
+            return blobAdminClient.get().dropBlobTable(analysis.table().ident().name());
         }
 
         @Override
@@ -202,7 +196,7 @@ public class DDLStatementDispatcher {
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
         FutureActionListener<ForceMergeResponse, Long> listener =
-            new FutureActionListener<>(Functions.constant((long) analysis.indexNames().size()));
+            new FutureActionListener<>(r -> (long) analysis.indexNames().size());
         transportForceMergeAction.execute(request, listener);
         return listener;
     }
@@ -211,12 +205,8 @@ public class DDLStatementDispatcher {
                                                                   TransportUpgradeAction transportUpgradeAction) {
         UpgradeRequest request = new UpgradeRequest(analysis.indexNames().toArray(new String[0]));
         FutureActionListener<UpgradeResponse, Long> listener =
-            new FutureActionListener<>(Functions.constant((long) analysis.indexNames().size()));
+            new FutureActionListener<>(r -> (long) analysis.indexNames().size());
         transportUpgradeAction.execute(request, listener);
         return listener;
-    }
-
-    private CompletableFuture<Long> wrapRowCountFuture(CompletableFuture<?> wrappedFuture, final Long rowCount) {
-        return wrappedFuture.thenApply((Function<Object, Long>) o -> rowCount);
     }
 }

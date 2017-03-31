@@ -23,8 +23,6 @@
 package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.base.Throwables;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
@@ -72,7 +70,6 @@ import java.util.function.BiConsumer;
 @Singleton
 public class AlterTableOperation {
 
-    private static final Function<Object, Long> LONG_NULL_FUNCTION = Functions.constant(null);
     private final ClusterService clusterService;
     private final TransportActionProvider transportActionProvider;
     private final SQLOperations sqlOperations;
@@ -226,7 +223,7 @@ public class AlterTableOperation {
             request.alias(alias);
         }
 
-        FutureActionListener<PutIndexTemplateResponse, Long> listener = new FutureActionListener<>(LONG_NULL_FUNCTION);
+        FutureActionListener<PutIndexTemplateResponse, Long> listener = new FutureActionListener<>(r -> 0L);
         transportActionProvider.transportPutIndexTemplateAction().execute(request, listener);
         return listener;
     }
@@ -255,7 +252,7 @@ public class AlterTableOperation {
         request.type(Constants.DEFAULT_MAPPING_TYPE);
         request.source(mapping);
 
-        FutureActionListener<PutMappingResponse, Long> listener = new FutureActionListener<>(LONG_NULL_FUNCTION);
+        FutureActionListener<PutMappingResponse, Long> listener = new FutureActionListener<>(r -> 0L);
         transportActionProvider.transportPutMappingAction().execute(request, listener);
         return listener;
     }
@@ -294,7 +291,7 @@ public class AlterTableOperation {
         UpdateSettingsRequest request = new UpdateSettingsRequest(concreteTableParameter.settings(), indices);
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
-        FutureActionListener<UpdateSettingsResponse, Long> listener = new FutureActionListener<>(LONG_NULL_FUNCTION);
+        FutureActionListener<UpdateSettingsResponse, Long> listener = new FutureActionListener<>(r -> 0L);
         transportActionProvider.transportUpdateSettingsAction().execute(request, listener);
         return listener;
     }
@@ -325,7 +322,7 @@ public class AlterTableOperation {
             }
         };
 
-        MultiBiConsumer<Long> consumer = new MultiBiConsumer(futures.size(), finalConsumer);
+        MultiBiConsumer<Long> consumer = new MultiBiConsumer<>(futures.size(), finalConsumer);
         for (CompletableFuture<Long> future : futures) {
             future.whenComplete(consumer);
         }
