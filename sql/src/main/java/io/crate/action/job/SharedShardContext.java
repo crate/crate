@@ -33,49 +33,44 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.util.concurrent.atomic.AtomicInteger;
 
+@NotThreadSafe
 public class SharedShardContext {
 
     private final static ESLogger LOGGER = Loggers.getLogger(SharedShardContext.class);
 
-    private final Object mutex = new Object();
     private final IndicesService indicesService;
     private final ShardId shardId;
     private final int readerId;
 
-    private volatile RefCountSearcher searcher;
+    private RefCountSearcher searcher;
     private IndexService indexService;
     private IndexShard indexShard;
 
-    public SharedShardContext(IndicesService indicesService, ShardId shardId, int readerId) {
+    SharedShardContext(IndicesService indicesService, ShardId shardId, int readerId) {
         this.indicesService = indicesService;
         this.shardId = shardId;
         this.readerId = readerId;
     }
 
     public Engine.Searcher acquireSearcher() throws IndexNotFoundException {
-        if (searcher != null) {
-            searcher.inc();
-            return searcher;
-        }
-        synchronized (mutex) {
-            if (searcher == null) {
-                searcher = new RefCountSearcher(indexShard().acquireSearcher("shared-shard-context"));
-            }
+        if (searcher == null) {
+            searcher = new RefCountSearcher(indexShard().acquireSearcher("shared-shard-context"));
         }
         searcher.inc();
         return searcher;
     }
 
-    public synchronized IndexShard indexShard() {
+    public IndexShard indexShard() {
         if (indexShard == null) {
             indexShard = indexService().shardSafe(shardId.id());
         }
         return indexShard;
     }
 
-    public synchronized IndexService indexService() throws IndexNotFoundException {
+    public IndexService indexService() throws IndexNotFoundException {
         if (indexService == null) {
             indexService = indicesService.indexServiceSafe(shardId.getIndex());
         }
@@ -91,7 +86,7 @@ public class SharedShardContext {
         private final AtomicInteger refs = new AtomicInteger();
         private final Engine.Searcher searcher;
 
-        public RefCountSearcher(Engine.Searcher searcher) {
+        RefCountSearcher(Engine.Searcher searcher) {
             super(searcher.source(), searcher.searcher());
             this.searcher = searcher;
         }
@@ -114,7 +109,7 @@ public class SharedShardContext {
         @Override
         public void close() throws ElasticsearchException {
             int remainingRefs = refs.decrementAndGet();
-            LOGGER.trace("Close called on RefCountSearcher; Remaining refs: {}", remainingRefs);
+            traceLog(remainingRefs, "Close called on RefCountSearcher; Remaining refs: {}");
             if (remainingRefs == 0) {
                 searcher.close();
             }
@@ -122,7 +117,13 @@ public class SharedShardContext {
 
         void inc() {
             int newRefs = refs.incrementAndGet();
-            LOGGER.trace("Searcher refs increased: {}", newRefs);
+            traceLog(newRefs, "Searcher refs increased: {}");
+        }
+
+        private void traceLog(int remainingRefs, String msg) {
+            if (LOGGER.isTraceEnabled()) {
+                LOGGER.trace(msg, remainingRefs);
+            }
         }
     }
 }
