@@ -15,12 +15,12 @@ the appropriate section of the docs.
 Changelog
 =========
 
- - Fixed cluster check, which warns about tables that need upgrade for
-   future compatibility, to include only tables that differ from
-   current storage engine major version number.
+ - Fixed cluster check, which warns about tables that need upgrade for future
+   compatibility, to include only tables that differ from current storage engine
+   major version number.
 
  - Fixed issue which prevents blob directories from being removed after a
    ``drop blob table`` command when a custom blob location is configured.
 
- - BREAKING: Changed default bind and publish address from ``0.0.0.0`` to
-   the system ``loopback`` addresses.
+ - BREAKING: Changed default bind and publish address from ``0.0.0.0`` to the
+   system ``loopback`` addresses.
