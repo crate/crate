@@ -38,9 +38,8 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -56,6 +55,7 @@ public class BlobShard {
     private long totalSize = 0;
     private long count = 0;
     private final Path blobDir;
+    private Map<String, Long> deletedBlobAndSize = new ConcurrentHashMap<>();
 
     public BlobShard(IndexShard indexShard, @Nullable Path globalBlobPath, ScheduledExecutorService scheduler) {
         this.indexShard = indexShard;
@@ -92,8 +92,7 @@ public class BlobShard {
      */
     private class ShardStatsCollector implements Runnable {
 
-        private final WatchService watchService;
-        // todo do we really need this keys map?
+        private WatchService watchService;
         private final Map<WatchKey, Path> keys;
         // Map of each blob folder and its size. The sum of all the values in this map should equal the total size of
         // the blob shard
@@ -102,29 +101,24 @@ public class BlobShard {
         public ShardStatsCollector() {
             keys = new HashMap<>();
             dirsAndSize = new HashMap<>();
-            try {
-                watchService = FileSystems.getDefault().newWatchService();
-                registerDirectoryAndChildren(blobDir);
-            } catch (IOException e) {
-                throw new IllegalStateException(e.getMessage(), e);
+        }
+
+        @Override
+        public void run() {
+            if (watchService == null) {
+                try {
+                    watchService = FileSystems.getDefault().newWatchService();
+                    calculateCurrentTotalSize(blobDir);
+                } catch (IOException e) {
+                    throw new IllegalStateException(e.getMessage(), e);
+                }
+            } else {
+                processEvents();
             }
         }
 
-        private void registerDirectoryAndChildren(Path blobDir) throws IOException {
+        private void calculateCurrentTotalSize(Path blobDir) throws IOException {
             Files.walkFileTree(blobDir, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                    if (dir.equals(blobContainer.getTmpDirectory())) {
-                        // ignore the tmp directory as it just generates noise
-                        return FileVisitResult.CONTINUE;
-                    }
-
-                    WatchKey key = dir.register(watchService, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
-                    keys.put(key, dir);
-                    dirsAndSize.put(dir, 0L);
-                    return FileVisitResult.CONTINUE;
-                }
-
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     count += 1;
@@ -133,19 +127,17 @@ public class BlobShard {
                     dirsAndSize.compute(file.getParent(), (s, currentDirSize) -> currentDirSize + fileSize);
                     return FileVisitResult.CONTINUE;
                 }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    WatchKey key = dir.register(watchService, ENTRY_CREATE, ENTRY_DELETE);
+                    keys.put(key, dir);
+                    return FileVisitResult.CONTINUE;
+                }
             });
         }
 
-        @Override
-        public void run() {
-            processEvents();
-        }
-
         void processEvents() {
-            // todo: maybe this loop needs to be smarter as a dir with many changes can run for a long time
-            // todo:have reductions number maybe ?!
-            Set<Path> dirsWithRemovedFiles = new HashSet<>();
-            Map<Path, Long> dirToAddedFilesSize = new HashMap<>();
             while (true) {
                 WatchKey key;
                 try {
@@ -178,22 +170,18 @@ public class BlobShard {
                         count += 1;
                         try {
                             long childSize = Files.size(child);
-                            // increment size for this folder
-                            dirToAddedFilesSize.compute(dir, (s, currentDirSize) -> {
-                                if (currentDirSize == null) {
-                                    return childSize;
-                                } else {
-                                    return currentDirSize + childSize;
-                                }
-                            });
+                            totalSize += childSize;
                         } catch (IOException e) {
                             // totalSize might not be entirely accurate because of this, but don't want to propagate
                             // this failure
                         }
                     } else if (kind == ENTRY_DELETE) {
                         count -= 1;
-                        // mark folder as having removed files
-                        dirsWithRemovedFiles.add(dir);
+                        Long blobSize = deletedBlobAndSize.get(child.toString());
+                        if (blobSize != null) {
+                            totalSize -= blobSize;
+                            deletedBlobAndSize.remove(child.toString());
+                        }
                     }
 
                     boolean valid = key.reset();
@@ -205,46 +193,6 @@ public class BlobShard {
                     }
                 }
             }
-
-            for (Map.Entry<Path, Long> pathLongEntry : dirToAddedFilesSize.entrySet()) {
-                Path dir = pathLongEntry.getKey();
-                if (dirsWithRemovedFiles.contains(dir) == false) {
-                    // items were not removed from this folder so just add the folder's added files size to total
-                    Long addedFilesSize = pathLongEntry.getValue();
-                    totalSize += addedFilesSize;
-                    dirsAndSize.compute(dir, (s, currentDirSize) -> currentDirSize + addedFilesSize);
-                } else {
-                    updateTotalForDirWithDeletions(dir);
-                    dirsWithRemovedFiles.remove(dir);
-                }
-            }
-
-            for (Path pathWithDeletedFiles : dirsWithRemovedFiles) {
-                updateTotalForDirWithDeletions(pathWithDeletedFiles);
-            }
-        }
-
-        private void updateTotalForDirWithDeletions(Path dir) {
-            try {
-                long recomputedSize = computeDirSize(dir);
-                Long previousSize = dirsAndSize.get(dir);
-                totalSize -= previousSize;
-                totalSize += recomputedSize;
-                dirsAndSize.put(dir, recomputedSize);
-            } catch (IOException e) {
-                // cannot "walk" the folder, size will be bigger than actual but will be recalculated on next
-                // delete operation
-            }
-        }
-
-        private long computeDirSize(Path dir) throws IOException {
-            return Files.walk(dir).mapToLong(p -> {
-                if (p.equals(dir)) {
-                    // ignore current "."
-                    return 0;
-                }
-                return p.toFile().length();
-            }).sum();
         }
     }
 
@@ -270,7 +218,16 @@ public class BlobShard {
 
     public boolean delete(String digest) {
         try {
-            return Files.deleteIfExists(blobContainer.getFile(digest).toPath());
+            Path blobPath = blobContainer.getFile(digest).toPath();
+            long blobSize = 0;
+            if (Files.exists(blobPath)) {
+                blobSize = Files.size(blobPath);
+            }
+            boolean deleted = Files.deleteIfExists(blobPath);
+            if (deleted) {
+                deletedBlobAndSize.put(blobPath.toString(), blobSize);
+            }
+            return deleted;
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
