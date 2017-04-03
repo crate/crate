@@ -45,7 +45,7 @@ public class CollectSetAggregationTest extends AggregationTest {
     @Test
     public void testReturnType() throws Exception {
         assertEquals(new SetType(DataTypes.INTEGER),
-            functions.get("collect_set", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+            functions.getBuiltin("collect_set", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
     }
 
     @Test
@@ -59,7 +59,8 @@ public class CollectSetAggregationTest extends AggregationTest {
 
     @Test
     public void testLongSerialization() throws Exception {
-        AggregationFunction impl = (AggregationFunction) functions.get("collect_set", ImmutableList.of(DataTypes.LONG));
+        AggregationFunction impl
+            = (AggregationFunction) functions.getBuiltin("collect_set", ImmutableList.of(DataTypes.LONG));
 
         Object state = impl.newState(ramAccountingContext);
 

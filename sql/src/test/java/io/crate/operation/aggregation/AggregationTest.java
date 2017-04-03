@@ -77,7 +77,7 @@ public abstract class AggregationTest extends CrateUnitTest {
             fi = new FunctionIdent(name, ImmutableList.<DataType>of());
             inputs = new InputCollectExpression[0];
         }
-        AggregationFunction impl = (AggregationFunction) functions.get(fi.name(), fi.argumentTypes());
+        AggregationFunction impl = (AggregationFunction) functions.getBuiltin(fi.name(), fi.argumentTypes());
         Object state = impl.newState(ramAccountingContext);
 
         ArrayBucket bucket = new ArrayBucket(data);
@@ -103,7 +103,7 @@ public abstract class AggregationTest extends CrateUnitTest {
             argTypes[i] = args[i].valueType();
         }
         AggregationFunction function =
-            (AggregationFunction) functions.get(functionName, Arrays.asList(argTypes));
+            (AggregationFunction) functions.getBuiltin(functionName, Arrays.asList(argTypes));
         return function.normalizeSymbol(new Function(function.info(), Arrays.asList(args)), new TransactionContext(SessionContext.SYSTEM_SESSION));
     }
 }

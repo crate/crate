@@ -149,7 +149,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCollectDocLevelWhereClause() throws Throwable {
-        EqOperator op = (EqOperator) functions.get(EqOperator.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER));
+        EqOperator op =
+            (EqOperator) functions.getBuiltin(EqOperator.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER));
         List<Symbol> toCollect = Collections.<Symbol>singletonList(testDocLevelReference);
         WhereClause whereClause = new WhereClause(new Function(
             op.info(),

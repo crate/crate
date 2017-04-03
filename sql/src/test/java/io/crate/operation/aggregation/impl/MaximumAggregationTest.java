@@ -36,7 +36,7 @@ public class MaximumAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        assertEquals(DataTypes.INTEGER, functions.get("max", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+        assertEquals(DataTypes.INTEGER, functions.getBuiltin("max", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
     }
 
     @Test

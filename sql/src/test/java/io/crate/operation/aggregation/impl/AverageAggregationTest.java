@@ -36,8 +36,8 @@ public class AverageAggregationTest extends AggregationTest {
     @Test
     public void testReturnType() throws Exception {
         // Return type is fixed to Double
-        assertEquals(DataTypes.DOUBLE, functions.get("avg", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
-        assertEquals(DataTypes.DOUBLE, functions.get("mean", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+        assertEquals(DataTypes.DOUBLE, functions.getBuiltin("avg", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+        assertEquals(DataTypes.DOUBLE, functions.getBuiltin("mean", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
     }
 
     @Test

@@ -45,7 +45,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullArguments() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Argument 2 of the array_unique function cannot be converted to array");
         assertEvaluate("array_unique([1], null)", null);
     }
@@ -88,7 +88,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testDifferentUnconvertableInnerTypes() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Second argument's inner type (boolean) of the array_unique function " +
                                         "cannot be converted to the first argument's inner type (geo_point)");
         assertEvaluate("array_unique([geopoint], [true])", null);
@@ -106,7 +106,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEmptyArrays() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("One of the arguments of the array_unique function can " +
                                         "be of undefined inner type, but not both");
         assertEvaluate("array_unique([], [])", null);
@@ -114,7 +114,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEmptyArray() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(
             "When used with only one argument, the inner type of the array argument cannot be undefined");
         assertEvaluate("array_unique([])", null);

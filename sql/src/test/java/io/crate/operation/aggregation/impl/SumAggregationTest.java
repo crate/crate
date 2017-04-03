@@ -36,7 +36,7 @@ public class SumAggregationTest extends AggregationTest {
     @Test
     public void testReturnType() throws Exception {
         // Return type is fixed to Double
-        assertEquals(DataTypes.DOUBLE, functions.get("sum", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+        assertEquals(DataTypes.DOUBLE, functions.getBuiltin("sum", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
     }
 
     @Test

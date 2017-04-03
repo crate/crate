@@ -60,7 +60,7 @@ public class UnnestFunctionTest extends CrateUnitTest {
         Function function = (Function) functionSymbol;
         FunctionIdent ident = function.info().ident();
         TableFunctionImplementation tableFunction = (TableFunctionImplementation)
-            functions.getSafe(ident.name(), ident.argumentTypes());
+            functions.getBuiltin(ident.name(), ident.argumentTypes());
         return tableFunction.execute(function.arguments().stream().map(a -> (Input) a).collect(Collectors.toList()));
     }
 

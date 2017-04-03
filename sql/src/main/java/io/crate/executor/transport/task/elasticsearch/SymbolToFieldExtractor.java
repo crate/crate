@@ -101,8 +101,7 @@ public class SymbolToFieldExtractor<T> {
                 subExtractors.add(process(argument, context));
             }
             FunctionIdent functionIdent = symbol.info().ident();
-            return new FunctionExtractor<>((Scalar) context.functions
-                .getSafe(functionIdent.name(), functionIdent.argumentTypes()), subExtractors);
+            return new FunctionExtractor<>((Scalar) context.functions.getQualified(functionIdent), subExtractors);
         }
 
         @Override

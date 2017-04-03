@@ -54,43 +54,14 @@ public class Functions {
     }
 
     /**
-     * Returns the function implementation for the given function name and arguments.
-     *
-     * @param name           The function name.
-     * @param argumentsTypes The function argument types.
-     * @return The function implementation..
-     * @throws UnsupportedOperationException if an implementation is not found.
-     */
-    public FunctionImplementation getSafe(String name, List<DataType> argumentsTypes)
-        throws IllegalArgumentException, UnsupportedOperationException {
-        FunctionImplementation implementation = null;
-        String exceptionMessage = null;
-        try {
-            implementation = get(name, argumentsTypes);
-        } catch (IllegalArgumentException e) {
-            if (e.getMessage() != null && !e.getMessage().isEmpty()) {
-                exceptionMessage = e.getMessage();
-            }
-        }
-        if (implementation == null) {
-            if (exceptionMessage == null) {
-                exceptionMessage = String.format(Locale.ENGLISH, "unknown function: %s(%s)", name,
-                    Joiner.on(", ").join(argumentsTypes));
-            }
-            throw new UnsupportedOperationException(exceptionMessage);
-        }
-        return implementation;
-    }
-
-    /**
-     * Returns the function implementation for the given function name and arguments.
+     * Returns the built-in function implementation for the given function name and arguments.
      *
      * @param name           The function name.
      * @param argumentsTypes The function argument types.
      * @return a function implementation or null if it was not found.
      */
     @Nullable
-    public FunctionImplementation get(String name, List<DataType> argumentsTypes) throws IllegalArgumentException {
+    public FunctionImplementation getBuiltin(String name, List<DataType> argumentsTypes) throws IllegalArgumentException {
         FunctionResolver dynamicResolver = functionResolvers.get(name);
         if (dynamicResolver != null) {
             List<DataType> signature = dynamicResolver.getSignature(argumentsTypes);
@@ -99,6 +70,28 @@ public class Functions {
             }
         }
         return null;
+    }
+
+    /**
+     * Returns the function implementation for the given function ident.
+     *
+     * @param ident The function ident.
+     * @return The function implementation.
+     * @throws UnsupportedOperationException if an implementation is not found.
+     */
+
+    public FunctionImplementation getQualified(FunctionIdent ident) throws IllegalArgumentException {
+        FunctionImplementation impl = getBuiltin(ident.name(), ident.argumentTypes());
+        if (impl == null) {
+            throw createUnknownFunctionException(ident.name(), ident.argumentTypes());
+        }
+        return impl;
+    }
+
+    public static UnsupportedOperationException createUnknownFunctionException(String name, List<DataType> argumentTypes) {
+        return new UnsupportedOperationException(
+            String.format(Locale.ENGLISH, "unknown function: %s(%s)", name, Joiner.on(", ").join(argumentTypes))
+        );
     }
 
     private static class GeneratedFunctionResolver implements FunctionResolver {

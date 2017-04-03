@@ -47,9 +47,9 @@ public class PercentileAggregationTest extends AggregationTest {
     @Test
     public void testReturnTypes() throws Exception {
         assertEquals(DataTypes.DOUBLE,
-            functions.get(NAME, ImmutableList.of(DataTypes.DOUBLE, DataTypes.DOUBLE)).info().returnType());
+            functions.getBuiltin(NAME, ImmutableList.of(DataTypes.DOUBLE, DataTypes.DOUBLE)).info().returnType());
         assertEquals(new ArrayType(DataTypes.DOUBLE),
-            functions.get(NAME, ImmutableList.of(DataTypes.DOUBLE, new ArrayType(DataTypes.DOUBLE))).info().returnType());
+            functions.getBuiltin(NAME, ImmutableList.of(DataTypes.DOUBLE, new ArrayType(DataTypes.DOUBLE))).info().returnType());
     }
 
     @Test

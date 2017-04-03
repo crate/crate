@@ -39,10 +39,7 @@ import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
+import io.crate.metadata.*;
 import io.crate.metadata.table.Operation;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.*;
@@ -141,7 +138,13 @@ public class ExpressionAnalyzer {
     }
 
     private FunctionInfo getFunctionInfo(String name, List<DataType> argumentTypes) {
-        return functions.getSafe(name, argumentTypes).info();
+        FunctionImplementation impl = functions.getBuiltin(name, argumentTypes);
+        if (impl == null) {
+            // no built-in function with given signature found
+            // right now we raise unknown function, however in the future we can resolve UDFs as fallback option
+            throw Functions.createUnknownFunctionException(name, argumentTypes);
+        }
+        return impl.info();
     }
 
     protected Symbol convertFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
@@ -588,7 +591,7 @@ public class ExpressionAnalyzer {
         protected Symbol visitNegativeExpression(NegativeExpression node, ExpressionAnalysisContext context) {
             // in statements like "where x = -1" the  positive (expression)IntegerLiteral (1)
             // is just wrapped inside a negativeExpression
-            // the visitor here swaps it to get -1 in a (symbol)LiteralInteger
+            // the visitor here swaps it to getBuiltin -1 in a (symbol)LiteralInteger
             return NEGATIVE_LITERAL_VISITOR.process(process(node.getValue(), context), null);
         }
 

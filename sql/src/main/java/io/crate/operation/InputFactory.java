@@ -194,11 +194,7 @@ public class InputFactory {
         @Override
         public Input<?> visitAggregation(Aggregation symbol, Void context) {
             FunctionIdent ident = symbol.functionIdent();
-            FunctionImplementation impl = functions.get(ident.name(), ident.argumentTypes());
-            if (impl == null) {
-                throw new UnsupportedOperationException(
-                    SymbolFormatter.format("Can't load aggregation impl for symbol %s", symbol));
-            }
+            FunctionImplementation impl = functions.getQualified(ident);
             AggregationContext aggregationContext = new AggregationContext((AggregationFunction) impl, symbol);
             for (Symbol aggInput : symbol.inputs()) {
                 aggregationContext.addInput(process(aggInput, context));

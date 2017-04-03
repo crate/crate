@@ -234,7 +234,8 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
 
     @Test
     public void testFilterProjection() throws Exception {
-        EqOperator op = (EqOperator) functions.get(EqOperator.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER));
+        EqOperator op =
+            (EqOperator) functions.getBuiltin(EqOperator.NAME, ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER));
         Function function = new Function(
             op.info(), Arrays.asList(Literal.of(2), new InputColumn(1)));
         FilterProjection projection = new FilterProjection(function,

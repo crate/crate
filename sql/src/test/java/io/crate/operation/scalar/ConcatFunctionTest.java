@@ -40,7 +40,7 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testArgumentThatHasNoStringRepr() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Argument 2 of the concat function can't be converted to string");
         assertNormalize("concat('foo', [1])", null);
     }
@@ -83,14 +83,14 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testTwoArraysOfIncompatibleInnerTypes() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Second argument's inner type (long_array) of the array_cat function cannot be converted to the first argument's inner type (long)");
         assertNormalize("concat([1, 2], [[1, 2]])", null);
     }
 
     @Test
     public void testTwoArraysOfUndefinedTypes() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("When concatenating arrays, one of the two arguments can be of undefined inner type, but not both");
         assertNormalize("concat([], [])", null);
     }

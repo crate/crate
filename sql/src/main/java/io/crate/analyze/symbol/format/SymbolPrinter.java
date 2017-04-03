@@ -182,15 +182,15 @@ public class SymbolPrinter {
             FunctionFormatSpec functionFormatSpec = null;
             OperatorFormatSpec operatorFormatSpec = null;
 
+            FunctionIdent ident = function.info().ident();
             if (functions != null) {
-                FunctionIdent ident = function.info().ident();
-                FunctionImplementation impl = functions.get(ident.name(), ident.argumentTypes());
+                FunctionImplementation impl = functions.getBuiltin(ident.name(), ident.argumentTypes());
                 if (impl instanceof FunctionFormatSpec) {
                     functionFormatSpec = (FunctionFormatSpec) impl;
                 } else if (impl instanceof OperatorFormatSpec) {
                     operatorFormatSpec = (OperatorFormatSpec) impl;
                 }
-            } else if (function.info().ident().name().startsWith("op_")) {
+            } else if (ident.name().startsWith("op_")) {
                 operatorFormatSpec = SIMPLE_OPERATOR_FORMAT_SPEC;
             }
             if (operatorFormatSpec != null) {

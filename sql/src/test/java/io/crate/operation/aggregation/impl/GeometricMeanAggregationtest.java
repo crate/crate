@@ -40,7 +40,8 @@ public class GeometricMeanAggregationtest extends AggregationTest {
     public void testReturnType() throws Exception {
         for (DataType<?> type : Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, Arrays.asList(DataTypes.TIMESTAMP))) {
             // Return type is fixed to Double
-            assertEquals(DataTypes.DOUBLE, functions.get("geometric_mean", ImmutableList.of(type)).info().returnType());
+            assertEquals(DataTypes.DOUBLE,
+                functions.getBuiltin("geometric_mean", ImmutableList.of(type)).info().returnType());
         }
     }
 

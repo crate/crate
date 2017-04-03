@@ -81,7 +81,7 @@ public class GroupingBytesRefCollectorBenchmark {
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 
         AggregationFunction minAgg =
-            (AggregationFunction) functions.get(MinimumAggregation.NAME, Collections.singletonList(DataTypes.STRING));
+            (AggregationFunction) functions.getBuiltin(MinimumAggregation.NAME, Collections.singletonList(DataTypes.STRING));
 
         return GroupingCollector.singleKey(
             collectExpressions,

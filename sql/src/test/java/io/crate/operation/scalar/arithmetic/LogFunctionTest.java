@@ -46,11 +46,11 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
     private TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
 
     private LogFunction getFunction(String name, DataType value) {
-        return (LogFunction) functions.get(name, Arrays.asList(value));
+        return (LogFunction) functions.getBuiltin(name, Arrays.asList(value));
     }
 
     private LogFunction getFunction(String name, DataType value, DataType base) {
-        return (LogFunction) functions.get(name, Arrays.asList(value, base));
+        return (LogFunction) functions.getBuiltin(name, Arrays.asList(value, base));
     }
 
     private Symbol normalizeLog(Number value, DataType valueType) {

@@ -95,7 +95,7 @@ public class ProjectionBuilder {
             FunctionIdent ident = function.info().ident();
             Aggregation aggregation = new Aggregation(
                 function.info(),
-                mode.returnType(((AggregationFunction) this.functions.get(ident.name(), ident.argumentTypes()))),
+                mode.returnType(((AggregationFunction) this.functions.getQualified(ident))),
                 aggregationInputs
             );
             aggregations.add(aggregation);

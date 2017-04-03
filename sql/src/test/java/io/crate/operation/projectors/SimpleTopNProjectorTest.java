@@ -150,7 +150,8 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
 
     @Test
     public void testFunctionExpression() throws Throwable {
-        Scalar floor = (Scalar) TestingHelpers.getFunctions().get("floor", Collections.singletonList(DataTypes.DOUBLE));
+        Scalar floor =
+            (Scalar) TestingHelpers.getFunctions().getBuiltin("floor", Collections.singletonList(DataTypes.DOUBLE));
         FunctionExpression<Number, ?> funcExpr = new FunctionExpression<>(floor, new Input[]{input});
         Projector projector = new SimpleTopNProjector(ImmutableList.<Input<?>>of(funcExpr), COLLECT_EXPRESSIONS, 10, TopN.NO_OFFSET);
 

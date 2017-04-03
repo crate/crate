@@ -57,7 +57,7 @@ public class CurrentSchemaFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expectMessage("Cannot evaluate CURRENT_SCHEMA function.");
         Function function = (Function) sqlExpressions.asSymbol("current_schema()");
         FunctionIdent ident = function.info().ident();
-        Scalar impl = (Scalar) functions.get(ident.name(), ident.argumentTypes());
+        Scalar impl = (Scalar) functions.getBuiltin(ident.name(), ident.argumentTypes());
         impl.evaluate();
     }
 }

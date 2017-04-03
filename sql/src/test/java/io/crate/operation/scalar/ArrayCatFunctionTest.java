@@ -47,7 +47,7 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullArguments() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Argument 2 of the array_cat function cannot be converted to array");
         assertEvaluate("array_cat([1, 2, 3], null)", null);
     }
@@ -114,7 +114,7 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEmptyArrays() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("One of the arguments of the array_cat function can be of undefined inner type, but not both");
         assertNormalize("array_cat([], [])", null);
     }

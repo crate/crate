@@ -54,7 +54,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeNullArguments() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Argument 2 of the array_difference function is not an array type");
         assertNormalize("array_difference([1], null)", null);
     }
@@ -100,7 +100,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEmptyArrays() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("One of the arguments of the array_difference function can be of undefined inner type, but not both");
         assertNormalize("array_difference([], [])", null);
     }

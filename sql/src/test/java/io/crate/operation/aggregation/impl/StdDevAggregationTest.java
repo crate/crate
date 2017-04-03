@@ -40,7 +40,7 @@ public class StdDevAggregationTest extends AggregationTest {
     public void testReturnType() throws Exception {
         for (DataType<?> type : Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, Arrays.asList(DataTypes.TIMESTAMP))) {
             // Return type is fixed to Double
-            assertEquals(DataTypes.DOUBLE, functions.get("stddev", ImmutableList.of(type)).info().returnType());
+            assertEquals(DataTypes.DOUBLE, functions.getBuiltin("stddev", ImmutableList.of(type)).info().returnType());
         }
     }
 
