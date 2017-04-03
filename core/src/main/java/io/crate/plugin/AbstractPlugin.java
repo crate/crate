@@ -21,7 +21,6 @@
 
 package io.crate.plugin;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.Plugin;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
@@ -29,6 +28,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.io.Closeable;
 import java.util.Collection;
+import java.util.Collections;
 
 /**
  * A base class for a plugin.
@@ -40,7 +40,7 @@ public abstract class AbstractPlugin implements Plugin {
      */
     @Override
     public Collection<Module> nodeModules() {
-        return ImmutableList.of();
+        return Collections.emptyList();
     }
 
     /**
@@ -48,7 +48,7 @@ public abstract class AbstractPlugin implements Plugin {
      */
     @Override
     public Collection<Class<? extends LifecycleComponent>> nodeServices() {
-        return ImmutableList.of();
+        return Collections.emptyList();
     }
 
     /**
@@ -56,7 +56,7 @@ public abstract class AbstractPlugin implements Plugin {
      */
     @Override
     public Collection<Module> indexModules(Settings settings) {
-        return ImmutableList.of();
+        return Collections.emptyList();
     }
 
     /**
@@ -64,15 +64,15 @@ public abstract class AbstractPlugin implements Plugin {
      */
     @Override
     public Collection<Class<? extends Closeable>> indexServices() {
-        return ImmutableList.of();
+        return Collections.emptyList();
     }
-    
+
     /**
      * Defaults to return an empty list.
      */
     @Override
     public Collection<Module> shardModules(Settings settings) {
-        return ImmutableList.of();
+        return Collections.emptyList();
     }
 
     /**
@@ -80,7 +80,7 @@ public abstract class AbstractPlugin implements Plugin {
      */
     @Override
     public Collection<Class<? extends Closeable>> shardServices() {
-        return ImmutableList.of();
+        return Collections.emptyList();
     }
 
     @Override
@@ -92,6 +92,4 @@ public abstract class AbstractPlugin implements Plugin {
     public Settings additionalSettings() {
         return Settings.Builder.EMPTY_SETTINGS;
     }
-
-
 }

@@ -252,8 +252,8 @@ public class ExpressionAnalyzer {
             if (!node.getType().equals(CurrentTime.Type.TIMESTAMP)) {
                 visitExpression(node, context);
             }
-            List<Symbol> args = Lists.<Symbol>newArrayList(
-                Literal.of(node.getPrecision().or(CurrentTimestampFunction.DEFAULT_PRECISION))
+            List<Symbol> args = Lists.newArrayList(
+                Literal.of(node.getPrecision().orElse(CurrentTimestampFunction.DEFAULT_PRECISION))
             );
             return context.allocateFunction(CurrentTimestampFunction.INFO, args);
         }

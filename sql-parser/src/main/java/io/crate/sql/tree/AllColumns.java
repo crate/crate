@@ -21,15 +21,16 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
-public class AllColumns
-    extends SelectItem {
+import java.util.Optional;
+
+public class AllColumns extends SelectItem {
+
     private final Optional<QualifiedName> prefix;
 
     public AllColumns() {
-        prefix = Optional.absent();
+        prefix = Optional.empty();
     }
 
     public AllColumns(QualifiedName prefix) {

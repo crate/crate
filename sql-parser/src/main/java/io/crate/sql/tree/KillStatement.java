@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Optional;
+import java.util.Optional;
 
 public class KillStatement extends Statement {
 
@@ -29,7 +29,7 @@ public class KillStatement extends Statement {
 
 
     public KillStatement() {
-        this.jobId = Optional.absent();
+        this.jobId = Optional.empty();
     }
 
     public KillStatement(Expression jobId) {

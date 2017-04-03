@@ -22,7 +22,6 @@
 
 package io.crate.monitor;
 
-import com.google.common.collect.Maps;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.SingleObjectCache;
@@ -30,13 +29,14 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.hyperic.sigar.*;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.Map;
 
 public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
 
     private final SigarService sigarService;
     private final NodeEnvironment nodeEnvironment;
-    private final Map<File, FileSystem> fileSystems = Maps.newHashMap();
+    private final Map<File, FileSystem> fileSystems = new HashMap<>();
     private final ExtendedOsStatsCache osStatsCache;
     private final ExtendedFsStatsCache fsStatsCache;
     private final ExtendedNetworkStatsCache networkStatsCache;

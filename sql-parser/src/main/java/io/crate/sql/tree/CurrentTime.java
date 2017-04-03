@@ -21,21 +21,20 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Optional;
-
 import javax.annotation.Nullable;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class CurrentTime
-    extends Expression {
+public class CurrentTime extends Expression {
+
     private final Type type;
     private final Optional<Integer> precision;
 
     public enum Type {
         TIME,
         DATE,
-        TIMESTAMP;
+        TIMESTAMP
     }
 
     public CurrentTime(Type type) {
@@ -45,7 +44,7 @@ public class CurrentTime
     public CurrentTime(Type type, @Nullable Integer precision) {
         checkNotNull(type, "type is null");
         this.type = type;
-        this.precision = Optional.fromNullable(precision);
+        this.precision = Optional.ofNullable(precision);
     }
 
     public Type getType() {

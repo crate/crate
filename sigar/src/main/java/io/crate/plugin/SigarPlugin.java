@@ -22,7 +22,6 @@
 
 package io.crate.plugin;
 
-import com.google.common.collect.Lists;
 import io.crate.module.SigarModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.monitor.SigarExtendedNodeInfo;
@@ -33,6 +32,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Collection;
+import java.util.Collections;
 
 public class SigarPlugin extends AbstractPlugin {
 
@@ -69,13 +69,12 @@ public class SigarPlugin extends AbstractPlugin {
 
     @Override
     public Collection<Module> nodeModules() {
-        return Lists.<Module>newArrayList(new SigarModule(sigarService));
+        return Collections.singletonList(new SigarModule(sigarService));
     }
 
     public void onModule(MonitorModule monitorModule) {
         if (sigarService.sigarAvailable()) {
             monitorModule.addExtendedNodeInfoType(NODE_INFO_EXTENDED_TYPE, SigarExtendedNodeInfo.class);
         }
-
     }
 }

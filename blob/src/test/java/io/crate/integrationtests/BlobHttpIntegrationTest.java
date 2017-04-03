@@ -22,9 +22,7 @@
 package io.crate.integrationtests;
 
 
-import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Iterables;
 import io.crate.blob.BlobTransferStatus;
 import io.crate.blob.BlobTransferTarget;
 import io.crate.blob.v2.BlobAdminClient;
@@ -167,12 +165,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
             thread.start();
         }
         assertThat(latch.await(30L, TimeUnit.SECONDS), is(true));
-        return Iterables.all(results.values(), new Predicate<Boolean>() {
-            @Override
-            public boolean apply(Boolean input) {
-                return input;
-            }
-        });
+        return results.values().stream().allMatch(input -> input);
     }
 
     protected CloseableHttpResponse get(String uri, Header[] headers) throws IOException {

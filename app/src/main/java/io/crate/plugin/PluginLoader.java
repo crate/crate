@@ -23,10 +23,8 @@
 package io.crate.plugin;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import io.crate.Plugin;
 import org.apache.xbean.finder.ResourceFinder;
 import org.elasticsearch.bootstrap.JarHell;
@@ -50,6 +48,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
 
@@ -105,12 +104,7 @@ public class PluginLoader {
         this.onModuleReferences = onModuleReferences.immutableMap();
 
         if (logger.isInfoEnabled()) {
-            logger.info("plugins loaded: {} ", Lists.transform(plugins, new Function<Plugin, String>() {
-                @Override
-                public String apply(Plugin input) {
-                    return input.name();
-                }
-            }));
+            logger.info("plugins loaded: {} ", plugins.stream().map(Plugin::name).collect(Collectors.toList()));
         }
     }
 
@@ -159,7 +153,7 @@ public class PluginLoader {
 
                 if (!plugin.isFile()) {
                     // gather files to add
-                    List<File> libFiles = Lists.newArrayList();
+                    List<File> libFiles = new ArrayList<>();
                     File[] pluginFiles = plugin.listFiles();
                     if (pluginFiles != null) {
                         libFiles.addAll(Arrays.asList(pluginFiles));
@@ -253,7 +247,7 @@ public class PluginLoader {
     }
 
     private List<OnModuleReference> loadModuleReferences(Plugin plugin) {
-        List<OnModuleReference> list = Lists.newArrayList();
+        List<OnModuleReference> list = new ArrayList<>();
         for (Method method : plugin.getClass().getDeclaredMethods()) {
             if (!method.getName().equals("onModule")) {
                 continue;
@@ -276,7 +270,7 @@ public class PluginLoader {
     }
 
     Collection<Module> nodeModules() {
-        List<Module> modules = Lists.newArrayList();
+        List<Module> modules = new ArrayList<>();
         for (Plugin plugin : plugins) {
             modules.addAll(plugin.nodeModules());
         }
@@ -284,7 +278,7 @@ public class PluginLoader {
     }
 
     Collection<Class<? extends LifecycleComponent>> nodeServices() {
-        List<Class<? extends LifecycleComponent>> services = Lists.newArrayList();
+        List<Class<? extends LifecycleComponent>> services = new ArrayList<>();
         for (Plugin plugin : plugins) {
             services.addAll(plugin.nodeServices());
         }
@@ -292,7 +286,7 @@ public class PluginLoader {
     }
 
     Collection<Module> indexModules(Settings indexSettings) {
-        List<Module> modules = Lists.newArrayList();
+        List<Module> modules = new ArrayList<>();
         for (Plugin plugin : plugins) {
             modules.addAll(plugin.indexModules(indexSettings));
         }
@@ -300,7 +294,7 @@ public class PluginLoader {
     }
 
     Collection<Class<? extends Closeable>> indexServices() {
-        List<Class<? extends Closeable>> services = Lists.newArrayList();
+        List<Class<? extends Closeable>> services = new ArrayList<>();
         for (Plugin plugin : plugins) {
             services.addAll(plugin.indexServices());
         }
@@ -308,7 +302,7 @@ public class PluginLoader {
     }
 
     Collection<Module> shardModules(Settings indexSettings) {
-        List<Module> modules = Lists.newArrayList();
+        List<Module> modules = new ArrayList<>();
         for (Plugin plugin : plugins) {
             modules.addAll(plugin.shardModules(indexSettings));
         }
@@ -316,7 +310,7 @@ public class PluginLoader {
     }
 
     Collection<Class<? extends Closeable>> shardServices() {
-        List<Class<? extends Closeable>> services = Lists.newArrayList();
+        List<Class<? extends Closeable>> services = new ArrayList<>();
         for (Plugin plugin : plugins) {
             services.addAll(plugin.shardServices());
         }
