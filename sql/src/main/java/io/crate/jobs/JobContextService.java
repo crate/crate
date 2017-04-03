@@ -33,7 +33,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -193,13 +192,14 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
 
     private class JobContextCallback implements BiConsumer<Void, Throwable> {
 
-        private UUID jobId;
+        private final UUID jobId;
 
         JobContextCallback(UUID jobId) {
             this.jobId = jobId;
         }
 
-        private void remove(@Nullable Throwable throwable) {
+        @Override
+        public void accept(Void aVoid, Throwable throwable) {
             activeContexts.remove(jobId);
             if (logger.isTraceEnabled()) {
                 logger.trace("JobExecutionContext closed for job {} removed it -" +
@@ -207,23 +207,5 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
                     throwable, jobId, activeContexts.size());
             }
         }
-
-        public void onSuccess() {
-            remove(null);
-        }
-
-        public void onFailure(@Nonnull Throwable throwable) {
-            remove(throwable);
-        }
-
-        @Override
-        public void accept(Void aVoid, Throwable t) {
-            if (t == null) {
-                onSuccess();
-            } else {
-                onFailure(t);
-            }
-        }
     }
-
 }
