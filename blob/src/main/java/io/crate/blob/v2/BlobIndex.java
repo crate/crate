@@ -26,13 +26,13 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
 
 public class BlobIndex {
 
@@ -77,8 +77,8 @@ public class BlobIndex {
         this.logger = logger;
     }
 
-    void createShard(IndexShard indexShard, ScheduledExecutorService scheduler) {
-        shards.put(indexShard.shardId().id(), new BlobShard(indexShard, globalBlobPath, scheduler));
+    void createShard(IndexShard indexShard, ThreadPool threadPool) {
+        shards.put(indexShard.shardId().id(), new BlobShard(indexShard, globalBlobPath, threadPool));
     }
 
     BlobShard removeShard(ShardId shardId) {

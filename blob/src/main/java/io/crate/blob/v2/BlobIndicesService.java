@@ -117,7 +117,7 @@ public class BlobIndicesService extends AbstractComponent {
             if (isBlobIndex(index)) {
                 BlobIndex blobIndex = indices.get(index);
                 assert blobIndex != null : "blobIndex must exists if a shard is created in it";
-                blobIndex.createShard(indexShard, threadPool.scheduler());
+                blobIndex.createShard(indexShard, threadPool);
             }
         }
 

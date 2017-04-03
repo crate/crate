@@ -33,6 +33,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardPath;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -40,10 +41,10 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static java.nio.file.StandardWatchEventKinds.*;
+import static org.elasticsearch.common.unit.TimeValue.timeValueSeconds;
 
 public class BlobShard {
 
@@ -57,21 +58,23 @@ public class BlobShard {
     private final Path blobDir;
     private Map<String, Long> deletedBlobAndSize = new ConcurrentHashMap<>();
 
-    public BlobShard(IndexShard indexShard, @Nullable Path globalBlobPath, ScheduledExecutorService scheduler) {
+    public BlobShard(IndexShard indexShard, @Nullable Path globalBlobPath, ThreadPool threadPool) {
         this.indexShard = indexShard;
         logger = Loggers.getLogger(BlobShard.class, indexShard.indexSettings(), indexShard.shardId());
         blobDir = getBlobDataDir(indexShard.indexSettings(), indexShard.shardPath(), globalBlobPath);
         logger.info("creating BlobContainer at {}", blobDir);
         this.blobContainer = new BlobContainer(blobDir);
-        registerShardStatsCollector(scheduler);
+        registerShardStatsCollector(threadPool);
     }
 
-    private void registerShardStatsCollector(ScheduledExecutorService scheduler) {
+    private void registerShardStatsCollector(ThreadPool threadPool) {
         int attempt = 0;
         while (attempt < 5) {
             attempt++;
             try {
-                scheduler.scheduleWithFixedDelay(new ShardStatsCollector(), 1L, 5L, TimeUnit.SECONDS);
+                threadPool.scheduleWithFixedDelay(
+                    new ShardStatsCollector(), timeValueSeconds(5L), ThreadPool.Names.GENERIC
+                );
                 break;
             } catch (EsRejectedExecutionException e) {
                 try {
@@ -94,13 +97,9 @@ public class BlobShard {
 
         private WatchService watchService;
         private final Map<WatchKey, Path> keys;
-        // Map of each blob folder and its size. The sum of all the values in this map should equal the total size of
-        // the blob shard
-        private final Map<Path, Long> dirsAndSize;
 
         public ShardStatsCollector() {
             keys = new HashMap<>();
-            dirsAndSize = new HashMap<>();
         }
 
         @Override
@@ -124,7 +123,6 @@ public class BlobShard {
                     count += 1;
                     long fileSize = attrs.size();
                     totalSize += fileSize;
-                    dirsAndSize.compute(file.getParent(), (s, currentDirSize) -> currentDirSize + fileSize);
                     return FileVisitResult.CONTINUE;
                 }
 
