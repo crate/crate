@@ -21,17 +21,21 @@
 
 package io.crate.executor.transport;
 
-import io.crate.action.ActionListeners;
-import org.elasticsearch.action.ActionListener;
+import io.crate.exceptions.SQLExceptions;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 
+import java.io.IOException;
+
 public abstract class NodeActionRequestHandler<TRequest extends TransportRequest, TResponse extends TransportResponse>
     extends TransportRequestHandler<TRequest> {
 
     private final NodeAction<TRequest, TResponse> nodeAction;
+    private final static ESLogger LOGGER = Loggers.getLogger(NodeActionRequestHandler.class);
 
     public NodeActionRequestHandler(NodeAction<TRequest, TResponse> nodeAction) {
         this.nodeAction = nodeAction;
@@ -39,7 +43,20 @@ public abstract class NodeActionRequestHandler<TRequest extends TransportRequest
 
     @Override
     public void messageReceived(TRequest request, TransportChannel channel) throws Exception {
-        ActionListener<TResponse> actionListener = ActionListeners.forwardTo(channel);
-        nodeAction.nodeOperation(request, actionListener);
+        nodeAction.nodeOperation(request).whenComplete((result, throwable) -> {
+            if (throwable == null) {
+                try {
+                    channel.sendResponse(result);
+                } catch (IOException e) {
+                    LOGGER.error("Error sending response: " + e.getMessage(), e);
+                }
+            } else {
+                try {
+                    channel.sendResponse(SQLExceptions.unwrap(throwable));
+                } catch (IOException e) {
+                    LOGGER.error("Error sending failure: " + e.getMessage(), e);
+                }
+            }
+        });
     }
 }

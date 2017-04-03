@@ -22,6 +22,7 @@
 
 package io.crate.executor.transport;
 
+import io.crate.concurrent.CompletableFutures;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.operation.reference.sys.node.NodeStatsContextFieldResolver;
 import org.elasticsearch.action.ActionListener;
@@ -31,6 +32,8 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportService;
+
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, NodeStatsResponse> {
@@ -73,12 +76,12 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
     }
 
     @Override
-    public void nodeOperation(NodeStatsRequest request, ActionListener<NodeStatsResponse> listener) {
+    public CompletableFuture<NodeStatsResponse> nodeOperation(NodeStatsRequest request) {
         try {
             NodeStatsContext context = nodeContextFieldsResolver.forTopColumnIdents(request.columnIdents());
-            listener.onResponse(new NodeStatsResponse(context));
+            return CompletableFuture.completedFuture(new NodeStatsResponse(context));
         } catch (Throwable t) {
-            listener.onFailure(t);
+            return CompletableFutures.failedFuture(t);
         }
     }
 }

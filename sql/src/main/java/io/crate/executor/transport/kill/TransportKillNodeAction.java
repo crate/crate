@@ -71,14 +71,8 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> extends
     protected abstract CompletableFuture<Integer> doKill(Request request);
 
     @Override
-    public void nodeOperation(Request request, final ActionListener<KillResponse> listener) {
-        doKill(request).whenComplete((r, f) -> {
-            if (f == null) {
-                listener.onResponse(new KillResponse(r));
-            } else {
-                listener.onFailure(f);
-            }
-        });
+    public CompletableFuture<KillResponse> nodeOperation(Request request) {
+        return doKill(request).thenApply(KillResponse::new);
     }
 
     /**

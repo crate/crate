@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.distributed;
 
+import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
@@ -39,6 +40,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -86,101 +88,98 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
     }
 
     @Override
-    public void nodeOperation(DistributedResultRequest request,
-                              ActionListener<DistributedResultResponse> listener) {
-        nodeOperation(request, listener, 0);
+    public CompletableFuture<DistributedResultResponse> nodeOperation(DistributedResultRequest request) {
+        return nodeOperation(request, 0);
     }
 
-    private void nodeOperation(final DistributedResultRequest request,
-                               final ActionListener<DistributedResultResponse> listener,
-                               final int retry) {
+    private CompletableFuture<DistributedResultResponse> nodeOperation(final DistributedResultRequest request, int retry) {
         JobExecutionContext context = jobContextService.getContextOrNull(request.jobId());
         if (context == null) {
-            retryOrFailureResponse(request, listener, retry);
-            return;
+            return retryOrFailureResponse(request, retry);
         }
 
         DownstreamExecutionSubContext executionContext;
         try {
             executionContext = context.getSubContext(request.executionPhaseId());
         } catch (ClassCastException e) {
-            listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
-                "Found execution context for %d but it's not a downstream context", request.executionPhaseId()), e));
-            return;
+            return CompletableFutures.failedFuture(
+                new IllegalStateException(String.format(Locale.ENGLISH,
+                    "Found execution context for %d but it's not a downstream context", request.executionPhaseId()), e));
         } catch (Throwable t) {
-            listener.onFailure(t);
-            return;
+            return CompletableFutures.failedFuture(t);
         }
 
         PageBucketReceiver pageBucketReceiver = executionContext.getBucketReceiver(request.executionPhaseInputId());
         if (pageBucketReceiver == null) {
-            listener.onFailure(new IllegalStateException(String.format(Locale.ENGLISH,
+            return CompletableFutures.failedFuture(new IllegalStateException(String.format(Locale.ENGLISH,
                 "Couldn't find BucketReciever for input %d", request.executionPhaseInputId())));
-            return;
         }
 
         Throwable throwable = request.throwable();
         if (throwable == null) {
             request.streamers(pageBucketReceiver.streamers());
+            SendResponsePageResultListener pageResultListener = new SendResponsePageResultListener();
             pageBucketReceiver.setBucket(
                 request.bucketIdx(),
                 request.rows(),
                 request.isLast(),
-                new SendResponsePageResultListener(listener));
+                pageResultListener);
+            return pageResultListener.future;
         } else {
             if (request.isKilled()) {
                 pageBucketReceiver.killed(request.bucketIdx(), throwable);
             } else {
                 pageBucketReceiver.failure(request.bucketIdx(), throwable);
             }
-            listener.onResponse(new DistributedResultResponse(false));
+            return CompletableFuture.completedFuture(new DistributedResultResponse(false));
         }
     }
 
-    private void retryOrFailureResponse(DistributedResultRequest request,
-                                        ActionListener<DistributedResultResponse> listener,
-                                        int retry) {
+    private CompletableFuture<DistributedResultResponse> retryOrFailureResponse(DistributedResultRequest request,
+                                                                                int retry) {
 
         if (retry > 20) {
-            listener.onFailure(new ContextMissingException(ContextMissingException.ContextType.JOB_EXECUTION_CONTEXT, request.jobId()));
+            return CompletableFutures.failedFuture(
+                new ContextMissingException(ContextMissingException.ContextType.JOB_EXECUTION_CONTEXT, request.jobId()));
         } else {
             int delay = (retry + 1) * 2;
             if (logger.isTraceEnabled()) {
                 logger.trace("scheduling retry #{} to start node operation for jobId: {} in {}ms",
                     retry, request.jobId(), delay);
             }
-            scheduler.schedule(new NodeOperationRunnable(request, listener, retry), delay, TimeUnit.MILLISECONDS);
+            NodeOperationRunnable operationRunnable = new NodeOperationRunnable(request, retry);
+            scheduler.schedule(operationRunnable::run, delay, TimeUnit.MILLISECONDS);
+            return operationRunnable;
         }
     }
 
     private class SendResponsePageResultListener implements PageResultListener {
-        private final ActionListener<DistributedResultResponse> listener;
-
-        public SendResponsePageResultListener(ActionListener<DistributedResultResponse> listener) {
-            this.listener = listener;
-        }
+        private final CompletableFuture<DistributedResultResponse> future = new CompletableFuture<>();
 
         @Override
         public void needMore(boolean needMore) {
             logger.trace("sending needMore response, need more? {}", needMore);
-            listener.onResponse(new DistributedResultResponse(needMore));
+            future.complete(new DistributedResultResponse(needMore));
         }
     }
 
-    private class NodeOperationRunnable implements Runnable {
+    private class NodeOperationRunnable extends CompletableFuture<DistributedResultResponse> {
         private final DistributedResultRequest request;
-        private final ActionListener<DistributedResultResponse> listener;
         private final int retry;
 
-        public NodeOperationRunnable(DistributedResultRequest request, ActionListener<DistributedResultResponse> listener, int retry) {
+        NodeOperationRunnable(DistributedResultRequest request, int retry) {
             this.request = request;
-            this.listener = listener;
             this.retry = retry;
         }
 
-        @Override
-        public void run() {
-            nodeOperation(request, listener, retry + 1);
+        public CompletableFuture<DistributedResultResponse> run() {
+            return nodeOperation(request, retry + 1).whenComplete((r, f) -> {
+                if (f == null) {
+                    complete(r);
+                } else {
+                    completeExceptionally(f);
+                }
+            });
         }
     }
 }
