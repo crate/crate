@@ -22,7 +22,6 @@
 package io.crate.planner.projection;
 
 import com.carrotsearch.hppc.IntSet;
-import com.google.common.base.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.metadata.TableIdent;
@@ -33,6 +32,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Function;
 
 public class FetchProjection extends Projection {
 

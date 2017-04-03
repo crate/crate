@@ -21,7 +21,6 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Aggregation;
@@ -34,6 +33,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * A projection which aggregates all inputs to a single row

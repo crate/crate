@@ -22,7 +22,6 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.base.Function;
 import com.google.common.util.concurrent.FutureCallback;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.SelectSymbol;
@@ -40,6 +39,7 @@ import io.crate.planner.node.dql.join.NestedLoop;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.function.Function;
 
 /**
  * Replaces all symbols in the querySpec that match the given selectSymbol once the futureCallback

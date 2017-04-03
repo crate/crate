@@ -21,7 +21,6 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import io.crate.analyze.symbol.Symbol;
@@ -32,6 +31,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Function;
 
 public abstract class Projection {
 
