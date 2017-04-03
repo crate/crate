@@ -22,9 +22,6 @@
 
 package io.crate.executor.transport.kill;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.executor.MultiActionListener;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
@@ -39,10 +36,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -71,20 +68,15 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> extends
             new NodeActionRequestHandler<Request, KillResponse>(this) {});
     }
 
-    protected abstract ListenableFuture<Integer> doKill(Request request);
+    protected abstract CompletableFuture<Integer> doKill(Request request);
 
     @Override
     public void nodeOperation(Request request, final ActionListener<KillResponse> listener) {
-        Futures.addCallback(doKill(request), new FutureCallback<Integer>() {
-            @Override
-            public void onSuccess(@Nullable Integer result) {
-                assert result != null : "result must not be null";
-                listener.onResponse(new KillResponse(result));
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                listener.onFailure(t);
+        doKill(request).whenComplete((r, f) -> {
+            if (f == null) {
+                listener.onResponse(new KillResponse(r));
+            } else {
+                listener.onFailure(f);
             }
         });
     }
