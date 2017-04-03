@@ -22,9 +22,6 @@
 package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.IntObjectMap;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Streamer;
 import io.crate.jobs.JobContextService;
 import io.crate.operation.collect.stats.JobsLogs;
@@ -35,8 +32,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
@@ -87,24 +82,12 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
 
     @Override
     public CompletableFuture<NodeFetchResponse> nodeOperation(final NodeFetchRequest request) {
-        ListenableFuture<IntObjectMap<StreamBucket>> resultFuture = nodeFetchOperation.fetch(
+        CompletableFuture<IntObjectMap<StreamBucket>> resultFuture = nodeFetchOperation.fetch(
             request.jobId(),
             request.fetchPhaseId(),
             request.toFetch(),
             request.isCloseContext()
         );
-        CompletableFuture<NodeFetchResponse> future = new CompletableFuture<>();
-        Futures.addCallback(resultFuture, new FutureCallback<IntObjectMap<StreamBucket>>() {
-            @Override
-            public void onSuccess(@Nullable IntObjectMap<StreamBucket> result) {
-                future.complete(NodeFetchResponse.forSending(result));
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                future.completeExceptionally(t);
-            }
-        });
-        return future;
+        return resultFuture.thenApply(NodeFetchResponse::forSending);
     }
 }

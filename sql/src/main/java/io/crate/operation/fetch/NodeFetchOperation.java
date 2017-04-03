@@ -25,10 +25,6 @@ import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.SQLExceptions;
@@ -44,9 +40,9 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -94,43 +90,39 @@ public class NodeFetchOperation {
         this.jobContextService = jobContextService;
     }
 
-    public ListenableFuture<IntObjectMap<StreamBucket>> fetch(UUID jobId,
-                                                              int phaseId,
-                                                              @Nullable IntObjectMap<? extends IntContainer> docIdsToFetch,
-                                                              boolean closeContextOnFinish) {
-        SettableFuture<IntObjectMap<StreamBucket>> resultFuture = SettableFuture.create();
+    public CompletableFuture<IntObjectMap<StreamBucket>> fetch(UUID jobId,
+                                                               int phaseId,
+                                                               @Nullable IntObjectMap<? extends IntContainer> docIdsToFetch,
+                                                               boolean closeContextOnFinish) {
+        CompletableFuture<IntObjectMap<StreamBucket>> resultFuture = new CompletableFuture<>();
         logStartAndSetupLogFinished(jobId, phaseId, resultFuture);
 
         if (docIdsToFetch == null) {
             if (closeContextOnFinish) {
                 tryCloseContext(jobId, phaseId);
             }
-            return Futures.immediateFuture(new IntObjectHashMap<>(0));
+            return CompletableFuture.completedFuture(new IntObjectHashMap<>(0));
         }
 
         JobExecutionContext context = jobContextService.getContext(jobId);
         FetchContext fetchContext = context.getSubContext(phaseId);
-        if (closeContextOnFinish) {
-            Futures.addCallback(resultFuture, new CloseContextCallback(fetchContext));
-        }
         try {
             doFetch(fetchContext, resultFuture, docIdsToFetch);
         } catch (Throwable t) {
-            resultFuture.setException(t);
+            resultFuture.completeExceptionally(t);
+        }
+        if (closeContextOnFinish) {
+            return resultFuture.whenComplete(new CloseContextCallback(fetchContext));
         }
         return resultFuture;
     }
 
-    private void logStartAndSetupLogFinished(final UUID jobId, final int phaseId, ListenableFuture<?> resultFuture) {
+    private void logStartAndSetupLogFinished(final UUID jobId, final int phaseId, CompletableFuture<?> resultFuture) {
         jobsLogs.operationStarted(phaseId, jobId, "fetch");
-        Futures.addCallback(resultFuture, new FutureCallback<Object>() {
-        @Override
-            public void onSuccess(@Nullable Object result) {
+        resultFuture.whenComplete((r, t) -> {
+            if (t == null) {
                 jobsLogs.operationFinished(phaseId, jobId, null, 0);
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
+            } else {
                 jobsLogs.operationFinished(phaseId, jobId, SQLExceptions.messageOf(t), 0);
             }
         });
@@ -156,7 +148,7 @@ public class NodeFetchOperation {
     }
 
     private void doFetch(FetchContext fetchContext,
-                         SettableFuture<IntObjectMap<StreamBucket>> resultFuture,
+                         CompletableFuture<IntObjectMap<StreamBucket>> resultFuture,
                          IntObjectMap<? extends IntContainer> toFetch) throws Exception {
 
         final IntObjectHashMap<StreamBucket> fetched = new IntObjectHashMap<>(toFetch.size());
@@ -197,7 +189,7 @@ public class NodeFetchOperation {
         private final int readerId;
         private final AtomicReference<Throwable> lastThrowable;
         private final AtomicInteger threadLatch;
-        private final SettableFuture<IntObjectMap<StreamBucket>> resultFuture;
+        private final CompletableFuture<IntObjectMap<StreamBucket>> resultFuture;
         private final AtomicBoolean contextKilledRef;
 
         CollectRunnable(FetchCollector collector,
@@ -206,7 +198,7 @@ public class NodeFetchOperation {
                         int readerId,
                         AtomicReference<Throwable> lastThrowable,
                         AtomicInteger threadLatch,
-                        SettableFuture<IntObjectMap<StreamBucket>> resultFuture,
+                        CompletableFuture<IntObjectMap<StreamBucket>> resultFuture,
                         AtomicBoolean contextKilledRef) {
             this.collector = collector;
             this.docIds = docIds;
@@ -231,7 +223,7 @@ public class NodeFetchOperation {
                 if (threadLatch.decrementAndGet() == 0) {
                     Throwable throwable = lastThrowable.get();
                     if (throwable == null) {
-                        resultFuture.set(fetched);
+                        resultFuture.complete(fetched);
                     } else {
                         /* If the context gets killed the operation might fail due to the release of the underlying searchers.
                          * Only a InterruptedException is sent to the fetch-client.
@@ -239,9 +231,9 @@ public class NodeFetchOperation {
                          * side-effect-exception that happened because of the kill.
                          */
                         if (contextKilledRef.get()) {
-                            resultFuture.setException(new InterruptedException());
+                            resultFuture.completeExceptionally(new InterruptedException());
                         } else {
-                            resultFuture.setException(throwable);
+                            resultFuture.completeExceptionally(throwable);
                         }
                     }
                 }
