@@ -22,9 +22,6 @@
 package io.crate.jobs;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.operation.collect.stats.JobsLogs;
@@ -39,6 +36,7 @@ import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
@@ -146,7 +144,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
      * @return a future holding the number of contexts kill was called on, the future is finished when all contexts
      * are completed and never fails.
      */
-    public ListenableFuture<Integer> killAll() {
+    public CompletableFuture<Integer> killAll() {
         for (KillAllListener killAllListener : killAllListeners) {
             try {
                 killAllListener.killAllJobs();
@@ -156,12 +154,12 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         }
         Collection<UUID> toKill = ImmutableList.copyOf(activeContexts.keySet());
         if (toKill.isEmpty()) {
-            return Futures.immediateFuture(0);
+            return CompletableFuture.completedFuture(0);
         }
         return killContexts(toKill);
     }
 
-    private ListenableFuture<Integer> killContexts(Collection<UUID> toKill) {
+    private CompletableFuture<Integer> killContexts(Collection<UUID> toKill) {
         assert !toKill.isEmpty() : "toKill must not be empty";
         int numKilled = 0;
         CountdownFutureCallback countDownFuture = new CountdownFutureCallback(toKill.size());
@@ -176,14 +174,11 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
                 countDownFuture.onSuccess();
             }
         }
-        final SettableFuture<Integer> result = SettableFuture.create();
         final int finalNumKilled = numKilled;
-        countDownFuture.whenComplete(
-            (r, e) -> result.set(finalNumKilled));
-        return result;
+        return countDownFuture.handle((r, f) -> finalNumKilled);
     }
 
-    public ListenableFuture<Integer> killJobs(Collection<UUID> toKill) {
+    public CompletableFuture<Integer> killJobs(Collection<UUID> toKill) {
         for (KillAllListener killAllListener : killAllListeners) {
             for (UUID job : toKill) {
                 try {
