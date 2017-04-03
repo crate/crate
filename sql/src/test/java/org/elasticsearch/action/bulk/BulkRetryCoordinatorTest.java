@@ -22,7 +22,6 @@
 
 package org.elasticsearch.action.bulk;
 
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.Reference;
@@ -40,10 +39,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.UUID;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
 import static org.mockito.Matchers.any;
@@ -76,9 +72,8 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
         ThreadPool threadPool = mock(ThreadPool.class);
         BulkRetryCoordinator coordinator = new BulkRetryCoordinator(threadPool);
 
-        BulkRequestExecutor<ShardUpsertRequest> executor = (request, listener) -> {
-            listener.onFailure(new EsRejectedExecutionException("Dummy execution rejected"));
-        };
+        BulkRequestExecutor<ShardUpsertRequest> executor =
+            (request, listener) -> listener.onFailure(new EsRejectedExecutionException("Dummy execution rejected"));
         coordinator.retry(shardRequest(), executor, new ActionListener<ShardResponse>() {
             @Override
             public void onResponse(ShardResponse shardResponse) {
@@ -99,11 +94,10 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
         ThreadPool threadPool = mock(ThreadPool.class);
         BulkRetryCoordinator coordinator = new BulkRetryCoordinator(threadPool);
 
-        BulkRequestExecutor<ShardUpsertRequest> executor = (request, listener) -> {
-            listener.onFailure(new InterruptedException("Dummy execution failed"));
-        };
+        BulkRequestExecutor<ShardUpsertRequest> executor =
+            (request, listener) -> listener.onFailure(new InterruptedException("Dummy execution failed"));
 
-        final SettableFuture<ShardResponse> future = SettableFuture.create();
+        final CompletableFuture<ShardResponse> future = new CompletableFuture<>();
         coordinator.retry(shardRequest(), executor, new ActionListener<ShardResponse>() {
             @Override
             public void onResponse(ShardResponse shardResponse) {
@@ -111,7 +105,7 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
 
             @Override
             public void onFailure(Throwable e) {
-                future.set(null);
+                future.complete(null);
             }
         });
 
@@ -125,28 +119,23 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
         ThreadPool threadPool = mock(ThreadPool.class);
         final BulkRetryCoordinator coordinator = new BulkRetryCoordinator(threadPool);
 
-        final BulkRequestExecutor<ShardUpsertRequest> executor = (request, listener) -> {
-            listener.onResponse(new ShardResponse());
-        };
+        final BulkRequestExecutor<ShardUpsertRequest> executor =
+            (request, listener) -> listener.onResponse(new ShardResponse());
 
         final CountDownLatch latch = new CountDownLatch(1000);
         ExecutorService executorService = Executors.newFixedThreadPool(10, daemonThreadFactory("DummyThreadPool"));
         for (int i = 0; i < 1000; i++) {
-            executorService.submit(new Runnable() {
-                @Override
-                public void run() {
-                    coordinator.retry(shardRequest(), executor, new ActionListener<ShardResponse>() {
-                        @Override
-                        public void onResponse(ShardResponse shardResponse) {
-                            latch.countDown();
-                        }
+            executorService.submit(() ->
+                coordinator.retry(shardRequest(), executor, new ActionListener<ShardResponse>() {
+                    @Override
+                    public void onResponse(ShardResponse shardResponse) {
+                        latch.countDown();
+                    }
 
-                        @Override
-                        public void onFailure(Throwable e) {
-                        }
-                    });
-                }
-            });
+                    @Override
+                    public void onFailure(Throwable e) {
+                    }
+                }));
         }
         latch.await();
         assertEquals(0, coordinator.numPendingOperations());

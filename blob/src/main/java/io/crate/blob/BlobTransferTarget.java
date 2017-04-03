@@ -21,7 +21,6 @@
 
 package io.crate.blob;
 
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.blob.exceptions.DigestMismatchException;
 import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
 import io.crate.blob.pending_transfer.BlobInfoRequest;
@@ -57,7 +56,7 @@ public class BlobTransferTarget extends AbstractComponent {
     private final TransportService transportService;
     private final ClusterService clusterService;
     private CountDownLatch getHeadRequestLatch;
-    private SettableFuture<CountDownLatch> getHeadRequestLatchFuture;
+    private CompletableFuture<CountDownLatch> getHeadRequestLatchFuture;
     private final ConcurrentLinkedQueue<UUID> activePutHeadChunkTransfers;
     private CountDownLatch activePutHeadChunkTransfersLatch;
     private volatile boolean recoveryActive = false;
@@ -81,7 +80,7 @@ public class BlobTransferTarget extends AbstractComponent {
         this.threadPool = threadPool;
         this.transportService = transportService;
         this.clusterService = clusterService;
-        this.getHeadRequestLatchFuture = SettableFuture.create();
+        this.getHeadRequestLatchFuture = new CompletableFuture<>();
         this.activePutHeadChunkTransfers = new ConcurrentLinkedQueue<>();
     }
 
@@ -278,7 +277,7 @@ public class BlobTransferTarget extends AbstractComponent {
          * the future is used because {@link #gotAGetBlobHeadRequest(org.elasticsearch.common.UUID)}
          * might be called before this method und there is a .get() call that blocks and waits
          */
-        getHeadRequestLatchFuture.set(getHeadRequestLatch);
+        getHeadRequestLatchFuture.complete(getHeadRequestLatch);
     }
 
     /**

@@ -22,9 +22,6 @@
 
 package io.crate.module;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.ClusterIdService;
 import io.crate.Version;
 import io.crate.rest.CrateRestMainAction;
@@ -39,7 +36,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.action.main.RestMainAction;
 
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletableFuture;
 
 public class CrateCoreModule extends AbstractModule {
 
@@ -82,30 +79,22 @@ public class CrateCoreModule extends AbstractModule {
 
     private class RestMainActionListener implements TypeListener {
 
-        private final SettableFuture<CrateRestMainAction> instanceFuture;
+        private final CompletableFuture<CrateRestMainAction> instanceFuture;
 
-        RestMainActionListener(SettableFuture<CrateRestMainAction> instanceFuture) {
+        RestMainActionListener(CompletableFuture<CrateRestMainAction> instanceFuture) {
             this.instanceFuture = instanceFuture;
         }
 
         @Override
         public <I> void hear(TypeLiteral<I> type, TypeEncounter<I> encounter) {
-            encounter.register(new InjectionListener<I>() {
-                @Override
-                public void afterInjection(I injectee) {
-                    Futures.addCallback(instanceFuture, new FutureCallback<CrateRestMainAction>() {
-                        @Override
-                        public void onSuccess(CrateRestMainAction result) {
-                            result.registerHandler();
-                        }
-
-                        @Override
-                        public void onFailure(Throwable t) {
-                            logger.error("Could not register CrateRestMainAction handler", t);
-                        }
-                    });
-                }
-            });
+            encounter.register((InjectionListener<I>) injectee ->
+                instanceFuture.whenComplete((crateRestMainAction, throwable) -> {
+                    if (throwable == null) {
+                        crateRestMainAction.registerHandler();
+                    } else {
+                        logger.error("Could not register CrateRestMainAction handler", throwable);
+                    }
+                }));
         }
     }
 
@@ -125,10 +114,10 @@ public class CrateCoreModule extends AbstractModule {
 
     private static class CrateRestMainActionListener implements TypeListener {
 
-        private final SettableFuture<CrateRestMainAction> instanceFuture;
+        private final CompletableFuture<CrateRestMainAction> instanceFuture;
 
         CrateRestMainActionListener() {
-            this.instanceFuture = SettableFuture.create();
+            this.instanceFuture = new CompletableFuture<>();
 
         }
 
@@ -137,7 +126,7 @@ public class CrateCoreModule extends AbstractModule {
             encounter.register(new InjectionListener<I>() {
                 @Override
                 public void afterInjection(I injectee) {
-                    instanceFuture.set((CrateRestMainAction) injectee);
+                    instanceFuture.complete((CrateRestMainAction) injectee);
                 }
             });
         }
