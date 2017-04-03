@@ -21,11 +21,13 @@
 
 package io.crate.executor.transport;
 
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
 
+import java.util.concurrent.CompletableFuture;
+
+@FunctionalInterface
 public interface NodeAction<TRequest extends TransportRequest, TResponse extends TransportResponse> {
 
-    void nodeOperation(TRequest request, ActionListener<TResponse> listener);
+    CompletableFuture<TResponse> nodeOperation(TRequest request);
 }

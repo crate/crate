@@ -23,7 +23,6 @@ package io.crate.action.job;
 
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Bucket;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
@@ -78,7 +77,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
     }
 
     @Override
-    public void nodeOperation(final JobRequest request, final ActionListener<JobResponse> actionListener) {
+    public CompletableFuture<JobResponse> nodeOperation(final JobRequest request) {
         JobExecutionContext.Builder contextBuilder = jobContextService.newBuilder(request.jobId(), request.coordinatorNodeId());
 
         SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
@@ -89,20 +88,13 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
             JobExecutionContext context = jobContextService.createContext(contextBuilder);
             context.start();
         } catch (Throwable t) {
-            actionListener.onFailure(t);
-            return;
+            return CompletableFutures.failedFuture(t);
         }
 
         if (directResponseFutures.size() == 0) {
-            actionListener.onResponse(new JobResponse());
+            return CompletableFuture.completedFuture(new JobResponse());
         } else {
-            CompletableFutures.allAsList(directResponseFutures).whenComplete((buckets, t) -> {
-                if (t == null) {
-                    actionListener.onResponse(new JobResponse(buckets));
-                } else {
-                    actionListener.onFailure(SQLExceptions.unwrap(t));
-                }
-            });
+            return CompletableFutures.allAsList(directResponseFutures).thenApply(JobResponse::new);
         }
     }
 }

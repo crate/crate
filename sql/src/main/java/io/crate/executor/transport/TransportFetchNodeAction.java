@@ -37,6 +37,7 @@ import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, NodeFetchResponse> {
@@ -85,24 +86,25 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
     }
 
     @Override
-    public void nodeOperation(final NodeFetchRequest request,
-                              final ActionListener<NodeFetchResponse> responseListener) {
+    public CompletableFuture<NodeFetchResponse> nodeOperation(final NodeFetchRequest request) {
         ListenableFuture<IntObjectMap<StreamBucket>> resultFuture = nodeFetchOperation.fetch(
             request.jobId(),
             request.fetchPhaseId(),
             request.toFetch(),
             request.isCloseContext()
         );
+        CompletableFuture<NodeFetchResponse> future = new CompletableFuture<>();
         Futures.addCallback(resultFuture, new FutureCallback<IntObjectMap<StreamBucket>>() {
             @Override
             public void onSuccess(@Nullable IntObjectMap<StreamBucket> result) {
-                responseListener.onResponse(NodeFetchResponse.forSending(result));
+                future.complete(NodeFetchResponse.forSending(result));
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                responseListener.onFailure(t);
+                future.completeExceptionally(t);
             }
         });
+        return future;
     }
 }

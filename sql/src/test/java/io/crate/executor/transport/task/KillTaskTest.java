@@ -43,6 +43,6 @@ public class KillTaskTest extends CrateUnitTest {
 
         task.execute(new TestingBatchConsumer(), Row.EMPTY);
         verify(killAllNodeAction, times(1)).broadcast(any(KillAllRequest.class), any(ActionListener.class));
-        verify(killAllNodeAction, times(0)).nodeOperation(any(KillAllRequest.class), any(ActionListener.class));
+        verify(killAllNodeAction, times(0)).nodeOperation(any(KillAllRequest.class));
     }
 }
