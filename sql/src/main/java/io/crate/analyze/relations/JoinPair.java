@@ -22,13 +22,13 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.base.Function;
 import com.google.common.base.Objects;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
+import java.util.function.Function;
 
 public class JoinPair {
 

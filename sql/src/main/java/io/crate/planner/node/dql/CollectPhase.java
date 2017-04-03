@@ -22,13 +22,13 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.base.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 public interface CollectPhase extends UpstreamPhase {
 

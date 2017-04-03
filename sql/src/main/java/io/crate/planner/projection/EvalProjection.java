@@ -22,7 +22,6 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.base.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
@@ -31,6 +30,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * Projection which can evaluate functions or re-order columns

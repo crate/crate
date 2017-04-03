@@ -22,7 +22,6 @@
 
 package io.crate.collections;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 
 import javax.annotation.Nullable;
@@ -30,6 +29,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class Lists2 {
 
@@ -47,8 +48,8 @@ public class Lists2 {
     /**
      * Apply the replace function on each item of the list and replaces the item.
      *
-     * This is similar to {@link Lists#transform(List, Function)}, but instead of creating a view on a backing list
-     * this function is actually mutating the provided list
+     * This is similar to {@link Lists#transform(List, com.google.common.base.Function)}, but instead of creating a
+     * view on a backing list this function is actually mutating the provided list
      */
     public static <T> void replaceItems(@Nullable List<T> list, Function<? super T, T> replaceFunction) {
         if (list == null || list.isEmpty()) {
@@ -60,6 +61,10 @@ public class Lists2 {
         }
     }
 
+    /**
+     * Create a copy of the given list with {@code replaceFunc} applied on each item.
+     * Opposed to {@link java.util.stream.Stream#map(Function)} / {@link Collectors#toList()} this minimizes allocations.
+     */
     public static <T> List<T> copyAndReplace(List<T> list, Function<? super T, T> replaceFunc) {
         List<T> copy = new ArrayList<T>(list.size());
         for (T item : list) {

@@ -37,6 +37,7 @@ import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Function;
 
 /**
  * The RelationNormalizer tries to merge the tree of relations in a QueriedSelectRelation into a single QueriedRelation.
@@ -213,7 +214,7 @@ final class RelationNormalizer {
      * </pre>
      */
     private static class FieldReferenceResolver extends ReplacingSymbolVisitor<Void>
-        implements com.google.common.base.Function<Symbol, Symbol>{
+        implements Function<Symbol, Symbol> {
 
         public static final FieldReferenceResolver INSTANCE = new FieldReferenceResolver(ReplaceMode.MUTATE);
         private static final FieldRelationVisitor<Symbol> FIELD_RELATION_VISITOR = new FieldRelationVisitor<>(INSTANCE);

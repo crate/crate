@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -40,6 +39,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 
 public abstract class AbstractProjectionsPhase implements Streamable, ExecutionPhase {
 

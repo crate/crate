@@ -22,7 +22,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.Symbol;
@@ -35,6 +34,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 public final class JoinPairs {
 

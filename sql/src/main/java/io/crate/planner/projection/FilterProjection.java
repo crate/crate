@@ -21,7 +21,6 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
@@ -33,6 +32,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 
 public class FilterProjection extends Projection {
 
