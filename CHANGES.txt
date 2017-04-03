@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2017/04/03 1.0.6
+================
+
  - Fixed issue which prevents blob directories from being removed after a
    ``drop blob table`` command when a custom blob location is configured.
 
