@@ -22,12 +22,9 @@
 
 package io.crate.operation.fetch;
 
-import com.google.common.util.concurrent.FutureCallback;
+import java.util.function.BiConsumer;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-
-class CloseContextCallback implements FutureCallback<Object> {
+class CloseContextCallback implements BiConsumer<Object, Throwable> {
 
     private final FetchContext fetchContext;
 
@@ -36,12 +33,11 @@ class CloseContextCallback implements FutureCallback<Object> {
     }
 
     @Override
-    public void onSuccess(@Nullable Object result) {
-        fetchContext.close();
-    }
-
-    @Override
-    public void onFailure(@Nonnull Throwable t) {
-        fetchContext.kill(t);
+    public void accept(Object o, Throwable throwable) {
+        if (throwable == null) {
+            fetchContext.close();
+        } else {
+            fetchContext.kill(throwable);
+        }
     }
 }
