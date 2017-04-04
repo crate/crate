@@ -22,10 +22,8 @@
 package io.crate.planner.node.dql;
 
 import com.google.common.base.MoreObjects;
-import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.projection.Projection;
@@ -41,12 +39,7 @@ import java.util.UUID;
 
 public class FileUriCollectPhase extends AbstractProjectionsPhase implements CollectPhase {
 
-    public static final ExecutionPhaseFactory<FileUriCollectPhase> FACTORY = new ExecutionPhaseFactory<FileUriCollectPhase>() {
-        @Override
-        public FileUriCollectPhase create() {
-            return new FileUriCollectPhase();
-        }
-    };
+    public static final ExecutionPhaseFactory<FileUriCollectPhase> FACTORY = FileUriCollectPhase::new;
 
     private Collection<String> executionNodes;
     private Symbol targetUri;
@@ -98,25 +91,6 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
     @Override
     public Type type() {
         return Type.FILE_URI_COLLECT;
-    }
-
-    public FileUriCollectPhase normalize(EvaluatingNormalizer normalizer, TransactionContext transactionContext) {
-        List<Symbol> normalizedToCollect = normalizer.normalize(toCollect(), transactionContext);
-        Symbol normalizedTargetUri = normalizer.normalize(targetUri, transactionContext);
-        boolean changed = normalizedToCollect != toCollect() || (normalizedTargetUri != targetUri);
-        if (!changed) {
-            return this;
-        }
-        return new FileUriCollectPhase(
-            jobId(),
-            phaseId(),
-            name(),
-            executionNodes,
-            normalizedTargetUri,
-            normalizedToCollect,
-            projections(),
-            compression(),
-            sharedStorage());
     }
 
     @Nullable
