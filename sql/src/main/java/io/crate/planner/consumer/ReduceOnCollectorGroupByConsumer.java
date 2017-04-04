@@ -106,8 +106,8 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
                 tableRelation, querySpec.where(), groupKeys) : "not grouped by clustered column or primary keys";
             GroupByConsumer.validateGroupBySymbols(tableRelation, groupKeys);
 
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
-            SplitPoints splitPoints = projectionBuilder.getSplitPoints();
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
+            SplitPoints splitPoints = SplitPoints.create(querySpec);
 
             // mapper / collect
             List<Symbol> collectOutputs = new ArrayList<>(

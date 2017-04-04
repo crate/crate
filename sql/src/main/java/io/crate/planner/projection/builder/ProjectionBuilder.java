@@ -24,7 +24,6 @@ package io.crate.planner.projection.builder;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
 import io.crate.operation.aggregation.AggregationFunction;
@@ -43,17 +42,10 @@ public class ProjectionBuilder {
     private static final InputCreatingVisitor inputVisitor = InputCreatingVisitor.INSTANCE;
 
     private final Functions functions;
-    private final QuerySpec querySpec;
 
-    public ProjectionBuilder(Functions functions, QuerySpec querySpec) {
+    public ProjectionBuilder(Functions functions) {
         this.functions = functions;
-        this.querySpec = querySpec;
     }
-
-    public SplitPoints getSplitPoints() {
-        return SplitPoints.create(querySpec);
-    }
-
 
     public AggregationProjection aggregationProjection(Collection<? extends Symbol> inputs,
                                                        Collection<Function> aggregates,
