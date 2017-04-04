@@ -54,7 +54,7 @@ public class ProjectionBuilder {
         // TODO: orderBy for none groups
         SplitPoints context = new SplitPoints(querySpec);
         SplitPointVisitor.INSTANCE.process(context);
-        LeafVisitor.INSTANCE.process(context);
+        LeafVisitor.addLeafsToContext(context);
         return context;
     }
 
