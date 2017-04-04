@@ -38,7 +38,7 @@ final class LeafVisitor extends DefaultTraversalSymbolVisitor<List<Symbol>, Void
     /**
      * Finds the leaves of {@link SplitPoints#toCollect()} and adds them to {@link SplitPoints#leaves()}
      */
-    static void addLeafsToContext(SplitPoints splitContext) {
+    static void addLeafs(SplitPoints splitContext) {
         INSTANCE.process(splitContext.toCollect(), splitContext.leaves());
     }
 
