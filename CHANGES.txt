@@ -15,6 +15,10 @@ the appropriate section of the docs.
 Changelog
 =========
 
+ - Re-added compatibility layer that was removed in 1.1 and resulted in
+   exception thrown when trying to run aggregations on tables created
+   with CrateDB < 0.52.0.
+
  - Fixed a race condition which could cause a memory leak
 
  - Updated documentation to indicate that it's not possible to use

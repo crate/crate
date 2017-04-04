@@ -64,6 +64,10 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
             is(TablesNeedRecreationSysCheck.DESCRIPTION +
                "[doc.test_reindex_required, doc.test_reindex_required_parted] " +
                LINK_PATTERN + TablesNeedRecreationSysCheck.ID));
+
+        // Ensure that old tables can be read properly by using field data cache
+        execute("select sum(id) from test_reindex_required");
+        assertThat(response.rows()[0][0], is(15.0));
     }
 
     @Test
