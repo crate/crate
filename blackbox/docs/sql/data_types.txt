@@ -580,6 +580,7 @@ Combined::
 
   { id = 1, name = 'foo', tags = ['apple', 'banana', 'pear'], size = 3.1415, valid = ? }
 
+.. _data-type-array:
 
 array
 =====

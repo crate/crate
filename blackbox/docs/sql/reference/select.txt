@@ -277,6 +277,11 @@ for ASC is NULLS LAST and the default for DESC is NULLS FIRST.
 
 Character-string data is sorted by its UTF-8 representation.
 
+.. note::
+
+  Sorting on :ref:`geo_point_data_type`, :ref:`geo_shape_data_type`,
+  :ref:`data-type-array`, and :ref:`object_data_type` is not supported.
+
 LIMIT Clause
 ------------
 

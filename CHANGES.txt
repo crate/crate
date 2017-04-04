@@ -15,6 +15,10 @@ the appropriate section of the docs.
 Changelog
 =========
 
+ - Updated documentation to indicate that it's not possible to use
+    ``object``, ``geo_point``, ``geo_shape`` or ``array`` in the
+    ``ORDER BY`` clause.
+
  - Fixed cluster check, which warns about tables that need upgrade for
    future compatibility, to include only tables that differ from
    current storage engine major version number.
