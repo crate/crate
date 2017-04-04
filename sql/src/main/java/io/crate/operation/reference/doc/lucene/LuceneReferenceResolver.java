@@ -77,26 +77,26 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
         switch (refInfo.valueType().id()) {
             case ByteType.ID:
-                return new ByteColumnReference(colName);
+                return new ByteColumnReference(colName, fieldType);
             case ShortType.ID:
-                return new ShortColumnReference(colName);
+                return new ShortColumnReference(colName, fieldType);
             case IpType.ID:
-                return new IpColumnReference(colName);
+                return new IpColumnReference(colName, fieldType);
             case StringType.ID:
                 return new BytesRefColumnReference(colName, fieldType);
             case DoubleType.ID:
                 return new DoubleColumnReference(colName, fieldType);
             case BooleanType.ID:
-                return new BooleanColumnReference(colName);
+                return new BooleanColumnReference(colName, fieldType);
             case ObjectType.ID:
                 return new ObjectColumnReference(colName);
             case FloatType.ID:
                 return new FloatColumnReference(colName, fieldType);
             case LongType.ID:
             case TimestampType.ID:
-                return new LongColumnReference(colName);
+                return new LongColumnReference(colName, fieldType);
             case IntegerType.ID:
-                return new IntegerColumnReference(colName);
+                return new IntegerColumnReference(colName, fieldType);
             case GeoPointType.ID:
                 return new GeoPointColumnReference(colName, fieldType);
             case GeoShapeType.ID:

@@ -39,14 +39,12 @@ import static org.hamcrest.core.Is.is;
 
 public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
 
-    private String column = "f";
-
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (float f = -0.5f; f < 10.0f; f++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Float.toString(f), Field.Store.NO));
-            doc.add(new FloatField(column, f, Field.Store.NO));
+            doc.add(new FloatField(columnName(), f, Field.Store.NO));
             writer.addDocument(doc);
         }
     }
@@ -54,8 +52,8 @@ public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
     @Test
     public void testFieldCacheExpression() throws Exception {
         MappedFieldType fieldType = FloatFieldMapper.Defaults.FIELD_TYPE.clone();
-        fieldType.setNames(new MappedFieldType.Names(column));
-        FloatColumnReference floatColumn = new FloatColumnReference(column, fieldType);
+        fieldType.setNames(fieldName());
+        FloatColumnReference floatColumn = new FloatColumnReference(columnName(), fieldType);
         floatColumn.startCollect(ctx);
         floatColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
@@ -66,5 +64,10 @@ public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
             assertThat(floatColumn.value(), is(f));
             f++;
         }
+    }
+
+    @Override
+    protected String columnName() {
+        return "f";
     }
 }

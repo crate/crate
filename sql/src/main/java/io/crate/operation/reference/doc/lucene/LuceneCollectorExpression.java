@@ -21,18 +21,18 @@
 
 package io.crate.operation.reference.doc.lucene;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Scorer;
-
-import java.io.IOException;
 
 /**
  * An expression which gets evaluated in the collect phase
  */
 public abstract class LuceneCollectorExpression<ReturnType> implements Input<ReturnType> {
 
-    final String columnName;
+    @VisibleForTesting
+    public final String columnName;
 
     public LuceneCollectorExpression(String columnName) {
         this.columnName = columnName;
@@ -45,7 +45,7 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
     public void setNextDocId(int doc) {
     }
 
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(LeafReaderContext context) {
     }
 
     public void setScorer(Scorer scorer) {

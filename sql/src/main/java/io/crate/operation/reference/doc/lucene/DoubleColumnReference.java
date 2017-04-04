@@ -27,8 +27,6 @@ import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
-import java.io.IOException;
-
 public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFieldData, Double> {
 
     private SortedNumericDoubleValues values;
@@ -60,7 +58,7 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(LeafReaderContext context) {
         super.setNextReader(context);
         values = indexFieldData.load(context).getDoubleValues();
     }

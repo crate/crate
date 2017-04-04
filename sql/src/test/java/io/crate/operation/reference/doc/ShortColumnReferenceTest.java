@@ -24,34 +24,36 @@ package io.crate.operation.reference.doc;
 import io.crate.operation.reference.doc.lucene.ShortColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.core.ShortFieldMapper;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
 public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
 
-    private String column = "s";
-
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (short i = -10; i < 10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Short.toString(i), Field.Store.NO));
-            doc.add(new SortedNumericDocValuesField(column, i));
+            doc.add(new IntField(columnName(), i, Field.Store.NO));
             writer.addDocument(doc);
         }
     }
 
     @Test
-    public void testShortExpression() throws Exception {
-        ShortColumnReference shortColumn = new ShortColumnReference(column);
+    public void testFieldCacheExpression() throws Exception {
+        MappedFieldType fieldType = ShortFieldMapper.Defaults.FIELD_TYPE.clone();
+        fieldType.setNames(fieldName());
+        ShortColumnReference shortColumn = new ShortColumnReference(columnName(), fieldType);
         shortColumn.startCollect(ctx);
         shortColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
@@ -62,5 +64,10 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
             assertThat(shortColumn.value(), is(i));
             i++;
         }
+    }
+
+    @Override
+    protected String columnName() {
+        return "s";
     }
 }

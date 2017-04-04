@@ -39,14 +39,12 @@ import static org.hamcrest.core.Is.is;
 
 public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
 
-    private String column = "d";
-
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (double d = 0.5; d < 10.0d; d++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Double.toString(d), Field.Store.NO));
-            doc.add(new DoubleField(column, d, Field.Store.NO));
+            doc.add(new DoubleField(columnName(), d, Field.Store.NO));
             writer.addDocument(doc);
         }
     }
@@ -54,8 +52,8 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
     @Test
     public void testFieldCacheExpression() throws Exception {
         MappedFieldType fieldType = DoubleFieldMapper.Defaults.FIELD_TYPE.clone();
-        fieldType.setNames(new MappedFieldType.Names("d"));
-        DoubleColumnReference doubleColumn = new DoubleColumnReference(column, fieldType);
+        fieldType.setNames(fieldName());
+        DoubleColumnReference doubleColumn = new DoubleColumnReference(columnName(), fieldType);
         doubleColumn.startCollect(ctx);
         doubleColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
@@ -66,5 +64,10 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
             assertThat(doubleColumn.value(), is(d));
             d++;
         }
+    }
+
+    @Override
+    protected String columnName() {
+        return "d";
     }
 }

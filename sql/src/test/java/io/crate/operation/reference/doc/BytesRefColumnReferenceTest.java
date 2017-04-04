@@ -38,8 +38,6 @@ import static org.hamcrest.core.Is.is;
 
 public class BytesRefColumnReferenceTest extends DocLevelExpressionsTest {
 
-    private String column = "b";
-
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         StringBuilder builder = new StringBuilder();
@@ -47,7 +45,7 @@ public class BytesRefColumnReferenceTest extends DocLevelExpressionsTest {
             builder.append(i);
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            doc.add(new StringField(column, builder.toString(), Field.Store.NO));
+            doc.add(new StringField(columnName(), builder.toString(), Field.Store.NO));
             writer.addDocument(doc);
         }
     }
@@ -55,8 +53,8 @@ public class BytesRefColumnReferenceTest extends DocLevelExpressionsTest {
     @Test
     public void testFieldCacheExpression() throws Exception {
         MappedFieldType fieldType = StringFieldMapper.Defaults.FIELD_TYPE.clone();
-        fieldType.setNames(new MappedFieldType.Names(column));
-        BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(column, fieldType);
+        fieldType.setNames(fieldName());
+        BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(columnName(), fieldType);
         bytesRefColumn.startCollect(ctx);
         bytesRefColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
@@ -69,5 +67,10 @@ public class BytesRefColumnReferenceTest extends DocLevelExpressionsTest {
             assertThat(bytesRefColumn.value().utf8ToString(), is(builder.toString()));
             i++;
         }
+    }
+
+    @Override
+    protected String columnName() {
+        return "b";
     }
 }

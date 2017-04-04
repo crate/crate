@@ -24,34 +24,40 @@ package io.crate.operation.reference.doc;
 import io.crate.operation.reference.doc.lucene.BooleanColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.core.StringFieldMapper;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
 public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
 
-    private String column = "b";
+    private static final BytesRef TRUE = new BytesRef("1");
+    private static final BytesRef FALSE = new BytesRef("0");
 
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (int i = 0; i < 10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            doc.add(new NumericDocValuesField(column, i % 2 == 0 ? 1 : 0));
+            doc.add(new StringField(columnName(),
+                (i % 2 == 0 ? TRUE : FALSE).utf8ToString(), Field.Store.NO));
             writer.addDocument(doc);
         }
     }
 
     @Test
-    public void testBooleanExpression() throws Exception {
-        BooleanColumnReference booleanColumn = new BooleanColumnReference(column);
+    public void testFieldCacheExpression() throws Exception {
+        MappedFieldType fieldType = StringFieldMapper.Defaults.FIELD_TYPE.clone();
+        fieldType.setNames(fieldName());
+        BooleanColumnReference booleanColumn = new BooleanColumnReference(columnName(), fieldType);
         booleanColumn.startCollect(ctx);
         booleanColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
@@ -62,5 +68,10 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
             assertThat(booleanColumn.value(), is(i % 2 == 0));
             i++;
         }
+    }
+
+    @Override
+    protected String columnName() {
+        return "b";
     }
 }

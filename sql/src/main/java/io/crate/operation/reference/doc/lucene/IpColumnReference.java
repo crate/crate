@@ -22,21 +22,20 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
-import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.index.fielddata.IndexNumericFieldData;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.ip.IpFieldMapper;
 
-import java.io.IOException;
-
-public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
+public class IpColumnReference extends FieldCacheExpression<IndexNumericFieldData, BytesRef> {
 
     private SortedNumericDocValues values;
     private BytesRef value;
 
-    public IpColumnReference(String columnName) {
-        super(columnName);
+    public IpColumnReference(String columnName, MappedFieldType fieldType) {
+        super(columnName, fieldType);
     }
 
     @Override
@@ -61,8 +60,8 @@ public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) throws IOException {
+    public void setNextReader(LeafReaderContext context) {
         super.setNextReader(context);
-        values = DocValues.getSortedNumeric(context.reader(), columnName);
+        values = indexFieldData.load(context).getLongValues();
     }
 }

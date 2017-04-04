@@ -24,34 +24,36 @@ package io.crate.operation.reference.doc;
 import io.crate.operation.reference.doc.lucene.LongColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.core.LongFieldMapper;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
 public class LongColumnReferenceTest extends DocLevelExpressionsTest {
 
-    private String column = "l";
-
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (long l = Long.MIN_VALUE; l < Long.MIN_VALUE + 10; l++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Long.toString(l), Field.Store.NO));
-            doc.add(new NumericDocValuesField(column, l));
+            doc.add(new LongField(columnName(), l, Field.Store.NO));
             writer.addDocument(doc);
         }
     }
 
     @Test
-    public void testLongExpression() throws Exception {
-        LongColumnReference longColumn = new LongColumnReference(column);
+    public void testFieldCacheExpression() throws Exception {
+        MappedFieldType fieldType = LongFieldMapper.Defaults.FIELD_TYPE.clone();
+        fieldType.setNames(fieldName());
+        LongColumnReference longColumn = new LongColumnReference(columnName(), fieldType);
         longColumn.startCollect(ctx);
         longColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());
@@ -62,5 +64,10 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
             assertThat(longColumn.value(), is(l));
             l++;
         }
+    }
+
+    @Override
+    protected String columnName() {
+        return "l";
     }
 }

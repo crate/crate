@@ -29,6 +29,7 @@ import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.After;
 import org.junit.Before;
 
@@ -63,4 +64,10 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
     }
 
     protected abstract void insertValues(IndexWriter writer) throws Exception;
+
+    protected abstract String columnName();
+
+    protected MappedFieldType.Names fieldName() {
+        return new MappedFieldType.Names(columnName());
+    }
 }

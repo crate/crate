@@ -23,16 +23,15 @@
 package io.crate.operation.collect.collectors;
 
 import io.crate.breaker.RamAccountingContext;
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
-import io.crate.operation.reference.doc.lucene.LongColumnReference;
+import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.*;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.RAMDirectory;
@@ -41,6 +40,7 @@ import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -49,7 +49,7 @@ import static org.mockito.Mockito.mock;
 
 public class LuceneBatchIteratorTest extends CrateUnitTest {
 
-    private List<LongColumnReference> columnRefs;
+    private List<CustomLongColumnReference> columnRefs;
     private IndexSearcher indexSearcher;
     private ArrayList<Object[]> expectedResult;
 
@@ -66,7 +66,7 @@ public class LuceneBatchIteratorTest extends CrateUnitTest {
         }
         iw.commit();
         indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true));
-        LongColumnReference columnReference = new LongColumnReference(columnName);
+        CustomLongColumnReference columnReference = new CustomLongColumnReference(columnName);
         columnRefs = Collections.singletonList(columnReference);
     }
 
@@ -90,5 +90,46 @@ public class LuceneBatchIteratorTest extends CrateUnitTest {
             }
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    private static class CustomLongColumnReference extends LuceneCollectorExpression<Long> {
+
+        private SortedNumericDocValues values;
+        private Long value;
+
+        CustomLongColumnReference(String columnName) {
+            super(columnName);
+        }
+
+        @Override
+        public Long value() {
+            return value;
+        }
+
+        @Override
+        public void setNextDocId(int docId) {
+            super.setNextDocId(docId);
+            values.setDocument(docId);
+            switch (values.count()) {
+                case 0:
+                    value = null;
+                    break;
+                case 1:
+                    value = values.valueAt(0);
+                    break;
+                default:
+                    throw new GroupByOnArrayUnsupportedException(columnName);
+            }
+        }
+
+        @Override
+        public void setNextReader(LeafReaderContext context) {
+            super.setNextReader(context);
+            try {
+                values = DocValues.getSortedNumeric(context.reader(), columnName);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

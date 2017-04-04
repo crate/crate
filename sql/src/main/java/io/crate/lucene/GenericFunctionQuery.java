@@ -137,7 +137,7 @@ class GenericFunctionQuery extends Query {
         };
     }
 
-    private DocIdSet getDocIdSet(final LeafReaderContext context) throws IOException {
+    private DocIdSet getDocIdSet(final LeafReaderContext context) {
         for (LuceneCollectorExpression expression : expressions) {
             expression.setNextReader(context);
         }
