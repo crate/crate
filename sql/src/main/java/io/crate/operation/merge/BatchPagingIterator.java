@@ -145,6 +145,14 @@ public class BatchPagingIterator<Key> implements BatchIterator {
     }
 
     public void completeLoad(@Nullable Throwable t) {
+        if (currentlyLoading == null) {
+            if (t == null) {
+                killed = new IllegalStateException("completeLoad called without having called loadNextBatch");
+            } else {
+                killed = t;
+            }
+            return;
+        }
         if (t == null) {
             currentlyLoading.complete(null);
         } else {
