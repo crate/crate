@@ -362,7 +362,6 @@ final class RelationNormalizer {
             querySpec = mergeQuerySpec(querySpec, context.currentParentQSpec);
             // must create a new MultiSourceSelect because paths and query spec changed
             return new MultiSourceSelect(mapSourceRelations(multiSourceSelect),
-                multiSourceSelect.outputSymbols(),
                 context.paths(),
                 querySpec,
                 multiSourceSelect.joinPairs());
@@ -409,8 +408,10 @@ final class RelationNormalizer {
             QuerySpec querySpec = mss.querySpec();
             querySpec.normalize(context.normalizer, context.transactionContext);
             // must create a new MultiSourceSelect because paths and query spec changed
-            mss = new MultiSourceSelect(mapSourceRelations(mss),
-                mss.outputSymbols(), context.paths(), querySpec,
+            mss = new MultiSourceSelect(
+                mapSourceRelations(mss),
+                context.paths(),
+                querySpec,
                 mss.joinPairs());
             mss.pushDownQuerySpecs();
             if (mss.sources().size() == 2) {
@@ -422,7 +423,6 @@ final class RelationNormalizer {
                 Rewriter.tryRewriteOuterToInnerJoin(
                     context.normalizer,
                     JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs(), false),
-                    mss.outputSymbols(),
                     mss.querySpec(),
                     left,
                     right,

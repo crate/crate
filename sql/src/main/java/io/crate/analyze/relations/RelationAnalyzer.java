@@ -224,7 +224,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         } else {
             relation = new MultiSourceSelect(
                 context.sources(),
-                selectAnalysis.outputSymbols(),
                 selectAnalysis.outputNames(),
                 querySpec,
                 context.joinPairs()
