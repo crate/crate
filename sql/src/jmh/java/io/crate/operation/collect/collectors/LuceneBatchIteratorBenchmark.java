@@ -24,14 +24,13 @@ package io.crate.operation.collect.collectors;
 
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Input;
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
-import io.crate.operation.reference.doc.lucene.IntegerColumnReference;
+import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.*;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.store.RAMDirectory;
@@ -40,6 +39,7 @@ import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +54,7 @@ public class LuceneBatchIteratorBenchmark {
     public static final RamAccountingContext RAM_ACCOUNTING_CONTEXT = new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
     private CollectorContext collectorContext;
     private IndexSearcher indexSearcher;
-    private List<IntegerColumnReference> columnRefs;
+    private List<CustomIntegerColumnReference> columnRefs;
 
     @Setup
     public void createLuceneBatchIterator() throws Exception {
@@ -68,7 +68,7 @@ public class LuceneBatchIteratorBenchmark {
         iw.commit();
         iw.forceMerge(1, true);
         indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true));
-        IntegerColumnReference columnReference = new IntegerColumnReference(columnName);
+        CustomIntegerColumnReference columnReference = new CustomIntegerColumnReference(columnName);
         columnRefs = Collections.singletonList(columnReference);
 
         collectorContext = new CollectorContext(
@@ -93,6 +93,50 @@ public class LuceneBatchIteratorBenchmark {
         Input<?> input = it.rowData().get(0);
         while (it.moveNext()) {
             blackhole.consume(input.value());
+        }
+    }
+
+    // This is a variant of IntegerColumnReference that uses docValues and doesn't involve the fieldCache.
+    // So we avoid having to mock fieldCache for the test, which wouldn't be used anyway
+    // as the index contains docValues.
+    private class CustomIntegerColumnReference extends LuceneCollectorExpression<Integer> {
+
+        private SortedNumericDocValues values;
+        private Integer value;
+
+        public CustomIntegerColumnReference(String columnName) {
+            super(columnName);
+        }
+
+        @Override
+        public Integer value() {
+            return value;
+        }
+
+        @Override
+        public void setNextDocId(int docId) {
+            super.setNextDocId(docId);
+            values.setDocument(docId);
+            switch (values.count()) {
+                case 0:
+                    value = null;
+                    break;
+                case 1:
+                    value = (int) values.valueAt(0);
+                    break;
+                default:
+                    throw new GroupByOnArrayUnsupportedException(columnName);
+            }
+        }
+
+        @Override
+        public void setNextReader(LeafReaderContext context) {
+            super.setNextReader(context);
+            try {
+                values = DocValues.getSortedNumeric(context.reader(), columnName);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 }
