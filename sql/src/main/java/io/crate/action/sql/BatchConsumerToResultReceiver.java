@@ -26,7 +26,6 @@ import io.crate.data.BatchConsumer;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowBridging;
-import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.SQLExceptions;
 
 import javax.annotation.Nullable;
@@ -88,10 +87,14 @@ public class BatchConsumerToResultReceiver implements BatchConsumer {
         }
     }
 
-    public void interruptIfResumable() {
+    /**
+     * If this consumer suspended itself (due to {@code maxRows} being > 0, it will close the BatchIterator
+     * and finish the ResultReceiver with interrupted=true.
+     */
+    public void closeAndFinishIfSuspended() {
         if (activeIt != null) {
-            activeIt.kill(new InterruptedException(JobKilledException.MESSAGE));
             activeIt.close();
+            resultReceiver.allFinished(true);
         }
     }
 

@@ -315,18 +315,28 @@ public class PostgresITest extends SQLTransportIntegrationTest {
                     }
                 }
             }
-            try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties)) {
-                String q = "SELECT j.stmt, o.name FROM sys.operations AS o, sys.jobs AS j WHERE o.job_id = j.id" +
-                           " and j.stmt = ?";
-                PreparedStatement statement = conn.prepareStatement(q);
-                statement.setString(1, "select mountain from sys.summits");
-                ResultSet rs = statement.executeQuery();
-                List<String> operations = new ArrayList<>();
-                while (rs.next()) {
-                     operations.add(rs.getString(2));
+
+            // The client closes connections lazy, so the statement issued below may arrive on the server *before*
+            // the previous connection is closed, so it may see the previous operation -> use assertBusy
+            assertBusy(() -> {
+                try {
+                    try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties)) {
+                        String q =
+                            "SELECT j.stmt || '-' || o.name FROM sys.operations AS o, sys.jobs AS j WHERE o.job_id = j.id" +
+                            " and j.stmt = ?";
+                        PreparedStatement statement = conn.prepareStatement(q);
+                        statement.setString(1, "select mountain from sys.summits");
+                        ResultSet rs = statement.executeQuery();
+                        List<String> operations = new ArrayList<>();
+                        while (rs.next()) {
+                            operations.add(rs.getString(1));
+                        }
+                        assertThat(operations, Matchers.empty());
+                    }
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
                 }
-                assertThat(operations, Matchers.empty());
-            }
+            });
         } finally {
             try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties);
                 Statement statement = conn.createStatement()) {
