@@ -204,7 +204,7 @@ which will be casted to ``geo_point``::
      cr> CREATE FUNCTION symmetric_point(point geo_point)
      ...  RETURNS geo_point
      ...  LANGUAGE JAVASCRIPT
-     ...  AS 'function(point, angle) {
+     ...  AS 'function symmetric_point (point, angle) {
      ...        var x = - point[0],
      ...            y = - point[1];
      ...        return "POINT (\" + x + \", \" + y +\")";
@@ -232,9 +232,71 @@ the JavaScript function should return a ``GeoJson`` object or``WKT`` string::
 
 .. NOTE::
 
-   If the return value of the JavaScript function is ``undefined`` it is converted
-   to ``NULL``.
+   If the return value of the JavaScript function is ``undefined`` it is
+   converted to ``NULL``.
 
+
+Working with ``NUMBERS``
+........................
+
+`Nashorn`_, the JavaScript interpreter that CrateDB uses, interprets numbers as
+``java.lang.Double``, ``java.lang.Long``, or ``java.lang.Integer``,
+depending on the computation performed. In most cases, this is not an
+issue, since the return type of the JavaScript function will be casted
+to the return type specified in the ``CREATE FUNCTION`` statement,
+although cast might result in a loss of precision.
+
+However, when you try to cast ``DOUBLE`` to ``TIMESTAMP`` it will be
+interpreted as UTC seconds and will result in a wrong value::
+
+     cr> CREATE FUNCTION utc(long, long, long)
+     ...  RETURNS TIMESTAMP
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function utc(year, month, day) {
+     ...        return Date.UTC(year, month, day, 0, 0, 0);
+     ...      }';
+     CREATE OK, 1 row affected  (... sec)
+
+.. hide:
+
+    cr> _wait_for_function('utc')
+
+
+::
+
+    cr> SELECT date_format(utc(2016,04,6)) as epoque;
+    +------------------------------+
+    | epoque                       |
+    +------------------------------+
+    | 48314-07-22T00:00:00.000000Z |
+    +------------------------------+
+    SELECT 1 row in set (... sec)
+
+To avoid this behavior, the numeric value should be divided by 1000 before
+it is returned::
+
+     cr> CREATE OR REPLACE FUNCTION utc(long, long, long)
+     ...  RETURNS TIMESTAMP
+     ...  LANGUAGE JAVASCRIPT
+     ...  AS 'function utc(year, month, day) {
+     ...        return Date.UTC(year, month, day, 0, 0, 0)/1000;
+     ...      }';
+     CREATE OK, 1 row affected  (... sec)
+
+.. hide:
+
+    cr> _wait_for_function('utc')
+
+
+::
+
+    cr> SELECT date_format(utc(2016,04,6)) as epoque;
+    +-----------------------------+
+    | epoque                      |
+    +-----------------------------+
+    | 2016-05-06T00:00:00.000000Z |
+    +-----------------------------+
+    SELECT 1 row in set (... sec)
 
 .. hide:
 
@@ -258,3 +320,8 @@ the JavaScript function should return a ``GeoJson`` object or``WKT`` string::
 
     cr> DROP FUNCTION line(start_point array(double), end_point array(double));
     DROP OK, 1 row affected  (... sec)
+
+    cr> DROP FUNCTION utc(long, long, long);
+    DROP OK, 1 row affected  (... sec)
+
+.. _Nashorn : http://www.oracle.com/technetwork/articles/java/jf14-nashorn-2126515.html
