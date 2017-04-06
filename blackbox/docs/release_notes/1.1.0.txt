@@ -15,28 +15,28 @@ Released on 2017/03/21.
    This version was removed from all release channels. This changelog is kept
    for information purposes only.
 
-Changelog
-=========
+Breaking Changes
+================
 
- - BREAKING: Removed multicast discovery.
+ - Removed multicast discovery.
 
- - BREAKING: The ``ordinal`` column at the ``information_schema.columns``
-   will return ``NULL`` now for all sub-columns (all non top-level
-   columns) as the order of object columns is not guarateed.
+ - The ``ordinal`` column at the ``information_schema.columns`` will return
+   ``NULL`` now for all sub-columns (all non top-level columns) as the order of
+   object columns is not guarateed.
 
- - BREAKING: The ``TableFunctionImplementation`` interface was streamlined
-   with other function implementation semantics. This requires function
-   implementation plugins to be adapted to the new interface.
+ - The ``TableFunctionImplementation`` interface was streamlined with other
+   function implementation semantics. This requires function implementation
+   plugins to be adapted to the new interface.
 
- - BREAKING: Removed deprecated setting ``indices.fielddata.breaker`` that have
-   been used as an alias for ``indices.breaker.fielddata``.
+ - Removed deprecated setting ``indices.fielddata.breaker`` that have been used
+   as an alias for ``indices.breaker.fielddata``.
+
+Changes
+=======
 
  - Serve admin UI from ``/``. Previously used URIs will direct to ``/``.
 
  - Added the subscript function support for object literals.
-
- - Fixed an issue that prevent a node from starting on Windows if the
-   sigar-plugin is removed.
 
  - Added cluster checks that warn if some tables need to be recreated or
    upgraded for compatibility with future versions of CrateDB.
@@ -58,8 +58,6 @@ Changelog
 
  - Added the ``licence.enterprise`` setting to the cluster settings.
 
- - Fixed validation of known configuration file settings. The settings are also
-   validated upon start-up.
 
  - It is now supported to order and group by predicate functions in general
    with the exception of the ``match`` predicate.
@@ -136,3 +134,12 @@ Changelog
       alternating row colorization, structured object/array formatting,
       human-readable timestamps, Google Maps link on geo-point results & lazy
       loading on result sets larger than 100 rows.
+
+Fixes
+====
+
+ - Fixed an issue that prevent a node from starting on Windows if the
+   sigar-plugin is removed.
+
+ - Fixed validation of known configuration file settings. The settings are also
+   validated upon start-up.

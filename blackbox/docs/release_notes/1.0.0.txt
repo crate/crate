@@ -6,11 +6,19 @@ Version 1.0.0
 
 Released on 2016/12/05.
 
-Changelog
-=========
+.. NOTE::
 
- - BREAKING: Removed ``schema_name`` from ``information_schema.tables``,
-   ``information_schema.columns`` and ``information_schema.table_constraints``
+   If you are upgrading a cluster, you must be running CrateDB 0.57.0 or higher
+   before you upgrade to 1.0.0.
+
+   You cannot perform a :ref:`cluster_upgrade` to this version. Any upgrade to
+   this version will require a full cluster restart.
+
+Breaking Changes
+================
+
+ - Removed ``schema_name`` from ``information_schema.tables``,
+   ``information_schema.columns``, and ``information_schema.table_constraints``
    in favour of ``table_schema``.
 
  - Possibly BREAKING blob storage changes:
@@ -32,19 +40,16 @@ Changelog
    whether you are affected by these changes. The migration script will tell
    you what has to be done.
 
+Changes
+=======
+
  - Removed the ``client`` package which contained the deprecated
    ``crate-client``. You should start using the PostgreSQL JDBC driver instead.
 
- - Removed java7 support
+ - Removed Java 7 support
 
  - Optimize execution of joins by ordering the join relations based on
    join/where conditions.
-
- - Fixed issue in joins with 3 or more tables where limit was applied before
-   ``WHERE`` clause filtering which produced  wrong results.
-
- - Fixed issue which causes ``BETWEEN`` to return a wrong result if ``min`` or
-   ``max`` is null.
 
  - Improved error message if function is unsupported with ``distinct``.
 
@@ -68,6 +73,7 @@ Changelog
    plans.
 
  - Added support for global aggregations on subselects.
+
 
  - Added the ``-C`` option for providing Crate settings and deprecated usage of
    the ``.es`` prefix with ``-D`` option.
@@ -108,5 +114,14 @@ Changelog
 
     - Updated information_schema metadata queries to reflect the current state
       of CrateDB.
+
+Fixes
+====
+
+ - Fixed issue in joins with 3 or more tables where limit was applied before
+   ``WHERE`` clause filtering which produced  wrong results.
+
+ - Fixed issue which causes ``BETWEEN`` to return a wrong result if ``min`` or
+   ``max`` is null.
 
 .. _migration script: https://github.com/crate/crate-utils/tree/master/migrations/pre-1.0

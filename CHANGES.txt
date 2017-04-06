@@ -12,24 +12,30 @@ For developers: changes should be recorded here (using RST syntax) as you are
 developing CrateDB. When a new release is being cut, changes will be moved to
 the appropriate section of the docs.
 
-Changelog
-=========
+Breaking Changes
+================
 
- - Fixed a bug which caused non-grouping aggregations on a join with explicit
-   `CROSS JOIN` syntax to fail.
+ - Changed default bind and publish address from ``0.0.0.0`` to the system
+   ``loopback`` addresses.
 
- - Correctly expose ``stats.service.interval`` in the ``sys.cluster``
-   table.
-
- - Fixed a race condition which could cause a memory leak
+Changes
+=======
 
  - Updated documentation to indicate that it's not possible to use
     ``object``, ``geo_point``, ``geo_shape`` or ``array`` in the
     ``ORDER BY`` clause.
 
+Fixes
+=====
+
+ - Fixed a race condition which could cause a memory leak.
+
  - Fixed cluster check, which warns about tables that need upgrade for
    future compatibility, to include only tables that differ from
    current storage engine major version number.
 
- - BREAKING: Changed default bind and publish address from ``0.0.0.0`` to
-   the system ``loopback`` addresses.
+ - Fixed a bug which caused non-grouping aggregations on a join with explicit
+   ``CROSS JOIN`` syntax to fail.
+
+ - Correctly expose ``stats.service.interval`` in the ``sys.cluster``
+   table.

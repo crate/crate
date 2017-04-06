@@ -6,8 +6,19 @@ Version 1.0.1
 
 Released on 2016/12/12.
 
-Changelog
-=========
+.. NOTE::
+
+   If you are upgrading a cluster, you must be running CrateDB 0.57.0 or higher
+   before you upgrade to 1.0.1.
+
+   If you want to perform a :ref:`cluster_upgrade`, your current CrateDB
+   version number must be :ref:`version_1.0.0`. Any upgrade from a version
+   prior to this will require a full cluster restart.
+
+Changes
+=======
+
+ - ``INSERT`` statements now support ``SELECT`` statements without parentheses.
 
  - Updated crate-admin to 1.0.2 which includes the following changes:
 
@@ -28,20 +39,21 @@ Changelog
 
     - Updated link to support website in contact widget.
 
+Fixes
+====
+
  - Fixed scalar signature registration, NULL literals are now supported.
 
  - Fixed usage of aggregations with NULL values, no exception will be thrown
    anymore but instead NULL values are properly processed.
 
- - Fix: ``chunk_size`` and ``buffer_size`` settings for creating repositories
-   of type ``S3`` are not parsed correctly.
+ - The ``chunk_size`` and ``buffer_size`` settings for creating repositories
+   of type ``S3`` are now parsed correctly.
 
- - Fix: error thrown when ``ANY`` or ``ALL`` array comparison expressions
-   are used in ``SELECT`` list. e.g.::
+ - CrateDB no longer throws an error when ``ANY`` or ``ALL`` array comparison
+   expressions are used in ``SELECT`` list. e.g.::
 
        select 'foo' = any(some_array)
-
- - ``INSERT`` statements now support ``SELECT`` statements without parentheses.
 
  - Fixed an issue that could lead to incorrect results if the ``WHERE`` clause
    contains primary key comparisons together with other functions like match.
@@ -53,6 +65,6 @@ Changelog
    shard relocation leading to a ``ArrayIndexOutOfBoundsException`` or a wrong
    result.
 
- - Fix: Creating new partitions could have failed in case the partitioned table
-   was created prior to CrateDB version 0.55.0 and the table contained a
-   ``object`` column.
+ - Creating new partitions could have failed if the partitioned table was
+   created prior to CrateDB version 0.55.0 and the table contained a ``object``
+   column. This issue has been fixed.
