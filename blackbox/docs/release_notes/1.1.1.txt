@@ -6,11 +6,16 @@ Version 1.1.1
 
 Released on 2017/03/27.
 
-Changelog
-=========
+.. NOTE::
 
- - Fixed a regression introduced in 1.1.1 which could cause
-   queries to return wrong values.
+   If you are upgrading a cluster, you must be running CrateDB 0.57.0 or higher
+   before you upgrade to 1.1.1.
+
+   You cannot perform a :ref:`cluster_upgrade` to this version. Any upgrade to
+   this version will require a full cluster restart.
+
+Changes
+=======
 
  - Querying the admin UI from ``/_plugin/crate-admin/`` will now
    redirect to ``/``.
@@ -18,18 +23,8 @@ Changelog
  - Added possible data type conversion to a timestamp array.
    e.g. ``cast(['2017-01-01','2017-12-31'] as array(timestamp))``
 
- - Fixed bug introduced in 1.1.0 which caused all partitioned tables to
-   become unusable.
-
- - Fixed an issued that caused conditions like ``not x = any( )`` to not
-   find empty lists when used in ``WHERE`` clauses.
-
  - Improved error handling when using ``LIMIT``/``OFFSET`` that exceed Integer
    range.
-
- - Fixed a regression introduced in 1.1.0 that caused statements like
-   ``COPY TO '/invalid/directory/'`` to get stuck instead of resulting in an
-   error.
 
  - Updated crate-admin to 1.2.2, which includes the following changes:
 
@@ -53,3 +48,20 @@ Changelog
 
    - Fixed load reading display when the readings were invalid (for example, on
      Windows).
+
+Fixes
+=====
+
+ - Fixed a regression introduced in 1.1.1 which could cause
+   queries to return wrong values.
+
+ - Fixed bug introduced in 1.1.0 which caused all partitioned tables to
+   become unusable.
+
+ - Fixed an issued that caused conditions like ``not x = any( )`` to not
+   find empty lists when used in ``WHERE`` clauses.
+
+ - Fixed a regression introduced in 1.1.0 that caused statements like
+   ``COPY TO '/invalid/directory/'`` to get stuck instead of resulting in an
+   error.
+
