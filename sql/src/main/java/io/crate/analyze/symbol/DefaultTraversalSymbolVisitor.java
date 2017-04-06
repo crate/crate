@@ -23,19 +23,25 @@ package io.crate.analyze.symbol;
 
 public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<C, R> {
 
+    /*
+     * These methods don't call into super to enable subclasses to use overwrite `visitSymbol` to visit all leaves.
+     * If we called super.visitXY here,
+     * it would cause visitSymbol to be called for Function, FetchReference and MatchPredicate as well.
+     */
+
     @Override
     public R visitFunction(Function symbol, C context) {
         for (Symbol arg : symbol.arguments()) {
             process(arg, context);
         }
-        return super.visitFunction(symbol, context);
+        return null;
     }
 
     @Override
     public R visitFetchReference(FetchReference fetchReference, C context) {
         process(fetchReference.fetchId(), context);
         process(fetchReference.ref(), context);
-        return super.visitFetchReference(fetchReference, context);
+        return null;
     }
 
     @Override
@@ -43,6 +49,6 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
         for (Field field : matchPredicate.identBoostMap().keySet()) {
             process(field, context);
         }
-        return super.visitMatchPredicate(matchPredicate, context);
+        return null;
     }
 }

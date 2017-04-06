@@ -31,6 +31,17 @@ import java.util.ArrayList;
 /**
  * SplitPoints contain a separated representation of aggregations, leaves and toCollect (aggregation sources).
  * They can be created from a QuerySpec which contains aggregations.
+ * <pre>
+ *     Example:
+ *
+ *     Input QuerySpec:
+ *       outputs: [add(sum(coalesce(x, 10)), 10)]
+ *
+ *     SplitPoints:
+ *       aggregations:  [sum(coalesce(x, 10))]
+ *       toCollect:     [coalesce(x, 10)]
+ *       leaves:        [x, 10]
+ * </pre>
  */
 public class SplitPoints {
 
