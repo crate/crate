@@ -26,6 +26,7 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -76,8 +77,8 @@ public class BlobIndex {
         this.logger = logger;
     }
 
-    void createShard(IndexShard indexShard) {
-        shards.put(indexShard.shardId().id(), new BlobShard(indexShard, globalBlobPath));
+    void createShard(IndexShard indexShard, ThreadPool threadPool) {
+        shards.put(indexShard.shardId().id(), new BlobShard(indexShard, globalBlobPath, threadPool));
     }
 
     BlobShard removeShard(ShardId shardId) {

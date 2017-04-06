@@ -29,6 +29,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -40,35 +41,41 @@ import static org.mockito.Mockito.when;
 
 public class BlobIndicesServiceTest extends CrateUnitTest {
 
-
     @Test
     public void testBlobComponentsAreNotCreatedForNonBlobIndex() throws Exception {
         CompletableFuture<IndicesLifecycle.Listener> listenerFuture = new CompletableFuture<>();
-        BlobIndicesService blobIndicesService = new BlobIndicesService(
-            Settings.EMPTY,
-            new NoopClusterService(),
-            new IndicesLifecycle() {
-                @Override
-                public void addListener(Listener listener) {
-                    listenerFuture.complete(listener);
-                }
+        ThreadPool testingPool = new ThreadPool("testingPool");
+        try {
+            BlobIndicesService blobIndicesService = new BlobIndicesService(
+                Settings.EMPTY,
+                new NoopClusterService(),
+                new IndicesLifecycle() {
+                    @Override
+                    public void addListener(Listener listener) {
+                        listenerFuture.complete(listener);
+                    }
 
-                @Override
-                public void removeListener(Listener listener) {
+                    @Override
+                    public void removeListener(Listener listener) {
 
-                }
-            }
-        );
-        IndicesLifecycle.Listener listener = listenerFuture.get(30, TimeUnit.SECONDS);
+                    }
+                },
+                testingPool
+            );
+            IndicesLifecycle.Listener listener = listenerFuture.get(30, TimeUnit.SECONDS);
 
-        IndexService indexService = mock(IndexService.class);
-        when(indexService.index()).thenReturn(new Index("dummy"));
-        listener.afterIndexCreated(indexService);
+            IndexService indexService = mock(IndexService.class);
+            when(indexService.index()).thenReturn(new Index("dummy"));
+            listener.afterIndexCreated(indexService);
 
-        IndexShard indexShard = mock(IndexShard.class);
-        when(indexShard.indexService()).thenReturn(indexService);
-        listener.afterIndexShardCreated(indexShard);
+            IndexShard indexShard = mock(IndexShard.class);
+            when(indexShard.indexService()).thenReturn(indexService);
+            listener.afterIndexShardCreated(indexShard);
 
-        assertThat(blobIndicesService.indices.keySet(), Matchers.empty());
+            assertThat(blobIndicesService.indices.keySet(), Matchers.empty());
+        } finally {
+            testingPool.shutdown();
+            testingPool.awaitTermination(10, TimeUnit.SECONDS);
+        }
     }
 }
