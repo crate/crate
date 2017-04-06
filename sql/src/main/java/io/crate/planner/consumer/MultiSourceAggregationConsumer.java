@@ -79,8 +79,8 @@ class MultiSourceAggregationConsumer implements Consumer {
                 return null;
             }
             qs = qs.copyAndReplace(i -> i); // copy because MSS planning mutates symbols
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, qs);
-            SplitPoints splitPoints = projectionBuilder.getSplitPoints();
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
+            SplitPoints splitPoints = SplitPoints.create(qs);
             removeAggregationsAndLimitsFromMSS(multiSourceSelect, splitPoints);
             Planner.Context plannerContext = context.plannerContext();
             Plan plan = plannerContext.planSubRelation(multiSourceSelect, context);

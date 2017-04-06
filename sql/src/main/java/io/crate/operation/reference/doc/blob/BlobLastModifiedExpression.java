@@ -21,15 +21,16 @@
 
 package io.crate.operation.reference.doc.blob;
 
-import io.crate.operation.collect.blobs.BlobCollectorExpression;
+import io.crate.metadata.RowContextCollectorExpression;
 
-public class BlobLastModifiedExpression extends BlobCollectorExpression<Long> {
+import java.io.File;
+
+public class BlobLastModifiedExpression extends RowContextCollectorExpression<File, Long> {
 
     public static final String COLUMN_NAME = "last_modified";
 
     @Override
     public Long value() {
-        return blob.lastModified();
+        return row.lastModified();
     }
-
 }

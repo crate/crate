@@ -22,8 +22,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.*;
@@ -39,6 +37,8 @@ import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class ManyTableConsumer implements Consumer {
 
@@ -240,16 +240,9 @@ public class ManyTableConsumer implements Consumer {
 
             assert leftQuerySpec != null : "leftQuerySpec must not be null";
             final RelationColumnReWriteCtx reWriteCtx = new RelationColumnReWriteCtx(join);
-            Function<? super Symbol, Symbol> replaceFunction = new Function<Symbol, Symbol>() {
-                @Nullable
-                @Override
-                public Symbol apply(@Nullable Symbol input) {
-                    if (input == null) {
-                        return null;
-                    }
-                    return RelationColumnReWriter.INSTANCE.process(input, reWriteCtx);
-                }
-            };
+
+            Function<Symbol, Symbol> replaceFunction =
+                (Symbol symbol) -> RelationColumnReWriter.INSTANCE.process(symbol, reWriteCtx);
 
             /**
              * Rewrite where, join and order by clauses and create a new query spec, where all RelationColumn symbols
@@ -291,7 +284,7 @@ public class ManyTableConsumer implements Consumer {
                                                                           QualifiedName leftName,
                                                                           QualifiedName rightName,
                                                                           QualifiedName newName,
-                                                                          Function<? super Symbol, Symbol> replaceFunction) {
+                                                                          java.util.function.Function<? super Symbol, Symbol> replaceFunction) {
         Map<Set<QualifiedName>, Symbol> newMap = new HashMap<>(splitQuery.size());
         for (Map.Entry<Set<QualifiedName>, Symbol> entry : splitQuery.entrySet()) {
             Set<QualifiedName> key = entry.getKey();
@@ -416,7 +409,7 @@ public class ManyTableConsumer implements Consumer {
         }
 
         @Override
-        public boolean apply(@Nullable Symbol input) {
+        public boolean test(@Nullable Symbol input) {
             if (input == null) {
                 return false;
             }

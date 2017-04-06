@@ -21,6 +21,7 @@
 
 package io.crate.planner.projection.builder;
 
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Function;
@@ -30,10 +31,9 @@ import io.crate.metadata.FunctionInfo;
 import java.util.ArrayList;
 import java.util.Collection;
 
-class SplitPointVisitor extends DefaultTraversalSymbolVisitor<
-    SplitPointVisitor.Context, Void> {
+final class SplitPointVisitor extends DefaultTraversalSymbolVisitor<SplitPointVisitor.Context, Void> {
 
-    public static final SplitPointVisitor INSTANCE = new SplitPointVisitor();
+    private static final SplitPointVisitor INSTANCE = new SplitPointVisitor();
 
     static class Context {
         final ArrayList<Symbol> toCollect;
@@ -58,7 +58,7 @@ class SplitPointVisitor extends DefaultTraversalSymbolVisitor<
         }
     }
 
-    public void process(Collection<Symbol> symbols, Context context) {
+    private void process(Collection<Symbol> symbols, Context context) {
         for (Symbol symbol : symbols) {
             context.aggregateSeen = false;
             process(symbol, context);
@@ -69,17 +69,18 @@ class SplitPointVisitor extends DefaultTraversalSymbolVisitor<
         }
     }
 
-    public void process(SplitPoints splitContext) {
+    static void addAggregatesAndToCollectSymbols(SplitPoints splitContext) {
         Context context = new Context(splitContext.toCollect(), splitContext.aggregates());
-        process(splitContext.querySpec().outputs(), context);
-        if (splitContext.querySpec().orderBy().isPresent()) {
-            process(splitContext.querySpec().orderBy().get().orderBySymbols(), context);
+        QuerySpec querySpec = splitContext.querySpec();
+        INSTANCE.process(querySpec.outputs(), context);
+        if (querySpec.orderBy().isPresent()) {
+            INSTANCE.process(querySpec.orderBy().get().orderBySymbols(), context);
         }
-        if (splitContext.querySpec().having().isPresent() && splitContext.querySpec().having().get().query() != null) {
-            process(splitContext.querySpec().having().get().query(), context);
+        if (querySpec.having().isPresent() && querySpec.having().get().query() != null) {
+            INSTANCE.process(querySpec.having().get().query(), context);
         }
-        if (splitContext.querySpec().groupBy().isPresent()) {
-            process(splitContext.querySpec().groupBy().get(), context);
+        if (querySpec.groupBy().isPresent()) {
+            INSTANCE.process(querySpec.groupBy().get(), context);
         }
     }
 

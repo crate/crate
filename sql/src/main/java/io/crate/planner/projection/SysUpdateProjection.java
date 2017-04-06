@@ -22,7 +22,6 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.base.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
@@ -35,6 +34,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 public class SysUpdateProjection extends DMLProjection {
 

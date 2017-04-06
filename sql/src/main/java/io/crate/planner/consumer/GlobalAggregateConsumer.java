@@ -164,8 +164,8 @@ class GlobalAggregateConsumer implements Consumer {
         // global aggregate: collect and partial aggregate on C and final agg on H
         Planner.Context plannerContext = context.plannerContext();
         validateAggregationOutputs(table.tableRelation(), querySpec.outputs());
-        ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
-        SplitPoints splitPoints = projectionBuilder.getSplitPoints();
+        ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
+        SplitPoints splitPoints = SplitPoints.create(querySpec);
 
         AggregationProjection ap = projectionBuilder.aggregationProjection(
             splitPoints.leaves(),
@@ -242,8 +242,8 @@ class GlobalAggregateConsumer implements Consumer {
             if (subPlan == null) {
                 return null;
             }
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, qs);
-            return addAggregations(qs, projectionBuilder, projectionBuilder.getSplitPoints(), plannerContext, subPlan);
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
+            return addAggregations(qs, projectionBuilder, SplitPoints.create(qs), plannerContext, subPlan);
         }
     }
 

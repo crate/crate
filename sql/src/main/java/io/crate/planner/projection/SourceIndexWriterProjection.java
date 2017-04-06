@@ -21,7 +21,6 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.base.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -42,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 /**
  * IndexWriterProjector that gets its values from a source input

@@ -38,9 +38,7 @@ import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.executor.transport.kill.KillableCallable;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Paging;
 import io.crate.planner.Plan;
@@ -56,6 +54,7 @@ import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingBatchConsumer;
+import io.crate.types.DataType;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.Client;
@@ -404,6 +403,24 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                         assertThat(tableInfo.getReference(columnIdent), Matchers.notNullValue());
                     }
                 }
+            }
+        }, 20L, TimeUnit.SECONDS);
+    }
+
+    public void waitForFunctionCreatedOnAll(String name, List<DataType> types) throws Exception {
+        assertBusy(() -> {
+            Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
+            for (Functions function : functions) {
+                assertThat(function.get(name, types), Matchers.notNullValue());
+            }
+        }, 20L, TimeUnit.SECONDS);
+    }
+
+    public void waitForFunctionDeleted(String name, List<DataType> types) throws Exception {
+        assertBusy(() -> {
+            Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
+            for (Functions function : functions) {
+                assertThat(function.get(name, types), Matchers.nullValue());
             }
         }, 20L, TimeUnit.SECONDS);
     }

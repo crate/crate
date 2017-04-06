@@ -24,9 +24,11 @@ package io.crate.action.job;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 
+import javax.annotation.concurrent.NotThreadSafe;
 import java.util.HashMap;
 import java.util.Map;
 
+@NotThreadSafe
 public class SharedShardContexts {
 
     private final IndicesService indicesService;
@@ -48,15 +50,9 @@ public class SharedShardContexts {
     public SharedShardContext getOrCreateContext(ShardId shardId) {
         SharedShardContext sharedShardContext = allocatedShards.get(shardId);
         if (sharedShardContext == null) {
-            synchronized (this) {
-                sharedShardContext = allocatedShards.get(shardId);
-                if (sharedShardContext == null) {
-                    sharedShardContext = new SharedShardContext(indicesService, shardId, readerId);
-                    allocatedShards.put(shardId, sharedShardContext);
-                    readerId++;
-                }
-                return sharedShardContext;
-            }
+            sharedShardContext = new SharedShardContext(indicesService, shardId, readerId);
+            allocatedShards.put(shardId, sharedShardContext);
+            readerId++;
         }
         return sharedShardContext;
     }

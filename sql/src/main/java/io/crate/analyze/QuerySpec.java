@@ -21,9 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.RelationColumn;
 import io.crate.analyze.symbol.Symbol;
@@ -36,6 +33,9 @@ import org.elasticsearch.common.util.Consumer;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class QuerySpec {
 
@@ -198,12 +198,12 @@ public class QuerySpec {
         if (traverseFunctions) {
             newSpec.outputs(SubsetVisitor.filter(outputs, predicate));
         } else {
-            newSpec.outputs(Lists.newArrayList(Iterables.filter(outputs, predicate)));
+            newSpec.outputs(outputs.stream().filter(predicate).collect(Collectors.toList()));
         }
 
         if (!where.hasQuery()) {
             newSpec.where(where);
-        } else if (predicate.apply(where.query())) {
+        } else if (predicate.test(where.query())) {
             newSpec.where(where);
         }
 
@@ -233,7 +233,7 @@ public class QuerySpec {
 
         @Override
         public Void visitRelationColumn(RelationColumn relationColumn, SubsetContext context) {
-            if (context.predicate.apply(relationColumn)) {
+            if (context.predicate.test(relationColumn)) {
                 context.outputs.add(relationColumn);
             }
             return null;
@@ -241,7 +241,7 @@ public class QuerySpec {
     }
 
 
-    public QuerySpec copyAndReplace(com.google.common.base.Function<? super Symbol, Symbol> replaceFunction) {
+    public QuerySpec copyAndReplace(Function<? super Symbol, Symbol> replaceFunction) {
         QuerySpec newSpec = new QuerySpec()
             .limit(limit)
             .offset(offset)
@@ -267,7 +267,7 @@ public class QuerySpec {
         return newSpec;
     }
 
-    public void replace(com.google.common.base.Function<? super Symbol, Symbol> replaceFunction) {
+    public void replace(Function<? super Symbol, Symbol> replaceFunction) {
         Lists2.replaceItems(outputs, replaceFunction);
         if (where.hasQuery()) {
             where = new WhereClause(replaceFunction.apply(where.query()), where.docKeys().orElse(null), where.partitions());

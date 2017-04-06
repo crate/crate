@@ -1727,6 +1727,17 @@ Metadata Gateway
   started. However, the value must be bigger than the half of the expected
   number of nodes in the cluster.
 
+.. _conf_udf_enabled:
+
+User Defined Functions
+----------------------
+
+**udf.enabled**
+  | *Default:*  ``false``
+  | *Runtime:*  ``no``
+
+  Setting this to ``true`` enables the support of the experimental user
+  defined functions feature.
 
 .. _conf-session-settings:
 

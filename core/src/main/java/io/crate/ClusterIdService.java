@@ -21,8 +21,6 @@
 
 package io.crate;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import org.elasticsearch.cluster.*;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -30,6 +28,8 @@ import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+
+import java.util.concurrent.CompletableFuture;
 
 import static org.elasticsearch.cluster.ClusterState.builder;
 
@@ -39,7 +39,7 @@ public class ClusterIdService extends AbstractLifecycleComponent<ClusterIdServic
     private static final String CLUSTER_ID_SETTINGS_KEY = "cluster_id";
 
     private final ClusterService clusterService;
-    private final SettableFuture<ClusterId> clusterIdFuture = SettableFuture.create();
+    private final CompletableFuture<ClusterId> clusterIdFuture = new CompletableFuture<>();
     private ClusterId clusterId = null;
 
 
@@ -70,9 +70,9 @@ public class ClusterIdService extends AbstractLifecycleComponent<ClusterIdServic
     }
 
     /**
-     * return a ListenableFuture that is available once the clusterId is set
+     * return a CompletableFuture that is available once the clusterId is set
      */
-    public ListenableFuture<ClusterId> clusterId() {
+    public CompletableFuture<ClusterId> clusterId() {
         return clusterIdFuture;
     }
 
@@ -84,7 +84,7 @@ public class ClusterIdService extends AbstractLifecycleComponent<ClusterIdServic
                 logger.debug("[{}] Generated ClusterId {}",
                     clusterService.state().nodes().getLocalNodeId(), clusterId.value());
             }
-            clusterIdFuture.set(clusterId);
+            clusterIdFuture.complete(clusterId);
         }
     }
 
@@ -105,9 +105,8 @@ public class ClusterIdService extends AbstractLifecycleComponent<ClusterIdServic
                 logger.debug("[{}] Read ClusterId from settings {}",
                     clusterService.state().nodes().getLocalNodeId(), clusterId.value());
             }
-            clusterIdFuture.set(clusterId);
+            clusterIdFuture.complete(clusterId);
         }
-
 
         return true;
     }

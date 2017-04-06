@@ -382,21 +382,20 @@ public class ContextPreparer extends AbstractComponent {
         private final LongObjectMap<BatchConsumer> consumersByPhaseInputId = new LongObjectHashMap<>();
         private final IntObjectMap<BatchConsumer> handlerConsumersByPhaseId = new IntObjectHashMap<>();
 
-        @Nullable
         private final SharedShardContexts sharedShardContexts;
 
         private final List<CompletableFuture<Bucket>> directResponseFutures = new ArrayList<>();
         private final NodeOperationCtx opCtx;
         private final JobExecutionContext.Builder contextBuilder;
         private final ESLogger logger;
-        private List<ExecutionPhase> leafs = new ArrayList<>();
+        private final List<ExecutionPhase> leafs = new ArrayList<>();
 
         PreparerContext(String localNodeId,
                         JobExecutionContext.Builder contextBuilder,
                         ESLogger logger,
                         DistributingDownstreamFactory distributingDownstreamFactory,
                         Collection<? extends NodeOperation> nodeOperations,
-                        @Nullable SharedShardContexts sharedShardContexts) {
+                        SharedShardContexts sharedShardContexts) {
             this.contextBuilder = contextBuilder;
             this.logger = logger;
             this.opCtx = new NodeOperationCtx(localNodeId, nodeOperations);

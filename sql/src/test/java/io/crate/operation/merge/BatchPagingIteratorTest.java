@@ -55,4 +55,19 @@ public class BatchPagingIteratorTest {
         });
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
+
+    @Test
+    public void testCompleteLoadCanBeCalledWithoutHavingCalledLoadNextBatch() throws Exception {
+        PassThroughPagingIterator<Integer, Row> pagingIterator = PassThroughPagingIterator.repeatable();
+        BatchPagingIterator<Integer> iterator = new BatchPagingIterator<>(
+            pagingIterator,
+            exhaustedIt -> false,
+            () -> true,
+            () -> {
+            },
+            1
+        );
+        // must not throw an exception
+        iterator.completeLoad(new IllegalStateException("Dummy"));
+    }
 }

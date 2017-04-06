@@ -21,12 +21,10 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
 import com.google.common.primitives.Booleans;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.collections.Lists2;
 import io.crate.exceptions.AmbiguousOrderByException;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -36,6 +34,8 @@ import org.elasticsearch.common.io.stream.Streamable;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public class OrderBy implements Streamable {
 
@@ -95,7 +95,7 @@ public class OrderBy implements Streamable {
         List<Integer> subSet = new ArrayList<>();
         Integer i = 0;
         for (Symbol orderBySymbol : orderBySymbols) {
-            if (predicate.apply(orderBySymbol)) {
+            if (predicate.test(orderBySymbol)) {
                 subSet.add(i);
             }
             i++;
@@ -151,7 +151,7 @@ public class OrderBy implements Streamable {
     }
 
     public OrderBy copyAndReplace(Function<? super Symbol, Symbol> replaceFunction) {
-        return new OrderBy(Lists.newArrayList(Lists.transform(orderBySymbols, replaceFunction)), reverseFlags, nullsFirst);
+        return new OrderBy(Lists2.copyAndReplace(orderBySymbols, replaceFunction), reverseFlags, nullsFirst);
     }
 
     public void replace(Function<? super Symbol, Symbol> replaceFunction) {

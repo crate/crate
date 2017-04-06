@@ -21,19 +21,16 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.base.Function;
-import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
 import io.crate.operation.projectors.TopN;
-import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Function;
 
 public class TopNProjection extends Projection {
 

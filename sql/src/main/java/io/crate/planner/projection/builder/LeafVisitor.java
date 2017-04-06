@@ -25,49 +25,44 @@ import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Symbol;
 
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
-class LeafVisitor extends DefaultTraversalSymbolVisitor<
-    LeafVisitor.Context, Void> {
+final class LeafVisitor extends DefaultTraversalSymbolVisitor<List<Symbol>, Void> {
 
-    public static final LeafVisitor INSTANCE = new LeafVisitor();
+    private static final LeafVisitor INSTANCE = new LeafVisitor();
 
-    static class Context {
-        final ArrayList<Symbol> leaves;
-
-        Context(ArrayList<Symbol> leaves) {
-            this.leaves = leaves;
-        }
-
-        void allocateLeafSymbol(Symbol symbol) {
-            if (!leaves.contains(symbol)) {
-                leaves.add(symbol);
-            }
-        }
+    private LeafVisitor() {
     }
 
-    public void process(Collection<Symbol> symbols, Context context) {
+    /**
+     * Finds the leaves of {@link SplitPoints#toCollect()} and adds them to {@link SplitPoints#leaves()}
+     */
+    static void addLeafs(SplitPoints splitContext) {
+        INSTANCE.process(splitContext.toCollect(), splitContext.leaves());
+    }
+
+    private void process(Collection<Symbol> symbols, List<Symbol> splitPointLeaves) {
         for (Symbol symbol : symbols) {
-            process(symbol, context);
+            process(symbol, splitPointLeaves);
         }
-    }
-
-    public void process(SplitPoints splitContext) {
-        Context context = new Context(splitContext.leaves());
-        process(splitContext.toCollect(), context);
     }
 
     @Override
-    protected Void visitSymbol(Symbol symbol, Context context) {
-        context.allocateLeafSymbol(symbol);
+    protected Void visitSymbol(Symbol symbol, List<Symbol> splitPointLeaves) {
+        allocateLeafSymbol(splitPointLeaves, symbol);
         return null;
     }
 
     @Override
-    public Void visitAggregation(Aggregation symbol, Context context) {
+    public Void visitAggregation(Aggregation symbol, List<Symbol> leafSymbols) {
         throw new AssertionError("Aggregation Symbols must not be visited with " +
                                  getClass().getCanonicalName());
     }
 
+    private static void allocateLeafSymbol(List<Symbol> splitPointLeaves, Symbol symbol) {
+        if (!splitPointLeaves.contains(symbol)) {
+            splitPointLeaves.add(symbol);
+        }
+    }
 }

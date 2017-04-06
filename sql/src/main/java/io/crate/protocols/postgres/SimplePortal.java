@@ -192,7 +192,7 @@ public class SimplePortal extends AbstractPortal {
     @Override
     public void close() {
         if (consumer != null) {
-            consumer.interruptIfResumable();
+            consumer.closeAndFinishIfSuspended();
         }
     }
 

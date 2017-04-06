@@ -69,7 +69,6 @@ public class Rewriter {
      */
     public static void tryRewriteOuterToInnerJoin(EvaluatingNormalizer normalizer,
                                                   JoinPair joinPair,
-                                                  List<Symbol> mssOutputSymbols,
                                                   QuerySpec multiSourceQuerySpec,
                                                   QualifiedName left,
                                                   QualifiedName right,
@@ -126,7 +125,6 @@ public class Rewriter {
                 } else {
                     applyOuterJoinRewrite(
                         joinPair,
-                        mssOutputSymbols,
                         multiSourceQuerySpec,
                         outerSpec,
                         outerRelation,
@@ -139,14 +137,13 @@ public class Rewriter {
     }
 
     private static void applyOuterJoinRewrite(JoinPair joinPair,
-                                              List<Symbol> mssOutputSymbols,
                                               QuerySpec multiSourceQuerySpec,
                                               QuerySpec outerSpec,
                                               QualifiedName outerRelation,
                                               Map<Set<QualifiedName>, Symbol> splitQueries,
                                               Symbol outerRelationQuery) {
         RemoveFieldsNotToCollectFunction removeFieldsNotToCollectFunction =
-            new RemoveFieldsNotToCollectFunction(outerRelation, mssOutputSymbols, joinPair.condition());
+            new RemoveFieldsNotToCollectFunction(outerRelation, multiSourceQuerySpec.outputs(), joinPair.condition());
         outerSpec.where(outerSpec.where().add(Symbols.replaceField(
             outerRelationQuery,
             removeFieldsNotToCollectFunction)));

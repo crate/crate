@@ -301,7 +301,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
     @Override
     public void cleanup() {
-        future.bytesUsed(ramAccountingContext.totalBytes());
+        setBytesUsed(ramAccountingContext.totalBytes());
         ramAccountingContext.close();
     }
 
@@ -326,7 +326,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
                "id=" + id() +
                ", numBuckets=" + numBuckets +
                ", exhausted=" + exhausted +
-               ", closed=" + future.closed() +
+               ", closed=" + isClosed() +
                '}';
     }
 

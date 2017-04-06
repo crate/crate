@@ -28,6 +28,10 @@ import io.crate.analyze.symbol.Symbol;
 import java.util.ArrayList;
 
 
+/**
+ * SplitPoints contain a separated representation of aggregations, leaves and toCollect (aggregation sources).
+ * They can be created from a QuerySpec which contains aggregations.
+ */
 public class SplitPoints {
 
     private final ArrayList<Symbol> toCollect;
@@ -35,7 +39,14 @@ public class SplitPoints {
     private final ArrayList<Symbol> leaves;
     private final QuerySpec querySpec;
 
-    SplitPoints(QuerySpec querySpec) {
+    public static SplitPoints create(QuerySpec querySpec) {
+        SplitPoints splitPoints = new SplitPoints(querySpec);
+        SplitPointVisitor.addAggregatesAndToCollectSymbols(splitPoints);
+        LeafVisitor.addLeafs(splitPoints);
+        return splitPoints;
+    }
+
+    private SplitPoints(QuerySpec querySpec) {
         int estimate = querySpec.outputs().size();
         this.querySpec = querySpec;
         this.toCollect = new ArrayList<>(estimate);

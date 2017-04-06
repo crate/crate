@@ -90,8 +90,8 @@ class DistributedGroupByConsumer implements Consumer {
             }
 
             GroupByConsumer.validateGroupBySymbols(table.tableRelation(), groupBy);
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
-            SplitPoints splitPoints = projectionBuilder.getSplitPoints();
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
+            SplitPoints splitPoints = SplitPoints.create(querySpec);
 
             // start: Map/Collect side
             GroupProjection groupProjection = projectionBuilder.groupProjection(

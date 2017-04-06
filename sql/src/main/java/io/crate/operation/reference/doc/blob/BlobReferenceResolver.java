@@ -24,39 +24,30 @@ package io.crate.operation.reference.doc.blob;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Reference;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.operation.collect.blobs.BlobCollectorExpression;
+import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.reference.ReferenceResolver;
 
+import java.io.File;
 import java.util.Map;
 
-public class BlobReferenceResolver implements ReferenceResolver<BlobCollectorExpression<?>> {
+public class BlobReferenceResolver implements ReferenceResolver<CollectExpression<File, ?>> {
 
     public static final BlobReferenceResolver INSTANCE = new BlobReferenceResolver();
 
-    private static final Map<String, ExpressionBuilder> expressionBuilder =
+    private static final Map<String, ExpressionBuilder> EXPRESSION_BUILDER =
         ImmutableMap.of(
-            BlobDigestExpression.COLUMN_NAME, new ExpressionBuilder() {
-                @Override
-                public BlobCollectorExpression<?> create() {
-                    return new BlobDigestExpression();
-                }
-            },
-            BlobLastModifiedExpression.COLUMN_NAME, new ExpressionBuilder() {
-                @Override
-                public BlobCollectorExpression<?> create() {
-                    return new BlobLastModifiedExpression();
-                }
-            }
+            BlobDigestExpression.COLUMN_NAME, BlobDigestExpression::new,
+            BlobLastModifiedExpression.COLUMN_NAME, BlobLastModifiedExpression::new
         );
 
     private BlobReferenceResolver() {
     }
 
     @Override
-    public BlobCollectorExpression<?> getImplementation(Reference refInfo) {
+    public CollectExpression<File, ?> getImplementation(Reference refInfo) {
         assert BlobSchemaInfo.NAME.equals(refInfo.ident().tableIdent().schema()) :
             "schema name must be 'blob";
-        ExpressionBuilder builder = expressionBuilder.get(refInfo.ident().columnIdent().name());
+        ExpressionBuilder builder = EXPRESSION_BUILDER.get(refInfo.ident().columnIdent().name());
         if (builder != null) {
             return builder.create();
         }
@@ -64,6 +55,6 @@ public class BlobReferenceResolver implements ReferenceResolver<BlobCollectorExp
     }
 
     interface ExpressionBuilder {
-        BlobCollectorExpression<?> create();
+        CollectExpression<File, ?> create();
     }
 }

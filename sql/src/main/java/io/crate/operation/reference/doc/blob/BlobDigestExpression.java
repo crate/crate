@@ -21,16 +21,18 @@
 
 package io.crate.operation.reference.doc.blob;
 
-import io.crate.operation.collect.blobs.BlobCollectorExpression;
+import io.crate.metadata.RowContextCollectorExpression;
 import org.apache.lucene.util.BytesRef;
 
-public class BlobDigestExpression extends BlobCollectorExpression<BytesRef> {
+import java.io.File;
+
+public class BlobDigestExpression extends RowContextCollectorExpression<File, BytesRef> {
 
     public static final String COLUMN_NAME = "digest";
 
     @Override
     public BytesRef value() {
-        return new BytesRef(blob.getName());
+        return new BytesRef(row.getName());
     }
 
 }

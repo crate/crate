@@ -120,8 +120,8 @@ class NonDistributedGroupByConsumer implements Consumer {
             QuerySpec querySpec = table.querySpec();
             List<Symbol> groupKeys = querySpec.groupBy().get();
 
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
-            SplitPoints splitPoints = projectionBuilder.getSplitPoints();
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
+            SplitPoints splitPoints = SplitPoints.create(querySpec);
 
             // mapper / collect
             GroupProjection groupProjection = projectionBuilder.groupProjection(

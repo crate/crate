@@ -308,6 +308,39 @@ public final class SqlFormatter {
         }
 
         @Override
+        public Void visitCreateFunction(CreateFunction node, Integer indent) {
+            builder.append("CREATE");
+            if (node.replace()) {
+                builder.append(" OR REPLACE");
+            }
+            builder.append(" FUNCTION ")
+                .append(node.name())
+                .append(" (");
+
+            List<FunctionArgument> arguments = node.arguments();
+            for (int i = 0; i < arguments.size(); i++) {
+                process(arguments.get(i), indent);
+                if (i < arguments.size() - 1) {
+                    builder.append(", ");
+                }
+            }
+
+            builder.append(")")
+                .append(" RETURNS ")
+                .append(node.returnType()).append(" ")
+                .append(" LANGUAGE ").append(node.language().toString().replace("'", "")).append(" ")
+                .append(" AS ").append(node.definition().toString());
+            return null;
+        }
+
+        @Override
+        public Void visitFunctionArgument(FunctionArgument node, Integer context) {
+            node.name().ifPresent(s -> builder.append(s).append(" "));
+            builder.append(node.type());
+            return null;
+        }
+
+        @Override
         public Void visitClusteredBy(ClusteredBy node, Integer indent) {
             append(indent, "CLUSTERED");
             if (node.column().isPresent()) {

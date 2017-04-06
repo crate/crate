@@ -27,36 +27,18 @@ import io.crate.operation.NodeOperation;
 import java.util.Collection;
 import java.util.Map;
 
-public class NodeOperationGrouper {
+public final class NodeOperationGrouper {
 
     private NodeOperationGrouper() {
     }
 
     public static Map<String, Collection<NodeOperation>> groupByServer(Iterable<NodeOperation> nodeOperations) {
-        Context ctx = new Context();
+        ArrayListMultimap<String, NodeOperation> byServer = ArrayListMultimap.create();
         for (NodeOperation nodeOperation : nodeOperations) {
-            ctx.currentOperation = nodeOperation;
             for (String server : nodeOperation.executionPhase().nodeIds()) {
-                ctx.add(server);
+                byServer.put(server, nodeOperation);
             }
         }
-        return ctx.grouped();
-    }
-
-    private static class Context {
-        private final ArrayListMultimap<String, NodeOperation> byServer;
-        private NodeOperation currentOperation;
-
-        private Context() {
-            this.byServer = ArrayListMultimap.create();
-        }
-
-        private void add(String server) {
-            byServer.put(server, currentOperation);
-        }
-
-        private Map<String, Collection<NodeOperation>> grouped() {
-            return byServer.asMap();
-        }
+        return byServer.asMap();
     }
 }

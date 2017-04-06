@@ -199,9 +199,7 @@ public class LuceneQueryBuilder {
          * If a filtered field is encountered the value of the literal is written into filteredFieldValues
          * (only applies to Function with 2 arguments and if left == reference and right == literal)
          */
-        final static Set<String> FILTERED_FIELDS = new HashSet<String>() {{
-            add("_score");
-        }};
+        final static Set<String> FILTERED_FIELDS = ImmutableSet.of("_score");
 
         /**
          * key = columnName

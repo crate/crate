@@ -22,7 +22,6 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.base.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
@@ -34,6 +33,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Function;
 
 public class OrderedTopNProjection extends Projection {
 

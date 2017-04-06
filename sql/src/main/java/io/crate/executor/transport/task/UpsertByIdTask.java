@@ -306,7 +306,7 @@ public class UpsertByIdTask extends JobTask {
     }
 
     private CompletableFuture<Long> createIndexAndExecuteUpsertRequest(final UpsertById.Item item) {
-        FutureActionListener<CreateIndexResponse, CreateIndexResponse> listener = new FutureActionListener<>(r -> r);
+        FutureActionListener<CreateIndexResponse, CreateIndexResponse> listener = FutureActionListener.newInstance();
         transportCreateIndexAction.execute(
             new CreateIndexRequest(item.index()).cause("upsert single item"),
             listener

@@ -28,12 +28,16 @@ import org.elasticsearch.common.logging.ESLogger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractExecutionSubContext implements ExecutionSubContext {
 
     protected final ESLogger logger;
-    protected final SubExecutionContextFuture future = new SubExecutionContextFuture();
     protected final int id;
+
+    private final AtomicBoolean firstClose = new AtomicBoolean(false);
+    private final CompletionState completionState = new CompletionState();
+    private final CompletableFuture<CompletionState> future = new CompletableFuture<>();
 
     protected AbstractExecutionSubContext(int id, ESLogger logger) {
         this.id = id;
@@ -48,7 +52,6 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     }
 
     protected void innerPrepare() throws Exception {
-
     }
 
     @Override
@@ -63,7 +66,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
 
     @Override
     public final void start() {
-        if (!future.closed()) {
+        if (!firstClose.get()) {
             logger.trace("starting id={} ctx={}", id, this);
             try {
                 innerStart();
@@ -77,7 +80,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     }
 
     protected boolean close(@Nullable Throwable t) {
-        if (future.firstClose()) {
+        if (firstClose.compareAndSet(false, true)) {
             logger.trace("closing id={} ctx={}", id, this);
             try {
                 innerClose(t);
@@ -90,10 +93,18 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
             } finally {
                 cleanup();
             }
-            future.close(t);
+            completeFuture(t);
             return true;
         }
         return false;
+    }
+
+    private void completeFuture(@Nullable Throwable t) {
+        if (t == null) {
+            future.complete(completionState);
+        } else {
+            future.completeExceptionally(t);
+        }
     }
 
     final public void close() {
@@ -105,7 +116,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
 
     @Override
     final public void kill(@Nullable Throwable t) {
-        if (future.firstClose()) {
+        if (firstClose.compareAndSet(false, true)) {
             if (t == null) {
                 t = new InterruptedException(JobKilledException.MESSAGE);
             }
@@ -117,7 +128,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
             } finally {
                 cleanup();
             }
-            future.close(t);
+            completeFuture(t);
         }
     }
 
@@ -128,5 +139,13 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     @Override
     public CompletableFuture<CompletionState> completionFuture() {
         return future;
+    }
+
+    protected void setBytesUsed(long bytesUsed) {
+        completionState.bytesUsed(bytesUsed);
+    }
+
+    protected synchronized boolean isClosed() {
+        return firstClose.get() || future.isDone();
     }
 }
