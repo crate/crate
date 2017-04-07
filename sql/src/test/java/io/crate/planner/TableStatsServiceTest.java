@@ -74,7 +74,7 @@ public class TableStatsServiceTest extends CrateUnitTest {
 
         // Initially disabled
         TableStatsService statsService = new TableStatsService(
-            Settings.builder().put(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.settingName(), 0).build(),
+            Settings.builder().put(CrateSettings.STATS_SERVICE_INTERVAL.settingName(), 0).build(),
             threadPool,
             clusterService,
             new NodeSettingsService(Settings.EMPTY),
@@ -93,12 +93,12 @@ public class TableStatsServiceTest extends CrateUnitTest {
             () -> mock(SQLOperations.class));
 
         assertThat(statsService.lastRefreshInterval,
-            is(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.defaultValue()));
+            is(CrateSettings.STATS_SERVICE_INTERVAL.defaultValue()));
         assertThat(statsService.refreshScheduledTask, is(notNullValue()));
 
         // Update setting
         statsService.onRefreshSettings(Settings.builder()
-            .put(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.settingName(), "10m").build());
+            .put(CrateSettings.STATS_SERVICE_INTERVAL.settingName(), "10m").build());
 
         assertThat(statsService.lastRefreshInterval, is(TimeValue.timeValueMinutes(10)));
         assertThat(statsService.refreshScheduledTask,
@@ -106,7 +106,7 @@ public class TableStatsServiceTest extends CrateUnitTest {
 
         // Disable
         statsService.onRefreshSettings(Settings.builder()
-            .put(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.settingName(), 0).build());
+            .put(CrateSettings.STATS_SERVICE_INTERVAL.settingName(), 0).build());
 
         assertThat(statsService.lastRefreshInterval, is(TimeValue.timeValueMillis(0)));
         assertThat(statsService.refreshScheduledTask,
@@ -116,7 +116,7 @@ public class TableStatsServiceTest extends CrateUnitTest {
         statsService.onRefreshSettings(Settings.builder().build());
 
         assertThat(statsService.lastRefreshInterval,
-            is(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.defaultValue()));
+            is(CrateSettings.STATS_SERVICE_INTERVAL.defaultValue()));
         assertThat(statsService.refreshScheduledTask, is(notNullValue()));
     }
 

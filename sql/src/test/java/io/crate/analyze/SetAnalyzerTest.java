@@ -160,6 +160,7 @@ public class SetAnalyzerTest extends CrateUnitTest {
                 "stats.enabled",
                 "stats.jobs_log_size",
                 "stats.operations_log_size",
+                "stats.service",
                 "stats.service.interval")
         );
     }

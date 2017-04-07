@@ -179,7 +179,7 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
     }
 
     private TimeValue extractRefreshInterval(Settings settings) {
-        return CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.extractTimeValue(settings, initialRefreshInterval);
+        return CrateSettings.STATS_SERVICE_INTERVAL.extractTimeValue(settings, initialRefreshInterval);
     }
 }
 

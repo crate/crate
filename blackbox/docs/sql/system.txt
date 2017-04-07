@@ -174,13 +174,15 @@ currently applied cluster settings.
     | settings['stats']['enabled']                                                      | boolean      |
     | settings['stats']['jobs_log_size']                                                | integer      |
     | settings['stats']['operations_log_size']                                          | integer      |
+    | settings['stats']['service']                                                      | object       |
+    | settings['stats']['service']['interval']                                          | string       |
     | settings['udc']                                                                   | object       |
     | settings['udc']['enabled']                                                        | boolean      |
     | settings['udc']['initial_delay']                                                  | string       |
     | settings['udc']['interval']                                                       | string       |
     | settings['udc']['url']                                                            | string       |
     +-----------------------------------------------------------------------------------+--------------+
-    SELECT 92 rows in set (... sec)
+    SELECT 94 rows in set (... sec)
 
 For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` configuration section.
 
