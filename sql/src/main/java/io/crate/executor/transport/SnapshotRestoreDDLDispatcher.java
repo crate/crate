@@ -107,7 +107,7 @@ public class SnapshotRestoreDDLDispatcher {
         IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());
 
         CreateSnapshotRequest request = new CreateSnapshotRequest(statement.snapshotId().getRepository(), statement.snapshotId().getSnapshot())
-            .includeGlobalState(statement.includeMetadata())
+            .includeGlobalState(true)  // Always include metadata, because they contain the index templates
             .waitForCompletion(waitForCompletion)
             .indices(statement.indices())
             .indicesOptions(indicesOptions)

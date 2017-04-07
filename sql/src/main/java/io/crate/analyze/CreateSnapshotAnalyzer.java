@@ -126,17 +126,9 @@ class CreateSnapshotAnalyzer {
                     }
                 }
             }
-            /*
-             * For now, we always (in case there are indices to restore) include the globalMetaData,
-             * not only if one of the tables in the table list is partitioned.
-             * Previously we only included it in snapshots of full partitioned tables.
-             * However, to make restoring of shapshots of single partitions work
-             * we also need to include the global metadata (index templates).
-             */
             return CreateSnapshotAnalyzedStatement.forTables(snapshotId,
                 settings,
-                ImmutableList.copyOf(snapshotIndices),
-                !snapshotIndices.isEmpty());
+                ImmutableList.copyOf(snapshotIndices));
         } else {
             for (SchemaInfo schemaInfo : schemas) {
                 for (TableInfo tableInfo : schemaInfo) {

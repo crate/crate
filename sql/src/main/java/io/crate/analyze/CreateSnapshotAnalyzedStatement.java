@@ -35,25 +35,22 @@ public class CreateSnapshotAnalyzedStatement implements DDLStatement {
     private final SnapshotId snapshotId;
     private final Settings snapshotSettings;
 
-    private final boolean includeMetadata;
     private final List<String> indices;
 
     private CreateSnapshotAnalyzedStatement(SnapshotId snapshotId,
                                             Settings snapshotSettings,
-                                            List<String> indices,
-                                            boolean includeMetadata) {
+                                            List<String> indices) {
         this.snapshotId = snapshotId;
         this.snapshotSettings = snapshotSettings;
         this.indices = indices;
-        this.includeMetadata = includeMetadata;
     }
 
-    public static CreateSnapshotAnalyzedStatement forTables(SnapshotId snapshotId, Settings snapshotSettings, List<String> indices, boolean includeMetadata) {
-        return new CreateSnapshotAnalyzedStatement(snapshotId, snapshotSettings, indices, includeMetadata);
+    public static CreateSnapshotAnalyzedStatement forTables(SnapshotId snapshotId, Settings snapshotSettings, List<String> indices) {
+        return new CreateSnapshotAnalyzedStatement(snapshotId, snapshotSettings, indices);
     }
 
     public static CreateSnapshotAnalyzedStatement all(SnapshotId snapshotId, Settings snapshotSettings) {
-        return new CreateSnapshotAnalyzedStatement(snapshotId, snapshotSettings, ALL_INDICES, true);
+        return new CreateSnapshotAnalyzedStatement(snapshotId, snapshotSettings, ALL_INDICES);
     }
 
     public SnapshotId snapshotId() {
@@ -66,18 +63,6 @@ public class CreateSnapshotAnalyzedStatement implements DDLStatement {
 
     public List<String> indices() {
         return indices;
-    }
-
-    public boolean isAllSnapshot() {
-        return (indices == ALL_INDICES) && includeMetadata;
-    }
-
-    public boolean isNoOp() {
-        return indices.isEmpty() && !includeMetadata;
-    }
-
-    public boolean includeMetadata() {
-        return includeMetadata;
     }
 
     @Override

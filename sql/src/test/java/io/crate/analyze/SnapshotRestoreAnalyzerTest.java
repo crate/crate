@@ -74,9 +74,7 @@ public class SnapshotRestoreAnalyzerTest extends CrateUnitTest {
     public void testCreateSnapshotAll() throws Exception {
         CreateSnapshotAnalyzedStatement statement = analyze("CREATE SNAPSHOT my_repo.my_snapshot ALL WITH (wait_for_completion=true)");
         assertThat(statement.indices(), is(CreateSnapshotAnalyzedStatement.ALL_INDICES));
-        assertThat(statement.isAllSnapshot(), is(true));
         assertThat(statement.snapshotId(), is(new SnapshotId("my_repo", "my_snapshot")));
-        assertThat(statement.includeMetadata(), is(true));
         assertThat(statement.snapshotSettings().getAsMap(),
             allOf(
                 hasEntry("wait_for_completion", "true"),
@@ -134,32 +132,10 @@ public class SnapshotRestoreAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testCreateSnapshotUnknownPartitionIgnore() throws Exception {
-        CreateSnapshotAnalyzedStatement statement = analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE parted PARTITION (date='1970-01-01') WITH (ignore_unavailable=true)");
-        assertThat(statement.indices(), empty());
-        assertThat(statement.isNoOp(), is(true));
-        assertThat(statement.snapshotSettings().getAsBoolean(SnapshotSettings.IGNORE_UNAVAILABLE.name(), false), is(true));
-    }
-
-    @Test
-    public void testCreateSnapshotIncludeMetadataWithPartitionedTable() throws Exception {
-        CreateSnapshotAnalyzedStatement statement = analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE parted");
-        assertThat(statement.includeMetadata(), is(true));
-    }
-
-    @Test
-    public void testCreateSnapshotIncludeMetadataWithPartitionOnly() throws Exception {
-        CreateSnapshotAnalyzedStatement statement = analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE parted PARTITION (date=null)");
-        assertThat(statement.includeMetadata(), is(true));
-    }
-
-    @Test
     public void testCreateSnapshotCreateSnapshotTables() throws Exception {
         CreateSnapshotAnalyzedStatement statement = analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE users, locations WITH (wait_for_completion=true)");
         assertThat(statement.indices(), containsInAnyOrder("users", "locations"));
-        assertThat(statement.isAllSnapshot(), is(false));
         assertThat(statement.snapshotId(), is(new SnapshotId("my_repo", "my_snapshot")));
-        assertThat(statement.includeMetadata(), is(true));
         assertThat(statement.snapshotSettings().getAsMap().size(), is(2));
         assertThat(statement.snapshotSettings().getAsMap(),
             allOf(
