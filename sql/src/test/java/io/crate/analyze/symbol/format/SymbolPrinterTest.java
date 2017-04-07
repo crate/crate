@@ -22,7 +22,6 @@
 
 package io.crate.analyze.symbol.format;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -36,7 +35,6 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Before;
@@ -99,36 +97,27 @@ public class SymbolPrinterTest extends CrateUnitTest {
         assertPrintIsParseable(sql);
     }
 
-
     @Test
-    public void testFormatFunction() throws Exception {
-        Function f = new Function(new FunctionInfo(
-            new FunctionIdent("foo", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.DOUBLE)), DataTypes.DOUBLE),
-            Arrays.<Symbol>asList(Literal.of("bar"), Literal.of(3.4)));
-        assertPrint(f, "foo('bar', 3.4)");
+    public void testFormatFunctionFullQualifiedInputName() throws Exception {
+        Symbol f = sqlExpressions.asSymbol("concat('foo', foo)");
+        assertPrint(f, "concat('foo', doc.formatter.foo)");
     }
 
     @Test
-    public void testFormatFunctionWithoutArgs() throws Exception {
-        Function f = new Function(new FunctionInfo(
-            new FunctionIdent("baz", ImmutableList.<DataType>of()), DataTypes.DOUBLE),
-            ImmutableList.<Symbol>of());
-        assertPrint(f, "baz()");
+    public void testFormatFunctionWithoutBrackets() throws Exception {
+        Symbol f = sqlExpressions.asSymbol("current_schema");
+        assertPrint(f, "current_schema");
     }
 
     @Test
     public void testSubstrFunction() throws Exception {
-        Function f = new Function(new FunctionInfo(
-            new FunctionIdent("substr", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.LONG)), DataTypes.STRING),
-            Arrays.<Symbol>asList(Literal.of("foobar"), Literal.of(4)));
+        Symbol f = sqlExpressions.asSymbol("substr('foobar', 4)");
         assertPrint(f, "substr('foobar', 4)");
     }
 
     @Test
     public void testSubstrFunctionWithLength() throws Exception {
-        Function f = new Function(new FunctionInfo(
-            new FunctionIdent("substr", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.LONG, DataTypes.LONG)), DataTypes.STRING),
-            Arrays.<Symbol>asList(Literal.of("foobar"), Literal.of(4), Literal.of(1)));
+        Symbol f = sqlExpressions.asSymbol("substr('foobar', 4, 1)");
         assertPrint(f, "substr('foobar', 4, 1)");
     }
 
