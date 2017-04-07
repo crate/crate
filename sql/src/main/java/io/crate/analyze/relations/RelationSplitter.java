@@ -23,10 +23,7 @@
 package io.crate.analyze.relations;
 
 import com.google.common.base.Supplier;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
@@ -103,28 +100,29 @@ public final class RelationSplitter {
     }
 
     private void processOutputs() {
-        FieldCollectingVisitor.Context context = new FieldCollectingVisitor.Context(specs.size());
+        SetMultimap<AnalyzedRelation, Symbol> fieldsByRelation = Multimaps.newSetMultimap(
+            new IdentityHashMap<AnalyzedRelation, Collection<Symbol>>(specs.size()), LinkedHashSet::new);
 
         // declare all symbols from the remaining order by as required for query
         if (remainingOrderBy != null) {
             OrderBy orderBy = remainingOrderBy.orderBy();
             requiredForQuery.addAll(orderBy.orderBySymbols());
             // we need to add also the used symbols for query phase
-            FieldCollectingVisitor.INSTANCE.process(orderBy.orderBySymbols(), context);
+            FieldCollectingVisitor.collectFields(orderBy.orderBySymbols(), fieldsByRelation);
         }
 
         if (querySpec.where().hasQuery()) {
-            FieldCollectingVisitor.INSTANCE.process(querySpec.where().query(), context);
+            FieldCollectingVisitor.collectFields(querySpec.where().query(), fieldsByRelation);
         }
 
         // collect all fields from all join conditions
-        FieldCollectingVisitor.INSTANCE.process(joinConditions, context);
+        FieldCollectingVisitor.collectFields(joinConditions, fieldsByRelation);
 
         // set the limit and offset where possible
         Optional<Symbol> limit = querySpec.limit();
         if (limit.isPresent()) {
             Optional<Symbol> limitAndOffset = Limits.mergeAdd(limit, querySpec.offset());
-            for (AnalyzedRelation rel : Sets.difference(specs.keySet(), context.fields.keySet())) {
+            for (AnalyzedRelation rel : Sets.difference(specs.keySet(), fieldsByRelation.keySet())) {
                 QuerySpec spec = specs.get(rel);
                 spec.limit(limitAndOffset);
             }
@@ -133,21 +131,21 @@ public final class RelationSplitter {
         // add all order by symbols to context outputs
         for (Map.Entry<AnalyzedRelation, QuerySpec> entry : specs.entrySet()) {
             if (entry.getValue().orderBy().isPresent()) {
-                context.fields.putAll(entry.getKey(), entry.getValue().orderBy().get().orderBySymbols());
+                fieldsByRelation.putAll(entry.getKey(), entry.getValue().orderBy().get().orderBySymbols());
             }
         }
 
         // everything except the actual outputs is required for query
-        requiredForQuery.addAll(context.fields.values());
+        requiredForQuery.addAll(fieldsByRelation.values());
 
         // capture items from the outputs
-        canBeFetched = FetchFieldExtractor.process(querySpec.outputs(), context.fields);
+        canBeFetched = FetchFieldExtractor.process(querySpec.outputs(), fieldsByRelation);
 
-        FieldCollectingVisitor.INSTANCE.process(querySpec.outputs(), context);
+        FieldCollectingVisitor.collectFields(querySpec.outputs(), fieldsByRelation);
 
         // generate the outputs of the subSpecs
         for (Map.Entry<AnalyzedRelation, QuerySpec> entry : specs.entrySet()) {
-            Collection<Symbol> fields = context.fields.get(entry.getKey());
+            Collection<Symbol> fields = fieldsByRelation.get(entry.getKey());
             assert entry.getValue().outputs() == null : "entry.getValue().outputs() must not be null";
             entry.getValue().outputs(new ArrayList<>(fields));
         }
