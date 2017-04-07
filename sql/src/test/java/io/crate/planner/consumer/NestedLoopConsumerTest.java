@@ -30,7 +30,7 @@ import io.crate.analyze.QueriedTable;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.exceptions.ValidationException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -248,13 +248,6 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testCrossJoinWithGroupBy() throws Exception {
-        expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("GROUP BY on JOINS is not supported");
-        plan("select u1.name, count(*) from users u1, users u2 group by u1.name");
-    }
-
-    @Test
     public void testAggregationOnCrossJoin() throws Exception {
         NestedLoop nl = plan("select min(u1.name) from users u1, users u2");
         NestedLoopPhase nlPhase = nl.nestedLoopPhase();
@@ -340,5 +333,12 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         // using explicit cross join syntax caused a NPE due to joinPair being present but the condition being null.
         Plan plan = plan("select count(t1.col1) from unnest([1, 2]) as t1 cross join unnest([1, 2]) as t2");
         assertThat(plan, instanceOf(NestedLoop.class));
+    }
+
+    @Test
+    public void testDistributedJoinWithGroupByNotSupported() throws Exception {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("Distributed execution is not supported");
+        plan("select count(u1.name) from users u1, users u2 where u1.id = u2.id group by u1.name");
     }
 }
