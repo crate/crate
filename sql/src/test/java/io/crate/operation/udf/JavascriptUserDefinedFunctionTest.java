@@ -68,7 +68,8 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
             JS,
             definition
         );
-        functionImplementations.put(new FunctionIdent(name, types), UserDefinedFunctionFactory.of(udfMeta));
+
+        functionImplementations.put(new FunctionIdent(name, types), UserDefinedFunctionService.getLanguage("javascript").createFunctionImplementation(udfMeta));
         functions.registerSchemaFunctionResolvers(functions.generateFunctionResolvers(functionImplementations));
     }
 
