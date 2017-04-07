@@ -69,9 +69,8 @@ final class SplitPointVisitor extends DefaultTraversalSymbolVisitor<SplitPointVi
         }
     }
 
-    static void addAggregatesAndToCollectSymbols(SplitPoints splitContext) {
+    static void addAggregatesAndToCollectSymbols(QuerySpec querySpec, SplitPoints splitContext) {
         Context context = new Context(splitContext.toCollect(), splitContext.aggregates());
-        QuerySpec querySpec = splitContext.querySpec();
         INSTANCE.process(querySpec.outputs(), context);
         if (querySpec.orderBy().isPresent()) {
             INSTANCE.process(querySpec.orderBy().get().orderBySymbols(), context);

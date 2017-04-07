@@ -168,7 +168,7 @@ class GlobalAggregateConsumer implements Consumer {
         SplitPoints splitPoints = SplitPoints.create(querySpec);
 
         AggregationProjection ap = projectionBuilder.aggregationProjection(
-            splitPoints.leaves(),
+            splitPoints.toCollect(),
             splitPoints.aggregates(),
             AggregateMode.ITER_PARTIAL,
             projectionGranularity
@@ -176,7 +176,7 @@ class GlobalAggregateConsumer implements Consumer {
         RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
             plannerContext,
             table,
-            splitPoints.leaves(),
+            splitPoints.toCollect(),
             ImmutableList.of(ap)
         );
         Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, ap.outputs().size(), 1, null);

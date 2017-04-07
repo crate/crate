@@ -125,7 +125,7 @@ class NonDistributedGroupByConsumer implements Consumer {
 
             // mapper / collect
             GroupProjection groupProjection = projectionBuilder.groupProjection(
-                splitPoints.leaves(),
+                splitPoints.toCollect(),
                 groupKeys,
                 splitPoints.aggregates(),
                 AggregateMode.ITER_PARTIAL,
@@ -134,7 +134,7 @@ class NonDistributedGroupByConsumer implements Consumer {
             RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
                 plannerContext,
                 table,
-                splitPoints.leaves(),
+                splitPoints.toCollect(),
                 ImmutableList.of(groupProjection));
             Collect collect = new Collect(
                 collectPhase,
