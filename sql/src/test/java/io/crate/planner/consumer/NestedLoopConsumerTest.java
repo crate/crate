@@ -334,4 +334,11 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         nl = ((NestedLoop) ((NestedLoop) ((NestedLoop) plan.subPlan()).left()).left()).nestedLoopPhase();
         assertThat(nl.projections().get(0), instanceOf(EvalProjection.class));
     }
+
+    @Test
+    public void testGlobalAggregateWithExplicitCrossJoinSyntax() throws Exception {
+        // using explicit cross join syntax caused a NPE due to joinPair being present but the condition being null.
+        Plan plan = plan("select count(t1.col1) from unnest([1, 2]) as t1 cross join unnest([1, 2]) as t2");
+        assertThat(plan, instanceOf(NestedLoop.class));
+    }
 }
