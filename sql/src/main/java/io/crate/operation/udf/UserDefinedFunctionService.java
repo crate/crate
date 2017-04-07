@@ -60,12 +60,28 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
 
     private final ClusterService clusterService;
     private final Functions functions;
+    private static Map<String, UDFLanguage> languageRegistry;
+
+    public static UDFLanguage getLanguage(String languageName) throws IllegalArgumentException{
+        UDFLanguage lang = languageRegistry.get(languageName);
+        if (lang == null){
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Can't find Language '%s'",
+                languageName
+            ));
+        }
+        return lang;
+    }
+
+    public static void registerLanguage(UDFLanguage language) {
+        languageRegistry.put(language.name(), language);
+    }
 
     @Inject
     public UserDefinedFunctionService(Settings settings, ClusterService clusterService, Functions functions) {
         super(settings);
         this.clusterService = clusterService;
         this.functions = functions;
+        languageRegistry = new HashMap<String, UDFLanguage>();
     }
 
     @Override
@@ -216,9 +232,10 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
         Map<FunctionIdent, FunctionImplementation> udfFunctions = new HashMap<>();
         for (UserDefinedFunctionMetaData function : metaData.functionsMetaData()) {
             try {
-                FunctionImplementation impl = UserDefinedFunctionFactory.of(function);
+                UDFLanguage lang = getLanguage(function.language());
+                FunctionImplementation impl = lang.createFunctionImplementation(function);
                 udfFunctions.put(impl.info().ident(), impl);
-            } catch (javax.script.ScriptException e) {
+            } catch (javax.script.ScriptException | IllegalArgumentException e) {
                 logger.warn(
                     String.format(Locale.ENGLISH, "Can't create user defined function '%s(%s)'",
                         function.name(),
