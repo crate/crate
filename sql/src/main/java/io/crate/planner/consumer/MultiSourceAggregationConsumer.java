@@ -94,7 +94,9 @@ class MultiSourceAggregationConsumer implements Consumer {
 
     private static void removeAggregationsAndLimitsFromMSS(MultiSourceSelect mss, SplitPoints splitPoints) {
         QuerySpec querySpec = mss.querySpec();
-        List<Symbol> outputs = Lists2.concatUnique(splitPoints.toCollect(), extractFieldsFromJoinConditions(mss));
+        List<Symbol> outputs = Lists2.concatUnique(
+            splitPoints.toCollect(),
+            extractFieldsFromJoinConditions(mss.joinPairs()));
         querySpec.outputs(outputs);
         querySpec.hasAggregates(false);
         // Limit & offset must be applied after the aggregation, so remove it from mss and sources.
@@ -115,10 +117,13 @@ class MultiSourceAggregationConsumer implements Consumer {
         }
     }
 
-    private static List<Field> extractFieldsFromJoinConditions(MultiSourceSelect statement) {
+    private static List<Field> extractFieldsFromJoinConditions(Iterable<JoinPair> joinPairs) {
         List<Field> outputs = new ArrayList<>();
-        for (JoinPair pair : statement.joinPairs()) {
-            FIELD_COLLECTOR.process(pair.condition(), outputs);
+        for (JoinPair pair : joinPairs) {
+            Symbol condition = pair.condition();
+            if (condition != null) {
+                FIELD_COLLECTOR.process(condition, outputs);
+            }
         }
         return outputs;
     }
