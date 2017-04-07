@@ -184,6 +184,8 @@ currently applied cluster settings.
     | settings['stats']['jobs_log_size']                                                | integer      |
     | settings['stats']['operations_log_expiration']                                    | string       |
     | settings['stats']['operations_log_size']                                          | integer      |
+    | settings['stats']['service']                                                      | object       |
+    | settings['stats']['service']['interval']                                          | string       |
     | settings['udc']                                                                   | object       |
     | settings['udc']['enabled']                                                        | boolean      |
     | settings['udc']['initial_delay']                                                  | string       |

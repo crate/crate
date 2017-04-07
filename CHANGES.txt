@@ -15,6 +15,9 @@ the appropriate section of the docs.
 Changelog
 =========
 
+ - Correctly expose ``stats.service.interval`` in the ``sys.cluster``
+   table.
+
  - Fixed a race condition which could cause a memory leak
 
  - Updated documentation to indicate that it's not possible to use

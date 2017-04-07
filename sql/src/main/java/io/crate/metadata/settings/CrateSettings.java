@@ -50,7 +50,7 @@ public class CrateSettings {
                 STATS_JOBS_LOG_EXPIRATION,
                 STATS_OPERATIONS_LOG_SIZE,
                 STATS_OPERATIONS_LOG_EXPIRATION,
-                STATS_SERVICE_REFRESH_INTERVAL,
+                STATS_SERVICE,
                 STATS_BREAKER);
         }
 
@@ -137,11 +137,35 @@ public class CrateSettings {
         }
     };
 
-    public static final TimeSetting STATS_SERVICE_REFRESH_INTERVAL = new TimeSetting() {
+
+    public static final NestedSetting STATS_SERVICE = new NestedSetting() {
 
         @Override
         public String name() {
-            return "service.interval";
+            return "service";
+        }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.of(STATS_SERVICE_INTERVAL);
+        }
+
+        @Override
+        public Setting parent() {
+            return STATS;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
+    };
+
+    public static final TimeSetting STATS_SERVICE_INTERVAL = new TimeSetting() {
+
+        @Override
+        public String name() {
+            return "interval";
         }
 
         @Override
@@ -156,7 +180,7 @@ public class CrateSettings {
 
         @Override
         public Setting parent() {
-            return STATS;
+            return STATS_SERVICE;
         }
     };
 
@@ -1571,8 +1595,10 @@ public class CrateSettings {
             new SettingsAppliers.TimeSettingsApplier(CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION))
         .put(CrateSettings.STATS_ENABLED.settingName(),
             new SettingsAppliers.BooleanSettingsApplier(CrateSettings.STATS_ENABLED))
-        .put(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.settingName(),
-            new SettingsAppliers.TimeSettingsApplier(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL))
+        .put(CrateSettings.STATS_SERVICE.settingName(),
+            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS_SERVICE))
+        .put(CrateSettings.STATS_SERVICE_INTERVAL.settingName(),
+            new SettingsAppliers.TimeSettingsApplier(CrateSettings.STATS_SERVICE_INTERVAL))
         .put(CrateSettings.STATS_BREAKER.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS_BREAKER))
         .put(CrateSettings.STATS_BREAKER_LOG.settingName(),

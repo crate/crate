@@ -41,6 +41,7 @@ public class ApplySettingsTest extends CrateUnitTest {
         Settings.Builder builder = Settings.builder()
             .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 1)
             .put(CrateSettings.STATS_ENABLED.settingName(), false)
+            .put(CrateSettings.STATS_SERVICE_INTERVAL.settingName(), "2h")
             .put(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName(), "full")
             .put(CrateSettings.GRACEFUL_STOP_TIMEOUT.settingName(), "1m")
             .put(CrateSettings.DISCOVERY_ZEN_MIN_MASTER_NODES.settingName(), 2);
@@ -52,6 +53,9 @@ public class ApplySettingsTest extends CrateUnitTest {
 
         name = CrateSettings.STATS_ENABLED.settingName();
         assertEquals(values.get(name), settings.getAsBoolean(name, true));
+
+        name = CrateSettings.STATS_SERVICE_INTERVAL.settingName();
+        assertEquals(values.get(name), settings.get(name, "2h"));
 
         name = CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName();
         assertEquals(values.get(name), settings.get(name, "none"));
