@@ -137,7 +137,7 @@ public class ProjectionBuilder {
         }
 
         if (orderBy == null) {
-            if ( limit == TopN.NO_LIMIT && offset == 0) {
+            if (limit == TopN.NO_LIMIT && offset == 0) {
                 return new EvalProjection(outputsProcessed);
             }
             return new TopNProjection(limit, offset, outputsProcessed);

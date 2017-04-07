@@ -22,19 +22,19 @@
 
 package io.crate.analyze.symbol;
 
-import java.util.List;
+import java.util.function.Consumer;
 
-public final class FieldsVisitor extends DefaultTraversalSymbolVisitor<List<? super Field>, Void> {
+public final class FieldsVisitor extends DefaultTraversalSymbolVisitor<Consumer<? super Field>, Void> {
 
     private static final FieldsVisitor FIELDS_VISITOR = new FieldsVisitor();
 
     @Override
-    public Void visitField(Field field, List<? super Field> context) {
-        context.add(field);
+    public Void visitField(Field field, Consumer<? super Field> context) {
+        context.accept(field);
         return null;
     }
 
-    public static void visitFields(Symbol symbol, List<? super Field> context) {
+    public static void visitFields(Symbol symbol, Consumer<? super Field> context) {
         FIELDS_VISITOR.process(symbol, context);
     }
 }

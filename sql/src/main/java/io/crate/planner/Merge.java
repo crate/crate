@@ -93,7 +93,7 @@ public class Merge implements Plan, ResultDescription {
             0,
             resultDescription.numOutputs(),
             resultDescription.limit(),
-            null
+            resultDescription.orderBy()
         );
     }
 
