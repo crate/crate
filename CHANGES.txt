@@ -15,6 +15,9 @@ the appropriate section of the docs.
 Changelog
 =========
 
+ - Fixed a bug which caused non-grouping aggregations on a join with explicit
+   `CROSS JOIN` syntax to fail.
+
  - Correctly expose ``stats.service.interval`` in the ``sys.cluster``
    table.
 
