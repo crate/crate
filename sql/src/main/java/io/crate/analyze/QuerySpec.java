@@ -29,10 +29,10 @@ import io.crate.metadata.TransactionContext;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.util.Consumer;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -286,7 +286,7 @@ public class QuerySpec {
      * (non-recursive, so function symbols won't be walked into)
      * </p>
      */
-    public void visitSymbols(Consumer<Symbol> consumer) {
+    public void visitSymbols(Consumer<? super Symbol> consumer) {
         for (Symbol output : outputs) {
             consumer.accept(output);
         }
@@ -311,12 +311,8 @@ public class QuerySpec {
                 consumer.accept(orderBySymbol);
             }
         }
-        if (limit.isPresent()) {
-            consumer.accept(limit.get());
-        }
-        if (offset.isPresent()) {
-            consumer.accept(offset.get());
-        }
+        limit.ifPresent(consumer);
+        offset.ifPresent(consumer);
     }
 
     @Override

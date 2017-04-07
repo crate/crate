@@ -22,9 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Symbol;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.util.Consumer;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
 
@@ -51,12 +49,7 @@ public class QuerySpecTest {
             "limit 1 " +            // 7
             "offset 1");            // 8
         final AtomicInteger numSymbols = new AtomicInteger(0);
-        stmt.relation().querySpec().visitSymbols(new Consumer<Symbol>() {
-            @Override
-            public void accept(Symbol symbol) {
-                numSymbols.incrementAndGet();
-            }
-        });
+        stmt.relation().querySpec().visitSymbols(s -> numSymbols.incrementAndGet());
         assertThat(numSymbols.get(), is(8));
     }
 }
