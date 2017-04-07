@@ -15,6 +15,9 @@ the appropriate section of the docs.
 Changelog
 =========
 
+ - Correctly expose ``stats.service.interval`` in the ``sys.cluster``
+   table.
+
  - Re-added compatibility layer that was removed in 1.1 and resulted in
    exception thrown when trying to run aggregations on tables created
    with CrateDB < 0.52.0.
