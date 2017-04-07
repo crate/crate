@@ -165,7 +165,7 @@ public final class JoinPairs {
         for (JoinPair pair : joinPairs) {
             Symbol condition = pair.condition();
             if (condition != null) {
-                FieldsVisitor.visitFields(condition, outputs);
+                FieldsVisitor.visitFields(condition, outputs::add);
             }
         }
         return outputs;

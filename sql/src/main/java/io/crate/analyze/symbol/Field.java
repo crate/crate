@@ -105,7 +105,6 @@ public class Field extends Symbol implements Path {
         return result;
     }
 
-
     /**
      * @return the position of the field in its relation
      */

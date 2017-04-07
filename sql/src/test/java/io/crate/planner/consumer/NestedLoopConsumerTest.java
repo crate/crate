@@ -30,7 +30,6 @@ import io.crate.analyze.QueriedTable;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.exceptions.ValidationException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -245,13 +244,6 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testCrossJoinWithGroupBy() throws Exception {
-        expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("GROUP BY on JOINS is not supported");
-        plan("select u1.name, count(*) from users u1, users u2 group by u1.name");
-    }
-
-    @Test
     public void testAggregationOnCrossJoin() throws Exception {
         NestedLoop nl = plan("select min(u1.name) from users u1, users u2");
         NestedLoopPhase nlPhase = nl.nestedLoopPhase();
@@ -337,5 +329,40 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
         // using explicit cross join syntax caused a NPE due to joinPair being present but the condition being null.
         Plan plan = plan("select count(t1.col1) from unnest([1, 2]) as t1 cross join unnest([1, 2]) as t2");
         assertThat(plan, instanceOf(NestedLoop.class));
+    }
+
+    @Test
+    public void testDistributedJoinWithGroupByHavingAndOrderBy() throws Exception {
+        Merge merge = plan(
+            "select count(u1.name), u1.name " +
+            "from users u1, users u2 " +
+            "where u1.id = u2.id " +
+            "group by u1.name " +
+            "having count(u1.id) > 0 " +
+            "order by u1.name"
+        );
+        merge = (Merge) merge.subPlan();
+        assertThat(merge.orderBy(), instanceOf(PositionalOrderBy.class));
+
+        MergePhase localMergePhase = merge.mergePhase();
+        assertThat(localMergePhase.projections(),
+            Matchers.contains(
+                instanceOf(GroupProjection.class),
+                instanceOf(FilterProjection.class),
+                instanceOf(OrderedTopNProjection.class)
+            )
+        );
+
+        NestedLoop nestedLoop = (NestedLoop) merge.subPlan();
+        assertThat(nestedLoop.nestedLoopPhase().projections(),
+            Matchers.contains(
+                instanceOf(FilterProjection.class),
+                instanceOf(EvalProjection.class),
+                instanceOf(GroupProjection.class)
+            )
+        );
+
+        EvalProjection eval = ((EvalProjection) nestedLoop.nestedLoopPhase().projections().get(1));
+        assertThat(eval.outputs().size(), is(2));
     }
 }

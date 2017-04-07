@@ -520,7 +520,7 @@ public class ContextPreparer extends AbstractComponent {
 
             if (upstreamOnSameNode) {
                 context.registerBatchConsumer(phase.phaseId(), consumer);
-                return false;
+                return true;
             }
             context.registerSubContext(new PageDownstreamContext(
                 pageDownstreamContextLogger,
