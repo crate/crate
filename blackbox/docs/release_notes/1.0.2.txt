@@ -15,8 +15,11 @@ Released on 2017/01/09.
    number must be :ref:`version_1.0.0` or higher. Any upgrade from a version
    prior to this will require a full cluster restart.
 
-Breaking Changes
-================
+.. warning::
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
 
 Changes
 =======

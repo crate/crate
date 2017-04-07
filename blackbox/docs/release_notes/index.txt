@@ -4,12 +4,6 @@
 Release Notes
 =============
 
-Before upgrading a cluster you should `back up your data`_.
-
-If you are upgrading from one release line to another (i.e. from 0.57 to 1.0)
-you must do a full cluster restart. If you are upgrading within release line
-(i.e. from 1.0.0 to 1.0.1) you can do a :ref:`cluster_upgrade`.
-
 Versions
 ========
 

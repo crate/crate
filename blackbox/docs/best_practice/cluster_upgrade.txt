@@ -6,8 +6,16 @@ Zero Downtime Upgrade
 =====================
 
 
-Crate provides an easy way to perform a cluster upgrade with zero
-downtime.
+CrateDB provides an easy way to perform a cluster upgrade with zero downtime.
+
+.. warning::
+
+    Zero downtime upgrades are only possible if you are using a stable version
+    of CrateDB and are upgrading to a new patch version (see
+    :ref:`versions <sys-versions>`).
+
+    If you are upgrading to a testing version or are upgrading to a new major
+    version or a new minor version, you must perform a full cluster restart.
 
 To perform a rolling upgrade of a cluster, one node at a time has to be stopped
 using the ``graceful stop`` procedure.
@@ -15,43 +23,30 @@ using the ``graceful stop`` procedure.
 This procedure will disable a node, which will cause it to reject any new
 requests but will make sure that any pending requests are finished.
 
-.. warning::
-
-    Before upgrading a cluster it is strongly recommended to create a
-    `backup of your data`_.
-
-.. warning::
-
-    `feature` or `major` versions (e.g. 0.54 to 0.55) are not compatible and
-    upgrading requires a full cluster restart. If you are upgrading from 0.54
-    to 0.55 you can also `read about the upgrade here`_.
-
-    The exception are `hotfix` updates which are always safe. For example
-    updating from 0.48.1 to 0.48.2 or even directly to 0.48.3 is safe.
-
-    See :ref:`versions <sys-versions>`.
-
 .. note::
 
-   Nonetheless, due to the distributed execution of requests, some client
-   requests might fail during this procedure.
+   Due to the distributed execution of requests, some client requests might fail
+   during a zero downtime upgrade.
 
 This process will ensure a certain data availability. Which can either be
 ``none``, ``primaries`` or ``full`` and can be configured using :ref:`ref-set`.
 
-Using ``full``, all shards currently located on the node
-will be moved to the other nodes in order to stop gracefully.
-Using this setting the cluster will stay ``green`` the
-whole time.
+Using ``full``, all shards currently located on the node will be moved to the
+other nodes in order to stop gracefully. Using this setting the cluster will
+stay ``green`` the whole time.
 
-Using ``primaries``, only the primaries will be moved to other nodes.
-Using this setting means that the cluster will go into the ``yellow``
-warning state if a node that has been stopped contained replicas
-that are then unavailable.
+Using ``primaries``, only the primaries will be moved to other nodes. Using
+this setting means that the cluster will go into the ``yellow`` warning state
+if a node that has been stopped contained replicas that are then unavailable.
 
-Using ``none``, there is no data-availability guarantee.
-The node will stop, possibly leaving the cluster in the critical ``red`` state
-if the node contained a primary that has no replicas that can take over.
+Using ``none``, there is no data-availability guarantee. The node will stop,
+possibly leaving the cluster in the critical ``red`` state if the node
+contained a primary that has no replicas that can take over.
+
+.. caution::
+
+   If you are upgrading from 0.54 to 0.55, please read the `accompanying notes`_
+   for the 0.55 release.
 
 Requirements
 ============
@@ -70,35 +65,33 @@ and abort as it won't be possible to relocate the replicas.
 If a table has a range configured as number of replicas this will take into
 account the upper number of replicas.
 
-So, with two nodes and a number of replicas of '0-1' will cause the
-``graceful stop`` procedure to abort.
+So, with two nodes and 0-1 replicas, the ``graceful stop`` procedure will abort.
 
-In short: In order for the ``full`` graceful stop to work the following has to be true::
+In short: for the ``full`` graceful stop to work the following has to be true::
 
     number_of_nodes > max_number_of_replicas + 1
-
 
 Primaries Minimum Data Availability
 -----------------------------------
 
-If the ``primaries`` minimum data availability is used, take care
-that there are still enough replicas in the cluster after a node has been
-stopped so that a write-consistency can be guaranteed.
+If the ``primaries`` minimum data availability is used, take care that there
+are still enough replicas in the cluster after a node has been stopped so that
+a write-consistency can be guaranteed.
 
-By default write or delete operations only succeed if a quorum ( > replicas / 2
-+ 1 ) of active shards is available.
+By default write or delete operations only succeed if a quorum (> replicas / 2
++ 1) of active shards is available.
 
 .. note::
 
-    If only 1 replica is configured one active shard suffices in
-    order for write and delete operations to succeed.
-
+    If only 1 replica is configured one active shard suffices in order for
+    write and delete operations to succeed.
 
 Re-Allocations
 --------------
 
-If a data node is stopped, Crate will wait up to 1 minute before replicas are
-re-assigned.
+If a data node is stopped, CrateDB will wait up to one minute before replicas
+are re-assigned.
+
 This is done to prevent unnecessary re-distribution among the cluster in case
 the node comes back online. Once a node that hold replicas comes back online
 they're synced with the primaries to get up to date again.
@@ -107,14 +100,20 @@ If for some reason an upgrade requires a longer node downtime, consider
 increasing the 1 minute timeout by changing the
 `unassigned.node_left.delayed_timeout` setting using :ref:`ref-set`.
 
-See :ref:`configuration`
+See :ref:`configuration`.
 
+Upgrade Process
+===============
+
+.. warning::
+
+    Before upgrading, you should `back up your data`_.
 
 Step 1: Graceful Stop
-=====================
+---------------------
 
 The ``crate`` process supports multiple signals (see :ref:`cli_signals`) that
-invoke different shutdown procedures. To stop a Crate process gracefully you
+invoke different shutdown procedures. To stop a CrateDB process gracefully you
 need to send the ``USR2`` signal::
 
   sh$ kill -USR2 `cat /path/to/crate.pid`
@@ -124,38 +123,38 @@ need to send the ``USR2`` signal::
   If your system uses SysVinit (e.g. Debian Wheezy), you can also use
   ``service crate graceful-stop``.
 
-Depending on the size of your cluster this might take a while.
-You might want to check your server logs to see if the graceful stop
-process is progressing well. In case of an error or a timeout, the node will stay up,
-signaling the error in its log files (or wherever you put your log messages).
+Depending on the size of your cluster this might take a while. You might want
+to check your server logs to see if the graceful stop process is progressing
+well. In case of an error or a timeout, the node will stay up, signaling the
+error in its log files (or wherever you put your log messages).
 
 Using the default settings the node will shut down by moving all primary shards
 off the node first. This will ensure that no data is lost. However, the cluster
 health will most likely turn yellow, because replicas that lived on that node
 will be missing.
 
-If you want to ensure green health, you need to change the ``cluster.graceful_stop.min_availability``
-setting to ``full``. This will move all shards off the node before shutting down.
+If you want to ensure green health, you need to change the
+``cluster.graceful_stop.min_availability`` setting to ``full``. This will move
+all shards off the node before shutting down.
 
-Keep in mind that reallocating shards might take some time depending
-on the number of shards and the amount and size of records (and/or blob data).
-For that reason you should set the ``timeout`` setting to a reasonable
-time. By default the shutdown process aborts and the cluster will start
-distributing shards evenly again. If you want to force a shutdown after
-the timeout, even if the reallocating is not finished, you can set the
-``force`` setting to ``true``.
+Keep in mind that reallocating shards might take some time depending on the
+number of shards and the amount and size of records (and/or blob data). For
+that reason you should set the ``timeout`` setting to a reasonable time. By
+default the shutdown process aborts and the cluster will start distributing
+shards evenly again. If you want to force a shutdown after the timeout, even if
+the reallocating is not finished, you can set the ``force`` setting to ``true``.
 
 .. warning::
 
-  A forced stop does not ensure the minimum data availability
-  defined in the settings and may result in temporary or even permanent
-  loss of data!
+  A forced stop does not ensure the minimum data availability defined in the
+  settings and may result in temporary or even permanent loss of data!
 
 .. note::
 
   When using ``cluster.graceful_stop.min_availability=full`` there have to be
   enough nodes in the cluster to move shards or else the graceful shutdown
   procedure will fail!
+
   For example, if there are 4 nodes and 3 configured replicas, there will not be
   enough nodes to to fulfill the required replicas.
 
@@ -173,7 +172,7 @@ By default, only the ``graceful stop`` command considers the cluster settings
 described at :ref:`conf_graceful_stop`.
 
 Observing the Reallocation
---------------------------
+++++++++++++++++++++++++++
 
 If you want to observe the reallocation process triggered by a ``full`` or
 ``primaries`` graceful-stop, you can issue the following sql queries regularly.
@@ -192,7 +191,7 @@ Get the number of shards remaining on your deallocating node:
   SELECT 1 row in set (... sec)
 
 
-Get some more detail about what shards are remaining on your node:
+Get some more details about what shards are remaining on your node:
 
 .. code-block:: psql
 
@@ -206,8 +205,9 @@ Get some more detail about what shards are remaining on your node:
   ...
   SELECT ... rows in set (... sec)
 
-In case of ``primaries`` availability only the primary shards of tables with
-0 replicas will be reallocated. Use this query to find out which shards to look for:
+In the case of ``primaries`` availability, only the primary shards of tables
+with zero replicas will be reallocated. Use this query to find out which shards
+to look for:
 
 .. code-block:: psql
 
@@ -225,16 +225,17 @@ In case of ``primaries`` availability only the primary shards of tables with
 
 .. note::
 
-   If you observe the graceful-stop process using the admin-ui, you might see
+   If you observe the graceful-stop process using the admin UI, you might see
    the cluster turning red for a small instant when a node finally shuts down.
-   This is due to the way the admin ui determines the cluster state. If a query
-   fails due to a missing node, the admin-ui may falsely consider the cluster to
-   be in a critical state.
+   This is due to the way the admin UI determines the cluster state.
 
-Step 2: Upgrade Crate
-=====================
+   If a query fails due to a missing node, the admin UI may falsely consider the
+   cluster to be in a critical state.
 
-After the node is stopped you can safely upgrade your Crate installation.
+Step 2: Upgrade CrateDB
+-----------------------
+
+After the node is stopped you can safely upgrade your CrateDB installation.
 Depending on your installation and operating system you can do it by downloading
 the latest tarball or just use the package manager.
 
@@ -243,34 +244,26 @@ Example for RHEL/YUM::
   $sh yum update -y crate
 
 If you are in doubt how to upgrade an installed package, please refer to the
-man pages of your operating system / package manager.
+man pages of your operating system or package manager.
 
-Step 3: Start Crate
-===================
+Step 3: Start CrateDB
+---------------------
 
-Once the upgrade process is completed you can start the Crate process again by
+Once the upgrade process is completed you can start the CrateDB process again by
 either invoking the bin/crate executable from the tarball directly::
 
   sh$ /path/to/bin/crate
 
-or using the service manager of your operating system.
+Or using the service manager of your operating system.
 
 Example for RHEL/YUM::
 
   sh$ service crate start
 
-
 Step 4: Repeat
-==============
+--------------
 
-Repeat step 2, 3 and 4 for all other nodes.
+Repeat step two, three, and four for all other nodes.
 
-
-.. warning::
-
-  Even the safest upgrade process might go wrong at some point.
-  So create a `backup of your data`_!
-
-
-.. _`backup of your data`: https://crate.io/a/backing-up-and-restoring-crate/
-.. _`read about the upgrade here`: https://crate.io/a/upgrade-your-cluster-to-0-55/
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+.. _accompanying notes: https://crate.io/a/upgrade-your-cluster-to-0-55/
