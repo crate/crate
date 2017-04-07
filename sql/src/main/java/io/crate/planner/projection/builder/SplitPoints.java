@@ -29,7 +29,7 @@ import java.util.ArrayList;
 
 
 /**
- * SplitPoints contain a separated representation of aggregations, leaves and toCollect (aggregation sources).
+ * SplitPoints contain a separated representation of aggregations and toCollect (aggregation sources).
  * They can be created from a QuerySpec which contains aggregations.
  * <pre>
  *     Example:
@@ -40,33 +40,23 @@ import java.util.ArrayList;
  *     SplitPoints:
  *       aggregations:  [sum(coalesce(x, 10))]
  *       toCollect:     [coalesce(x, 10)]
- *       leaves:        [x, 10]
  * </pre>
  */
 public class SplitPoints {
 
     private final ArrayList<Symbol> toCollect;
     private final ArrayList<Function> aggregates;
-    private final ArrayList<Symbol> leaves;
-    private final QuerySpec querySpec;
 
     public static SplitPoints create(QuerySpec querySpec) {
         SplitPoints splitPoints = new SplitPoints(querySpec);
-        SplitPointVisitor.addAggregatesAndToCollectSymbols(splitPoints);
-        LeafVisitor.addLeafs(splitPoints);
+        SplitPointVisitor.addAggregatesAndToCollectSymbols(querySpec, splitPoints);
         return splitPoints;
     }
 
     private SplitPoints(QuerySpec querySpec) {
         int estimate = querySpec.outputs().size();
-        this.querySpec = querySpec;
         this.toCollect = new ArrayList<>(estimate);
         this.aggregates = new ArrayList<>(estimate);
-        this.leaves = new ArrayList<>(estimate);
-    }
-
-    public QuerySpec querySpec() {
-        return querySpec;
     }
 
     public ArrayList<Symbol> toCollect() {
@@ -75,9 +65,5 @@ public class SplitPoints {
 
     public ArrayList<Function> aggregates() {
         return aggregates;
-    }
-
-    public ArrayList<Symbol> leaves() {
-        return leaves;
     }
 }

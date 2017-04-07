@@ -95,7 +95,7 @@ class DistributedGroupByConsumer implements Consumer {
 
             // start: Map/Collect side
             GroupProjection groupProjection = projectionBuilder.groupProjection(
-                splitPoints.leaves(),
+                splitPoints.toCollect(),
                 groupBy,
                 splitPoints.aggregates(),
                 AggregateMode.ITER_PARTIAL,
@@ -109,7 +109,7 @@ class DistributedGroupByConsumer implements Consumer {
                 "distributing collect",
                 routing,
                 tableInfo.rowGranularity(),
-                splitPoints.leaves(),
+                splitPoints.toCollect(),
                 ImmutableList.<Projection>of(groupProjection),
                 querySpec.where(),
                 DistributionInfo.DEFAULT_MODULO

@@ -31,7 +31,7 @@ import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.*;
+import static io.crate.testing.SymbolMatchers.isFunction;
 import static org.junit.Assert.assertThat;
 
 public class SplitPointsTest {
@@ -46,7 +46,6 @@ public class SplitPointsTest {
         SplitPoints splitPoints = SplitPoints.create(relation.querySpec());
 
         //noinspection unchecked
-        assertThat(splitPoints.leaves(), Matchers.contains(isReference("x"), isLiteral(0)));
         assertThat(splitPoints.toCollect(), Matchers.contains(isFunction("coalesce")));
         assertThat(splitPoints.aggregates(), Matchers.contains(isFunction("sum")));
     }

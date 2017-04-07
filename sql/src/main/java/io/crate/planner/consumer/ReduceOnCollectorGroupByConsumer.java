@@ -118,7 +118,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
 
             List<Projection> projections = new ArrayList<>();
             GroupProjection groupProjection = projectionBuilder.groupProjection(
-                splitPoints.leaves(),
+                splitPoints.toCollect(),
                 groupKeys,
                 splitPoints.aggregates(),
                 AggregateMode.ITER_FINAL,
@@ -147,7 +147,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
             RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
                 context.plannerContext(),
                 table,
-                splitPoints.leaves(),
+                splitPoints.toCollect(),
                 projections
             );
             return new Collect(
