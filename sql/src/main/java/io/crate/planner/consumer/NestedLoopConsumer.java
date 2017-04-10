@@ -123,6 +123,16 @@ class NestedLoopConsumer implements Consumer {
             }
 
             WhereClause where = querySpec.where();
+            /*
+             * isDistributed/filterNeeded doesn't consider the joinCondition.
+             * This means joins with implicit syntax result in a different plan than joins using explicit syntax.
+             * This was unintentional but we'll keep it that way (for now) as a distributed plan can be significantly slower
+             * (depending on the number of rows that are filtered)
+             * and we don't want to introduce a performance regression.
+             *
+             * We may at some point add some kind of session-settings to override this behaviour or otherwise
+             * come up with a better heuristic.
+             */
             boolean filterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
             boolean hasDocTables = left instanceof QueriedDocTable || right instanceof QueriedDocTable;
             boolean isDistributed = hasDocTables && filterNeeded && !joinType.isOuter();
