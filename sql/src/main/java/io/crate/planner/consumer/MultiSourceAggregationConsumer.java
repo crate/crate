@@ -28,7 +28,7 @@ import io.crate.analyze.RelationSource;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
-import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
@@ -52,16 +52,6 @@ class MultiSourceAggregationConsumer implements Consumer {
     @Override
     public Plan consume(AnalyzedRelation relation, ConsumerContext context) {
         return visitor.process(relation, context);
-    }
-
-    private static final JoinConditionFieldCollector FIELD_COLLECTOR = new JoinConditionFieldCollector();
-
-    private static class JoinConditionFieldCollector extends DefaultTraversalSymbolVisitor<List<Field>, Void> {
-        @Override
-        public Void visitField(Field symbol, List<Field> context) {
-            context.add(symbol);
-            return null;
-        }
     }
 
     private static class Visitor extends RelationPlanningVisitor {
@@ -121,7 +111,7 @@ class MultiSourceAggregationConsumer implements Consumer {
         for (JoinPair pair : joinPairs) {
             Symbol condition = pair.condition();
             if (condition != null) {
-                FIELD_COLLECTOR.process(condition, outputs);
+                FieldsVisitor.visitFields(condition, outputs);
             }
         }
         return outputs;
