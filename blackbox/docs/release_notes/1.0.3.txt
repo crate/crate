@@ -1,3 +1,5 @@
+.. _version_1.0.3:
+
 =============
 Version 1.0.3
 =============
@@ -6,16 +8,18 @@ Released on 2017/02/10.
 
 .. NOTE::
 
-<<<<<<< HEAD:blackbox/docs/release_notes/1/0/3.txt
- - Fix: Allow scalar functions on the `HAVING` clause if the scalar function is
-   used as a `GROUP BY` symbol.
-=======
    If you are upgrading a cluster, you must be running CrateDB 0.57.0 or higher
    before you upgrade to 1.0.3.
 
    If you want to perform a :ref:`cluster_upgrade`, your current CrateDB version
    number must be :ref:`version_1.0.0` or higher. Any upgrade from a version
    prior to this will require a full cluster restart.
+
+.. warning::
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
 
 Deprecations
 ============
@@ -25,7 +29,6 @@ Deprecations
 
 Changes
 =======
->>>>>>> 24f3ec0... restructure and improve release notes, move cluster checks to main docs:blackbox/docs/release_notes/1.0.3.txt
 
  - Return correct affected row count instead of throwing an exception when
    trying to bulk insert values that don't match the column type(s).
