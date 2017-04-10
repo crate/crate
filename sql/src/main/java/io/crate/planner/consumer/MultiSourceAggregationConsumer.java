@@ -27,8 +27,7 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.RelationSource;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.JoinPair;
-import io.crate.analyze.symbol.FieldsVisitor;
+import io.crate.analyze.relations.JoinPairs;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
@@ -85,7 +84,7 @@ class MultiSourceAggregationConsumer implements Consumer {
         QuerySpec querySpec = mss.querySpec();
         List<Symbol> outputs = Lists2.concatUnique(
             splitPoints.toCollect(),
-            extractFieldsFromJoinConditions(mss.joinPairs()));
+            JoinPairs.extractFieldsFromJoinConditions(mss.joinPairs()));
         querySpec.outputs(outputs);
         querySpec.hasAggregates(false);
         // Limit & offset must be applied after the aggregation, so remove it from mss and sources.
@@ -104,17 +103,6 @@ class MultiSourceAggregationConsumer implements Consumer {
             Symbol output = outputsIt.next();
             fieldsIt.set(new Field(field.relation(), field.path(), output.valueType()));
         }
-    }
-
-    private static List<Field> extractFieldsFromJoinConditions(Iterable<JoinPair> joinPairs) {
-        List<Field> outputs = new ArrayList<>();
-        for (JoinPair pair : joinPairs) {
-            Symbol condition = pair.condition();
-            if (condition != null) {
-                FieldsVisitor.visitFields(condition, outputs);
-            }
-        }
-        return outputs;
     }
 
     private static void removeLimitOffsetAndOrder(QuerySpec querySpec) {
