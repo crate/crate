@@ -35,7 +35,7 @@ Changes
     - Show loading indicator when ``Execute Query`` is in progress.
 
 Fixes
-====
+=====
 
  - Fixed an issue which caused restoring a whole partitioned table from a
    snapshot to fail.

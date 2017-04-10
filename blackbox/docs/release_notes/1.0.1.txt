@@ -38,7 +38,7 @@ Changes
     - Updated link to support website in contact widget.
 
 Fixes
-====
+=====
 
  - Fixed scalar signature registration, NULL literals are now supported.
 
