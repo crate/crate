@@ -27,19 +27,23 @@
 package io.crate.operation.udf;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.data.Input;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.*;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.script.ScriptException;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
@@ -49,6 +53,25 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
 
     private UserDefinedFunctionService udfService;
 
+    class UserDefinedDummyFunction extends Scalar<Object, Object >{
+
+        private final FunctionInfo info;
+
+        UserDefinedDummyFunction(FunctionIdent ident, DataType returnType) {
+            this.info = new FunctionInfo(ident, returnType);
+        }
+
+        @Override
+        public FunctionInfo info() {
+            return info;
+        }
+
+        @Override
+        public Object evaluate(Input<Object>[] args) {
+            return null;
+        }
+    }
+
     @Override
     @Before
     public void setUp() throws Exception {
@@ -57,20 +80,43 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
             .put("udf.enabled", true)
             .build();
         udfService = new UserDefinedFunctionService(settings, mock(ClusterService.class), mock(Functions.class));
-        udfService.registerLanguage(new JavaScriptLanguage(udfService));
+        udfService.registerLanguage(new UDFLanguage() {
+            @Override
+            public FunctionImplementation createFunctionImplementation(UserDefinedFunctionMetaData meta) throws ScriptException {
+                if ("invalid".equals(meta.definition())){
+                    throw new ScriptException("invalid dummyscript");
+                }
+                return new UserDefinedDummyFunction(
+                    new FunctionIdent(meta.name(), meta.argumentTypes()),
+                    meta.returnType()
+                );
+            }
+
+            @Override
+            public void validate(UserDefinedFunctionMetaData metadata) throws Exception {
+                if ("invalid".equals(metadata.definition())){
+                    throw new IllegalArgumentException("invalid dummyscript");
+                }
+            }
+
+            @Override
+            public String name() {
+                return "dummy";
+            }
+        });
     }
 
     private final UserDefinedFunctionMetaData same1 = new UserDefinedFunctionMetaData(
         Schemas.DEFAULT_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
-        "javascript", "function same(){ return 3; }"
+        "dummy", "function same(){ return 3; }"
     );
     private final UserDefinedFunctionMetaData same2 = new UserDefinedFunctionMetaData(
         Schemas.DEFAULT_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
-        "javascript", "function same() { return 2; }"
+        "dummy", "function same() { return 2; }"
     );
     private final UserDefinedFunctionMetaData different = new UserDefinedFunctionMetaData(
         Schemas.DEFAULT_SCHEMA_NAME, "different", ImmutableList.of(), DataTypes.INTEGER,
-        "javascript", "function different() { return 3; }"
+        "dummy", "function different() { return 3; }"
     );
 
     @Test
@@ -128,7 +174,7 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
     public void testInvalidFunction() throws Exception {
         UserDefinedFunctionMetaData invalid = new UserDefinedFunctionMetaData(
             "doc", "invalid", ImmutableList.of(), DataTypes.INTEGER,
-            "javascript", "function invalid(){ this is not valid javascript code }"
+            "dummy", "invalid"
         );
         UserDefinedFunctionsMetaData metaData = UserDefinedFunctionsMetaData.of(invalid, same1);
         // if a function can't be evaluated, it won't be registered

@@ -157,6 +157,7 @@ crate_layer = ConnectingCrateLayer(
     settings={
         'cluster.routing.schedule': '30ms',
         'udf.enabled': 'true',
+        'license.enterprise': 'true'
     }
 )
 

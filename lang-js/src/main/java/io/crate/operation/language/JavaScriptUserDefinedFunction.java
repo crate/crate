@@ -24,7 +24,7 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.operation.udf;
+package io.crate.operation.language;
 
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;

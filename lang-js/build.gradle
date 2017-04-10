@@ -1,0 +1,51 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+archivesBaseName = 'lang-js'
+group = 'io.crate'
+description = 'CrateDB JavaScript Language for UDF'
+
+task writePropertiesFile {
+    doLast {
+        copy {
+            from "src/main/resources/"
+            into "${buildDir}/tmp"
+            include "plugin-descriptor.properties"
+            expand(version: project.version,
+                    esVersion: versions.elasticsearch,
+                    jmvCompatibility: project.targetCompatibility,
+                    name: project.name)
+        }
+    }
+}
+
+jar.dependsOn('writePropertiesFile')
+dependencies {
+    compile project(':sql')
+    testCompile project(':integration-testing')
+    testCompile project(path: ':sql', configuration: 'testOutput')
+    testCompile project(path: ':dex', configuration: 'testOutput')
+    testCompile 'org.skyscreamer:jsonassert:1.3.0'
+    testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+    testCompile('io.crate:crate-jdbc:2.1.5') {
+        exclude group: 'net.java.dev.jna', module: 'jna'
+        exclude group: 'commons-logging', module: 'commons-logging'
+        exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
+    }
+}
+
+task getVersion(dependsOn: [':core:getVersion']) {
+    doFirst {
+        project.version = project(':core').getVersion.version
+    }
+}
+
+jar {
+    doLast {
+        manifest {
+            attributes("Implementation-Title": description, "Implementation-Version": project.version)
+        }
+    }
+}
+jar.dependsOn('getVersion')
+
+sourceSets.test.output.resourcesDir = 'src/test/java'

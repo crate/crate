@@ -24,18 +24,24 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.integrationtests;
+package io.crate.operation.language;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.Schemas;
+import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.plugin.CrateCorePlugin;
+import io.crate.plugin.JavaScriptLanguagePlugin;
+import io.crate.plugin.SQLPlugin;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -43,7 +49,7 @@ import java.util.stream.Collectors;
 import static org.hamcrest.CoreMatchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, randomDynamicTemplates = false)
-public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegrationTest {
+public class JavaScriptUDFIntegrationTest extends SQLTransportIntegrationTest {
 
     private Object[][] rows = new Object[][]{
         new Object[]{1L, "Foo"},
@@ -54,7 +60,14 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(CrateSettings.UDF_ENABLED.settingName(), true).build();
+            .put(CrateSettings.UDF_ENABLED.settingName(), true)
+            .put(CrateSettings.LICENSE_ENTERPRISE.settingName(), true).build();
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return pluginList(SQLPlugin.class, CrateCorePlugin.class, JavaScriptLanguagePlugin.class);
     }
 
     @Before

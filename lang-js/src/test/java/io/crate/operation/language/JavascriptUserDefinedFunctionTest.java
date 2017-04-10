@@ -24,7 +24,7 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.operation.udf;
+package io.crate.operation.language;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -35,12 +35,16 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
+import io.crate.operation.udf.UserDefinedFunctionMetaData;
+import io.crate.operation.udf.UserDefinedFunctionService;
+import io.crate.plugin.JavaScriptLanguagePlugin;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.Plugin;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -48,6 +52,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import javax.script.ScriptException;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -73,7 +78,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
             .put("udf.enabled", true)
             .build();
         udfService = new UserDefinedFunctionService(settings, mock(ClusterService.class), mock(Functions.class));
-        udfService.registerLanguage(new JavaScriptLanguage(udfService));
+        udfService.registerLanguage(new JavaScriptLanguage(udfService, settings));
     }
 
     private Map<FunctionIdent, FunctionImplementation> functionImplementations = new HashMap<>();
