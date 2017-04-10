@@ -136,7 +136,7 @@ Changes
       loading on result sets larger than 100 rows.
 
 Fixes
-====
+=====
 
  - Fixed an issue that prevent a node from starting on Windows if the
    sigar-plugin is removed.
