@@ -40,9 +40,12 @@ import io.crate.planner.projection.FetchProjection;
 import javax.annotation.Nullable;
 import java.util.*;
 
-public class FetchPushDown {
+public final class FetchPushDown {
 
-    private static FetchPushDown.Visitor VISITOR = new FetchPushDown.Visitor();
+    private static final FetchPushDown.Visitor VISITOR = new FetchPushDown.Visitor();
+
+    private FetchPushDown() {
+    }
 
     /**
      * Returns a {@link Builder} if some {@link Reference} can be fetched later on.
@@ -117,9 +120,10 @@ public class FetchPushDown {
 
     private static class VisitorContext {
 
-        Map<TableIdent, FetchSource> fetchSources = new HashMap<>();
-        LinkedHashSet<Reference> fetchRefs = new LinkedHashSet<>();
-        List<Symbol> outputs = new ArrayList<>();
+        final Map<TableIdent, FetchSource> fetchSources = new HashMap<>();
+        final LinkedHashSet<Reference> fetchRefs = new LinkedHashSet<>();
+
+        List<Symbol> outputs = Collections.emptyList();
         QueriedRelation replacedRelation;
     }
 
@@ -147,22 +151,15 @@ public class FetchPushDown {
             context.outputs = relation.querySpec().outputs();
 
             TableIdent tableIdent = relation.tableRelation().tableInfo().ident();
-            FetchSource fetchSource = context.fetchSources.get(tableIdent);
 
-            if (fetchSource == null) {
-                context.fetchSources.put(tableIdent,
-                    new FetchSource(relation.tableRelation().tableInfo().partitionedByColumns(),
-                        ImmutableList.of(docTableFetchPushDown.docIdCol()), fetchRefs));
-            } else {
-                // merge fetch references without duplicates
-                LinkedHashSet<Reference> mergedFetchRefs = new LinkedHashSet<>();
-                mergedFetchRefs.addAll(fetchSource.references());
-                mergedFetchRefs.addAll(fetchRefs);
-                context.fetchSources.put(tableIdent,
-                    new FetchSource(relation.tableRelation().tableInfo().partitionedByColumns(),
-                        ImmutableList.of(docTableFetchPushDown.docIdCol()), mergedFetchRefs));
-            }
-
+            FetchSource prevSource = context.fetchSources.put(
+                tableIdent,
+                new FetchSource(
+                    relation.tableRelation().tableInfo().partitionedByColumns(),
+                    ImmutableList.of(docTableFetchPushDown.docIdCol()),
+                    fetchRefs)
+            );
+            assert prevSource == null : "fetchSources must have been empty; this is a single-relation select statement";
             return null;
         }
 
