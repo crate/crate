@@ -488,7 +488,8 @@ public class LuceneQueryBuilder {
                  * excluded (in the case of 'not ...') in the boolean queries
                  */
                 private final Set<String> STRICT_3VL_FUNCTIONS =
-                    ImmutableSet.of(AnyEqOperator.NAME,
+                    ImmutableSet.of(
+                        AnyEqOperator.NAME,
                         AnyNeqOperator.NAME,
                         AnyGteOperator.NAME,
                         AnyGtOperator.NAME,
@@ -551,7 +552,9 @@ public class LuceneQueryBuilder {
                         // probably an object column, fallback to genericFunctionFilter
                         return null;
                     }
-                    builder.add(fieldType.rangeQuery(null, null, true, true), BooleanClause.Occur.MUST);
+                    if (reference.isNullable()) {
+                        builder.add(fieldType.rangeQuery(null, null, true, true), BooleanClause.Occur.MUST);
+                    }
                 }
                 if (ctx.hasStrictThreeValuedLogicFunction) {
                     FunctionInfo isNullInfo = IsNullPredicate.generateInfo(Collections.singletonList(arg.valueType()));

@@ -28,8 +28,10 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
@@ -98,7 +100,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     public void prepare() throws Exception {
         DocTableInfo users = TestingTableInfo.builder(new TableIdent(null, "users"), null)
             .add("name", DataTypes.STRING)
-            .add("x", DataTypes.INTEGER)
+            .add("x", DataTypes.INTEGER, null, ColumnPolicy.DYNAMIC, Reference.IndexType.NOT_ANALYZED, false, false)
             .add("d", DataTypes.DOUBLE)
             .add("d_array", new ArrayType(DataTypes.DOUBLE))
             .add("y_array", new ArrayType(DataTypes.LONG))
@@ -240,6 +242,17 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Query query = convert("x <= 10");
         assertThat(query, instanceOf(NumericRangeQuery.class));
         assertThat(query.toString(), is("x:{* TO 10]"));
+    }
+
+    @Test
+    public void testNotEqOnNotNullableColumnQuery() throws Exception {
+        Query query = convert("x != 10");
+        assertThat(query, instanceOf(BooleanQuery.class));
+        assertThat(query.toString(), is("+(+*:* -x:`\b\u0000\u0000\u0000\n)"));
+
+        query = convert("not x = 10");
+        assertThat(query, instanceOf(BooleanQuery.class));
+        assertThat(query.toString(), is("+(+*:* -x:`\b\u0000\u0000\u0000\n)"));
     }
 
     @Test

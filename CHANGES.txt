@@ -21,6 +21,11 @@ Breaking Changes
 Changes
 =======
 
+ - Optimized performance of negation queries on ``NOT NULL`` columns.
+   e.g.::
+
+     select * from t where not_null_col != 10
+
  - Updated documentation to indicate that it's not possible to use
     ``object``, ``geo_point``, ``geo_shape`` or ``array`` in the
     ``ORDER BY`` clause.
