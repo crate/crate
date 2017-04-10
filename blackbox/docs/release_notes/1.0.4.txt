@@ -1,3 +1,5 @@
+.. _version_1.0.4:
+
 =============
 Version 1.0.4
 =============
@@ -13,13 +15,19 @@ Released on 2017/02/24.
    number must be :ref:`version_1.0.0` or higher. Any upgrade from a version
    prior to this will require a full cluster restart.
 
+.. warning::
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
 Changes
 =======
 
  - Removed limitation which didn't allow ordering on partitioned columns in a
    ``GROUP BY`` query.
 
- - Updated crate-admin to ``1.0.5`` which includes the following change:
+ - Updated crate-admin to 1.0.5 which includes the following change:
 
     - Fixed a console results issue that caused the results table not to be
       displayed after horizontal scrolling.
