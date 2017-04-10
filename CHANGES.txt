@@ -111,6 +111,8 @@ Breaking Changes
 Changes
 =======
 
+ - Added JavaScript language for functions
+
  - Added support for user defined functions.
 
  - Added cluster check and warning for unlicensed usage of CrateDB Enterprise.

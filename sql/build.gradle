@@ -6,6 +6,8 @@ archivesBaseName = 'crate-sql'
 configurations {
     benchmarksCompile.extendsFrom testCompile
     benchmarksRuntime.extendsFrom testRuntime, benchmarksCompile
+    // export of test so that other modules can use the utilities there as well.
+    testOutput
 }
 
 dependencies {
@@ -30,7 +32,11 @@ dependencies {
         exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
     }
 }
-
+//noinspection GroovyAssignabilityCheck
+task jarTest (type: Jar) {
+    from sourceSets.test.output
+    classifier = 'sql-testing'
+}
 
 jmhJar {
     append 'META-INF/services/org.apache.lucene.codecs.DocValuesFormat'
@@ -38,6 +44,9 @@ jmhJar {
     append 'META-INF/services/org.apache.lucene.codecs.PostingsFormat'
 }
 
+artifacts {
+    testOutput jarTest
+}
 
 test {
     testLogging.exceptionFormat = 'full'

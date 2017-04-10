@@ -11,3 +11,4 @@ Database Administration Statements
    system_columns
    set_reset
    show_create_table
+   user_defined_functions

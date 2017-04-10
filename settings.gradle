@@ -20,5 +20,6 @@ include 'es',
         'sigar',
         'app',
         'blackbox',
-        'jmx-monitoring'
+        'jmx-monitoring',
+        'lang-js'
 
