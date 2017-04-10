@@ -32,12 +32,17 @@ import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.analyze.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Schemas;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -50,6 +55,7 @@ import java.util.stream.Collectors;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.Mockito.mock;
 
 public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTest {
 
@@ -57,6 +63,18 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     public final ExpectedException exception = ExpectedException.none();
 
     private static final String JS = "javascript";
+    private UserDefinedFunctionService udfService;
+
+    @Override
+    @Before
+    public void setUp() throws Exception {
+        super.setUp();
+        Settings settings = Settings.builder()
+            .put("udf.enabled", true)
+            .build();
+        udfService = new UserDefinedFunctionService(settings, mock(ClusterService.class), mock(Functions.class));
+        udfService.registerLanguage(new JavaScriptLanguage(udfService));
+    }
 
     private Map<FunctionIdent, FunctionImplementation> functionImplementations = new HashMap<>();
 
@@ -69,7 +87,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
             definition
         );
 
-        functionImplementations.put(new FunctionIdent(name, types), UserDefinedFunctionService.getLanguage("javascript").createFunctionImplementation(udfMeta));
+        functionImplementations.put(new FunctionIdent(name, types), udfService.getLanguage(JS).createFunctionImplementation(udfMeta));
         functions.registerSchemaFunctionResolvers(functions.generateFunctionResolvers(functionImplementations));
     }
 

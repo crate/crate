@@ -60,9 +60,10 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
 
     private final ClusterService clusterService;
     private final Functions functions;
-    private static Map<String, UDFLanguage> languageRegistry;
+    private Map<String, UDFLanguage> languageRegistry = new HashMap<>();
 
-    public static UDFLanguage getLanguage(String languageName) throws IllegalArgumentException{
+
+    public UDFLanguage getLanguage(String languageName) throws IllegalArgumentException{
         UDFLanguage lang = languageRegistry.get(languageName);
         if (lang == null){
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Can't find Language '%s'",
@@ -72,7 +73,7 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
         return lang;
     }
 
-    public static void registerLanguage(UDFLanguage language) {
+    public void registerLanguage(UDFLanguage language) {
         languageRegistry.put(language.name(), language);
     }
 
@@ -81,7 +82,6 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
         super(settings);
         this.clusterService = clusterService;
         this.functions = functions;
-        languageRegistry = new HashMap<String, UDFLanguage>();
     }
 
     @Override
@@ -172,9 +172,9 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
     }
 
     @VisibleForTesting
-    static UserDefinedFunctionsMetaData putFunction(@Nullable UserDefinedFunctionsMetaData oldMetaData,
-                                                    UserDefinedFunctionMetaData functionMetaData,
-                                                    boolean replace) {
+    UserDefinedFunctionsMetaData putFunction(@Nullable UserDefinedFunctionsMetaData oldMetaData,
+                                             UserDefinedFunctionMetaData functionMetaData,
+                                             boolean replace) {
         if (oldMetaData == null) {
             return UserDefinedFunctionsMetaData.of(functionMetaData);
         }
@@ -195,10 +195,10 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
     }
 
     @VisibleForTesting
-    static UserDefinedFunctionsMetaData removeFunction(@Nullable UserDefinedFunctionsMetaData functions,
-                                                       String name,
-                                                       List<DataType> argumentDataTypes,
-                                                       boolean ifExists) {
+    UserDefinedFunctionsMetaData removeFunction(@Nullable UserDefinedFunctionsMetaData functions,
+                                                String name,
+                                                List<DataType> argumentDataTypes,
+                                                boolean ifExists) {
         if (!ifExists && (functions == null || !functions.contains(name, argumentDataTypes))) {
             throw new UserDefinedFunctionUnknownException(name, argumentDataTypes);
         } else if (functions == null) {
@@ -227,8 +227,9 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
         );
     }
 
-    static Map<FunctionIdent, FunctionImplementation> createFunctionImplementations(UserDefinedFunctionsMetaData metaData,
-                                                                                    ESLogger logger) {
+    @VisibleForTesting
+    Map<FunctionIdent, FunctionImplementation> createFunctionImplementations(UserDefinedFunctionsMetaData metaData,
+                                                                                     ESLogger logger) {
         Map<FunctionIdent, FunctionImplementation> udfFunctions = new HashMap<>();
         for (UserDefinedFunctionMetaData function : metaData.functionsMetaData()) {
             try {
