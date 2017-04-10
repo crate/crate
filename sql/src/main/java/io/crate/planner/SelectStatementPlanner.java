@@ -142,7 +142,7 @@ class SelectStatementPlanner {
             if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
                 return invokeConsumingPlanner(mss, context);
             }
-            if (querySpec.where().noMatch() && !querySpec.hasAggregates()) {
+            if (querySpec.where().noMatch()) {
                 return new NoopPlan(context.jobId());
             }
             if (mss.canBeFetched().isEmpty()) {
@@ -154,11 +154,6 @@ class SelectStatementPlanner {
             // plan sub relation as if root so that it adds a mergePhase
             Plan plannedSubQuery = invokeConsumingPlanner(mss, context);
             assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
-            // NestedLoopConsumer can return NoopPlannedAnalyzedRelation if its left or right plan
-            // is noop. E.g. it is the case with creating NestedLoopConsumer for empty partitioned tables.
-            if (plannedSubQuery instanceof NoopPlan) {
-                return plannedSubQuery;
-            }
 
             FetchPushDown.PhaseAndProjection fetchPhaseAndProjection = fetchPhaseBuilder.build(context);
             plannedSubQuery.addProjection(
