@@ -30,7 +30,6 @@ import io.crate.analyze.symbol.format.FunctionFormatSpec;
 import io.crate.metadata.*;
 import io.crate.data.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
@@ -42,7 +41,7 @@ public class CurrentSchemaFunction extends Scalar<BytesRef, Object> implements F
     public static final String NAME = "current_schema";
 
     public static final FunctionInfo INFO = new FunctionInfo(
-        new FunctionIdent(NAME, ImmutableList.<DataType>of()), DataTypes.STRING);
+        new FunctionIdent(NAME, ImmutableList.of()), DataTypes.STRING);
 
     public static void register(ScalarFunctionModule scalarFunctionModule) {
         scalarFunctionModule.register(new CurrentSchemaFunction());
@@ -65,10 +64,7 @@ public class CurrentSchemaFunction extends Scalar<BytesRef, Object> implements F
             return Literal.NULL;
         }
         assert transactionContext.sessionContext() != null : "CURRENT_SCHEMA requires a session context";
-        String currentSchema = transactionContext.sessionContext().defaultSchema() == null ?
-            Schemas.DEFAULT_SCHEMA_NAME :
-            transactionContext.sessionContext().defaultSchema();
-        return Literal.of(currentSchema);
+        return Literal.of(transactionContext.sessionContext().defaultSchema());
     }
 
     @Override

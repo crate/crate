@@ -465,7 +465,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * and an options list. This is useful if you require a session which differs
      * from the default one.
      *
-     * @param defaultSchema The default schema to use. Can be null
+     * @param defaultSchema The default schema to use. Can be null.
      * @param options Session options. If no specific options are required, use {@link Option#NONE}
      * @return The created session
      */

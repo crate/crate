@@ -38,7 +38,7 @@ class DropTableAnalyzer {
         this.schemas = schemas;
     }
 
-    public DropTableAnalyzedStatement analyze(DropTable node, @Nullable String defaultSchema) {
+    public DropTableAnalyzedStatement analyze(DropTable node, String defaultSchema) {
         TableIdent tableIdent = TableIdent.of(node.table(), defaultSchema);
         DocTableInfo tableInfo = null;
         boolean isNoop = false;

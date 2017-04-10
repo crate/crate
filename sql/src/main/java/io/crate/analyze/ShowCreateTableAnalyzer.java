@@ -37,7 +37,7 @@ class ShowCreateTableAnalyzer {
         this.schemas = schemas;
     }
 
-    public ShowCreateTableAnalyzedStatement analyze(Table table, @Nullable String defaultSchema) {
+    public ShowCreateTableAnalyzedStatement analyze(Table table, String defaultSchema) {
         TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(table, defaultSchema));
         if (!(tableInfo instanceof DocTableInfo)) {
             throw new UnsupportedOperationException("Table must be a doc table");

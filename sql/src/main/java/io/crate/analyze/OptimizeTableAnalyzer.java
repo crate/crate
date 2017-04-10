@@ -76,7 +76,7 @@ class OptimizeTableAnalyzer {
     private static Set<String> getIndexNames(List<Table> tables,
                                              Schemas schemas,
                                              ParameterContext parameterContext,
-                                             @Nullable String defaultSchema) {
+                                             String defaultSchema) {
         Set<String> indexNames = new HashSet<>(tables.size());
         for (Table nodeTable : tables) {
             TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(nodeTable, defaultSchema));

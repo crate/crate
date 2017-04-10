@@ -44,14 +44,14 @@ public class TableIdent {
     private final String schema;
     private final String name;
 
-    public static TableIdent of(Table tableNode, @Nullable String fallbackSchema) {
+    public static TableIdent of(Table tableNode, String defaultSchema) {
         List<String> parts = tableNode.getName().getParts();
         Preconditions.checkArgument(parts.size() < 3,
             "Table with more then 2 QualifiedName parts is not supported. only <schema>.<tableName> works.");
         if (parts.size() == 2) {
             return new TableIdent(parts.get(0), parts.get(1));
         }
-        return new TableIdent(fallbackSchema, parts.get(0));
+        return new TableIdent(defaultSchema, parts.get(0));
     }
 
     public static TableIdent fromIndexName(String indexName) {

@@ -22,6 +22,9 @@
 
 package io.crate.action.sql;
 
+import com.google.common.base.MoreObjects;
+import io.crate.metadata.Schemas;
+
 import javax.annotation.Nullable;
 import java.util.Set;
 
@@ -31,27 +34,24 @@ public class SessionContext {
 
     private final int defaultLimit;
     private final Set<Option> options;
-
-    @Nullable
     private String defaultSchema;
 
     public SessionContext(int defaultLimit, Set<Option> options, @Nullable String defaultSchema ) {
         this.defaultLimit = defaultLimit;
         this.options = options;
-        this.defaultSchema = defaultSchema;
+        setDefaultSchema(defaultSchema);
     }
 
     public Set<Option> options() {
         return options;
     }
 
-    @Nullable
     public String defaultSchema() {
         return defaultSchema;
     }
 
     public void setDefaultSchema(@Nullable String schema) {
-        defaultSchema = schema;
+        defaultSchema = MoreObjects.firstNonNull(schema, Schemas.DEFAULT_SCHEMA_NAME);
     }
 
     public int defaultLimit() {
