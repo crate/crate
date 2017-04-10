@@ -47,7 +47,7 @@ Changes
      - Fixed getting started display issue on very wide screens.
 
 Fixes
-====
+=====
 
  - Scalar functions are now allowed on the `HAVING` clause if the scalar
    function is used as a `GROUP BY` symbol.

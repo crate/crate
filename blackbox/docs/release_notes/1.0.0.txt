@@ -122,7 +122,7 @@ Changes
       of CrateDB.
 
 Fixes
-====
+=====
 
  - Fixed issue in joins with 3 or more tables where limit was applied before
    ``WHERE`` clause filtering which produced  wrong results.

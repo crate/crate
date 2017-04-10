@@ -22,7 +22,7 @@ Released on 2017/03/14.
 .. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
 
 Fixes
-====
+=====
 
  - Case sensivity of aliases wasn't handled correctly. Aliases are now fully
    case sensitive.
