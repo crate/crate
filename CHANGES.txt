@@ -12,6 +12,8 @@ For developers: changes should be recorded here (using RST syntax) as you are
 developing CrateDB. When a new release is being cut, changes will be moved to
 the appropriate section of the docs.
 
+Copy everything below this line to the release notes when making a release.
+
 Breaking Changes
 ================
 
