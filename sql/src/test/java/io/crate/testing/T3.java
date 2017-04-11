@@ -33,30 +33,30 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 public class T3 {
 
     private static final Routing t1Routing = new Routing(
-        ImmutableMap.<String, Map<String, List<Integer>>>of("noop_id",
+        ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
             ImmutableMap.of("t1", Collections.singletonList(0))));
 
     private static final Routing t2Routing = new Routing(
-        ImmutableMap.<String, Map<String, List<Integer>>>of("noop_id",
+        ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
             ImmutableMap.of("t2", Arrays.asList(0, 1))));
 
     private static final Routing t3Routing = new Routing(
-        ImmutableMap.<String, Map<String, List<Integer>>>of("noop_id",
+        ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
             ImmutableMap.of("t3", Arrays.asList(0, 1, 2))));
 
     private static final Routing t4Routing = new Routing(
-        ImmutableMap.<String, Map<String, List<Integer>>>of("noop_id",
+        ImmutableMap.of(CrateDummyClusterServiceUnitTest.NODE_ID,
             ImmutableMap.of("t4", Collections.singletonList(0))));
 
     public static final DocTableInfo T1_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t1"), t1Routing)
