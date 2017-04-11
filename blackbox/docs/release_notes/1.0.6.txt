@@ -1,0 +1,49 @@
+.. _version_1.0.6:
+
+=============
+Version 1.0.6
+=============
+
+Released on 2017/04/03.
+
+.. NOTE::
+
+   If you are upgrading a cluster, you must be running CrateDB 0.57.0 or higher
+   before you upgrade to 1.0.6.
+
+   If you want to perform a :ref:`cluster_upgrade`, your current CrateDB version
+   number must be :ref:`version_1.0.0` or higher. Any upgrade from a version
+   prior to this will require a full cluster restart.
+
+.. warning::
+
+    Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+Changes
+=======
+
+ - Improved error handling when using ``LIMIT``/``OFFSET`` that exceed
+   ``Integer`` range.
+
+Fixes
+=====
+
+ - Fixed issue which prevents blob directories from being removed after a
+   ``drop blob table`` command when a custom blob location is configured.
+
+ - Fixed an issue that caused conditions like ``not x = any( )`` to not
+   find empty lists when used in WHERE clauses.
+
+ - Fixed a race condition in an unsorted right outer join with one empty table
+   that could lead to incorrect results.
+
+ - Division by aggregation that resulted in 0. e.g.
+   ``SELECT max(long_col) / min(long_col) from t)`` now correctly returns
+   ``ArtithmeticException`` and does not hang.
+
+ - Fixed a race condition in ``KILL`` statements which lead to a memory leak.
+
+ - Fixed an issue that prevent a node from starting on Windows if the
+   sigar-plugin is removed.
