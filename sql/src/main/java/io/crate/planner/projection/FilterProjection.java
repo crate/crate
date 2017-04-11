@@ -40,6 +40,17 @@ public class FilterProjection extends Projection {
     private List<Symbol> outputs = ImmutableList.of();
     private RowGranularity requiredGranularity = RowGranularity.CLUSTER;
 
+    public FilterProjection(Symbol query, List<Symbol> outputs) {
+        this.query = query;
+        this.outputs = outputs;
+    }
+
+    public FilterProjection(StreamInput in) throws IOException {
+        query = Symbols.fromStream(in);
+        outputs = Symbols.listFromStream(in);
+        requiredGranularity = RowGranularity.fromStream(in);
+    }
+
     @Override
     public RowGranularity requiredGranularity() {
         return requiredGranularity;
@@ -53,21 +64,6 @@ public class FilterProjection extends Projection {
 
     public void requiredGranularity(RowGranularity requiredRowGranularity) {
         this.requiredGranularity = requiredRowGranularity;
-    }
-
-    public FilterProjection(Symbol query) {
-        this.query = query;
-    }
-
-    public FilterProjection(Symbol query, List<Symbol> outputs) {
-        this(query);
-        this.outputs = outputs;
-    }
-
-    public FilterProjection(StreamInput in) throws IOException {
-        query = Symbols.fromStream(in);
-        outputs = Symbols.listFromStream(in);
-        requiredGranularity = RowGranularity.fromStream(in);
     }
 
     public Symbol query() {

@@ -113,8 +113,8 @@ public class ProjectionBuilder {
         } else {
             query = Literal.BOOLEAN_TRUE;
         }
-        List<Symbol> outputs = inputVisitor.process(inputs, context);
-        return new FilterProjection(query, outputs);
+        // FilterProjection can only pass-through rows as is; create inputColumns which preserve the type:
+        return new FilterProjection(query, InputColumn.fromSymbols(inputs));
     }
 
     /**
