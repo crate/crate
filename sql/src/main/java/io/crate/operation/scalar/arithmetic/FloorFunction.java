@@ -21,34 +21,44 @@
 
 package io.crate.operation.scalar.arithmetic;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
+import com.google.common.collect.ImmutableMap;
+import io.crate.metadata.*;
 import io.crate.data.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-public abstract class FloorFunction extends Scalar<Number, Number> {
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+public abstract class FloorFunction extends SingleArgumentArithmeticFunction {
 
     public static final String NAME = "floor";
 
+    FloorFunction(FunctionInfo info) {
+        super(info);
+    }
+
     public static void register(ScalarFunctionModule module) {
-        module.register(new DoubleFloorFunction());
-        module.register(new FloatFloorFunction());
-        module.register(new NoopFloorFunction(DataTypes.LONG));
-        module.register(new NoopFloorFunction(DataTypes.INTEGER));
-        module.register(new NoopFloorFunction(DataTypes.SHORT));
-        module.register(new NoopFloorFunction(DataTypes.BYTE));
-        module.register(new NoopFloorFunction(DataTypes.UNDEFINED));
+        Map<DataType, SingleArgumentArithmeticFunction> functionMap =
+            ImmutableMap.<DataType, SingleArgumentArithmeticFunction>builder()
+            .put(DataTypes.FLOAT, new FloatFloorFunction(Collections.singletonList(DataTypes.FLOAT)))
+            .put(DataTypes.INTEGER, new FloatFloorFunction(Collections.singletonList(DataTypes.INTEGER)))
+            .put(DataTypes.DOUBLE, new DoubleFloorFunction(Collections.singletonList(DataTypes.DOUBLE)))
+            .put(DataTypes.LONG, new DoubleFloorFunction(Collections.singletonList(DataTypes.LONG)))
+            .put(DataTypes.SHORT, new DoubleFloorFunction(Collections.singletonList(DataTypes.SHORT)))
+            .put(DataTypes.BYTE, new DoubleFloorFunction(Collections.singletonList(DataTypes.BYTE)))
+            .put(DataTypes.UNDEFINED, new DoubleFloorFunction(Collections.singletonList(DataTypes.UNDEFINED)))
+            .build();
+        module.register(NAME, new Resolver(NAME, functionMap));
     }
 
     private static class DoubleFloorFunction extends FloorFunction {
 
-        private static final FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.of(DataTypes.DOUBLE)), DataTypes.LONG, FunctionInfo.Type.SCALAR,
-            FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT);
+        DoubleFloorFunction(List<DataType> dataTypes) {
+            super(generateDoubleFunctionInfo(NAME, dataTypes));
+        }
 
         @Override
         public Long evaluate(Input[] args) {
@@ -59,17 +69,13 @@ public abstract class FloorFunction extends Scalar<Number, Number> {
             return ((Double) Math.floor(((Number) value).doubleValue())).longValue();
         }
 
-        @Override
-        public FunctionInfo info() {
-            return INFO;
-        }
     }
 
     private static class FloatFloorFunction extends FloorFunction {
 
-        private static final FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.of(DataTypes.FLOAT)), DataTypes.INTEGER, FunctionInfo.Type.SCALAR,
-            FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT);
+        FloatFloorFunction(List<DataType> dataTypes) {
+            super(generateFloatFunctionInfo(NAME, dataTypes));
+        }
 
         @Override
         public Integer evaluate(Input[] args) {
@@ -80,29 +86,5 @@ public abstract class FloorFunction extends Scalar<Number, Number> {
             return ((Double) Math.floor(((Number) value).doubleValue())).intValue();
         }
 
-        @Override
-        public FunctionInfo info() {
-            return INFO;
-        }
-    }
-
-    private static class NoopFloorFunction extends FloorFunction {
-
-        private final FunctionInfo info;
-
-        NoopFloorFunction(DataType type) {
-            info = new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(type)), type, FunctionInfo.Type.SCALAR,
-                FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT);
-        }
-
-        @Override
-        public Number evaluate(Input<Number>[] args) {
-            return args[0].value();
-        }
-
-        @Override
-        public FunctionInfo info() {
-            return info;
-        }
     }
 }
