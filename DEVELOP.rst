@@ -195,10 +195,10 @@ Before creating a new distribution, a new version and tag should be created:
 
   - Discuss with the engineering team:
 
-      - What is the minimum version of CrateDB required to perform an upgrade to
-        this version.
-      - What is the minimum version of CrateDB required to perform a *rolling
-        upgrade* to this version.
+     - What is the minimum version of CrateDB required to perform an upgrade to
+       this version.
+     - What is the minimum version of CrateDB required to perform a *rolling
+       upgrade* to this version.
 
     You will need to know these versions before moving on to the next step.
 
