@@ -25,7 +25,10 @@ import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDelete;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertById;
-import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.CountPlan;
+import io.crate.planner.node.dql.ESGet;
+import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.GenericShowPlan;
@@ -52,10 +55,6 @@ public class PlanVisitor<C, R> {
     }
 
     public R visitUpsert(Upsert node, C context) {
-        return visitPlan(node, context);
-    }
-
-    public R visitDistributedGroupBy(DistributedGroupBy node, C context) {
         return visitPlan(node, context);
     }
 

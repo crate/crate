@@ -34,7 +34,7 @@ import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.DistributedGroupBy;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.*;
@@ -92,7 +92,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGroupByWithAggregationStringLiteralArguments() {
         Merge distributedGroupByMerge = e.plan("select count('foo'), name from users group by name");
-        RoutedCollectPhase collectPhase = ((DistributedGroupBy) distributedGroupByMerge.subPlan()).collectPhase();
+        RoutedCollectPhase collectPhase =
+            ((RoutedCollectPhase) ((Collect) ((Merge) distributedGroupByMerge.subPlan()).subPlan()).collectPhase());
         assertThat(collectPhase.toCollect(), contains(isReference("name")));
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
         assertThat(groupProjection.values().get(0), isAggregation("count"));
@@ -103,10 +104,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge distributedGroupByMerge = e.plan(
             "select count(*), name from users group by name");
 
-        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) distributedGroupByMerge.subPlan();
+        Merge reducerMerge = (Merge) distributedGroupByMerge.subPlan();
 
         // distributed collect
-        RoutedCollectPhase collectPhase = distributedGroupBy.collectPhase();
+        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) reducerMerge.subPlan()).collectPhase());
         assertThat(collectPhase.maxRowGranularity(), is(RowGranularity.DOC));
         assertThat(collectPhase.nodeIds().size(), is(2));
         assertThat(collectPhase.toCollect().size(), is(1));
@@ -116,7 +117,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertEquals(DataTypes.STRING, collectPhase.outputTypes().get(0));
         assertEquals(CountAggregation.LongStateType.INSTANCE, collectPhase.outputTypes().get(1));
 
-        MergePhase mergePhase = distributedGroupBy.reducerMergeNode();
+        MergePhase mergePhase = reducerMerge.mergePhase();
 
         assertThat(mergePhase.numUpstreams(), is(2));
         assertThat(mergePhase.nodeIds().size(), is(2));
@@ -149,10 +150,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge distributedGroupByMerge = e.plan(
             "select count(*), name from users group by name limit 1 offset 1");
 
-        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) distributedGroupByMerge.subPlan();
+        Merge reducerMerge = (Merge) distributedGroupByMerge.subPlan();
 
         // distributed merge
-        MergePhase distributedMergePhase = distributedGroupBy.reducerMergeNode();
+        MergePhase distributedMergePhase = reducerMerge.mergePhase();
         assertThat(distributedMergePhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(distributedMergePhase.projections().get(1), instanceOf(TopNProjection.class));
 
@@ -268,8 +269,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(merge.mergePhase().orderByPositions(), notNullValue());
 
-        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) merge.subPlan();
-        MergePhase mergePhase = distributedGroupBy.reducerMergeNode();
+        Merge reducerMerge = (Merge) merge.subPlan();
+        MergePhase mergePhase = reducerMerge.mergePhase();
 
         assertThat(mergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
@@ -302,8 +303,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testCountDistinctWithGroupBy() throws Exception {
         Merge distributedGroupByMerge = e.plan(
             "select count(distinct id), name from users group by name order by count(distinct id)");
-        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) distributedGroupByMerge.subPlan();
-        RoutedCollectPhase collectPhase = distributedGroupBy.collectPhase();
+        Merge reducerMerge = (Merge) distributedGroupByMerge.subPlan();
+        CollectPhase collectPhase = ((Collect) reducerMerge.subPlan()).collectPhase();
 
         // collect
         assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
@@ -325,7 +326,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
 
         // reducer
-        MergePhase mergePhase = distributedGroupBy.reducerMergeNode();
+        MergePhase mergePhase = reducerMerge.mergePhase();
         assertThat(mergePhase.projections().size(), is(2));
         Projection groupProjection1 = mergePhase.projections().get(0);
         assertThat(groupProjection1, instanceOf(GroupProjection.class));
@@ -372,11 +373,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testGroupByWithHavingAndLimit() throws Exception {
         Merge planNode = e.plan(
             "select count(*), name from users group by name having count(*) > 1 limit 100");
-
-        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) planNode.subPlan();
-
-
-        MergePhase mergePhase = distributedGroupBy.reducerMergeNode(); // reducer
+        Merge reducerMerge = (Merge) planNode.subPlan();
+        MergePhase mergePhase = reducerMerge.mergePhase(); // reducer
 
         Projection projection = mergePhase.projections().get(1);
         assertThat(projection, instanceOf(FilterProjection.class));
@@ -404,9 +402,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testGroupByWithHavingAndNoLimit() throws Exception {
         Merge planNode = e.plan(
             "select count(*), name from users group by name having count(*) > 1");
-        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) planNode.subPlan();
-
-        MergePhase mergePhase = distributedGroupBy.reducerMergeNode(); // reducer
+        Merge reducerMerge = (Merge) planNode.subPlan();
+        MergePhase mergePhase = reducerMerge.mergePhase(); // reducer
 
         // group projection
         //      outputs: name, count(*)
@@ -432,21 +429,21 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testGroupByWithHavingAndNoSelectListReordering() throws Exception {
         Merge planNode = e.plan(
             "select name, count(*) from users group by name having count(*) > 1");
-        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) planNode.subPlan();
+        Merge reducerMerge = (Merge) planNode.subPlan();
 
-        MergePhase reducerMerge = distributedGroupBy.reducerMergeNode(); // reducer
+        MergePhase reduceMergePhase = reducerMerge.mergePhase();
 
         // group projection
         //      outputs: name, count(*)
         // filter projection
         //      outputs: name, count(*)
 
-        assertThat(reducerMerge.projections(), contains(
+        assertThat(reduceMergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(FilterProjection.class),
             instanceOf(EvalProjection.class)
         ));
-        Projection projection = reducerMerge.projections().get(1);
+        Projection projection = reduceMergePhase.projections().get(1);
         assertThat(projection, instanceOf(FilterProjection.class));
         FilterProjection filterProjection = (FilterProjection) projection;
 
@@ -460,7 +457,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         // eval projection
         //      outputs: name, count(*)
-        EvalProjection eval = (EvalProjection) reducerMerge.projections().get(2);
+        EvalProjection eval = (EvalProjection) reduceMergePhase.projections().get(2);
         assertThat(((InputColumn) eval.outputs().get(0)).index(), is(0));
         assertThat(((InputColumn) eval.outputs().get(1)).index(), is(1));
 
@@ -472,9 +469,9 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testGroupByHavingAndNoSelectListReOrderingWithLimit() throws Exception {
         Merge planNode = e.plan(
             "select name, count(*) from users group by name having count(*) > 1 limit 100");
-        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) planNode.subPlan();
+        Merge reducerMerge = (Merge) planNode.subPlan();
 
-        MergePhase mergePhase = distributedGroupBy.reducerMergeNode(); // reducer
+        MergePhase reducePhase = reducerMerge.mergePhase();
 
         // group projection
         //      outputs: name, count(*)
@@ -483,7 +480,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         // topN projection
         //      outputs: name, count(*)
 
-        Projection projection = mergePhase.projections().get(1);
+        Projection projection = reducePhase.projections().get(1);
         assertThat(projection, instanceOf(FilterProjection.class));
         FilterProjection filterProjection = (FilterProjection) projection;
 
@@ -496,7 +493,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
 
         // outputs: name, count(*)
-        TopNProjection topN = (TopNProjection) mergePhase.projections().get(2);
+        TopNProjection topN = (TopNProjection) reducePhase.projections().get(2);
         assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
         assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
 
@@ -541,8 +538,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDistributedGroupByProjectionHasShardLevelGranularity() throws Exception {
         Merge distributedGroupByMerge = e.plan("select count(*) from users group by name");
-        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) distributedGroupByMerge.subPlan();
-        RoutedCollectPhase collectPhase = distributedGroupBy.collectPhase();
+        Merge reduceMerge = (Merge) distributedGroupByMerge.subPlan();
+        CollectPhase collectPhase = ((Collect) reduceMerge.subPlan()).collectPhase();
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
@@ -552,8 +549,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testNonDistributedGroupByProjectionHasShardLevelGranularity() throws Exception {
         Merge distributedGroupByMerge = e.plan("select count(distinct id), name from users" +
                                                        " group by name order by count(distinct id)");
-        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) distributedGroupByMerge.subPlan();
-        RoutedCollectPhase collectPhase = distributedGroupBy.collectPhase();
+        Merge reduceMerge = (Merge) distributedGroupByMerge.subPlan();
+        CollectPhase collectPhase = ((Collect) reduceMerge.subPlan()).collectPhase();
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
@@ -578,9 +575,9 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testNonDistributedGroupByAggregationsWrappedInScalar() throws Exception {
         Merge planNode = e.plan(
             "select (count(*) + 1), id from empty_parted group by id");
-        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) planNode.subPlan();
+        Merge reduceMerge = (Merge) planNode.subPlan();
 
-        RoutedCollectPhase collectPhase = distributedGroupBy.collectPhase();
+        CollectPhase collectPhase = ((Collect) reduceMerge.subPlan()).collectPhase();
         assertThat(collectPhase.projections(), contains(
             instanceOf(GroupProjection.class)
         ));
@@ -595,26 +592,26 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testGroupByHaving() throws Exception {
         Merge distributedGroupByMerge = e.plan(
             "select avg(date), name from users group by name having min(date) > '1970-01-01'");
-        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) distributedGroupByMerge.subPlan();
-        RoutedCollectPhase collectPhase = distributedGroupBy.collectPhase();
+        Merge reduceMerge = (Merge) distributedGroupByMerge.subPlan();
+        CollectPhase collectPhase = ((Collect) reduceMerge.subPlan()).collectPhase();
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
 
-        MergePhase mergePhase = distributedGroupBy.reducerMergeNode();
+        MergePhase reducePhase = reduceMerge.mergePhase();
 
-        assertThat(mergePhase.projections().size(), is(3));
+        assertThat(reducePhase.projections().size(), is(3));
 
         // grouping
-        assertThat(mergePhase.projections().get(0), instanceOf(GroupProjection.class));
-        GroupProjection groupProjection = (GroupProjection) mergePhase.projections().get(0);
+        assertThat(reducePhase.projections().get(0), instanceOf(GroupProjection.class));
+        GroupProjection groupProjection = (GroupProjection) reducePhase.projections().get(0);
         assertThat(groupProjection.values().size(), is(2));
 
         // filter the having clause
-        assertThat(mergePhase.projections().get(1), instanceOf(FilterProjection.class));
-        FilterProjection filterProjection = (FilterProjection) mergePhase.projections().get(1);
+        assertThat(reducePhase.projections().get(1), instanceOf(FilterProjection.class));
+        FilterProjection filterProjection = (FilterProjection) reducePhase.projections().get(1);
 
-        assertThat(mergePhase.projections().get(2), instanceOf(EvalProjection.class));
-        EvalProjection eval = (EvalProjection) mergePhase.projections().get(2);
+        assertThat(reducePhase.projections().get(2), instanceOf(EvalProjection.class));
+        EvalProjection eval = (EvalProjection) reducePhase.projections().get(2);
         assertThat(eval.outputs().get(0).valueType(), Is.<DataType>is(DataTypes.DOUBLE));
         assertThat(eval.outputs().get(1).valueType(), Is.<DataType>is(DataTypes.STRING));
     }
@@ -646,14 +643,14 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         // > 1 partition hit
         Plan plan = e.plan("select count(*), city from clustered_parted where date=1395874800000 or date=1395961200000 group by city");
         assertThat(plan, instanceOf(Merge.class));
-        assertThat(((Merge) plan).subPlan(), instanceOf(DistributedGroupBy.class));
+        assertThat(((Merge) plan).subPlan(), instanceOf(Merge.class));
     }
 
     @Test
     public void testGroupByOrderByPartitionedClolumn() throws Exception {
         Merge plan = e.plan("select date from clustered_parted group by date order by date");
-        DistributedGroupBy distributedGroupBy = (DistributedGroupBy)plan.subPlan();
-        OrderedTopNProjection topNProjection = (OrderedTopNProjection)distributedGroupBy.reducerMergeNode().projections().get(1);
+        Merge reduceMerge = (Merge) plan.subPlan();
+        OrderedTopNProjection topNProjection = (OrderedTopNProjection)reduceMerge.mergePhase().projections().get(1);
 
         Symbol orderBy = topNProjection.orderBy().get(0);
         assertThat(orderBy, instanceOf(InputColumn.class));

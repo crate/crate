@@ -34,7 +34,6 @@ import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
-import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 
@@ -186,13 +185,6 @@ public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationT
         INSTANCE.process(plan, nodeOperationTreeContext);
         return new NodeOperationTree(nodeOperationTreeContext.nodeOperations(),
             nodeOperationTreeContext.root.phases.getFirst());
-    }
-
-    @Override
-    public Void visitDistributedGroupBy(DistributedGroupBy node, NodeOperationTreeContext context) {
-        context.addPhase(node.reducerMergeNode());
-        context.addPhase(node.collectPhase());
-        return null;
     }
 
     @Override

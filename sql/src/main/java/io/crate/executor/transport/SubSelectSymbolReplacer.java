@@ -34,7 +34,10 @@ import io.crate.planner.Merge;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
-import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.ESGet;
+import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 
 import javax.annotation.Nonnull;
@@ -104,13 +107,6 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
         public Void visitMerge(Merge merge, SymbolReplacer replacer) {
             merge.mergePhase().replaceSymbols(replacer);
             process(merge.subPlan(), replacer);
-            return null;
-        }
-
-        @Override
-        public Void visitDistributedGroupBy(DistributedGroupBy node, SymbolReplacer replacer) {
-            node.collectPhase().replaceSymbols(replacer);
-            process(node.reducerMergeNode(), replacer);
             return null;
         }
 

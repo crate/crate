@@ -32,7 +32,6 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoop;
@@ -148,8 +147,8 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testInsertFromSubQueryDistributedGroupByWithoutLimit() throws Exception {
         Merge planNode = e.plan(
             "insert into users (id, name) (select name, count(*) from users group by name)");
-        DistributedGroupBy groupBy = (DistributedGroupBy) planNode.subPlan();
-        MergePhase mergePhase = groupBy.reducerMergeNode();
+        Merge groupBy = (Merge) planNode.subPlan();
+        MergePhase mergePhase = groupBy.mergePhase();
         assertThat(mergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(EvalProjection.class),
@@ -177,8 +176,8 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testInsertFromSubQueryDistributedGroupByPartitioned() throws Exception {
         Merge planNode = e.plan(
             "insert into parted_pks (id, date) (select id, date from users group by id, date)");
-        DistributedGroupBy groupBy = (DistributedGroupBy) planNode.subPlan();
-        MergePhase mergePhase = groupBy.reducerMergeNode();
+        Merge groupBy = (Merge) planNode.subPlan();
+        MergePhase mergePhase = groupBy.mergePhase();
         assertThat(mergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(EvalProjection.class),
@@ -399,8 +398,8 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testGroupByHavingInsertInto() throws Exception {
         Merge planNode = e.plan(
             "insert into users (id, name) (select name, count(*) from users group by name having count(*) > 3)");
-        DistributedGroupBy groupByNode = (DistributedGroupBy) planNode.subPlan();
-        MergePhase mergePhase = groupByNode.reducerMergeNode();
+        Merge groupByNode = (Merge) planNode.subPlan();
+        MergePhase mergePhase = groupByNode.mergePhase();
         assertThat(mergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(FilterProjection.class),
