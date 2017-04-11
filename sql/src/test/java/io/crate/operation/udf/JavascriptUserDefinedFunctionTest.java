@@ -32,7 +32,6 @@ import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.analyze.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.ArrayType;
@@ -72,7 +71,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
         Settings settings = Settings.builder()
             .put("udf.enabled", true)
             .build();
-        udfService = new UserDefinedFunctionService(settings, mock(ClusterService.class), mock(Functions.class));
+        udfService = new UserDefinedFunctionService(mock(ClusterService.class));
         udfService.registerLanguage(new JavaScriptLanguage(udfService));
     }
 

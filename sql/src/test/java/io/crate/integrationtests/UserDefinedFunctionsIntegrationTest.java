@@ -96,6 +96,20 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of(DataTypes.STRING));
 
         dropFunction("custom", ImmutableList.of(DataTypes.STRING));
+        waitForFunctionDeleted(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of(DataTypes.STRING));
+    }
+
+    @Test
+    public void testNewSchemaWithFunction() throws Exception {
+        execute("create function new_schema.custom() returns integer language javascript as 'function custom() {return 1;}'");
+        waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of());
+        execute("select count(*) from information_schema.schemata where schema_name='new_schema'");
+        assertThat(response.rows()[0][0], is(1L));
+
+        execute("drop function new_schema.custom()");
+        waitForFunctionDeleted(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of());
+        execute("select count(*) from information_schema.schemata where schema_name='new_schema'");
+        assertThat(response.rows()[0][0], is(0L));
     }
 
     private void dropFunction(String name, List<DataType> types) throws Exception {

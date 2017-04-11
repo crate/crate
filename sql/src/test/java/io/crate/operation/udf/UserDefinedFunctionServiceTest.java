@@ -29,18 +29,12 @@ package io.crate.operation.udf;
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
@@ -53,10 +47,7 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        Settings settings = Settings.builder()
-            .put("udf.enabled", true)
-            .build();
-        udfService = new UserDefinedFunctionService(settings, mock(ClusterService.class), mock(Functions.class));
+        udfService = new UserDefinedFunctionService(mock(ClusterService.class));
         udfService.registerLanguage(new JavaScriptLanguage(udfService));
     }
 
@@ -122,19 +113,5 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
         expectedException.expect(UserDefinedFunctionAlreadyExistsException.class);
         expectedException.expectMessage("User defined Function 'doc.same()' already exists.");
         udfService.putFunction(UserDefinedFunctionsMetaData.of(same1), same2, false);
-    }
-
-    @Test
-    public void testInvalidFunction() throws Exception {
-        UserDefinedFunctionMetaData invalid = new UserDefinedFunctionMetaData(
-            "doc", "invalid", ImmutableList.of(), DataTypes.INTEGER,
-            "javascript", "function invalid(){ this is not valid javascript code }"
-        );
-        UserDefinedFunctionsMetaData metaData = UserDefinedFunctionsMetaData.of(invalid, same1);
-        // if a function can't be evaluated, it won't be registered
-        Map<FunctionIdent, FunctionImplementation> functionImpl = udfService.toFunctionImpl(metaData.functionsMetaData(), logger);
-        assertThat(functionImpl.size(), is(1));
-        // the valid functions will be registered
-        assertThat(functionImpl.entrySet().iterator().next().getKey().name(), is("same"));
     }
 }

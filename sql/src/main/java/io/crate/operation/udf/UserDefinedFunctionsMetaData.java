@@ -26,6 +26,7 @@
 
 package io.crate.operation.udf;
 
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.types.DataType;
 import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -62,7 +63,8 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
         return new UserDefinedFunctionsMetaData(new ArrayList<>(instance.functionsMetaData));
     }
 
-    static UserDefinedFunctionsMetaData of(UserDefinedFunctionMetaData... functions) {
+    @VisibleForTesting
+    public static UserDefinedFunctionsMetaData of(UserDefinedFunctionMetaData... functions) {
         return new UserDefinedFunctionsMetaData(Arrays.asList(functions));
     }
 

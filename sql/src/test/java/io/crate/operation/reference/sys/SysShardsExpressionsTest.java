@@ -31,6 +31,7 @@ import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.sys.shard.ShardPathExpression;
+import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
@@ -57,6 +58,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static org.hamcrest.Matchers.is;
@@ -70,16 +72,20 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     private String indexName = "wikipedia_de";
     private IndexShard indexShard;
     private Schemas schemas;
+    private Functions functions;
+    private UserDefinedFunctionService udfService;
 
     @Before
     public void prepare() throws Exception {
         ClusterService clusterService = new NoopClusterService();
         indexShard = mockIndexShard();
+        functions = getFunctions();
+        udfService = new UserDefinedFunctionService(clusterService);
         schemas = new Schemas(
             Settings.EMPTY,
             ImmutableMap.of("sys", new SysSchemaInfo(clusterService)),
             clusterService,
-            new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()))
+            new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), functions, udfService)
         );
         resolver = ShardReferenceResolver.create(
             clusterService,

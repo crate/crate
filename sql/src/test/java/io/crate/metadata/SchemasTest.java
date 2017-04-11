@@ -21,10 +21,14 @@
 
 package io.crate.metadata;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.udf.UserDefinedFunctionMetaData;
+import io.crate.operation.udf.UserDefinedFunctionsMetaData;
+import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -41,6 +45,8 @@ import org.mockito.MockitoAnnotations;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -100,6 +106,19 @@ public class SchemasTest {
 
         Schemas schemas = getReferenceInfos(schemaInfo);
         schemas.getWritableTable(tableIdent);
+    }
+
+    @Test
+    public void testSchemasFromUDF() throws Exception {
+        MetaData metaData = MetaData.builder()
+            .putCustom(
+                UserDefinedFunctionsMetaData.TYPE,
+                UserDefinedFunctionsMetaData.of(
+                    new UserDefinedFunctionMetaData("new_schema", "my_function", ImmutableList.of(), DataTypes.STRING,
+                        "burlesque", "Hello, World!Q")
+                )
+            ).build();
+        assertThat(Schemas.getNewCurrentSchemas(metaData, true), contains("new_schema"));
     }
 
     private Schemas getReferenceInfos(SchemaInfo schemaInfo) {

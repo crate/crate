@@ -23,6 +23,7 @@
 package io.crate.metadata;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
@@ -30,9 +31,12 @@ import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.udf.UserDefinedFunctionMetaData;
+import io.crate.operation.udf.UserDefinedFunctionsMetaData;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -144,7 +148,7 @@ public class Schemas extends AbstractLifecycleComponent<Schemas> implements Iter
         }
         defaultTemplateService.createIfNotExists(event.state());
 
-        Set<String> newCurrentSchemas = getNewCurrentSchemas(event.state().metaData());
+        Set<String> newCurrentSchemas = getNewCurrentSchemas(event.state().metaData(), udfEnabled());
         synchronized (schemas) {
             Sets.SetView<String> nonBuiltInSchemas = Sets.difference(schemas.keySet(), builtInSchemas.keySet());
             Set<String> deleted = Sets.difference(nonBuiltInSchemas, newCurrentSchemas).immutableCopy();
@@ -169,13 +173,24 @@ public class Schemas extends AbstractLifecycleComponent<Schemas> implements Iter
         }
     }
 
-    private static Set<String> getNewCurrentSchemas(MetaData metaData) {
+    @VisibleForTesting
+    static Set<String> getNewCurrentSchemas(MetaData metaData, boolean udfEnabled) {
         Set<String> schemas = new HashSet<>();
         for (String openIndex : metaData.concreteAllOpenIndices()) {
             addIfSchema(schemas, openIndex);
         }
         for (ObjectCursor<String> cursor : metaData.templates().keys()) {
             addIfSchema(schemas, cursor.value);
+        }
+        if (!udfEnabled) {
+            return schemas;
+        }
+        UserDefinedFunctionsMetaData udfMetaData = metaData.custom(UserDefinedFunctionsMetaData.TYPE);
+        if (udfMetaData != null) {
+            udfMetaData.functionsMetaData()
+                .stream()
+                .map(UserDefinedFunctionMetaData::schema)
+                .forEach(schemas::add);
         }
         return schemas;
     }
@@ -262,5 +277,9 @@ public class Schemas extends AbstractLifecycleComponent<Schemas> implements Iter
 
     @Override
     protected void doClose() {
+    }
+
+    private boolean udfEnabled() {
+        return settings.getAsBoolean(CrateSettings.UDF_ENABLED.settingName(), false);
     }
 }

@@ -24,36 +24,28 @@ package io.crate.operation.udf;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.types.DataType;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.*;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
+import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateRequest;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.settings.Settings;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static io.crate.operation.udf.UserDefinedFunctionsMetaData.PROTO;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toList;
 
 @Singleton
-public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserDefinedFunctionService> implements ClusterStateListener {
+public class UserDefinedFunctionService {
 
     static {
         // register non plugin custom metadata
@@ -61,7 +53,6 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
     }
 
     private final ClusterService clusterService;
-    private final Functions functions;
     private Map<String, UDFLanguage> languageRegistry = new HashMap<>();
 
 
@@ -80,26 +71,8 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
     }
 
     @Inject
-    public UserDefinedFunctionService(Settings settings, ClusterService clusterService, Functions functions) {
-        super(settings);
+    public UserDefinedFunctionService(ClusterService clusterService) {
         this.clusterService = clusterService;
-        this.functions = functions;
-    }
-
-    @Override
-    protected void doStart() {
-        if (settings.getAsBoolean(CrateSettings.UDF_ENABLED.settingName(), false)) {
-            clusterService.add(this);
-        }
-    }
-
-    @Override
-    protected void doStop() {
-        clusterService.remove(this);
-    }
-
-    @Override
-    protected void doClose() {
     }
 
     /**
@@ -213,49 +186,6 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent<UserD
             newMetaData.remove(schema, name, argumentDataTypes);
             return newMetaData;
         }
-    }
-
-    @Override
-    public void clusterChanged(ClusterChangedEvent event) {
-        UserDefinedFunctionsMetaData oldMetaData = event.previousState().getMetaData()
-            .custom(UserDefinedFunctionsMetaData.TYPE);
-        UserDefinedFunctionsMetaData newMetaData = event.state().getMetaData()
-            .custom(UserDefinedFunctionsMetaData.TYPE);
-
-        // Check if user defined functions got changed
-        if ((oldMetaData == null && newMetaData == null) || (oldMetaData != null && oldMetaData.equals(newMetaData))) {
-            return;
-        }
-
-        functions.deregisterSchemaFunctions();
-
-        // group by schema
-        Map<String, List<UserDefinedFunctionMetaData>> schemaMetadataFunctions = newMetaData.functionsMetaData().stream()
-            .collect(groupingBy(UserDefinedFunctionMetaData::schema, toList()));
-
-        for (Map.Entry<String, List<UserDefinedFunctionMetaData>> entry : schemaMetadataFunctions.entrySet()) {
-            functions.registerSchemaFunctionResolvers(entry.getKey(), toFunctionImpl(entry.getValue(), logger));
-        }
-    }
-
-    @VisibleForTesting
-    Map<FunctionIdent, FunctionImplementation> toFunctionImpl(List<UserDefinedFunctionMetaData> functionsMetadata,
-                                                              ESLogger logger) {
-        Map<FunctionIdent, FunctionImplementation> udfFunctions = new HashMap<>();
-        for (UserDefinedFunctionMetaData function : functionsMetadata) {
-            try {
-                UDFLanguage lang = getLanguage(function.language());
-                FunctionImplementation impl = lang.createFunctionImplementation(function);
-                udfFunctions.put(impl.info().ident(), impl);
-            } catch (javax.script.ScriptException | IllegalArgumentException e) {
-                logger.warn(
-                    String.format(Locale.ENGLISH, "Can't create user defined function '%s(%s)'",
-                        function.name(),
-                        function.argumentTypes().stream().map(DataType::getName).collect(Collectors.joining(", "))
-                    ), e);
-            }
-        }
-        return udfFunctions;
     }
 
     static class RegisterUserDefinedFunctionRequest extends ClusterStateUpdateRequest<RegisterUserDefinedFunctionRequest> {

@@ -46,6 +46,7 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
+import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.planner.TableStats;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -122,7 +123,8 @@ public class SQLExecutor {
         }
 
         public SQLExecutor build() {
-            schemas.put(Schemas.DEFAULT_SCHEMA_NAME, new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, new TestingDocTableInfoFactory(docTables)));
+            UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService);
+            schemas.put(Schemas.DEFAULT_SCHEMA_NAME, new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, new TestingDocTableInfoFactory(docTables)));
             if (!blobTables.isEmpty()) {
                 schemas.put(BlobSchemaInfo.NAME, new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
             }
@@ -133,7 +135,7 @@ public class SQLExecutor {
                         Settings.EMPTY,
                         schemas,
                         clusterService,
-                        new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()))
+                        new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), functions, udfService)
                     ),
                     functions,
                     clusterService,

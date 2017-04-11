@@ -66,8 +66,10 @@ public class Functions {
         udfFunctionResolvers.put(schema, generateFunctionResolvers(functions));
     }
 
-    public void deregisterSchemaFunctions() {
-        udfFunctionResolvers.clear();
+    public void deregisterSchemaFunctions(String schema) {
+        if (udfFunctionResolvers.containsKey(schema)) {
+            udfFunctionResolvers.get(schema).clear();
+        }
     }
 
     private static FunctionImplementation resolveFunctionForArgumentTypes(List<DataType> types, @Nullable FunctionResolver resolver) {

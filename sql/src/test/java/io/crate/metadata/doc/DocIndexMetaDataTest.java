@@ -11,6 +11,7 @@ import io.crate.analyze.*;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Statement;
@@ -56,6 +57,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
 
     private Functions functions;
     private ExecutorService executorService;
+    private UserDefinedFunctionService udfService;
 
     private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder) throws IOException {
         return getIndexMetaData(indexName, builder, Settings.Builder.EMPTY_SETTINGS, null);
@@ -91,6 +93,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
     public void before() throws Exception {
         executorService = Executors.newFixedThreadPool(1);
         functions = getFunctions();
+        udfService = new UserDefinedFunctionService(new NoopClusterService());
     }
 
     @After
@@ -898,13 +901,13 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
             indexTemplateActionProvider,
             executorService
         );
-        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, docTableInfoFactory);
+        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, docTableInfoFactory);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new Schemas(
                 Settings.EMPTY,
                 ImmutableMap.<String, SchemaInfo>of("doc", docSchemaInfo),
                 clusterService,
-                new DocSchemaInfoFactory(docTableInfoFactory)),
+                new DocSchemaInfoFactory(docTableInfoFactory, functions, udfService)),
             new FulltextAnalyzerResolver(clusterService, new IndicesAnalysisService(Settings.EMPTY)),
             functions,
             new NumberOfShards(clusterService)
