@@ -47,6 +47,8 @@ import java.util.concurrent.TimeUnit;
 
 public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
 
+    public static final String NODE_ID = "node";
+
     private static final Set<Setting<?>> EMPTY_CLUSTER_SETTINGS = ImmutableSet.of();
 
     protected static ThreadPool THREAD_POOL;
@@ -84,7 +86,7 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
         clusterSettings.addAll(additionalClusterSettings);
         DiscoveryNode discoveryNode = new DiscoveryNode(
             "node-name",
-            "node",
+            NODE_ID,
             LocalTransportAddress.buildUnique(),
             Collections.emptyMap(),
             new HashSet<>(Arrays.asList(DiscoveryNode.Role.values())),

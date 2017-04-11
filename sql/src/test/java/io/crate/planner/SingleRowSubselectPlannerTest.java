@@ -46,10 +46,8 @@ public class SingleRowSubselectPlannerTest extends CrateDummyClusterServiceUnitT
     @Test
     public void testPlanSimpleSelectWithSingleRowSubSelectInWhereClause() throws Exception {
         QueryThenFetch qtf = e.plan("select x from t1 where a = (select b from t2)");
-        assertThat(qtf.subPlan(), instanceOf(Merge.class));
-
-        Merge merge = (Merge) qtf.subPlan();
-        MultiPhasePlan multiPhasePlan = (MultiPhasePlan) merge.subPlan();
+        assertThat(qtf.subPlan(), instanceOf(MultiPhasePlan.class));
+        MultiPhasePlan multiPhasePlan = (MultiPhasePlan) qtf.subPlan();
         assertThat(multiPhasePlan.dependencies().keySet(), contains(instanceOf(QueryThenFetch.class)));
     }
 
@@ -62,12 +60,11 @@ public class SingleRowSubselectPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void testSingleRowSubSelectInSelectList() throws Exception {
-        Merge merge = e.plan("select (select b from t2 limit 1) from t1");
-        MultiPhasePlan plan = (MultiPhasePlan) merge.subPlan();
+        MultiPhasePlan plan = e.plan("select (select b from t2 limit 1) from t1");
 
         assertThat(plan.rootPlan(), instanceOf(Collect.class));
         assertThat(plan.dependencies().keySet(), contains(instanceOf(QueryThenFetch.class)));
-        assertThat(((QueryThenFetch) plan.dependencies().keySet().iterator().next()).subPlan(), instanceOf(Merge.class));
+        assertThat(((QueryThenFetch) plan.dependencies().keySet().iterator().next()).subPlan(), instanceOf(Collect.class));
     }
 
     @Test
