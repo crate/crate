@@ -36,7 +36,6 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
-import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.InputCreatingVisitor;
 import io.crate.planner.projection.builder.ProjectionBuilder;
@@ -242,10 +241,7 @@ class NestedLoopConsumer implements Consumer {
             List<Projection> projections = new ArrayList<>();
 
             if (filterNeeded) {
-                InputCreatingVisitor.Context inputVisitorContext = new InputCreatingVisitor.Context(nlOutputs);
-                Symbol filterSymbol = InputCreatingVisitor.INSTANCE.process(where.query(), inputVisitorContext);
-                assert filterSymbol instanceof Function : "Only function symbols are allowed for filtering";
-                projections.add(new FilterProjection(filterSymbol));
+                projections.add(ProjectionBuilder.filterProjection(nlOutputs, where));
             }
             if (joinCondition != null) {
                 InputCreatingVisitor.Context inputVisitorContext = new InputCreatingVisitor.Context(nlOutputs);
