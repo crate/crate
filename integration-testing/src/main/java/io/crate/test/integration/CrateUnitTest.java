@@ -47,4 +47,8 @@ public abstract class CrateUnitTest extends ESTestCase {
     public void prepareMocks() throws Exception {
         MockitoAnnotations.initMocks(this);
     }
+
+    public static boolean isRunningOnWindows() {
+        return System.getProperty( "os.name" ).startsWith( "Windows" );
+    }
 }

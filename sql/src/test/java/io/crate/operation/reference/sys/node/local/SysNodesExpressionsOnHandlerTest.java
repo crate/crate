@@ -304,8 +304,10 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
         expectedCpu.put("user", 500L);
 
         Map<String, Object> v = (Map<String, Object>) collectExpression.value();
-        assertThat((long) v.get("open_file_descriptors"), greaterThan(2L));
-        assertThat((long) v.get("max_open_file_descriptors"), greaterThan(2L));
+        if (isRunningOnWindows() == false) {
+            assertThat((long) v.get("open_file_descriptors"), greaterThan(2L));
+            assertThat((long) v.get("max_open_file_descriptors"), greaterThan(2L));
+        }
         assertThat(v.get("cpu"), Matchers.is(expectedCpu));
     }
 
