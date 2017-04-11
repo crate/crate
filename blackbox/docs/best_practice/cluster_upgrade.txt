@@ -17,6 +17,9 @@ CrateDB provides an easy way to perform a cluster upgrade with zero downtime.
     If you are upgrading to a testing version or are upgrading to a new major
     version or a new minor version, you must perform a full cluster restart.
 
+    Check the :ref:`release_notes` for the version you are upgrading to for any
+    specific instructions that may override this.
+
 To perform a rolling upgrade of a cluster, one node at a time has to be stopped
 using the ``graceful stop`` procedure.
 
