@@ -174,9 +174,84 @@ Before creating a new distribution, a new version and tag should be created:
 
 - Update ``CURRENT`` in ``io.crate.Version``
 
-- Add a section for the new version in the ``CHANGES.txt`` file
+- Prepare the release notes
 
-- Commit your changes with a message like "prepare release x.y.z"
+  If a technical writer is available, ask them to complete these steps.
+
+  - Create a new file called ``docs/release_notes/X.Y.Z.txt``
+
+  - The file header should look like this::
+
+        .. _version_X.Y.Z:
+
+        =============
+        Version X.Y.Z
+        =============
+
+        Released on YYYY/MM/DD.
+
+    Be sure to replace ``YYYY/MM/DD`` and both instances of ``X.Y.Z`` with the
+    date of this release and the version number of this release, respectively.
+
+  - Discuss with the engineering team what the minimum version of CrateDB you
+    must be using to upgrade to this version. You will need to know this before
+    moving on to the next step.
+
+  - Add the upgrade notes
+
+    - If the patch version is zero (e.g. 1.1.0), add this note::
+
+          .. NOTE::
+
+             If you are upgrading a cluster, you must be running CrateDB A.B.C or higher
+             before you upgrade to X.Y.Z.
+
+             You cannot perform a :ref:`cluster_upgrade` to this version. Any upgrade to
+             this version will require a full cluster restart.
+
+      Here, replace ``A.B.C`` with the minimum upgrade version. And be sure to
+      replace ``X.Y.Z`` with the version of this release.
+
+    - Else, if the patch version is not zero (e.g. 1.1.1), add this note::
+
+          .. NOTE::
+
+             If you are upgrading a cluster, you must be running CrateDB A.B.C or higher
+             before you upgrade to X.Y.Z.
+
+             If you want to perform a :ref:`cluster_upgrade`, your current CrateDB
+             version number must be :ref:`version_X.Y.0`. Any upgrade from a version
+             prior to this will require a full cluster restart.
+
+      Here, replace ``A.B.C`` with the minimum upgrade version. And be sure to
+      replace ``X.Y.Z`` with the version of this release. The ``X.Y`` in
+      ``X.Y.0`` should be replaced to match the version number of this release
+      (e.g. ``1.1.0`` for the 1.1.1 release).
+
+  - Add the backup warning::
+
+        .. WARNING::
+
+           Before upgrading, you should `back up your data`_.
+
+        .. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+  - Copy over each subsection from ``CHANGES.txt`` (i.e.  everything below the
+    line that says "Copy everything below this line to the release notes when
+    making a release.").
+
+  - Copy edit the changes you just moved over for consistency and style.
+
+  - Run ``bin/sphinx dev`` and verify everything looks okay. Sometimes the
+    changes that are collected in ``CHANGES.txt`` use incorrect RST syntax (for
+    example, only using single backticks instead of double backticks for string
+    literals).
+
+  - Reset ``CHANGES.txt`` so that (only) the ``Breaking Changes``, ``Changes``, and
+    ``Fixes`` subsection headers are present, but no changes are listed (i.e.
+    this file can then be used to collect unreleased changes again).
+
+- Commit your changes with a message like "prepare release X.Y.Z"
 
 - Push to origin
 
