@@ -193,9 +193,14 @@ Before creating a new distribution, a new version and tag should be created:
     Be sure to replace ``YYYY/MM/DD`` and both instances of ``X.Y.Z`` with the
     date of this release and the version number of this release, respectively.
 
-  - Discuss with the engineering team what the minimum version of CrateDB you
-    must be using to upgrade to this version. You will need to know this before
-    moving on to the next step.
+  - Discuss with the engineering team:
+
+      - What is the minimum version of CrateDB required to perform an upgrade to
+        this version.
+      - What is the minimum version of CrateDB required to perform a *rolling
+        upgrade* to this version.
+
+    You will need to know these versions before moving on to the next step.
 
   - Add the upgrade notes
 
