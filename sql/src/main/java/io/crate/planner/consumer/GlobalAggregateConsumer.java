@@ -78,7 +78,7 @@ class GlobalAggregateConsumer implements Consumer {
             resultDescription = plan.resultDescription();
         }
         WhereClause where = qs.where();
-        if (where != WhereClause.MATCH_ALL) {
+        if (where.hasQuery() || where.noMatch()) {
             FilterProjection whereFilter = ProjectionBuilder.filterProjection(splitPoints.toCollect(), where);
             plan.addProjection(whereFilter, null, null, null, null);
         }
