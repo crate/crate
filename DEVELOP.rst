@@ -195,11 +195,11 @@ Before creating a new distribution, a new version and tag should be created:
 
   - Discuss with the engineering team and figure out:
 
-     - A.B.C: the minimum version of CrateDB required to perform an upgrade to
-       this version.
+    - A.B.C: the minimum version of CrateDB required to perform an upgrade to
+      this version.
 
-     - D.E.F: the minimum version of CrateDB required to perform a *rolling
-       upgrade* to this version.
+    - D.E.F: the minimum version of CrateDB required to perform a *rolling
+      upgrade* to this version.
 
     You will need to know these versions before moving on to the next step.
 
