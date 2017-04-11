@@ -21,3 +21,4 @@ Changes
 Fixes
 =====
 
+ - Fix: Restoring empty partitioned tables wasn't possible

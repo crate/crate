@@ -327,7 +327,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
     @Test
     public void testRestoreSnapshotIgnoreUnavailable() throws Exception {
-        createTableAndSnapshot("my_table", SNAPSHOT_NAME);
+        createTableAndSnapshot("my_table", SNAPSHOT_NAME, true);
 
         execute("drop table my_table");
 
@@ -373,5 +373,44 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
         execute("select table_schema || '.' || table_name from information_schema.tables where table_schema='doc'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("doc.my_parted_1\n"));
+    }
+
+    @Test
+    public void testRestoreEmptyPartitionedTableUsingALL() throws Exception {
+        execute("create table employees(section integer, name string) partitioned by (section)");
+        ensureYellow();
+
+        execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
+        execute("drop table employees");
+        ensureYellow();
+        execute("RESTORE SNAPSHOT " + snapshotName() + " ALL with (wait_for_completion=true)");
+        ensureYellow();
+
+        execute("select table_schema || '.' || table_name from information_schema.tables where table_schema='doc'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("doc.employees\n"));
+    }
+
+    @Test
+    public void testRestoreEmptyPartitionedTable() throws Exception {
+        execute("create table employees(section integer, name string) partitioned by (section)");
+        ensureYellow();
+
+        execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
+        execute("drop table employees");
+        ensureYellow();
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE employees with (wait_for_completion=true)");
+        ensureYellow();
+
+        execute("select table_schema || '.' || table_name from information_schema.tables where table_schema='doc'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("doc.employees\n"));
+    }
+
+    @Test
+    public void testResolveUnknownTableFromSnapshot() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("ResourceNotFoundException: [.partitioned.employees.] template not found");
+        execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
+        ensureYellow();
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE employees with (wait_for_completion=true)");
     }
 }
