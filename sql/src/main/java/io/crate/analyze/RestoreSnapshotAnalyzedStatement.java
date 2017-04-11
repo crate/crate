@@ -84,10 +84,12 @@ public class RestoreSnapshotAnalyzedStatement implements DDLStatement {
 
         private final TableIdent tableIdent;
         private final PartitionName partitionName;
+        private final String partitionTemplate;
 
         public RestoreTableInfo(TableIdent tableIdent, @Nullable PartitionName partitionName) {
             this.tableIdent = tableIdent;
             this.partitionName = partitionName;
+            this.partitionTemplate = PartitionName.templateName(tableIdent.schema(), tableIdent().name());
         }
 
         public TableIdent tableIdent() {
@@ -101,6 +103,10 @@ public class RestoreSnapshotAnalyzedStatement implements DDLStatement {
 
         public boolean hasPartitionInfo() {
             return partitionName != null;
+        }
+
+        public String partitionTemplate() {
+            return partitionTemplate;
         }
     }
 }
