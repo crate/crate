@@ -23,12 +23,12 @@ package io.crate.operation.reference.sys;
 import com.google.common.net.InetAddresses;
 import io.crate.Build;
 import io.crate.Version;
+import io.crate.data.Input;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.RowGranularity;
 import io.crate.monitor.DummyExtendedNodeInfo;
-import io.crate.data.Input;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -288,8 +288,11 @@ public class SysNodesExpressionsTest extends CrateDummyClusterServiceUnitTest {
             nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = processRef.value();
-        assertThat((long) v.get("open_file_descriptors"), greaterThan(10L));
-        assertThat((long) v.get("max_open_file_descriptors"), greaterThan(10L));
+
+        if (isRunningOnWindows() == false) {
+            assertThat((long) v.get("open_file_descriptors"), greaterThan(10L));
+            assertThat((long) v.get("max_open_file_descriptors"), greaterThan(10L));
+        }
 
         Map<String, Object> cpuObj = new HashMap<>(4);
         cpuObj.put("percent", (short) 50);
