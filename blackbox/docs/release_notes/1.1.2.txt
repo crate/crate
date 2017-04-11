@@ -4,7 +4,7 @@
 Version 1.1.2
 =============
 
-Released on 2017/04/17.
+Released on 2017/04/10.
 
 .. NOTE::
 
