@@ -21,7 +21,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
@@ -45,6 +44,7 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -62,17 +62,11 @@ public class QueryAndFetchConsumer implements Consumer {
         return visitor.process(relation, context);
     }
 
-    private static class Visitor extends RelationPlanningVisitor {
-
-        private static final NoPredicateVisitor NO_PREDICATE_VISITOR = new NoPredicateVisitor();
+    private final static class Visitor extends RelationPlanningVisitor {
 
         @Override
         public Plan visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
-            if (table.querySpec().hasAggregates()) {
-                return null;
-            }
-            if (table.querySpec().where().hasVersions()) {
-                context.validationException(new VersionInvalidException());
+            if (!isSimpleSelect(table.querySpec(), context)) {
                 return null;
             }
             return normalSelect(table, context);
@@ -81,85 +75,121 @@ public class QueryAndFetchConsumer implements Consumer {
         @Override
         public Plan visitQueriedTable(QueriedTable table, ConsumerContext context) {
             QuerySpec querySpec = table.querySpec();
-            if (querySpec.hasAggregates()) {
+            if (!isSimpleSelect(querySpec, context)) {
                 return null;
             }
             if (querySpec.where().hasQuery()) {
-                ensureNoLuceneOnlyPredicates(querySpec.where().query());
+                NoPredicateVisitor.ensureNoMatchPredicate(querySpec.where().query());
             }
             return normalSelect(table, context);
         }
+    }
 
-        private void ensureNoLuceneOnlyPredicates(Symbol query) {
-            NO_PREDICATE_VISITOR.process(query, null);
+    private static boolean isSimpleSelect(QuerySpec querySpec, ConsumerContext context) {
+        if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
+            return false;
         }
-
-        private static class NoPredicateVisitor extends SymbolVisitor<Void, Void> {
-            @Override
-            public Void visitFunction(Function symbol, Void context) {
-                if (symbol.info().ident().name().equals(MatchPredicate.NAME)) {
-                    throw new UnsupportedFeatureException("Cannot use match predicate on system tables");
-                }
-                for (Symbol argument : symbol.arguments()) {
-                    process(argument, context);
-                }
-                return null;
-            }
+        if (querySpec.where().hasVersions()) {
+            context.validationException(new VersionInvalidException());
+            return false;
         }
+        return true;
+    }
 
-        private Plan normalSelect(QueriedTableRelation table, ConsumerContext context) {
-            QuerySpec querySpec = table.querySpec();
-            Planner.Context plannerContext = context.plannerContext();
-            /*
-             * ORDER BY columns are added to OUTPUTS - they're required to do an ordered merge.
-             * select id, name, order by id, date
-             *
-             * toCollect:           [id, name, date]       // includes order by symbols, that aren't already selected
-             * outputsInclOrder:    [in(0), in(1), in(2)]  // for topN projection on shards/collectPhase
-             * orderByInputs:       [in(0), in(2)]         // for topN projection on shards/collectPhase AND handler
-             * finalOutputs:        [in(0), in(1)]         // for topN output on handler -> changes output to what should be returned.
-             */
-            List<Symbol> qsOutputs = querySpec.outputs();
-            List<Symbol> toCollect;
-            Optional<OrderBy> optOrderBy = querySpec.orderBy();
-            table.tableRelation().validateOrderBy(optOrderBy);
-            if (optOrderBy.isPresent()) {
-                toCollect = Lists2.concatUnique(qsOutputs, optOrderBy.get().orderBySymbols());
-            } else {
-                toCollect = qsOutputs;
-            }
-            List<Symbol> outputsInclOrder = InputColumn.fromSymbols(toCollect);
+    /**
+     * Create a (distributed if possible) Collect plan.
+     *
+     * Data will be pre-sorted if there is a ORDER BY clause.
+     * Limit (incl offset) will be pre-applied.
+     *
+     * Both ORDER-BY & Limit needs to be "finalized" in a Merge-to-handler.
+     */
+    private static Collect normalSelect(QueriedTableRelation table, ConsumerContext context) {
+        QuerySpec querySpec = table.querySpec();
+        Planner.Context plannerContext = context.plannerContext();
+        Optional<OrderBy> optOrderBy = querySpec.orderBy();
+        /*
+         * ORDER BY columns are added to OUTPUTS - they're required to do an ordered merge.
+         *
+         * select name order by date
+         *
+         * qsOutputs:           [name]
+         * toCollect:           [name, date]           // includes order by symbols, that aren't already selected
+         */
+        List<Symbol> qsOutputs = querySpec.outputs();
+        List<Symbol> toCollect = getToCollectSymbols(qsOutputs, optOrderBy);
+        table.tableRelation().validateOrderBy(optOrderBy);
 
-            Limits limits = plannerContext.getLimits(querySpec);
-            List<Projection> projections = ImmutableList.of();
+        Limits limits = plannerContext.getLimits(querySpec);
+        RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
+            plannerContext,
+            table,
+            toCollect,
+            topNOrEmptyProjections(toCollect, limits)
+        );
+        tryApplySizeHint(context.requiredPageSize(), limits, collectPhase);
+        collectPhase.orderBy(optOrderBy.orElse(null));
+        return new Collect(
+            collectPhase,
+            limits.finalLimit(),
+            limits.offset(),
+            qsOutputs.size(),
+            limits.limitAndOffset(),
+            PositionalOrderBy.of(optOrderBy.orElse(null), toCollect)
+        );
+    }
+
+    private static void tryApplySizeHint(@Nullable Integer requiredPageSize, Limits limits, RoutedCollectPhase collectPhase) {
+        if (requiredPageSize == null) {
             if (limits.hasLimit()) {
-                TopNProjection collectTopN = new TopNProjection(limits.limitAndOffset(), 0, outputsInclOrder);
-                projections = Collections.singletonList(collectTopN);
+                collectPhase.nodePageSizeHint(limits.limitAndOffset());
             }
-            RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
-                plannerContext,
-                table,
-                toCollect,
-                projections
-            );
-            Integer requiredPageSize = context.requiredPageSize();
-            if (requiredPageSize == null) {
-                if (limits.hasLimit()) {
-                    collectPhase.nodePageSizeHint(limits.limitAndOffset());
-                }
-            } else {
-                collectPhase.pageSizeHint(requiredPageSize);
-            }
-            collectPhase.orderBy(optOrderBy.orElse(null));
+        } else {
+            collectPhase.pageSizeHint(requiredPageSize);
+        }
+    }
 
-            return new Collect(
-                collectPhase,
-                limits.finalLimit(),
-                limits.offset(),
-                qsOutputs.size(),
+    private static List<Projection> topNOrEmptyProjections(List<Symbol> toCollect, Limits limits) {
+        if (limits.hasLimit()) {
+            return Collections.singletonList(new TopNProjection(
                 limits.limitAndOffset(),
-                PositionalOrderBy.of(optOrderBy.orElse(null), toCollect)
-            );
+                0,
+                InputColumn.fromSymbols(toCollect)
+            ));
+        }
+        return Collections.emptyList();
+    }
+
+    /**
+     * @return qsOutputs + symbols from orderBy which are not already within qsOutputs (if orderBy is present)
+     */
+    private static List<Symbol> getToCollectSymbols(List<Symbol> qsOutputs, Optional<OrderBy> optOrderBy) {
+        if (optOrderBy.isPresent()) {
+            return Lists2.concatUnique(qsOutputs, optOrderBy.get().orderBySymbols());
+        }
+        return qsOutputs;
+    }
+
+    private final static class NoPredicateVisitor extends SymbolVisitor<Void, Void> {
+
+        private static final NoPredicateVisitor NO_PREDICATE_VISITOR = new NoPredicateVisitor();
+
+        private NoPredicateVisitor() {
+        }
+
+        static void ensureNoMatchPredicate(Symbol symbolTree) {
+            NO_PREDICATE_VISITOR.process(symbolTree, null);
+        }
+
+        @Override
+        public Void visitFunction(Function symbol, Void context) {
+            if (symbol.info().ident().name().equals(MatchPredicate.NAME)) {
+                throw new UnsupportedFeatureException("Cannot use match predicate on system tables");
+            }
+            for (Symbol argument : symbol.arguments()) {
+                process(argument, context);
+            }
+            return null;
         }
     }
 }
