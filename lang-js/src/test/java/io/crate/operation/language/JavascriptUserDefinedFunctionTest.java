@@ -110,6 +110,38 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     }
 
     @Test
+    public void testInvalidJavascript() throws ScriptException{
+        List<DataType> types = ImmutableList.of(DataTypes.DOUBLE);
+        UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
+            Schemas.DEFAULT_SCHEMA_NAME,
+            "f",
+            types.stream().map(FunctionArgumentDefinition::of).collect(Collectors.toList()),
+            DataTypes.DOUBLE_ARRAY,
+            JS,
+            "function f(a) { return a[0]1*#?; }"
+        );
+
+        String validation = udfService.getLanguage(JS).validate(udfMeta);
+        assertEquals(validation, "Invalid JavaScript in function 'f(double)'");
+    }
+
+    @Test
+    public void testValidJavascript() throws Exception {
+        List<DataType> types = ImmutableList.of(DataTypes.DOUBLE_ARRAY);
+        UserDefinedFunctionMetaData udfMeta = new UserDefinedFunctionMetaData(
+            Schemas.DEFAULT_SCHEMA_NAME,
+            "f",
+            types.stream().map(FunctionArgumentDefinition::of).collect(Collectors.toList()),
+            DataTypes.DOUBLE,
+            JS,
+            "function f(a) { return a[0]; }"
+        );
+
+        String validation = udfService.getLanguage(JS).validate(udfMeta);
+        assertEquals(validation, null);
+    }
+
+    @Test
     public void testArrayReturnType() throws Exception {
         registerUserDefinedFunction("f", DataTypes.DOUBLE_ARRAY, ImmutableList.of(), "function f() { return [1, 2]; }");
         assertEvaluate("f()", new double[]{1.0, 2.0});

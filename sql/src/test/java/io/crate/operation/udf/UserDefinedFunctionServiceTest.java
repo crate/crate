@@ -93,10 +93,11 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
             }
 
             @Override
-            public void validate(UserDefinedFunctionMetaData metadata) throws Exception {
+            public String validate(UserDefinedFunctionMetaData metadata) {
                 if ("invalid".equals(metadata.definition())){
-                    throw new IllegalArgumentException("invalid dummyscript");
+                    return "invalid dummyScript";
                 }
+                return null;
             }
 
             @Override

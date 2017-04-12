@@ -47,8 +47,6 @@ import java.util.stream.Collectors;
 
 public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
 
-    static final ScriptEngine ENGINE = new NashornScriptEngineFactory().getScriptEngine("--no-java");
-
     private final FunctionInfo info;
     private final CompiledScript compiledScript;
     private final DataType returnType;
@@ -67,7 +65,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
     @Override
     public Scalar<Object, Object> compile(List<Symbol> arguments) {
         // A separate Bindings object allow to create an isolated scope for the function.
-        Bindings bindings = ENGINE.createBindings();
+        Bindings bindings = JavaScriptLanguage.ENGINE.createBindings();
         try {
             compiledScript.eval(bindings);
         } catch (ScriptException e) {
@@ -102,7 +100,7 @@ public class JavaScriptUserDefinedFunction extends Scalar<Object, Object> {
 
     @Override
     public Object evaluate(Input<Object>[] values) {
-        Bindings bindings = ENGINE.createBindings();
+        Bindings bindings = JavaScriptLanguage.ENGINE.createBindings();
         try {
             compiledScript.eval(bindings);
         } catch (ScriptException e) {
