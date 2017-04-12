@@ -61,7 +61,8 @@ public class DocSchemaInfoTest extends CrateUnitTest {
             }
 
             @Override
-            public void validate(UserDefinedFunctionMetaData metadata) throws Exception {
+            public String validate(UserDefinedFunctionMetaData metadata) {
+                return null;
             }
 
             @Override

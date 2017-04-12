@@ -31,8 +31,8 @@ public class JavaScriptLanguage implements UDFLanguage {
         );
     }
 
-    public void validate(UserDefinedFunctionMetaData metadata) throws Exception {
-
+    public String validate(UserDefinedFunctionMetaData metadata) {
+        return null;
     }
 
     public String name() {

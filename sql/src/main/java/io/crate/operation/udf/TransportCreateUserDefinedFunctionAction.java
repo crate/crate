@@ -41,22 +41,24 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import javax.script.ScriptException;
+
 @Singleton
 public class TransportCreateUserDefinedFunctionAction extends TransportMasterNodeAction<CreateUserDefinedFunctionRequest, UserDefinedFunctionResponse> {
 
-    private final UserDefinedFunctionService userDefinedFunctionService;
+    private final UserDefinedFunctionService udfService;
 
     @Inject
     public TransportCreateUserDefinedFunctionAction(Settings settings,
                                                     TransportService transportService,
                                                     ClusterService clusterService,
                                                     ThreadPool threadPool,
-                                                    UserDefinedFunctionService userDefinedFunctionService,
+                                                    UserDefinedFunctionService udfService,
                                                     ActionFilters actionFilters,
                                                     IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, "crate/sql/create_udf", transportService, clusterService, threadPool, actionFilters,
             indexNameExpressionResolver, CreateUserDefinedFunctionRequest.class);
-        this.userDefinedFunctionService = userDefinedFunctionService;
+        this.udfService = udfService;
     }
 
     @Override
@@ -73,10 +75,17 @@ public class TransportCreateUserDefinedFunctionAction extends TransportMasterNod
     protected void masterOperation(final CreateUserDefinedFunctionRequest request,
                                    ClusterState state,
                                    ActionListener<UserDefinedFunctionResponse> listener) throws Exception {
-        userDefinedFunctionService.registerFunction(
+
+        final UserDefinedFunctionMetaData metaData = request.userDefinedFunctionMetaData();
+        String errorMessage = udfService.getLanguage(metaData.language()).validate(metaData);
+        if (errorMessage != null) {
+            throw new ScriptException(errorMessage);
+        }
+
+        udfService.registerFunction(
             new UserDefinedFunctionService.RegisterUserDefinedFunctionRequest(
-                "put_udf [" + request.userDefinedFunctionMetaData().name() + "]",
-                request.userDefinedFunctionMetaData(),
+                "put_udf [" + metaData.name() + "]",
+                metaData,
                 request.replace()
             ).masterNodeTimeout(request.masterNodeTimeout()),
             new ActionListener<ClusterStateUpdateResponse>() {

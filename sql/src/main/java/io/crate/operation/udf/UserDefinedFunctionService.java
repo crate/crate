@@ -56,12 +56,10 @@ public class UserDefinedFunctionService {
     private Map<String, UDFLanguage> languageRegistry = new HashMap<>();
 
 
-    public UDFLanguage getLanguage(String languageName) throws IllegalArgumentException{
+    public UDFLanguage getLanguage(String languageName) throws IllegalArgumentException {
         UDFLanguage lang = languageRegistry.get(languageName);
-        if (lang == null){
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Can't find Language '%s'",
-                languageName
-            ));
+        if (lang == null) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Can't find Language '%s'", languageName));
         }
         return lang;
     }
