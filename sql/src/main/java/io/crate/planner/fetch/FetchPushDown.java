@@ -24,14 +24,13 @@ package io.crate.planner.fetch;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.QueriedTable;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.Planner;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.node.fetch.FetchSource;
@@ -41,8 +40,6 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 public final class FetchPushDown {
-
-    private static final FetchPushDown.Visitor VISITOR = new FetchPushDown.Visitor();
 
     private FetchPushDown() {
     }
@@ -55,16 +52,46 @@ public final class FetchPushDown {
      * see {@link Builder#build(Planner.Context)}.
      */
     @Nullable
-    public static Builder pushDown(AnalyzedRelation relation) {
-        VisitorContext context = new VisitorContext();
-        VISITOR.process(relation, context);
-
-        if (context.fetchSources.isEmpty()) {
+    public static Builder pushDown(QueriedDocTable docTable) {
+        QueriedDocTableFetchPushDown docTableFetchPushDown = new QueriedDocTableFetchPushDown(docTable);
+        QueriedDocTable subRelation = docTableFetchPushDown.pushDown();
+        if (subRelation == null) {
             // no fetch required
             return null;
         }
+        Collection<Reference> fetchRefs = docTableFetchPushDown.fetchRefs();
+        DocTableInfo docTableInfo = docTable.tableRelation().tableInfo();
+        FetchSource fetchSource = new FetchSource(
+            docTableInfo.partitionedByColumns(),
+            ImmutableList.of(docTableFetchPushDown.docIdCol()),
+            fetchRefs
+        );
+        return new Builder(
+            fetchRefs,
+            Collections.singletonMap(docTableInfo.ident(), fetchSource),
+            docTable.querySpec().outputs(),
+            subRelation
+        );
+    }
 
-        return new Builder(context);
+    @Nullable
+    public static Builder pushDown(MultiSourceSelect mss) {
+        if (mss.canBeFetched().isEmpty()) {
+            return null;
+        }
+
+        MultiSourceFetchPushDown pd = new MultiSourceFetchPushDown(mss);
+        pd.process();
+        LinkedHashSet<Reference> fetchRefs = new LinkedHashSet<>();
+        for (FetchSource fetchSource : pd.fetchSources().values()) {
+            fetchRefs.addAll(fetchSource.references());
+        }
+        return new Builder(
+            fetchRefs,
+            pd.fetchSources(),
+            pd.remainingOutputs(),
+            mss
+        );
     }
 
     public static class PhaseAndProjection {
@@ -80,10 +107,19 @@ public final class FetchPushDown {
 
     public static class Builder {
 
-        private final VisitorContext visitorContext;
+        private final Collection<Reference> fetchRefs;
+        private final Map<TableIdent, FetchSource> fetchSourceByTable;
+        private final List<Symbol> outputs;
+        private final QueriedRelation replacedRelation;
 
-        private Builder(VisitorContext visitorContext) {
-            this.visitorContext = visitorContext;
+        public Builder(Collection<Reference> fetchRefs,
+                       Map<TableIdent, FetchSource> fetchSourceByTable,
+                       List<Symbol> outputs,
+                       QueriedRelation replacedRelation) {
+            this.fetchRefs = fetchRefs;
+            this.fetchSourceByTable = fetchSourceByTable;
+            this.outputs = outputs;
+            this.replacedRelation = replacedRelation;
         }
 
         /**
@@ -98,13 +134,13 @@ public final class FetchPushDown {
                 readerAllocations.nodeReaders().keySet(),
                 readerAllocations.bases(),
                 readerAllocations.tableIndices(),
-                visitorContext.fetchRefs
+                fetchRefs
             );
             FetchProjection fetchProjection = new FetchProjection(
                 fetchPhase.phaseId(),
                 plannerContext.fetchSize(),
-                visitorContext.fetchSources,
-                visitorContext.outputs,
+                fetchSourceByTable,
+                outputs,
                 readerAllocations.nodeReaders(),
                 readerAllocations.indices(),
                 readerAllocations.indicesToIdents());
@@ -114,73 +150,7 @@ public final class FetchPushDown {
 
         @Nullable
         public AnalyzedRelation replacedRelation() {
-            return visitorContext.replacedRelation;
-        }
-    }
-
-    private static class VisitorContext {
-
-        final Map<TableIdent, FetchSource> fetchSources = new HashMap<>();
-        final LinkedHashSet<Reference> fetchRefs = new LinkedHashSet<>();
-
-        List<Symbol> outputs = Collections.emptyList();
-        QueriedRelation replacedRelation;
-    }
-
-    private static class Visitor extends AnalyzedRelationVisitor<VisitorContext, Void> {
-
-        @Override
-        public Void visitQueriedTable(QueriedTable table, VisitorContext context) {
-            context.replacedRelation = null;
-            return null;
-        }
-
-        @Override
-        public Void visitQueriedDocTable(QueriedDocTable relation, VisitorContext context) {
-            QueriedDocTableFetchPushDown docTableFetchPushDown = new QueriedDocTableFetchPushDown(relation);
-
-            QueriedDocTable subRelation = docTableFetchPushDown.pushDown();
-            if (subRelation == null) {
-                // no fetch required
-                context.replacedRelation = null;
-                return null;
-            }
-            context.replacedRelation = subRelation;
-            Collection<Reference> fetchRefs = docTableFetchPushDown.fetchRefs();
-            context.fetchRefs.addAll(fetchRefs);
-            context.outputs = relation.querySpec().outputs();
-
-            TableIdent tableIdent = relation.tableRelation().tableInfo().ident();
-
-            FetchSource prevSource = context.fetchSources.put(
-                tableIdent,
-                new FetchSource(
-                    relation.tableRelation().tableInfo().partitionedByColumns(),
-                    ImmutableList.of(docTableFetchPushDown.docIdCol()),
-                    fetchRefs)
-            );
-            assert prevSource == null : "fetchSources must have been empty; this is a single-relation select statement";
-            return null;
-        }
-
-        @Override
-        public Void visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, VisitorContext context) {
-            if (multiSourceSelect.canBeFetched().isEmpty()) {
-                context.replacedRelation = null;
-                return null;
-            }
-
-            MultiSourceFetchPushDown pd = new MultiSourceFetchPushDown(multiSourceSelect);
-            pd.process();
-            context.replacedRelation = multiSourceSelect;
-            context.fetchSources.putAll(pd.fetchSources());
-            context.outputs = pd.remainingOutputs();
-
-            for (Map.Entry<TableIdent, FetchSource> entry : pd.fetchSources().entrySet()) {
-                context.fetchRefs.addAll(entry.getValue().references());
-            }
-
-            return null;
+            return replacedRelation;
         }
     }
 }
