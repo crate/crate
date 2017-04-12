@@ -882,21 +882,6 @@
 #psql.port: 5432
 
 
-######################### Enterprise Features ########################
-
-# Setting this to `true` enables the Enterprise Edition of CrateDB.
-#license.enterprise: false
-
-# To enable or use any of the enterprise features, Crate.io must have given you
-# permission to enable and use the Enterprise Edition of CrateDB (see
-# https://crate.io/enterprise/) and you must have a valid Enterprise or
-# Subscription Agreement with Crate.io. If you enable or use features that are
-# part of the Enterprise Edition, you represent and warrant that you have a
-# valid Enterprise or Subscription Agreement with Crate.io. Your use of
-# features of the Enterprise Edition is governed by the terms and conditions of
-# your Enterprise or Subscription Agreement with Crate.io.
-
-
 ######################### User Defined Functions ########################
 
 # Setting this to `true` enables the User Defined Functions functionality.
