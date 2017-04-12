@@ -72,7 +72,7 @@ public class RemoteCollectorIntegrationTest extends SQLTransportIntegrationTest 
 
         client().admin().cluster().prepareHealth("t")
             .setWaitForEvents(Priority.LANGUID)
-            .setWaitForNoRelocatingShards(false)
+            .setWaitForNoRelocatingShards(true)
             .setTimeout(TimeValue.timeValueSeconds(5)).execute().actionGet();
 
         execute(plan).getResult();
