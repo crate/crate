@@ -72,24 +72,6 @@ def wait_for_schema_update(schema, table, column):
         count = c.fetchone()[0]
 
 
-def wait_for_function(signature):
-    conn = connect('localhost:' + str(CRATE_HTTP_PORT))
-    c = conn.cursor()
-    wait = 0.0
-
-    while True:
-        try:
-            c.execute('SELECT ' + signature)
-        except Exception as e:
-            wait += 0.1
-            if wait >= 2.0:
-                raise e
-            else:
-                time.sleep(0.1)
-        else:
-            break
-
-
 def bash_transform(s):
     # The examples in the docs show the real port '4200' to a reader.
     # Our test suite requires the port to be '44200' to avoid conflicts.
@@ -162,7 +144,6 @@ crate_layer = ConnectingCrateLayer(
 
 
 def setUpLocations(test):
-    test.globs['wait_for_function'] = wait_for_function
     test.globs['cmd'] = cmd
     cmd.stmt("""
         create table locations (
@@ -441,7 +422,6 @@ def test_suite():
                'sql/ddl/alter_table.txt',
                'sql/administration/set_reset.txt',
                'sql/administration/show_create_table.txt',
-               'sql/administration/user_defined_functions.txt',
                'sql/dql.txt',
                'sql/refresh.txt',
                'sql/optimize.txt',
