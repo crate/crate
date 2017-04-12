@@ -89,6 +89,11 @@ You can explicitly assign a schema like this::
     CREATE OK, 1 row affected  (... sec)
 
 
+.. warning::
+
+    :ref:`snapshot-restore` can't be used to backup user defined functions,
+    because snapshots contain table data only.
+
 Supported Types
 ---------------
 
