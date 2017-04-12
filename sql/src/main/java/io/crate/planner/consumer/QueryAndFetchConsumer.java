@@ -21,10 +21,7 @@
 
 package io.crate.planner.consumer;
 
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTable;
-import io.crate.analyze.QueriedTableRelation;
-import io.crate.analyze.QuerySpec;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Function;
@@ -40,8 +37,10 @@ import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -98,6 +97,37 @@ public class QueryAndFetchConsumer implements Consumer {
                 NoPredicateVisitor.ensureNoMatchPredicate(querySpec.where().query());
             }
             return normalSelect(table, context);
+        }
+
+        @Override
+        public Plan visitQueriedSelectRelation(QueriedSelectRelation relation, ConsumerContext context) {
+            QuerySpec qs = relation.querySpec();
+            if (qs.hasAggregates() || qs.groupBy().isPresent()) {
+                return null;
+            }
+            Planner.Context plannerContext = context.plannerContext();
+            Plan plan = Merge.ensureOnHandler(
+                plannerContext.planSubRelation(relation.subRelation(), context), plannerContext);
+
+            Limits limits = plannerContext.getLimits(qs);
+            maybeAddFilterProjection(relation, plan);
+            Projection topN = ProjectionBuilder.topNOrEval(
+                relation.subRelation().fields(),
+                qs.orderBy().orElse(null),
+                limits.offset(),
+                limits.finalLimit(),
+                qs.outputs()
+            );
+            plan.addProjection(topN, null, null, null);
+            return plan;
+        }
+    }
+
+    private static void maybeAddFilterProjection(QueriedSelectRelation relation, Plan plan) {
+        WhereClause whereClause = relation.querySpec().where();
+        if (whereClause.hasQuery() || whereClause.noMatch()) {
+            FilterProjection filterProjection = ProjectionBuilder.filterProjection(relation.subRelation().fields(), whereClause);
+            plan.addProjection(filterProjection, null, null, null);
         }
     }
 
