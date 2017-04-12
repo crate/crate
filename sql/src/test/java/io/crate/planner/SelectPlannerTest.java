@@ -497,12 +497,21 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testReferenceToNestedAggregatedField() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot create plan for: ");
-        e.plan("select ii, xx from ( " +
-             "  select i + i as ii, xx from (" +
-             "    select i, sum(x) as xx from t1 group by i) as t) as tt " +
-             "where (ii * 2) > 4 and (xx * 2) > 120");
+        Merge merge = e.plan("select ii, xx from ( " +
+                             "  select i + i as ii, xx from (" +
+                             "    select i, sum(x) as xx from t1 group by i) as t) as tt " +
+                             "where (ii * 2) > 4 and (xx * 2) > 120");
+        Plan subQuery = merge.subPlan();
+        assertThat(subQuery, instanceOf(Collect.class));
+        assertThat(((Collect) subQuery).collectPhase().projections(), contains(
+            instanceOf(GroupProjection.class)
+        ));
+        assertThat(merge.mergePhase().projections(), contains(
+            instanceOf(GroupProjection.class),
+            instanceOf(EvalProjection.class),
+            instanceOf(FilterProjection.class),
+            instanceOf(EvalProjection.class)
+        ));
     }
 
     @Test

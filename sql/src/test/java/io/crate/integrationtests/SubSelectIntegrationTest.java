@@ -121,13 +121,13 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testReferenceToNestedAggregatedField() throws Exception {
         setup.groupBySetup();
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot create plan for: ");
         execute("select gender, minAge from ( " +
                 "  select gender, min(age) as minAge from characters group by gender" +
                 ") as ch " +
-                "where (minAge * 2) < 120");
+                "where (minAge * 2) < 120 order by gender");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("female| 32\n" +
+               "male| 34\n"));
     }
 
     @Test
@@ -406,5 +406,39 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("2| 1\n" +
                "2| 1\n"));
+    }
+
+    @Test
+    public void testSimpleSelectOnSubQueryWithOrderByAndLimit() throws Exception {
+        execute("select col1 from (" +
+                "   select col1 from unnest([1, 2, 3, 4]) order by col1 asc limit 3" +
+                ") t order by col1 desc limit 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("3\n"));
+    }
+
+    @Test
+    public void testSimpleSelectOnSubQueryWithFetchPushDown() throws Exception {
+        execute("create table t (x int, y int)");
+        ensureYellow();
+        execute("insert into t (x, y) values (10, 20), (30, 40), (50, 60)");
+        execute("refresh table t");
+
+        execute("select x, y from (" +
+                "   select x, y from t order by x limit 2) t " +
+                "order by y desc limit 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("30| 40\n"));
+    }
+
+    @Test
+    public void testSimpleSelectOnSubQueryWithWhereClause() throws Exception {
+        execute("create table t (x int, y int)");
+        ensureYellow();
+        execute("insert into t (x, y) values (10, 20), (30, 40), (50, 60)");
+        execute("refresh table t");
+
+        execute("select x, y from (" +
+                "   select x, y from t order by x limit 3) t " +
+                "where x = 30 order by y desc limit 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("30| 40\n"));
     }
 }
