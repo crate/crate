@@ -51,7 +51,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         "my_add",
         args,
         DataTypes.FLOAT,
-        "javascript",
+        "dummy_lang",
        definition
     );
 
@@ -73,7 +73,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         assertThat(udfMeta2.argumentTypes().size(), is(2));
         assertThat(udfMeta2.argumentTypes().get(1), is(DataTypes.DOUBLE));
         assertThat(udfMeta2.returnType, is(DataTypes.FLOAT));
-        assertThat(udfMeta2.language, is("javascript"));
+        assertThat(udfMeta2.language, is("dummy_lang"));
         assertThat(udfMeta2.definition, is(definition));
     }
 

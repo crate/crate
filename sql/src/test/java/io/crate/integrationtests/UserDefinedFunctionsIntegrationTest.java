@@ -27,8 +27,12 @@
 package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.Schemas;
+import io.crate.data.Input;
+import io.crate.metadata.*;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.operation.udf.UDFLanguage;
+import io.crate.operation.udf.UserDefinedFunctionMetaData;
+import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
@@ -36,6 +40,7 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.script.ScriptException;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -45,9 +50,51 @@ import static org.hamcrest.CoreMatchers.is;
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, randomDynamicTemplates = false)
 public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegrationTest {
 
+    private class DummyFunction<InputType> extends Scalar<String, InputType>  {
+
+        private final FunctionInfo info;
+        private final UserDefinedFunctionMetaData metaData;
+
+        private DummyFunction(UserDefinedFunctionMetaData metaData) {
+            this.info = new FunctionInfo(new FunctionIdent(metaData.schema(), metaData.name(), metaData.argumentTypes()), DataTypes.STRING);
+            this.metaData = metaData;
+        }
+
+        @Override
+        public FunctionInfo info() {
+            return info;
+        }
+
+        @Override
+        public String evaluate(Input<InputType>... args) {
+            // dummy-lang functions simple print the type of the only argument
+            return "DUMMY EATS " + metaData.argumentTypes().get(0).getName();
+        }
+    }
+
+    private class DummyLang implements UDFLanguage {
+
+        @Override
+        public FunctionImplementation createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException {
+            return new DummyFunction<>(metaData);
+        }
+
+        @Override
+        public void validate(UserDefinedFunctionMetaData metadata) throws Exception {
+            // dummy-lang functions require exactly one argument
+            if (metadata.argumentTypes().size() != 1) {
+                throw new IllegalArgumentException("Dummy_lang functions require exactly one argument");
+            }
+        }
+
+        @Override
+        public String name() {
+            return "dummy_lang";
+        }
+    }
+
     private Object[][] rows = new Object[][]{
         new Object[]{1L, "Foo"},
-        new Object[]{3L, "bar"}
     };
 
     @Override
@@ -66,33 +113,38 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         execute("create table test (id long, str string) clustered by(id) into 2 shards");
         execute("insert into test (id, str) values (?, ?)", rows);
         refresh();
+        DummyLang dummyLang = new DummyLang();
+        Iterable<UserDefinedFunctionService> udfServices = internalCluster().getInstances(UserDefinedFunctionService.class);
+        for (UserDefinedFunctionService udfService : udfServices) {
+            udfService.registerLanguage(dummyLang);
+        }
     }
 
     @Test
     public void testCreateOverloadedFunction() throws Exception {
         try {
             execute("create function foo(long)" +
-                " returns string language javascript as 'function foo(x) { return \"1\"; }'");
+                " returns string language dummy_lang as 'function foo(x) { return \"1\"; }'");
             waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.LONG));
 
             execute("create function foo(string)" +
-                " returns string language javascript as 'function foo(x) { return x; }'");
+                " returns string language dummy_lang as 'function foo(x) { return x; }'");
             waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.STRING));
 
             Thread.sleep(5);
-            execute("select doc.foo(str), id from test order by id asc");
-            assertThat(response.rowCount(), is(2L));
-            assertThat(response.rows()[0][0], is("Foo"));
-            assertThat(response.rows()[1][0], is("bar"));
-        } finally {
+            execute("select foo(str), id from test order by id asc");
+            assertThat(response.rowCount(), is(1L));
+            assertThat(response.rows()[0][0], is("DUMMY EATS string"));
+        } catch (Exception e){
             dropFunction("foo", ImmutableList.of(DataTypes.LONG));
             dropFunction("foo", ImmutableList.of(DataTypes.STRING));
+            throw e;
         }
     }
 
     @Test
     public void testDropFunction() throws Exception {
-        execute("create function custom(string) returns string language javascript as 'function custom(x) { return x; }'");
+        execute("create function custom(string) returns string language dummy_lang as 'DUMMY DUMMY DUMMY'");
         waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of(DataTypes.STRING));
 
         dropFunction("custom", ImmutableList.of(DataTypes.STRING));
@@ -101,7 +153,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
 
     @Test
     public void testNewSchemaWithFunction() throws Exception {
-        execute("create function new_schema.custom() returns integer language javascript as 'function custom() {return 1;}'");
+        execute("create function new_schema.custom() returns integer language dummy_lang as 'function custom() {return 1;}'");
         waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of());
         execute("select count(*) from information_schema.schemata where schema_name='new_schema'");
         assertThat(response.rows()[0][0], is(1L));
@@ -111,6 +163,33 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         execute("select count(*) from information_schema.schemata where schema_name='new_schema'");
         assertThat(response.rows()[0][0], is(0L));
     }
+
+    @Test
+    public void testSelectFunctionsFromRoutines() throws Exception {
+        try {
+            execute("create function substract_test(long, long, long) " +
+                    "returns long language dummy_lang " +
+                    "as 'function substract_test(a, b, c) { return a - b - c; }'");
+            waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME,
+                "substract_test",
+                ImmutableList.of(DataTypes.LONG, DataTypes.LONG, DataTypes.LONG)
+            );
+
+            execute("select routine_name, routine_body, data_type, routine_definition, routine_schema" +
+                    " from information_schema.routines " +
+                    " where routine_type = 'FUNCTION'");
+            assertThat(response.rowCount(), is(1L));
+            assertThat(response.rows()[0][0], is("substract_test"));
+            assertThat(response.rows()[0][1], is("dummy_lang"));
+            assertThat(response.rows()[0][2], is("long"));
+            assertThat(response.rows()[0][3], is("function substract_test(a, b, c) { return a - b - c; }"));
+            assertThat(response.rows()[0][4], is("doc"));
+        } catch (Exception e){
+            execute("drop function if exists substract_test(long, long, long)");
+            throw e;
+        }
+    }
+
 
     private void dropFunction(String name, List<DataType> types) throws Exception {
         execute(String.format(Locale.ENGLISH, "drop function %s(%s)",

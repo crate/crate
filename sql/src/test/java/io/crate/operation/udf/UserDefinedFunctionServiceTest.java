@@ -48,20 +48,19 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
     public void setUp() throws Exception {
         super.setUp();
         udfService = new UserDefinedFunctionService(mock(ClusterService.class));
-        udfService.registerLanguage(new JavaScriptLanguage(udfService));
     }
 
     private final UserDefinedFunctionMetaData same1 = new UserDefinedFunctionMetaData(
         Schemas.DEFAULT_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
-        "javascript", "function same(){ return 3; }"
+        "dummy_lang", "function same(){ return 3; }"
     );
     private final UserDefinedFunctionMetaData same2 = new UserDefinedFunctionMetaData(
         Schemas.DEFAULT_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
-        "javascript", "function same() { return 2; }"
+        "dummy_lang", "function same() { return 2; }"
     );
     private final UserDefinedFunctionMetaData different = new UserDefinedFunctionMetaData(
         Schemas.DEFAULT_SCHEMA_NAME, "different", ImmutableList.of(), DataTypes.INTEGER,
-        "javascript", "function different() { return 3; }"
+        "dummy_lang", "function different() { return 3; }"
     );
 
     @Test
