@@ -63,20 +63,3 @@ task downloadPlugin(dependsOn: [writePropertiesFile, jar]) {
         extractTopfolder(dest, "${buildDir}/crate-admin/_site")
     }
 }
-
-sourceSets {
-    main {
-        java {
-            srcDir 'src/main/java'
-        }
-    }
-
-    test {
-        java {
-            srcDir 'src/test/java'
-        }
-    }
-}
-
-sourceSets.main.output.resourcesDir = null
-sourceSets.test.output.resourcesDir = null

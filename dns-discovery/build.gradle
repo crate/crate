@@ -8,9 +8,3 @@ dependencies {
     compile 'dnsjava:dnsjava:2.1.7'
     testCompile project(':integration-testing')
 }
-
-sourceSets {
-    main {
-        output.resourcesDir = null
-    }
-}

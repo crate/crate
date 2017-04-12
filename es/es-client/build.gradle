@@ -32,11 +32,6 @@ sourceSets {
             include '**/*.*'
         }
     }
-    test {
-        output.resourcesDir = null
-        output.classesDir = null
-    }
-
 }
 
 idea {

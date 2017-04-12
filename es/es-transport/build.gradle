@@ -6,13 +6,7 @@ dependencies {
 sourceSets {
     main {
         java.srcDirs = ['../upstream/modules/transport-netty3/src/main/java']
-        output.resourcesDir = null
     }
-    test {
-        output.resourcesDir = null
-        output.classesDir = null
-    }
-
 }
 
 idea {

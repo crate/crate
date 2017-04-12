@@ -10,11 +10,6 @@ sourceSets {
         java {
             srcDir "$pluginDir/src/main/java"
         }
-        output.resourcesDir = null
-    }
-    test {
-        output.resourcesDir = null
-        output.classesDir = null
     }
 }
 

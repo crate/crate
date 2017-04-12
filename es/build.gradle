@@ -20,7 +20,6 @@ subprojects {
         options.deprecation = false
         options.compilerArgs << '-XDignore.symbol.file'
         options.fork = true
-        options.forkOptions.executable = 'javac'
     }
 
     compileTestJava {

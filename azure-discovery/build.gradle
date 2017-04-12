@@ -42,12 +42,6 @@ dependencies {
     }
 }
 
-sourceSets {
-    test {
-        output.resourcesDir = null
-    }
-}
-
 idea {
     module {
         excludeDirs += files('build', 'src/test')

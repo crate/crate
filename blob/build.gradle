@@ -13,4 +13,3 @@ test {
     jacoco.excludes = ["*Test*"]
 }
 
-sourceSets.main.output.resourcesDir = null

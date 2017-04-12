@@ -7,11 +7,6 @@ dependencies {
     testCompile "io.netty:netty:${versions.netty}"
 }
 
-sourceSets {
-    test.output.resourcesDir = null
-    main.output.resourcesDir = null
-}
-
 test {
     testLogging.exceptionFormat = 'full'
     jacoco.excludes = ["*Test*"]

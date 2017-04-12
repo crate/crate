@@ -82,10 +82,6 @@ sourceSets {
             include '**/*.yml'
         }
     }
-    test {
-        output.resourcesDir = null
-        output.classesDir = null
-    }
 }
 
 idea {
