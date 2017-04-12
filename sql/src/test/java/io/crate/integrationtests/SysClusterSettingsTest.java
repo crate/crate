@@ -184,6 +184,12 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testDefaultLicenseIdentSetting() {
+        execute("select settings from sys.cluster");
+        assertSettingsDefault(SharedSettings.LICENSE_IDENT_SETTING);
+    }
+
+    @Test
     public void testReadChangedElasticsearchSetting() throws Exception {
         execute("set global transient indices.store.throttle.type = ?",
             new Object[]{StoreRateLimiting.Type.MERGE.toString()});

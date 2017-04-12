@@ -163,6 +163,7 @@ currently applied cluster settings.
     | settings['indices']['store']['throttle']['type']                                  | string       |
     | settings['license']                                                               | object       |
     | settings['license']['enterprise']                                                 | boolean      |
+    | settings['license']['ident']                                                      | string       |
     | settings['logger']                                                                | object_array |
     | settings['logger']['level']                                                       | string       |
     | settings['logger']['name']                                                        | string       |

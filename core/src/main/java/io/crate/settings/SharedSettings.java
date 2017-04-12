@@ -31,4 +31,7 @@ public class SharedSettings {
         "license.enterprise", false,
         Setting.Property.NodeScope), DataTypes.BOOLEAN);
 
+    public static final CrateSetting<String> LICENSE_IDENT_SETTING = CrateSetting.of(Setting.simpleString(
+        "license.ident", Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING);
+
 }
