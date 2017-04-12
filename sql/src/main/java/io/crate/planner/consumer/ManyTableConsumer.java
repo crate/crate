@@ -30,7 +30,11 @@ import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
+import io.crate.planner.Merge;
 import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.fetch.FetchPushDown;
+import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.sql.tree.QualifiedName;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
@@ -350,6 +354,31 @@ public class ManyTableConsumer implements Consumer {
         @Override
         public Plan visitMultiSourceSelect(MultiSourceSelect mss, ConsumerContext context) {
             if (isUnsupportedStatement(mss, context)) return null;
+
+            if (mss.canBeFetched().isEmpty() || context.fetchDecider().tryFetchRewrite() == false) {
+                return getPlan(mss, context);
+            }
+
+            context.setFetchDecider(FetchDecider.NEVER);
+            FetchPushDown.Builder<MultiSourceSelect> builder = FetchPushDown.pushDown(mss);
+            if (builder == null) {
+                return getPlan(mss, context);
+            }
+            Planner.Context plannerContext = context.plannerContext();
+            Plan plan = Merge.ensureOnHandler(getPlan(builder.replacedRelation(), context), plannerContext);
+
+            FetchPushDown.PhaseAndProjection phaseAndProjection = builder.build(plannerContext);
+            plan.addProjection(
+                phaseAndProjection.projection,
+                null,
+                null,
+                phaseAndProjection.projection.outputs().size(),
+                null
+            );
+            return new QueryThenFetch(plan,  phaseAndProjection.phase);
+        }
+
+        private static Plan getPlan(MultiSourceSelect mss, ConsumerContext context) {
             replaceFieldsWithRelationColumns(mss);
             if (mss.sources().size() == 2) {
                 return planSubRelation(context, twoTableJoin(mss));
@@ -371,7 +400,7 @@ public class ManyTableConsumer implements Consumer {
             return false;
         }
 
-        private Plan planSubRelation(ConsumerContext context, AnalyzedRelation relation) {
+        private static Plan planSubRelation(ConsumerContext context, TwoTableJoin relation) {
             return context.plannerContext().planSubRelation(relation, context);
         }
 

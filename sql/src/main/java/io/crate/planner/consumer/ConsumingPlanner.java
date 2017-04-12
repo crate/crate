@@ -33,6 +33,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -61,16 +62,11 @@ public class ConsumingPlanner {
 
     @Nullable
     public Plan plan(AnalyzedRelation relation, ConsumerContext consumerContext) {
+        Map<Plan, SelectSymbol> subQueries = getSubQueries(relation, consumerContext);
         for (Consumer consumer : consumers) {
             Plan plan = consumer.consume(relation, consumerContext);
             if (plan != null) {
-                if (relation instanceof QueriedRelation) {
-                    QuerySpec qs = ((QueriedRelation) relation).querySpec();
-                    SubqueryPlanner subqueryPlanner = new SubqueryPlanner(consumerContext.plannerContext());
-                    Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(qs);
-                    return MultiPhasePlan.createIfNeeded(plan, subQueries);
-                }
-                return plan;
+                return MultiPhasePlan.createIfNeeded(plan, subQueries);
             }
         }
         ValidationException validationException = consumerContext.validationException();
@@ -78,5 +74,14 @@ public class ConsumingPlanner {
             throw validationException;
         }
         return null;
+    }
+
+    private static Map<Plan, SelectSymbol> getSubQueries(AnalyzedRelation relation, ConsumerContext consumerContext) {
+        if (relation instanceof QueriedRelation) {
+            QuerySpec qs = ((QueriedRelation) relation).querySpec();
+            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(consumerContext.plannerContext());
+            return subqueryPlanner.planSubQueries(qs);
+        }
+        return Collections.emptyMap();
     }
 }

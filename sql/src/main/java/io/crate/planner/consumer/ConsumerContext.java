@@ -31,7 +31,7 @@ public class ConsumerContext {
     private final Planner.Context plannerContext;
 
     private ValidationException validationException;
-
+    private FetchDecider fetchDecider = FetchDecider.ALWAYS;
     private Integer requiredPageSize;
 
     public ConsumerContext(Planner.Context plannerContext) {
@@ -51,14 +51,22 @@ public class ConsumerContext {
         return plannerContext;
     }
 
-    public void requiredPageSize(Integer requiredPageSize) {
+    public void setFetchDecider(FetchDecider fetchDecider) {
+        this.fetchDecider = fetchDecider;
+    }
+
+    FetchDecider fetchDecider() {
+        return fetchDecider;
+    }
+
+    void requiredPageSize(Integer requiredPageSize) {
         this.requiredPageSize = requiredPageSize;
     }
 
     /**
      * required pageSize that a parent relation might have specified.
      */
-    public Integer requiredPageSize() {
+    Integer requiredPageSize() {
         return requiredPageSize;
     }
 }
