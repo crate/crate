@@ -709,7 +709,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testJoinWithAggregationScalarFunctionAndGroupBy() throws Exception {
+    public void testJoinWithAggregationScalarFunctionWithGroupBy() throws Exception {
         execute("create table colors (id integer, name string)");
         execute("create table fruits (id integer, price float, name string)");
         ensureYellow();
@@ -717,7 +717,43 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into colors (id, name) values (1, 'red'), (2, 'yellow')");
         execute("insert into fruits (id, price, name) values (1, 1.9, 'apple'), (2, 0.8, 'banana')");
         execute("refresh table colors, fruits");
-        execute("select max(colors.name), max(fruits.price * fruits.price + 10) + 10, max(fruits.name), count(colors.name) from colors, fruits;");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("yellow| 23.60999990940094| banana| 4\n"));
+        execute(
+            "select fruits.name, max(colors.name), max(fruits.price * fruits.price + 10) + 10, max(fruits.name), count(colors.name) " +
+            "from colors, fruits " +
+            "group by fruits.name " +
+            "order by name " +
+            "limit 1 offset 1"
+        );
+
+        assertThat(
+            TestingHelpers.printedTable(response.rows()),
+            is("banana| yellow| 20.640000019073486| banana| 2\n")
+        );
+    }
+
+    @Test
+    public void testDistributedJoinWithAggregationScalarFunctionWithGroupBy() throws Exception {
+        execute("create table colors (id integer, name string)");
+        execute("create table fruits (id integer, price float, name string)");
+        ensureYellow();
+
+        execute("insert into colors (id, name) values (1, 'red'), (2, 'yellow')");
+        execute("insert into fruits (id, price, name) values (1, 1.9, 'apple'), (2, 0.8, 'banana')");
+        execute("refresh table colors, fruits");
+
+        execute(
+            "select fruits.name, max(colors.name), max(fruits.price * fruits.price + 10) + 10, max(fruits.name), count(colors.name) " +
+            "from colors, fruits " +
+            "where colors.id = fruits.id " +
+            "group by fruits.name " +
+            "having count(colors.id) > 0 " +
+            "order by name " +
+            "limit 1 offset 1"
+        );
+
+        assertThat(
+            TestingHelpers.printedTable(response.rows()),
+            is("banana| yellow| 20.640000019073486| banana| 1\n")
+        );
     }
 }
