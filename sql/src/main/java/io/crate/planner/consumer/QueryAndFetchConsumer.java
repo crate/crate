@@ -35,11 +35,10 @@ import io.crate.collections.Lists2;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.operation.predicate.MatchPredicate;
-import io.crate.planner.Limits;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
-import io.crate.planner.PositionalOrderBy;
+import io.crate.planner.*;
+import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -69,7 +68,25 @@ public class QueryAndFetchConsumer implements Consumer {
             if (!isSimpleSelect(table.querySpec(), context)) {
                 return null;
             }
-            return normalSelect(table, context);
+            if (!context.fetchDecider().tryFetchRewrite()) {
+                return normalSelect(table, context);
+            }
+            FetchPushDown.Builder<QueriedDocTable> fetchPhaseBuilder = FetchPushDown.pushDown(table);
+            if (fetchPhaseBuilder == null) {
+                return normalSelect(table, context);
+            }
+            Planner.Context plannerContext = context.plannerContext();
+            Plan plan = Merge.ensureOnHandler(
+                normalSelect(fetchPhaseBuilder.replacedRelation(), context), plannerContext);
+            FetchPushDown.PhaseAndProjection fetchPhaseAndProjection = fetchPhaseBuilder.build(plannerContext);
+            plan.addProjection(
+                fetchPhaseAndProjection.projection,
+                null,
+                null,
+                fetchPhaseAndProjection.projection.outputs().size(),
+                null
+            );
+            return new QueryThenFetch(plan, fetchPhaseAndProjection.phase);
         }
 
         @Override

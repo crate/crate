@@ -30,13 +30,9 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.exceptions.ValidationException;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.ESGetStatementPlanner;
-import io.crate.planner.fetch.FetchPushDown;
-import io.crate.planner.node.dql.QueryThenFetch;
 
 import java.util.Map;
 
@@ -50,17 +46,6 @@ class SelectStatementPlanner {
 
     public Plan plan(SelectAnalyzedStatement statement, Planner.Context context) {
         return visitor.process(statement.relation(), context);
-    }
-
-    private static Plan subPlan(AnalyzedRelation rel, Planner.Context context) {
-        ConsumerContext consumerContext = new ConsumerContext(context);
-        Plan subPlan = context.planSubRelation(rel, consumerContext);
-        assert subPlan != null : "plan must not be null";
-        ValidationException validationException = consumerContext.validationException();
-        if (validationException != null) {
-            throw validationException;
-        }
-        return subPlan;
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<Planner.Context, Plan> {
@@ -109,60 +94,17 @@ class SelectStatementPlanner {
             if (querySpec.where().noMatch() || (querySpec.limit().isPresent() && limits.finalLimit() == 0)) {
                 return new NoopPlan(context.jobId());
             }
-
-            FetchPushDown.Builder fetchPhaseBuilder = FetchPushDown.pushDown(table);
-            if (fetchPhaseBuilder == null) {
-                // no fetch required
-                return invokeConsumingPlanner(table, context);
-            }
-            AnalyzedRelation subRelation = fetchPhaseBuilder.replacedRelation();
-            Plan plannedSubQuery = subPlan(subRelation, context);
-            assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
-            plannedSubQuery = Merge.ensureOnHandler(plannedSubQuery, context);
-
-            // fetch phase and projection can only be build after the sub-plan was processed (shards/readers allocated)
-            FetchPushDown.PhaseAndProjection fetchPhaseAndProjection = fetchPhaseBuilder.build(context);
-            plannedSubQuery.addProjection(
-                fetchPhaseAndProjection.projection,
-                null,
-                null,
-                fetchPhaseAndProjection.projection.outputs().size(),
-                null);
-
-            QueryThenFetch qtf = new QueryThenFetch(plannedSubQuery, fetchPhaseAndProjection.phase);
-            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
-            Map<Plan, SelectSymbol> subqueries = subqueryPlanner.planSubQueries(querySpec);
-            return MultiPhasePlan.createIfNeeded(qtf, subqueries);
+            return invokeConsumingPlanner(table, context);
         }
 
         @Override
         public Plan visitMultiSourceSelect(MultiSourceSelect mss, Planner.Context context) {
             QuerySpec querySpec = mss.querySpec();
             context.applySoftLimit(querySpec);
-            if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
-                return invokeConsumingPlanner(mss, context);
-            }
-            if (querySpec.where().noMatch()) {
+            if (!querySpec.hasAggregates() && querySpec.where().noMatch()) {
                 return new NoopPlan(context.jobId());
             }
-            if (mss.canBeFetched().isEmpty()) {
-                return invokeConsumingPlanner(mss, context);
-            }
-            FetchPushDown.Builder fetchPhaseBuilder = FetchPushDown.pushDown(mss);
-            assert fetchPhaseBuilder != null : "expecting fetchPhaseBuilder not to be null";
-
-            // plan sub relation as if root so that it adds a mergePhase
-            Plan plannedSubQuery = invokeConsumingPlanner(mss, context);
-            assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
-
-            FetchPushDown.PhaseAndProjection fetchPhaseAndProjection = fetchPhaseBuilder.build(context);
-            plannedSubQuery.addProjection(
-                fetchPhaseAndProjection.projection,
-                null,
-                null,
-                fetchPhaseAndProjection.projection.outputs().size(),
-                null);
-            return new QueryThenFetch(plannedSubQuery, fetchPhaseAndProjection.phase);
+            return invokeConsumingPlanner(mss, context);
         }
     }
 }

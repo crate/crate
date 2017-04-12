@@ -24,7 +24,6 @@ package io.crate.planner.fetch;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
@@ -52,7 +51,7 @@ public final class FetchPushDown {
      * see {@link Builder#build(Planner.Context)}.
      */
     @Nullable
-    public static Builder pushDown(QueriedDocTable docTable) {
+    public static Builder<QueriedDocTable> pushDown(QueriedDocTable docTable) {
         QueriedDocTableFetchPushDown docTableFetchPushDown = new QueriedDocTableFetchPushDown(docTable);
         QueriedDocTable subRelation = docTableFetchPushDown.pushDown();
         if (subRelation == null) {
@@ -66,7 +65,7 @@ public final class FetchPushDown {
             ImmutableList.of(docTableFetchPushDown.docIdCol()),
             fetchRefs
         );
-        return new Builder(
+        return new Builder<>(
             fetchRefs,
             Collections.singletonMap(docTableInfo.ident(), fetchSource),
             docTable.querySpec().outputs(),
@@ -75,7 +74,7 @@ public final class FetchPushDown {
     }
 
     @Nullable
-    public static Builder pushDown(MultiSourceSelect mss) {
+    public static Builder<MultiSourceSelect> pushDown(MultiSourceSelect mss) {
         if (mss.canBeFetched().isEmpty()) {
             return null;
         }
@@ -86,7 +85,7 @@ public final class FetchPushDown {
         for (FetchSource fetchSource : pd.fetchSources().values()) {
             fetchRefs.addAll(fetchSource.references());
         }
-        return new Builder(
+        return new Builder<>(
             fetchRefs,
             pd.fetchSources(),
             pd.remainingOutputs(),
@@ -105,17 +104,17 @@ public final class FetchPushDown {
         }
     }
 
-    public static class Builder {
+    public static class Builder<T extends QueriedRelation> {
 
         private final Collection<Reference> fetchRefs;
         private final Map<TableIdent, FetchSource> fetchSourceByTable;
         private final List<Symbol> outputs;
-        private final QueriedRelation replacedRelation;
+        private final T replacedRelation;
 
         public Builder(Collection<Reference> fetchRefs,
                        Map<TableIdent, FetchSource> fetchSourceByTable,
                        List<Symbol> outputs,
-                       QueriedRelation replacedRelation) {
+                       T replacedRelation) {
             this.fetchRefs = fetchRefs;
             this.fetchSourceByTable = fetchSourceByTable;
             this.outputs = outputs;
@@ -148,8 +147,7 @@ public final class FetchPushDown {
             return new PhaseAndProjection(fetchPhase, fetchProjection);
         }
 
-        @Nullable
-        public AnalyzedRelation replacedRelation() {
+        public T replacedRelation() {
             return replacedRelation;
         }
     }
