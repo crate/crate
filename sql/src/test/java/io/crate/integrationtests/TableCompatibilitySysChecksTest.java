@@ -55,6 +55,8 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
     @Test
     public void testUpgradeRequired() throws Exception {
         startUpNodeWithDataDir("/indices/data_home/cratedata_upgrade_required.zip");
+        //set license.ident setting to avoid unlicensed cluster check
+        execute("set global transient 'license.ident' to 'my-key'");
         execute("select * from sys.checks where passed = false");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][1], is(TablesNeedUpgradeSysCheck.ID));
@@ -73,6 +75,8 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
     @Test
     public void testAlreadyUpgraded() throws Exception {
         startUpNodeWithDataDir("/indices/data_home/cratedata_already_upgraded.zip");
+        //set license.ident setting to avoid unlicensed cluster check
+        execute("set global transient 'license.ident' to 'my-key'");
         execute("select * from sys.checks where passed = false");
         assertThat(response.rowCount(), is(0L));
     }

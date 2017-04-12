@@ -46,8 +46,8 @@
 
 ############################# Enterprise Features #############################
 
-# Setting this to `true` enables the Enterprise Edition of CrateDB.
-#license.enterprise: false
+# Setting this to `false` disables the Enterprise Edition of CrateDB.
+#license.enterprise: true
 
 # To enable or use any of the enterprise features, Crate.io must have given you
 # permission to enable and use the Enterprise Edition of CrateDB (see

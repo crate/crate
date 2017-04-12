@@ -1861,10 +1861,10 @@ Enterprise License
 ------------------
 
 **license.enterprise**
-  | *Default:*  ``false``
+  | *Default:*  ``true``
   | *Runtime:*  ``no``
 
-  Setting this to ``true`` enables the `Enterprise Edition`_ of CrateDB.
+  Setting this to ``false`` disables the `Enterprise Edition`_ of CrateDB.
 
 .. NOTE::
 

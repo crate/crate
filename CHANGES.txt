@@ -15,6 +15,10 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+ - The ``enterprise.license`` setting is set to ``true`` by default.
+   If you start crate enterprise without a valid enterprise license,
+   you are entering the unlicensed mode.
+
  - The default value of the ``node.max_local_storage_nodes`` node setting has
    been changed to ``1`` to prevent running multiple nodes on the same data path
    by default. Previous versions of CrateDB defaulted to allowing up to ``50``

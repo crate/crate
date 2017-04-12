@@ -102,16 +102,16 @@ public class PingTaskTest extends CrateUnitTest {
             "http://dummy",
             Settings.EMPTY
         );
-        assertThat(pingTask.isEnterprise(), is("false"));
+        assertThat(pingTask.isEnterprise(), is(SharedSettings.ENTERPRISE_LICENSE_SETTING.getDefault().toString()));
 
         pingTask = new PingTask(
             clusterService,
             clusterIdService,
             extendedNodeInfo,
             "http://dummy",
-            Settings.builder().put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true).build()
+            Settings.builder().put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false).build()
         );
-        assertThat(pingTask.isEnterprise(), is("true"));
+        assertThat(pingTask.isEnterprise(), is("false"));
     }
 
     @Test
