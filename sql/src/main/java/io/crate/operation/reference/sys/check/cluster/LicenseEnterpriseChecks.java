@@ -30,7 +30,7 @@ import org.elasticsearch.common.settings.Settings;
 
 @Singleton
 public class LicenseEnterpriseChecks extends AbstractSysCheck {
-    private static final int ID = 5;
+    private static final int ID = 4;
     private static final String DESCRIPTION = "You are currently using the Enterprise Edition, " +
         "but have not configured a licence. Please configure a license or deactivate the Enterprise Edition.";
 

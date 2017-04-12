@@ -80,7 +80,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
         Settings settings = Settings.builder().put("license.enterprise", true).build();
         internalCluster().startNode(settings);
         internalCluster().startNode(settings);
-        SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{5});
+        SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{4});
         assertThat(TestingHelpers.printedTable(response.rows()), is("3| false\n"));
     }
 
@@ -91,7 +91,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
             .put("license.ident", "").build();
         internalCluster().startNode(settings);
         internalCluster().startNode(settings);
-        SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{5});
+        SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{4});
         assertThat(TestingHelpers.printedTable(response.rows()), is("3| false\n"));
     }
 
@@ -102,7 +102,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
             .put("license.ident", "my-awesome-key").build();
         internalCluster().startNode(settings);
         internalCluster().startNode(settings);
-        SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{5});
+        SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{4});
         assertThat(TestingHelpers.printedTable(response.rows()), is("3| true\n"));
     }
 
