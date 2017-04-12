@@ -94,6 +94,11 @@ Breaking Changes
 Changes
 =======
 
+ - Updated the ``admin-ui`` to ``1.2.3`` which includes the following change:
+
+   -  Fixed ``y-axis`` number formatting for long running queries
+      in the monitoring plugin.
+
  - Added built-in ``fingerprint``, ``keep_types``, ``min_hash`` and
    ``serbian_normalization`` token filter.
 
