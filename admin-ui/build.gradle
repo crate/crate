@@ -8,7 +8,7 @@ dependencies {
 }
 
 ext {
-    plugin_crateadmin_version = '1.2.2'
+    plugin_crateadmin_version = '1.2.3'
     downloadDir = new File(buildDir, 'downloads')
 }
 

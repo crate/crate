@@ -12,5 +12,17 @@ For developers: changes should be recorded here (using RST syntax) as you are
 developing CrateDB. When a new release is being cut, changes will be moved to
 the appropriate section of the docs.
 
+
+Breaking Changes
+================
+
+Changes
+=======
+
+ - Updated the ``admin-ui`` to ``1.2.3`` which includes the following change:
+
+   -  Fixed ``y-axis`` number formatting for long running queries
+      in the monitoring plugin.
+
 Fixes
 =====
