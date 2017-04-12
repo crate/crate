@@ -25,6 +25,7 @@ package io.crate.module;
 import io.crate.ClusterIdService;
 import io.crate.plugin.IndexEventListenerProxy;
 import io.crate.rest.CrateRestMainAction;
+import io.crate.settings.SharedSettings;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.TypeLiteral;
@@ -46,6 +47,12 @@ public class CrateCoreModule extends AbstractModule {
     public CrateCoreModule(Settings settings, IndexEventListenerProxy indexEventListenerProxy) {
         logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
         this.indexEventListenerProxy = indexEventListenerProxy;
+        if (SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings) &&
+            "".equals(SharedSettings.LICENSE_IDENT_SETTING.setting().get(settings))){
+            logger.warn(" You are currently using the Enterprise Edition, " +
+                "but have not configured a licence. Please configure a license " +
+                "or deactivate the Enterprise Edition.");
+        }
     }
 
     @Override

@@ -103,6 +103,8 @@ Breaking Changes
 Changes
 =======
 
+ - Added cluster check and warning for unlicensed usage of CrateDB Enterprise.
+
  - Added ``license.ident`` setting.
 
  - Updated the ``admin-ui`` to ``1.2.3`` which includes the following change:

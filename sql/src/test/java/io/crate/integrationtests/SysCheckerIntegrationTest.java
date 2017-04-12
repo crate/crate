@@ -39,8 +39,9 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testChecksPresenceAndSeverityLevels() throws Exception {
         internalCluster().startNode();
+
         SQLResponse response = execute("select severity, passed from sys.checks order by id asc");
-        assertThat(response.rowCount(), equalTo(3L));
+        assertThat(response.rowCount(), equalTo(4L));
         assertThat(response.rows()[0][0], is(Severity.HIGH.value()));
         assertThat(response.rows()[1][0], is(Severity.MEDIUM.value()));
         assertThat(response.rows()[2][0], is(Severity.MEDIUM.value()));
