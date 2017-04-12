@@ -30,7 +30,6 @@ import io.crate.analyze.QueriedTable;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -333,9 +332,30 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testDistributedJoinWithGroupByNotSupported() throws Exception {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("Distributed execution is not supported");
-        plan("select count(u1.name) from users u1, users u2 where u1.id = u2.id group by u1.name");
+    public void testDistributedJoinWithGroupByHavingAndOrderBy() throws Exception {
+        Merge merge = plan("select count(u1.name), u1.name from users u1, users u2 where u1.id = u2.id group by u1.name having count(u1.id) > 0 order by u1.name");
+        merge = (Merge) merge.subPlan();
+        assertThat(merge.orderBy(), instanceOf(PositionalOrderBy.class));
+
+        MergePhase localMergePhase = merge.mergePhase();
+        assertThat(localMergePhase.projections(),
+            Matchers.contains(
+                instanceOf(GroupProjection.class),
+                instanceOf(FilterProjection.class),
+                instanceOf(OrderedTopNProjection.class)
+            )
+        );
+
+        NestedLoop nestedLoop = (NestedLoop) merge.subPlan();
+        assertThat(nestedLoop.nestedLoopPhase().projections(),
+            Matchers.contains(
+                instanceOf(FilterProjection.class),
+                instanceOf(EvalProjection.class),
+                instanceOf(GroupProjection.class)
+            )
+        );
+
+        EvalProjection eval = ((EvalProjection) nestedLoop.nestedLoopPhase().projections().get(1));
+        assertThat(eval.outputs().size(), is(2));
     }
 }

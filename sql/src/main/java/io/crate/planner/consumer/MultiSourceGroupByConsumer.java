@@ -27,12 +27,15 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPairs;
 import io.crate.analyze.symbol.*;
 import io.crate.collections.Lists2;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.Limits;
+import io.crate.planner.Merge;
 import io.crate.planner.Plan;
+import io.crate.planner.PositionalOrderBy;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -45,8 +48,10 @@ import java.util.function.Function;
 public class MultiSourceGroupByConsumer implements Consumer {
 
     private final Visitor visitor;
+    private static ProjectionBuilder projectionBuilder;
 
     MultiSourceGroupByConsumer(Functions functions) {
+        projectionBuilder = new ProjectionBuilder(functions);
         visitor = new Visitor(functions);
     }
 
@@ -72,13 +77,13 @@ public class MultiSourceGroupByConsumer implements Consumer {
                 return null;
             }
 
+            List<Symbol> groupKeys = querySpec.groupBy().get();
+            List<Symbol> outputs = querySpec.outputs();
+
             // Copy because MSS planning mutates symbols.
             querySpec = querySpec.copyAndReplace(Function.identity());
 
-            List<Symbol> groupKeys = querySpec.groupBy().get();
             SplitPoints splitPoints = SplitPoints.create(querySpec);
-
-            List<Symbol> outputs = querySpec.outputs();
             if (querySpec.hasAggregates() == true) {
                 querySpec.hasAggregates(false);
                 querySpec.outputs(splitPoints.toCollect());
@@ -87,39 +92,114 @@ public class MultiSourceGroupByConsumer implements Consumer {
             }
 
             removePostGroupingActionsFromQuerySpec(multiSourceSelect, splitPoints);
-            Plan plan = createSubPlan(context, multiSourceSelect);
-            addGroupProtection(plan, splitPoints, groupKeys);
-            addFilterProtection(plan, groupKeys, splitPoints, querySpec);
-            addTopN(plan, context, splitPoints, groupKeys, querySpec, outputs);
 
-            return plan;
-        };
-
-        /**
-         * Create and return the execution plan depending on distributed or non distributed execution.
-         */
-        private static Plan createSubPlan(ConsumerContext context, MultiSourceSelect multiSourceSelect) {
             Plan plan = context.plannerContext().planSubRelation(multiSourceSelect, context);
-            boolean executesOnHandler = ExecutionPhases.executesOnHandler(
-                context.plannerContext().handlerNode(),
-                plan.resultDescription().nodeIds()
-            );
-            if (!executesOnHandler) {
-                // TODO: support distributed execution.
-                throw new UnsupportedFeatureException("Distributed execution is not supported");
+
+            if (isExecutedOnHandler(context, plan)) {
+                addNonDistributedGroupProjection(plan, splitPoints, groupKeys);
+                addFilterProjection(plan, splitPoints, groupKeys, querySpec);
+                addTopN(plan, splitPoints, groupKeys, querySpec, context, outputs);
+            } else {
+                addDistributedGroupProjection(plan, splitPoints, groupKeys);
+                plan = createReduceMerge(plan, splitPoints, groupKeys, querySpec, context, outputs);
             }
 
             return plan;
         }
 
         /**
+         * Returns true for non distributed and false for distributed execution.
+         */
+        private static boolean isExecutedOnHandler(ConsumerContext context, Plan plan) {
+            return ExecutionPhases.executesOnHandler(
+                context.plannerContext().handlerNode(),
+                plan.resultDescription().nodeIds()
+            );
+        }
+
+        /**
+         * Creates and returns the merge plan.
+         */
+        private Merge createReduceMerge(Plan plan,
+                                        SplitPoints splitPoints,
+                                        List<Symbol> groupKeys,
+                                        QuerySpec querySpec,
+                                        ConsumerContext context,
+                                        List<Symbol> outputs) {
+            ArrayList<Symbol> groupProjectionOutputs = new ArrayList<>(groupKeys);
+            groupProjectionOutputs.addAll(splitPoints.aggregates());
+
+            List<Projection> reducerProjections = new ArrayList<>();
+            reducerProjections.add(projectionBuilder.groupProjection(
+                groupProjectionOutputs,
+                groupKeys,
+                splitPoints.aggregates(),
+                AggregateMode.PARTIAL_FINAL,
+                RowGranularity.CLUSTER)
+            );
+
+            addFilterProjectionIfNecessary(reducerProjections, querySpec, groupProjectionOutputs);
+
+            OrderBy orderBy = querySpec.orderBy().orElse(null);
+            Limits limits = context.plannerContext().getLimits(querySpec);
+
+            reducerProjections.add(ProjectionBuilder.topNOrEval(
+                groupProjectionOutputs,
+                orderBy,
+                0, // No offset since this is distributed.
+                limits.limitAndOffset(),
+                outputs)
+            );
+
+            return new Merge(
+                plan,
+                createMergePhase(context, plan, reducerProjections),
+                limits.finalLimit(),
+                limits.offset(),
+                outputs.size(),
+                limits.limitAndOffset(),
+                PositionalOrderBy.of(orderBy, outputs)
+            );
+        }
+
+        /**
+         * Creates and returns the merge phase.
+         */
+        private static MergePhase createMergePhase(ConsumerContext context, Plan plan, List<Projection> reducerProjections) {
+            return new MergePhase(
+                context.plannerContext().jobId(),
+                context.plannerContext().nextExecutionPhaseId(),
+                "distributed merge",
+                plan.resultDescription().nodeIds().size(),
+                plan.resultDescription().nodeIds(),
+                plan.resultDescription().streamOutputs(),
+                reducerProjections,
+                DistributionInfo.DEFAULT_BROADCAST,
+                null
+            );
+        }
+
+        /**
+         * Add filter projection to reducer projections.
+         */
+        private static void addFilterProjectionIfNecessary(List<Projection> reducerProjections,
+                                                           QuerySpec querySpec,
+                                                           List<Symbol> collectOutputs) {
+            Optional<HavingClause> havingClause = querySpec.having();
+            if (havingClause.isPresent()) {
+                HavingClause having = havingClause.get();
+                reducerProjections.add(ProjectionBuilder.filterProjection(collectOutputs, having));
+            }
+        }
+
+        /**
          * Add topN and re-order the column after messed up by groupBy.
          */
         private static void addTopN(Plan plan,
-                                    ConsumerContext context,
                                     SplitPoints splitPoints,
                                     List<Symbol> groupKeys,
                                     QuerySpec querySpec,
+                                    ConsumerContext context,
                                     List<Symbol> outputs) {
             OrderBy orderBy = querySpec.orderBy().orElse(null);
             Limits limits = context.plannerContext().getLimits(querySpec);
@@ -136,13 +216,11 @@ public class MultiSourceGroupByConsumer implements Consumer {
         }
 
         /**
-         * Adds the group protection to the given plan in order to handle the groupBy.
+         * Adds the group projection to the given plan in order to handle the groupBy.
          */
-        private void addGroupProtection(Plan plan,
-                                        SplitPoints splitPoints,
-                                        List<Symbol> groupKeys) {
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
-
+        private void addNonDistributedGroupProjection(Plan plan,
+                                                      SplitPoints splitPoints,
+                                                      List<Symbol> groupKeys) {
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                 splitPoints.toCollect(),
                 groupKeys,
@@ -154,14 +232,30 @@ public class MultiSourceGroupByConsumer implements Consumer {
         }
 
         /**
-         * Adds the filter protection to the given plan in order to handle the `having` clause.
+         * Adds the group projection to the given plan in order to handle the groupBy.
          */
-        private static void addFilterProtection(Plan plan,
-                                                List<Symbol> groupKeys,
+        private void addDistributedGroupProjection(Plan plan,
+                                                   SplitPoints splitPoints,
+                                                   List<Symbol> groupKeys) {
+            GroupProjection groupProjection = projectionBuilder.groupProjection(
+                splitPoints.toCollect(),
+                groupKeys,
+                splitPoints.aggregates(),
+                AggregateMode.ITER_PARTIAL,
+                RowGranularity.SHARD
+            );
+            plan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
+            plan.addProjection(groupProjection, null, null, groupProjection.outputs().size(), null);
+        }
+
+        /**
+         * Adds the filter projection to the given plan in order to handle the `having` clause.
+         */
+        private static void addFilterProjection(Plan plan,
                                                 SplitPoints splitPoints,
+                                                List<Symbol> groupKeys,
                                                 QuerySpec querySpec) {
             Optional<HavingClause> havingClause = querySpec.having();
-
             if (havingClause.isPresent()) {
                 List<Symbol> postGroupingOutputs = new ArrayList<>(
                     groupKeys.size() +
