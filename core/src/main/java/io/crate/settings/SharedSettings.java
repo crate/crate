@@ -28,7 +28,7 @@ import org.elasticsearch.common.settings.Setting;
 public class SharedSettings {
 
     public static final CrateSetting<Boolean> ENTERPRISE_LICENSE_SETTING = CrateSetting.of(Setting.boolSetting(
-        "license.enterprise", false,
+        "license.enterprise", true,
         Setting.Property.NodeScope), DataTypes.BOOLEAN);
 
 }
