@@ -207,6 +207,13 @@ Node Specific Settings
 
    Node names must be unique in a CrateDB cluster.
 
+**node.max_local_storage_nodes**
+  | *Default:*    ``1``
+  | *Runtime:*   ``no``
+
+  Defines how many nodes are allowed to be started on the same machine using the
+  same configured data path defined via `path.data`_.
+
 Node Types
 ----------
 
@@ -405,6 +412,8 @@ Paths
 
   Filesystem path to the directory containing the configuration files ``crate.yml``
   and ``log4j2.properties``.
+
+.. _path.data:
 
 **path.data**
   | *Runtime:* ``no``
