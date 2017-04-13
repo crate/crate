@@ -52,13 +52,13 @@ import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.projection.OrderedTopNProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
@@ -144,12 +144,12 @@ public class ESGetTask extends JobTask {
                 Projection projection;
                 if (task.esGet.sortSymbols().isEmpty()) {
                     projection = new TopNProjection(
-                        task.esGet.limit(), task.esGet.offset(), InputColumn.numInputs(task.esGet.outputs().size()));
+                        task.esGet.limit(), task.esGet.offset(), InputColumn.fromSymbols(task.esGet.outputs()));
                 } else {
                     projection = new OrderedTopNProjection(
                         task.esGet.limit(),
                         task.esGet.offset(),
-                        InputColumn.numInputs(task.esGet.outputs().size()),
+                        InputColumn.fromSymbols(task.esGet.outputs()),
                         orderBySymbols,
                         task.esGet.reverseFlags(),
                         task.esGet.nullsFirst()
