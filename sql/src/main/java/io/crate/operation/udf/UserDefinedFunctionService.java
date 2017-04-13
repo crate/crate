@@ -27,6 +27,7 @@ import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -38,7 +39,9 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.HashMap;
 import java.util.List;
@@ -59,25 +62,36 @@ public class UserDefinedFunctionService {
         "udf.enabled", false,
         Setting.Property.NodeScope), DataTypes.BOOLEAN);
 
+    private final Settings settings;
     private final ClusterService clusterService;
     private Map<String, UDFLanguage> languageRegistry = new HashMap<>();
 
+    private static final Logger LOGGER = Loggers.getLogger(UserDefinedFunctionService.class);
+
+    @Inject
+    public UserDefinedFunctionService(Settings settings, ClusterService clusterService) {
+        this.settings = settings;
+        this.clusterService = clusterService;
+    }
 
     public UDFLanguage getLanguage(String languageName) throws IllegalArgumentException {
         UDFLanguage lang = languageRegistry.get(languageName);
         if (lang == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Can't find Language '%s'", languageName));
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "'%s' is not a valid UDF language", languageName));
         }
         return lang;
     }
 
-    public void registerLanguage(UDFLanguage language) {
-        languageRegistry.put(language.name(), language);
+    private boolean enabled() {
+        return UDF_SETTING.setting().get(settings);
     }
 
-    @Inject
-    public UserDefinedFunctionService(ClusterService clusterService) {
-        this.clusterService = clusterService;
+    public void registerLanguage(UDFLanguage language) {
+        if (enabled()) {
+            languageRegistry.put(language.name(), language);
+        } else if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("Could not register language '{}' because UDF is disabled.", language.name());
+        }
     }
 
     /**

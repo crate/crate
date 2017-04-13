@@ -10,7 +10,6 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
@@ -54,7 +53,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     private UserDefinedFunctionService udfService;
 
     private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder) throws IOException {
-        return getIndexMetaData(indexName, builder, Settings.Builder.EMPTY_SETTINGS, null);
+        return getIndexMetaData(indexName, builder, Settings.EMPTY, null);
     }
 
     private IndexMetaData getIndexMetaData(String indexName,
@@ -86,7 +85,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void before() throws Exception {
         functions = getFunctions();
-        udfService = new UserDefinedFunctionService(clusterService);
+        udfService = new UserDefinedFunctionService(Settings.EMPTY, clusterService);
     }
 
     @Test

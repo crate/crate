@@ -61,6 +61,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
@@ -90,9 +91,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
         DocTableInfoFactory fooTableFactory = new TestingDocTableInfoFactory(
             ImmutableMap.of(fooUserTableInfo.ident(), fooUserTableInfo));
+        UserDefinedFunctionService udfService = new UserDefinedFunctionService(Settings.EMPTY, clusterService);
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .addSchema(new DocSchemaInfo("foo", clusterService, getFunctions(), new UserDefinedFunctionService(clusterService), fooTableFactory))
+            .addSchema(new DocSchemaInfo("foo", clusterService, getFunctions(), udfService, fooTableFactory))
             .build();
     }
 

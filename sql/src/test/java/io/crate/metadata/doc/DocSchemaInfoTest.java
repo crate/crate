@@ -33,6 +33,7 @@ import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.operation.udf.UserDefinedFunctionsMetaData;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -48,7 +49,10 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setup() throws Exception {
-        udfService = new UserDefinedFunctionService(clusterService);
+        Settings settings = Settings.builder()
+            .put(UserDefinedFunctionService.UDF_SETTING.getKey(), true)
+            .build();
+        udfService = new UserDefinedFunctionService(settings, clusterService);
         udfService.registerLanguage(new UDFLanguage() {
             @Override
             public FunctionImplementation createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException {
