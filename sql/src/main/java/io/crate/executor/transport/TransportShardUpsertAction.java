@@ -80,6 +80,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.elasticsearch.action.support.replication.ReplicationOperation.ignoreReplicaException;
+
 @Singleton
 public class TransportShardUpsertAction extends TransportShardAction<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
@@ -187,7 +189,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
                 continue;
             }
-            location = shardIndexOperationOnReplica(request, item, indexShard);
+            try {
+                location = shardIndexOperationOnReplica(request, item, indexShard);
+            } catch (Exception e) {
+                if (!ignoreReplicaException(e)) {
+                    throw e;
+                }
+            }
         }
         return location;
     }
