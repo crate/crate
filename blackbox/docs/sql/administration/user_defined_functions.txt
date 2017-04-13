@@ -3,10 +3,20 @@
 User Defined Functions
 ======================
 
-.. NOTE::
+.. note::
 
-   The User Defined Functions is an experimental feature. It is disabled by default.
-   You can enable the :ref:`conf_udf_enabled` via the CrateDB configuration file.
+    User Defined Functions are an experimental feature. This feature is disabled
+    by default. You can enable the :ref:`conf_udf_enabled` via the
+    configuration file.
+
+.. note::
+
+    The following examples use :ref:`udf_lang_js` as language for user defined
+    functions. The JavaScript language, however, is only available as an
+    Enterprise feature.
+    You can enable and disable the :ref:`conf_enterprise_license` via the
+    configuration file.
+
 
 CREATE OR REPLACE
 -----------------
@@ -72,10 +82,10 @@ For example, if you wanted to name two ``geo_point`` arguments ``start_point`` a
     CREATE OK, 1 row affected  (... sec)
 
 
-.. NOTE::
+.. note::
 
-   Argument names are used for query documentation purposes only. You cannot
-   reference arguments by name in the function body.
+    Argument names are used for query documentation purposes only. You cannot
+    reference arguments by name in the function body.
 
 Optionally, you can specify a schema for the function. If you omit the schema,
 the current session schema is used.
@@ -102,11 +112,11 @@ any of the CrateDB supported :ref:`sql_ddl_datatypes`. Data types of values
 passed into a user-defined function must strictly correspond to its argument
 data types.
 
-.. NOTE::
+.. note::
 
-   The value returned by the function will be casted to the return type
-   provided in the definition if required. An exception will be thrown
-   if the cast is not successful.
+    The value returned by the function will be casted to the return type
+    provided in the definition if required. An exception will be thrown
+    if the cast is not successful.
 
 
 OVERLOADING
@@ -139,14 +149,14 @@ This would overload our ``multiply`` function with more arguments::
 
 .. note::
 
-   It is considered bad practice to create functions that have the same name
-   as the CrateDB built-in functions. If you call a function without a schema
-   name, CrateDB will look it up in the built-in functions first and only then
-   in the user-defined functions with the schema of the current session
-   (see :ref:`conf-session-settings`). Therefore a built-in function with the
-   same name as a user defined function will hide the latter. However, such
-   user-defined functions can still be called if the schema name is explicitly
-   provided.
+    It is considered bad practice to create functions that have the same name
+    as the CrateDB built-in functions. If you call a function without a schema
+    name, CrateDB will look it up in the built-in functions first and only then
+    in the user-defined functions with the schema of the current session
+    (see :ref:`conf-session-settings`). Therefore a built-in function with the
+    same name as a user defined function will hide the latter. However, such
+    user-defined functions can still be called if the schema name is explicitly
+    provided.
 
 
 Determinism
@@ -183,13 +193,15 @@ Optionally, you can provide a schema::
 Supported Languages
 -------------------
 
+.. _udf_lang_js:
+
 JavaScript
 ..........
 
 The current version of CrateDB supports ECMAScript 5.1.
 
 Supported Types
-...............
+^^^^^^^^^^^^^^^
 
 JavaScript user-defined functions can handle all CrateDB data types. However,
 for some return types the user defined functions output must correspond to
@@ -241,10 +253,10 @@ the JavaScript function should return a ``GeoJson`` object or``WKT`` string::
      CREATE OK, 1 row affected  (... sec)
 
 
-.. NOTE::
+.. note::
 
-   If the return value of the JavaScript function is ``undefined`` it is
-   converted to ``NULL``.
+    If the return value of the JavaScript function is ``undefined`` it is
+    converted to ``NULL``.
 
 
 Working with ``NUMBERS``
