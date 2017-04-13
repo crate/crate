@@ -378,17 +378,17 @@ Columns
     or ``TOKEN_FILTER``.
 :routine_schema:
     The schema where the routine was defined.
-    If it doesn't apply, then ``Null``.
+    If it doesn't apply, then ``NULL``.
 :routine_body:
     The language used for the routine implementation.
-    If it doesn't apply, then ``Null``.
+    If it doesn't apply, then ``NULL``.
 :data_type:
     The return type of the function.
-    If it doesn't apply, then ``Null``.
+    If it doesn't apply, then ``NULL``.
 :is_deterministic:
-    If the routine is deterministic then `True`, else `False` (``Null`` if it doesn't apply).
+    If the routine is deterministic then `True`, else `False` (``NULL`` if it doesn't apply).
 :routine_definition:
-    The definition of the user defined function (``Null`` if it doesn't apply).
+    The definition of the user defined function (``NULL`` if it doesn't apply).
 
 
 Schemata
