@@ -122,11 +122,11 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         try {
             execute("create function foo(long)" +
                 " returns string language dummy_lang as 'function foo(x) { return \"1\"; }'");
-            waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.LONG));
+            assertFunctionIsCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.LONG));
 
             execute("create function foo(string)" +
                 " returns string language dummy_lang as 'function foo(x) { return x; }'");
-            waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.STRING));
+            assertFunctionIsCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.STRING));
 
             Thread.sleep(5);
             execute("select foo(str), id from test order by id asc");
@@ -142,21 +142,21 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     @Test
     public void testDropFunction() throws Exception {
         execute("create function custom(string) returns string language dummy_lang as 'DUMMY DUMMY DUMMY'");
-        waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of(DataTypes.STRING));
+        assertFunctionIsCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of(DataTypes.STRING));
 
         dropFunction("custom", ImmutableList.of(DataTypes.STRING));
-        waitForFunctionDeleted(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of(DataTypes.STRING));
+        assertFunctionIsDeletedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of(DataTypes.STRING));
     }
 
     @Test
     public void testNewSchemaWithFunction() throws Exception {
         execute("create function new_schema.custom() returns integer language dummy_lang as 'function custom() {return 1;}'");
-        waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of());
+        assertFunctionIsCreatedOnAll("new_schema", "custom", ImmutableList.of());
         execute("select count(*) from information_schema.schemata where schema_name='new_schema'");
         assertThat(response.rows()[0][0], is(1L));
 
         execute("drop function new_schema.custom()");
-        waitForFunctionDeleted(Schemas.DEFAULT_SCHEMA_NAME, "custom", ImmutableList.of());
+        assertFunctionIsDeletedOnAll("new_schema", "custom", ImmutableList.of());
         execute("select count(*) from information_schema.schemata where schema_name='new_schema'");
         assertThat(response.rows()[0][0], is(0L));
     }
@@ -164,25 +164,25 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     @Test
     public void testSelectFunctionsFromRoutines() throws Exception {
         try {
-            execute("create function substract_test(long, long, long) " +
+            execute("create function subtract_test(long, long, long) " +
                     "returns long language dummy_lang " +
-                    "as 'function substract_test(a, b, c) { return a - b - c; }'");
-            waitForFunctionCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME,
-                "substract_test",
+                    "as 'function subtract_test(a, b, c) { return a - b - c; }'");
+            assertFunctionIsCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME,
+                "subtract_test",
                 ImmutableList.of(DataTypes.LONG, DataTypes.LONG, DataTypes.LONG)
             );
 
             execute("select routine_name, routine_body, data_type, routine_definition, routine_schema" +
                     " from information_schema.routines " +
-                    " where routine_type = 'FUNCTION'");
+                    " where routine_type = 'FUNCTION' and routine_name = 'subtract_test'");
             assertThat(response.rowCount(), is(1L));
-            assertThat(response.rows()[0][0], is("substract_test"));
+            assertThat(response.rows()[0][0], is("subtract_test"));
             assertThat(response.rows()[0][1], is("dummy_lang"));
             assertThat(response.rows()[0][2], is("long"));
-            assertThat(response.rows()[0][3], is("function substract_test(a, b, c) { return a - b - c; }"));
+            assertThat(response.rows()[0][3], is("function subtract_test(a, b, c) { return a - b - c; }"));
             assertThat(response.rows()[0][4], is("doc"));
         } catch (Exception e){
-            execute("drop function if exists substract_test(long, long, long)");
+            execute("drop function if exists subtract_test(long, long, long)");
             throw e;
         }
     }
@@ -192,6 +192,6 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         execute(String.format(Locale.ENGLISH, "drop function %s(%s)",
             name, types.stream().map(DataType::getName).collect(Collectors.joining(", "))));
         assertThat(response.rowCount(), is(1L));
-        waitForFunctionDeleted(Schemas.DEFAULT_SCHEMA_NAME, name, types);
+        assertFunctionIsDeletedOnAll(Schemas.DEFAULT_SCHEMA_NAME, name, types);
     }
 }

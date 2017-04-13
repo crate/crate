@@ -353,5 +353,6 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public void close() throws Exception {
+        functions.deregisterSchemaFunctions(schemaName);
     }
 }

@@ -162,13 +162,13 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 }
             }
 
+            for (String addedSchema : added) {
+                schemas.put(addedSchema, getCustomSchemaInfo(addedSchema));
+            }
+
             // update all existing schemas
             for (SchemaInfo schemaInfo : this) {
                 schemaInfo.update(event);
-            }
-
-            for (String addedSchema : added) {
-                schemas.put(addedSchema, getCustomSchemaInfo(addedSchema));
             }
         }
     }

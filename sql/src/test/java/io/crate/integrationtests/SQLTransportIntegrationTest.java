@@ -409,37 +409,30 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         }, 20L, TimeUnit.SECONDS);
     }
 
-    public void waitForFunctionCreatedOnAll(String schema, String name, List<DataType> types) throws Exception {
-        awaitBusy(() -> {
-            int count = 0;
-            int expected = 0;
+    public void assertFunctionIsCreatedOnAll(String schema, String name, List<DataType> types) throws Exception {
+        assertBusy(() -> {
             Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
             for (Functions function : functions) {
-                expected += 1;
                 try {
                     function.getUserDefined(schema, name, types);
-                    count += 1;
                 } catch (UnsupportedOperationException e) {
-                    // pass
+                    assertFalse("function not found", true);
                 }
             }
-            return count == expected;
         });
     }
 
-    public void waitForFunctionDeleted(String schema, String name, List<DataType> types) throws Exception {
-        awaitBusy(() -> {
-            int count = 0;
+    public void assertFunctionIsDeletedOnAll(String schema, String name, List<DataType> types) throws Exception {
+        assertBusy(() -> {
             Iterable<Functions> functions = internalCluster().getInstances(Functions.class);
             for (Functions function : functions) {
                 try {
                     function.getUserDefined(schema, name, types);
-                    count += 1;
+                    assertFalse("function should be deleted", true);
                 } catch (UnsupportedOperationException e) {
                     // pass
                 }
             }
-            return count == 0;
         });
     }
 
