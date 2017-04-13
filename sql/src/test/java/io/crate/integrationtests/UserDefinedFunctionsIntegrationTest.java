@@ -81,10 +81,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
 
         @Override
         public String validate(UserDefinedFunctionMetaData metadata) {
-            // dummy-lang functions require exactly one argument
-            if (metadata.argumentTypes().size() != 1) {
-                return "Dummy_lang functions require exactly one argument";
-            }
+            // dummy language does not validate anything
             return null;
         }
 
