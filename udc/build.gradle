@@ -4,6 +4,7 @@ archivesBaseName = 'crate-udc'
 dependencies {
     compile project(':core')
     testCompile project(':integration-testing')
+    testCompile "io.netty:netty:${versions.netty}"
 }
 
 sourceSets {

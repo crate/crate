@@ -23,7 +23,6 @@
 package io.crate.rest.action.admin;
 
 import com.google.common.collect.ImmutableMap;
-import groovyjarjarantlr.StringUtils;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.FileSystemUtils;
@@ -101,7 +100,10 @@ public class AdminUIStaticFileRequestFilter extends RestFilter {
             channel.sendResponse(new BytesRestResponse(FORBIDDEN, "GET is the only allowed method"));
             return;
         }
-        String sitePath = StringUtils.stripFront(request.rawPath(), '/');
+        String sitePath = request.rawPath();
+        while (sitePath.length() > 0 && sitePath.charAt(0) == '/') {
+            sitePath = sitePath.substring(1);
+        }
 
         // we default to index.html, or what the plugin provides (as a unix-style path)
         // this is a relative path under _site configured by the plugin.
