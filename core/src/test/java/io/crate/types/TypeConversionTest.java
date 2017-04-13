@@ -21,13 +21,13 @@
 
 package io.crate.types;
 
-import com.twitter.jsr166e.LongAdder;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.LongAdder;
 
 import static org.hamcrest.core.Is.is;
 

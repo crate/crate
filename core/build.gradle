@@ -5,6 +5,7 @@ archivesBaseName = 'crate-core'
 
 dependencies {
     compile project(':es:es-core')
+    compile "com.google.guava:guava:${versions.guava}"
     testCompile project(':integration-testing')
 }
 

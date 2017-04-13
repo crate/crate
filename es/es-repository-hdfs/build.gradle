@@ -56,6 +56,7 @@ dependencies {
     requiredLibs "commons-collections:commons-collections:3.2.1"
     requiredLibs "commons-configuration:commons-configuration:1.6"
     requiredLibs "commons-lang:commons-lang:2.6"
+    requiredLibs "commons-cli:commons-cli:${versions.commonscli}"
     requiredLibs "org.apache.hadoop:hadoop-auth:${versions.hadoop2}"
     requiredLibs "org.apache.hadoop:hadoop-common:${versions.hadoop2}"
     requiredLibs "org.apache.hadoop:hadoop-hdfs:${versions.hadoop2}"
