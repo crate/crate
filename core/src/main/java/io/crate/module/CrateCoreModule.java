@@ -25,6 +25,7 @@ package io.crate.module;
 import io.crate.ClusterIdService;
 import io.crate.plugin.IndexEventListenerProxy;
 import io.crate.rest.CrateRestMainAction;
+import io.crate.settings.SharedSettings;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.TypeLiteral;
@@ -46,6 +47,10 @@ public class CrateCoreModule extends AbstractModule {
     public CrateCoreModule(Settings settings, IndexEventListenerProxy indexEventListenerProxy) {
         logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
         this.indexEventListenerProxy = indexEventListenerProxy;
+        if (settings.getAsBoolean("license.enterprise", false) &&
+            "".equals(settings.get("license.ident",""))){
+            logger.warn("You are using an unlicensed version of CrateDB Enterprise Edition");
+        }
     }
 
     @Override

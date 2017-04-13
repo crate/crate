@@ -102,7 +102,8 @@ public class CrateSettings implements ClusterStateListener {
             PostgresNetty.PSQL_PORT_SETTING,
 
             // ENTERPRISE
-            SharedSettings.ENTERPRISE_LICENSE_SETTING
+            SharedSettings.ENTERPRISE_LICENSE_SETTING,
+            SharedSettings.LICENSE_IDENT_SETTING
         ));
 
     private static final List<CrateSetting> EXPOSED_ES_SETTINGS = Collections.unmodifiableList(

@@ -40,7 +40,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
     public void testChecksPresenceAndSeverityLevels() throws Exception {
         internalCluster().startNode();
         SQLResponse response = execute("select severity, passed from sys.checks order by id asc");
-        assertThat(response.rowCount(), equalTo(3L));
+        assertThat(response.rowCount(), equalTo(4L));
         assertThat(response.rows()[0][0], is(Severity.HIGH.value()));
         assertThat(response.rows()[1][0], is(Severity.MEDIUM.value()));
         assertThat(response.rows()[2][0], is(Severity.MEDIUM.value()));
@@ -74,4 +74,36 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{2});
         assertThat(TestingHelpers.printedTable(response.rows()), is("2| true\n"));
     }
+
+    @Test
+    public void testUnlicencedEnterpriseCheck() {
+        Settings settings = Settings.builder().put("license.enterprise", true).build();
+        internalCluster().startNode(settings);
+        internalCluster().startNode(settings);
+        SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{4});
+        assertThat(TestingHelpers.printedTable(response.rows()), is("3| false\n"));
+    }
+
+    @Test
+    public void testUnlicencedEnterpriseCheck2() {
+        Settings settings = Settings.builder()
+            .put("license.enterprise", true)
+            .put("license.ident", "").build();
+        internalCluster().startNode(settings);
+        internalCluster().startNode(settings);
+        SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{4});
+        assertThat(TestingHelpers.printedTable(response.rows()), is("3| false\n"));
+    }
+
+    @Test
+    public void testLicencedEnterpriseCheck() {
+        Settings settings = Settings.builder()
+            .put("license.enterprise", true)
+            .put("license.ident", "my-awesome-key").build();
+        internalCluster().startNode(settings);
+        internalCluster().startNode(settings);
+        SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{4});
+        assertThat(TestingHelpers.printedTable(response.rows()), is("3| true\n"));
+    }
+
 }

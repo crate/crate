@@ -91,7 +91,7 @@ available data, run::
     +--------------------------------------------------------------------------------...+-----------...+
     ...
     +--------------------------------------------------------------------------------...+-----------...+
-    SHOW 106 rows in set (... sec)
+    SHOW 107 rows in set (... sec)
 
 While **sys.cluster** contains information about the cluster as a whole,
 **sys.nodes** maintains more detailed information about each Crate
