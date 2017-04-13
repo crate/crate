@@ -193,12 +193,26 @@ Optionally, you can provide a schema::
 Supported Languages
 -------------------
 
+CrateDB currently only supports the UDF language ``javascript``.
+
 .. _udf_lang_js:
 
 JavaScript
 ..........
 
-The current version of CrateDB supports ECMAScript 5.1.
+The UDF language ``javascript`` supports the `ECMAScript 5.1`_ standard.
+
+CrateDB uses the Java built-in JavaScript engine Nashorn_ to interpret and
+execute user defined functions written in JavaScript. The engine is initialized
+using the ``--no-java`` option which basically restricts all access to Java
+APIs from within the JavaScript context. CrateDB's engine also does not allow
+non-standard syntax extensions (``--no-syntax-extensions``).
+**This, however, does not mean that JavaScript is securely sandboxed.**
+
+Also, even though Nashorn runs ECMA-complient JavaScript, objects that are
+normally accessible with a web browser (e.g. ``window``, ``console``, ...) are
+are not available.
+
 
 Supported Types
 ^^^^^^^^^^^^^^^
@@ -262,7 +276,7 @@ the JavaScript function should return a ``GeoJson`` object or``WKT`` string::
 Working with ``NUMBERS``
 ........................
 
-`Nashorn`_, the JavaScript interpreter that CrateDB uses, interprets numbers as
+The JavaScript engine Nashorn_ interprets numbers as
 ``java.lang.Double``, ``java.lang.Long``, or ``java.lang.Integer``,
 depending on the computation performed. In most cases, this is not an
 issue, since the return type of the JavaScript function will be casted
@@ -352,4 +366,6 @@ it is returned::
     cr> DROP FUNCTION utc(long, long, long);
     DROP OK, 1 row affected  (... sec)
 
-.. _Nashorn : http://www.oracle.com/technetwork/articles/java/jf14-nashorn-2126515.html
+
+.. _Nashorn: http://www.oracle.com/technetwork/articles/java/jf14-nashorn-2126515.html
+.. _ECMAScript 5.1: https://www.ecma-international.org/ecma-262/5.1/
