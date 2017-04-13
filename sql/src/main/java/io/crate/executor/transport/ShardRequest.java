@@ -147,6 +147,14 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         return Objects.hashCode(routing, jobId, shardId(), items, locations);
     }
 
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + "{" +
+               "items=" + items +
+               ", shardId=" + shardId +
+               '}';
+    }
+
     protected abstract I readItem(StreamInput input) throws IOException;
 
     /**
@@ -188,6 +196,13 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         @Override
         public int hashCode() {
             return Objects.hashCode(id);
+        }
+
+        @Override
+        public String toString() {
+            return getClass().getSimpleName() + "{" +
+                   "id='" + id + '\'' +
+                   '}';
         }
     }
 

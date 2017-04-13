@@ -462,11 +462,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             .routing(request.routing());
 
         if (logger.isTraceEnabled()) {
-            if (item.opType() == IndexRequest.OpType.INDEX) {
-                logger.trace("[{} (R)] Updating document with id {}, source: {}", indexShard.shardId(), item.id(), item.source().utf8ToString());
-            } else {
-                logger.trace("[{} (R)] Creating document with id {}, source: {}", indexShard.shardId(), item.id(), item.source().utf8ToString());
-            }
+            logger.trace("[{} (R)] Index document id={} source={} opType={} version={} versionType={}",
+                indexShard.shardId(),
+                item.id(),
+                item.source().utf8ToString(),
+                item.opType(),
+                item.version(),
+                item.version());
         }
         Engine.Index index = indexShard.prepareIndexOnReplica(
             sourceToParse, item.version(), item.versionType(), -1, request.isRetry());
