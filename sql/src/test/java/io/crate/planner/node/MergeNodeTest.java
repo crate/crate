@@ -66,7 +66,7 @@ public class MergeNodeTest extends CrateUnitTest {
         );
         GroupProjection groupProjection = new GroupProjection(
             keys, aggregations, AggregateMode.PARTIAL_FINAL, RowGranularity.CLUSTER);
-        TopNProjection topNProjection = new TopNProjection(10, 0, InputColumn.numInputs(keys.size() + aggregations.size()));
+        TopNProjection topNProjection = new TopNProjection(10, 0, InputColumn.fromSymbols(groupProjection.outputs()));
 
         List<Projection> projections = Arrays.asList(groupProjection, topNProjection);
         MergePhase node = new MergePhase(
