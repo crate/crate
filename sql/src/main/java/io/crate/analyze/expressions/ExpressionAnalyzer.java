@@ -86,7 +86,6 @@ public class ExpressionAnalyzer {
             .put(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, ComparisonExpression.Type.GREATER_THAN_OR_EQUAL)
             .build();
 
-    private final static DataTypeAnalyzer DATA_TYPE_ANALYZER = new DataTypeAnalyzer();
     private final static NegativeLiteralVisitor NEGATIVE_LITERAL_VISITOR = new NegativeLiteralVisitor();
     private final SessionContext sessionContext;
     private final java.util.function.Function<ParameterExpression, Symbol> convertParamFunction;
@@ -345,13 +344,13 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitCast(Cast node, ExpressionAnalysisContext context) {
-            DataType returnType = DATA_TYPE_ANALYZER.process(node.getType(), null);
+            DataType returnType = DataTypeAnalyzer.convert(node.getType());
             return cast(process(node.getExpression(), context), returnType, false);
         }
 
         @Override
         protected Symbol visitTryCast(TryCast node, ExpressionAnalysisContext context) {
-            DataType returnType = DATA_TYPE_ANALYZER.process(node.getType(), null);
+            DataType returnType = DataTypeAnalyzer.convert(node.getType());
 
             if (CastFunctionResolver.supportsExplicitConversion(returnType)) {
                 try {
