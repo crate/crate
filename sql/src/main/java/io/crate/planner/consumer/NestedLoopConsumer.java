@@ -37,7 +37,7 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.builder.InputCreatingVisitor;
+import io.crate.planner.projection.builder.InputColumns;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.sql.tree.QualifiedName;
 import org.apache.logging.log4j.Logger;
@@ -244,8 +244,7 @@ class NestedLoopConsumer implements Consumer {
                 projections.add(ProjectionBuilder.filterProjection(nlOutputs, where));
             }
             if (joinCondition != null) {
-                InputCreatingVisitor.Context inputVisitorContext = new InputCreatingVisitor.Context(nlOutputs);
-                joinCondition = InputCreatingVisitor.INSTANCE.process(joinCondition, inputVisitorContext);
+                joinCondition = InputColumns.create(joinCondition, nlOutputs);
                 assert joinCondition instanceof Function : "Only function symbols are valid join conditions";
                 boolean hasRelCol = SymbolVisitors.any(s -> s instanceof RelationColumn, joinCondition);
                 assert  !hasRelCol : "RelationColumns are not valid join condition arguments";

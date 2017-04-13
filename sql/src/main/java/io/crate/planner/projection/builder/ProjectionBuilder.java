@@ -39,8 +39,6 @@ import java.util.Map;
 
 public class ProjectionBuilder {
 
-    private static final InputCreatingVisitor inputVisitor = InputCreatingVisitor.INSTANCE;
-
     private final Functions functions;
 
     public ProjectionBuilder(Functions functions) {
@@ -51,7 +49,7 @@ public class ProjectionBuilder {
                                                        Collection<Function> aggregates,
                                                        AggregateMode mode,
                                                        RowGranularity granularity) {
-        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
+        InputColumns.Context context = new InputColumns.Context(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(aggregates, mode, context);
         return new AggregationProjection(aggregations, granularity, mode);
     }
@@ -63,14 +61,14 @@ public class ProjectionBuilder {
         AggregateMode mode,
         RowGranularity requiredGranularity) {
 
-        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
+        InputColumns.Context context = new InputColumns.Context(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(values, mode, context);
-        return new GroupProjection(inputVisitor.process(keys, context), aggregations, mode, requiredGranularity);
+        return new GroupProjection(InputColumns.create(keys, context), aggregations, mode, requiredGranularity);
     }
 
     private ArrayList<Aggregation> getAggregations(Collection<Function> functions,
                                                    AggregateMode mode,
-                                                   InputCreatingVisitor.Context context) {
+                                                   InputColumns.Context context) {
         ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {
             assert function.info().type() == FunctionInfo.Type.AGGREGATE :
@@ -81,7 +79,7 @@ public class ProjectionBuilder {
                 case ITER_PARTIAL:
                     // ITER means that there is no aggregation part upfront, therefore the input
                     // symbols need to be in arguments
-                    aggregationInputs = inputVisitor.process(function.arguments(), context);
+                    aggregationInputs = InputColumns.create(function.arguments(), context);
 
                     break;
 
@@ -104,10 +102,9 @@ public class ProjectionBuilder {
     }
 
     public static FilterProjection filterProjection(Collection<? extends Symbol> inputs, QueryClause queryClause) {
-        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
         Symbol query;
         if (queryClause.hasQuery()) {
-            query = inputVisitor.process(queryClause.query(), context);
+            query = InputColumns.create(queryClause.query(), inputs);
         } else if (queryClause.noMatch()) {
             query = Literal.BOOLEAN_FALSE;
         } else {
@@ -125,20 +122,19 @@ public class ProjectionBuilder {
      *                If these symbols differ from the inputs the projection will evaluate the rows to produce
      *                the desired outputs. (That is, evaluate functions or re-order the columns)
      */
-    public static Projection topNOrEval(
-        Collection<? extends Symbol> inputs,
-        @Nullable OrderBy orderBy,
-        int offset,
-        int limit,
-        @Nullable Collection<Symbol> outputs) {
+    public static Projection topNOrEval(Collection<? extends Symbol> inputs,
+                                        @Nullable OrderBy orderBy,
+                                        int offset,
+                                        int limit,
+                                        @Nullable Collection<Symbol> outputs) {
 
-        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
-        List<Symbol> inputsProcessed = inputVisitor.process(inputs, context);
+        InputColumns.Context context = new InputColumns.Context(inputs);
+        List<Symbol> inputsProcessed = InputColumns.create(inputs, context);
         List<Symbol> outputsProcessed;
         if (outputs == null) {
             outputsProcessed = inputsProcessed;
         } else {
-            outputsProcessed = inputVisitor.process(outputs, context);
+            outputsProcessed = InputColumns.create(outputs, context);
         }
 
         if (orderBy == null) {
@@ -147,8 +143,11 @@ public class ProjectionBuilder {
             }
             return new TopNProjection(limit, offset, outputsProcessed);
         }
-        return new OrderedTopNProjection(limit, offset, outputsProcessed,
-            inputVisitor.process(orderBy.orderBySymbols(), context),
+        return new OrderedTopNProjection(
+            limit,
+            offset,
+            outputsProcessed,
+            InputColumns.create(orderBy.orderBySymbols(), context),
             orderBy.reverseFlags(),
             orderBy.nullsFirst());
     }
@@ -189,9 +188,7 @@ public class ProjectionBuilder {
                                                     Map<ColumnIdent, Symbol> overwrites,
                                                     @Nullable List<String> outputNames,
                                                     WriterProjection.OutputFormat outputFormat) {
-        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
-
         return new WriterProjection(
-            inputVisitor.process(inputs, context), uri, compressionType, overwrites, outputNames, outputFormat);
+            InputColumn.fromSymbols(inputs), uri, compressionType, overwrites, outputNames, outputFormat);
     }
 }

@@ -35,7 +35,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.*;
 
-public class InputCreatingVisitorTest extends CrateUnitTest {
+public class InputColumnsTest extends CrateUnitTest {
 
     @Test
     public void testNonDeterministicFunctionsReplacement() throws Exception {
@@ -52,20 +52,20 @@ public class InputCreatingVisitorTest extends CrateUnitTest {
 
         Function newSameFn = (Function) sqlExpressions.asSymbol("random()");
         Function newDifferentFn = (Function) sqlExpressions.asSymbol("random()");
-        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputSymbols);
+        InputColumns.Context context = new InputColumns.Context(inputSymbols);
 
-        Symbol replaced1 = InputCreatingVisitor.INSTANCE.process(fn1, context);
+        Symbol replaced1 = InputColumns.create(fn1, context);
         assertThat(replaced1, is(instanceOf(InputColumn.class)));
         assertThat(((InputColumn) replaced1).index(), is(2));
 
-        Symbol replaced2 = InputCreatingVisitor.INSTANCE.process(fn2, context);
+        Symbol replaced2 = InputColumns.create(fn2, context);
         assertThat(replaced2, is(instanceOf(InputColumn.class)));
         assertThat(((InputColumn) replaced2).index(), is(3));
 
-        Symbol replaced3 = InputCreatingVisitor.INSTANCE.process(newSameFn, context);
-        assertThat(replaced3, is(equalTo((Symbol) newSameFn))); // not replaced
+        Symbol replaced3 = InputColumns.create(newSameFn, context);
+        assertThat(replaced3, is(equalTo(newSameFn))); // not replaced
 
-        Symbol replaced4 = InputCreatingVisitor.INSTANCE.process(newDifferentFn, context);
-        assertThat(replaced4, is(equalTo((Symbol) newDifferentFn))); // not replaced
+        Symbol replaced4 = InputColumns.create(newDifferentFn, context);
+        assertThat(replaced4, is(equalTo(newDifferentFn))); // not replaced
     }
 }
