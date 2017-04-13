@@ -30,9 +30,9 @@ import org.elasticsearch.common.inject.Singleton;
 import java.util.*;
 
 @Singleton
-public class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCreatingVisitor.Context, Symbol> {
+public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColumns.Context, Symbol> {
 
-    public static final InputCreatingVisitor INSTANCE = new InputCreatingVisitor();
+    private static final InputColumns INSTANCE = new InputColumns();
 
     public static class Context {
 
@@ -63,15 +63,40 @@ public class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCre
                 }
                 i++;
             }
-
         }
     }
 
+    /**
+     * Return a symbol where each element from {@code symbolTree} that occurs in {@code inputSymbols}
+     * is replaced with a {@link InputColumn} pointing to the position in {@code inputSymbols}
+     *
+     * <p>
+     * The returned instance may be the same if no elements of {@code symbolTree} where part of {@code inputSymbols}
+     * </p>
+     */
+    public static Symbol create(Symbol symbolTree, Collection<? extends Symbol> inputSymbols) {
+        return create(symbolTree, new Context(inputSymbols));
+    }
 
-    public List<Symbol> process(Collection<? extends Symbol> symbols, Context context) {
+    /**
+     * Same as {@link #create(Symbol, Collection)} but allows to re-use a context.
+     */
+    public static Symbol create(Symbol symbolTree, Context context) {
+        return INSTANCE.process(symbolTree, context);
+    }
+
+    /**
+     * Same as {@link #create(Symbol, Collection)}, but works for multiple symbols and allows re-using
+     * a context class.
+     * <p>
+     *     If {@code symbols} and the inputSymbols of the Context class are the same,
+     *     it's better to use {@link InputColumn#fromSymbols(Collection)} to create a 1:1 InputColumn mapping.
+     * </p>
+     */
+    public static List<Symbol> create(Collection<? extends Symbol> symbols, Context context) {
         List<Symbol> result = new ArrayList<>(symbols.size());
         for (Symbol symbol : symbols) {
-            result.add(process(symbol, context));
+            result.add(INSTANCE.process(symbol, context));
         }
         return result;
     }

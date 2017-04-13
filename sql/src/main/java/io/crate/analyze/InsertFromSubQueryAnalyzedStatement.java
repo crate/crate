@@ -34,7 +34,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.operation.scalar.SubscriptObjectFunction;
-import io.crate.planner.projection.builder.InputCreatingVisitor;
+import io.crate.planner.projection.builder.InputColumns;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -108,7 +108,7 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
         }
 
         List<Symbol> symbols = new ArrayList<>(columns.size());
-        InputCreatingVisitor.Context inputContext = null;
+        InputColumns.Context inputContext = null;
         for (ColumnIdent column : columns) {
             ColumnIdent subscriptColumn = null;
             if (!column.isColumn()) {
@@ -130,9 +130,9 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
                 }
 
                 if (inputContext == null) {
-                    inputContext = new InputCreatingVisitor.Context(targetColumns);
+                    inputContext = new InputColumns.Context(targetColumns);
                 }
-                Symbol symbol = InputCreatingVisitor.INSTANCE.process(generatedReference.generatedExpression(), inputContext);
+                Symbol symbol = InputColumns.create(generatedReference.generatedExpression(), inputContext);
                 symbols.add(symbol);
             }
         }
