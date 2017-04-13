@@ -52,7 +52,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -75,23 +74,22 @@ public class IndexWriterCountBatchIteratorTest extends SQLTransportIntegrationTe
         List<CollectExpression<Row, ?>> collectExpressions =
             Collections.singletonList((InputCollectExpression) sourceInput);
 
-        RowShardResolver rowShardResolver = getRowShardResolver();
-        BulkShardProcessor bulkShardProcessor = getBulkShardProcessor();
-
-        Supplier<ShardUpsertRequest.Item> updateItemSupplier = () -> new ShardUpsertRequest.Item(
-            rowShardResolver.id(), null, new Object[]{sourceInput.value()}, null);
-
         List<Object[]> expectedResult = Collections.singletonList(new Object[]{10L});
-        BatchIteratorTester tester = new BatchIteratorTester(() ->
-            IndexWriterCountBatchIterator.newIndexInstance(sourceSupplier.get(), indexNameResolver,
-                collectExpressions, rowShardResolver, bulkShardProcessor, updateItemSupplier));
+        BatchIteratorTester tester = new BatchIteratorTester(() -> {
+            RowShardResolver rowShardResolver = getRowShardResolver();
+            Supplier<ShardUpsertRequest.Item> updateItemSupplier = () -> new ShardUpsertRequest.Item(
+                rowShardResolver.id(), null, new Object[]{sourceInput.value()}, null);
+            BulkShardProcessor bulkShardProcessor = getBulkShardProcessor();
+            return IndexWriterCountBatchIterator.newIndexInstance(
+                sourceSupplier.get(),
+                indexNameResolver,
+                collectExpressions,
+                rowShardResolver,
+                bulkShardProcessor,
+                updateItemSupplier
+            );
+        });
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
-
-        try {
-            bulkShardProcessor.result().get(10, TimeUnit.SECONDS);
-        } finally {
-            bulkShardProcessor.close();
-        }
     }
 
     private RowShardResolver getRowShardResolver() {
