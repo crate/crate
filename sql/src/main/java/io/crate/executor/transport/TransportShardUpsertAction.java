@@ -472,6 +472,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
         Engine.Index index = indexShard.prepareIndexOnReplica(
             sourceToParse, item.version(), item.versionType(), -1, request.isRetry());
+
+        Mapping update = index.parsedDoc().dynamicMappingsUpdate();
+        if (update != null) {
+            throw new RetryOnReplicaException(
+                indexShard.shardId(),
+                "Mappings are not available on the replica yet, triggered update: " + update);
+        }
         indexShard.index(index);
 
         return index.getTranslogLocation();
