@@ -23,27 +23,18 @@
 package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Path;
-import io.crate.metadata.table.Operation;
 import io.crate.planner.projection.WriterProjection;
-import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
-public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement implements AnalyzedRelation {
+public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement {
 
     private final QueriedDocTable subQueryRelation;
     private final boolean columnsDefined;
@@ -109,34 +100,8 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement imple
         return analyzedStatementVisitor.visitCopyToStatement(this, context);
     }
 
-    @Nullable
-    @Override
-    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getField not implemented on CopyToAnalyzedStatement");
-    }
-
-    @Override
-    public List<Field> fields() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return visitor.visitCopyToAnalyzedStatement(this, context);
-    }
-
     @Override
     public boolean isWriteOperation() {
         return false;
-    }
-
-    @Override
-    public QualifiedName getQualifiedName() {
-        throw new UnsupportedOperationException("method not supported");
-    }
-
-    @Override
-    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
-        throw new UnsupportedOperationException("method not supported");
     }
 }
