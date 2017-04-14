@@ -419,7 +419,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                     assertFalse("function not found", true);
                 }
             }
-        });
+        }, 20L, TimeUnit.SECONDS);
     }
 
     public void assertFunctionIsDeletedOnAll(String schema, String name, List<DataType> types) throws Exception {
@@ -433,7 +433,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                     // pass
                 }
             }
-        });
+        }, 20L, TimeUnit.SECONDS);
     }
 
     public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception {

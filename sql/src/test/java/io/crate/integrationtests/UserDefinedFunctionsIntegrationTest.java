@@ -34,6 +34,8 @@ import io.crate.operation.udf.UserDefinedFunctionMetaData;
 import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
@@ -49,7 +51,7 @@ import static org.hamcrest.CoreMatchers.is;
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, randomDynamicTemplates = false)
 public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegrationTest {
 
-    private class DummyFunction<InputType> extends Scalar<String, InputType>  {
+    private class DummyFunction<InputType> extends Scalar<BytesRef, InputType>  {
 
         private final FunctionInfo info;
         private final UserDefinedFunctionMetaData metaData;
@@ -65,9 +67,9 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         }
 
         @Override
-        public String evaluate(Input<InputType>... args) {
+        public BytesRef evaluate(Input<InputType>... args) {
             // dummy-lang functions simple print the type of the only argument
-            return "DUMMY EATS " + metaData.argumentTypes().get(0).getName();
+            return BytesRefs.toBytesRef("DUMMY EATS " + metaData.argumentTypes().get(0).getName());
         }
     }
 
@@ -91,10 +93,6 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     }
 
     private final DummyLang dummyLang = new DummyLang();
-    private final Object[][] rows = new Object[][]{
-        new Object[]{1L, "Foo"},
-        new Object[]{2L, "Bar"},
-    };
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
@@ -109,9 +107,6 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         // records reside on two different nodes configured in the test setup.
         // So then it would be possible to test that a function is created and
         // applied on all of nodes.
-        execute("create table test (id long, str string) clustered by(id) into 2 shards");
-        execute("insert into test (id, str) values (?, ?)", rows);
-        refresh();
         Iterable<UserDefinedFunctionService> udfServices = internalCluster().getInstances(UserDefinedFunctionService.class);
         for (UserDefinedFunctionService udfService : udfServices) {
             udfService.registerLanguage(dummyLang);
@@ -120,6 +115,13 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
 
     @Test
     public void testCreateOverloadedFunction() throws Exception {
+        execute("create table test (id long, str string) clustered by(id) into 2 shards");
+        Object[][] rows = new Object[100][];
+        for (int i = 0; i < 100; i++) {
+            rows[i] = new Object[]{Long.valueOf(i), String.valueOf(i)};
+        }
+        execute("insert into test (id, str) values (?, ?)", rows);
+        refresh();
         try {
             execute("create function foo(long)" +
                 " returns string language dummy_lang as 'function foo(x) { return \"1\"; }'");
@@ -129,10 +131,12 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
                 " returns string language dummy_lang as 'function foo(x) { return x; }'");
             assertFunctionIsCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.STRING));
 
-            Thread.sleep(5);
-            execute("select foo(str), id from test order by id asc");
-            assertThat(response.rowCount(), is(1L));
+            execute("select foo(str) from test order by id asc");
             assertThat(response.rows()[0][0], is("DUMMY EATS string"));
+
+            execute("select foo(id) from test order by id asc");
+            assertThat(response.rows()[0][0], is("DUMMY EATS long"));
+
         } catch (Exception e){
             dropFunction("foo", ImmutableList.of(DataTypes.LONG));
             dropFunction("foo", ImmutableList.of(DataTypes.STRING));
