@@ -41,7 +41,7 @@ import io.crate.operation.projectors.TopN;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
-import io.crate.planner.consumer.UpdateConsumer;
+import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
@@ -75,7 +75,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     private final ConsumingPlanner consumingPlanner;
     private final ClusterService clusterService;
-    private final UpdateConsumer updateConsumer;
     private final CopyStatementPlanner copyStatementPlanner;
     private final SelectStatementPlanner selectStatementPlanner;
     private final EvaluatingNormalizer normalizer;
@@ -362,7 +361,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Inject
     public Planner(ClusterService clusterService, Functions functions, TableStats tableStats) {
         this.clusterService = clusterService;
-        this.updateConsumer = new UpdateConsumer();
         this.consumingPlanner = new ConsumingPlanner(clusterService, functions, tableStats);
         this.copyStatementPlanner = new CopyStatementPlanner(clusterService);
         this.selectStatementPlanner = new SelectStatementPlanner(consumingPlanner);
@@ -416,8 +414,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, Context context) {
-        ConsumerContext consumerContext = new ConsumerContext(context);
-        Plan plan = updateConsumer.consume(statement, consumerContext);
+        Plan plan = UpdatePlanner.plan(statement, context);
         if (plan == null) {
             throw new IllegalArgumentException("Couldn't plan Update statement");
         }

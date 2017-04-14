@@ -24,7 +24,6 @@ package io.crate.planner.consumer;
 import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.VersionRewriter;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableRelation;
@@ -62,26 +61,24 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-public class UpdateConsumer implements Consumer {
+public final class UpdatePlanner {
 
-    private final Visitor visitor;
+    private final static RelationVisitor RELATION_VISITOR = new RelationVisitor();
 
-    public UpdateConsumer() {
-        visitor = new Visitor();
+    private UpdatePlanner() {
     }
 
-    @Override
-    public Plan consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        return visitor.process(rootRelation, context);
+    public static Plan plan(UpdateAnalyzedStatement updateStatement, Planner.Context plannerContext) {
+        return RELATION_VISITOR.process(updateStatement.sourceRelation(), new Context(updateStatement, plannerContext));
     }
 
     static class Context {
         final UpdateAnalyzedStatement statement;
-        final ConsumerContext consumerContext;
+        private final Planner.Context plannerContext;
 
-        public Context(UpdateAnalyzedStatement statement, ConsumerContext consumerContext) {
+        public Context(UpdateAnalyzedStatement statement, Planner.Context plannerContext) {
             this.statement = statement;
-            this.consumerContext = consumerContext;
+            this.plannerContext = plannerContext;
         }
     }
 
@@ -90,7 +87,7 @@ public class UpdateConsumer implements Consumer {
         @Override
         public Plan visitDocTableRelation(DocTableRelation relation, Context context) {
             UpdateAnalyzedStatement statement = context.statement;
-            Planner.Context plannerContext = context.consumerContext.plannerContext();
+            Planner.Context plannerContext = context.plannerContext;
 
             DocTableRelation tableRelation = (DocTableRelation) statement.sourceRelation();
             DocTableInfo tableInfo = tableRelation.tableInfo();
@@ -141,7 +138,7 @@ public class UpdateConsumer implements Consumer {
         @Override
         public Plan visitTableRelation(TableRelation tableRelation, Context context) {
             UpdateAnalyzedStatement statement = context.statement;
-            Planner.Context plannerContext = context.consumerContext.plannerContext();
+            Planner.Context plannerContext = context.plannerContext;
 
             List<Plan> childPlans = new ArrayList<>(statement.nestedStatements().size());
             for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedStatement : statement.nestedStatements()) {
@@ -195,20 +192,6 @@ public class UpdateConsumer implements Consumer {
             idReference.valueType(),
             nestedStatement.assignments());
         return createPlan(plannerContext, routing, tableInfo, idReference, updateProjection, nestedStatement.whereClause());
-    }
-
-    static class Visitor extends RelationPlanningVisitor {
-
-        private final RelationVisitor relationVisitor;
-
-        public Visitor() {
-            relationVisitor = new RelationVisitor();
-        }
-
-        @Override
-        public Plan visitUpdateAnalyzedStatement(UpdateAnalyzedStatement statement, ConsumerContext context) {
-            return relationVisitor.process(statement.sourceRelation(), new Context(statement, context));
-        }
     }
 
     private static Plan upsertByQuery(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,

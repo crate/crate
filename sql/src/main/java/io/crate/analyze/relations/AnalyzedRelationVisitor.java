@@ -56,10 +56,6 @@ public abstract class AnalyzedRelationVisitor<C, R> {
         return visitAnalyzedRelation(relation, context);
     }
 
-    public R visitUpdateAnalyzedStatement(UpdateAnalyzedStatement updateAnalyzedStatement, C context) {
-        return visitAnalyzedRelation(updateAnalyzedStatement, context);
-    }
-
     public R visitTwoTableJoin(TwoTableJoin twoTableJoin, C context) {
         return visitAnalyzedRelation(twoTableJoin, context);
     }
