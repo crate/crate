@@ -90,7 +90,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         UserDefinedFunctionsMetaData metaData = UserDefinedFunctionsMetaData.of(invalid, valid);
         // if a functionImpl can't be created, it won't be registered
         Map<FunctionIdent, FunctionImplementation> functionImpl =
-            docSchemaInfo.toFunctionImpl(metaData.functionsMetaData(), logger);
+            docSchemaInfo.toFunctionImpl(metaData.functionsMetaData());
         assertThat(functionImpl.size(), is(1));
         // the valid functions will be registered
         assertThat(functionImpl.entrySet().iterator().next().getKey().name(), is("valid"));

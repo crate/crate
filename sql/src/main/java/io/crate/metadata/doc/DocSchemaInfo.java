@@ -115,7 +115,7 @@ import java.util.stream.Stream;
 public class DocSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "doc";
-    private static final Logger logger = Loggers.getLogger(DocSchemaInfo.class);
+    private static final Logger LOGGER = Loggers.getLogger(DocSchemaInfo.class);
 
     private final ClusterService clusterService;
     private final DocTableInfoFactory docTableInfoFactory;
@@ -299,16 +299,16 @@ public class DocSchemaInfo implements SchemaInfo {
         functions.deregisterSchemaFunctions(schemaName);
         UserDefinedFunctionsMetaData udfMetaData = newMetaData.custom(UserDefinedFunctionsMetaData.TYPE);
         if (udfMetaData != null) {
-            List<UserDefinedFunctionMetaData> udfFunctions = udfMetaData.functionsMetaData().stream()
-                .filter(function -> schemaName.equals(function.schema()))
-                .collect(Collectors.toList());
-            functions.registerSchemaFunctionResolvers(schemaName, toFunctionImpl(udfFunctions, logger));
+            Stream<UserDefinedFunctionMetaData> udfFunctions = udfMetaData.functionsMetaData().stream()
+                .filter(function -> schemaName.equals(function.schema()));
+            // TODO: the functions field should actually be moved to the udfService for better encapsulation
+            // then the registration of the function implementations of a schema would also move to the udfService
+            functions.registerSchemaFunctionResolvers(schemaName, toFunctionImpl(udfFunctions::iterator));
         }
     }
 
     @VisibleForTesting
-    Map<FunctionIdent, FunctionImplementation> toFunctionImpl(List<UserDefinedFunctionMetaData> functionsMetadata,
-                                                              Logger logger) {
+    Map<FunctionIdent, FunctionImplementation> toFunctionImpl(Iterable<UserDefinedFunctionMetaData> functionsMetadata) {
         Map<FunctionIdent, FunctionImplementation> udfFunctions = new HashMap<>();
         for (UserDefinedFunctionMetaData function : functionsMetadata) {
             try {
@@ -316,7 +316,7 @@ public class DocSchemaInfo implements SchemaInfo {
                 FunctionImplementation impl = lang.createFunctionImplementation(function);
                 udfFunctions.put(impl.info().ident(), impl);
             } catch (javax.script.ScriptException | IllegalArgumentException e) {
-                logger.warn(
+                LOGGER.warn(
                     String.format(Locale.ENGLISH, "Can't create user defined function '%s(%s)'",
                         function.name(),
                         function.argumentTypes().stream().map(DataType::getName).collect(Collectors.joining(", "))
