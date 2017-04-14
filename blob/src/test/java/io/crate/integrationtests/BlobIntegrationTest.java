@@ -113,10 +113,10 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         // One of the head requests must be redirected:
         String digest = uploadSmallBlob();
 
-        int numberOfRedirects1 = getNumberOfRedirects(blobUri(digest), address);
+        int numberOfRedirects1 = getNumberOfRedirects(blobUri(digest), dataNode1);
         assertThat(numberOfRedirects1, greaterThanOrEqualTo(0));
 
-        int numberOfRedirects2 = getNumberOfRedirects(blobUri(digest), address2);
+        int numberOfRedirects2 = getNumberOfRedirects(blobUri(digest), dataNode2);
         assertThat(numberOfRedirects2, greaterThanOrEqualTo(0));
 
         assertThat("The node where the blob resides should not issue a redirect",
@@ -223,7 +223,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
 
     @Test
     public void testHeadRequestConnectionIsNotClosed() throws Exception {
-        Socket socket = new Socket(address.getAddress(), address.getPort());
+        Socket socket = new Socket(randomNode.getAddress(), randomNode.getPort());
         socket.setKeepAlive(true);
         socket.setSoTimeout(3000);
 
@@ -253,7 +253,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
 
     @Test
     public void testResponseContainsCloseHeaderOnHttp10() throws Exception {
-        Socket socket = new Socket(address.getAddress(), address.getPort());
+        Socket socket = new Socket(randomNode.getAddress(), randomNode.getPort());
         socket.setKeepAlive(false);
         socket.setSoTimeout(3000);
 
@@ -302,7 +302,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     public void testIndexOnNonBlobTable() throws IOException {
         // this test works only if ES API is enabled
         HttpPut httpPut = new HttpPut(String.format(Locale.ENGLISH, "http://%s:%s/test_no_blobs/default/1",
-            address.getHostName(), address.getPort()));
+            randomNode.getHostName(), randomNode.getPort()));
         String blobData = String.format(Locale.ENGLISH, "{\"content\": \"%s\"}", StringUtils.repeat("a", 1024 * 64));
         httpPut.setEntity(new StringEntity(blobData, ContentType.APPLICATION_OCTET_STREAM));
         CloseableHttpResponse res = httpClient.execute(httpPut);
