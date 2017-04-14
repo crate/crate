@@ -21,6 +21,7 @@
 
 package io.crate.blob.v2;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.common.Nullable;
@@ -94,7 +95,7 @@ public class BlobIndex {
         BlobShard shard = shards.remove(shardId.id());
         if (shard != null) {
             if (shards.size() == 0) {
-                blobRoot = this.retrieveBlobRootDir(shard);
+                blobRoot = retrieveBlobRootDir(shard.getBlobDir(), shard.indexShard().shardId().getIndexName(), logger);
             }
             shard.deleteShard();
             if (blobRoot != null) {
@@ -109,11 +110,10 @@ public class BlobIndex {
      * Traverse the path down until the shard index was found
      * and return the root path of the blob directory.
      */
-    private Path retrieveBlobRootDir(BlobShard blobShard) {
-        Path blobDir = blobShard.getBlobDir();
-        String indexName = blobShard.indexShard().shardId().getIndex().getName();
+    @VisibleForTesting
+    static Path retrieveBlobRootDir(Path blobDir, String indexName, Logger logger) {
         do {
-            if (blobDir.getFileName().endsWith(indexName)) {
+            if (blobDir.endsWith(indexName)) {
                 break;
             }
             blobDir = blobDir.getParent();
