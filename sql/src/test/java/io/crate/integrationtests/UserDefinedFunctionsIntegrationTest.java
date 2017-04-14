@@ -90,8 +90,10 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         }
     }
 
-    private Object[][] rows = new Object[][]{
+    private final DummyLang dummyLang = new DummyLang();
+    private final Object[][] rows = new Object[][]{
         new Object[]{1L, "Foo"},
+        new Object[]{2L, "Bar"},
     };
 
     @Override
@@ -110,7 +112,6 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         execute("create table test (id long, str string) clustered by(id) into 2 shards");
         execute("insert into test (id, str) values (?, ?)", rows);
         refresh();
-        DummyLang dummyLang = new DummyLang();
         Iterable<UserDefinedFunctionService> udfServices = internalCluster().getInstances(UserDefinedFunctionService.class);
         for (UserDefinedFunctionService udfService : udfServices) {
             udfService.registerLanguage(dummyLang);
