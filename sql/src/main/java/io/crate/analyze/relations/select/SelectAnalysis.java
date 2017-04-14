@@ -27,7 +27,6 @@ import com.google.common.collect.Multimap;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationAnalysisContext;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Path;
 import io.crate.sql.tree.Expression;
@@ -42,16 +41,20 @@ public class SelectAnalysis {
     private final Map<QualifiedName, AnalyzedRelation> sources;
     private final ExpressionAnalyzer expressionAnalyzer;
     private final ExpressionAnalysisContext expressionAnalysisContext;
-    private final List<Path> outputNames = new ArrayList<>();
-    private final List<Symbol> outputSymbols = new ArrayList<>();
-    private final Multimap<String, Symbol> outputMultiMap = HashMultimap.create();
+    private final List<Path> outputNames;
+    private final List<Symbol> outputSymbols;
+    private final Multimap<String, Symbol> outputMultiMap;
 
-    public SelectAnalysis(RelationAnalysisContext context,
-                          ExpressionAnalyzer expressionAnalyzer,
-                          ExpressionAnalysisContext expressionAnalysisContext) {
-        this.sources = context.sources();
+    SelectAnalysis(int expectedItems,
+                   Map<QualifiedName, AnalyzedRelation> sources,
+                   ExpressionAnalyzer expressionAnalyzer,
+                   ExpressionAnalysisContext expressionAnalysisContext) {
+        this.sources = sources;
         this.expressionAnalyzer = expressionAnalyzer;
         this.expressionAnalysisContext = expressionAnalysisContext;
+        outputMultiMap = HashMultimap.create(expectedItems, 1);
+        outputNames = new ArrayList<>(expectedItems);
+        outputSymbols = new ArrayList<>(expectedItems);
     }
 
     public List<Path> outputNames() {

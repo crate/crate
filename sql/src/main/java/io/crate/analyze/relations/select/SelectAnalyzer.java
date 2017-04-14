@@ -25,7 +25,6 @@ import io.crate.analyze.OutputNameFormatter;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.RelationAnalysisContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.validator.SelectSymbolValidator;
@@ -41,10 +40,11 @@ public class SelectAnalyzer {
     private static final InnerVisitor INSTANCE = new InnerVisitor();
 
     public static SelectAnalysis analyzeSelect(Select select,
-                                               RelationAnalysisContext context,
+                                               Map<QualifiedName, AnalyzedRelation> sources,
                                                ExpressionAnalyzer expressionAnalyzer,
                                                ExpressionAnalysisContext expressionAnalysisContext) {
-        SelectAnalysis selectAnalysis = new SelectAnalysis(context, expressionAnalyzer, expressionAnalysisContext);
+        SelectAnalysis selectAnalysis = new SelectAnalysis(
+            select.getSelectItems().size(), sources, expressionAnalyzer, expressionAnalysisContext);
         INSTANCE.process(select, selectAnalysis);
         SelectSymbolValidator.validate(selectAnalysis.outputSymbols());
         return selectAnalysis;
@@ -106,7 +106,7 @@ public class SelectAnalyzer {
             return null;
         }
 
-        private void addAllFieldsFromRelation(SelectAnalysis context, AnalyzedRelation relation) {
+        private static void addAllFieldsFromRelation(SelectAnalysis context, AnalyzedRelation relation) {
             for (Field field : relation.fields()) {
                 context.add(field.path(), field);
             }

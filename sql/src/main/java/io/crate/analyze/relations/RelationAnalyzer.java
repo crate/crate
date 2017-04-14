@@ -176,7 +176,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         WhereClause whereClause = new WhereClause(querySymbol);
 
         SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(
-            node.getSelect(), context, expressionAnalyzer, expressionAnalysisContext);
+            node.getSelect(), context.sources(), expressionAnalyzer, expressionAnalysisContext);
 
         List<Symbol> groupBy = analyzeGroupBy(
             selectAnalysis,
