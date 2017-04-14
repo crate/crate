@@ -21,42 +21,30 @@
 
 package io.crate.operation.udf;
 
+import io.crate.action.FutureActionListener;
 import io.crate.analyze.CreateFunctionAnalyzedStatement;
 import io.crate.analyze.DropFunctionAnalyzedStatement;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class UserDefinedFunctionDDLClient {
 
-    private final boolean isEnabled;
     private final TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction;
     private final TransportDropUserDefinedFunctionAction dropUserDefinedFunctionAction;
 
     @Inject
-    public UserDefinedFunctionDDLClient(Settings settings,
-                                        TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction,
+    public UserDefinedFunctionDDLClient(TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction,
                                         TransportDropUserDefinedFunctionAction dropUserDefinedFunctionAction) {
         this.createUserDefinedFunctionAction = createUserDefinedFunctionAction;
         this.dropUserDefinedFunctionAction = dropUserDefinedFunctionAction;
-        this.isEnabled = UserDefinedFunctionService.UDF_SETTING.setting().get(settings);
-    }
-
-    private void checkUdfEnabled() {
-        if (!isEnabled) {
-            throw new UnsupportedOperationException("The experimental User Defined Functions feature is disabled.");
-        }
     }
 
     public CompletableFuture<Long> execute(final CreateFunctionAnalyzedStatement statement, Row params) {
-        checkUdfEnabled();
-        final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
         UserDefinedFunctionMetaData metaData = new UserDefinedFunctionMetaData(
             statement.schema(),
             statement.name(),
@@ -66,47 +54,20 @@ public class UserDefinedFunctionDDLClient {
             ExpressionToStringVisitor.convert(statement.definition(), params)
         );
         CreateUserDefinedFunctionRequest request = new CreateUserDefinedFunctionRequest(metaData, statement.replace());
-        createUserDefinedFunctionAction.execute(
-            request,
-            new ActionListener<UserDefinedFunctionResponse>() {
-                @Override
-                public void onResponse(UserDefinedFunctionResponse transportUserDefinedFunctionResponse) {
-                    resultFuture.complete(1L);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    resultFuture.completeExceptionally(e);
-                }
-            }
-        );
-
-        return resultFuture;
+        FutureActionListener<UserDefinedFunctionResponse, Long> listener = new FutureActionListener<>(r -> 1L);
+        createUserDefinedFunctionAction.execute(request, listener);
+        return listener;
     }
 
     public CompletableFuture<Long> execute(final DropFunctionAnalyzedStatement statement) {
-        checkUdfEnabled();
-        final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
         DropUserDefinedFunctionRequest request = new DropUserDefinedFunctionRequest(
             statement.schema(),
             statement.name(),
             statement.argumentTypes(),
             statement.ifExists()
         );
-        dropUserDefinedFunctionAction.execute(
-            request,
-            new ActionListener<UserDefinedFunctionResponse>() {
-                @Override
-                public void onResponse(UserDefinedFunctionResponse transportUserDefinedFunctionResponse) {
-                    resultFuture.complete(1L);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    resultFuture.completeExceptionally(e);
-                }
-            }
-        );
-        return resultFuture;
+        FutureActionListener<UserDefinedFunctionResponse, Long> listener = new FutureActionListener<>(r -> 1L);
+        dropUserDefinedFunctionAction.execute(request, listener);
+        return listener;
     }
 }
