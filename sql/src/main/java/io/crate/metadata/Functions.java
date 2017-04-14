@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 public class Functions {
 
     private final Map<String, FunctionResolver> functionResolvers;
-    private final Map<String, Map<String, FunctionResolver>> udfFunctionResolvers = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, FunctionResolver>> udfResolversBySchema = new ConcurrentHashMap<>();
 
     @Inject
     public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
@@ -62,22 +62,19 @@ public class Functions {
         return signatureMap;
     }
 
-    public void registerSchemaFunctionResolvers(String schema, Map<FunctionIdent, FunctionImplementation> functions) {
-        udfFunctionResolvers.put(schema, generateFunctionResolvers(functions));
+    public void registerUdfResolversForSchema(String schema, Map<FunctionIdent, FunctionImplementation> functions) {
+        udfResolversBySchema.put(schema, generateFunctionResolvers(functions));
     }
 
-    public void deregisterSchemaFunctions(String schema) {
-        if (udfFunctionResolvers.containsKey(schema)) {
-            udfFunctionResolvers.get(schema).clear();
-        }
+    public void deregisterUdfResolversForSchema(String schema) {
+        udfResolversBySchema.remove(schema);
     }
 
-    private static FunctionImplementation resolveFunctionForArgumentTypes(List<DataType> types, @Nullable FunctionResolver resolver) {
-        if (resolver != null) {
-            List<DataType> signature = resolver.getSignature(types);
-            if (signature != null) {
-                return resolver.getForTypes(signature);
-            }
+    @Nullable
+    private static FunctionImplementation resolveFunctionForArgumentTypes(List<DataType> types, FunctionResolver resolver) {
+        List<DataType> signature = resolver.getSignature(types);
+        if (signature != null) {
+            return resolver.getForTypes(signature);
         }
         return null;
     }
@@ -91,8 +88,11 @@ public class Functions {
      */
     @Nullable
     public FunctionImplementation getBuiltin(String name, List<DataType> argumentsTypes) {
-        FunctionResolver dynamicResolver = functionResolvers.get(name);
-        return resolveFunctionForArgumentTypes(argumentsTypes, dynamicResolver);
+        FunctionResolver resolver = functionResolvers.get(name);
+        if (resolver == null) {
+            return null;
+        }
+        return resolveFunctionForArgumentTypes(argumentsTypes, resolver);
     }
 
     /**
@@ -104,11 +104,15 @@ public class Functions {
      * @throws UnsupportedOperationException if no implementation is found.
      */
     public FunctionImplementation getUserDefined(String schema, String name, List<DataType> argumentsTypes) throws UnsupportedOperationException {
-        Map<String, FunctionResolver> functionResolvers = udfFunctionResolvers.get(schema);
+        Map<String, FunctionResolver> functionResolvers = udfResolversBySchema.get(schema);
         if (functionResolvers == null) {
             throw createUnknownFunctionException(name, argumentsTypes);
         }
-        FunctionImplementation impl = resolveFunctionForArgumentTypes(argumentsTypes, functionResolvers.get(name));
+        FunctionResolver resolver = functionResolvers.get(name);
+        if (resolver == null) {
+            throw createUnknownFunctionException(name, argumentsTypes);
+        }
+        FunctionImplementation impl = resolveFunctionForArgumentTypes(argumentsTypes, resolver);
         if (impl == null) {
             throw createUnknownFunctionException(name, argumentsTypes);
         }

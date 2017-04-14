@@ -296,14 +296,14 @@ public class DocSchemaInfo implements SchemaInfo {
         }
 
         // re register UDFs for this schema
-        functions.deregisterSchemaFunctions(schemaName);
+        functions.deregisterUdfResolversForSchema(schemaName);
         UserDefinedFunctionsMetaData udfMetaData = newMetaData.custom(UserDefinedFunctionsMetaData.TYPE);
         if (udfMetaData != null) {
             Stream<UserDefinedFunctionMetaData> udfFunctions = udfMetaData.functionsMetaData().stream()
                 .filter(function -> schemaName.equals(function.schema()));
             // TODO: the functions field should actually be moved to the udfService for better encapsulation
             // then the registration of the function implementations of a schema would also move to the udfService
-            functions.registerSchemaFunctionResolvers(schemaName, toFunctionImpl(udfFunctions::iterator));
+            functions.registerUdfResolversForSchema(schemaName, toFunctionImpl(udfFunctions::iterator));
         }
     }
 
@@ -353,6 +353,6 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public void close() throws Exception {
-        functions.deregisterSchemaFunctions(schemaName);
+        functions.deregisterUdfResolversForSchema(schemaName);
     }
 }
