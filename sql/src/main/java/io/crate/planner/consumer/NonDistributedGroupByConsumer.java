@@ -29,6 +29,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.collections.Lists2;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -143,11 +144,7 @@ class NonDistributedGroupByConsumer implements Consumer {
                 null);
 
             // handler
-            List<Symbol> collectOutputs = new ArrayList<>(
-                groupKeys.size() +
-                splitPoints.aggregates().size());
-            collectOutputs.addAll(groupKeys);
-            collectOutputs.addAll(splitPoints.aggregates());
+            List<Symbol> collectOutputs = Lists2.concat(groupKeys, splitPoints.aggregates());
 
             List<Projection> mergeProjections = new ArrayList<>();
             mergeProjections.add(projectionBuilder.groupProjection(

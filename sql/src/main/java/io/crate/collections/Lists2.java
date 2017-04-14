@@ -25,14 +25,21 @@ package io.crate.collections;
 import com.google.common.collect.Lists;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class Lists2 {
+
+    /**
+     * Create a new list that contains the elements of both arguments
+     */
+    public static <T> List<T> concat(Collection<? extends T> list1, Collection<? extends T> list2) {
+        ArrayList<T> list = new ArrayList<>(list1.size() + list2.size());
+        list.addAll(list1);
+        list.addAll(list2);
+        return list;
+    }
 
     public static <T> List<T> concatUnique(List<? extends T> list1, List<? extends T> list2) {
         List<T> result = new ArrayList<>(list1.size() + list2.size());

@@ -29,6 +29,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.collections.Lists2;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.Limits;
@@ -108,12 +109,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
             SplitPoints splitPoints = SplitPoints.create(querySpec);
 
             // mapper / collect
-            List<Symbol> collectOutputs = new ArrayList<>(
-                groupKeys.size() +
-                splitPoints.aggregates().size());
-            collectOutputs.addAll(groupKeys);
-            collectOutputs.addAll(splitPoints.aggregates());
-
+            List<Symbol> collectOutputs = Lists2.concat(groupKeys, splitPoints.aggregates());
             List<Projection> projections = new ArrayList<>();
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                 splitPoints.toCollect(),

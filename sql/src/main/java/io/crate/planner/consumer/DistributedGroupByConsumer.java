@@ -113,11 +113,7 @@ class DistributedGroupByConsumer implements Consumer {
             // end: Map/Collect side
 
             // start: Reducer
-            List<Symbol> collectOutputs = new ArrayList<>(
-                groupBy.size() +
-                splitPoints.aggregates().size());
-            collectOutputs.addAll(groupBy);
-            collectOutputs.addAll(splitPoints.aggregates());
+            List<Symbol> collectOutputs = Lists2.concat(groupBy, splitPoints.aggregates());
 
             List<Projection> reducerProjections = new ArrayList<>();
             reducerProjections.add(projectionBuilder.groupProjection(
