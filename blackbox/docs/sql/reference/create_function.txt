@@ -7,6 +7,10 @@ CREATE FUNCTION
 
 Create a new function.
 
+.. warning::
+
+    There are currently no languages for user defined functions available!
+
 Synopsis
 ========
 
@@ -45,8 +49,7 @@ Parameters
 :return_type: The returned data type of the function. The return type can be any
   supported type.
 
-:language_name: The language used for the function implementation. For example,
-  javascript.
+:language_name: The language used for the function implementation.
 
 :definition: A string defining the body of the function. See :ref:`string_literal`
   for more details.
