@@ -21,11 +21,11 @@
 
 package io.crate.sql.tree;
 
-import java.util.Objects;
+import com.google.common.base.Objects;
 
 public class ColumnType extends Expression {
 
-    public enum Type {
+    public static enum Type {
         PRIMITIVE,
         ARRAY,
         SET
@@ -53,8 +53,8 @@ public class ColumnType extends Expression {
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitColumnType(this, context);
+    public int hashCode() {
+        return Objects.hashCode(name, type);
     }
 
     @Override
@@ -62,14 +62,16 @@ public class ColumnType extends Expression {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        final ColumnType that = (ColumnType) o;
-        return Objects.equals(this.name, that.name)
-            && Objects.equals(this.type, that.type);
+        ColumnType that = (ColumnType) o;
+
+        if (!name.equals(that.name)) return false;
+        if (!type.equals(that.type)) return false;
+
+        return true;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(name, type);
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitColumnType(this, context);
     }
-
 }
