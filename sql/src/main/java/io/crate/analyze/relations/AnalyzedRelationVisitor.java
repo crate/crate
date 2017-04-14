@@ -56,10 +56,6 @@ public abstract class AnalyzedRelationVisitor<C, R> {
         return visitAnalyzedRelation(relation, context);
     }
 
-    public R visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement insertFromSubQueryAnalyzedStatement, C context) {
-        return visitAnalyzedRelation(insertFromSubQueryAnalyzedStatement, context);
-    }
-
     public R visitUpdateAnalyzedStatement(UpdateAnalyzedStatement updateAnalyzedStatement, C context) {
         return visitAnalyzedRelation(updateAnalyzedStatement, context);
     }

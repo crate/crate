@@ -32,14 +32,15 @@ import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Input;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.data.Input;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
+import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.consumer.UpdateConsumer;
 import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
@@ -410,7 +411,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitInsertFromSubQueryStatement(InsertFromSubQueryAnalyzedStatement statement, Context context) {
-        return consumingPlanner.plan(statement, context);
+        return InsertFromSubQueryPlanner.plan(statement, new ConsumerContext(context));
     }
 
     @Override

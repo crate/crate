@@ -41,61 +41,51 @@ import org.elasticsearch.common.settings.Settings;
 import java.util.List;
 
 
-public class InsertFromSubQueryConsumer implements Consumer {
+public final class InsertFromSubQueryPlanner {
 
-    private static final Visitor VISITOR = new Visitor();
-
-    @Override
-    public Plan consume(AnalyzedRelation relation, ConsumerContext context) {
-        return VISITOR.process(relation, context);
+    private static final ToSourceLookupConverter SOURCE_LOOKUP_CONVERTER = new ToSourceLookupConverter();
+    private InsertFromSubQueryPlanner() {
     }
 
-    private static class Visitor extends RelationPlanningVisitor {
+    public static Plan plan(InsertFromSubQueryAnalyzedStatement statement, ConsumerContext context) {
 
-        private static final ToSourceLookupConverter SOURCE_LOOKUP_CONVERTER = new ToSourceLookupConverter();
+        ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
+            statement.tableInfo().ident(),
+            null,
+            statement.tableInfo().primaryKey(),
+            statement.columns(),
+            statement.onDuplicateKeyAssignments(),
+            statement.primaryKeySymbols(),
+            statement.tableInfo().partitionedBy(),
+            statement.partitionedBySymbols(),
+            statement.tableInfo().clusteredBy(),
+            statement.clusteredBySymbol(),
+            Settings.EMPTY,
+            statement.tableInfo().isPartitioned()
+        );
 
-        @Override
-        public Plan visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement statement,
-                                         ConsumerContext context) {
+        Planner.Context plannerContext = context.plannerContext();
+        QueriedRelation subRelation = statement.subQueryRelation();
+        QuerySpec subQuerySpec = subRelation.querySpec();
 
-            ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
-                statement.tableInfo().ident(),
-                null,
-                statement.tableInfo().primaryKey(),
-                statement.columns(),
-                statement.onDuplicateKeyAssignments(),
-                statement.primaryKeySymbols(),
-                statement.tableInfo().partitionedBy(),
-                statement.partitionedBySymbols(),
-                statement.tableInfo().clusteredBy(),
-                statement.clusteredBySymbol(),
-                Settings.EMPTY,
-                statement.tableInfo().isPartitioned()
-            );
-
-            Planner.Context plannerContext = context.plannerContext();
-            QueriedRelation subRelation = statement.subQueryRelation();
-            QuerySpec subQuerySpec = subRelation.querySpec();
-
-            // We'd have to enable paging & add a mergePhase to the sub-plan which applies the ordering/limit before
-            // the indexWriterProjection can be added
-            if (subQuerySpec.limit().isPresent() || subQuerySpec.offset().isPresent() || subQuerySpec.orderBy().isPresent()) {
-                throw new UnsupportedFeatureException("Using limit, offset or order by is not " +
-                                                      "supported on insert using a sub-query");
-            }
-            SOURCE_LOOKUP_CONVERTER.process(subRelation, null);
-            Plan plannedSubQuery = plannerContext.planSubRelation(subRelation, context);
-            if (plannedSubQuery == null) {
-                return null;
-            }
-            plannedSubQuery.addProjection(indexWriterProjection, null, null, 1, null);
-            Plan plan = Merge.ensureOnHandler(plannedSubQuery, plannerContext);
-            if (plan == plannedSubQuery) {
-                return plan;
-            }
-            plan.addProjection(MergeCountProjection.INSTANCE, null, null, 1, null);
+        // We'd have to enable paging & add a mergePhase to the sub-plan which applies the ordering/limit before
+        // the indexWriterProjection can be added
+        if (subQuerySpec.limit().isPresent() || subQuerySpec.offset().isPresent() || subQuerySpec.orderBy().isPresent()) {
+            throw new UnsupportedFeatureException("Using limit, offset or order by is not " +
+                                                  "supported on insert using a sub-query");
+        }
+        SOURCE_LOOKUP_CONVERTER.process(subRelation, null);
+        Plan plannedSubQuery = plannerContext.planSubRelation(subRelation, context);
+        if (plannedSubQuery == null) {
+            return null;
+        }
+        plannedSubQuery.addProjection(indexWriterProjection, null, null, 1, null);
+        Plan plan = Merge.ensureOnHandler(plannedSubQuery, plannerContext);
+        if (plan == plannedSubQuery) {
             return plan;
         }
+        plan.addProjection(MergeCountProjection.INSTANCE, null, null, 1, null);
+        return plan;
     }
 
     private static class ToSourceLookupConverter extends AnalyzedRelationVisitor<Void, Void> {

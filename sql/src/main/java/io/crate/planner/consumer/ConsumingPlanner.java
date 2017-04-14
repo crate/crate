@@ -47,7 +47,6 @@ public class ConsumingPlanner {
         consumers.add(new DistributedGroupByConsumer(projectionBuilder));
         consumers.add(new CountConsumer());
         consumers.add(new GlobalAggregateConsumer(projectionBuilder));
-        consumers.add(new InsertFromSubQueryConsumer());
         consumers.add(new QueryAndFetchConsumer());
         consumers.add(new MultiSourceAggregationConsumer(projectionBuilder));
         consumers.add(new ManyTableConsumer());

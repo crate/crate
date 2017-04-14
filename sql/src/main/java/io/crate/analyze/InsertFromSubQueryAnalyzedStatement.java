@@ -25,26 +25,23 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.symbol.*;
-import io.crate.exceptions.ColumnUnknownException;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.Operation;
 import io.crate.operation.scalar.SubscriptObjectFunction;
 import io.crate.planner.projection.builder.InputColumns;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 
 
-public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, AnalyzedStatement {
+public class InsertFromSubQueryAnalyzedStatement implements AnalyzedStatement {
 
     private final DocTableInfo targetTable;
     private final QueriedRelation subQueryRelation;
@@ -179,32 +176,6 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
     @Override
     public boolean isWriteOperation() {
         return true;
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return visitor.visitInsertFromQuery(this, context);
-    }
-
-    @Nullable
-    @Override
-    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        return null;
-    }
-
-    @Override
-    public List<Field> fields() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public QualifiedName getQualifiedName() {
-        throw new UnsupportedOperationException("method not supported");
-    }
-
-    @Override
-    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
-        throw new UnsupportedOperationException("method not supported");
     }
 
     @Nullable
