@@ -1,6 +1,6 @@
 package io.crate.operation.udf;
 
-import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Scalar;
 
 import javax.annotation.Nullable;
 import javax.script.ScriptException;
@@ -24,18 +24,17 @@ public interface UDFLanguage {
      * @return the function implementation
      * @throws ScriptException if the implementation cannot be created
      */
-    FunctionImplementation createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException;
+    Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException;
 
     /**
      * Validate the function code provided by the meta data.
-     * @param metadata created by the {@link io.crate.analyze.CreateFunctionAnalyzedStatement}
+     * @param metadata holding information about the user-defined function
      * @return error message if validation of the function fails, otherwise null
      */
     @Nullable
     String validate(UserDefinedFunctionMetaData metadata);
 
     /**
-     * Unique name of the language.
      * @return name of the language
      */
     String name();

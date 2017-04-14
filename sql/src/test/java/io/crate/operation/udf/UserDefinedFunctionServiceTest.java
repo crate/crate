@@ -30,6 +30,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -50,7 +51,7 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
 
     private static final UDFLanguage DUMMY_LANG = new UDFLanguage() {
         @Override
-        public FunctionImplementation createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException {
+        public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException {
             return null;
         }
 

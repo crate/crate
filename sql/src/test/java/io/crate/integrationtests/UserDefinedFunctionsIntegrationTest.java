@@ -74,7 +74,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
     private class DummyLang implements UDFLanguage {
 
         @Override
-        public FunctionImplementation createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException {
+        public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException {
             return new DummyFunction<>(metaData);
         }
 

@@ -24,9 +24,12 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.CreateFunctionAnalyzedStatement;
+import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
 import io.crate.operation.udf.UDFLanguage;
 import io.crate.operation.udf.UserDefinedFunctionMetaData;
 import io.crate.operation.udf.UserDefinedFunctionService;
@@ -37,6 +40,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import javax.script.ScriptException;
 import java.util.Map;
 
@@ -55,16 +59,31 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         udfService = new UserDefinedFunctionService(settings, clusterService);
         udfService.registerLanguage(new UDFLanguage() {
             @Override
-            public FunctionImplementation createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException {
-                // throw ScriptException
-                if (!metaData.definition().equals("\"Hello, World!\"Q")) {
+            public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException {
+                String error = validate(metaData);
+                if (error != null) {
                     throw new ScriptException("this is not Burlesque");
                 }
-                return () -> new FunctionInfo(new FunctionIdent(metaData.schema(), metaData.name(), metaData.argumentTypes()), metaData.returnType());
+                return new Scalar() {
+                    private final FunctionInfo info = new FunctionInfo(new FunctionIdent(metaData.schema(), metaData.name(), metaData.argumentTypes()), metaData.returnType());
+                    @Override
+                    public Object evaluate(Input[] args) {
+                        return null;
+                    }
+
+                    @Override
+                    public FunctionInfo info() {
+                        return info;
+                    }
+                };
             }
 
             @Override
+            @Nullable
             public String validate(UserDefinedFunctionMetaData metadata) {
+                if (!metadata.definition().equals("\"Hello, World!\"Q")) {
+                    return "this is not Burlesque";
+                }
                 return null;
             }
 
