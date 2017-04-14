@@ -779,17 +779,18 @@ public class ExpressionAnalyzer {
             return new SelectSymbol(relation, fields.get(0).valueType());
         }
 
-        private void verifyTypesForMatch(Iterable<? extends Symbol> columns, DataType columnType) {
-            Preconditions.checkArgument(
-                io.crate.operation.predicate.MatchPredicate.SUPPORTED_TYPES.contains(columnType),
-                String.format(Locale.ENGLISH, "Can only use MATCH on columns of type STRING or GEO_SHAPE, not on '%s'", columnType));
-            for (Symbol column : columns) {
-                if (!column.valueType().equals(columnType)) {
-                    throw new IllegalArgumentException(String.format(
-                        Locale.ENGLISH,
-                        "All columns within a match predicate must be of the same type. Found %s and %s",
-                        columnType, column.valueType()));
-                }
+    }
+
+    private static void verifyTypesForMatch(Iterable<? extends Symbol> columns, DataType columnType) {
+        Preconditions.checkArgument(
+            io.crate.operation.predicate.MatchPredicate.SUPPORTED_TYPES.contains(columnType),
+            String.format(Locale.ENGLISH, "Can only use MATCH on columns of type STRING or GEO_SHAPE, not on '%s'", columnType));
+        for (Symbol column : columns) {
+            if (!column.valueType().equals(columnType)) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "All columns within a match predicate must be of the same type. Found %s and %s",
+                    columnType, column.valueType()));
             }
         }
     }

@@ -238,9 +238,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return relation;
     }
 
-    private Optional<Symbol> optionalLongSymbol(Optional<Expression> optExpression,
-                                                ExpressionAnalyzer expressionAnalyzer,
-                                                ExpressionAnalysisContext expressionAnalysisContext) {
+    private static Optional<Symbol> optionalLongSymbol(Optional<Expression> optExpression,
+                                                       ExpressionAnalyzer expressionAnalyzer,
+                                                       ExpressionAnalysisContext expressionAnalysisContext) {
         if (optExpression.isPresent()) {
             Symbol symbol = expressionAnalyzer.convert(optExpression.get(), expressionAnalysisContext);
             return Optional.of(ExpressionAnalyzer.castIfNeededOrFail(symbol, DataTypes.LONG));
@@ -248,8 +248,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return Optional.empty();
     }
 
-    @Nullable
-    private List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {
+    private static List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {
         List<Symbol> groupBy = new ArrayList<>(outputSymbols.size());
         for (Symbol symbol : outputSymbols) {
             if (!Aggregations.containsAggregation(symbol)) {
@@ -260,9 +259,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return groupBy;
     }
 
-    private void ensureNonAggregatesInGroupBy(List<Symbol> outputSymbols,
-                                              List<Path> outputNames,
-                                              List<Symbol> groupBy) throws IllegalArgumentException {
+    private static void ensureNonAggregatesInGroupBy(List<Symbol> outputSymbols,
+                                                     List<Path> outputNames,
+                                                     List<Symbol> groupBy) throws IllegalArgumentException {
         for (int i = 0; i < outputSymbols.size(); i++) {
             Symbol output = outputSymbols.get(i);
             if (groupBy == null || !groupBy.contains(output)) {
@@ -276,12 +275,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Nullable
-    private OrderBy analyzeOrderBy(SelectAnalysis selectAnalysis,
-                                   List<SortItem> orderBy,
-                                   ExpressionAnalyzer expressionAnalyzer,
-                                   ExpressionAnalysisContext expressionAnalysisContext,
-                                   boolean hasAggregatesOrGrouping,
-                                   boolean isDistinct) {
+    private static OrderBy analyzeOrderBy(SelectAnalysis selectAnalysis,
+                                          List<SortItem> orderBy,
+                                          ExpressionAnalyzer expressionAnalyzer,
+                                          ExpressionAnalysisContext expressionAnalysisContext,
+                                          boolean hasAggregatesOrGrouping,
+                                          boolean isDistinct) {
         int size = orderBy.size();
         if (size == 0) {
             return null;
@@ -362,11 +361,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
      *     select name ... order by other_column
      * </pre>
      */
-    private Symbol symbolFromSelectOutputReferenceOrExpression(Expression expression,
-                                                               SelectAnalysis selectAnalysis,
-                                                               String clause,
-                                                               ExpressionAnalyzer expressionAnalyzer,
-                                                               ExpressionAnalysisContext expressionAnalysisContext) {
+    private static Symbol symbolFromSelectOutputReferenceOrExpression(Expression expression,
+                                                                      SelectAnalysis selectAnalysis,
+                                                                      String clause,
+                                                                      ExpressionAnalyzer expressionAnalyzer,
+                                                                      ExpressionAnalysisContext expressionAnalysisContext) {
         Symbol symbol;
         if (expression instanceof QualifiedNameReference) {
             List<String> parts = ((QualifiedNameReference) expression).getName().getParts();
@@ -391,7 +390,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return symbol;
     }
 
-    private Symbol ordinalOutputReference(List<Symbol> outputSymbols, Literal longLiteral, String clauseName) {
+    private static Symbol ordinalOutputReference(List<Symbol> outputSymbols, Literal longLiteral, String clauseName) {
         assert longLiteral.valueType().equals(DataTypes.LONG) : "longLiteral must have valueType long";
         int idx = ((Long) longLiteral.value()).intValue() - 1;
         if (idx < 0) {
@@ -407,7 +406,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Nullable
-    private Symbol getOneOrAmbiguous(Multimap<String, Symbol> selectList, String key) throws AmbiguousColumnAliasException {
+    private static Symbol getOneOrAmbiguous(Multimap<String, Symbol> selectList, String key) throws AmbiguousColumnAliasException {
         Collection<Symbol> symbols = selectList.get(key);
         if (symbols.size() > 1) {
             throw new AmbiguousColumnAliasException(key);
