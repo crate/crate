@@ -91,7 +91,7 @@ class NonDistributedGroupByConsumer implements Consumer {
             if (routing.hasLocations() && routing.locations().size() > 1) {
                 return null;
             }
-            GroupByConsumer.validateGroupBySymbols(table.tableRelation(), table.querySpec().groupBy().get());
+            GroupByConsumer.validateGroupBySymbols(table.querySpec().groupBy().get());
             return nonDistributedGroupBy(table, context, RowGranularity.SHARD);
         }
 

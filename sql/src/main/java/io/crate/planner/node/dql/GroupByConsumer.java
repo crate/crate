@@ -23,10 +23,9 @@ package io.crate.planner.node.dql;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -79,24 +78,16 @@ public class GroupByConsumer {
         return true;
     }
 
-    public static void validateGroupBySymbols(DocTableRelation tableRelation, List<Symbol> groupBySymbols) {
+    public static void validateGroupBySymbols(List<Symbol> groupBySymbols) {
         for (Symbol symbol : groupBySymbols) {
-            GROUP_BY_VALIDATOR.process(symbol, tableRelation);
+            GROUP_BY_VALIDATOR.process(symbol, null);
         }
     }
 
-    private static class GroupByValidator extends SymbolVisitor<DocTableRelation, Void> {
+    private static class GroupByValidator extends DefaultTraversalSymbolVisitor<Void, Void> {
 
         @Override
-        public Void visitFunction(Function symbol, DocTableRelation context) {
-            for (Symbol arg : symbol.arguments()) {
-                process(arg, context);
-            }
-            return null;
-        }
-
-        @Override
-        public Void visitReference(Reference symbol, DocTableRelation context) {
+        public Void visitReference(Reference symbol, Void context) {
             if (symbol.indexType() == Reference.IndexType.ANALYZED) {
                 throw new IllegalArgumentException(
                     SymbolFormatter.format("Cannot GROUP BY '%s': grouping on analyzed/fulltext columns is not possible", symbol));
@@ -108,8 +99,8 @@ public class GroupByConsumer {
         }
 
         @Override
-        public Void visitField(Field field, DocTableRelation context) {
-            return process(context.resolveField(field), context);
+        public Void visitField(Field field, Void context) {
+            throw new UnsupportedOperationException("Field must have been resolved to Reference already");
         }
     }
 }

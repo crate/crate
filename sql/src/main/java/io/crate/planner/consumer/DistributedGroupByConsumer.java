@@ -87,7 +87,7 @@ class DistributedGroupByConsumer implements Consumer {
                 return null;
             }
 
-            GroupByConsumer.validateGroupBySymbols(table.tableRelation(), groupBy);
+            GroupByConsumer.validateGroupBySymbols(groupBy);
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
             SplitPoints splitPoints = SplitPoints.create(querySpec);
 
