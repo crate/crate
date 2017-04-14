@@ -80,7 +80,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     public void prepare()  {
         indexShard = mockIndexShard();
         functions = getFunctions();
-        udfService = new UserDefinedFunctionService(Settings.EMPTY, clusterService);
+        udfService = new UserDefinedFunctionService(clusterService);
         schemas = new Schemas(
             Settings.EMPTY,
             ImmutableMap.of("sys", new SysSchemaInfo(clusterService)),

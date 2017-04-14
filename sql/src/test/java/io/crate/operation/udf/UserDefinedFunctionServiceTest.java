@@ -29,14 +29,11 @@ package io.crate.operation.udf;
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.Schemas;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -47,7 +44,7 @@ import static org.mockito.Mockito.mock;
 
 public class UserDefinedFunctionServiceTest extends CrateUnitTest {
 
-    private UserDefinedFunctionService udfService;
+    private UserDefinedFunctionService udfService = new UserDefinedFunctionService(mock(ClusterService.class));
 
     private static final UDFLanguage DUMMY_LANG = new UDFLanguage() {
         @Override
@@ -67,13 +64,6 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
         }
     };
 
-    @Override
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        udfService = new UserDefinedFunctionService(Settings.EMPTY, mock(ClusterService.class));
-    }
-
     private final UserDefinedFunctionMetaData same1 = new UserDefinedFunctionMetaData(
         Schemas.DEFAULT_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
         "dummy_lang", "function same(){ return 3; }"
@@ -88,28 +78,11 @@ public class UserDefinedFunctionServiceTest extends CrateUnitTest {
     );
 
     @Test
-    public void testRegisterLanguageUdfEnabled() throws Exception {
-        Settings settings = Settings.builder()
-            .put("udf.enabled", true)
-            .build();
-        UserDefinedFunctionService udfSrv = new UserDefinedFunctionService(settings, mock(ClusterService.class));
-        udfSrv.registerLanguage(DUMMY_LANG);
-        assertThat(udfSrv.getLanguage(DUMMY_LANG.name()), is(DUMMY_LANG));
+    public void testRegisterLanguage() throws Exception {
+        udfService.registerLanguage(DUMMY_LANG);
+        assertThat(udfService.getLanguage(DUMMY_LANG.name()), is(DUMMY_LANG));
     }
 
-    @Test
-    public void testRegisterLanguageUdfDisable() throws Exception {
-        Settings settings = Settings.builder()
-            .put("udf.enabled", false)
-            .build();
-        UserDefinedFunctionService udfSrv = new UserDefinedFunctionService(settings, mock(ClusterService.class));
-        // registerLanguage() does not fail, because modules implementing a language should not care about setting
-        udfSrv.registerLanguage(DUMMY_LANG);
-
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("'DummyScript' is not a valid UDF language");
-        udfSrv.getLanguage(DUMMY_LANG.name());
-    }
     @Test
     public void testFirstFunction() throws Exception {
         UserDefinedFunctionsMetaData metaData = udfService.putFunction(null, same1, true);

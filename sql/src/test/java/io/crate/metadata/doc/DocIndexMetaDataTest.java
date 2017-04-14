@@ -85,7 +85,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void before() throws Exception {
         functions = getFunctions();
-        udfService = new UserDefinedFunctionService(Settings.EMPTY, clusterService);
+        udfService = new UserDefinedFunctionService(clusterService);
     }
 
     @Test

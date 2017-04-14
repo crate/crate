@@ -94,13 +94,6 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
 
     private final DummyLang dummyLang = new DummyLang();
 
-    @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.builder()
-            .put(super.nodeSettings(nodeOrdinal))
-            .put(UserDefinedFunctionService.UDF_SETTING.getKey(), true).build();
-    }
-
     @Before
     public void beforeTest() {
         // clustering by id into two shards must assure that the two inserted

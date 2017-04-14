@@ -148,7 +148,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         }
         defaultTemplateService.createIfNotExists(event.state());
 
-        Set<String> newCurrentSchemas = getNewCurrentSchemas(event.state().metaData(), udfEnabled());
+        Set<String> newCurrentSchemas = getNewCurrentSchemas(event.state().metaData());
         synchronized (schemas) {
             Sets.SetView<String> nonBuiltInSchemas = Sets.difference(schemas.keySet(), builtInSchemas.keySet());
             Set<String> deleted = Sets.difference(nonBuiltInSchemas, newCurrentSchemas).immutableCopy();
@@ -174,16 +174,13 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     }
 
     @VisibleForTesting
-    static Set<String> getNewCurrentSchemas(MetaData metaData, boolean udfEnabled) {
+    static Set<String> getNewCurrentSchemas(MetaData metaData) {
         Set<String> schemas = new HashSet<>();
         for (String openIndex : metaData.getConcreteAllOpenIndices()) {
             addIfSchema(schemas, openIndex);
         }
         for (ObjectCursor<String> cursor : metaData.templates().keys()) {
             addIfSchema(schemas, cursor.value);
-        }
-        if (!udfEnabled) {
-            return schemas;
         }
         UserDefinedFunctionsMetaData udfMetaData = metaData.custom(UserDefinedFunctionsMetaData.TYPE);
         if (udfMetaData != null) {
@@ -277,9 +274,5 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
     @Override
     protected void doClose() {
-    }
-
-    private boolean udfEnabled() {
-        return UserDefinedFunctionService.UDF_SETTING.setting().get(settings);
     }
 }

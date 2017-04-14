@@ -91,7 +91,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
         DocTableInfoFactory fooTableFactory = new TestingDocTableInfoFactory(
             ImmutableMap.of(fooUserTableInfo.ident(), fooUserTableInfo));
-        UserDefinedFunctionService udfService = new UserDefinedFunctionService(Settings.EMPTY, clusterService);
+        UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService);
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .addSchema(new DocSchemaInfo("foo", clusterService, getFunctions(), udfService, fooTableFactory))

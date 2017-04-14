@@ -217,9 +217,4 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertThat(settingMap.get(settingPath.get(settingPath.size() - 1)), is(expectedValue));
     }
 
-    @Test
-    public void testDefaultUDFSetting() {
-        execute("select settings from sys.cluster");
-        assertSettingsDefault(UserDefinedFunctionService.UDF_SETTING);
-    }
 }

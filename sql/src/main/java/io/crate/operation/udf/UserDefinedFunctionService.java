@@ -57,19 +57,13 @@ public class UserDefinedFunctionService {
         MetaData.registerPrototype(UserDefinedFunctionsMetaData.TYPE, PROTO);
     }
 
-    public static final CrateSetting<Boolean> UDF_SETTING = CrateSetting.of(Setting.boolSetting(
-        "udf.enabled", false,
-        Setting.Property.NodeScope), DataTypes.BOOLEAN);
-
-    private final Settings settings;
     private final ClusterService clusterService;
     private Map<String, UDFLanguage> languageRegistry = new HashMap<>();
 
     private static final Logger LOGGER = Loggers.getLogger(UserDefinedFunctionService.class);
 
     @Inject
-    public UserDefinedFunctionService(Settings settings, ClusterService clusterService) {
-        this.settings = settings;
+    public UserDefinedFunctionService(ClusterService clusterService) {
         this.clusterService = clusterService;
     }
 
@@ -81,16 +75,8 @@ public class UserDefinedFunctionService {
         return lang;
     }
 
-    private boolean enabled() {
-        return UDF_SETTING.setting().get(settings);
-    }
-
     public void registerLanguage(UDFLanguage language) {
-        if (enabled()) {
-            languageRegistry.put(language.name(), language);
-        } else if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("Could not register language '{}' because UDF is disabled.", language.name());
-        }
+        languageRegistry.put(language.name(), language);
     }
 
     void registerFunction(final UserDefinedFunctionMetaData metaData,

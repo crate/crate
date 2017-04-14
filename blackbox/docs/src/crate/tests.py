@@ -136,10 +136,7 @@ crate_layer = ConnectingCrateLayer(
     host='localhost',
     crate_home=crate_path(),
     port=CRATE_HTTP_PORT,
-    transport_port=CRATE_TRANSPORT_PORT,
-    settings={
-        'udf.enabled': 'true',
-    }
+    transport_port=CRATE_TRANSPORT_PORT
 )
 
 

@@ -53,10 +53,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setup() throws Exception {
-        Settings settings = Settings.builder()
-            .put(UserDefinedFunctionService.UDF_SETTING.getKey(), true)
-            .build();
-        udfService = new UserDefinedFunctionService(settings, clusterService);
+        udfService = new UserDefinedFunctionService(clusterService);
         udfService.registerLanguage(new UDFLanguage() {
             @Override
             public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException {
