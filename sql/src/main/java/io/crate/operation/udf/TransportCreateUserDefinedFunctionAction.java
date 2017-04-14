@@ -76,31 +76,13 @@ public class TransportCreateUserDefinedFunctionAction extends TransportMasterNod
                                    ClusterState state,
                                    ActionListener<UserDefinedFunctionResponse> listener) throws Exception {
 
-        final UserDefinedFunctionMetaData metaData = request.userDefinedFunctionMetaData();
+        UserDefinedFunctionMetaData metaData = request.userDefinedFunctionMetaData();
         String errorMessage = udfService.getLanguage(metaData.language()).validate(metaData);
         if (errorMessage != null) {
             throw new ScriptException(errorMessage);
         }
 
-        udfService.registerFunction(
-            new UserDefinedFunctionService.RegisterUserDefinedFunctionRequest(
-                "put_udf [" + metaData.name() + "]",
-                metaData,
-                request.replace()
-            ).masterNodeTimeout(request.masterNodeTimeout()),
-            new ActionListener<ClusterStateUpdateResponse>() {
-                @Override
-                public void onResponse(ClusterStateUpdateResponse clusterStateUpdateResponse) {
-                    listener.onResponse(new UserDefinedFunctionResponse(clusterStateUpdateResponse.isAcknowledged()));
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    listener.onFailure(e);
-                }
-            }
-        );
-
+        udfService.registerFunction(metaData, request.replace(), listener, request.masterNodeTimeout());
     }
 
     @Override

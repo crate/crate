@@ -29,12 +29,10 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ack.ClusterStateUpdateRequest;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
@@ -42,6 +40,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.HashMap;
 import java.util.List;
@@ -94,76 +93,80 @@ public class UserDefinedFunctionService {
         }
     }
 
-    /**
-     * This method can only be called on master node
-     * registers new function in the cluster
-     *
-     * @param request function to register
-     */
-    void registerFunction(final RegisterUserDefinedFunctionRequest request,
-                          final ActionListener<ClusterStateUpdateResponse> listener) {
-        if (!isMaterNode()) {
-            return;
-        }
-
-        clusterService.submitStateUpdateTask(request.cause,
-            new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
-
+    void registerFunction(final UserDefinedFunctionMetaData metaData,
+                          final boolean replace,
+                          final ActionListener<UserDefinedFunctionResponse> listener,
+                          final TimeValue timeout) {
+        clusterService.submitStateUpdateTask("put_udf [" + metaData.name() + "]",
+            new ClusterStateUpdateTask() {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
-                    MetaData metaData = currentState.metaData();
-                    MetaData.Builder mdBuilder = MetaData.builder(metaData);
-
+                    MetaData currentMetaData = currentState.metaData();
+                    MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
                     UserDefinedFunctionsMetaData functions = putFunction(
-                        metaData.custom(UserDefinedFunctionsMetaData.TYPE),
-                        request.metaData,
-                        request.replace
+                        currentMetaData.custom(UserDefinedFunctionsMetaData.TYPE),
+                        metaData,
+                        replace
                     );
                     mdBuilder.putCustom(UserDefinedFunctionsMetaData.TYPE, functions);
                     return ClusterState.builder(currentState).metaData(mdBuilder).build();
                 }
 
                 @Override
-                protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
-                    return new ClusterStateUpdateResponse(acknowledged);
+                public TimeValue timeout() {
+                    return timeout;
+                }
+
+                @Override
+                public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
+                    listener.onResponse(new UserDefinedFunctionResponse(true));
+                }
+
+                @Override
+                public void onFailure(String source, Exception e) {
+                    listener.onFailure(e);
                 }
             });
     }
 
-    void dropFunction(final DropUserDefinedFunctionRequest request,
-                      final ActionListener<ClusterStateUpdateResponse> listener) {
-        if (!isMaterNode()) {
-            return;
-        }
-
-        clusterService.submitStateUpdateTask(request.cause,
-            new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
-
+    void dropFunction(final String schema,
+                      final String name,
+                      final List<DataType> argumentTypes,
+                      final boolean ifExists,
+                      final ActionListener<UserDefinedFunctionResponse> listener,
+                      final TimeValue timeout) {
+        clusterService.submitStateUpdateTask("drop_udf [" + schema + "." + name + " - " + argumentTypes + "]",
+            new ClusterStateUpdateTask() {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     MetaData metaData = currentState.metaData();
                     MetaData.Builder mdBuilder = MetaData.builder(currentState.metaData());
                     UserDefinedFunctionsMetaData functions = removeFunction(
                         metaData.custom(UserDefinedFunctionsMetaData.TYPE),
-                        request.schema,
-                        request.name,
-                        request.argumentTypes,
-                        request.ifExists
+                        schema,
+                        name,
+                        argumentTypes,
+                        ifExists
                     );
                     mdBuilder.putCustom(UserDefinedFunctionsMetaData.TYPE, functions);
                     return ClusterState.builder(currentState).metaData(mdBuilder).build();
                 }
 
                 @Override
-                protected ClusterStateUpdateResponse newResponse(boolean acknowledged) {
-                    return new ClusterStateUpdateResponse(acknowledged);
+                public TimeValue timeout() {
+                    return timeout;
+                }
+
+                @Override
+                public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
+                    listener.onResponse(new UserDefinedFunctionResponse(true));
+                }
+
+                @Override
+                public void onFailure(String source, Exception e) {
+                    listener.onFailure(e);
                 }
             });
-    }
-
-    private boolean isMaterNode() {
-        DiscoveryNodes nodes = clusterService.state().nodes();
-        return nodes.getMasterNodeId().equals(nodes.getLocalNodeId());
     }
 
     @VisibleForTesting
@@ -207,33 +210,4 @@ public class UserDefinedFunctionService {
         }
     }
 
-    static class RegisterUserDefinedFunctionRequest extends ClusterStateUpdateRequest<RegisterUserDefinedFunctionRequest> {
-
-        private final UserDefinedFunctionMetaData metaData;
-        private final String cause;
-        private final boolean replace;
-
-        RegisterUserDefinedFunctionRequest(String cause, UserDefinedFunctionMetaData metaData, boolean replace) {
-            this.cause = cause;
-            this.metaData = metaData;
-            this.replace = replace;
-        }
-    }
-
-    static class DropUserDefinedFunctionRequest extends ClusterStateUpdateRequest<DropUserDefinedFunctionRequest> {
-
-        final String schema;
-        final String cause;
-        final String name;
-        final List<DataType> argumentTypes;
-        final boolean ifExists;
-
-        DropUserDefinedFunctionRequest(String cause, String schema, String name, List<DataType> argumentTypes, boolean ifExists) {
-            this.schema = schema;
-            this.cause = cause;
-            this.name = name;
-            this.argumentTypes = argumentTypes;
-            this.ifExists = ifExists;
-        }
-    }
 }

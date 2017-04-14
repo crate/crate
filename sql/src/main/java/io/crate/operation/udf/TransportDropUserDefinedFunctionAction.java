@@ -26,7 +26,6 @@
 
 package io.crate.operation.udf;
 
-import io.crate.sql.tree.Except;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -45,19 +44,19 @@ import org.elasticsearch.transport.TransportService;
 @Singleton
 public class TransportDropUserDefinedFunctionAction extends TransportMasterNodeAction<DropUserDefinedFunctionRequest, UserDefinedFunctionResponse> {
 
-    private final UserDefinedFunctionService userDefinedFunctionService;
+    private final UserDefinedFunctionService udfService;
 
     @Inject
     public TransportDropUserDefinedFunctionAction(Settings settings,
                                                   TransportService transportService,
                                                   ClusterService clusterService,
                                                   ThreadPool threadPool,
-                                                  UserDefinedFunctionService userDefinedFunctionService,
+                                                  UserDefinedFunctionService udfService,
                                                   ActionFilters actionFilters,
                                                   IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, "dropuserdefinedfucntion", transportService, clusterService, threadPool,
+        super(settings, "crate/sql/drop_udf", transportService, clusterService, threadPool,
             actionFilters, indexNameExpressionResolver, DropUserDefinedFunctionRequest::new);
-        this.userDefinedFunctionService = userDefinedFunctionService;
+        this.udfService = udfService;
     }
 
     @Override
@@ -74,26 +73,13 @@ public class TransportDropUserDefinedFunctionAction extends TransportMasterNodeA
     protected void masterOperation(final DropUserDefinedFunctionRequest request,
                                    ClusterState state,
                                    ActionListener<UserDefinedFunctionResponse> listener) throws Exception {
-        userDefinedFunctionService.dropFunction(
-            new UserDefinedFunctionService.DropUserDefinedFunctionRequest(
-                "drop_udf [" + request.schema() + "." + request.name() + " - " + request.argumentTypes() + "]",
-                request.schema(),
-                request.name(),
-                request.argumentTypes(),
-                request.ifExists()
-            ).masterNodeTimeout(request.masterNodeTimeout()),
-            new ActionListener<ClusterStateUpdateResponse>() {
-                @Override
-                public void onResponse(ClusterStateUpdateResponse clusterStateUpdateResponse) {
-                    listener.onResponse(
-                        new UserDefinedFunctionResponse(clusterStateUpdateResponse.isAcknowledged()));
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    listener.onFailure(e);
-                }
-            }
+        udfService.dropFunction(
+            request.schema(),
+            request.name(),
+            request.argumentTypes(),
+            request.ifExists(),
+            listener,
+            request.masterNodeTimeout()
         );
     }
 
