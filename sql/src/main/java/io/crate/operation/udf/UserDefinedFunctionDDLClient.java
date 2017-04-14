@@ -33,16 +33,16 @@ import org.elasticsearch.common.settings.Settings;
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
-public class UserDefinedFunctionDDLDispatcher {
+public class UserDefinedFunctionDDLClient {
 
     private final boolean isEnabled;
     private final TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction;
     private final TransportDropUserDefinedFunctionAction dropUserDefinedFunctionAction;
 
     @Inject
-    public UserDefinedFunctionDDLDispatcher(Settings settings,
-                                            TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction,
-                                            TransportDropUserDefinedFunctionAction dropUserDefinedFunctionAction) {
+    public UserDefinedFunctionDDLClient(Settings settings,
+                                        TransportCreateUserDefinedFunctionAction createUserDefinedFunctionAction,
+                                        TransportDropUserDefinedFunctionAction dropUserDefinedFunctionAction) {
         this.createUserDefinedFunctionAction = createUserDefinedFunctionAction;
         this.dropUserDefinedFunctionAction = dropUserDefinedFunctionAction;
         this.isEnabled = UserDefinedFunctionService.UDF_SETTING.setting().get(settings);
@@ -54,7 +54,7 @@ public class UserDefinedFunctionDDLDispatcher {
         }
     }
 
-    public CompletableFuture<Long> dispatch(final CreateFunctionAnalyzedStatement statement, Row params) {
+    public CompletableFuture<Long> execute(final CreateFunctionAnalyzedStatement statement, Row params) {
         checkUdfEnabled();
         final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
         UserDefinedFunctionMetaData metaData = new UserDefinedFunctionMetaData(
@@ -84,7 +84,7 @@ public class UserDefinedFunctionDDLDispatcher {
         return resultFuture;
     }
 
-    public CompletableFuture<Long> dispatch(final DropFunctionAnalyzedStatement statement) {
+    public CompletableFuture<Long> execute(final DropFunctionAnalyzedStatement statement) {
         checkUdfEnabled();
         final CompletableFuture<Long> resultFuture = new CompletableFuture<>();
         DropUserDefinedFunctionRequest request = new DropUserDefinedFunctionRequest(

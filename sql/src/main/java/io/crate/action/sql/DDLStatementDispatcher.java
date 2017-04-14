@@ -29,7 +29,7 @@ import io.crate.executor.transport.AlterTableOperation;
 import io.crate.executor.transport.RepositoryService;
 import io.crate.executor.transport.SnapshotRestoreDDLDispatcher;
 import io.crate.executor.transport.TableCreator;
-import io.crate.operation.udf.UserDefinedFunctionDDLDispatcher;
+import io.crate.operation.udf.UserDefinedFunctionDDLClient;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.forcemerge.TransportForceMergeAction;
@@ -62,7 +62,7 @@ public class DDLStatementDispatcher {
     private final AlterTableOperation alterTableOperation;
     private final RepositoryService repositoryService;
     private final SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher;
-    private final UserDefinedFunctionDDLDispatcher userDefinedFunctionDDLDispatcher;
+    private final UserDefinedFunctionDDLClient udfDDLClient;
     private final Provider<TransportUpgradeAction> transportUpgradeActionProvider;
     private final Provider<TransportForceMergeAction> transportForceMergeActionProvider;
     private final Provider<TransportRefreshAction> transportRefreshActionProvider;
@@ -76,7 +76,7 @@ public class DDLStatementDispatcher {
                                   AlterTableOperation alterTableOperation,
                                   RepositoryService repositoryService,
                                   SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
-                                  UserDefinedFunctionDDLDispatcher userDefinedFunctionDDLDispatcher,
+                                  UserDefinedFunctionDDLClient udfDDLClient,
                                   Provider<TransportUpgradeAction> transportUpgradeActionProvider,
                                   Provider<TransportForceMergeAction> transportForceMergeActionProvider,
                                   Provider<TransportRefreshAction> transportRefreshActionProvider) {
@@ -85,7 +85,7 @@ public class DDLStatementDispatcher {
         this.alterTableOperation = alterTableOperation;
         this.repositoryService = repositoryService;
         this.snapshotRestoreDDLDispatcher = snapshotRestoreDDLDispatcher;
-        this.userDefinedFunctionDDLDispatcher = userDefinedFunctionDDLDispatcher;
+        this.udfDDLClient = udfDDLClient;
         this.transportUpgradeActionProvider = transportUpgradeActionProvider;
         this.transportForceMergeActionProvider = transportForceMergeActionProvider;
         this.transportRefreshActionProvider = transportRefreshActionProvider;
@@ -202,12 +202,12 @@ public class DDLStatementDispatcher {
         @Override
         protected CompletableFuture<Long> visitCreateFunctionStatement(CreateFunctionAnalyzedStatement analysis,
                                                                        Context context) {
-            return userDefinedFunctionDDLDispatcher.dispatch(analysis, context.parameters);
+            return udfDDLClient.execute(analysis, context.parameters);
         }
 
         @Override
         public CompletableFuture<Long> visitDropFunctionStatement(DropFunctionAnalyzedStatement analysis, Context context) {
-            return userDefinedFunctionDDLDispatcher.dispatch(analysis);
+            return udfDDLClient.execute(analysis);
         }
     }
 
