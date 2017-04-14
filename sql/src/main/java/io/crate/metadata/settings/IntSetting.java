@@ -21,11 +21,8 @@
 
 package io.crate.metadata.settings;
 
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class IntSetting extends Setting<Integer, Integer> {
@@ -71,17 +68,7 @@ public class IntSetting extends Setting<Integer, Integer> {
         return this.minValue;
     }
 
-    @Override
-    public DataType dataType() {
-        return DataTypes.INTEGER;
-    }
-
-    @Override
     public Integer extract(Settings settings) {
         return settings.getAsInt(name, defaultValue());
-    }
-
-    public Integer extract(Settings settings, @Nonnull Integer defaultValue) {
-        return settings.getAsInt(name, defaultValue);
     }
 }

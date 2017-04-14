@@ -30,9 +30,5 @@ public interface SettingsApplier {
 
     void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression);
 
-    void applyValue(Settings.Builder settingsBuilder, Object value);
-
-    Object validate(Object value);
-
     Settings getDefault();
 }

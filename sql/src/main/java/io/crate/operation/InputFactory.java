@@ -28,7 +28,6 @@ import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
-import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.FunctionImplementation;
@@ -193,7 +192,7 @@ public class InputFactory {
         @Override
         public Input<?> visitAggregation(Aggregation symbol, Void context) {
             FunctionImplementation impl = functions.getQualified(symbol.functionIdent());
-            AggregationContext aggregationContext = new AggregationContext((AggregationFunction) impl, symbol);
+            AggregationContext aggregationContext = new AggregationContext((AggregationFunction) impl);
             for (Symbol aggInput : symbol.inputs()) {
                 aggregationContext.addInput(process(aggInput, context));
             }

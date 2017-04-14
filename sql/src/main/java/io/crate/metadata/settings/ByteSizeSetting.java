@@ -45,11 +45,6 @@ public class ByteSizeSetting extends Setting<ByteSizeValue, String> {
     }
 
     @Override
-    public DataType dataType() {
-        return DataTypes.STRING;
-    }
-
-    @Override
     public String name() {
         return name;
     }
@@ -57,11 +52,6 @@ public class ByteSizeSetting extends Setting<ByteSizeValue, String> {
     @Override
     public ByteSizeValue defaultValue() {
         return defaultValue;
-    }
-
-    @Override
-    public String extract(Settings settings) {
-        return extractByteSizeValue(settings).toString();
     }
 
     public long extractBytes(Settings settings) {

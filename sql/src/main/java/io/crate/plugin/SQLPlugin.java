@@ -62,8 +62,8 @@ import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.ArrayTypeParser;
@@ -111,14 +111,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         }
 
         return settings;
-    }
-
-    public String name() {
-        return "sql";
-    }
-
-    public String description() {
-        return "plugin that adds an /_sql endpoint to query crate with sql";
     }
 
     @Override

@@ -78,7 +78,6 @@ public class AnalyzedColumnDefinition {
     private String formattedGeneratedExpression;
     @Nullable
     private Expression generatedExpression;
-    private final static Set<String> NO_DOC_VALUES_SUPPORT = Sets.newHashSet("object", "geo_shape");
 
     public static void validateName(String name) {
         Preconditions.checkArgument(!name.startsWith("_"), "Column name must not start with '_'");

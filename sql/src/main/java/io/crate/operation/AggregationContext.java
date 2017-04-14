@@ -1,6 +1,5 @@
 package io.crate.operation;
 
-import io.crate.analyze.symbol.Aggregation;
 import io.crate.data.Input;
 import io.crate.operation.aggregation.AggregationFunction;
 
@@ -8,13 +7,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AggregationContext {
+
     private final AggregationFunction impl;
-    private final Aggregation symbol;
     private final List<Input<?>> inputs = new ArrayList<>();
 
-    public AggregationContext(AggregationFunction aggregationFunction, Aggregation aggregation) {
+    public AggregationContext(AggregationFunction aggregationFunction) {
         this.impl = aggregationFunction;
-        this.symbol = aggregation;
     }
 
     public void addInput(Input<?> input) {
@@ -23,10 +21,6 @@ public class AggregationContext {
 
     public AggregationFunction function() {
         return impl;
-    }
-
-    public Aggregation symbol() {
-        return symbol;
     }
 
     public Input<?>[] inputs() {

@@ -21,18 +21,11 @@
 
 package io.crate.metadata.settings;
 
-import io.crate.types.DataType;
-import org.elasticsearch.common.settings.Settings;
-
 public abstract class Setting<T, E> {
 
     public abstract String name();
 
     public abstract T defaultValue();
-
-    public abstract E extract(Settings settings);
-
-    public abstract DataType dataType();
 
     @Override
     public String toString() {

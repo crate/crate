@@ -86,12 +86,10 @@ public class T3 {
         .add("obj_array", new ArrayType(DataTypes.OBJECT))
         .add("obj_array", DataTypes.INTEGER, ImmutableList.of("i"))
         .build();
-    public static final TableRelation TR_4 = new TableRelation(T4_INFO);
 
     public static final QualifiedName T1 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t1"));
     public static final QualifiedName T2 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t2"));
     public static final QualifiedName T3 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t3"));
-    public static final QualifiedName T4 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t4"));
 
     public static final ImmutableList<AnalyzedRelation> RELATIONS = ImmutableList.<AnalyzedRelation>of(TR_1, TR_2, TR_3);
     public static final Map<QualifiedName, AnalyzedRelation> SOURCES = ImmutableMap.<QualifiedName, AnalyzedRelation>of(

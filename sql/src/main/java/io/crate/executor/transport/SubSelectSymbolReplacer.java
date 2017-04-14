@@ -36,7 +36,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.ESGet;
-import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 
@@ -72,12 +71,6 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
     }
 
     private static class PlanSymbolVisitor extends PlanVisitor<SymbolReplacer, Void> {
-
-        private void process(@Nullable MergePhase mergePhase, SymbolReplacer replacer) {
-            if (mergePhase != null) {
-                mergePhase.replaceSymbols(replacer);
-            }
-        }
 
         @Override
         protected Void visitPlan(Plan plan, SymbolReplacer context) {

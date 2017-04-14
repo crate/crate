@@ -45,7 +45,6 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Locale;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -91,45 +90,34 @@ public class DDLStatementDispatcher {
         this.transportRefreshActionProvider = transportRefreshActionProvider;
     }
 
-    private static class Context {
-
-        private final UUID jobId;
-        private final Row parameters;
-
-        Context(UUID jobId, Row parameters) {
-            this.jobId = jobId;
-            this.parameters = parameters;
-        }
+    public CompletableFuture<Long> dispatch(AnalyzedStatement analyzedStatement, Row parameters) {
+        return innerVisitor.process(analyzedStatement, parameters);
     }
 
-    public CompletableFuture<Long> dispatch(AnalyzedStatement analyzedStatement, UUID jobId, Row parameters) {
-        return innerVisitor.process(analyzedStatement, new Context(jobId, parameters));
-    }
-
-    private class InnerVisitor extends AnalyzedStatementVisitor<Context, CompletableFuture<Long>> {
+    private class InnerVisitor extends AnalyzedStatementVisitor<Row, CompletableFuture<Long>> {
 
         @Override
-        protected CompletableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Context context) {
+        protected CompletableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Row parameters) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analyzedStatement));
         }
 
         @Override
-        public CompletableFuture<Long> visitCreateTableStatement(CreateTableAnalyzedStatement analysis, Context context) {
+        public CompletableFuture<Long> visitCreateTableStatement(CreateTableAnalyzedStatement analysis, Row parameters) {
             return tableCreator.create(analysis);
         }
 
         @Override
-        public CompletableFuture<Long> visitAlterTableStatement(final AlterTableAnalyzedStatement analysis, Context context) {
+        public CompletableFuture<Long> visitAlterTableStatement(final AlterTableAnalyzedStatement analysis, Row parameters) {
             return alterTableOperation.executeAlterTable(analysis);
         }
 
         @Override
-        public CompletableFuture<Long> visitAddColumnStatement(AddColumnAnalyzedStatement analysis, Context context) {
+        public CompletableFuture<Long> visitAddColumnStatement(AddColumnAnalyzedStatement analysis, Row parameters) {
             return alterTableOperation.executeAlterTableAddColumn(analysis);
         }
 
         @Override
-        public CompletableFuture<Long> visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, Context context) {
+        public CompletableFuture<Long> visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, Row parameters) {
             if (analysis.settings().getAsBoolean(OptimizeSettings.UPGRADE_SEGMENTS.name(),
                 OptimizeSettings.UPGRADE_SEGMENTS.defaultValue())) {
                 return executeUpgradeSegments(analysis, transportUpgradeActionProvider.get());
@@ -139,7 +127,7 @@ public class DDLStatementDispatcher {
         }
 
         @Override
-        public CompletableFuture<Long> visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, Context context) {
+        public CompletableFuture<Long> visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, Row parameters) {
             if (analysis.indexNames().isEmpty()) {
                 return CompletableFuture.completedFuture(null);
             }
@@ -156,57 +144,57 @@ public class DDLStatementDispatcher {
 
         @Override
         public CompletableFuture<Long> visitCreateBlobTableStatement(CreateBlobTableAnalyzedStatement analysis,
-                                                                     Context context) {
+                                                                     Row parameters) {
             return blobAdminClient.get().createBlobTable(analysis.tableName(), analysis.tableParameter().settings());
         }
 
         @Override
-        public CompletableFuture<Long> visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, Context context) {
+        public CompletableFuture<Long> visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, Row parameters) {
             return blobAdminClient.get().alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings());
         }
 
         @Override
-        public CompletableFuture<Long> visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, Context context) {
+        public CompletableFuture<Long> visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, Row parameters) {
             return blobAdminClient.get().dropBlobTable(analysis.table().ident().name());
         }
 
         @Override
         public CompletableFuture<Long> visitDropRepositoryAnalyzedStatement(DropRepositoryAnalyzedStatement analysis,
-                                                                            Context context) {
+                                                                            Row parameters) {
             return repositoryService.execute(analysis);
         }
 
         @Override
         public CompletableFuture<Long> visitCreateRepositoryAnalyzedStatement(CreateRepositoryAnalyzedStatement analysis,
-                                                                              Context context) {
+                                                                              Row parameters) {
             return repositoryService.execute(analysis);
         }
 
         @Override
         public CompletableFuture<Long> visitDropSnapshotAnalyzedStatement(DropSnapshotAnalyzedStatement analysis,
-                                                                          Context context) {
+                                                                          Row parameters) {
             return snapshotRestoreDDLDispatcher.dispatch(analysis);
         }
 
         public CompletableFuture<Long> visitCreateSnapshotAnalyzedStatement(CreateSnapshotAnalyzedStatement analysis,
-                                                                            Context context) {
+                                                                            Row parameters) {
             return snapshotRestoreDDLDispatcher.dispatch(analysis);
         }
 
         @Override
         public CompletableFuture<Long> visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis,
-                                                                             Context context) {
+                                                                             Row parameters) {
             return snapshotRestoreDDLDispatcher.dispatch(analysis);
         }
 
         @Override
         protected CompletableFuture<Long> visitCreateFunctionStatement(CreateFunctionAnalyzedStatement analysis,
-                                                                       Context context) {
-            return udfDDLClient.execute(analysis, context.parameters);
+                                                                       Row parameters) {
+            return udfDDLClient.execute(analysis, parameters);
         }
 
         @Override
-        public CompletableFuture<Long> visitDropFunctionStatement(DropFunctionAnalyzedStatement analysis, Context context) {
+        public CompletableFuture<Long> visitDropFunctionStatement(DropFunctionAnalyzedStatement analysis, Row parameters) {
             return udfDDLClient.execute(analysis);
         }
     }

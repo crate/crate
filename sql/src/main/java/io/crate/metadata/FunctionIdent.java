@@ -23,7 +23,6 @@ package io.crate.metadata;
 
 import com.google.common.base.Objects;
 import com.google.common.collect.ComparisonChain;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Ordering;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -43,11 +42,6 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
     private List<DataType> argumentTypes;
 
     public FunctionIdent() {
-
-    }
-
-    public static FunctionIdent of(String name, DataType type1, DataType type2) {
-        return new FunctionIdent(name, ImmutableList.of(type1, type2));
     }
 
     public FunctionIdent(@Nullable String schema, String name, List<DataType> argumentTypes) {

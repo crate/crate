@@ -42,18 +42,10 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 public class JobExecutionContext implements CompletionListenable {
 
     private static final Logger LOGGER = Loggers.getLogger(JobExecutionContext.class);
-    public static final Function<? super JobExecutionContext, UUID> TO_ID = new Function<JobExecutionContext, UUID>() {
-        @Nullable
-        @Override
-        public UUID apply(@Nullable JobExecutionContext input) {
-            return input == null ? null : input.jobId();
-        }
-    };
 
     private final UUID jobId;
     private final ConcurrentMap<Integer, ExecutionSubContext> subContexts;

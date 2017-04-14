@@ -21,11 +21,7 @@
 
 package io.crate.metadata.settings;
 
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
-
-import javax.annotation.Nonnull;
 
 public class BoolSetting extends Setting<Boolean, Boolean> {
 
@@ -47,17 +43,7 @@ public class BoolSetting extends Setting<Boolean, Boolean> {
         return value;
     }
 
-    @Override
     public Boolean extract(Settings settings) {
         return settings.getAsBoolean(name, defaultValue());
-    }
-
-    public Boolean extract(Settings settings, @Nonnull Boolean defaultValue) {
-        return settings.getAsBoolean(name, defaultValue);
-    }
-
-    @Override
-    public DataType dataType() {
-        return DataTypes.BOOLEAN;
     }
 }

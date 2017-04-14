@@ -24,22 +24,15 @@ package io.crate.operation.udf;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
-import io.crate.settings.CrateSetting;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
-import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.HashMap;
@@ -59,8 +52,6 @@ public class UserDefinedFunctionService {
 
     private final ClusterService clusterService;
     private Map<String, UDFLanguage> languageRegistry = new HashMap<>();
-
-    private static final Logger LOGGER = Loggers.getLogger(UserDefinedFunctionService.class);
 
     @Inject
     public UserDefinedFunctionService(ClusterService clusterService) {
