@@ -29,7 +29,6 @@ import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.TopN;
@@ -53,8 +52,8 @@ class GlobalAggregateConsumer implements Consumer {
     private static final AggregationOutputValidator AGGREGATION_OUTPUT_VALIDATOR = new AggregationOutputValidator();
     private final RelationPlanningVisitor visitor;
 
-    GlobalAggregateConsumer(Functions functions) {
-        visitor = new Visitor(functions);
+    GlobalAggregateConsumer(ProjectionBuilder projectionBuilder) {
+        visitor = new Visitor(projectionBuilder);
     }
 
     @Override
@@ -152,7 +151,7 @@ class GlobalAggregateConsumer implements Consumer {
      *
      * iter->partial aggregations on use {@code projectionGranularity} granularity
      */
-    private static Plan globalAggregates(Functions functions,
+    private static Plan globalAggregates(ProjectionBuilder projectionBuilder,
                                          QueriedTableRelation table,
                                          ConsumerContext context,
                                          RowGranularity projectionGranularity) {
@@ -163,7 +162,6 @@ class GlobalAggregateConsumer implements Consumer {
         // global aggregate: collect and partial aggregate on C and final agg on H
         Planner.Context plannerContext = context.plannerContext();
         validateAggregationOutputs(querySpec.outputs());
-        ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
         SplitPoints splitPoints = SplitPoints.create(querySpec);
 
         AggregationProjection ap = projectionBuilder.aggregationProjection(
@@ -205,10 +203,10 @@ class GlobalAggregateConsumer implements Consumer {
 
     private static class Visitor extends RelationPlanningVisitor {
 
-        private final Functions functions;
+        private final ProjectionBuilder projectionBuilder;
 
-        public Visitor(Functions functions) {
-            this.functions = functions;
+        public Visitor(ProjectionBuilder projectionBuilder) {
+            this.projectionBuilder = projectionBuilder;
         }
 
         @Override
@@ -217,12 +215,12 @@ class GlobalAggregateConsumer implements Consumer {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            return globalAggregates(functions, table, context, RowGranularity.SHARD);
+            return globalAggregates(projectionBuilder, table, context, RowGranularity.SHARD);
         }
 
         @Override
         public Plan visitQueriedTable(QueriedTable table, ConsumerContext context) {
-            return globalAggregates(functions, table, context, RowGranularity.CLUSTER);
+            return globalAggregates(projectionBuilder, table, context, RowGranularity.CLUSTER);
         }
 
         @Override
@@ -236,7 +234,6 @@ class GlobalAggregateConsumer implements Consumer {
             if (subPlan == null) {
                 return null;
             }
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
             return addAggregations(qs, projectionBuilder, SplitPoints.create(qs), plannerContext, subPlan);
         }
     }

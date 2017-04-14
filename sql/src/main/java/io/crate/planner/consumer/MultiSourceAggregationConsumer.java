@@ -32,20 +32,22 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
-import io.crate.metadata.Functions;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 
-import java.util.*;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Optional;
 
 class MultiSourceAggregationConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    MultiSourceAggregationConsumer(Functions functions) {
-        visitor = new Visitor(functions);
+    MultiSourceAggregationConsumer(ProjectionBuilder projectionBuilder) {
+        visitor = new Visitor(projectionBuilder);
     }
 
     @Override
@@ -55,10 +57,11 @@ class MultiSourceAggregationConsumer implements Consumer {
 
     private static class Visitor extends RelationPlanningVisitor {
 
-        private final Functions functions;
 
-        public Visitor(Functions functions) {
-            this.functions = functions;
+        private final ProjectionBuilder projectionBuilder;
+
+        public Visitor(ProjectionBuilder projectionBuilder) {
+            this.projectionBuilder = projectionBuilder;
         }
 
         @Override
@@ -68,7 +71,6 @@ class MultiSourceAggregationConsumer implements Consumer {
                 return null;
             }
             qs = qs.copyAndReplace(i -> i); // copy because MSS planning mutates symbols
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
             SplitPoints splitPoints = SplitPoints.create(qs);
             removeAggregationsAndLimitsFromMSS(multiSourceSelect, splitPoints);
             Planner.Context plannerContext = context.plannerContext();

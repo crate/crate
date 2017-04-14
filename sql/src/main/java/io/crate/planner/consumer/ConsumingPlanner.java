@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Functions;
 import io.crate.planner.*;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
@@ -40,14 +41,15 @@ public class ConsumingPlanner {
     private final List<Consumer> consumers = new ArrayList<>();
 
     public ConsumingPlanner(ClusterService clusterService, Functions functions, TableStats tableStats) {
-        consumers.add(new NonDistributedGroupByConsumer(functions));
-        consumers.add(new ReduceOnCollectorGroupByConsumer(functions));
-        consumers.add(new DistributedGroupByConsumer(functions));
+        ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
+        consumers.add(new NonDistributedGroupByConsumer(projectionBuilder));
+        consumers.add(new ReduceOnCollectorGroupByConsumer(projectionBuilder));
+        consumers.add(new DistributedGroupByConsumer(projectionBuilder));
         consumers.add(new CountConsumer());
-        consumers.add(new GlobalAggregateConsumer(functions));
+        consumers.add(new GlobalAggregateConsumer(projectionBuilder));
         consumers.add(new InsertFromSubQueryConsumer());
         consumers.add(new QueryAndFetchConsumer());
-        consumers.add(new MultiSourceAggregationConsumer(functions));
+        consumers.add(new MultiSourceAggregationConsumer(projectionBuilder));
         consumers.add(new ManyTableConsumer());
         consumers.add(new NestedLoopConsumer(clusterService, functions, tableStats));
     }

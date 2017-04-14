@@ -31,7 +31,6 @@ import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -57,8 +56,8 @@ class DistributedGroupByConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    DistributedGroupByConsumer(Functions functions) {
-        visitor = new Visitor(functions);
+    DistributedGroupByConsumer(ProjectionBuilder projectionBuilder) {
+        visitor = new Visitor(projectionBuilder);
     }
 
     @Override
@@ -68,10 +67,10 @@ class DistributedGroupByConsumer implements Consumer {
 
     private static class Visitor extends RelationPlanningVisitor {
 
-        private final Functions functions;
+        private final ProjectionBuilder projectionBuilder;
 
-        public Visitor(Functions functions) {
-            this.functions = functions;
+        public Visitor(ProjectionBuilder projectionBuilder) {
+            this.projectionBuilder = projectionBuilder;
         }
 
         @Override
@@ -88,7 +87,6 @@ class DistributedGroupByConsumer implements Consumer {
             }
 
             GroupByConsumer.validateGroupBySymbols(groupBy);
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
             SplitPoints splitPoints = SplitPoints.create(querySpec);
 
             // start: Map/Collect side

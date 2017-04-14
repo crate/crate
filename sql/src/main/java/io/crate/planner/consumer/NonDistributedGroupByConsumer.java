@@ -30,7 +30,6 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -58,8 +57,8 @@ class NonDistributedGroupByConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    NonDistributedGroupByConsumer(Functions functions) {
-        this.visitor = new Visitor(functions);
+    NonDistributedGroupByConsumer(ProjectionBuilder projectionBuilder) {
+        this.visitor = new Visitor(projectionBuilder);
     }
 
     @Override
@@ -69,10 +68,10 @@ class NonDistributedGroupByConsumer implements Consumer {
 
     private static class Visitor extends RelationPlanningVisitor {
 
-        private final Functions functions;
+        private final ProjectionBuilder projectionBuilder;
 
-        public Visitor(Functions functions) {
-            this.functions = functions;
+        public Visitor(ProjectionBuilder projectionBuilder) {
+            this.projectionBuilder = projectionBuilder;
         }
 
         @Override
@@ -120,7 +119,6 @@ class NonDistributedGroupByConsumer implements Consumer {
             QuerySpec querySpec = table.querySpec();
             List<Symbol> groupKeys = querySpec.groupBy().get();
 
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
             SplitPoints splitPoints = SplitPoints.create(querySpec);
 
             // mapper / collect

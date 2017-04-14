@@ -30,7 +30,6 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.Limits;
 import io.crate.planner.Plan;
@@ -52,8 +51,8 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    ReduceOnCollectorGroupByConsumer(Functions functions) {
-        visitor = new Visitor(functions);
+    ReduceOnCollectorGroupByConsumer(ProjectionBuilder projectionBuilder) {
+        visitor = new Visitor(projectionBuilder);
     }
 
     @Override
@@ -63,10 +62,10 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
 
     private static class Visitor extends RelationPlanningVisitor {
 
-        private final Functions functions;
+        private final ProjectionBuilder projectionBuilder;
 
-        public Visitor(Functions functions) {
-            this.functions = functions;
+        public Visitor(ProjectionBuilder projectionBuilder) {
+            this.projectionBuilder = projectionBuilder;
         }
 
         @Override
@@ -106,7 +105,6 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
                 table.tableRelation().tableInfo(), querySpec.where(), groupKeys) : "not grouped by clustered column or primary keys";
             GroupByConsumer.validateGroupBySymbols(groupKeys);
 
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
             SplitPoints splitPoints = SplitPoints.create(querySpec);
 
             // mapper / collect
