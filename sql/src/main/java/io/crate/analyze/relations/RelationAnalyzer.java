@@ -64,6 +64,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private final ClusterService clusterService;
     private final Functions functions;
     private final Schemas schemas;
+    private final RelationNormalizer relationNormalizer;
+
     private static final List<Relation> SYS_CLUSTER_SOURCE = ImmutableList.<Relation>of(
         new Table(new QualifiedName(
             ImmutableList.of(SysClusterTableInfo.IDENT.schema(), SysClusterTableInfo.IDENT.name()))
@@ -71,6 +73,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     );
 
     public RelationAnalyzer(ClusterService clusterService, Functions functions, Schemas schemas) {
+        relationNormalizer = new RelationNormalizer(functions);
         this.clusterService = clusterService;
         this.functions = functions;
         this.schemas = schemas;
@@ -78,7 +81,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     public AnalyzedRelation analyze(Node node, StatementAnalysisContext statementContext) {
         AnalyzedRelation relation = process(node, statementContext);
-        return RelationNormalizer.normalize(relation, functions, statementContext.transactionContext());
+        relation = SubselectRewriter.rewrite(relation);
+        return relationNormalizer.normalize(relation, statementContext.transactionContext());
     }
 
     public AnalyzedRelation analyzeUnbound(Query query, SessionContext sessionContext, ParamTypeHints paramTypeHints) {

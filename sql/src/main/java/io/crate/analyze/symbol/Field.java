@@ -31,7 +31,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class Field extends Symbol {
+public class Field extends Symbol implements Path {
 
     private AnalyzedRelation relation;
     private Path path;
@@ -121,5 +121,10 @@ public class Field extends Symbol {
         }
         assert idx >= 0 : "idx must be >= 0";
         return idx;
+    }
+
+    @Override
+    public String outputName() {
+        return path.outputName();
     }
 }
