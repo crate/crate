@@ -76,7 +76,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
             }
             DocTableRelation tableRelation = table.tableRelation();
             if (!GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
-                tableRelation, table.querySpec().where(), table.querySpec().groupBy().get())) {
+                tableRelation.tableInfo(), table.querySpec().where(), table.querySpec().groupBy().get())) {
                 return null;
             }
 
@@ -84,7 +84,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            return optimizedReduceOnCollectorGroupBy(table, tableRelation, context);
+            return optimizedReduceOnCollectorGroupBy(table, context);
         }
 
         /**
@@ -97,13 +97,13 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
          * CollectNode ( GroupProjection, [FilterProjection], [TopN] )
          * LocalMergeNode ( TopN )
          */
-        private Plan optimizedReduceOnCollectorGroupBy(QueriedDocTable table, DocTableRelation tableRelation, ConsumerContext context) {
+        private Plan optimizedReduceOnCollectorGroupBy(QueriedDocTable table, ConsumerContext context) {
             QuerySpec querySpec = table.querySpec();
             Optional<List<Symbol>> optGroupBy = querySpec.groupBy();
             assert optGroupBy.isPresent() : "must have groupBy if optimizeReduceOnCollectorGroupBy is called";
             List<Symbol> groupKeys = optGroupBy.get();
             assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
-                tableRelation, querySpec.where(), groupKeys) : "not grouped by clustered column or primary keys";
+                table.tableRelation().tableInfo(), querySpec.where(), groupKeys) : "not grouped by clustered column or primary keys";
             GroupByConsumer.validateGroupBySymbols(groupKeys);
 
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);

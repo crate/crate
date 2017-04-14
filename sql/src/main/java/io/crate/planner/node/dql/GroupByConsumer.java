@@ -22,13 +22,13 @@
 package io.crate.planner.node.dql;
 
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
 
 import java.util.List;
 
@@ -36,9 +36,11 @@ public class GroupByConsumer {
 
     private static final GroupByValidator GROUP_BY_VALIDATOR = new GroupByValidator();
 
-    public static boolean groupedByClusteredColumnOrPrimaryKeys(DocTableRelation tableRelation, WhereClause whereClause, List<Symbol> groupBySymbols) {
+    public static boolean groupedByClusteredColumnOrPrimaryKeys(DocTableInfo tableInfo,
+                                                                WhereClause whereClause,
+                                                                List<Symbol> groupBySymbols) {
         if (groupBySymbols.size() > 1) {
-            return groupedByPrimaryKeys(tableRelation, groupBySymbols);
+            return groupedByPrimaryKeys(tableInfo.primaryKey(), groupBySymbols);
         }
 
         /**
@@ -46,7 +48,7 @@ public class GroupByConsumer {
          * so one shard doesn't contain all "clustered by" values
          * -> need to use a distributed group by.
          */
-        if (tableRelation.tableInfo().isPartitioned() && whereClause.partitions().size() != 1) {
+        if (tableInfo.isPartitioned() && whereClause.partitions().size() != 1) {
             return false;
         }
 
@@ -55,11 +57,10 @@ public class GroupByConsumer {
         Symbol groupByKey = groupBySymbols.get(0);
         return (groupByKey instanceof Reference
                 && ((Reference) groupByKey).ident().columnIdent()
-                    .equals(tableRelation.tableInfo().clusteredBy()));
+                    .equals(tableInfo.clusteredBy()));
     }
 
-    private static boolean groupedByPrimaryKeys(DocTableRelation tableRelation, List<Symbol> groupBy) {
-        List<ColumnIdent> primaryKeys = tableRelation.tableInfo().primaryKey();
+    private static boolean groupedByPrimaryKeys(List<ColumnIdent> primaryKeys, List<Symbol> groupBy) {
         if (groupBy.size() != primaryKeys.size()) {
             return false;
         }
