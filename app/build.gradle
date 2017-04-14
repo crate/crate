@@ -391,7 +391,7 @@ jar {
 }
 
 task downloadPlugins(
-        dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es:es-repository-hdfs:jar', ':azure-discovery:jar', ':jmx-monitoring:jar']) {
+        dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es:es-repository-hdfs:jar', ':azure-discovery:jar', ':jmx-monitoring:jar', ':lang-js:jar']) {
     doLast {
         // copy es-repository-hdfs plugin
         copy {
@@ -421,6 +421,12 @@ task downloadPlugins(
         copy {
             from(project(':jmx-monitoring').tasks.jar.archivePath)
             into 'plugins/jmx-monitoring'
+        }
+
+        copy {
+            from(project(':lang-js').tasks.jar.archivePath)
+            from(project(':lang-js').buildDir.path + '/tmp/plugin-descriptor.properties')
+            into 'plugins/lang-js'
         }
 
         // copy crate-sigar plugin
