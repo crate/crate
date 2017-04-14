@@ -23,7 +23,6 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.*;
@@ -163,7 +162,7 @@ class GlobalAggregateConsumer implements Consumer {
         }
         // global aggregate: collect and partial aggregate on C and final agg on H
         Planner.Context plannerContext = context.plannerContext();
-        validateAggregationOutputs(table.tableRelation(), querySpec.outputs());
+        validateAggregationOutputs(querySpec.outputs());
         ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions);
         SplitPoints splitPoints = SplitPoints.create(querySpec);
 
@@ -192,8 +191,8 @@ class GlobalAggregateConsumer implements Consumer {
         return createMerge(collect, plannerContext, postAggregationProjections);
     }
 
-    private static void validateAggregationOutputs(AbstractTableRelation tableRelation, Collection<? extends Symbol> outputSymbols) {
-        OutputValidatorContext context = new OutputValidatorContext(tableRelation);
+    private static void validateAggregationOutputs( Collection<? extends Symbol> outputSymbols) {
+        OutputValidatorContext context = new OutputValidatorContext();
         for (Symbol outputSymbol : outputSymbols) {
             context.insideAggregation = false;
             AGGREGATION_OUTPUT_VALIDATOR.process(outputSymbol, context);
@@ -201,12 +200,7 @@ class GlobalAggregateConsumer implements Consumer {
     }
 
     private static class OutputValidatorContext {
-        private final AbstractTableRelation tableRelation;
         private boolean insideAggregation = false;
-
-        OutputValidatorContext(AbstractTableRelation tableRelation) {
-            this.tableRelation = tableRelation;
-        }
     }
 
     private static class Visitor extends RelationPlanningVisitor {
@@ -277,7 +271,7 @@ class GlobalAggregateConsumer implements Consumer {
 
         @Override
         public Void visitField(Field field, OutputValidatorContext context) {
-            return process(context.tableRelation.resolveField(field), context);
+            throw new UnsupportedOperationException("Field must already have been resolved to Reference");
         }
 
         @Override
