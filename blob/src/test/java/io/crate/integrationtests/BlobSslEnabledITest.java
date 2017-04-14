@@ -73,9 +73,9 @@ public class BlobSslEnabledITest extends BlobHttpIntegrationTest {
     public void testRedirectContainsHttpsScheme() throws Exception {
         String blobUri = blobUri(uploadSmallBlob());
         CloseableHttpClient client = HttpClients.custom().disableRedirectHandling().build();
-        List<String> redirectLocations = getRedirectLocations(client, blobUri, address);
+        List<String> redirectLocations = getRedirectLocations(client, blobUri, dataNode1);
         if (redirectLocations.isEmpty()) {
-            redirectLocations = getRedirectLocations(client, blobUri, address2);
+            redirectLocations = getRedirectLocations(client, blobUri, dataNode2);
         }
         String uri = redirectLocations.iterator().next();
         assertThat(uri, startsWith("https"));
@@ -91,11 +91,11 @@ public class BlobSslEnabledITest extends BlobHttpIntegrationTest {
         // -> figure out the node that really has the blob
 
         CloseableHttpClient client = HttpClients.custom().disableRedirectHandling().build();
-        List<String> redirectLocations = getRedirectLocations(client, blobUri, address);
+        List<String> redirectLocations = getRedirectLocations(client, blobUri, randomNode);
         String redirectUri;
         if (redirectLocations.isEmpty()) {
             redirectUri = String.format(Locale.ENGLISH,
-                "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), blobUri);
+                "http://%s:%s/_blobs/%s", randomNode.getHostName(), randomNode.getPort(), blobUri);
         } else {
             redirectUri = redirectLocations.get(0).replace("https", "http");
         }

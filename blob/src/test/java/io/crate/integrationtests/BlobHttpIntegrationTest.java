@@ -57,8 +57,9 @@ import static org.hamcrest.core.Is.is;
 
 public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
 
-    protected InetSocketAddress address;
-    protected InetSocketAddress address2;
+    protected InetSocketAddress dataNode1;
+    protected InetSocketAddress dataNode2;
+    protected InetSocketAddress randomNode;
 
     protected CloseableHttpClient httpClient = HttpClients.createDefault();
 
@@ -66,12 +67,16 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         System.setProperty("tests.short_timeouts", "true");
     }
 
+
     @Before
     public void setup() throws ExecutionException, InterruptedException {
-        Iterable<HttpServerTransport> transports = internalCluster().getInstances(HttpServerTransport.class);
+        randomNode = ((InetSocketTransportAddress) internalCluster().getInstances(HttpServerTransport.class)
+            .iterator().next()
+            .boundAddress().publishAddress()).address();
+        Iterable<HttpServerTransport> transports = internalCluster().getDataNodeInstances(HttpServerTransport.class);
         Iterator<HttpServerTransport> httpTransports = transports.iterator();
-        address = ((InetSocketTransportAddress) httpTransports.next().boundAddress().publishAddress()).address();
-        address2 = ((InetSocketTransportAddress) httpTransports.next().boundAddress().publishAddress()).address();
+        dataNode1 = ((InetSocketTransportAddress) httpTransports.next().boundAddress().publishAddress()).address();
+        dataNode2 = ((InetSocketTransportAddress) httpTransports.next().boundAddress().publishAddress()).address();
         BlobAdminClient blobAdminClient = internalCluster().getInstance(BlobAdminClient.class);
 
         Settings indexSettings = Settings.builder()
@@ -116,7 +121,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
     }
 
     protected CloseableHttpResponse put(String uri, String body) throws IOException {
-        HttpPut httpPut = new HttpPut(Blobs.url(address, uri));
+        HttpPut httpPut = new HttpPut(Blobs.url(randomNode, uri));
         if (body != null) {
             StringEntity bodyEntity = new StringEntity(body);
             httpPut.setEntity(bodyEntity);
@@ -169,7 +174,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
     }
 
     protected CloseableHttpResponse get(String uri, Header[] headers) throws IOException {
-        HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
+        HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", dataNode1.getHostName(), dataNode1.getPort(), uri));
         if (headers != null) {
             httpGet.setHeaders(headers);
         }
@@ -177,12 +182,12 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
     }
 
     protected CloseableHttpResponse head(String uri) throws IOException {
-        HttpHead httpHead = new HttpHead(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
+        HttpHead httpHead = new HttpHead(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", dataNode1.getHostName(), dataNode1.getPort(), uri));
         return executeAndDefaultAssertions(httpHead);
     }
 
     protected CloseableHttpResponse delete(String uri) throws IOException {
-        HttpDelete httpDelete = new HttpDelete(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
+        HttpDelete httpDelete = new HttpDelete(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", dataNode1.getHostName(), dataNode1.getPort(), uri));
         return executeAndDefaultAssertions(httpDelete);
     }
 
