@@ -27,7 +27,6 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 
 public class DropFunction extends Statement {
 
@@ -63,15 +62,19 @@ public class DropFunction extends Statement {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        final DropFunction that = (DropFunction) o;
-        return Objects.equals(this.name, that.name)
-            && Objects.equals(this.exists, that.exists)
-            && Objects.equals(this.arguments, that.arguments);
+        DropFunction that = (DropFunction) o;
+
+        if (exists != that.exists) return false;
+        if (!name.equals(that.name)) return false;
+        return arguments.equals(that.arguments);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, exists, arguments);
+        int result = name.hashCode();
+        result = 31 * result + (exists ? 1 : 0);
+        result = 31 * result + arguments.hashCode();
+        return result;
     }
 
     @Override
