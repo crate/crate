@@ -1333,8 +1333,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         throw new IllegalArgumentException("Unsupported quantifier: " + symbol.getText());
     }
 
-    // Create Function helpers
-    private void validateFunctionName(QualifiedName functionName) {
+    private static void validateFunctionName(QualifiedName functionName) {
         if (functionName.getParts().size() > 2) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "The function name is not correct! " +
                 "name [%s] does not conform the [[schema_name .] function_name] format.", functionName));
