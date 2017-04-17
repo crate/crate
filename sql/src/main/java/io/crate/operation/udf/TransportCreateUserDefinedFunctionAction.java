@@ -26,11 +26,11 @@
 
 package io.crate.operation.udf;
 
+import io.crate.exceptions.ScriptException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -40,8 +40,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
-import javax.script.ScriptException;
 
 @Singleton
 public class TransportCreateUserDefinedFunctionAction extends TransportMasterNodeAction<CreateUserDefinedFunctionRequest, UserDefinedFunctionResponse> {
@@ -79,7 +77,7 @@ public class TransportCreateUserDefinedFunctionAction extends TransportMasterNod
         UserDefinedFunctionMetaData metaData = request.userDefinedFunctionMetaData();
         String errorMessage = udfService.getLanguage(metaData.language()).validate(metaData);
         if (errorMessage != null) {
-            throw new ScriptException(errorMessage);
+            throw new ScriptException(errorMessage, metaData.language());
         }
 
         udfService.registerFunction(metaData, request.replace(), listener, request.masterNodeTimeout());
