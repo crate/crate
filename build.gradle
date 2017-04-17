@@ -163,6 +163,10 @@ project.gradle.addListener(new TestListener() {
     }
 })
 
+task checkoutSubmodule {
+    "git submodule update --init"
+}
+
 
 def jacocoProjects() {
     subprojects.findAll {
@@ -235,6 +239,7 @@ subprojects {
 
 def jvmTestFlags = ['-ea', "-Dproject_build_dir=$project.buildDir", '-Dproject_root=$PROJECT_DIR$']
 
+tasks.idea.dependsOn(checkoutSubmodule)
 idea {
     workspace {
         iws.withXml { xmlFile ->
