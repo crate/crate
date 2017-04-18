@@ -21,7 +21,6 @@
 
 package io.crate.executor.task;
 
-import com.google.common.base.Function;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.data.BatchConsumer;
@@ -33,6 +32,7 @@ import io.crate.executor.transport.OneRowActionListener;
 import javax.annotation.Nullable;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 public class DDLTask extends JobTask {
 
@@ -58,5 +58,4 @@ public class DDLTask extends JobTask {
         });
         future.whenComplete(responseOneRowActionListener);
     }
-
 }

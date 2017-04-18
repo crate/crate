@@ -269,7 +269,7 @@ public class UpdateConsumer implements Consumer {
                 key.id(),
                 key.routing(),
                 assignments.v2(),
-                key.version().orNull());
+                key.version().orElse(null));
         }
     }
 }

@@ -22,7 +22,6 @@
 package io.crate.analyze.relations;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Predicate;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Field;
 import io.crate.metadata.ColumnIdent;
@@ -38,17 +37,14 @@ import io.crate.types.ObjectType;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Predicate;
 
 public abstract class AbstractTableRelation<T extends TableInfo> implements AnalyzedRelation, FieldResolver {
 
-    private static final Predicate<Reference> IS_OBJECT_ARRAY = new Predicate<Reference>() {
-        @Override
-        public boolean apply(@Nullable Reference input) {
-            return input != null
-                   && input.valueType().id() == ArrayType.ID
-                   && ((ArrayType) input.valueType()).innerType().equals(DataTypes.OBJECT);
-        }
-    };
+    private static final Predicate<Reference> IS_OBJECT_ARRAY =
+        input -> input != null
+        && input.valueType().id() == ArrayType.ID
+        && ((ArrayType) input.valueType()).innerType().equals(DataTypes.OBJECT);
 
     protected T tableInfo;
     private List<Field> outputs;
@@ -160,7 +156,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         ColumnIdent parent = info.ident().columnIdent().getParent();
         while (parent != null) {
             Reference parentInfo = tableInfo.getReference(parent);
-            if (parentMatchPredicate.apply(parentInfo)) {
+            if (parentMatchPredicate.test(parentInfo)) {
                 return true;
             }
             parent = parent.getParent();

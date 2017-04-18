@@ -21,12 +21,11 @@
 
 package io.crate.operation.collect.files;
 
-import com.google.common.base.Predicate;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.List;
+import java.util.function.Predicate;
 
 public interface FileInput {
 

@@ -22,8 +22,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicates;
 import com.google.common.collect.Sets;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QuerySplitter;
@@ -34,6 +32,7 @@ import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Function;
 
 public class Rewriter {
 
@@ -108,7 +107,7 @@ public class Rewriter {
 
                 Symbol symbol = Symbols.replaceField(
                     outerRelationQuery,
-                    new Function<Field, Symbol>() {
+                    new java.util.function.Function<Field, Symbol>() {
                         @Nullable
                         @Override
                         public Symbol apply(@Nullable Field input) {
@@ -196,7 +195,7 @@ public class Rewriter {
             // if the column was only added to the outerSpec outputs because of the whereClause
             // it's possible to not collect it as long is it isn't used somewhere else
             if (!mssOutputSymbols.contains(input) &&
-                !SymbolVisitors.any(Predicates.equalTo(input), joinCondition)) {
+                !SymbolVisitors.any(symbol -> Objects.equals(input, symbol), joinCondition)) {
                 fieldsToNotCollect.add(input);
             }
             return input;

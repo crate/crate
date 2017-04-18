@@ -22,8 +22,6 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -34,9 +32,11 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequ
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 
+import java.util.function.Function;
+
 public class CreateAnalyzerTask extends JobTask {
 
-    private static final Function<Object, Row> TO_ONE_ROW = Functions.<Row>constant(new Row1(1L));
+    private static final Function<Object, Row> TO_ONE_ROW = o -> new Row1(1L);
 
     private final CreateAnalyzerPlan plan;
     private final TransportClusterUpdateSettingsAction transport;

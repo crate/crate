@@ -21,11 +21,11 @@
 
 package io.crate.planner.node.management;
 
-import com.google.common.base.Optional;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.UnnestablePlan;
 
 import java.util.UUID;
+import java.util.Optional;
 
 public class KillPlan extends UnnestablePlan {
 
@@ -34,7 +34,7 @@ public class KillPlan extends UnnestablePlan {
 
     public KillPlan(UUID id) {
         this.id = id;
-        this.jobToKill = Optional.absent();
+        this.jobToKill = Optional.empty();
     }
 
     public KillPlan(UUID id, UUID jobToKill) {

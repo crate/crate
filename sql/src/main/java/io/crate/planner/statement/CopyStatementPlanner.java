@@ -23,7 +23,6 @@
 package io.crate.planner.statement;
 
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.CopyFromAnalyzedStatement;
@@ -48,12 +47,13 @@ import io.crate.planner.projection.SourceIndexWriterProjection;
 import io.crate.planner.projection.WriterProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 
 public class CopyStatementPlanner {
 
@@ -64,7 +64,7 @@ public class CopyStatementPlanner {
     }
 
     public Plan planCopyFrom(CopyFromAnalyzedStatement analysis, Planner.Context context) {
-        /**
+        /*
          * copy from has two "modes":
          *
          * 1: non-partitioned tables or partitioned tables with partition ident --> import into single es index
@@ -115,7 +115,7 @@ public class CopyStatementPlanner {
             0 ? partitionedByNames.toArray(new String[partitionedByNames.size()]) : null,
             table.isPartitioned() // autoCreateIndices
         );
-        List<Projection> projections = Collections.<Projection>singletonList(sourceIndexWriterProjection);
+        List<Projection> projections = Collections.singletonList(sourceIndexWriterProjection);
         partitionedByNames.removeAll(Lists.transform(table.primaryKey(), ColumnIdent::fqn));
         int referencesSize = table.primaryKey().size() + partitionedByNames.size() + 1;
         referencesSize = clusteredByPrimaryKeyIdx == -1 ? referencesSize + 1 : referencesSize;
@@ -203,12 +203,9 @@ public class CopyStatementPlanner {
                                                         final Predicate<DiscoveryNode> nodeFilters) {
         final AtomicInteger counter = new AtomicInteger(maxNodes);
         final List<String> nodes = new ArrayList<>(allNodes.getSize());
-        allNodes.getDataNodes().values().forEach(new ObjectProcedure<DiscoveryNode>() {
-            @Override
-            public void apply(DiscoveryNode value) {
-                if (nodeFilters.apply(value) && counter.getAndDecrement() > 0) {
-                    nodes.add(value.getId());
-                }
+        allNodes.getDataNodes().values().forEach((ObjectProcedure<DiscoveryNode>) value -> {
+            if (nodeFilters.test(value) && counter.getAndDecrement() > 0) {
+                nodes.add(value.getId());
             }
         });
         return nodes;

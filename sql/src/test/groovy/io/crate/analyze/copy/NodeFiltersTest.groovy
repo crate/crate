@@ -33,25 +33,25 @@ class NodeFiltersTest extends CrateUnitTest {
     public void testIdFilter() throws Exception {
         NodeFilters filters = new NodeFilters(null, "n[1-3]")
 
-        assert filters.apply(newNode("n1", "n1"))
-        assert filters.apply(newNode("n2", "n2"))
-        assert filters.apply(newNode("n3", "n3"))
-        assert !filters.apply(newNode("n4", "n4"))
+        assert filters.test(newNode("n1", "n1"))
+        assert filters.test(newNode("n2", "n2"))
+        assert filters.test(newNode("n3", "n3"))
+        assert !filters.test(newNode("n4", "n4"))
     }
 
     @Test
     public void testNodeNameFilter() throws Exception {
         NodeFilters filters = new NodeFilters("node[1-3]", null)
-        assert filters.apply(newNode("node1", "n2"))
-        assert !filters.apply(newNode("node4", "n1"))
+        assert filters.test(newNode("node1", "n2"))
+        assert !filters.test(newNode("node4", "n1"))
     }
 
     @Test
     public void testNameAndIdFilter() throws Exception {
         NodeFilters filters = new NodeFilters("node[1-3]", "n[1-2]")
 
-        assert filters.apply(newNode("node1", "n1"))
-        assert !filters.apply(newNode("node1", "n4"))
-        assert !filters.apply(newNode("node4", "n2"))
+        assert filters.test(newNode("node1", "n1"))
+        assert !filters.test(newNode("node1", "n4"))
+        assert !filters.test(newNode("node4", "n2"))
     }
 }

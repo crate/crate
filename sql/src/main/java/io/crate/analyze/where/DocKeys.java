@@ -21,7 +21,6 @@
 
 package io.crate.analyze.where;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
@@ -34,6 +33,7 @@ import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Function;
+import java.util.Optional;
 
 public class DocKeys implements Iterable<DocKeys.DocKey> {
 
@@ -57,7 +57,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             if (withVersions && key.get(width) != null) {
                 return Optional.of((Long) ((Literal) key.get(width)).value());
             }
-            return Optional.absent();
+            return Optional.empty();
         }
 
         public String routing() {
@@ -71,7 +71,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
 
         public Optional<List<BytesRef>> partitionValues() {
             if (partitionIdx == null || partitionIdx.isEmpty()) {
-                return Optional.absent();
+                return Optional.empty();
             }
             List<BytesRef> values = Lists.transform(
                 partitionIdx, pIdx -> ValueSymbolVisitor.BYTES_REF.process(key.get(pIdx)));

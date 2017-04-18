@@ -21,7 +21,6 @@
 
 package io.crate.analyze.symbol;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.metadata.*;
@@ -32,17 +31,13 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Predicate;
 
 public class Symbols {
 
     private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
 
-    public static final Predicate<Symbol> IS_GENERATED_COLUMN = new Predicate<Symbol>() {
-        @Override
-        public boolean apply(@Nullable Symbol input) {
-            return input instanceof GeneratedReference;
-        }
-    };
+    public static final Predicate<Symbol> IS_GENERATED_COLUMN = input -> input instanceof GeneratedReference;
 
     public static List<DataType> extractTypes(List<? extends Symbol> symbols) {
         return Lists.transform(symbols, Symbol::valueType);
@@ -141,7 +136,7 @@ public class Symbols {
     }
 
     private static class FieldReplaceVisitor
-        extends ReplacingSymbolVisitor<com.google.common.base.Function<? super Field, ? extends Symbol>> {
+        extends ReplacingSymbolVisitor<java.util.function.Function<? super Field, ? extends Symbol>> {
 
         public final static FieldReplaceVisitor INSTANCE = new FieldReplaceVisitor();
 
@@ -151,13 +146,13 @@ public class Symbols {
 
         @Override
         public Symbol visitField(Field field,
-                                 com.google.common.base.Function<? super Field, ? extends Symbol> replaceFunction) {
+                                 java.util.function.Function<? super Field, ? extends Symbol> replaceFunction) {
             return replaceFunction.apply(field);
         }
     }
 
     public static Symbol replaceField(Symbol symbol,
-                                      com.google.common.base.Function<? super Field, ? extends Symbol> replaceFunction) {
+                                      java.util.function.Function<? super Field, ? extends Symbol> replaceFunction) {
         return FieldReplaceVisitor.INSTANCE.process(symbol, replaceFunction);
     }
 }

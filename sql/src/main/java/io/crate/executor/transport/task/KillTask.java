@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport.task;
 
-import com.google.common.base.Function;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -33,6 +32,7 @@ import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
+import java.util.function.Function;
 
 public class KillTask extends JobTask {
 

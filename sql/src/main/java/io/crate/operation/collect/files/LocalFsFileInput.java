@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect.files;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 
 import java.io.*;
@@ -30,6 +29,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 public class LocalFsFileInput implements FileInput {
 
@@ -62,7 +62,7 @@ public class LocalFsFileInput implements FileInput {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 URI uri = file.toUri();
-                if (uriPredicate.apply(uri)) {
+                if (uriPredicate.test(uri)) {
                     uris.add(uri);
                 }
                 return FileVisitResult.CONTINUE;

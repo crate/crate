@@ -25,7 +25,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.google.common.base.Predicate;
 import io.crate.external.S3ClientHelper;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
@@ -35,6 +34,7 @@ import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 public class S3FileInput implements FileInput {
 
@@ -75,7 +75,7 @@ public class S3FileInput implements FileInput {
             String key = summary.getKey();
             if (!key.endsWith("/")) {
                 URI keyUri = uri.resolve("/" + key);
-                if (uriPredicate.apply(keyUri)) {
+                if (uriPredicate.test(keyUri)) {
                     uris.add(keyUri);
                     if (logger.isDebugEnabled()) {
                         logger.debug("{}", keyUri);

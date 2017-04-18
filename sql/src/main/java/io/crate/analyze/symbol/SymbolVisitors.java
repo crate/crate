@@ -22,7 +22,7 @@
 
 package io.crate.analyze.symbol;
 
-import com.google.common.base.Predicate;
+import java.util.function.Predicate;
 
 public class SymbolVisitors {
 
@@ -36,7 +36,7 @@ public class SymbolVisitors {
 
         @Override
         public Boolean visitFunction(Function symbol, Predicate<? super Symbol> symbolPredicate) {
-            if (symbolPredicate.apply(symbol)) {
+            if (symbolPredicate.test(symbol)) {
                 return true;
             }
             for (Symbol arg : symbol.arguments()) {
@@ -49,14 +49,14 @@ public class SymbolVisitors {
 
         @Override
         public Boolean visitFetchReference(FetchReference fetchReference, Predicate<? super Symbol> symbolPredicate) {
-            return symbolPredicate.apply(fetchReference)
+            return symbolPredicate.test(fetchReference)
                    || fetchReference.fetchId().accept(this, symbolPredicate)
                    || fetchReference.ref().accept(this, symbolPredicate);
         }
 
         @Override
         public Boolean visitMatchPredicate(MatchPredicate matchPredicate, Predicate<? super Symbol> symbolPredicate) {
-            if (symbolPredicate.apply(matchPredicate)) {
+            if (symbolPredicate.test(matchPredicate)) {
                 return true;
             }
             for (Field field : matchPredicate.identBoostMap().keySet()) {
@@ -69,7 +69,7 @@ public class SymbolVisitors {
 
         @Override
         protected Boolean visitSymbol(Symbol symbol, Predicate<? super Symbol> symbolPredicate) {
-            return symbolPredicate.apply(symbol);
+            return symbolPredicate.test(symbol);
         }
     }
 

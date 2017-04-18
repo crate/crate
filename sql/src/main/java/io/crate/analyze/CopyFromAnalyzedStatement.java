@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Predicate;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataType;
@@ -30,6 +29,7 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
+import java.util.function.Predicate;
 
 public class CopyFromAnalyzedStatement extends AbstractCopyAnalyzedStatement {
 

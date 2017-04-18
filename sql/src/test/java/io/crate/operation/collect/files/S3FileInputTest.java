@@ -25,7 +25,6 @@ package io.crate.operation.collect.files;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.google.common.base.Predicate;
 import io.crate.external.S3ClientHelper;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.BeforeClass;
@@ -34,6 +33,7 @@ import org.junit.Test;
 import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Predicate;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
@@ -61,7 +61,7 @@ public class S3FileInputTest extends CrateUnitTest {
         uri = new URI("s3://fakeBucket/prefix");
         s3FileInput = new S3FileInput(clientBuilder);
 
-        when(uriPredicate.apply(any(URI.class))).thenReturn(true);
+        when(uriPredicate.test(any(URI.class))).thenReturn(true);
         when(amazonS3.listObjects(BUCKET_NAME, PREFIX)).thenReturn(objectListing);
         when(clientBuilder.client(uri)).thenReturn(amazonS3);
     }

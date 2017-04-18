@@ -21,8 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
@@ -57,6 +55,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Predicate;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 class CopyAnalyzer {
@@ -103,7 +102,7 @@ class CopyAnalyzer {
         ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation);
         expressionAnalyzer.setResolveFieldsOperation(Operation.INSERT);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
-        Predicate<DiscoveryNode> nodeFilters = Predicates.alwaysTrue();
+        Predicate<DiscoveryNode> nodeFilters = discoveryNode -> true;
         Settings settings = Settings.EMPTY;
         if (node.genericProperties().isPresent()) {
             // copy map as items are removed. The GenericProperties map is cached in the query cache and removing
@@ -136,7 +135,7 @@ class CopyAnalyzer {
 
     private static Predicate<DiscoveryNode> discoveryNodePredicate(Row parameters, @Nullable Expression nodeFiltersExpression) {
         if (nodeFiltersExpression == null) {
-            return Predicates.alwaysTrue();
+            return discoveryNode -> true;
         }
         Object nodeFiltersObj = ExpressionToObjectVisitor.convert(nodeFiltersExpression, parameters);
         try {
@@ -224,7 +223,7 @@ class CopyAnalyzer {
             } else {
                 sourceRef = tableRelation.tableInfo().getReference(DocSysColumns.RAW);
             }
-            outputs = ImmutableList.<Symbol>of(sourceRef);
+            outputs = ImmutableList.of(sourceRef);
         }
         querySpec.outputs(outputs);
 

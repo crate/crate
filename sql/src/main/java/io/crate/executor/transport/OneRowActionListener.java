@@ -22,7 +22,6 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.base.Function;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.RowsBatchIterator;
@@ -30,6 +29,7 @@ import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nonnull;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 public class OneRowActionListener<Response> implements ActionListener<Response>, BiConsumer<Response, Throwable> {
 

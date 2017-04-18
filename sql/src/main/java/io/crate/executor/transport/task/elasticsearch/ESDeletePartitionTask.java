@@ -21,8 +21,6 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -34,10 +32,11 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.support.IndicesOptions;
 
+import java.util.function.Function;
+
 public class ESDeletePartitionTask extends JobTask {
 
-    private static final Function<Object, Row> TO_UNKNOWN_COUNT_ROW = Functions.<Row>constant(new Row1(-1L));
-    ;
+    private static final Function<Object, Row> TO_UNKNOWN_COUNT_ROW = o -> new Row1(-1L);
 
     private final TransportDeleteIndexAction transport;
     private final DeleteIndexRequest request;

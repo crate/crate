@@ -22,13 +22,13 @@
 
 package io.crate.executor;
 
-import com.google.common.base.Function;
 import org.elasticsearch.action.ActionListener;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 public class MultiActionListener<SingleResponse, FinalResponse> implements ActionListener<SingleResponse> {
 

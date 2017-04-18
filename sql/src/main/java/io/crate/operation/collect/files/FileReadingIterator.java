@@ -22,8 +22,6 @@
 package io.crate.operation.collect.files;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchIterator;
@@ -50,6 +48,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -382,7 +381,7 @@ public class FileReadingIterator implements BatchIterator {
         List<URI> uris;
         if (preGlobUri != null) {
             uris = fileInput.listUris(preGlobUri, uriPredicate);
-        } else if (uriPredicate.apply(fileUri)) {
+        } else if (uriPredicate.test(fileUri)) {
             uris = ImmutableList.of(fileUri);
         } else {
             uris = ImmutableList.of();
@@ -406,7 +405,7 @@ public class FileReadingIterator implements BatchIterator {
         }
 
         if (globPredicate != null) {
-            return Predicates.and(moduloPredicate, globPredicate);
+            return moduloPredicate.and(globPredicate);
         }
         return moduloPredicate;
     }
@@ -419,7 +418,7 @@ public class FileReadingIterator implements BatchIterator {
         }
 
         @Override
-        public boolean apply(@Nullable URI input) {
+        public boolean test(@Nullable URI input) {
             return input != null && globPattern.matcher(input.toString()).matches();
         }
     }

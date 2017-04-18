@@ -209,7 +209,8 @@ public class ESGetTask extends JobTask {
             for (DocKeys.DocKey key : node.docKeys()) {
                 if (key.id() != null) {
                     MultiGetRequest.Item item = new MultiGetRequest.Item(
-                        indexName(node.tableInfo(), key.partitionValues().orNull()), Constants.DEFAULT_MAPPING_TYPE, key.id());
+                        indexName(node.tableInfo(), key.partitionValues().orElse(null)),
+                        Constants.DEFAULT_MAPPING_TYPE, key.id());
                     item.fetchSourceContext(fsc);
                     item.routing(key.routing());
                     multiGetRequest.add(item);
@@ -241,7 +242,7 @@ public class ESGetTask extends JobTask {
             if (id == null) {
                 return null;
             }
-            GetRequest getRequest = new GetRequest(indexName(node.tableInfo(), docKey.partitionValues().orNull()),
+            GetRequest getRequest = new GetRequest(indexName(node.tableInfo(), docKey.partitionValues().orElse(null)),
                 Constants.DEFAULT_MAPPING_TYPE, id);
             getRequest.fetchSourceContext(fsc);
             getRequest.realtime(true);

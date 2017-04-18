@@ -23,7 +23,6 @@
 package io.crate.analyze.expressions;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicates;
 import com.google.common.collect.*;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
@@ -550,7 +549,7 @@ public class ExpressionAnalyzer {
             // x = ANY([null])              -> must not result in to-null casts
             // int_col = ANY([1, 2, 3])     -> must cast to int instead of long (otherwise lucene query would be slow)
             // null = ANY([1, 2])           -> must not cast to null
-            if (SymbolVisitors.any(Predicates.instanceOf(Field.class), leftSymbol) || rightInnerType == DataTypes.UNDEFINED) {
+            if (SymbolVisitors.any(symbol -> symbol instanceof Field, leftSymbol) || rightInnerType == DataTypes.UNDEFINED) {
                 arraySymbol = castIfNeededOrFail(arraySymbol, new ArrayType(leftSymbol.valueType()));
             } else {
                 leftSymbol = castIfNeededOrFail(leftSymbol, rightInnerType);

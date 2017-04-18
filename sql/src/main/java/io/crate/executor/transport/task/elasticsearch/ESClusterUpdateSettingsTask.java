@@ -21,8 +21,6 @@
 
 package io.crate.executor.transport.task.elasticsearch;
 
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
 import io.crate.data.BatchConsumer;
@@ -40,10 +38,11 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 public class ESClusterUpdateSettingsTask extends JobTask {
 
-    private static final Function<Object, Row> TO_ONE_ROW = Functions.constant(new Row1(1L));
+    private static final Function<Object, Row> TO_ONE_ROW = o -> new Row1(1L);
 
     private final ESClusterUpdateSettingsPlan plan;
     private final TransportClusterUpdateSettingsAction transport;
