@@ -23,6 +23,7 @@
 package io.crate.planner.projection;
 
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -40,6 +41,8 @@ public class EvalProjection extends Projection {
     private final List<Symbol> outputs;
 
     public EvalProjection(List<Symbol> outputs) {
+        assert outputs.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
+            : "EvalProjection doesn't support Field or Reference symbols";
         this.outputs = outputs;
     }
 
