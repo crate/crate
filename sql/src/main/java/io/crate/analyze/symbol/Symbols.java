@@ -35,6 +35,8 @@ import java.util.*;
 
 public class Symbols {
 
+    public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof Field || s instanceof Reference;
+
     private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
 
     public static final Predicate<Symbol> IS_GENERATED_COLUMN = new Predicate<Symbol>() {

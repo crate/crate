@@ -24,6 +24,7 @@ package io.crate.planner.projection;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
 import io.crate.metadata.RowGranularity;
@@ -56,6 +57,8 @@ public class FilterProjection extends Projection {
     }
 
     public FilterProjection(Symbol query) {
+        assert !SymbolVisitors.any(Symbols.IS_COLUMN, query)
+            : "FilterProjection cannot operate on Reference or Field symbols";
         this.query = query;
     }
 

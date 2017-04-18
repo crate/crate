@@ -24,6 +24,7 @@ package io.crate.planner.projection;
 import com.google.common.base.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
 import io.crate.operation.projectors.TopN;
@@ -42,6 +43,8 @@ public class TopNProjection extends Projection {
     private final List<Symbol> outputs;
 
     public TopNProjection(int limit, int offset, List<Symbol> outputs) {
+        assert outputs.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
+            : "TopNProjection doesn't support Field or Reference symbols";
         assert limit > TopN.NO_LIMIT : "limit of TopNProjection must not be negative/unlimited";
 
         this.limit = limit;

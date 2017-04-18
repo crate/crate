@@ -21,25 +21,24 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.metadata.RowGranularity;
+import io.crate.operation.operator.EqOperator;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.SqlExpressions;
-import io.crate.testing.T3;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
+
+import java.util.Collections;
 
 public class FilterProjectionTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES, T3.TR_1);
-
         FilterProjection p = new FilterProjection(
-            sqlExpressions.normalize(sqlExpressions.asSymbol("a = 'foo'")),
-            ImmutableList.of(new InputColumn(1))
+            EqOperator.createFunction(new InputColumn(0, DataTypes.INTEGER), new InputColumn(1, DataTypes.INTEGER)),
+            Collections.singletonList(new InputColumn(0))
         );
         p.requiredGranularity(RowGranularity.SHARD);
 
