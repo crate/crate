@@ -23,6 +23,7 @@
 package io.crate.planner.projection;
 
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -50,6 +51,10 @@ public class OrderedTopNProjection extends Projection {
                                  List<Symbol> orderBy,
                                  boolean[] reverseFlags,
                                  Boolean[] nullsFirst) {
+        assert outputs.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
+            : "OrderedTopNProjection outputs cannot contain Field or Reference symbols";
+        assert orderBy.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
+            : "OrderedTopNProjection orderBy cannot contain Field or Reference symbols";
         assert orderBy.size() == reverseFlags.length : "reverse flags length does not match orderBy items count";
         assert orderBy.size() == nullsFirst.length : "nullsFirst length does not match orderBy items count";
 
