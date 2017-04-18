@@ -45,7 +45,7 @@ The fastest way to try CrateDB out is by running::
 
     $ bash -c "$(curl -L try.crate.io)"
 
-Or spin up the official Docker image::
+Or spin up the official `Docker image`_::
 
     $ docker pull crate && docker run -p 4200:4200 crate
 
@@ -74,6 +74,7 @@ Looking for more help?
 .. _contribution docs: CONTRIBUTING.rst
 .. _Crate.io: http://crate.io/
 .. _developer docs: DEVELOP.rst
+.. _Docker image: https://hub.docker.com/_/crate/
 .. _getting started: https://crate.io/docs/getting-started
 .. _paid support: https://crate.io/pricing/
 .. _Slack: https://crate.io/docs/support/slackin/
