@@ -77,11 +77,6 @@ public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor
         return null;
     }
 
-    @Override
-    public Void visitField(Field field, Context context) {
-        context.orderByPositions.add(field.index());
-        return null;
-    }
 
     @Override
     protected Void visitSymbol(Symbol symbol, Context context) {

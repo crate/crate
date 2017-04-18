@@ -41,6 +41,7 @@ import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
+import io.crate.sql.tree.QualifiedName;
 
 import java.util.*;
 import java.util.function.Function;
@@ -48,10 +49,8 @@ import java.util.function.Function;
 public class MultiSourceGroupByConsumer implements Consumer {
 
     private final Visitor visitor;
-    private static ProjectionBuilder projectionBuilder;
 
     MultiSourceGroupByConsumer(Functions functions) {
-        projectionBuilder = new ProjectionBuilder(functions);
         visitor = new Visitor(functions);
     }
 
@@ -62,10 +61,10 @@ public class MultiSourceGroupByConsumer implements Consumer {
 
     private static class Visitor extends RelationPlanningVisitor {
 
-        private final Functions functions;
+        private final ProjectionBuilder projectionBuilder;
 
         public Visitor(Functions functions) {
-            this.functions = functions;
+            this.projectionBuilder = new ProjectionBuilder(functions);
         }
 
         @Override
@@ -80,16 +79,15 @@ public class MultiSourceGroupByConsumer implements Consumer {
             List<Symbol> groupKeys = querySpec.groupBy().get();
             List<Symbol> outputs = querySpec.outputs();
 
-            // Copy because MSS planning mutates symbols.
             querySpec = querySpec.copyAndReplace(Function.identity());
 
             SplitPoints splitPoints = SplitPoints.create(querySpec);
-            if (querySpec.hasAggregates() == true) {
-                querySpec.hasAggregates(false);
-                querySpec.outputs(splitPoints.toCollect());
-                // TODO: Alter the fields on multiSourceSelect because the fields doesn't match the outputs anymore.
-                // This is currently not necessary since there is no parent relation.
-            }
+            querySpec.hasAggregates(false);
+
+            querySpec.outputs(splitPoints.toCollect());
+            // splitPoints.toCollect can contain new fields (if only used in having for example)
+            // need to update the outputs of the source relations to include them
+            updateSourceOutputs(multiSourceSelect.sources(), splitPoints.toCollect());
 
             removePostGroupingActionsFromQuerySpec(multiSourceSelect, splitPoints);
 
@@ -140,12 +138,13 @@ public class MultiSourceGroupByConsumer implements Consumer {
 
             addFilterProjectionIfNecessary(reducerProjections, querySpec, groupProjectionOutputs);
 
-            OrderBy orderBy = querySpec.orderBy().orElse(null);
             Limits limits = context.plannerContext().getLimits(querySpec);
+            Optional<OrderBy> orderBy = querySpec.orderBy();
 
+            PositionalOrderBy positionalOrderBy = PositionalOrderBy.of(orderBy.orElse(null), outputs);
             reducerProjections.add(ProjectionBuilder.topNOrEval(
                 groupProjectionOutputs,
-                orderBy,
+                orderBy.orElse(null),
                 0, // No offset since this is distributed.
                 limits.limitAndOffset(),
                 outputs)
@@ -158,14 +157,16 @@ public class MultiSourceGroupByConsumer implements Consumer {
                 limits.offset(),
                 outputs.size(),
                 limits.limitAndOffset(),
-                PositionalOrderBy.of(orderBy, outputs)
+                positionalOrderBy
             );
         }
 
         /**
          * Creates and returns the merge phase.
          */
-        private static MergePhase createMergePhase(ConsumerContext context, Plan plan, List<Projection> reducerProjections) {
+        private static MergePhase createMergePhase(ConsumerContext context,
+                                                   Plan plan,
+                                                   List<Projection> reducerProjections) {
             return new MergePhase(
                 context.plannerContext().jobId(),
                 context.plannerContext().nextExecutionPhaseId(),
@@ -257,10 +258,7 @@ public class MultiSourceGroupByConsumer implements Consumer {
                                                 QuerySpec querySpec) {
             Optional<HavingClause> havingClause = querySpec.having();
             if (havingClause.isPresent()) {
-                List<Symbol> postGroupingOutputs = new ArrayList<>(
-                    groupKeys.size() +
-                    splitPoints.aggregates().size());
-                postGroupingOutputs.addAll(groupKeys);
+                List<Symbol> postGroupingOutputs = new ArrayList<>(groupKeys);
                 postGroupingOutputs.addAll(splitPoints.aggregates());
                 HavingClause having = havingClause.get();
                 FilterProjection filterProjection = ProjectionBuilder.filterProjection(postGroupingOutputs, having);
@@ -302,6 +300,22 @@ public class MultiSourceGroupByConsumer implements Consumer {
             if (querySpec.groupBy().isPresent()) {
                 querySpec.groupBy(null);
             }
+        }
+    }
+
+    /**
+     * Update the source outputs with potential additional fields.
+     */
+    private static void updateSourceOutputs(Map<QualifiedName, RelationSource> sources, ArrayList<Symbol> newOutputs) {
+        java.util.function.Consumer<Field> updateConsumer = field -> {
+            RelationSource relationSource = sources.get(field.relation().getQualifiedName());
+            List<Symbol> currentOutputs = relationSource.querySpec().outputs();
+            if (!currentOutputs.contains(field)) {
+                currentOutputs.add(field);
+            }
+        };
+        for (Symbol newOutput : newOutputs) {
+            FieldsVisitor.visitFields(newOutput, updateConsumer);
         }
     }
 }

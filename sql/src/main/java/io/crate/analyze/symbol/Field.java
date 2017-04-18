@@ -105,7 +105,6 @@ public class Field extends Symbol {
         return result;
     }
 
-
     /**
      * @return the position of the field in its relation
      */

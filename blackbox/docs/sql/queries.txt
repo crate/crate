@@ -1027,6 +1027,10 @@ This is useful if used in conjunction with aggregation functions::
     default for all columns.
     For more information, please refer to :ref:`sql_ddl_index_plain`.
 
+.. note::
+
+    Before CrateDB version 1.2, group by was not supported with joins.
+
 .. _sql_dql_having:
 
 HAVING
