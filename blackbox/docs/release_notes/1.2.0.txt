@@ -24,7 +24,7 @@ Breaking Changes
 ================
 
  - To accommodate user-defined functions, some new reserved keywords have been
-   added to the CrateBD SQL dialect: ``RETURNS``, ``CALLED`, ``REPLACE``,
+   added to the CrateDB SQL dialect: ``RETURNS``, ``CALLED`, ``REPLACE``,
    ``FUNCTION``, ``LANGUAGE``, ``INPUT``
 
  - The ``enterprise.license`` setting is set to ``true`` by default.  
@@ -129,7 +129,7 @@ Changes
 
  - Added JavaScript language for functions.
 
- - Added support for user defined functions.
+ - Added support for user-defined functions.
 
  - Added cluster check and warning for unlicensed usage of CrateDB Enterprise.
 
