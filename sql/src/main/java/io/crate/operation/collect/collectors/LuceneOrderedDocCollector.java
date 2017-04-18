@@ -34,11 +34,12 @@ import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
-import org.apache.lucene.search.*;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.search.*;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
@@ -67,6 +68,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     private final IndexSearcher searcher;
 
     private final Object[] missingValues;
+    private final QueryShardContext queryShardContext;
 
     @Nullable
     private volatile FieldDoc lastDoc = null;
@@ -74,6 +76,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     public LuceneOrderedDocCollector(ShardId shardId,
                                      IndexSearcher searcher,
                                      Query query,
+                                     QueryShardContext queryShardContext,
                                      Float minScore,
                                      boolean doDocsScores,
                                      int batchSize,
@@ -86,6 +89,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         super(shardId);
         this.searcher = searcher;
         this.query = query;
+        this.queryShardContext = queryShardContext;
         this.minScore = minScore;
         this.doDocsScores = doDocsScores;
         this.batchSize = batchSize;
@@ -165,7 +169,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     }
 
     private Query query(FieldDoc lastDoc) {
-        Query query = nextPageQuery(lastDoc, orderBy, missingValues, fieldTypeLookup);
+        Query query = nextPageQuery(lastDoc, orderBy, missingValues, fieldTypeLookup, queryShardContext);
         if (query == null) {
             return this.query;
         }
@@ -177,7 +181,8 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
     @Nullable
     @VisibleForTesting
-    static Query nextPageQuery(FieldDoc lastCollected, OrderBy orderBy, Object[] missingValues, FieldTypeLookup fieldTypeLookup) {
+    static Query nextPageQuery(FieldDoc lastCollected, OrderBy orderBy, Object[] missingValues,
+                               FieldTypeLookup fieldTypeLookup, QueryShardContext queryShardContext) {
         BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
         for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
             Symbol order = orderBy.orderBySymbols().get(i);
@@ -199,16 +204,16 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
                     BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                     booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
                     if (orderBy.reverseFlags()[i]) {
-                        booleanQuery.add(fieldType.rangeQuery(null, value, false, true), BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(fieldType.rangeQuery(null, value, false, true, queryShardContext), BooleanClause.Occur.MUST_NOT);
                     } else {
-                        booleanQuery.add(fieldType.rangeQuery(value, null, true, false), BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(fieldType.rangeQuery(value, null, true, false, queryShardContext), BooleanClause.Occur.MUST_NOT);
                     }
                     orderQuery = booleanQuery.build();
                 } else {
                     if (orderBy.reverseFlags()[i]) {
-                        orderQuery = fieldType.rangeQuery(value, null, false, false);
+                        orderQuery = fieldType.rangeQuery(value, null, false, false, queryShardContext);
                     } else {
-                        orderQuery = fieldType.rangeQuery(null, value, false, false);
+                        orderQuery = fieldType.rangeQuery(null, value, false, false, queryShardContext);
                     }
                 }
                 queryBuilder.add(orderQuery, BooleanClause.Occur.MUST);

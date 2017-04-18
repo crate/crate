@@ -135,20 +135,6 @@ public class IndexEventListenerProxy implements IndexEventListener {
     }
 
     @Override
-    public void beforeIndexClosed(IndexService indexService) {
-        for (IndexEventListener listener : listeners) {
-            listener.beforeIndexClosed(indexService);
-        }
-    }
-
-    @Override
-    public void afterIndexClosed(Index index, Settings indexSettings) {
-        for (IndexEventListener listener : listeners) {
-            listener.afterIndexClosed(index, indexSettings);
-        }
-    }
-
-    @Override
     public void beforeIndexShardDeleted(ShardId shardId, Settings indexSettings) {
         for (IndexEventListener listener : listeners) {
             listener.beforeIndexShardDeleted(shardId, indexSettings);
@@ -159,20 +145,6 @@ public class IndexEventListenerProxy implements IndexEventListener {
     public void afterIndexShardDeleted(ShardId shardId, Settings indexSettings) {
         for (IndexEventListener listener : listeners) {
             listener.afterIndexShardDeleted(shardId, indexSettings);
-        }
-    }
-
-    @Override
-    public void afterIndexDeleted(Index index, Settings indexSettings) {
-        for (IndexEventListener listener : listeners) {
-            listener.afterIndexDeleted(index, indexSettings);
-        }
-    }
-
-    @Override
-    public void beforeIndexDeleted(IndexService indexService) {
-        for (IndexEventListener listener : listeners) {
-            listener.beforeIndexDeleted(indexService);
         }
     }
 

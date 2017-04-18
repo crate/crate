@@ -81,7 +81,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Before
-    public void before() throws Exception {
+    public void initFunctions() throws Exception {
         functions = getFunctions();
     }
 
@@ -895,6 +895,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                     new Environment(Settings.builder()
                         .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir().toString())
                         .build()),
+                    Collections.emptyMap(),
                     Collections.emptyMap(),
                     Collections.emptyMap(),
                     Collections.emptyMap(),

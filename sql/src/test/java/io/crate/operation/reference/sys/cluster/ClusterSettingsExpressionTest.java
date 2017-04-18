@@ -80,7 +80,7 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
             .put(DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING.getKey(), "full")
             .build();
         CountDownLatch latch = new CountDownLatch(1);
-        clusterService.add(event -> latch.countDown());
+        clusterService.addListener(event -> latch.countDown());
         clusterService.submitStateUpdateTask("update settings", new ClusterStateUpdateTask() {
             @Override
             public ClusterState execute(ClusterState currentState) throws Exception {

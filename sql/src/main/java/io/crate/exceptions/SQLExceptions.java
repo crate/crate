@@ -26,8 +26,9 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
-import org.elasticsearch.ElasticsearchException;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -35,7 +36,6 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.repositories.RepositoryMissingException;
@@ -175,8 +175,8 @@ public class SQLExceptions {
                    && e.getMessage().contains("document already exists")) {
             return new DuplicateKeyException(
                 "A document with the same primary key exists already", e);
-        } else if (e instanceof IndexAlreadyExistsException) {
-            return new TableAlreadyExistsException(((IndexAlreadyExistsException) e).getIndex().getName(), e);
+        } else if (e instanceof ResourceAlreadyExistsException) {
+            return new TableAlreadyExistsException(((ResourceAlreadyExistsException) e).getIndex().getName(), e);
         } else if ((e instanceof InvalidIndexNameException)) {
             if (e.getMessage().contains("already exists as alias")) {
                 // treat an alias like a table as aliases are not officially supported

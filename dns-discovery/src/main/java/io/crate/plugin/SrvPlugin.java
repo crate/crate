@@ -22,11 +22,9 @@
 
 package io.crate.plugin;
 
-import io.crate.discovery.SrvDiscovery;
 import io.crate.discovery.SrvUnicastHostsProvider;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.DiscoveryModule;
 import org.elasticsearch.plugins.Plugin;
 
 import java.util.Arrays;
@@ -48,14 +46,15 @@ public class SrvPlugin extends Plugin {
         );
     }
 
-    public void onModule(DiscoveryModule discoveryModule) {
-        /**
-         * Different types of discovery modules can be defined on startup using the `discovery.type` setting.
-         * This SrvDiscoveryModule can be loaded using `-Cdiscovery.type=srv`
-         */
-        if (SrvDiscovery.SRV.equals(settings.get("discovery.type"))) {
-            discoveryModule.addDiscoveryType(SrvDiscovery.SRV, SrvDiscovery.class);
-            discoveryModule.addUnicastHostProvider(SrvDiscovery.SRV, SrvUnicastHostsProvider.class);
-        }
-    }
+    // FIXME replace with the new DiscoveryPlugin infrastructure
+//    public void onModule(DiscoveryModule discoveryModule) {
+//        /**
+//         * Different types of discovery modules can be defined on startup using the `discovery.type` setting.
+//         * This SrvDiscoveryModule can be loaded using `-Cdiscovery.type=srv`
+//         */
+//        if (SrvDiscovery.SRV.equals(settings.get("discovery.type"))) {
+//            discoveryModule.addDiscoveryType(SrvDiscovery.SRV, SrvDiscovery.class);
+//            discoveryModule.addUnicastHostProvider(SrvDiscovery.SRV, SrvUnicastHostsProvider.class);
+//        }
+//    }
 }

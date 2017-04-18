@@ -35,7 +35,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.*;
+import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -96,13 +98,15 @@ public class BlobIndicesService extends AbstractComponent implements IndexEventL
     }
 
     @Override
-    public void afterIndexClosed(Index index, Settings indexSettings) {
+    public void afterIndexRemoved(Index index, IndexSettings indexSettings,
+                                  IndicesClusterStateService.AllocatedIndices.IndexRemovalReason reason) {
         String indexName = index.getName();
         if (isBlobIndex(indexName)) {
             BlobIndex blobIndex = indices.remove(indexName);
             assert blobIndex != null : "BlobIndex not found on afterIndexDeleted";
 
             /*
+             * FIXME TEST THIS (also update this doc as there is no afterIndexClosed anymore
              * Calling delete within IndexClosed is okay because Crate doesn't support closing indices.
              *
              * Can't do this in the `afterIndexDeleted` event because the master-node creates test indices for which
@@ -110,6 +114,7 @@ public class BlobIndicesService extends AbstractComponent implements IndexEventL
              */
             blobIndex.delete();
         }
+
     }
 
     @Override

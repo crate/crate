@@ -24,11 +24,13 @@ package io.crate.rest;
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.rest.*;
+import org.elasticsearch.rest.BytesRestResponse;
+import org.elasticsearch.rest.RestChannel;
+import org.elasticsearch.rest.RestHandler;
+import org.elasticsearch.rest.RestRequest;
 
 import java.util.Locale;
 import java.util.Set;
@@ -37,9 +39,9 @@ import java.util.regex.Pattern;
 import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
 
 /**
- * RestFilter that disables all endpoints but the ones listed in SUPPORTED_ENDPOINTS
+ * Rest handler that wraps requests in order to disables all endpoints but the ones listed in SUPPORTED_ENDPOINTS
  */
-public class CrateRestFilter extends RestFilter {
+public class CrateRestHandlerWrapper implements RestHandler {
 
     public static final Setting<Boolean> ES_API_ENABLED_SETTING = Setting.boolSetting(
         "es.api.enabled", false, Setting.Property.NodeScope);
@@ -59,18 +61,19 @@ public class CrateRestFilter extends RestFilter {
     private static final Pattern MAIN_PATTERN = Pattern.compile(String.format(Locale.ENGLISH, "^%s+$", CrateRestMainAction.PATH));
 
     private final boolean esApiEnabled;
+    private final RestHandler restHandler;
 
-    @Inject
-    public CrateRestFilter(Settings settings) {
+    public CrateRestHandlerWrapper(Settings settings, RestHandler restHandler) {
         this.esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
+        this.restHandler = restHandler;
         Logger logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
         logger.info("Elasticsearch HTTP REST API {}enabled", esApiEnabled ? "" : "not ");
     }
 
     @Override
-    public void process(RestRequest request, RestChannel channel, NodeClient client, RestFilterChain filterChain) throws Exception {
+    public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
         if (esApiEnabled || endpointAllowed(request.rawPath())) {
-            filterChain.continueProcessing(request, channel, client);
+            restHandler.handleRequest(request, channel, client);
         } else {
             channel.sendResponse(
                 new BytesRestResponse(
@@ -81,7 +84,6 @@ public class CrateRestFilter extends RestFilter {
                         request.method())
                 ));
         }
-
     }
 
     private static boolean endpointAllowed(String rawPath) {

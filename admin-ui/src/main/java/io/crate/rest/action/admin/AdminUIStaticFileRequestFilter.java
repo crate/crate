@@ -27,7 +27,10 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.rest.*;
+import org.elasticsearch.rest.BytesRestResponse;
+import org.elasticsearch.rest.RestChannel;
+import org.elasticsearch.rest.RestHandler;
+import org.elasticsearch.rest.RestRequest;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -50,7 +53,7 @@ import static org.elasticsearch.rest.RestStatus.*;
  * / && !isBrowser                              => don't serve any file, continue processing
  * /static/                                     => serve static file
  */
-public class AdminUIStaticFileRequestFilter extends RestFilter {
+public class AdminUIStaticFileRequestFilter implements RestHandler {
 
     private final Environment environment;
     private static final Pattern USER_AGENT_BROWSER_PATTERN = Pattern.compile("(Mozilla|Chrome|Safari|Opera|Android|AppleWebKit)+?[/\\s][\\d.]+");
@@ -61,23 +64,29 @@ public class AdminUIStaticFileRequestFilter extends RestFilter {
     }
 
 
+//    @Override
+//    public void process(RestRequest request, RestChannel channel, NodeClient client, RestFilterChain filterChain) throws IOException {
+//        if (request.rawPath().equals("/_plugin/crate-admin")){
+//            BytesRestResponse resp = new BytesRestResponse(RestStatus.MOVED_PERMANENTLY, "Admin-UI location moved");
+//            resp.addHeader("Location", "/");
+//            channel.sendResponse(resp);
+//            return;
+//        }
+//        if (request.rawPath().equals("/index.html") || request.rawPath().startsWith("/static/") || shouldServeFromRoot(request)) {
+//            serveSite(request, channel);
+//        } else {
+//            filterChain.continueProcessing(request, channel, client);
+//        }
+//    }
+
+    // FIXME handle the request here (see process above)
     @Override
-    public void process(RestRequest request, RestChannel channel, NodeClient client, RestFilterChain filterChain) throws IOException {
-        if (request.rawPath().equals("/_plugin/crate-admin")){
-            BytesRestResponse resp = new BytesRestResponse(RestStatus.MOVED_PERMANENTLY, "Admin-UI location moved");
-            resp.addHeader("Location", "/");
-            channel.sendResponse(resp);
-            return;
-        }
-        if (request.rawPath().equals("/index.html") || request.rawPath().startsWith("/static/") || shouldServeFromRoot(request)) {
-            serveSite(request, channel);
-        } else {
-            filterChain.continueProcessing(request, channel, client);
-        }
+    public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
+
     }
 
     static boolean isBrowser(String headerValue) {
-        if (headerValue == null){
+        if (headerValue == null) {
             return false;
         }
         String engine = headerValue.split("\\s+")[0];
@@ -85,7 +94,8 @@ public class AdminUIStaticFileRequestFilter extends RestFilter {
     }
 
     private static boolean shouldServeFromRoot(RestRequest request) {
-        return request.rawPath().equals("/") && isBrowser(request.header("user-agent")) && !isAcceptJson(request.header("accept"));
+        return request.rawPath().equals("/") && isBrowser(request.header("user-agent")) &&
+               !isAcceptJson(request.header("accept"));
     }
 
     static boolean isAcceptJson(String headerValue) {
@@ -177,4 +187,5 @@ public class AdminUIStaticFileRequestFilter extends RestFilter {
         .put("ico", "image/vnd.microsoft.icon")
         .put("mp3", "audio/mpeg")
         .build();
+
 }

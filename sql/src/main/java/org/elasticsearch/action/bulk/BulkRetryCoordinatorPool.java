@@ -99,12 +99,12 @@ public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent impleme
 
     @Override
     protected void doStart() throws ElasticsearchException {
-        clusterService.addLast(this);
+        clusterService.addListener(this);
     }
 
     @Override
     protected void doStop() throws ElasticsearchException {
-        clusterService.remove(this);
+        clusterService.removeListener(this);
         coordinatorsByShardId.clear();
     }
 

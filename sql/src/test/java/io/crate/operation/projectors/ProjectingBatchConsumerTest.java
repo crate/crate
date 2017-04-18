@@ -104,7 +104,7 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
     }
 
     @After
-    public void after() throws Exception {
+    public void shutdownThreadPool() throws Exception {
         threadPool.shutdown();
         threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }

@@ -38,7 +38,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.HttpServer;
+import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.recovery.*;
 import org.elasticsearch.transport.TransportService;
@@ -110,7 +110,7 @@ public class BlobService extends AbstractLifecycleComponent {
         // The HttpServer has to be started before so that the boundAddress
         // can be added to DiscoveryNodes - this is required for the redirect logic.
         if (settings.getAsBoolean("http.enabled", true)) {
-            injector.getInstance(HttpServer.class).start();
+            injector.getInstance(HttpServerTransport.class).start();
         } else {
             logger.warn("Http server should be enabled for blob support");
         }
@@ -119,14 +119,14 @@ public class BlobService extends AbstractLifecycleComponent {
     @Override
     protected void doStop() throws ElasticsearchException {
         if (settings.getAsBoolean("http.enabled", true)) {
-            injector.getInstance(HttpServer.class).stop();
+            injector.getInstance(HttpServerTransport.class).stop();
         }
     }
 
     @Override
     protected void doClose() throws ElasticsearchException {
         if (settings.getAsBoolean("http.enabled", true)) {
-            injector.getInstance(HttpServer.class).close();
+            injector.getInstance(HttpServerTransport.class).close();
         }
     }
 

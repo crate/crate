@@ -28,7 +28,7 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.plugin.BlobPlugin;
 import io.crate.plugin.CrateCorePlugin;
-import io.crate.rest.CrateRestFilter;
+import io.crate.rest.CrateRestHandlerWrapper;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -69,7 +69,7 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put(HTTP_ENABLED.getKey(), true)
-            .put(CrateRestFilter.ES_API_ENABLED_SETTING.getKey(), true)
+            .put(CrateRestHandlerWrapper.ES_API_ENABLED_SETTING.getKey(), true)
             .put(SETTING_HTTP_COMPRESSION.getKey(), false)
             .build();
     }

@@ -49,6 +49,7 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -427,7 +428,8 @@ public class SQLTransportExecutor {
         try {
             if (json != null) {
                 byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
-                XContentParser parser = JsonXContent.jsonXContent.createParser(bytes);
+                // It is safe to use NamedXContentRegistry.EMPTY here because this never uses namedObject
+                XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, bytes);
                 if (bytes.length >= 1 && bytes[0] == '[') {
                     parser.nextToken();
                     return recursiveListToArray(parser.list());
@@ -482,7 +484,7 @@ public class SQLTransportExecutor {
         ).actionGet();
 
         if (actionGet.isTimedOut()) {
-            LOGGER.info("ensure state timed out, cluster state:\n{}\n{}", client.admin().cluster().prepareState().get().getState().prettyPrint(), client.admin().cluster().preparePendingClusterTasks().get().prettyPrint());
+            LOGGER.info("ensure state timed out, cluster state:\n{}\n{}", client.admin().cluster().prepareState().get().getState().toString(), client.admin().cluster().preparePendingClusterTasks().get().toString());
             assertThat("timed out waiting for state", actionGet.isTimedOut(), equalTo(false));
         }
         if (state == ClusterHealthStatus.YELLOW) {

@@ -52,7 +52,10 @@ public class AdminUIFrontpageAction extends BaseRestHandler {
 
     public void registerHandler() {
         controller.registerHandler(GET, "/admin", this);
-        controller.registerFilter(requestFilter);
+        // FIXME replace with a rest handler wrapper - there can be only one plugin that registers a wrapper
+        // FIXME (see https://github.com/elastic/elasticsearch/commit/34eb23e98ee3e1c6fac99f88397518e42d4e2020 ) so we'll
+        // FIXME have to look into merging this into the CrateRestHandlerWrapper or something simillar
+        // FIXME controller.registerFilter(requestFilter);
     }
 
     @Override

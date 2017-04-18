@@ -30,7 +30,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.node.internal.CrateSettingsPreparer;
+import org.elasticsearch.node.CrateSettingsPreparer;
 import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;

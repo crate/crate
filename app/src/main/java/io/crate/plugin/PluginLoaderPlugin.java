@@ -25,19 +25,20 @@ package io.crate.plugin;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.module.PluginLoaderModule;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.*;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 
 import javax.net.ssl.SSLContext;
@@ -47,6 +48,7 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.security.KeyStore;
 import java.util.*;
+import java.util.function.Supplier;
 
 public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
@@ -114,9 +116,13 @@ public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPl
     }
 
     @Override
-    public List<Class<? extends RestHandler>> getRestHandlers() {
-        List<Class<? extends RestHandler>> restHandlers = new ArrayList<>();
-        restHandlers.addAll(sqlPlugin.getRestHandlers());
+    public List<RestHandler> getRestHandlers(Settings settings, RestController restController,
+                                             ClusterSettings clusterSettings, IndexScopedSettings indexScopedSettings,
+                                             SettingsFilter settingsFilter, IndexNameExpressionResolver indexNameExpressionResolver,
+                                             Supplier<DiscoveryNodes> nodesInCluster) {
+        List<RestHandler> restHandlers = new ArrayList<>();
+        restHandlers.addAll(sqlPlugin.getRestHandlers(settings, restController, clusterSettings,
+            indexScopedSettings, settingsFilter, indexNameExpressionResolver, nodesInCluster));
         return restHandlers;
     }
 

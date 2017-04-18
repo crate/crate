@@ -24,20 +24,25 @@ package io.crate.plugin;
 
 import io.crate.ClusterIdService;
 import io.crate.module.CrateCoreModule;
-import io.crate.rest.CrateRestFilter;
+import io.crate.rest.CrateRestHandlerWrapper;
 import io.crate.rest.CrateRestMainAction;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.*;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 public class CrateCorePlugin extends Plugin implements ActionPlugin {
 
@@ -56,7 +61,7 @@ public class CrateCorePlugin extends Plugin implements ActionPlugin {
 
     @Override
     public List<Setting<?>> getSettings() {
-        return Collections.singletonList(CrateRestFilter.ES_API_ENABLED_SETTING);
+        return Collections.singletonList(CrateRestHandlerWrapper.ES_API_ENABLED_SETTING);
     }
 
     @Override
@@ -65,12 +70,21 @@ public class CrateCorePlugin extends Plugin implements ActionPlugin {
     }
 
     @Override
-    public List<Class<? extends RestHandler>> getRestHandlers() {
-        return Collections.singletonList(CrateRestMainAction.class);
+    public List<RestHandler> getRestHandlers(Settings settings, RestController restController,
+                                             ClusterSettings clusterSettings, IndexScopedSettings indexScopedSettings,
+                                             SettingsFilter settingsFilter, IndexNameExpressionResolver indexNameExpressionResolver,
+                                             Supplier<DiscoveryNodes> nodesInCluster) {
+        // FIXME cluster service needs to be injected here
+        return Collections.singletonList(new CrateRestMainAction(settings, restController, null));
     }
 
     @Override
     public void onIndexModule(IndexModule indexModule) {
         indexModule.addIndexEventListener(indexEventListenerProxy);
+    }
+
+    @Override
+    public UnaryOperator<RestHandler> getRestHandlerWrapper(ThreadContext threadContext) {
+        return restHandler -> new CrateRestHandlerWrapper(settings, restHandler);
     }
 }

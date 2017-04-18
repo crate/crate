@@ -22,6 +22,7 @@
 
 package io.crate.executor.transport;
 
+import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.JobKilledException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.support.ActionFilters;
@@ -34,6 +35,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.engine.Engine.DeleteResult;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -42,12 +44,14 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
 public class TransportShardDeleteAction extends TransportShardAction<ShardDeleteRequest, ShardDeleteRequest.Item> {
 
     private final static String ACTION_NAME = "indices:crate/data/write/delete";
+    private final IndicesService indicesService;
 
     @Inject
     public TransportShardDeleteAction(Settings settings,
@@ -60,10 +64,13 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                                       ActionFilters actionFilters) {
         super(settings, ACTION_NAME, transportService, indexNameExpressionResolver,
             clusterService, indicesService, threadPool, shardStateAction, actionFilters, ShardDeleteRequest::new);
+        this.indicesService = indicesService;
     }
 
     @Override
-    protected WriteResult<ShardResponse> processRequestItems(ShardId shardId, ShardDeleteRequest request, AtomicBoolean killed) throws InterruptedException {
+    protected WritePrimaryResult<ShardDeleteRequest, ShardResponse> processRequestItems(ShardId shardId,
+                                                                                        ShardDeleteRequest request,
+                                                                                        AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.getShard(shardId.id());
@@ -81,8 +88,8 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             }
             try {
                 DeleteResult deleteResult = shardDeleteOperationOnPrimary(request, item, indexShard);
-                translogLocation = deleteResult.location;
-                if (deleteResult.found) {
+                translogLocation = deleteResult.getTranslogLocation();
+                if (deleteResult.isFound()) {
                     logger.debug("{} successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
                     shardResponse.add(location);
                 } else {
@@ -110,11 +117,12 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             }
         }
 
-        return new WriteResult<>(shardResponse, translogLocation);
+        return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard, logger);
     }
 
     @Override
-    protected Translog.Location processRequestItemsOnReplica(ShardId shardId, ShardDeleteRequest request) {
+    protected WriteReplicaResult<ShardDeleteRequest> processRequestItemsOnReplica(ShardId shardId,
+                                                                                  ShardDeleteRequest request) {
         IndexService indexService = indicesService.indexServiceSafe(request.shardId().getIndex());
         IndexShard indexShard = indexService.getShard(shardId.id());
         Translog.Location translogLocation = null;
@@ -127,32 +135,36 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
 
             ShardDeleteRequest.Item item = request.items().get(i);
             Engine.Delete delete = indexShard.prepareDeleteOnReplica(request.type(), item.id(), item.version(), item.versionType());
-            indexShard.delete(delete);
+            DeleteResult deleteResult = null;
+            try {
+                deleteResult = indexShard.delete(delete);
+            } catch (IOException e) {
+                Exceptions.rethrowUnchecked(e);
+            }
             logger.trace("{} REPLICA: successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
-            translogLocation = delete.getTranslogLocation();
+            translogLocation = deleteResult.getTranslogLocation();
         }
-        return translogLocation;
+        return new WriteReplicaResult<>(request, translogLocation, null, indexShard, logger);
     }
 
-    private DeleteResult shardDeleteOperationOnPrimary(ShardDeleteRequest request, ShardDeleteRequest.Item item, IndexShard indexShard) {
+
+    private DeleteResult shardDeleteOperationOnPrimary(ShardDeleteRequest request,
+                                                       ShardDeleteRequest.Item item,
+                                                       IndexShard indexShard) {
         Engine.Delete delete = indexShard.prepareDeleteOnPrimary(request.type(), item.id(), item.version(), item.versionType());
-        indexShard.delete(delete);
+        DeleteResult deleteResult = null;
+        try {
+            deleteResult = indexShard.delete(delete);
+        } catch (IOException e) {
+            Exceptions.rethrowUnchecked(e);
+        }
         // update the request with the version so it will go to the replicas
         item.versionType(delete.versionType().versionTypeForReplicationAndRecovery());
         item.version(delete.version());
 
         assert item.versionType().validateVersionForWrites(item.version()) : "item.version() must be valid";
 
-        return new DeleteResult(delete.found(), delete.getTranslogLocation());
+        return deleteResult;
     }
 
-    private static class DeleteResult {
-        private final boolean found;
-        private final Translog.Location location;
-
-        DeleteResult(boolean found, Translog.Location location) {
-            this.found = found;
-            this.location = location;
-        }
-    }
 }

@@ -400,7 +400,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
 
             Version.writeVersion(Version.fromId((int) version), out);
             out.writeByte(versionType.getValue());
-            out.writeByte(opType.id());
+            out.writeByte(opType.getId());
             boolean sourceAvailable = source != null;
             out.writeBoolean(sourceAvailable);
             if (sourceAvailable) {

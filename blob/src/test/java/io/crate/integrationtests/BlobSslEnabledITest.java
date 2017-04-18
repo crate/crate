@@ -23,7 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.plugin.CrateCorePlugin;
-import io.crate.rest.CrateRestFilter;
+import io.crate.rest.CrateRestHandlerWrapper;
 import io.crate.testing.SslDummyPlugin;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -52,7 +52,7 @@ public class BlobSslEnabledITest extends BlobHttpIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(CrateRestFilter.ES_API_ENABLED_SETTING.getKey(), true)
+            .put(CrateRestHandlerWrapper.ES_API_ENABLED_SETTING.getKey(), true)
             .put(HTTP_TYPE_KEY, "crate_ssl")
             .build();
     }

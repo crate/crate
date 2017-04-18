@@ -28,6 +28,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
@@ -53,18 +54,17 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.Streams;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.NodeServicesProvider;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -76,6 +76,8 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
+
+import static org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.FAILURE;
 
 
 /**
@@ -96,12 +98,13 @@ public class TransportBulkCreateIndicesAction
 
     private final AliasValidator aliasValidator;
     private final IndicesService indicesService;
-    private final NodeServicesProvider nodeServicesProvider;
     private final AllocationService allocationService;
     private final Environment environment;
     private final BulkActiveShardsObserver activeShardsObserver;
+    private final NamedXContentRegistry xContentRegistry;
     private final ClusterStateTaskExecutor<BulkCreateIndicesRequest> executor = (currentState, tasks) -> {
-        ClusterStateTaskExecutor.BatchResult.Builder<BulkCreateIndicesRequest> builder = ClusterStateTaskExecutor.BatchResult.builder();
+        ClusterStateTaskExecutor.ClusterTasksResult.Builder<BulkCreateIndicesRequest> builder =
+            ClusterStateTaskExecutor.ClusterTasksResult.builder();
         for (BulkCreateIndicesRequest request : tasks) {
             try {
                 currentState = executeCreateIndices(currentState, request);
@@ -121,17 +124,17 @@ public class TransportBulkCreateIndicesAction
                                             ThreadPool threadPool,
                                             AliasValidator aliasValidator,
                                             IndicesService indicesService,
-                                            NodeServicesProvider nodeServicesProvider,
                                             AllocationService allocationService,
                                             IndexNameExpressionResolver indexNameExpressionResolver,
-                                            ActionFilters actionFilters) {
+                                            ActionFilters actionFilters,
+                                            NamedXContentRegistry xContentRegistry) {
         super(settings, NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, BulkCreateIndicesRequest::new);
         this.environment = environment;
         this.aliasValidator = aliasValidator;
         this.indicesService = indicesService;
-        this.nodeServicesProvider = nodeServicesProvider;
         this.allocationService = allocationService;
         this.activeShardsObserver = new BulkActiveShardsObserver(settings, clusterService, threadPool);
+        this.xContentRegistry = xContentRegistry;
     }
 
     @Override
@@ -214,22 +217,26 @@ public class TransportBulkCreateIndicesAction
                                                        (tmpImd.getNumberOfReplicas() + 1) + "]");
                 }
                 // create the index here (on the master) to validate it can be created, as well as adding the mapping
-                IndexService indexService = indicesService.createIndex(nodeServicesProvider, tmpImd, Collections.emptyList());
+                IndexService indexService = indicesService.createIndex(tmpImd, Collections.emptyList());
                 createdIndices.add(indexService.index());
 
                 // now add the mappings
                 MapperService mapperService = indexService.mapperService();
                 try {
-                    mapperService.merge(mappings, true);
+                    mapperService.merge(mappings, MapperService.MergeReason.MAPPING_UPDATE, true);
                 } catch (MapperParsingException mpe) {
                     removalReasons.add("failed on parsing mappings on index creation");
                     throw mpe;
                 }
-
-                QueryShardContext queryShardContext = indexService.newQueryShardContext();
+                // the context is only used for validation so it's fine to pass fake values for the shard id and the current
+                // timestamp
+                QueryShardContext queryShardContext = indexService.newQueryShardContext(0, null, () -> 0L);
                 for (AliasMetaData aliasMetaData : templatesAliases.values()) {
                     if (aliasMetaData.filter() != null) {
-                        aliasValidator.validateAliasFilter(aliasMetaData.alias(), aliasMetaData.filter().uncompressed(), queryShardContext);
+                        aliasValidator.validateAliasFilter(aliasMetaData.alias(),
+                            aliasMetaData.filter().uncompressed(),
+                            queryShardContext,
+                            xContentRegistry);
                     }
                 }
 
@@ -284,7 +291,7 @@ public class TransportBulkCreateIndicesAction
             for (int i = 0; i < createdIndices.size(); i++) {
                 // Index was already partially created - need to clean up
                 String removalReason = removalReasons.size() > i ? removalReasons.get(i) : "failed to create index";
-                indicesService.removeIndex(createdIndices.get(i), removalReason);
+                indicesService.removeIndex(createdIndices.get(i), FAILURE, removalReason);
             }
         }
     }
@@ -333,7 +340,7 @@ public class TransportBulkCreateIndicesAction
             try {
                 MetaDataCreateIndexService.validateIndexName(index, currentState);
                 indicesToCreate.add(index);
-            } catch (IndexAlreadyExistsException e) {
+            } catch (ResourceAlreadyExistsException e) {
                 // ignore
             }
         }
@@ -451,7 +458,9 @@ public class TransportBulkCreateIndicesAction
     }
 
     private Map<String, Object> parseMapping(String mappingSource) throws Exception {
-        try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(mappingSource)) {
+        // It is safe to use NamedXContentRegistry.EMPTY here because this never uses namedObject
+        try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(NamedXContentRegistry.EMPTY,
+            mappingSource)) {
             return parser.map();
         } catch (IOException e) {
             throw new ElasticsearchException("failed to parse mapping", e);

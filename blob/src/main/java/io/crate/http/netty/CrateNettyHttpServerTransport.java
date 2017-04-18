@@ -28,6 +28,8 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.http.netty3.Netty3HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jboss.netty.channel.ChannelPipeline;
@@ -45,9 +47,11 @@ public class CrateNettyHttpServerTransport extends Netty3HttpServerTransport {
                                          NetworkService networkService,
                                          BigArrays bigArrays,
                                          ThreadPool threadPool,
+                                         NamedXContentRegistry xContentRegistry,
+                                         HttpServerTransport.Dispatcher dispatcher,
                                          BlobService blobService,
                                          BlobIndicesService blobIndicesService) {
-        super(settings, networkService, bigArrays, threadPool);
+        super(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher);
         this.blobService = blobService;
         this.blobIndicesService = blobIndicesService;
     }

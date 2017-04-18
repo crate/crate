@@ -58,7 +58,7 @@ public class NumberOfShardsTest extends CrateUnitTest {
     }
 
     @Before
-    public void before() {
+    public void beforeTest() {
         when(discoveryNodes.getDataNodes()).thenReturn(createDataNodes(3));
         numberOfShards = new NumberOfShards(clusterService);
     }

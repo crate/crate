@@ -47,6 +47,7 @@ import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
+import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -128,10 +129,13 @@ public class OrderedLuceneBatchIteratorBenchmark {
                                                              String sortByColumnName) {
         List<LuceneCollectorExpression<?>> expressions = Collections.singletonList(
             new OrderByCollectorExpression(reference, orderBy, o -> o));
+
+        // FIXME mocking the QueryShardContext here might not work
         return new LuceneOrderedDocCollector(
             dummyShardId,
             searcher,
             new MatchAllDocsQuery(),
+            mock(QueryShardContext.class),
             null,
             false,
             10_000_000,

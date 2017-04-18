@@ -24,6 +24,7 @@ package io.crate.action.sql.parser;
 import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.SQLParseException;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -67,7 +68,8 @@ public class SQLXContentSourceParser {
         XContentParser parser = null;
         try {
             if (source != null && source.length() != 0) {
-                parser = XContentFactory.xContent(source).createParser(source);
+                // It is safe to use NamedXContentRegistry.EMPTY here because this never uses namedObject
+                parser = XContentFactory.xContent(source).createParser(NamedXContentRegistry.EMPTY, source);
                 parse(parser);
             }
             validate();

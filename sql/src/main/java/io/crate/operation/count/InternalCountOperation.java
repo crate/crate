@@ -116,7 +116,7 @@ public class InternalCountOperation implements CountOperation {
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
                 whereClause,
                 indexService.mapperService(),
-                indexService.newQueryShardContext(searcher.reader(), System::currentTimeMillis),
+                indexService.newQueryShardContext(shardId, searcher.reader(), () -> System.currentTimeMillis()),
                 indexService.fieldData(),
                 indexService.cache());
             if (Thread.interrupted()) {

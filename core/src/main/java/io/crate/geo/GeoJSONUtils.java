@@ -24,18 +24,19 @@ package io.crate.geo;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
-import org.locationtech.spatial4j.exception.InvalidShapeException;
-import org.locationtech.spatial4j.shape.Shape;
-import org.locationtech.spatial4j.shape.ShapeCollection;
 import com.vividsolutions.jts.geom.*;
 import io.crate.core.collections.ForEach;
 import io.crate.types.GeoPointType;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.exception.InvalidShapeException;
+import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.ShapeCollection;
 
 import java.lang.reflect.Array;
 import java.util.*;
@@ -125,7 +126,9 @@ public class GeoJSONUtils {
 
     private static Shape geoJSONString2Shape(String geoJSON) {
         try {
-            XContentParser parser = JsonXContent.jsonXContent.createParser(geoJSON);
+            // FIXME is EMPTY safe here? Changing the method signature to get a NamedXContentRegistry is messy
+            // FIXME but might be required. Test it!
+            XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, geoJSON);
             parser.nextToken();
             return ShapeBuilder.parse(parser).build();
         } catch (Throwable t) {

@@ -47,18 +47,20 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.analysis.AnalysisService;
+import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.mapper.*;
 import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactoryProvider;
+import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.analysis.AnalysisModule;
@@ -115,8 +117,8 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Settings nodeSettings = Settings.builder().put("path.home", tempDir).build();
         IndexSettings idxSettings = IndexSettingsModule.newIndexSettings(index, nodeSettings);
         when(indexCache.getIndexSettings()).thenReturn(idxSettings);
-        AnalysisService analysisService = createAnalysisService(idxSettings, nodeSettings);
-        mapperService = createMapperService(idxSettings, analysisService);
+        IndexAnalyzers indexAnalyzers = createAnalysisService(idxSettings, nodeSettings);
+        mapperService = createMapperService(idxSettings, indexAnalyzers);
 
         // @formatter:off
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()
@@ -154,7 +156,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         when(indexFieldDataService.getForField(mapperService.fullName("point"))).thenReturn(geoFieldData);
     }
 
-    private MapperService createMapperService(IndexSettings indexSettings, AnalysisService analysisService) {
+    private MapperService createMapperService(IndexSettings indexSettings, IndexAnalyzers indexAnalyzers) {
         DynamicArrayFieldMapperBuilderFactoryProvider arrayMapperProvider =
             new DynamicArrayFieldMapperBuilderFactoryProvider();
         arrayMapperProvider.dynamicArrayFieldMapperBuilderFactory = new BuilderFactory();
@@ -167,15 +169,16 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
             }));
         return new MapperService(
             indexSettings,
-            analysisService,
+            indexAnalyzers,
+            NamedXContentRegistry.EMPTY,
             new SimilarityService(indexSettings, Collections.emptyMap()),
             indicesModule.getMapperRegistry(),
-            () -> null,
+            () -> mock(QueryShardContext.class),
             arrayMapperProvider
         );
     }
 
-    private AnalysisService createAnalysisService(IndexSettings indexSettings, Settings nodeSettings) throws IOException {
+    private IndexAnalyzers createAnalysisService(IndexSettings indexSettings, Settings nodeSettings) throws IOException {
         Environment env = new Environment(nodeSettings);
         AnalysisModule analysisModule = new AnalysisModule(env, Collections.emptyList());
         return analysisModule.getAnalysisRegistry().build(indexSettings);

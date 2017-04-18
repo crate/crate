@@ -252,12 +252,12 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     @Override
     protected void doStart() {
         // add listener here to avoid guice proxy errors if the ClusterService could not be build
-        clusterService.add(this);
+        clusterService.addListener(this);
     }
 
     @Override
     protected void doStop() {
-        clusterService.remove(this);
+        clusterService.removeListener(this);
     }
 
     @Override

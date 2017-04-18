@@ -26,12 +26,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.blob.*;
 import io.crate.blob.v2.BlobIndicesModule;
 import io.crate.blob.v2.BlobIndicesService;
-import io.crate.http.netty.CrateNettyHttpServerTransport;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.ActionPlugin;
@@ -98,14 +96,15 @@ public class BlobPlugin extends Plugin implements ActionPlugin {
         return ImmutableList.of(BlobService.class);
     }
 
-    public void onModule(NetworkModule networkModule) {
-        if (networkModule.canRegisterHttpExtensions()) {
-            networkModule.registerHttpTransport(CRATE_HTTP_TRANSPORT_NAME, CrateNettyHttpServerTransport.class);
-        }
-    }
+    // FIXME migrate to new plugin infrastructure
+//    public void onModule(NetworkModule networkModule) {
+//        if (networkModule.canRegisterHttpExtensions()) {
+//            networkModule.registerHttpTransport(CRATE_HTTP_TRANSPORT_NAME, CrateNettyHttpServerTransport.class);
+//        }
+//    }
 
     @Override
-    public List<ActionHandler<? extends ActionRequest<?>, ? extends ActionResponse>> getActions() {
+    public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         return Arrays.asList(
             new ActionHandler<>(PutChunkAction.INSTANCE, TransportPutChunkAction.class),
             new ActionHandler<>(StartBlobAction.INSTANCE, TransportStartBlobAction.class),

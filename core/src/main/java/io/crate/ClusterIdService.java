@@ -21,7 +21,10 @@
 
 package io.crate;
 
-import org.elasticsearch.cluster.*;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -152,12 +155,12 @@ public class ClusterIdService extends AbstractLifecycleComponent implements Clus
     @Override
     protected void doStart() {
         // add listener here to avoid guice proxy errors if the ClusterService could not be build
-        clusterService.add(this);
+        clusterService.addListener(this);
     }
 
     @Override
     protected void doStop() {
-        clusterService.remove(this);
+        clusterService.removeListener(this);
     }
 
     @Override

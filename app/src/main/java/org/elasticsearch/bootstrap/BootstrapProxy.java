@@ -23,8 +23,8 @@
 package org.elasticsearch.bootstrap;
 
 import io.crate.Version;
-import io.crate.node.CrateNode;
 import io.crate.bootstrap.BootstrapException;
+import io.crate.node.CrateNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.Appender;
@@ -35,6 +35,7 @@ import org.apache.lucene.util.Constants;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.StringHelper;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.bootstrap.BootstrapChecks.ClientJvmCheck;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cli.UserException;
 import org.elasticsearch.common.PidFile;
@@ -51,7 +52,7 @@ import org.elasticsearch.monitor.os.OsProbe;
 import org.elasticsearch.monitor.process.ProcessProbe;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
-import org.elasticsearch.node.internal.CrateSettingsPreparer;
+import org.elasticsearch.node.CrateSettingsPreparer;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -59,6 +60,7 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
@@ -117,7 +119,7 @@ public class BootstrapProxy {
 
         // enable secure computing mode
         if (seccomp) {
-            Natives.trySeccomp(tmpFile);
+            Natives.tryInstallSystemCallFilter(tmpFile);
         }
 
         // mlockall if requested
@@ -214,10 +216,9 @@ public class BootstrapProxy {
 
         node = new CrateNode(environment) {
             @Override
-            protected void validateNodeBeforeAcceptingRequests(
-                final Settings settings,
-                final BoundTransportAddress boundTransportAddress) throws NodeValidationException {
-                BootstrapCheck.check(settings, boundTransportAddress);
+            protected void validateNodeBeforeAcceptingRequests(Settings settings, BoundTransportAddress boundTransportAddress,
+                                                               List<BootstrapCheck> bootstrapChecks) throws NodeValidationException {
+                BootstrapChecks.check(settings, boundTransportAddress, bootstrapChecks);
             }
         };
 
@@ -245,7 +246,9 @@ public class BootstrapProxy {
         }
     }
 
-    /** Set the system property before anything has a chance to trigger its use */
+    /**
+     * Set the system property before anything has a chance to trigger its use
+     */
     // TODO: why? is it just a bad default somewhere? or is it some BS around 'but the client' garbage <-- my guess
     @SuppressForbidden(reason = "sets logger prefix on initialization")
     static void initLoggerPrefix() {
@@ -297,7 +300,7 @@ public class BootstrapProxy {
             }
 
             // fail if using broken version
-            JVMCheck.check();
+            new ClientJvmCheck().check();
 
             // fail if somebody replaced the lucene jars
             checkLucene();
@@ -396,7 +399,9 @@ public class BootstrapProxy {
     private static void checkLucene() {
         if (org.elasticsearch.Version.CURRENT.luceneVersion.equals(org.apache.lucene.util.Version.LATEST) == false) {
             throw new AssertionError("Lucene version mismatch this version of CrateDB requires lucene version ["
-                                     + org.elasticsearch.Version.CURRENT.luceneVersion + "]  but the current lucene version is [" + org.apache.lucene.util.Version.LATEST + "]");
+                                     + org.elasticsearch.Version.CURRENT.luceneVersion +
+                                     "]  but the current lucene version is [" + org.apache.lucene.util.Version.LATEST +
+                                     "]");
         }
     }
 }

@@ -29,6 +29,7 @@ import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.local.LocalDiscovery;
 import org.elasticsearch.env.Environment;
@@ -44,6 +45,7 @@ import java.util.Map;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
 public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -54,7 +56,8 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyC
     public void prepare() throws Exception {
         Settings settings = Settings.builder()
             .put("path.home", createTempDir()).build();
-        LocalDiscovery localDiscovery = new LocalDiscovery(settings, clusterService, clusterService.getClusterSettings());
+        LocalDiscovery localDiscovery = new LocalDiscovery(settings, clusterService, clusterService.getClusterSettings(),
+            mock(NamedWriteableRegistry.class));
         Environment environment = new Environment(settings);
         nodeEnvironment = new NodeEnvironment(settings, environment);
         MonitorService monitorService = new MonitorService(settings, nodeEnvironment, THREAD_POOL);

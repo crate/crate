@@ -1,25 +1,26 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
-package org.elasticsearch.node.internal;
+package org.elasticsearch.node;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Charsets;
@@ -28,11 +29,9 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.settings.CrateSetting;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.node.Node;
 import org.elasticsearch.transport.Netty3Plugin;
 
 import java.io.BufferedReader;
@@ -48,16 +47,16 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.elasticsearch.common.Strings.cleanPath;
+import static org.elasticsearch.common.network.NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY;
 import static org.elasticsearch.common.network.NetworkService.DEFAULT_NETWORK_HOST;
 import static org.elasticsearch.common.network.NetworkService.GLOBAL_NETWORK_HOST_SETTING;
-import static org.elasticsearch.common.network.NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_PORT;
 import static org.elasticsearch.transport.TransportSettings.PORT;
 
 public class CrateSettingsPreparer {
 
     /**
-     * ES_COPY_OF: core/src/main/java/org/elasticsearch/node/internal/InternalSettingsPreparer.java
+     * ES_COPY_OF: core/src/main/java/org/elasticsearch/node/InternalSettingsPreparer.java
      * This is a copy of {@link InternalSettingsPreparer#prepareEnvironment(Settings, Terminal, Map)}
      * <p>
      * with the addition of the "applyCrateDefaults" call and resolving `crate.yml` instead of `elasticsearch.yml`.
@@ -65,7 +64,7 @@ public class CrateSettingsPreparer {
     public static Environment prepareEnvironment(Settings input, Terminal terminal, Map<String, String> properties) {
         // just create enough settings to build the environment, to get the config dir
         Settings.Builder output = Settings.builder();
-        InternalSettingsPreparer.initializeSettings(output, input, true, properties);
+        InternalSettingsPreparer.initializeSettings(output, input, properties);
         Environment environment = new Environment(output.build());
 
 
@@ -79,8 +78,8 @@ public class CrateSettingsPreparer {
         }
 
         // re-initialize settings now that the config file has been loaded
-        // TODO: only re-initialize if a config file was actually loaded
-        InternalSettingsPreparer.initializeSettings(output, input, false, properties);
+        // TODO only re-initialize if a config file was actually loaded
+        InternalSettingsPreparer.initializeSettings(output, input, properties);
         InternalSettingsPreparer.finalizeSettings(output, terminal);
 
         validateKnownSettings(output);

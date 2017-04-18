@@ -29,10 +29,11 @@ import joptsimple.OptionSpecBuilder;
 import joptsimple.util.PathConverter;
 import org.elasticsearch.bootstrap.BootstrapProxy;
 import org.elasticsearch.bootstrap.StartupExceptionProxy;
+import org.elasticsearch.cli.EnvironmentAwareCommand;
 import org.elasticsearch.cli.ExitCodes;
-import org.elasticsearch.cli.SettingCommand;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cli.UserException;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.NodeValidationException;
 
@@ -44,7 +45,7 @@ import java.util.Map;
 /**
  * A main entry point when starting from the command line.
  */
-public class CrateDB extends SettingCommand {
+public class CrateDB extends EnvironmentAwareCommand {
 
     private final OptionSpecBuilder versionOption;
     private final OptionSpecBuilder daemonizeOption;
@@ -85,9 +86,10 @@ public class CrateDB extends SettingCommand {
     }
 
     @Override
-    protected void execute(Terminal terminal, OptionSet options, Map<String, String> settings) throws UserException {
+    protected void execute(Terminal terminal, OptionSet options, Environment env) throws Exception {
         if (options.nonOptionArguments().isEmpty() == false) {
-            throw new UserException(ExitCodes.USAGE, "Positional arguments not allowed, found " + options.nonOptionArguments());
+            throw new UserException(ExitCodes.USAGE,
+                "Positional arguments not allowed, found " + options.nonOptionArguments());
         }
         if (options.has(versionOption)) {
             if (options.has(daemonizeOption) || options.has(pidfileOption)) {
@@ -104,7 +106,7 @@ public class CrateDB extends SettingCommand {
         final boolean quiet = options.has(quietOption);
 
         try {
-            init(daemonize, pidFile, quiet, settings);
+            init(daemonize, pidFile, quiet, env.settings().getAsMap());
         } catch (NodeValidationException e) {
             throw new UserException(ExitCodes.CONFIG, e.getMessage());
         }

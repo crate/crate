@@ -27,10 +27,11 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.plugin.BlobPlugin;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 
@@ -50,12 +51,12 @@ public class SslDummyPlugin extends BlobPlugin {
         return "ssl-dummy plugin";
     }
 
-
-    public void onModule(NetworkModule networkModule) {
-        if (networkModule.canRegisterHttpExtensions()) {
-            networkModule.registerHttpTransport("crate_ssl", SslHttpServerTransport.class);
-        }
-    }
+    // FIXME implement using  NetworkPlugin interface
+//    public void onModule(NetworkModule networkModule) {
+//        if (networkModule.canRegisterHttpExtensions()) {
+//            networkModule.registerHttpTransport("crate_ssl", SslHttpServerTransport.class);
+//        }
+//    }
 
     public static class SslHttpServerTransport extends CrateNettyHttpServerTransport {
 
@@ -65,8 +66,10 @@ public class SslDummyPlugin extends BlobPlugin {
                                       BigArrays bigArrays,
                                       BlobService blobService,
                                       BlobIndicesService blobIndicesService,
-                                      ThreadPool threadPool){
-            super(settings, networkService, bigArrays, threadPool, blobService, blobIndicesService);
+                                      ThreadPool threadPool,
+                                      NamedXContentRegistry xContentRegistry,
+                                      HttpServerTransport.Dispatcher dispatcher) {
+            super(settings, networkService, bigArrays, threadPool, xContentRegistry, dispatcher, blobService, blobIndicesService);
         }
 
         @Override

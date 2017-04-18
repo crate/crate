@@ -34,6 +34,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.elasticsearch.common.util.set.Sets;
+import org.elasticsearch.discovery.DiscoverySettings;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -94,21 +95,23 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
         );
         ClusterService clusterService = new ClusterService(Settings.builder().put("cluster.name", "ClusterServiceTests").build(),
             new ClusterSettings(Settings.EMPTY, clusterSettings),
-            THREAD_POOL);
-        clusterService.setLocalNode(discoveryNode);
+            THREAD_POOL,
+            () -> discoveryNode);
         clusterService.setNodeConnectionsService(new NodeConnectionsService(Settings.EMPTY, null, null) {
             @Override
-            public void connectToNodes(List<DiscoveryNode> addedNodes) {
+            public void connectToNodes(Iterable<DiscoveryNode> discoveryNodes) {
                 // skip
             }
 
             @Override
-            public void disconnectFromNodes(List<DiscoveryNode> removedNodes) {
+            public void disconnectFromNodesExcept(Iterable<DiscoveryNode> nodesToKeep) {
                 // skip
             }
         });
         clusterService.setClusterStatePublisher((event, ackListener) -> {
         });
+        clusterService.setDiscoverySettings(new DiscoverySettings(Settings.EMPTY,
+            new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)));
         clusterService.start();
         final DiscoveryNodes.Builder nodes = DiscoveryNodes.builder(clusterService.state().nodes());
         nodes.masterNodeId(clusterService.localNode().getId());

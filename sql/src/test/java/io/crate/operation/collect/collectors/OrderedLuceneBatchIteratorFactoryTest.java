@@ -43,8 +43,8 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.elasticsearch.index.mapper.LegacyLongFieldMapper;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
+import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
@@ -80,7 +80,7 @@ public class OrderedLuceneBatchIteratorFactoryTest {
             .mapToObj(i -> new Object[] { i })
             .collect(Collectors.toList());
         // expect descending order to differentiate between insert order
-        expectedResult.sort(Comparator.comparingLong((Object [] o) -> ((long) o[0])).reversed());
+        expectedResult.sort(Comparator.comparingLong((Object[] o) -> ((long) o[0])).reversed());
 
         for (int i = 0; i < 20; i++) {
             Document doc = new Document();
@@ -117,7 +117,7 @@ public class OrderedLuceneBatchIteratorFactoryTest {
                 return OrderedLuceneBatchIteratorFactory.newInstance(
                     Arrays.asList(collector1, collector2),
                     1,
-                    OrderingByPosition.rowOrdering(new int[] { 0 }, reverseFlags, nullsFirst),
+                    OrderingByPosition.rowOrdering(new int[]{0}, reverseFlags, nullsFirst),
                     MoreExecutors.directExecutor(),
                     true
                 );
@@ -133,10 +133,12 @@ public class OrderedLuceneBatchIteratorFactoryTest {
         );
         List<LuceneCollectorExpression<?>> expressions = Collections.singletonList(
             new OrderByCollectorExpression(reference, orderBy, o -> o));
+        // FIXME mocking the QueryShardContext here might not work
         return new LuceneOrderedDocCollector(
             new ShardId("dummy", UUIDs.randomBase64UUID(), shardId),
             searcher,
             new MatchAllDocsQuery(),
+            mock(QueryShardContext.class),
             null,
             false,
             5, // batchSize < 10 to have at least one searchMore call.

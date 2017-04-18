@@ -28,6 +28,7 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -45,12 +46,10 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.IndexAlreadyExistsException;
-import org.elasticsearch.indices.IndexTemplateAlreadyExistsException;
 
 import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
 import java.util.SortedMap;
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class TableCreator {
@@ -143,8 +142,10 @@ public class TableCreator {
             // the cause has usually a better more detailed error message
             result.completeExceptionally(e.getCause());
         } else if (statement.ifNotExists() &&
-                   (e instanceof IndexAlreadyExistsException
-                    || (e instanceof IndexTemplateAlreadyExistsException && statement.templateName() != null))) {
+                   (e instanceof ResourceAlreadyExistsException
+                    // FIXME IndexTemplateAlreadyExistsException is deprecated and IllegalArgumentException is recommended instead
+                    // FIXME but that can be too broad, so double check using IllegalArgumentException here works
+                    || (e instanceof IllegalArgumentException && statement.templateName() != null))) {
             result.complete(null);
         } else {
             result.completeExceptionally(e);

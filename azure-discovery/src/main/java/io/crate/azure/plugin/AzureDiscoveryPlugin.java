@@ -95,11 +95,12 @@ public class AzureDiscoveryPlugin extends Plugin {
         return services;
     }
 
-    public void onModule(DiscoveryModule discoveryModule) {
-        if (AzureModule.isDiscoveryReady(settings, logger)) {
-            discoveryModule.addDiscoveryType("azure", AzureDiscovery.class);
-            discoveryModule.addUnicastHostProvider("azure", AzureUnicastHostsProvider.class);
-        }
-    }
+    // FIXME replace with the new DiscoveryPlugin infrastructure
+//    public void onModule(DiscoveryModule discoveryModule) {
+//        if (AzureModule.isDiscoveryReady(settings, logger)) {
+//            discoveryModule.addDiscoveryType("azure", AzureDiscovery.class);
+//            discoveryModule.addUnicastHostProvider("azure", AzureUnicastHostsProvider.class);
+//        }
+//    }
 
 }

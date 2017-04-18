@@ -1,26 +1,26 @@
 /*
- * Licensed to Crate.io Inc. or its affiliates ("Crate.io") under one or
- * more contributor license agreements.  See the NOTICE file distributed
- * with this work for additional information regarding copyright ownership.
- * Crate.io licenses this file to you under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with the
- * License.  You may obtain a copy of the License at
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
- * However, if you have executed another commercial license agreement with
- * Crate.io these terms will supersede the license and you may use the
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
  * software solely pursuant to the terms of the relevant commercial
  * agreement.
  */
 
-package org.elasticsearch.node.internal;
+package org.elasticsearch.node;
 
 import io.crate.Constants;
 import org.elasticsearch.cli.Terminal;
@@ -29,7 +29,6 @@ import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpTransportSettings;
-import org.elasticsearch.node.Node;
 import org.elasticsearch.transport.Netty3Plugin;
 import org.elasticsearch.transport.TransportSettings;
 import org.junit.Rule;
@@ -79,7 +78,7 @@ public class CrateSettingsPreparerTest {
     @Test
     public void testDefaultCrateSettings() throws Exception {
         Settings.Builder builder = Settings.builder();
-        InternalSettingsPreparer.initializeSettings(builder, Settings.EMPTY, true, Collections.emptyMap());
+        InternalSettingsPreparer.initializeSettings(builder, Settings.EMPTY, Collections.emptyMap());
         InternalSettingsPreparer.finalizeSettings(builder, Terminal.DEFAULT);
         CrateSettingsPreparer.applyCrateDefaults(builder);
 

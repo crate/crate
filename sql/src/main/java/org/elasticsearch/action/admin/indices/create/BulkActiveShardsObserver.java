@@ -35,6 +35,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import java.util.BitSet;
 import java.util.Collection;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 public class BulkActiveShardsObserver extends AbstractComponent {
 
@@ -72,18 +73,13 @@ public class BulkActiveShardsObserver extends AbstractComponent {
         final ClusterStateObserver observer = new ClusterStateObserver(clusterService, logger, threadPool.getThreadContext());
 
         final BitSet activeIndices = new BitSet(indices.size());
-        if (checkIndicesActiveShards(indices, activeIndices, activeShardCount, observer.observedState())) {
+        if (checkIndicesActiveShards(indices, activeIndices, activeShardCount, observer.setAndGetObservedState())) {
             onResult.accept(true);
             return;
         }
 
-        final ClusterStateObserver.ChangePredicate shardsAllocatedPredicate =
-            new ClusterStateObserver.ValidationPredicate() {
-                @Override
-                protected boolean validate(final ClusterState newState) {
-                    return checkIndicesActiveShards(indices, activeIndices, activeShardCount, newState);
-                }
-            };
+        final Predicate<ClusterState> shardsAllocatedPredicate =
+            (clusterState) -> checkIndicesActiveShards(indices, activeIndices, activeShardCount, clusterState);
 
         final ClusterStateObserver.Listener observerListener = new ClusterStateObserver.Listener() {
             @Override

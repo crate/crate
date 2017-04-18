@@ -111,7 +111,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
 
             try (RecoveriesCollection.RecoveryRef statusSafe = peerRecoveryTargetService.onGoingRecoveries.getRecoverySafe(
                 request.recoveryId(), request.shardId())) {
-                RecoveryTarget onGoingIndexRecovery = statusSafe.status();
+                RecoveryTarget onGoingIndexRecovery = statusSafe.target();
 
                 if (onGoingIndexRecovery.CancellableThreads().isCancelled()) {
                     throw new IndexShardClosedException(request.shardId());

@@ -88,7 +88,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         final AtomicBoolean deleteRepoCalled = new AtomicBoolean(false);
         TransportDeleteRepositoryAction deleteRepositoryAction = new TransportDeleteRepositoryAction(
             Settings.EMPTY,
-            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
+            MockTransportService.local(Settings.EMPTY, Version.CURRENT, THREAD_POOL, null),
             clusterService,
             mock(RepositoriesService.class),
             THREAD_POOL,
@@ -103,7 +103,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
 
         TransportPutRepositoryAction putRepo = new TransportPutRepositoryAction(
             Settings.EMPTY,
-            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
+            MockTransportService.local(Settings.EMPTY, Version.CURRENT, THREAD_POOL, null),
             clusterService,
             mock(RepositoriesService.class),
             THREAD_POOL,

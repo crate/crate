@@ -66,12 +66,12 @@ public class SysRepositoriesService extends AbstractLifecycleComponent implement
         // access ClusterService here to avoid guice proxy errors if the ClusterService could not be build
         RepositoriesMetaData repositoriesMetaData = clusterService.state().metaData().custom(RepositoriesMetaData.TYPE);
         addRepositories(repositoriesMetaData);
-        clusterService.add(this);
+        clusterService.addListener(this);
     }
 
     @Override
     protected void doStop() {
-        clusterService.remove(this);
+        clusterService.removeListener(this);
     }
 
     @Override

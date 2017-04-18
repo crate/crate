@@ -63,6 +63,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.*;
 
+import static org.elasticsearch.common.xcontent.NamedXContentRegistry.EMPTY;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
@@ -1658,7 +1659,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
         String mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
-            .createParser(mappingSource)
+            .createParser(EMPTY, mappingSource)
             .map()
             .get(Constants.DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
@@ -1685,7 +1686,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
         String mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
-            .createParser(mappingSource)
+            .createParser(EMPTY, mappingSource)
             .map().get(Constants.DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
         // template order must not be touched

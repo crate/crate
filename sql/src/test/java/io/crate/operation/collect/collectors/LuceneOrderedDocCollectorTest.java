@@ -46,6 +46,7 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.LegacyLongFieldMapper;
+import org.elasticsearch.index.query.QueryShardContext;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -56,6 +57,7 @@ import java.util.Collections;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
 
 public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
@@ -116,8 +118,9 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         sortField.setMissingValue(missingValue);
         Sort sort = new Sort(sortField);
 
+        // FIXME mocking the QueryShardContext here might not work
         Query nextPageQuery = LuceneOrderedDocCollector.nextPageQuery(
-            lastCollected, orderBy, new Object[]{missingValue}, name -> valueFieldType);
+            lastCollected, orderBy, new Object[]{missingValue}, name -> valueFieldType, mock(QueryShardContext.class));
         TopFieldDocs result = search(reader, nextPageQuery, sort);
         Long results[] = new Long[result.scoreDocs.length];
         for (int i = 0; i < result.scoreDocs.length; i++) {
@@ -138,7 +141,9 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         FieldDoc fieldDoc = new FieldDoc(1, 0, new Object[]{null});
         OrderBy orderBy = new OrderBy(Collections.<Symbol>singletonList(REFERENCE), new boolean[]{false}, new Boolean[]{null});
         Object missingValue = LuceneMissingValue.missingValue(orderBy, 0);
-        LuceneOrderedDocCollector.nextPageQuery(fieldDoc, orderBy, new Object[]{missingValue}, name -> valueFieldType);
+        // FIXME mocking the QueryShardContext here might not work
+        LuceneOrderedDocCollector.nextPageQuery(fieldDoc, orderBy, new Object[]{missingValue}, name -> valueFieldType,
+            mock(QueryShardContext.class));
     }
 
     // search after queries
