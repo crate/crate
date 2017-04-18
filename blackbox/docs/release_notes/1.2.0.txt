@@ -24,27 +24,26 @@ Breaking Changes
 ================
 
  - To accommodate user-defined functions, some new reserved keywords have been
-   added to the CrateBD dialect: ``RETURNS``, ``CALLED`, ``REPLACE``,
+   added to the CrateBD SQL dialect: ``RETURNS``, ``CALLED`, ``REPLACE``,
    ``FUNCTION``, ``LANGUAGE``, ``INPUT``
-
- - The ``enterprise.license`` setting is set to ``true`` by default.
-   If you do not configure a valid license, and you do not disable this
-   setting, you will be running CrateDB in unlicensed mode.
 
  - The ``enterprise.license`` setting is set to ``true`` by default.  
    This enables the CrateDB `enterprise edition`_.  
+
    Once you have evaluated the `enterprise edition`_ of CrateDB, you must
    either buy an enterprise license, or disable this setting.  
+
    If you disable this setting, CrateDB will run with the standard feature set.
-.. _enterprise edition: https://crate.io/enterprise-edition/
 
  - The default value of the ``node.max_local_storage_nodes`` node setting has
    been changed to ``1`` to prevent running multiple nodes on the same data
    path by default.  
+
    Previous versions of CrateDB defaulted to allowing up to ``50`` nodes
    running on the same data path. This was confusing where users accidentally
    started multiple nodes and ended up thinking they have lost data because the
    second node will start with an empty directory.  
+
    Running multiple nodes on the same data path tends to be an exception,
    so defaulting towards safer out-of-the-box settings is reasonable.
 
@@ -126,9 +125,9 @@ Breaking Changes
 Changes
 =======
 
- - Admin UI Improvements.
+ - Admin UI improvements.
 
- - Added JavaScript language for functions
+ - Added JavaScript language for functions.
 
  - Added support for user defined functions.
 
@@ -149,7 +148,9 @@ Changes
  - Optimized performance of negation queries on ``NOT NULL`` columns.  
    e.g.::
 
-     select * from t where not_null_col != 10
+     SELECT * FROM t WHERE not_null_col != 10
 
  - Updated documentation to indicate that it's not possible to use ``object``,
-   ``geo_point``, ``geo_shape`` or ``array`` in the ``ORDER BY`` clause.
+   ``geo_point``, ``geo_shape``, or ``array`` in the ``ORDER BY`` clause.
+
+.. _enterprise edition: https://crate.io/enterprise-edition/
