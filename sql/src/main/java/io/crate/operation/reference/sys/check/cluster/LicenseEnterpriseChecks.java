@@ -32,7 +32,7 @@ import org.elasticsearch.common.settings.Settings;
 public class LicenseEnterpriseChecks extends AbstractSysCheck {
     private static final int ID = 4;
     private static final String DESCRIPTION = "You are currently using the Enterprise Edition, " +
-        "but have not configured a license. Please configure a license or deactivate the Enterprise Edition.";
+        "but have not configured a license. Please request a license or deactivate the Enterprise Edition.";
 
     private final boolean licenseEnterprise;
     private String licenseIdent;
