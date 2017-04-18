@@ -111,6 +111,8 @@ Breaking Changes
 Changes
 =======
 
+ - License ident is now displayed in the Enterprise Edition.
+
  - Added JavaScript language for functions
 
  - Added support for user defined functions.
