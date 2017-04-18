@@ -1,0 +1,156 @@
+.. _version_1.2.0:
+
+=============
+Version 1.2.0
+=============
+
+Released on 2017/04/18.
+
+.. NOTE::
+
+   If you are upgrading a cluster, you must be running CrateDB
+   :ref:`version_1.1.2` or higher before you upgrade to 1.2.0.
+
+   You cannot perform a :ref:`cluster_upgrade` to this version. Any upgrade to
+   this version will require a full cluster restart.
+
+.. WARNING::
+
+   Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+Breaking Changes
+================
+
+ - To accommodate user-defined functions, some new reserved keywords have been
+   added to the CrateDB SQL dialect: ``RETURNS``, ``CALLED`, ``REPLACE``,
+   ``FUNCTION``, ``LANGUAGE``, ``INPUT``
+
+ - The ``enterprise.license`` setting is set to ``true`` by default.  
+   This enables the CrateDB `enterprise edition`_.  
+
+   Once you have evaluated the `enterprise edition`_ of CrateDB, you must
+   either buy an enterprise license, or disable this setting.  
+
+   If you disable this setting, CrateDB will run with the standard feature set.
+
+ - The default value of the ``node.max_local_storage_nodes`` node setting has
+   been changed to ``1`` to prevent running multiple nodes on the same data
+   path by default.  
+
+   Previous versions of CrateDB defaulted to allowing up to ``50`` nodes
+   running on the same data path. This was confusing where users accidentally
+   started multiple nodes and ended up thinking they have lost data because the
+   second node will start with an empty directory.  
+
+   Running multiple nodes on the same data path tends to be an exception,
+   so defaulting towards safer out-of-the-box settings is reasonable.
+
+ - Parsing support of time values has been changed:
+
+   - The unit ``w`` representing weeks is no longer supported.
+
+   - Fractional time values (e.g. ``0.5s``) are no longer supported. For
+     example, this means when setting timeouts, ``0.5s`` will be rejected and
+     should instead be input as ``500ms``.
+
+ - The already unused ``path.work`` node setting has been removed.
+
+ - The node setting ``bootstrap.mlockall`` has been renamed to
+   ``bootstrap.memory_lock``.
+
+ - The ``keyword_repeat`` and ``type_as_payload`` built-in token filter have
+   been removed.
+
+ - The ``classic`` built-in analyzer has been removed.
+
+ - The shard balance related cluster settings
+   ``cluster.routing.allocation.balance.primary`` and
+   ``cluster.routing.allocation.balance.replica`` have been removed.
+
+ - Some ``recovery`` related cluster settings have been removed or replaced:
+
+   - The ``indices.recovery.concurrent_streams`` cluster setting is now
+     superseded by ``cluster.routing.allocation.node_concurrent_recoveries``.
+
+   - The ``indices.recovery.activity_timeout`` cluster setting have beend
+     renamed to ``indices.recovery.recovery_activity_timeout``.
+
+   - Following ``recovery`` cluster settings have been removed:
+
+     - ``indices.recovery.file_chunk_size``
+
+     - ``indices.recovery.translog_ops``
+
+     - ``indices.recovery.translog_size``
+
+     - ``indices.recovery.compress``
+
+ - Logging is now configured by ``log4j2.properties`` instead of
+   ``logging.yml``.
+
+ - The plugin interface has changed, injecting classes on ``shard`` or
+   ``index`` levels is no longer supported.
+
+ - It's no longer possible to run crate as the unix ``root`` user.
+
+ - Some ``translog`` related table settings have been removed or replaced:
+
+   - The ``index.translog.interval``, ``translog.disable_flush`` and
+     ``translog.flush_threshold_period`` table settings have been removed.
+
+   - The ``index.translog.sync_interval`` table setting doesn’t accept a value
+     less than 100ms which prevents fsyncing too often if async durability is
+     enabled. The special value ``0`` is no longer supported.
+
+   - The ``index.translog.flush_threshold_ops`` table setting is not supported
+     anymore. In order to control flushes based on the transaction log growth
+     use ``index.translog.flush_threshold_size`` instead.
+
+ - The ``COPY FROM`` statement now requires column names to be quoted in the
+   JSON file being imported.
+
+ - Queries on columns with ``INDEX OFF`` will now fail instead of always
+   resulting in an empty result.
+
+ - Configuration support using system properties has been dropped.
+
+ - It's no longer possible to use ``Hadoop 1.x`` as a ``repository`` for
+   snapshots.
+
+ - Changed default bind and publish address from ``0.0.0.0`` to the system
+   ``loopback`` addresses.
+
+Changes
+=======
+
+ - Admin UI improvements.
+
+ - Added JavaScript language for functions.
+
+ - Added support for user-defined functions.
+
+ - Added cluster check and warning for unlicensed usage of CrateDB Enterprise.
+
+ - Added ``license.ident`` setting.
+
+ - Added built-in ``fingerprint``, ``keep_types``, ``min_hash`` and
+   ``serbian_normalization`` token filter.
+
+ - Added a ``fingerprint`` built-in analyzer.
+
+ - Upgraded to Elasticsearch 5.0.2.
+
+ - Improved performance of blob stats computation by calculating them in an
+   incremental manner.
+
+ - Optimized performance of negation queries on ``NOT NULL`` columns.  
+   e.g.::
+
+     SELECT * FROM t WHERE not_null_col != 10
+
+ - Updated documentation to indicate that it's not possible to use ``object``,
+   ``geo_point``, ``geo_shape``, or ``array`` in the ``ORDER BY`` clause.
+
+.. _enterprise edition: https://crate.io/enterprise-edition/
