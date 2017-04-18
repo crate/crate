@@ -32,28 +32,18 @@ Changes
  - Improved error handling when using ``LIMIT``/``OFFSET`` that exceed Integer
    range.
 
- - Updated crate-admin to 1.2.2, which includes the following changes:
+ - Removed blog feed from side bar of the settings interface.
 
-   - Fixed issue where arrays in formatted objects were not displayed.
+ - Increased base font size in the admin interface.
 
-   - Removed blog feed from side bar.
+ - Added fallback to unformatted results in the console interface if no
+   column types are returned.
 
-   - Increased base font size.
+ - Display notification warning only when a new CrateDB version is released.
 
-   - Fixed issue that caused tables to display a healthy status even though
-     their partitions were in critical state
+ - Added ``lineWrapping`` option to console editor in the admin UI.
 
-   - Added fallback to unformatted results if no column types are returned.
 
-   - Display notification warning only when a new CrateDB version is released.
-
-   - Added ``lineWrapping`` option to console Editor.
-
-   - Fixed issue that cause the console text to appear on top of the settings
-     tab.
-
-   - Fixed load reading display when the readings were invalid (for example, on
-     Windows).
 
 Fixes
 =====
@@ -64,10 +54,21 @@ Fixes
  - Fixed bug introduced in 1.1.0 which caused all partitioned tables to
    become unusable.
 
- - Fixed an issued that caused conditions like ``not x = any( )`` to not
+ - Fixed an issue that caused conditions like ``not x = any( )`` to not
    find empty lists when used in ``WHERE`` clauses.
 
  - Fixed a regression introduced in 1.1.0 that caused statements like
    ``COPY TO '/invalid/directory/'`` to get stuck instead of resulting in an
    error.
 
+ - Fixed an issue where arrays in formatted objects were not displayed in the
+   console interface.
+
+ - Fixed an issue that caused tables interface to display a healthy status even
+   though the partitions were in critical state.
+
+ - Fixed an issue that caused the console text to appear on top of the settings
+   tab.
+
+ - Fixed load reading display when the readings were invalid (for example, on
+   Windows).
