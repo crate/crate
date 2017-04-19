@@ -130,7 +130,7 @@ Changes
 
  - Upgraded to Elasticsearch 5.0.2
 
- - Improved performance of blob stats computation by calculating them in an 
+ - Improved performance of blob stats computation by calculating them in an
    incremental manner.
 
  - Optimized performance of negation queries on ``NOT NULL`` columns.
@@ -145,5 +145,8 @@ Changes
 Fixes
 =====
 
- -  Fixed ``y-axis`` number formatting for long running queries
+ - Fix: An error was thrown when using ``ORDER BY count(*)`` on ``JOINS``.
+   e.g.: ``SELECT count(*) from t1, t2 order by 1``
+
+ - Fixed ``y-axis`` number formatting for long running queries
    in the monitoring plugin of the admin interface.

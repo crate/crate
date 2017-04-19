@@ -61,7 +61,6 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
@@ -810,6 +809,14 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
         assertThat(relation.requiredForQuery(), contains(isField("id")));
+    }
+
+    @Test
+    public void testJoinWithOrderByOnCount() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select count(*) from users u1, users_multi_pk u2 " +
+                                                   "order by 1");
+        MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
+        assertThat(relation.querySpec().orderBy().get(), isSQL("count()"));
     }
 
     @Test
