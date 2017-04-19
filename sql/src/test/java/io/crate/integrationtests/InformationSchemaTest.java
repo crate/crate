@@ -1000,4 +1000,20 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage(" / by zero");
         execute("select 1/0 from information_schema.tables");
     }
+
+    @Test
+    public void testInformationRoutinesColumns() throws Exception {
+        execute("select column_name from information_schema.columns where table_name='routines' order by ordinal_position");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is(
+              "data_type\n" +
+              "is_deterministic\n" +
+              "routine_body\n" +
+              "routine_definition\n" +
+              "routine_name\n" +
+              "routine_schema\n" +
+              "routine_type\n" +
+              "specific_name\n"
+            ));
+    }
 }
