@@ -1854,6 +1854,17 @@ running on it.
 Enterprise Features
 ===================
 
+.. NOTE::
+
+   To enable or use any of the enterprise features, Crate.io must have given
+   you permission to enable and use the `Enterprise Edition`_ of CrateDB and
+   you must have a valid Enterprise or Subscription Agreement with Crate.io. If
+   you enable or use features that are part of the Enterprise Edition, you
+   represent and warrant that you have a valid Enterprise or Subscription
+   Agreement with Crate.io. Your use of features of the Enterprise Edition is
+   governed by the terms and conditions of your Enterprise or Subscription
+   Agreement with Crate.io.
+
 .. _conf_enterprise_license:
 
 Enterprise License
@@ -1865,12 +1876,10 @@ Enterprise License
 
   Setting this to ``false`` disables the `Enterprise Edition`_ of CrateDB.
 
-
 .. _conf_lang_js_enabled:
 
 Javascript Language
 -------------------
-
 
 **lang.js.enabled**
   | *Default:*  ``false``
@@ -1879,17 +1888,6 @@ Javascript Language
   Setting to enable the Javascript language. As The Javascript language is an
   experimental feature and is not securely sandboxed its disabled by default.
 
-
-.. NOTE::
-
-   To enable or use any of the enterprise features, Crate.io must have given
-   you permission to enable and use the `Enterprise Edition`_ of CrateDB and
-   you must have a valid Enterprise or Subscription Agreement with Crate.io. If
-   you enable or use features that are part of the Enterprise Edition, you
-   represent and warrant that you have a valid Enterprise or Subscription
-   Agreement with Crate.io. Your use of features of the Enterprise Edition is
-   governed by the terms and conditions of your Enterprise or Subscription
-   Agreement with Crate.io.
 
 .. _`same-origin policy`: https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy
 .. _`cross-origin resource sharing`: https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
