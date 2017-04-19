@@ -129,6 +129,7 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
                 input.name(),
                 RoutineType.FUNCTION.getName(),
                 input.schema(),
+                input.specificName(),
                 input.definition(),
                 input.language(),
                 input.returnType().getName(),

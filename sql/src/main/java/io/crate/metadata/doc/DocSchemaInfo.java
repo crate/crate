@@ -41,7 +41,6 @@ import io.crate.operation.udf.UDFLanguage;
 import io.crate.operation.udf.UserDefinedFunctionMetaData;
 import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.operation.udf.UserDefinedFunctionsMetaData;
-import io.crate.types.DataType;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
@@ -58,7 +57,6 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -317,9 +315,8 @@ public class DocSchemaInfo implements SchemaInfo {
                 udfFunctions.put(impl.info().ident(), impl);
             } catch (javax.script.ScriptException | IllegalArgumentException e) {
                 LOGGER.warn(
-                    String.format(Locale.ENGLISH, "Can't create user defined function '%s(%s)'",
-                        function.name(),
-                        function.argumentTypes().stream().map(DataType::getName).collect(Collectors.joining(", "))
+                    String.format(Locale.ENGLISH, "Can't create user defined function '%s'",
+                        function.specificName()
                     ), e);
             }
         }

@@ -33,7 +33,9 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -46,6 +48,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
     private List<DataType> argumentTypes;
     String language;
     String definition;
+    String specificName;
 
     public UserDefinedFunctionMetaData(String schema,
                                        String name,
@@ -60,6 +63,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         this.language = language;
         this.definition = definition;
         this.argumentTypes = argumentTypesFrom(arguments);
+        this.specificName = specificName(name, argumentTypes);
     }
 
     private UserDefinedFunctionMetaData() {
@@ -99,6 +103,10 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         return argumentTypes;
     }
 
+    public String specificName() {
+        return specificName;
+    }
+
     boolean sameSignature(String schema, String name, List<DataType> types) {
         return this.schema().equals(schema) && this.name().equals(name) && this.argumentTypes().equals(types);
     }
@@ -116,6 +124,7 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
         returnType = DataTypes.fromStream(in);
         language = in.readString();
         definition = in.readString();
+        specificName = specificName(name, argumentTypes);
     }
 
     @Override
@@ -252,6 +261,11 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
 
     static List<DataType> argumentTypesFrom(List<FunctionArgumentDefinition> arguments) {
         return arguments.stream().map(FunctionArgumentDefinition::type).collect(toList());
+    }
+
+    static String specificName(String name, List<DataType> types) {
+        return String.format(Locale.ENGLISH, "%s(%s)", name,
+            types.stream().map(DataType::getName).collect(Collectors.joining(", ")));
     }
 
 }

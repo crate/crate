@@ -51,6 +51,17 @@ public abstract class InformationRoutinesExpression<T>
         }
     }
 
+    public static class RoutineSpecificNameExpression extends InformationRoutinesExpression<BytesRef> {
+
+        @Override
+        public BytesRef value() {
+            if (row.specificName() == null) {
+                return null;
+            }
+            return new BytesRef(row.specificName());
+        }
+    }
+
     public static class RoutineBodyExpression extends InformationRoutinesExpression<BytesRef> {
         @Override
         public BytesRef value() {

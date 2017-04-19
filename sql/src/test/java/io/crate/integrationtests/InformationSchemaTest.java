@@ -452,7 +452,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(386, response.rowCount());
+        assertEquals(387, response.rowCount());
     }
 
     @Test

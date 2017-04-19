@@ -368,6 +368,8 @@ Columns
 +--------------------+-------------+
 | routine_definition | String      |
 +--------------------+-------------+
+| specific_name      | String      |
++--------------------+-------------+
 
 
 :routine_name:
@@ -389,6 +391,11 @@ Columns
     If the routine is deterministic then `True`, else `False` (``NULL`` if it doesn't apply).
 :routine_definition:
     The function definition (``NULL`` if it doesn't apply).
+:specific_name:
+    Used to uniquely identify the function in a schema, even if the function is
+    overloaded.  Currently the specific name contains the types of the function
+    arguments. As the format might change in the future, it should be only used
+    to compare it to other instances of ``specific_name``.
 
 
 Schemata

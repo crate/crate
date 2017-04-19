@@ -29,7 +29,10 @@ import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.*;
+import org.elasticsearch.common.xcontent.ToXContent;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
@@ -37,6 +40,7 @@ import java.io.IOException;
 import java.util.List;
 
 import static io.crate.operation.udf.UserDefinedFunctionMetaData.argumentTypesFrom;
+import static io.crate.operation.udf.UserDefinedFunctionMetaData.specificName;
 import static org.hamcrest.core.Is.is;
 
 public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
@@ -128,5 +132,12 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         assertThat(udfMeta.sameSignature("different_schema", "my_add", argumentTypesFrom(args)), is(false));
         assertThat(udfMeta.sameSignature("my_schema", "different_name", argumentTypesFrom(args)), is(false));
         assertThat(udfMeta.sameSignature("my_schema", "my_add", ImmutableList.of()), is(false));
+    }
+
+    @Test
+    public void testSpecificName() throws Exception {
+        assertThat(specificName("my_func", ImmutableList.of()), is("my_func()"));
+        assertThat(specificName("my_func", ImmutableList.of(DataTypes.BOOLEAN, new ArrayType(DataTypes.BOOLEAN))),
+            is("my_func(boolean, boolean_array)"));
     }
 }

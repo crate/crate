@@ -28,7 +28,10 @@ package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.data.Input;
-import io.crate.metadata.*;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.Schemas;
 import io.crate.operation.udf.UDFLanguage;
 import io.crate.operation.udf.UserDefinedFunctionMetaData;
 import io.crate.operation.udf.UserDefinedFunctionService;
@@ -36,7 +39,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -170,7 +172,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
                 ImmutableList.of(DataTypes.LONG, DataTypes.LONG, DataTypes.LONG)
             );
 
-            execute("select routine_name, routine_body, data_type, routine_definition, routine_schema" +
+            execute("select routine_name, routine_body, data_type, routine_definition, routine_schema, specific_name" +
                     " from information_schema.routines " +
                     " where routine_type = 'FUNCTION' and routine_name = 'subtract_test'");
             assertThat(response.rowCount(), is(1L));
@@ -179,6 +181,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
             assertThat(response.rows()[0][2], is("long"));
             assertThat(response.rows()[0][3], is("function subtract_test(a, b, c) { return a - b - c; }"));
             assertThat(response.rows()[0][4], is("doc"));
+            assertThat(response.rows()[0][5], is("subtract_test(long, long, long)"));
         } catch (Exception e){
             execute("drop function if exists subtract_test(long, long, long)");
             throw e;
