@@ -27,6 +27,7 @@ import org.elasticsearch.common.inject.Module;
 import java.lang.reflect.Method;
 
 class OnModuleReference {
+
     final Class<? extends Module> moduleClass;
     final Method onModuleMethod;
 

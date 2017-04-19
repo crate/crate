@@ -29,7 +29,6 @@ import org.elasticsearch.plugins.Plugin;
 import java.util.Collection;
 import java.util.Collections;
 
-
 public class UDCPlugin extends Plugin {
 
     private final Settings settings;
@@ -43,7 +42,7 @@ public class UDCPlugin extends Plugin {
         if (!settings.getAsBoolean("node.client", false)
             && UDCService.UDC_ENABLED_SETTING.setting().get(settings)) {
 
-            return Collections.<Class<? extends LifecycleComponent>>singletonList(UDCService.class);
+            return Collections.singletonList(UDCService.class);
         }
         return super.getGuiceServiceClasses();
     }

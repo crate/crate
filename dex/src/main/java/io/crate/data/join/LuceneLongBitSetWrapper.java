@@ -22,7 +22,6 @@
 
 package io.crate.data.join;
 
-import io.crate.data.join.NestedLoopBatchIterator;
 import org.apache.lucene.util.LongBitSet;
 
 /**

@@ -119,7 +119,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         // with the reference valueType.
         // this is why we use a custom comparator source with the same logic as ES
 
-        /**
+        /*
          * TODO:
          * There is now {@link org.elasticsearch.search.sort.SortFieldAndFormat}, maybe that can be used.
          * See {@link org.elasticsearch.search.sort.ScoreSortBuilder}

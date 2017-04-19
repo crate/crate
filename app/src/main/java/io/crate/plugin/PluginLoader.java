@@ -303,7 +303,6 @@ public class PluginLoader {
         return settings;
     }
 
-
     public void processModule(Module module) {
         for (Plugin plugin : plugins) {
             // see if there are onModule references

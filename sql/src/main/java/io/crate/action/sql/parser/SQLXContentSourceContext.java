@@ -46,7 +46,6 @@ public class SQLXContentSourceContext {
         this.args = args;
     }
 
-
     public Object[][] bulkArgs() {
         return bulkArgs;
     }

@@ -26,14 +26,12 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletableFutures;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
 
 /**
  * BatchIterator implementation that is backed by {@link Iterable<Row>}.
- *
  */
 public class RowsBatchIterator implements BatchIterator {
 

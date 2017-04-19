@@ -56,14 +56,13 @@ public class BatchIteratorTester {
         } catch (Throwable ex) {
             assertThat(ex, instanceOf(IndexOutOfBoundsException.class));
         }
-
     }
 
     private static Columns assertValidRowData(BatchIterator it) {
         return assertValidColumns(it::rowData);
     }
 
-    public static Columns assertValidColumns(Supplier<Columns> supplier) {
+    private static Columns assertValidColumns(Supplier<Columns> supplier) {
         Columns first = supplier.get();
         assertThat(first, notNullValue());
         Columns second = supplier.get();

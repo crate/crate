@@ -674,7 +674,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("column 'col2' must appear in the GROUP BY clause or " +
                                         "be used in an aggregation function");
-        execute("select all max(1), 2 as col2");
+        execute("select max(1), 2 as col2");
     }
 
     @Test

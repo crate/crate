@@ -31,7 +31,6 @@ import java.lang.management.ManagementFactory;
 public class CrateMonitor {
 
     private final Logger logger;
-
     private final MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
 
     @Inject

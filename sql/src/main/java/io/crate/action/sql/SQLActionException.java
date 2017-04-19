@@ -71,7 +71,7 @@ public class SQLActionException extends ElasticsearchException {
         if (errorCodeHeader != null && errorCodeHeader.size() == 1) {
             int ec = Integer.parseInt(errorCodeHeader.get(0));
 
-            /**
+            /*
              * wrapper includes className of original exception which is: "s_q_l_action_exception: "
              * see {@link ElasticsearchException#getExceptionName(Throwable)}
              */

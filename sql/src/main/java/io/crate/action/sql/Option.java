@@ -25,6 +25,7 @@ package io.crate.action.sql;
 import java.util.EnumSet;
 
 public enum Option {
+
     ALLOW_QUOTED_SUBSCRIPT;
 
     public static final EnumSet<Option> NONE = EnumSet.noneOf(Option.class);

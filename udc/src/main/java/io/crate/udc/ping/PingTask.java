@@ -21,6 +21,7 @@
 
 package io.crate.udc.ping;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import io.crate.ClusterIdService;
 import io.crate.Version;
@@ -50,8 +51,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class PingTask extends TimerTask {
 
-    public static final TimeValue HTTP_TIMEOUT = new TimeValue(5, TimeUnit.SECONDS);
-
+    private static final TimeValue HTTP_TIMEOUT = new TimeValue(5, TimeUnit.SECONDS);
     private static final Logger logger = Loggers.getLogger(PingTask.class);
 
     private final ClusterService clusterService;
@@ -76,13 +76,12 @@ public class PingTask extends TimerTask {
     }
 
     @SuppressWarnings("unchecked")
-    public Map<String, Object> getKernelData() {
+    private Map<String, Object> getKernelData() {
         return extendedNodeInfo.osInfo().kernelData();
     }
 
-    public
     @Nullable
-    String getClusterId() {
+    private String getClusterId() {
         // wait until clusterId is available (master has been elected)
         try {
             return clusterIdService.clusterId().get().value().toString();
@@ -94,15 +93,16 @@ public class PingTask extends TimerTask {
         }
     }
 
-    public Boolean isMasterNode() {
+    private Boolean isMasterNode() {
         return clusterService.localNode().isMasterNode();
     }
 
+    @VisibleForTesting
     String isEnterprise() {
         return SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().getRaw(settings);
     }
 
-    public Map<String, Object> getCounters() {
+    private Map<String, Object> getCounters() {
         return new HashMap<String, Object>() {{
             put("success", successCounter.get());
             put("failure", failCounter.get());
@@ -110,16 +110,17 @@ public class PingTask extends TimerTask {
     }
 
     @Nullable
-    public String getHardwareAddress() {
+    @VisibleForTesting
+    String getHardwareAddress() {
         String macAddress = extendedNodeInfo.networkInfo().primaryInterface().macAddress();
         return (macAddress == null || macAddress.equals("")) ? null : macAddress.toLowerCase(Locale.ENGLISH);
     }
 
-    public String getCrateVersion() {
+    private String getCrateVersion() {
         return Version.CURRENT.number();
     }
 
-    public String getJavaVersion() {
+    private String getJavaVersion() {
         return System.getProperty("java.version");
     }
 

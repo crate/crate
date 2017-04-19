@@ -23,9 +23,7 @@ package io.crate;
 
 public class Constants {
 
-    /*
-     * Mapping Type that contains table definitions
-     */
+    // Mapping Type that contains table definitions
     public static final String DEFAULT_MAPPING_TYPE = "default";
 
     // port ranges for HTTP and Transport

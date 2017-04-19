@@ -98,7 +98,6 @@ public class AdminUIModule extends AbstractModule {
 
         AdminUIFrontpageActionListener() {
             this.instanceFuture = new CompletableFuture<>();
-
         }
 
         @Override

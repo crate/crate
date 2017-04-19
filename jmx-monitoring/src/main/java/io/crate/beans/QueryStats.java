@@ -44,7 +44,8 @@ public class QueryStats implements QueryStatsMBean {
     private final Logger logger;
 
     enum MetricType {
-        FREQUENCY, AVERAGE_DURATION;
+        FREQUENCY,
+        AVERAGE_DURATION
     }
 
     public static final String NAME = "io.crate.monitoring:type=QueryStats";

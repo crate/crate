@@ -37,7 +37,6 @@ class FieldsVisitorInputFieldComparator extends InputFieldComparator {
     private final CollectorFieldsVisitor fieldsVisitor;
     private IndexReader currentReader;
 
-
     FieldsVisitorInputFieldComparator(int numHits,
                                       CollectorFieldsVisitor fieldsVisitor,
                                       Iterable<? extends LuceneCollectorExpression<?>> collectorExpressions,

@@ -49,7 +49,7 @@ public class SrvPlugin extends Plugin {
     }
 
     public void onModule(DiscoveryModule discoveryModule) {
-        /**
+        /*
          * Different types of discovery modules can be defined on startup using the `discovery.type` setting.
          * This SrvDiscoveryModule can be loaded using `-Cdiscovery.type=srv`
          */

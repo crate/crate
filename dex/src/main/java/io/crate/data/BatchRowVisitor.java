@@ -35,7 +35,7 @@ import java.util.stream.Collector;
 public class BatchRowVisitor {
 
     public static <A, R> CompletableFuture<R> visitRows(BatchIterator it, Collector<Row, A, R> collector) {
-        return visitRows(it, collector.supplier().get(), collector, new CompletableFuture<R>());
+        return visitRows(it, collector.supplier().get(), collector, new CompletableFuture<>());
     }
 
     public static <A, R> CompletableFuture<R> visitRows(BatchIterator it,

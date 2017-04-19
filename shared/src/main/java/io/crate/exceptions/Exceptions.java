@@ -33,12 +33,11 @@ public final class Exceptions {
      * @param ex to be rethrown and unchecked.
      */
     public static void rethrowUnchecked(final Throwable ex) {
-        Exceptions.<RuntimeException>rethrow(ex);
+        Exceptions.rethrow(ex);
     }
 
     @SuppressWarnings("unchecked")
     private static <T extends Throwable> void rethrow(final Throwable t) throws T {
         throw (T) t;
     }
-
 }

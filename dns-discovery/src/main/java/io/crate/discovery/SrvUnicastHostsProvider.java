@@ -41,7 +41,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-
 @Singleton
 public class SrvUnicastHostsProvider extends AbstractComponent implements UnicastHostsProvider {
 

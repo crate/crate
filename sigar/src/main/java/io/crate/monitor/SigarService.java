@@ -61,7 +61,7 @@ public class SigarService extends AbstractComponent {
         return sigar != null;
     }
 
-    public Sigar sigar() {
+    Sigar sigar() {
         return this.sigar;
     }
 }

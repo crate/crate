@@ -30,7 +30,6 @@ import java.util.Collections;
 
 public class CrateMonitoringPlugin implements Plugin {
 
-
     private final boolean isEnterprise;
 
     public CrateMonitoringPlugin(Settings settings) {

@@ -41,15 +41,11 @@ public class BlockingEvictingQueueTest {
         final CountDownLatch latch = new CountDownLatch(THREADS);
         List<Thread> threads = new ArrayList<>(20);
         for (int i = 0; i < THREADS; i++) {
-            Thread t = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    for (int j = 0; j < 1000; j++) {
-                        strings.add("foo");
-                    }
-
-                    latch.countDown();
+            Thread t = new Thread(() -> {
+                for (int j = 0; j < 1000; j++) {
+                    strings.add("foo");
                 }
+                latch.countDown();
             });
             t.start();
             threads.add(t);

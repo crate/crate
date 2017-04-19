@@ -93,10 +93,11 @@ public class SrvDiscoveryIntegrationTest extends ESIntegTestCase {
 
         Zone zone = null;
 
-        public MockedZoneCache(String string) throws IOException {
+        private MockedZoneCache(String string) throws IOException {
             zone = loadZone(string);
         }
 
+        @Override
         public SetResponse lookupRecords(Name arg0, int arg1, int arg2) {
             return zone.findRecords(arg0, arg1);
         }

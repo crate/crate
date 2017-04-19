@@ -31,7 +31,6 @@ public class PluginLoaderModule extends AbstractModule implements PreProcessModu
 
     private final PluginLoader pluginLoader;
 
-
     public PluginLoaderModule(PluginLoader pluginLoader) {
         this.pluginLoader = pluginLoader;
     }

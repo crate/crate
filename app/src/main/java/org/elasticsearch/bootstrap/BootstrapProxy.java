@@ -23,8 +23,8 @@
 package org.elasticsearch.bootstrap;
 
 import io.crate.Version;
-import io.crate.node.CrateNode;
 import io.crate.bootstrap.BootstrapException;
+import io.crate.node.CrateNode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.Appender;
@@ -84,30 +84,22 @@ public class BootstrapProxy {
      * creates a new instance
      */
     BootstrapProxy() {
-        keepAliveThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    keepAliveLatch.await();
-                } catch (InterruptedException e) {
-                    // bail out
-                }
+        keepAliveThread = new Thread(() -> {
+            try {
+                keepAliveLatch.await();
+            } catch (InterruptedException e) {
+                // bail out
             }
         }, "crate[keepAlive/" + Version.CURRENT + "]");
         keepAliveThread.setDaemon(false);
         // keep this thread alive (non daemon thread) until we shutdown
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            @Override
-            public void run() {
-                keepAliveLatch.countDown();
-            }
-        });
+        Runtime.getRuntime().addShutdownHook(new Thread(keepAliveLatch::countDown));
     }
 
     /**
      * initialize native resources
      */
-    public static void initializeNatives(Path tmpFile, boolean mlockAll, boolean seccomp, boolean ctrlHandler) {
+    static void initializeNatives(Path tmpFile, boolean mlockAll, boolean seccomp, boolean ctrlHandler) {
         final Logger logger = Loggers.getLogger(BootstrapProxy.class);
 
         // check if the user is running as root, and bail
@@ -131,20 +123,17 @@ public class BootstrapProxy {
 
         // listener for windows close event
         if (ctrlHandler) {
-            Natives.addConsoleCtrlHandler(new ConsoleCtrlHandler() {
-                @Override
-                public boolean handle(int code) {
-                    if (CTRL_CLOSE_EVENT == code) {
-                        logger.info("running graceful exit on windows");
-                        try {
-                            BootstrapProxy.stop();
-                        } catch (IOException e) {
-                            throw new ElasticsearchException("failed to stop node", e);
-                        }
-                        return true;
+            Natives.addConsoleCtrlHandler(code -> {
+                if (ConsoleCtrlHandler.CTRL_CLOSE_EVENT == code) {
+                    logger.info("running graceful exit on windows");
+                    try {
+                        BootstrapProxy.stop();
+                    } catch (IOException e) {
+                        throw new ElasticsearchException("failed to stop node", e);
                     }
-                    return false;
+                    return true;
                 }
+                return false;
             });
         }
 
@@ -181,18 +170,15 @@ public class BootstrapProxy {
         initializeProbes();
 
         if (addShutdownHook) {
-            Runtime.getRuntime().addShutdownHook(new Thread() {
-                @Override
-                public void run() {
-                    try {
-                        IOUtils.close(node);
-                        LoggerContext context = (LoggerContext) LogManager.getContext(false);
-                        Configurator.shutdown(context);
-                    } catch (IOException ex) {
-                        throw new ElasticsearchException("failed to stop node", ex);
-                    }
+            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                try {
+                    IOUtils.close(node);
+                    LoggerContext context = (LoggerContext) LogManager.getContext(false);
+                    Configurator.shutdown(context);
+                } catch (IOException ex) {
+                    throw new ElasticsearchException("failed to stop node", ex);
                 }
-            });
+            }));
         }
 
         try {
@@ -202,7 +188,7 @@ public class BootstrapProxy {
             throw new BootstrapException(e);
         }
 
-        /**
+        /*
          * DISABLED setup of security manager due to policy problems with plugins (e.g. SigarPlugin will not work)
          */
         // install SM after natives, shutdown hooks, etc.

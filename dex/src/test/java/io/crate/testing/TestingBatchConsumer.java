@@ -37,7 +37,7 @@ public class TestingBatchConsumer implements BatchConsumer, Killable {
 
     private final CompletableFuture<List<Object[]>> result = new CompletableFuture<>();
 
-    public static CompletionStage<?> moveToEnd(BatchIterator it) {
+    static CompletionStage<?> moveToEnd(BatchIterator it) {
         return BatchRowVisitor.visitRows(it, Collectors.counting());
     }
 

@@ -29,7 +29,6 @@ import com.google.common.collect.Iterators;
 import java.util.Collection;
 import java.util.Iterator;
 
-
 public class CollectionBucket implements Bucket {
 
     private final Collection<Object[]> rows;

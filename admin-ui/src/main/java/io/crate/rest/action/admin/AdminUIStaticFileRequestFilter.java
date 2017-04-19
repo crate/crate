@@ -89,10 +89,7 @@ public class AdminUIStaticFileRequestFilter extends RestFilter {
     }
 
     static boolean isAcceptJson(String headerValue) {
-        if (headerValue == null) {
-            return false;
-        }
-        return headerValue.contains("application/json");
+        return headerValue != null && headerValue.contains("application/json");
     }
 
     private void serveSite(RestRequest request, RestChannel channel) throws IOException {

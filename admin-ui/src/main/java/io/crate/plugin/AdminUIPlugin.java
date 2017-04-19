@@ -48,6 +48,6 @@ public class AdminUIPlugin extends Plugin implements ActionPlugin {
 
     @Override
     public Collection<Module> createGuiceModules() {
-        return Collections.<Module>singletonList(new AdminUIModule());
+        return Collections.singletonList(new AdminUIModule());
     }
 }

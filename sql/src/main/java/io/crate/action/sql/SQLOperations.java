@@ -53,7 +53,9 @@ import java.util.concurrent.CompletableFuture;
 @Singleton
 public class SQLOperations {
 
-    public final static Setting<Boolean> NODE_READ_ONLY_SETTING = Setting.boolSetting("node.sql.read_only", false,
+    public final static Setting<Boolean> NODE_READ_ONLY_SETTING = Setting.boolSetting(
+        "node.sql.read_only",
+        false,
         Setting.Property.NodeScope);
     private final static Logger LOGGER = Loggers.getLogger(SQLOperations.class);
 
@@ -88,7 +90,6 @@ public class SQLOperations {
         if (disabled) {
             throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
-
         return new Session(executorProvider.get(), new SessionContext(defaultLimit, options, defaultSchema));
     }
 

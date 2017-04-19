@@ -44,9 +44,9 @@ public class SrvUnicastHostsProviderTest {
 
     private TransportService transportService;
 
-    abstract class DummySrvUnicastHostsProvider extends SrvUnicastHostsProvider {
+    private abstract class DummySrvUnicastHostsProvider extends SrvUnicastHostsProvider {
 
-        public DummySrvUnicastHostsProvider(Settings settings, TransportService transportService) {
+        private DummySrvUnicastHostsProvider(Settings settings, TransportService transportService) {
             super(settings, transportService);
         }
 

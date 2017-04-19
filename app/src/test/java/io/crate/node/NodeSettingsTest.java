@@ -41,7 +41,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Collections;
 
@@ -57,8 +56,8 @@ public class NodeSettingsTest extends RandomizedTest {
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
-    protected CrateNode node;
-    protected Client client;
+    private CrateNode node;
+    private Client client;
     private boolean loggingConfigured = false;
 
     private String createConfigPath() throws IOException {
@@ -78,14 +77,7 @@ public class NodeSettingsTest extends RandomizedTest {
         return home.getPath();
     }
 
-    public NodeSettingsTest() throws URISyntaxException {
-    }
-
     private void doSetup() throws Exception {
-        doSetup(Settings.EMPTY);
-    }
-
-    private void doSetup(Settings settings) throws Exception {
         // mute log4j warning by configuring a dummy logger
         if (!loggingConfigured) {
             Logger root = Logger.getRootLogger();

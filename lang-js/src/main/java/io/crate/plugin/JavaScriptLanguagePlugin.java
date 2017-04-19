@@ -50,12 +50,11 @@ public class JavaScriptLanguagePlugin implements Plugin {
 
     @Override
     public Collection<Module> createGuiceModules() {
-        return isEnabled ? Collections.<Module>singletonList(new JavaScriptLanguageModule()) : Collections.emptyList();
+        return isEnabled ? Collections.singletonList(new JavaScriptLanguageModule()) : Collections.emptyList();
     }
 
     @Override
     public List<Setting<?>> getSettings() {
         return Collections.singletonList(JavaScriptLanguageModule.LANG_JS_ENABLED);
     }
-
 }

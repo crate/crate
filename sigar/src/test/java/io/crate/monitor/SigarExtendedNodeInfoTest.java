@@ -96,7 +96,7 @@ public class SigarExtendedNodeInfoTest extends CrateUnitTest {
 
     @Test
     public void testOsStatsCache() throws Exception {
-        /**
+        /*
          * get 2 osStats until we have probes with identical timestamps
          * then wait for the cache to time out and fetch a new osStats again
          * the new stats object must have a probe timestamp that is greater/equal than old probe timestamp + cache time
@@ -123,14 +123,11 @@ public class SigarExtendedNodeInfoTest extends CrateUnitTest {
 
     @Test
     public void testProcessCpuStats() throws Exception {
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                ExtendedProcessCpuStats stats = extendedNodeInfo.processCpuStats();
-                // anything else than the default values
-                assertThat(stats.percent(), not((short) -1));
-                assertThat(stats.sys().millis(), not(-1L));
-            }
+        assertBusy(() -> {
+            ExtendedProcessCpuStats stats = extendedNodeInfo.processCpuStats();
+            // anything else than the default values
+            assertThat(stats.percent(), not((short) -1));
+            assertThat(stats.sys().millis(), not(-1L));
         });
     }
 }

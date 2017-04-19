@@ -31,9 +31,8 @@ public class ArrayBucket implements Bucket {
     private final Object[][] rows;
     private final int numColumns;
 
-
     /**
-     * Cosntructs a new ArrayBucket with rows of the given size, regardless of what length the row arrays is.
+     * Constructs a new ArrayBucket with rows of the given size, regardless of what length the row arrays is.
      *
      * @param rows       the backing array of this bucket
      * @param numColumns the size of rows emitted from this bucket

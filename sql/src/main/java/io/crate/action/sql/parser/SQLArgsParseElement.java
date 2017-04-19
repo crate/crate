@@ -37,20 +37,20 @@ class SQLArgsParseElement implements SQLParseElement {
             throw new SQLParseSourceException("Field [" + parser.currentName() + "] has an invalid value");
         }
 
-        Object[] params = parseSubArray(context, parser);
+        Object[] params = parseSubArray(parser);
         context.args(params);
     }
 
-    Object[] parseSubArray(SQLXContentSourceContext context, XContentParser parser)
+    Object[] parseSubArray(XContentParser parser)
         throws IOException {
         XContentParser.Token token;
-        List<Object> subList = new ArrayList<Object>();
+        List<Object> subList = new ArrayList<>();
 
         while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY) {
             if (token.isValue()) {
                 subList.add(parser.objectText());
             } else if (token == XContentParser.Token.START_ARRAY) {
-                subList.add(parseSubArray(context, parser));
+                subList.add(parseSubArray(parser));
             } else if (token == XContentParser.Token.START_OBJECT) {
                 subList.add(parser.map());
             } else if (token == XContentParser.Token.VALUE_NULL) {

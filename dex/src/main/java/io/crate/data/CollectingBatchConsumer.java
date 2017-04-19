@@ -29,7 +29,7 @@ import java.util.stream.Collector;
 public class CollectingBatchConsumer<S, R> implements BatchConsumer {
 
     private final Collector<Row, S, R> collector;
-    private final CompletableFuture<R> resultFuture = new CompletableFuture<R>();
+    private final CompletableFuture<R> resultFuture = new CompletableFuture<>();
 
     public CollectingBatchConsumer(Collector<Row, S, R> collector) {
         this.collector = collector;

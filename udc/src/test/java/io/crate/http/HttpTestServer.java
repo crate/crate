@@ -58,7 +58,6 @@ public class HttpTestServer {
         jsonFactory.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
     }
 
-
     /**
      * @param port the port to listen on
      * @param fail of set to true, the server will emit error responses
@@ -75,30 +74,27 @@ public class HttpTestServer {
             this.channelFactory);
 
         // Set up the pipeline factory.
-        bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
-            public ChannelPipeline getPipeline() throws Exception {
-                // Create a default pipeline implementation.
-                ChannelPipeline pipeline = Channels.pipeline();
+        bootstrap.setPipelineFactory(() -> {
+            // Create a default pipeline implementation.
+            ChannelPipeline pipeline = Channels.pipeline();
 
-                // Uncomment the following line if you want HTTPS
-                //SSLEngine engine = SecureChatSslContextFactory.getServerContext().createSSLEngine();
-                //engine.setUseClientMode(false);
-                //pipeline.addLast("ssl", new SslHandler(engine));
+            // Uncomment the following line if you want HTTPS
+            //SSLEngine engine = SecureChatSslContextFactory.getServerContext().createSSLEngine();
+            //engine.setUseClientMode(false);
+            //pipeline.addLast("ssl", new SslHandler(engine));
 
-                pipeline.addLast("decoder", new HttpRequestDecoder());
-                // Uncomment the following line if you don't want to handle HttpChunks.
-                //pipeline.addLast("aggregator", new HttpChunkAggregator(1048576));
-                pipeline.addLast("encoder", new HttpResponseEncoder());
-                // Remove the following line if you don't want automatic content compression.
-                pipeline.addLast("deflater", new HttpContentCompressor());
-                pipeline.addLast("handler", new HttpTestServerHandler());
-                return pipeline;
-            }
+            pipeline.addLast("decoder", new HttpRequestDecoder());
+            // Uncomment the following line if you don't want to handle HttpChunks.
+            //pipeline.addLast("aggregator", new HttpChunkAggregator(1048576));
+            pipeline.addLast("encoder", new HttpResponseEncoder());
+            // Remove the following line if you don't want automatic content compression.
+            pipeline.addLast("deflater", new HttpContentCompressor());
+            pipeline.addLast("handler", new HttpTestServerHandler());
+            return pipeline;
         });
 
         // Bind and start to accept incoming connections.
         channel = bootstrap.bind(new InetSocketAddress(port));
-
     }
 
     public void shutDown() {
@@ -174,7 +170,6 @@ public class HttpTestServer {
                 ChannelFuture future = e.getChannel().write(response);
                 future.addListener(ChannelFutureListener.CLOSE);
             }
-
         }
 
         @Override
