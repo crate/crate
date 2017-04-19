@@ -23,6 +23,7 @@ package io.crate.operation.reference.sys.check.cluster;
 
 import io.crate.operation.reference.sys.check.AbstractSysCheck;
 import io.crate.settings.SharedSettings;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -32,7 +33,8 @@ import org.elasticsearch.common.settings.Settings;
 public class LicenseEnterpriseChecks extends AbstractSysCheck {
     private static final int ID = 4;
     private static final String DESCRIPTION = "You are currently using the Enterprise Edition, " +
-        "but have not configured a license. Please request a license or deactivate the Enterprise Edition.";
+        "but have not configured a license. Please request a license or deactivate the "+
+        "Enterprise Edition. https://crate.io/enterprise";
 
     private final boolean licenseEnterprise;
     private String licenseIdent;
@@ -58,5 +60,10 @@ public class LicenseEnterpriseChecks extends AbstractSysCheck {
             return true;
         }
         return true;
+    }
+
+    @Override
+    public BytesRef description() {
+        return new BytesRef(DESCRIPTION);
     }
 }

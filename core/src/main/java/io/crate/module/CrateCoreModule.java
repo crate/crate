@@ -49,9 +49,9 @@ public class CrateCoreModule extends AbstractModule {
         this.indexEventListenerProxy = indexEventListenerProxy;
         if (SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings) &&
             "".equals(SharedSettings.LICENSE_IDENT_SETTING.setting().get(settings))){
-            logger.warn(" You are currently using the Enterprise Edition, " +
-                "but have not configured a licence. Please configure a license " +
-                "or deactivate the Enterprise Edition.");
+            logger.warn("You are currently using the Enterprise Edition, " +
+                "but have not configured a license. Please request a license or deactivate the "+
+                "Enterprise Edition. https://crate.io/enterprise");
         }
     }
 
