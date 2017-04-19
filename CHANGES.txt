@@ -19,13 +19,11 @@ Breaking Changes
 Changes
 =======
 
- - Updated the ``admin-ui`` to ``1.2.3`` which includes the following change:
-
-   -  Fixed ``y-axis`` number formatting for long running queries
-      in the monitoring plugin.
-
 Fixes
 =====
 
  - Fix: An error was thrown when using ``ORDER BY count(*)`` on ``JOINS``.
    e.g.: ``SELECT count(*) from t1, t2 order by 1``
+
+ - Fixed Admin UI ``y-axis`` number formatting for long running queries
+   in the monitoring plugin.
