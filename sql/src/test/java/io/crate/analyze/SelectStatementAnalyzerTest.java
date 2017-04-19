@@ -815,6 +815,14 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testJoinWithOrderByOnCount() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select count(*) from users u1, users_multi_pk u2 " +
+                                                   "order by 1");
+        MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
+        assertThat(relation.querySpec().orderBy().get(), isSQL("count()"));
+    }
+
+    @Test
     public void testJoinWithMultiRelationOrderBy() throws Exception {
         SelectAnalyzedStatement analysis = analyze(
             "select u1.id from users u1, users_multi_pk u2 order by u2.id, u1.name || u2.name");

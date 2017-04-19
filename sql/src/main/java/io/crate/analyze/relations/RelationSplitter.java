@@ -185,9 +185,11 @@ public final class RelationSplitter {
             relations.clear();
             RelationCounter.INSTANCE.process(symbol, relations);
 
-            if (relations.size() > 1 ||
+            int relationsSize = relations.size();
+            if (relationsSize > 1 ||
                 // Outer Join requires post-order-by because the nested loop adds rows which affects ordering
-                JoinPairs.isOuterRelation(relations.iterator().next().getQualifiedName(), joinPairs)) {
+                (relationsSize == 1 &&
+                    JoinPairs.isOuterRelation(relations.iterator().next().getQualifiedName(), joinPairs))) {
                 remainingOrderBy = new RemainingOrderBy();
                 break;
             }
