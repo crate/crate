@@ -29,52 +29,25 @@ package io.crate.operation.udf;
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.Schemas;
-import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
-import javax.script.ScriptException;
-
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.mock;
 
-public class UserDefinedFunctionServiceTest extends CrateUnitTest {
-
-    private UserDefinedFunctionService udfService = new UserDefinedFunctionService(mock(ClusterService.class));
-
-    private static final UDFLanguage DUMMY_LANG = new UDFLanguage() {
-        @Override
-        public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException {
-            return null;
-        }
-
-        @Nullable
-        @Override
-        public String validate(UserDefinedFunctionMetaData metadata) {
-            return null;
-        }
-
-        @Override
-        public String name() {
-            return "DummyScript";
-        }
-    };
+public class UserDefinedFunctionServiceTest extends UdfUnitTest {
 
     private final UserDefinedFunctionMetaData same1 = new UserDefinedFunctionMetaData(
         Schemas.DEFAULT_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
-        "dummy_lang", "function same(){ return 3; }"
+        DUMMY_LANG.name(), "function same(){ return 3; }"
     );
     private final UserDefinedFunctionMetaData same2 = new UserDefinedFunctionMetaData(
         Schemas.DEFAULT_SCHEMA_NAME, "same", ImmutableList.of(), DataTypes.INTEGER,
-        "dummy_lang", "function same() { return 2; }"
+        DUMMY_LANG.name(), "function same() { return 2; }"
     );
     private final UserDefinedFunctionMetaData different = new UserDefinedFunctionMetaData(
         Schemas.DEFAULT_SCHEMA_NAME, "different", ImmutableList.of(), DataTypes.INTEGER,
-        "dummy_lang", "function different() { return 3; }"
+        DUMMY_LANG.name(), "function different() { return 3; }"
     );
 
     @Test

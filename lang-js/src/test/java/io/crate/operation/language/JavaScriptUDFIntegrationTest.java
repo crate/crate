@@ -23,6 +23,7 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.Schemas;
 import io.crate.module.JavaScriptLanguageModule;
 import io.crate.settings.SharedSettings;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
@@ -72,5 +73,20 @@ public class JavaScriptUDFIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(2L));
         assertThat(response.rows()[0][0], is(2L));
         assertThat(response.rows()[1][0], is(3L));
+    }
+
+    @Test
+    public void testBuiltinFunctionOverloadWithOrderBy() throws Exception {
+        // this is a regression test that shows that the correct user-defined function implementations are returned
+        // and not the built-in ones
+        // the query got stuck because we used on built-in function lookup (return type long) and one udf lookup (return type int)
+        // which caused a type mismatch when comparing values in ORDER BY
+        execute("CREATE TABLE test.t (a INTEGER, b INTEGER) WITH (number_of_replicas=0)");
+        execute("INSERT INTO test.t (a, b) VALUES (1, 1), (2, 1), (3, 1)");
+        refresh("test.t");
+        execute("CREATE FUNCTION test.subtract(integer, integer) RETURNS INTEGER LANGUAGE javascript AS 'function subtract(x, y){ return x-y; }'");
+        assertFunctionIsCreatedOnAll("test", "subtract", ImmutableList.of(DataTypes.INTEGER, DataTypes.INTEGER));
+        execute("SELECT test.subtract(a, b) FROM test.t ORDER BY 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("0\n1\n2\n"));
     }
 }

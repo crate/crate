@@ -128,11 +128,11 @@ public class Functions {
      * @throws UnsupportedOperationException if no implementation is found.
      */
     public FunctionImplementation getQualified(FunctionIdent ident) throws UnsupportedOperationException {
-        FunctionImplementation impl = getBuiltin(ident.name(), ident.argumentTypes());
+        FunctionImplementation impl = null;
+        if (ident.schema() == null) {
+            impl = getBuiltin(ident.name(), ident.argumentTypes());
+        }
         if (impl == null) {
-            if (ident.schema() == null) {
-                throw createUnknownFunctionException(ident.name(), ident.argumentTypes());
-            }
             impl = getUserDefined(ident.schema(), ident.name(), ident.argumentTypes());
         }
         return impl;
