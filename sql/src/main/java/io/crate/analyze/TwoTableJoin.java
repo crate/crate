@@ -102,7 +102,7 @@ public class TwoTableJoin implements QueriedRelation {
 
     @Override
     public QualifiedName getQualifiedName() {
-        throw new UnsupportedOperationException("method not supported");
+        return name;
     }
 
     @Override
@@ -116,10 +116,6 @@ public class TwoTableJoin implements QueriedRelation {
 
     public QualifiedName rightName() {
         return right.qualifiedName();
-    }
-
-    public QualifiedName name() {
-        return name;
     }
 
     @Override

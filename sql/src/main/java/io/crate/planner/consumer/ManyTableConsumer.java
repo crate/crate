@@ -253,13 +253,13 @@ public class ManyTableConsumer implements Consumer {
              * with a QualifiedName of {@link RelationColumnReWriteCtx#left} or {@link RelationColumnReWriteCtx#right}
              * are replaced with a RelationColumn with QualifiedName of {@link RelationColumnReWriteCtx#newName}
              */
-            splitQuery = rewriteSplitQueryNames(splitQuery, leftName, rightName, join.name(), replaceFunction);
-            JoinPairs.rewriteNames(leftName, rightName, join.name(), replaceFunction, joinPairs);
-            rewriteOrderByNames(remainingOrderBy, leftName, rightName, join.name(), replaceFunction);
+            splitQuery = rewriteSplitQueryNames(splitQuery, leftName, rightName, join.getQualifiedName(), replaceFunction);
+            JoinPairs.rewriteNames(leftName, rightName, join.getQualifiedName(), replaceFunction, joinPairs);
+            rewriteOrderByNames(remainingOrderBy, leftName, rightName, join.getQualifiedName(), replaceFunction);
             rootQuerySpec = rootQuerySpec.copyAndReplace(replaceFunction);
             leftQuerySpec = newQuerySpec.copyAndReplace(replaceFunction);
             leftRelation = join;
-            leftName = join.name();
+            leftName = join.getQualifiedName();
             twoTableJoinList.add(join);
         }
         TwoTableJoin join = (TwoTableJoin) leftRelation;
@@ -471,7 +471,7 @@ public class ManyTableConsumer implements Consumer {
         private final int rightOffset;
 
         RelationColumnReWriteCtx(TwoTableJoin join) {
-            this(join.name(), join.leftName(), join.rightName(), join.left().querySpec().outputs().size());
+            this(join.getQualifiedName(), join.leftName(), join.rightName(), join.left().querySpec().outputs().size());
         }
 
         RelationColumnReWriteCtx(QualifiedName newName, QualifiedName left, QualifiedName right, int rightOffset) {
