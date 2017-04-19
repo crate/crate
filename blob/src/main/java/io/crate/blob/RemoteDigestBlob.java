@@ -85,7 +85,7 @@ public class RemoteDigestBlob {
 
     public RemoteDigestBlob(BlobService blobService, String index, String digest) {
         this.digest = digest;
-        this.client = blobService.getInjector().getInstance(Client.class);
+        this.client = blobService.getClient();
         this.size = 0;
         this.index = index;
     }

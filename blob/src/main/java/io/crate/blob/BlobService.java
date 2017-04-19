@@ -28,6 +28,7 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.ShardIterator;
@@ -35,7 +36,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.internal.Nullable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
@@ -48,28 +49,36 @@ import java.util.function.Supplier;
 
 public class BlobService extends AbstractLifecycleComponent {
 
-    private final Injector injector;
     private final BlobHeadRequestHandler blobHeadRequestHandler;
 
     private final ClusterService clusterService;
+    private final HttpServerTransport httpServerTransport;
+    private final TransportService transportService;
+    private final BlobTransferTarget blobTransferTarget;
+    private final BlobIndicesService blobIndicesService;
+    private final Client client;
 
     @Inject
     public BlobService(Settings settings,
+                       Client client,
                        ClusterService clusterService,
-                       Injector injector,
+                       @Nullable HttpServerTransport httpServerTransport,
+                       TransportService transportService,
+                       BlobTransferTarget blobTransferTarget,
+                       BlobIndicesService blobIndicesService,
                        BlobHeadRequestHandler blobHeadRequestHandler) {
         super(settings);
+        this.client = client;
         this.clusterService = clusterService;
-        this.injector = injector;
         this.blobHeadRequestHandler = blobHeadRequestHandler;
+        this.httpServerTransport = httpServerTransport;
+        this.transportService = transportService;
+        this.blobTransferTarget = blobTransferTarget;
+        this.blobIndicesService = blobIndicesService;
     }
 
     public RemoteDigestBlob newBlob(String index, String digest) {
         return new RemoteDigestBlob(this, index, digest);
-    }
-
-    public Injector getInjector() {
-        return injector;
     }
 
     @Override
@@ -77,7 +86,7 @@ public class BlobService extends AbstractLifecycleComponent {
         logger.info("BlobService.doStart() {}", this);
 
         blobHeadRequestHandler.registerHandler();
-        RecoverySettings recoverySettings = injector.getInstance(RecoverySettings.class);
+        RecoverySettings recoverySettings = new RecoverySettings(settings, clusterService.getClusterSettings());
         recoverySettings.registerRecoverySourceHandlerProvider(new RecoverySourceHandlerProvider() {
             @Override
             public RecoverySourceHandler get(IndexShard shard,
@@ -97,9 +106,9 @@ public class BlobService extends AbstractLifecycleComponent {
                     delayNewRecoveries,
                     recoverySettings,
                     logger,
-                    injector.getInstance(TransportService.class),
-                    injector.getInstance(BlobTransferTarget.class),
-                    injector.getInstance(BlobIndicesService.class)
+                    transportService,
+                    blobTransferTarget,
+                    blobIndicesService
                 );
             }
         });
@@ -110,7 +119,7 @@ public class BlobService extends AbstractLifecycleComponent {
         // The HttpServer has to be started before so that the boundAddress
         // can be added to DiscoveryNodes - this is required for the redirect logic.
         if (settings.getAsBoolean("http.enabled", true)) {
-            injector.getInstance(HttpServerTransport.class).start();
+            httpServerTransport.start();
         } else {
             logger.warn("Http server should be enabled for blob support");
         }
@@ -119,14 +128,14 @@ public class BlobService extends AbstractLifecycleComponent {
     @Override
     protected void doStop() throws ElasticsearchException {
         if (settings.getAsBoolean("http.enabled", true)) {
-            injector.getInstance(HttpServerTransport.class).stop();
+            httpServerTransport.stop();
         }
     }
 
     @Override
     protected void doClose() throws ElasticsearchException {
         if (settings.getAsBoolean("http.enabled", true)) {
-            injector.getInstance(HttpServerTransport.class).close();
+            httpServerTransport.close();
         }
     }
 
@@ -160,4 +169,7 @@ public class BlobService extends AbstractLifecycleComponent {
         throw new MissingHTTPEndpointException("Can't find a suitable http server to serve the blob");
     }
 
+    public Client getClient() {
+        return client;
+    }
 }
