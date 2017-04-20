@@ -1,5 +1,5 @@
 Crate
-Copyright 2013-2015 Crate.IO GmbH ("Crate")
+Copyright 2013-2016 Crate.IO GmbH ("Crate")
 
 
 Third party dependencies:
@@ -31,6 +31,13 @@ Netty
 http://netty.io
 developed by The Netty Project
 License: Apache License v2 (http://www.apache.org/licenses)
+
+=========================================================================
+
+PostgreSQL JDBC Driver
+https://jdbc.postgresql.org
+developed by The PostgreSQL Global Development Group
+License: PostgreSQL License (https://opensource.org/licenses/postgresql)
 
 =========================================================================
 
