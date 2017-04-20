@@ -184,9 +184,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             ensureNonAggregatesInGroupBy(selectAnalysis.outputSymbols(), selectAnalysis.outputNames(), groupBy);
         }
         boolean isDistinct = false;
-        if (node.getSelect().isDistinct() && groupBy.isEmpty()) {
-            groupBy = rewriteGlobalDistinct(selectAnalysis.outputSymbols());
-            isDistinct = true;
+        if (node.getSelect().isDistinct()) {
+            if (groupBy.isEmpty()) {
+                groupBy = rewriteGlobalDistinct(selectAnalysis.outputSymbols());
+                isDistinct = true;
+            } else if (Collections.indexOfSubList(selectAnalysis.outputSymbols(), groupBy) < 0) {
+                throw new UnsupportedOperationException("Cannot use DISTINCT when GROUP BY is used");
+            }
         }
         if (groupBy != null && groupBy.isEmpty()) {
             groupBy = null;
