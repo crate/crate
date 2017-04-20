@@ -2,13 +2,13 @@
 First Steps
 ===========
 
-- In order to get Crate up and running take a look at the
+- In order to get CrateDB up and running take a look at the
   :doc:`installation`.
 
-- If you are new to Crate, it is probably the best to say
+- If you are new to CrateDB, it is probably the best to say
   :doc:`hello`.
 
-- For details about working with Crate, see :doc:`sql/index`.
+- For details about working with CrateDB, see :doc:`sql/index`.
 
 Contents
 ========
