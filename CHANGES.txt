@@ -145,6 +145,10 @@ Changes
 Fixes
 =====
 
+ - Fix: Usage of ``DISTINCT`` in a query with a ``GROUP BY`` was producing
+   wrong results and  was changed to throw UnsupportedOperationException.
+   e.g.: ``SELECT DISTINCT col1 from t1 GROUP BY col2, col1``
+
  - Fix: An error was thrown when using ``ORDER BY count(*)`` on ``JOINS``.
    e.g.: ``SELECT count(*) from t1, t2 order by 1``
 
