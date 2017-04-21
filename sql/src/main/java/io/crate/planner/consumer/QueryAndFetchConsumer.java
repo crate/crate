@@ -21,6 +21,7 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
@@ -33,10 +34,13 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.*;
-import io.crate.planner.fetch.FetchPushDown;
+import io.crate.planner.fetch.FetchRewriter;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.node.fetch.FetchPhase;
+import io.crate.planner.node.fetch.FetchSource;
+import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
@@ -64,27 +68,20 @@ public class QueryAndFetchConsumer implements Consumer {
 
         @Override
         public Plan visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
-            if (!isSimpleSelect(table.querySpec(), context)) {
+            QuerySpec qs = table.querySpec();
+            if (!isSimpleSelect(qs, context)) {
                 return null;
             }
-            if (!context.fetchDecider().tryFetchRewrite()) {
+            if (!context.fetchDecider().tryFetchRewrite() || !FetchRewriter.isFetchFeasible(qs)) {
                 return normalSelect(table, context);
             }
-            FetchPushDown.Builder<QueriedDocTable> fetchPhaseBuilder = FetchPushDown.pushDown(table);
-            if (fetchPhaseBuilder == null) {
-                return normalSelect(table, context);
-            }
+
+            FetchRewriter.FetchDescription fetchDescription = FetchRewriter.rewrite(table);
             Planner.Context plannerContext = context.plannerContext();
-            Plan plan = Merge.ensureOnHandler(
-                normalSelect(fetchPhaseBuilder.replacedRelation(), context), plannerContext);
-            FetchPushDown.PhaseAndProjection fetchPhaseAndProjection = fetchPhaseBuilder.build(plannerContext);
-            plan.addProjection(
-                fetchPhaseAndProjection.projection,
-                null,
-                null,
-                null
-            );
-            return new QueryThenFetch(plan, fetchPhaseAndProjection.phase);
+            Plan subPlan = normalSelect(table, context);
+            subPlan = Merge.ensureOnHandler(subPlan, plannerContext);
+
+            return planFetch(fetchDescription, plannerContext, subPlan);
         }
 
         @Override
@@ -121,6 +118,36 @@ public class QueryAndFetchConsumer implements Consumer {
             plan.addProjection(topN, null, null, null);
             return plan;
         }
+    }
+
+    private static Plan planFetch(FetchRewriter.FetchDescription fetchDescription,
+                                  Planner.Context plannerContext,
+                                  Plan subPlan) {
+        ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
+        FetchPhase fetchPhase = new FetchPhase(
+            plannerContext.nextExecutionPhaseId(),
+            readerAllocations.nodeReaders().keySet(),
+            readerAllocations.bases(),
+            readerAllocations.tableIndices(),
+            fetchDescription.fetchRefs()
+        );
+        InputColumn fetchId = new InputColumn(0);
+        FetchSource fetchSource = new FetchSource(
+            fetchDescription.partitionedByColumns(),
+            Collections.singletonList(fetchId),
+            fetchDescription.fetchRefs()
+        );
+        FetchProjection fetchProjection = new FetchProjection(
+            fetchPhase.phaseId(),
+            plannerContext.fetchSize(),
+            ImmutableMap.of(fetchDescription.table(), fetchSource),
+            FetchRewriter.generateFetchOutputs(fetchDescription),
+            readerAllocations.nodeReaders(),
+            readerAllocations.indices(),
+            readerAllocations.indicesToIdents()
+        );
+        subPlan.addProjection(fetchProjection, null, null, null);
+        return new QueryThenFetch(subPlan, fetchPhase);
     }
 
     private static void maybeAddFilterProjection(QueriedSelectRelation relation, Plan plan) {

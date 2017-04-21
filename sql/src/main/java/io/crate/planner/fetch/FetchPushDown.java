@@ -22,14 +22,11 @@
 
 package io.crate.planner.fetch;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.Planner;
 import io.crate.planner.ReaderAllocations;
 import io.crate.planner.node.fetch.FetchPhase;
@@ -37,41 +34,14 @@ import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.projection.FetchProjection;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 
 public final class FetchPushDown {
 
     private FetchPushDown() {
-    }
-
-    /**
-     * Returns a {@link Builder} if some {@link Reference} can be fetched later on.
-     * If not, null will be returned.
-     *
-     * Use that builder to build a {@link FetchPhase} and {@link FetchProjection} after the plans were processed,
-     * see {@link Builder#build(Planner.Context)}.
-     */
-    @Nullable
-    public static Builder<QueriedDocTable> pushDown(QueriedDocTable docTable) {
-        QueriedDocTableFetchPushDown docTableFetchPushDown = new QueriedDocTableFetchPushDown(docTable);
-        QueriedDocTable subRelation = docTableFetchPushDown.pushDown();
-        if (subRelation == null) {
-            // no fetch required
-            return null;
-        }
-        Collection<Reference> fetchRefs = docTableFetchPushDown.fetchRefs();
-        DocTableInfo docTableInfo = docTable.tableRelation().tableInfo();
-        FetchSource fetchSource = new FetchSource(
-            docTableInfo.partitionedByColumns(),
-            ImmutableList.of(docTableFetchPushDown.docIdCol()),
-            fetchRefs
-        );
-        return new Builder<>(
-            fetchRefs,
-            Collections.singletonMap(docTableInfo.ident(), fetchSource),
-            docTable.querySpec().outputs(),
-            subRelation
-        );
     }
 
     @Nullable
