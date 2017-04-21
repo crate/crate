@@ -305,7 +305,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
         }
     }
 
-    private void createPendingIndices() {
+    private void createPendingIndicesAndExecuteRequests() {
         final List<PendingRequest> pendings = new ArrayList<>();
         final Set<String> indices;
 
@@ -423,12 +423,15 @@ public class BulkShardProcessor<Request extends ShardRequest> {
     }
 
     private void executeIfNeeded() {
-        if ((closed
+        // we don't want to auto-create indices for every index item,
+        // so execute this only after a certain threshold or if the whole operation is closed/finished.
+        if (((closed && pendingNewIndexRequests.get() > 0)
              || requestsForNewIndices.size() >= createIndicesBulkSize
              || pendingNewIndexRequests.get() >= bulkSize) && failure.get() == null) {
-            createPendingIndices();
+            createPendingIndicesAndExecuteRequests();
+        } else {
+            executeRequestsIfNeeded();
         }
-        executeRequestsIfNeeded();
     }
 
     private void executeRequestsIfNeeded() {
