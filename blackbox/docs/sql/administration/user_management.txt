@@ -1,0 +1,100 @@
+.. _administration_user_management:
+
+User Management
+===============
+
+.. note::
+
+    User Management is only part of the CrateDB `Enterprise Edition`_.
+
+A CrateDB cluster contains a set of database users. A database user is a
+principle at cluster level.
+
+Users can be created using the `CREATE USER`_ statement and removed using the
+analoguous `DROP USER`_ statement. These statements are database management
+statements that can only be invoked by superusers that already exist in the
+CrateDB cluster. Also the users table `sys.users` is only readable by
+superusers.
+
+Users cannot be backed up or restored.
+
+.. hide:
+
+    This document is not included in the doctest suite and therefore the
+    following statements are not executed.
+    The reason for that is, that the HTTP protocol does not support user
+    authentication yet.
+
+CREATE USER
+-----------
+
+To create a new user for the CrateDB database cluster use the
+:doc:`/sql/reference/create_user` SQL statement::
+
+    cr> CREATE USER user_a;
+    CREATE OK, 1 row affected (... sec)
+
+The newly created user does not have any special privileges.
+It can be used to connect to the database cluster using available
+authentication methods.
+
+The username parameter of the statement follows the principles of an identifier
+which means that it must be double-quoted if it contains special characters
+(e.g. whitespace) or if the case needs to be maintained::
+
+    cr> CREATE USER "Custom User";
+    CREATE OK, 1 row affected (... sec)
+
+If a user with the username specified in the SQL statement already exists the
+statement returns an error::
+
+    cr> CREATE USER "Custom User";
+    UserAlreadyExistsException ...
+
+DROP USER
+---------
+
+.. hide:
+
+    cr> CREATE USER user_b;
+    CREATE OK, 1 row affected (... sec)
+
+To remove an existing user from the CrateDB database cluster use the
+:doc:`/sql/reference/drop_user` SQL statement::
+
+    cr> DROP USER user_b;
+    DROP OK, 1 row affected (... sec)
+
+If a user with the username specified in the SQL statement does not exist the
+statement returns an error::
+
+    cr> DROP USER user_b;
+    UserDoesNotExistException ...
+
+It is not possible to drop the built-in superuser ``crate``.
+
+List Users
+----------
+
+CrateDB exposes database users via the read-only ``sys.users`` system table.
+The ``sys.users`` table shows all users in the cluster which can be used for
+authentication. The initial superuser ``crate`` which is available for all
+CrateDB clusters is also part of that list.
+
+To list all existing users query that table::
+
+    cr> SELECT * FROM sys.users;
+    +-------------+-----------+
+    | name        | superuser |
+    +-------------+-----------+
+    | crate       | TRUE      |
+    | Custom User | FALSE     |
+    | user_a      | FALSE     |
+    +-------------+-----------+
+    SELECT 3 rows in set (... sec)
+
+The column ``name`` shows the unique name of the user, the column ``superuser``
+shows whether the user has superuser privileges or not.
+
+
+.. _Enterprise Edition: https://crate.io/enterprise/

@@ -1415,9 +1415,29 @@ The mapping follows the following pattern:
 
 Summits
 =======
+
 The ``sys.summits`` table contains the information about the mountains in the
 Alps higher than 2000m. The mountain names from the table are also used to
 generate random nodes names.
 
 
+.. _sys-users:
+
+Users
+=====
+
+The ``sys.users`` table contains all existing database users in the cluster.
+The table is only available in the CrateDB `Enterprise Edition`_.
+
++---------------+----------------------------------------------+-------------+
+| Name          | Description                                  | Return Type |
++===============+==============================================+=============+
+| ``name``      | The name of the database user.               | ``String``  |
++---------------+----------------------------------------------+-------------+
+| ``superuser`` | Boolean flag to indicate whether the user    | ``Boolean`` |
+|               | is a superuser.                              |             |
++---------------+----------------------------------------------+-------------+
+
+
 .. _configuration: ../configuration.html
+.. _Enterprise Edition: https://crate.io/enterprise/
