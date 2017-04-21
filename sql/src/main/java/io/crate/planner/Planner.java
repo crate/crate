@@ -22,10 +22,7 @@
 
 package io.crate.planner;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Literal;
@@ -40,7 +37,6 @@ import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.consumer.UpdatePlanner;
-import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
@@ -80,9 +76,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     public static class Context {
 
-        //index, shardId, node
-        private Map<String, Map<Integer, String>> shardNodes;
-
+        private final RoutingBuilder routingBuilder = new RoutingBuilder();
         private final Planner planner;
         private final ClusterService clusterService;
         private final UUID jobId;
@@ -92,9 +86,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private final int softLimit;
         private final int fetchSize;
         private int executionPhaseId = 0;
-        private final Multimap<TableIdent, TableRouting> tableRoutings = HashMultimap.create();
-        private ReaderAllocations readerAllocations;
-        private HashMultimap<TableIdent, String> tableIndices;
         private String handlerNode;
 
         public Context(Planner planner,
@@ -167,35 +158,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return handlerNode;
         }
 
-        public ReaderAllocations buildReaderAllocations() {
-            if (readerAllocations != null) {
-                return readerAllocations;
-            }
-
-            IndexBaseVisitor visitor = new IndexBaseVisitor();
-
-            // tableIdent -> indexName
-            final Multimap<TableIdent, String> usedTableIndices = HashMultimap.create();
-            for (final Map.Entry<TableIdent, Collection<TableRouting>> tableRoutingEntry : tableRoutings.asMap().entrySet()) {
-                for (TableRouting tr : tableRoutingEntry.getValue()) {
-                    if (!tr.nodesAllocated) {
-                        allocateRoutingNodes(tableRoutingEntry.getKey(), tr.routing.locations());
-                        tr.nodesAllocated = true;
-                    }
-                    tr.routing.walkLocations(visitor);
-                    tr.routing.walkLocations(new Routing.RoutingLocationVisitor() {
-                        @Override
-                        public boolean visitNode(String nodeId, Map<String, List<Integer>> nodeRouting) {
-                            usedTableIndices.putAll(tableRoutingEntry.getKey(), nodeRouting.keySet());
-                            return super.visitNode(nodeId, nodeRouting);
-                        }
-                    });
-
-                }
-            }
-            readerAllocations = new ReaderAllocations(visitor.build(), shardNodes, usedTableIndices);
-            return readerAllocations;
-        }
 
         public Plan planSubRelation(AnalyzedRelation relation, ConsumerContext consumerContext) {
             assert consumingPlanner != null : "consumingPlanner needs to be present to plan sub relations";
@@ -210,92 +172,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return executionPhaseId++;
         }
 
-        private boolean allocateRoutingNodes(TableIdent tableIdent, Map<String, Map<String, List<Integer>>> locations) {
-            boolean success = true;
-            if (tableIndices == null) {
-                tableIndices = HashMultimap.create();
-            }
-            if (shardNodes == null) {
-                shardNodes = new HashMap<>();
-            }
-            for (Map.Entry<String, Map<String, List<Integer>>> location : locations.entrySet()) {
-                for (Map.Entry<String, List<Integer>> indexEntry : location.getValue().entrySet()) {
-                    Map<Integer, String> shardsOnIndex = shardNodes.get(indexEntry.getKey());
-                    tableIndices.put(tableIdent, indexEntry.getKey());
-                    List<Integer> shards = indexEntry.getValue();
-                    if (shardsOnIndex == null) {
-                        shardsOnIndex = new HashMap<>(shards.size());
-                        shardNodes.put(indexEntry.getKey(), shardsOnIndex);
-                        for (Integer id : shards) {
-                            shardsOnIndex.put(id, location.getKey());
-                        }
-                    } else {
-                        for (Integer id : shards) {
-                            String allocatedNodeId = shardsOnIndex.get(id);
-                            if (allocatedNodeId != null) {
-                                if (!allocatedNodeId.equals(location.getKey())) {
-                                    success = false;
-                                }
-                            } else {
-                                shardsOnIndex.put(id, location.getKey());
-                            }
-                        }
-                    }
-                }
-            }
-            return success;
+        public Routing allocateRouting(TableInfo tableInfo, WhereClause where, String preference) {
+            return routingBuilder.allocateRouting(tableInfo, where, preference);
         }
 
-        public Routing allocateRouting(TableInfo tableInfo, WhereClause where, @Nullable String preference) {
-            Collection<TableRouting> existingRoutings = tableRoutings.get(tableInfo.ident());
-            // allocate routing nodes only if we have more than one table routings
-            Routing routing;
-            if (existingRoutings.isEmpty()) {
-                routing = tableInfo.getRouting(where, preference);
-                assert routing != null : tableInfo + " returned empty routing. Routing must not be null";
-            } else {
-                for (TableRouting existing : existingRoutings) {
-                    assert preference == null || preference.equals(existing.preference) :
-                        "preference must not be null or equals existing preference";
-                    if (Objects.equals(existing.where, where)) {
-                        return existing.routing;
-                    }
-                }
-
-                routing = tableInfo.getRouting(where, preference);
-                // ensure all routings of this table are allocated
-                // and update new routing by merging with existing ones
-                for (TableRouting existingRouting : existingRoutings) {
-                    if (!existingRouting.nodesAllocated) {
-                        allocateRoutingNodes(tableInfo.ident(), existingRouting.routing.locations());
-                        existingRouting.nodesAllocated = true;
-                    }
-                    // Merge locations with existing routing
-                    routing.mergeLocations(existingRouting.routing.locations());
-                }
-                if (!allocateRoutingNodes(tableInfo.ident(), routing.locations())) {
-                    throw new UnsupportedOperationException(
-                        "Nodes of existing routing are not allocated, routing rebuild needed");
-                }
-            }
-            tableRoutings.put(tableInfo.ident(), new TableRouting(where, preference, routing));
-            return routing;
+        public ReaderAllocations buildReaderAllocations() {
+            return routingBuilder.buildReaderAllocations();
         }
     }
 
-    @VisibleForTesting
-    static class TableRouting {
-        final WhereClause where;
-        final String preference;
-        final Routing routing;
-        boolean nodesAllocated = false;
-
-        TableRouting(WhereClause where, String preference, Routing routing) {
-            this.where = where;
-            this.preference = preference;
-            this.routing = routing;
-        }
-    }
 
     @Inject
     public Planner(ClusterService clusterService, Functions functions, TableStats tableStats) {
