@@ -12,3 +12,4 @@ Database Administration Statements
    set_reset
    show_create_table
    user_defined_functions
+   user_management
