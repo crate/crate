@@ -23,7 +23,7 @@
 package io.crate.planner;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.planner.fetch.IndexBaseVisitor;
+import io.crate.planner.fetch.IndexBaseBuilder;
 import org.junit.Test;
 
 import java.util.TreeMap;
@@ -31,19 +31,19 @@ import java.util.TreeMap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
-public class IndexBaseVisitorTest {
+public class IndexBaseBuilderTest {
 
     @Test
     public void testDoubleIndex() throws Exception {
-        IndexBaseVisitor visitor = new IndexBaseVisitor();
+        IndexBaseBuilder builder = new IndexBaseBuilder();
 
-        visitor.visitIndex("n1", "i1", ImmutableList.of(1, 4));
-        visitor.visitIndex("n1", "i2", ImmutableList.of(1, 2));
-        visitor.visitIndex("n2", "i1", ImmutableList.of(1, 5));
-        visitor.visitIndex("n3", "i1", ImmutableList.of(1, 3));
-        visitor.visitIndex("n3", "i3", ImmutableList.of(1, 3));
+        builder.allocate("i1", ImmutableList.of(1, 4));
+        builder.allocate("i2", ImmutableList.of(1, 2));
+        builder.allocate("i1", ImmutableList.of(1, 5));
+        builder.allocate("i1", ImmutableList.of(1, 3));
+        builder.allocate("i3", ImmutableList.of(1, 3));
 
-        TreeMap<String, Integer> bases = visitor.build();
+        TreeMap<String, Integer> bases = builder.build();
         assertThat(bases.size(), is(3));
         assertThat(bases.get("i1"), is(0));
         assertThat(bases.get("i2"), is(6));
@@ -52,16 +52,13 @@ public class IndexBaseVisitorTest {
 
     @Test
     public void testMaxShard() throws Exception {
-        IndexBaseVisitor visitor = new IndexBaseVisitor();
+        IndexBaseBuilder builder = new IndexBaseBuilder();
 
-        visitor.visitIndex("n1", "i1", ImmutableList.of(1, 4));
-        visitor.visitIndex("n2", "i2", ImmutableList.of(1, 5));
-        TreeMap<String, Integer> bases = visitor.build();
+        builder.allocate("i1", ImmutableList.of(1, 4));
+        builder.allocate("i2", ImmutableList.of(1, 5));
+        TreeMap<String, Integer> bases = builder.build();
         assertThat(bases.size(), is(2));
         assertThat(bases.get("i1"), is(0));
         assertThat(bases.get("i2"), is(5));
-
-
     }
-
 }

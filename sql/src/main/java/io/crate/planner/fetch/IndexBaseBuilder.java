@@ -22,37 +22,33 @@
 
 package io.crate.planner.fetch;
 
-import io.crate.metadata.Routing;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-public class IndexBaseVisitor extends Routing.RoutingLocationVisitor {
+public final class IndexBaseBuilder {
 
-    private final TreeMap<String, Integer> bases = new TreeMap<>();
+    private final TreeMap<String, Integer> baseByIndex = new TreeMap<>();
 
-    @Override
-    public boolean visitIndex(String nodeId, String index, List<Integer> shardIds) {
-        if (shardIds.isEmpty()) {
-            return true;
+    public void allocate(String index, List<Integer> shards) {
+        if (shards.isEmpty()) {
+            return;
         }
-        Integer currentMax = bases.get(index);
-        Integer newMax = Collections.max(shardIds);
+        Integer currentMax = baseByIndex.get(index);
+        Integer newMax = Collections.max(shards);
         if (currentMax == null || currentMax < newMax) {
-            bases.put(index, newMax);
+            baseByIndex.put(index, newMax);
         }
-        return true;
     }
 
     public TreeMap<String, Integer> build() {
         Integer currentBase = 0;
-        for (Map.Entry<String, Integer> entry : bases.entrySet()) {
+        for (Map.Entry<String, Integer> entry : baseByIndex.entrySet()) {
             Integer maxId = entry.getValue();
             entry.setValue(currentBase);
             currentBase += maxId + 1;
         }
-        return bases;
+        return baseByIndex;
     }
 }
