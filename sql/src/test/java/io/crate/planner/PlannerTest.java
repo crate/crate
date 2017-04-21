@@ -1,16 +1,13 @@
 package io.crate.planner;
 
-import com.carrotsearch.hppc.IntSet;
-import com.google.common.collect.Multimap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.metadata.*;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.operator.EqOperator;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.sql.tree.LongLiteral;
@@ -22,13 +19,10 @@ import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.UUID;
 
 import static io.crate.analyze.TableDefinitions.shardRouting;
-import static io.crate.analyze.TableDefinitions.shardRoutingForReplicas;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -76,87 +70,6 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             .addPartitions(new PartitionName(custom, Collections.singletonList(new BytesRef("12345"))).asIndexName())
             .build(), WhereClause.MATCH_ALL);
         assertThat(indices, arrayContainingInAnyOrder("custom..partitioned.table.04130", "custom..partitioned.table.04332chj6gqg"));
-    }
-
-    @Test
-    public void testBuildReaderAllocations() throws Exception {
-        TableIdent custom = new TableIdent("custom", "t1");
-        TableInfo tableInfo = TestingTableInfo.builder(
-            custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
-        Planner.Context plannerContext = new Planner.Context(
-            e.planner,
-            clusterService,
-            UUID.randomUUID(),
-            null,
-            normalizer,
-            new TransactionContext(SessionContext.SYSTEM_SESSION),
-            0,
-            0);
-        plannerContext.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null);
-
-        ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
-
-        assertThat(readerAllocations.indices().size(), is(1));
-        assertThat(readerAllocations.indices().get(0), is("t1"));
-        assertThat(readerAllocations.nodeReaders().size(), is(2));
-
-        IntSet n1 = readerAllocations.nodeReaders().get("nodeOne");
-        assertThat(n1.size(), is(2));
-        assertTrue(n1.contains(1));
-        assertTrue(n1.contains(2));
-
-        IntSet n2 = readerAllocations.nodeReaders().get("nodeTwo");
-        assertThat(n2.size(), is(2));
-        assertTrue(n2.contains(3));
-        assertTrue(n2.contains(4));
-
-        assertThat(readerAllocations.bases().get("t1"), is(0));
-
-        // allocations must stay same on multiple calls
-        ReaderAllocations readerAllocations2 = plannerContext.buildReaderAllocations();
-        assertThat(readerAllocations, is(readerAllocations2));
-    }
-
-    @Test
-    public void testAllocateRouting() throws Exception {
-        TableIdent custom = new TableIdent("custom", "t1");
-        TableInfo tableInfo1 =
-            TestingTableInfo.builder(custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
-        TableInfo tableInfo2 =
-            TestingTableInfo.builder(custom, shardRoutingForReplicas("t1")).add("id", DataTypes.INTEGER, null).build();
-        Planner.Context plannerContext = new Planner.Context(
-            e.planner,
-            clusterService,
-            UUID.randomUUID(),
-            null,
-            normalizer,
-            new TransactionContext(SessionContext.SYSTEM_SESSION),
-            0,
-            0);
-
-        WhereClause whereClause = new WhereClause(
-            new Function(new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME,
-                                  Arrays.asList(DataTypes.INTEGER, DataTypes.INTEGER)),
-                DataTypes.BOOLEAN),
-                         Arrays.asList(tableInfo1.getReference(new ColumnIdent("id")), Literal.of(2))
-            ));
-
-        plannerContext.allocateRouting(tableInfo1, WhereClause.MATCH_ALL, null);
-        plannerContext.allocateRouting(tableInfo2, whereClause, null);
-
-        // 2 routing allocations with different where clause must result in 2 allocated routings
-        java.lang.reflect.Field tableRoutings = Planner.Context.class.getDeclaredField("tableRoutings");
-        tableRoutings.setAccessible(true);
-        Multimap<TableIdent, Planner.TableRouting> routing =
-            (Multimap<TableIdent, Planner.TableRouting>) tableRoutings.get(plannerContext);
-        assertThat(routing.size(), is(2));
-
-        // The routings must be the same after merging the locations
-        Iterator<Planner.TableRouting> iterator = routing.values().iterator();
-        Routing routing1 = iterator.next().routing;
-        Routing routing2 = iterator.next().routing;
-        assertThat(routing1, is(routing2));
     }
 
     @Test
