@@ -98,7 +98,7 @@ The FROM clause specifies the source relation for the SELECT::
 
     FROM relation
 
-The relation can be either a table reference or a joined relation.
+The relation can be any of the following relations.
 
 Table Reference
 ...............
@@ -154,17 +154,22 @@ Table Function
 Available functions are documented in the :doc:`table functions
 </sql/table_functions>` section.
 
+.. _sql_reference_subselect:
 
 Sub Select
 ..........
 
-A ``sub_select`` can appear in the FROM clause. This acts like a temporary table for the
-outer select that wraps it. The ``sub_select`` must be surrounded by parentheses  and
-an alias must be provided for it. Multiple levels of nested sub selects is also supported.
+A ``sub_select`` is another ``SELECT`` statement surrounded by parentheses with
+an alias:
 
 ::
 
     ( select_stmt ) [ AS ] alias
+
+
+The sub-select behaves like a temporary table that is evaluated at runtime. The
+clauses of the surrounding ``SELECT`` statements are applied on the result of
+the inner ``SELECT`` statement.
 
 
 :select_stmt: A :ref:`SELECT <sql_reference_select>` statement.
@@ -172,10 +177,12 @@ an alias must be provided for it. Multiple levels of nested sub selects is also 
 
 .. note::
 
-  Only sub selects that can be rewritten to a single select are supported.
-  If the query cannot be rewritten by collapsing all nested sub selects then
-  an error is thrown.
+  GROUP BY clauses are not supported in the *outer* ``SELECT`` statement.
+  
+  
+.. note::
 
+  ``sub_select`` relations cannot be used in joined relations.
 
 WHERE Clause
 ------------
