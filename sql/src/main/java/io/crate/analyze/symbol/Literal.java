@@ -2,8 +2,8 @@ package io.crate.analyze.symbol;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.FluentIterable;
-import io.crate.exceptions.ConversionException;
 import io.crate.data.Input;
+import io.crate.exceptions.ConversionException;
 import io.crate.types.ArrayType;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
@@ -15,6 +15,8 @@ import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Comparable<Literal> {
@@ -123,7 +125,13 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(value());
+        if (value == null) {
+            return 0;
+        }
+        if (value.getClass().isArray()) {
+            return Arrays.deepHashCode(((Object[]) value));
+        }
+        return value.hashCode();
     }
 
     @Override
@@ -141,7 +149,17 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
 
     @Override
     public String toString() {
-        return "Literal{" + BytesRefs.toString(value) + ", type=" + type + '}';
+        return "Literal{" + stringRepresentation(value) + ", type=" + type + '}';
+    }
+
+    private static String stringRepresentation(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value.getClass().isArray()) {
+            return '[' + Stream.of((Object[]) value).map(Literal::stringRepresentation).collect(Collectors.joining(", ")) + ']';
+        }
+        return BytesRefs.toString(value);
     }
 
     @Override
