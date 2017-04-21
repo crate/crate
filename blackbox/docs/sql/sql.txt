@@ -24,12 +24,14 @@ supported by Crate.
     reference/create_repository
     reference/create_snapshot
     reference/create_table
+    reference/create_user
     reference/constraints
     reference/delete
     reference/drop_function
     reference/drop_repository
     reference/drop_snapshot
     reference/drop_table
+    reference/drop_user
     reference/explain
     reference/insert
     reference/kill
