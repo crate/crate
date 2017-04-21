@@ -41,7 +41,6 @@ final class RoutingBuilder {
     //index, shardId, node
     private Map<String, Map<Integer, String>> shardNodes;
     private ReaderAllocations readerAllocations;
-    private HashMultimap<TableIdent, String> tableIndices;
 
     @VisibleForTesting
     final static class TableRouting {
@@ -70,11 +69,11 @@ final class RoutingBuilder {
         // ensure all routings of this table are allocated
         // and update new routing by merging with existing ones
         for (TableRouting existingRouting : existingRoutings) {
-            allocateIfRequired(tableInfo.ident(), existingRouting);
+            allocateIfRequired(existingRouting);
             // Merge locations with existing routing
             routing.mergeLocations(existingRouting.routing.locations());
         }
-        if (!allocateRoutingNodes(tableInfo.ident(), routing.locations())) {
+        if (!allocateRoutingNodes(routing.locations())) {
             throw new UnsupportedOperationException(
                 "Nodes of existing routing are not allocated, routing rebuild needed");
         }
@@ -114,7 +113,7 @@ final class RoutingBuilder {
             TableIdent table = tableRoutingEntry.getKey();
             List<TableRouting> routingList = tableRoutingEntry.getValue();
             for (TableRouting tr : routingList) {
-                allocateIfRequired(table, tr);
+                allocateIfRequired(tr);
 
                 for (Map.Entry<String, Map<String, List<Integer>>> entry : tr.routing.locations().entrySet()) {
                     Map<String, List<Integer>> shardsByIndex = entry.getValue();
@@ -130,19 +129,16 @@ final class RoutingBuilder {
         return readerAllocations;
     }
 
-    private void allocateIfRequired(TableIdent table, TableRouting tr) {
+    private void allocateIfRequired(TableRouting tr) {
         if (tr.nodesAllocated) {
             return;
         }
         tr.nodesAllocated = true;
-        allocateRoutingNodes(table, tr.routing.locations());
+        allocateRoutingNodes(tr.routing.locations());
     }
 
-    private boolean allocateRoutingNodes(TableIdent tableIdent, Map<String, Map<String, List<Integer>>> locations) {
+    private boolean allocateRoutingNodes(Map<String, Map<String, List<Integer>>> locations) {
         boolean success = true;
-        if (tableIndices == null) {
-            tableIndices = HashMultimap.create();
-        }
         if (shardNodes == null) {
             shardNodes = new HashMap<>();
         }
@@ -151,7 +147,6 @@ final class RoutingBuilder {
             for (Map.Entry<String, List<Integer>> shardsByIndexEntry : indicesByNodeId.getValue().entrySet()) {
                 String index = shardsByIndexEntry.getKey();
                 Map<Integer, String> shardsOnIndex = shardNodes.get(index);
-                tableIndices.put(tableIdent, index);
                 List<Integer> shards = shardsByIndexEntry.getValue();
                 if (shardsOnIndex == null) {
                     shardsOnIndex = new HashMap<>(shards.size());
