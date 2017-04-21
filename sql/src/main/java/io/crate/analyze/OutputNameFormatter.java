@@ -21,15 +21,14 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.Iterables;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.SubscriptExpression;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 public class OutputNameFormatter {
 
@@ -42,12 +41,11 @@ public class OutputNameFormatter {
     private static class InnerOutputNameFormatter extends ExpressionFormatter.Formatter {
         @Override
         protected String visitQualifiedNameReference(QualifiedNameReference node, Void context) {
-
-            List<String> parts = new ArrayList<>();
-            for (String part : node.getName().getParts()) {
-                parts.add(part);
+            List<String> parts = node.getName().getParts();
+            if (parts.isEmpty()) {
+                throw new NoSuchElementException("Parts of QualifiedNameReference are empty: " + node.getName());
             }
-            return Iterables.getLast(parts);
+            return parts.get(parts.size() - 1);
         }
 
         @Override
