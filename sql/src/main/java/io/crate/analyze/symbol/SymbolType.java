@@ -27,6 +27,7 @@ import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
 
 import java.io.IOException;
 import java.util.List;
@@ -35,7 +36,7 @@ public enum SymbolType {
 
     AGGREGATION(Aggregation::new),
     REFERENCE(Reference::new),
-    RELATION_OUTPUT(Field::new),
+    RELATION_OUTPUT(in -> { throw new UnsupportedOperationException("Field is not streamable"); }),
     FUNCTION(Function::new),
     LITERAL(Literal::new),
     INPUT_COLUMN(InputColumn::new),
@@ -48,18 +49,18 @@ public enum SymbolType {
     GEO_REFERENCE(GeoReference::new),
     GENERATED_REFERENCE(GeneratedReference::new),
     PARAMETER(ParameterSymbol::new),
-    SELECT_SYMBOL(SelectSymbol::new);
+    SELECT_SYMBOL(in -> { throw new UnsupportedOperationException("SelectSymbol is not streamable"); });
 
     public static final List<SymbolType> VALUES = ImmutableList.copyOf(values());
 
-    private final Symbol.SymbolFactory factory;
+    private final Writeable.Reader<Symbol> reader;
 
-    SymbolType(Symbol.SymbolFactory factory) {
-        this.factory = factory;
+    SymbolType(Writeable.Reader<Symbol> reader) {
+        this.reader = reader;
     }
 
     public Symbol newInstance(StreamInput in) throws IOException {
-        return factory.newInstance(in);
+        return reader.read(in);
     }
 
     public boolean isValueSymbol() {

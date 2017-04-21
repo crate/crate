@@ -24,7 +24,6 @@ package io.crate.analyze.symbol;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
@@ -44,10 +43,6 @@ public class SelectSymbol extends Symbol {
 
     public AnalyzedRelation relation() {
         return relation;
-    }
-
-    public SelectSymbol(StreamInput in) throws IOException {
-        throw new UnsupportedOperationException("Cannot stream SelectSymbol");
     }
 
     @Override

@@ -22,20 +22,13 @@
 package io.crate.analyze.symbol;
 
 import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 
-import java.io.IOException;
-
-public abstract class Symbol {
+public abstract class Symbol implements Writeable {
 
     public static boolean isLiteral(Symbol symbol, DataType expectedType) {
         return symbol.symbolType() == SymbolType.LITERAL
                && symbol.valueType().equals(expectedType);
-    }
-
-    public interface SymbolFactory<T extends Symbol> {
-        T newInstance(StreamInput in) throws IOException;
     }
 
     public abstract SymbolType symbolType();
@@ -43,6 +36,4 @@ public abstract class Symbol {
     public abstract <C, R> R accept(SymbolVisitor<C, R> visitor, C context);
 
     public abstract DataType valueType();
-
-    public abstract void writeTo(StreamOutput out) throws IOException;
 }
