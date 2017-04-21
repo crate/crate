@@ -24,6 +24,7 @@ tqdm.monitor_interval = 0
 QUERY_WHITELIST = [re.compile(o, re.IGNORECASE) for o in [
     'CREATE INDEX.*',                        # CREATE INDEX is not supported, but raises SQLParseException
     '.*BETWEEN.*NULL.*',
+    'SELECT - SUM \\( col1 \\) \\* \\+ col1 FROM tab0 cor0 GROUP BY col1, col1', # Result is not deterministic
 ]]
 
 varchar_to_string = partial(re.compile('VARCHAR\(\d+\)').sub, 'STRING')

@@ -24,6 +24,7 @@ faulthandler.enable()
 FILE_WHITELIST = [re.compile(o) for o in [
     'select[1-4].test',
     'random/select/slt_good_\d+.test',
+    'random/groupby/slt_good_\d+.test',
 ]]
 
 
