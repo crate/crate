@@ -94,7 +94,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             0);
         plannerContext.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null);
 
-        Planner.Context.ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
+        ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
 
         assertThat(readerAllocations.indices().size(), is(1));
         assertThat(readerAllocations.indices().get(0), is("t1"));
@@ -113,7 +113,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(readerAllocations.bases().get("t1"), is(0));
 
         // allocations must stay same on multiple calls
-        Planner.Context.ReaderAllocations readerAllocations2 = plannerContext.buildReaderAllocations();
+        ReaderAllocations readerAllocations2 = plannerContext.buildReaderAllocations();
         assertThat(readerAllocations, is(readerAllocations2));
     }
 
