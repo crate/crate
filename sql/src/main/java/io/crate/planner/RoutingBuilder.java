@@ -38,8 +38,6 @@ final class RoutingBuilder {
 
     final Map<TableIdent, List<TableRouting>> routingListByTable = new HashMap<>();
 
-    //index, shardId, node
-    private Map<String, Map<Integer, String>> shardNodes;
     private ReaderAllocations readerAllocations;
 
     @VisibleForTesting
@@ -47,7 +45,6 @@ final class RoutingBuilder {
         final WhereClause where;
         final String preference;
         final Routing routing;
-        boolean nodesAllocated = false;
 
         TableRouting(WhereClause where, String preference, Routing routing) {
             this.where = where;
@@ -69,13 +66,8 @@ final class RoutingBuilder {
         // ensure all routings of this table are allocated
         // and update new routing by merging with existing ones
         for (TableRouting existingRouting : existingRoutings) {
-            allocateIfRequired(existingRouting);
             // Merge locations with existing routing
             routing.mergeLocations(existingRouting.routing.locations());
-        }
-        if (!allocateRoutingNodes(routing.locations())) {
-            throw new UnsupportedOperationException(
-                "Nodes of existing routing are not allocated, routing rebuild needed");
         }
         return routing;
     }
@@ -108,12 +100,13 @@ final class RoutingBuilder {
 
         Multimap<TableIdent, String> indicesByTable = HashMultimap.create();
         IndexBaseBuilder indexBaseBuilder = new IndexBaseBuilder();
+        Map<String, Map<Integer, String>> shardNodes = new HashMap<>();
 
         for (final Map.Entry<TableIdent, List<TableRouting>> tableRoutingEntry : routingListByTable.entrySet()) {
             TableIdent table = tableRoutingEntry.getKey();
             List<TableRouting> routingList = tableRoutingEntry.getValue();
             for (TableRouting tr : routingList) {
-                allocateIfRequired(tr);
+                allocateRoutingNodes(shardNodes, tr.routing.locations());
 
                 for (Map.Entry<String, Map<String, List<Integer>>> entry : tr.routing.locations().entrySet()) {
                     Map<String, List<Integer>> shardsByIndex = entry.getValue();
@@ -129,25 +122,15 @@ final class RoutingBuilder {
         return readerAllocations;
     }
 
-    private void allocateIfRequired(TableRouting tr) {
-        if (tr.nodesAllocated) {
-            return;
-        }
-        tr.nodesAllocated = true;
-        allocateRoutingNodes(tr.routing.locations());
-    }
-
-    private boolean allocateRoutingNodes(Map<String, Map<String, List<Integer>>> locations) {
-        boolean success = true;
-        if (shardNodes == null) {
-            shardNodes = new HashMap<>();
-        }
+    private static void allocateRoutingNodes(Map<String, Map<Integer, String>> shardNodes,
+                                             Map<String, Map<String, List<Integer>>> locations) {
         for (Map.Entry<String, Map<String, List<Integer>>> indicesByNodeId : locations.entrySet()) {
             String nodeId = indicesByNodeId.getKey();
             for (Map.Entry<String, List<Integer>> shardsByIndexEntry : indicesByNodeId.getValue().entrySet()) {
                 String index = shardsByIndexEntry.getKey();
-                Map<Integer, String> shardsOnIndex = shardNodes.get(index);
                 List<Integer> shards = shardsByIndexEntry.getValue();
+
+                Map<Integer, String> shardsOnIndex = shardNodes.get(index);
                 if (shardsOnIndex == null) {
                     shardsOnIndex = new HashMap<>(shards.size());
                     shardNodes.put(index, shardsOnIndex);
@@ -157,17 +140,11 @@ final class RoutingBuilder {
                 } else {
                     for (Integer id : shards) {
                         String allocatedNodeId = shardsOnIndex.get(id);
-                        if (allocatedNodeId != null) {
-                            if (!allocatedNodeId.equals(nodeId)) {
-                                success = false;
-                            }
-                        } else {
-                            shardsOnIndex.put(id, nodeId);
-                        }
+                        assert allocatedNodeId == null || allocatedNodeId.equals(nodeId) : "allocatedNodeId must match nodeId";
+                        shardsOnIndex.put(id, nodeId);
                     }
                 }
             }
         }
-        return success;
     }
 }
