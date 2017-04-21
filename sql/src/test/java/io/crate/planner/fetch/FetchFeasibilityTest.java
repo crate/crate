@@ -23,7 +23,6 @@
 package io.crate.planner.fetch;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -33,13 +32,11 @@ import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 
-public class FetchRequiredVisitorTest extends CrateUnitTest {
+public class FetchFeasibilityTest extends CrateUnitTest {
 
     private final SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES, T3.TR_1);
     private final Function myFun = (Function) sqlExpressions.normalize(sqlExpressions.asSymbol("upper(a)"));
@@ -49,51 +46,33 @@ public class FetchRequiredVisitorTest extends CrateUnitTest {
     private final Reference x = T3.T1_INFO.getReference(new ColumnIdent("x"));
 
 
-    private FetchRequiredVisitor.Context context(List<Symbol> orderBySymbols) {
-        if (!orderBySymbols.isEmpty()) {
-            boolean[] reverseFlags = new boolean[orderBySymbols.size()];
-            Arrays.fill(reverseFlags, true);
-            Boolean[] nullsFirst = new Boolean[orderBySymbols.size()];
-            Arrays.fill(nullsFirst, Boolean.FALSE);
-            OrderBy orderBy = new OrderBy(orderBySymbols, reverseFlags, nullsFirst);
-            return new FetchRequiredVisitor.Context(new HashSet<>(orderBy.orderBySymbols()));
-        }
-        return new FetchRequiredVisitor.Context();
-    }
-
     @Test
     public void testValidateWithoutFetchSymbols() throws Exception {
         List<Symbol> orderBySymbols = ImmutableList.of(myFun, a);
         List<Symbol> outputs = ImmutableList.of(myFun, a);
 
-        FetchRequiredVisitor.Context context = context(orderBySymbols);
-        assertThat(FetchRequiredVisitor.INSTANCE.process(outputs, context), is(false));
+        assertThat(FetchFeasibility.isFetchFeasible(outputs, orderBySymbols), is(false));
     }
 
     @Test
     public void testValidateWithFetchSymbolsInFunction() throws Exception {
-
-        List<Symbol> orderBySymbols = ImmutableList.<Symbol>of(myFun);
-        List<Symbol> outputs = ImmutableList.<Symbol>of(myOtherFun);
-        FetchRequiredVisitor.Context context = context(orderBySymbols);
-        assertThat(FetchRequiredVisitor.INSTANCE.process(outputs, context), is(true));
+        List<Symbol> orderBySymbols = ImmutableList.of(myFun);
+        List<Symbol> outputs = ImmutableList.of(myOtherFun);
+        assertThat(FetchFeasibility.isFetchFeasible(outputs, orderBySymbols), is(true));
     }
 
     @Test
     public void testValidateWithFetchSymbolsUsedInOutPutFunction() throws Exception {
-
-        List<Symbol> orderBySymbols = ImmutableList.<Symbol>of(a, x);
-        List<Symbol> outputs = ImmutableList.<Symbol>of(bothFun);
-        FetchRequiredVisitor.Context context = context(orderBySymbols);
-        assertThat(FetchRequiredVisitor.INSTANCE.process(outputs, context), is(false));
+        List<Symbol> orderBySymbols = ImmutableList.of(a, x);
+        List<Symbol> outputs = ImmutableList.of(bothFun);
+        assertThat(FetchFeasibility.isFetchFeasible(outputs, orderBySymbols), is(false));
     }
 
     @Test
     public void testValidateNoQueryOrOrderBy() throws Exception {
         List<Symbol> orderBySymbols = ImmutableList.of();
-        List<Symbol> outputs = ImmutableList.<Symbol>of(a, x);
-        FetchRequiredVisitor.Context context = context(orderBySymbols);
-        assertThat(FetchRequiredVisitor.INSTANCE.process(outputs, context), is(true));
+        List<Symbol> outputs = ImmutableList.of(a, x);
+        assertThat(FetchFeasibility.isFetchFeasible(outputs, orderBySymbols), is(true));
 
     }
 }

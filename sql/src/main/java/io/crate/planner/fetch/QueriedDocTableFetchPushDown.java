@@ -22,6 +22,7 @@
 package io.crate.planner.fetch;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.DocTableRelation;
@@ -36,6 +37,8 @@ import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.*;
+
+import static io.crate.planner.fetch.FetchFeasibility.isFetchFeasible;
 
 class QueriedDocTableFetchPushDown {
 
@@ -97,16 +100,10 @@ class QueriedDocTableFetchPushDown {
         }
 
         Optional<OrderBy> orderBy = querySpec.orderBy();
+        ImmutableSet<Symbol> querySymbols = orderBy.isPresent()
+            ? ImmutableSet.copyOf(orderBy.get().orderBySymbols()) : ImmutableSet.of();
 
-        FetchRequiredVisitor.Context context;
-        if (orderBy.isPresent()) {
-            context = new FetchRequiredVisitor.Context(new LinkedHashSet<>(orderBy.get().orderBySymbols()));
-        } else {
-            context = new FetchRequiredVisitor.Context();
-
-        }
-
-        boolean fetchRequired = FetchRequiredVisitor.INSTANCE.process(querySpec.outputs(), context);
+        boolean fetchRequired = isFetchFeasible(querySpec.outputs(), querySymbols);
         if (!fetchRequired) return null;
 
         // build the subquery
@@ -117,7 +114,7 @@ class QueriedDocTableFetchPushDown {
         if (orderBy.isPresent()) {
             sub.orderBy(orderBy.get());
             outputs.add(docIdReference);
-            outputs.addAll(context.querySymbols());
+            outputs.addAll(querySymbols);
         } else {
             outputs.add(docIdReference);
         }
