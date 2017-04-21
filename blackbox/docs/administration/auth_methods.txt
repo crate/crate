@@ -1,0 +1,16 @@
+
+.. _auth_methods:
+
+======================
+Authentication Methods
+======================
+
+.. _auth_trust:
+
+Trust Method
+============
+
+When the ``trust`` authentication method is used, the server just takes the
+username provided by the client as is without further validation. This is useful
+for any setup where access is controlled by other means, like network
+restrictions as implemented by :ref:`administration_hba`.
