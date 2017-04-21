@@ -16,7 +16,6 @@ see :doc:`sql`. For general information about SQL please refer to
    dql
    administration/index
    joins
-   subselects
    data_types
    aggregation
    scalar

@@ -15,6 +15,9 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+ - Extended the subselect support. See :ref:`SELECT Reference
+   <sql_reference_subselect>` for details.
+
 Changes
 =======
 
