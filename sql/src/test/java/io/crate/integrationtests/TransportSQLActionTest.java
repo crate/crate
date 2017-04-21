@@ -1327,7 +1327,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         Double result2 = (Double) response.rows()[1][0];
 
         assertThat(result1, is(0.0d));
-        assertThat(result2, is(152354.3209044634));
+        assertThat(result2, is(152354.32308347954));
 
         String stmtOrderBy = "SELECT id " +
                              "FROM t " +

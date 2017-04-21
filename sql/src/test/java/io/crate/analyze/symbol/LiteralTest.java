@@ -54,4 +54,11 @@ public class LiteralTest extends CrateUnitTest {
             assertThat(nestedLiteral.value(), is(nestedValue));
         }
     }
+
+    @Test
+    public void testHashCodeIsEqualOnArrayValues() throws Exception {
+        Literal<Object[]> l1 = Literal.of(new Double[]{10.0, 20.2}, DataTypes.GEO_POINT);
+        Literal<Object[]> l2 = Literal.of(new Double[]{10.0, 20.2}, DataTypes.GEO_POINT);
+        assertThat(l1.hashCode(), is(l2.hashCode()));
+    }
 }
