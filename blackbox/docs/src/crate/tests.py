@@ -472,7 +472,7 @@ def test_suite():
                      tearDown=tearDownCountries)
         s.layer = crate_layer
         docs_suite.addTest(s)
-    for fn in ('sql/joins.txt', 'sql/subselects.txt',):
+    for fn in ('sql/joins.txt',):
         path = os.path.join('..', '..', fn)
         s = docsuite(path,
                      parser=crash_parser,
