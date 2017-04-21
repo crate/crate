@@ -30,7 +30,9 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
 import java.util.function.Predicate;
 
 public class Symbols {
@@ -91,15 +93,7 @@ public class Symbols {
     }
 
     public static List<Symbol> listFromStream(StreamInput in) throws IOException {
-        int numSymbols = in.readVInt();
-        if (numSymbols == 0) {
-            return Collections.emptyList();
-        }
-        List<Symbol> symbols = new ArrayList<>(numSymbols);
-        for (int i = 0; i < numSymbols; i++) {
-            symbols.add(fromStream(in));
-        }
-        return symbols;
+        return in.readList(Symbols::fromStream);
     }
 
     public static Symbol fromStream(StreamInput in) throws IOException {

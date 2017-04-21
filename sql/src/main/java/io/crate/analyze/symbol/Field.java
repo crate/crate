@@ -26,7 +26,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
 import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
@@ -36,10 +35,6 @@ public class Field extends Symbol implements Path {
     private AnalyzedRelation relation;
     private Path path;
     private DataType valueType;
-
-    public Field(StreamInput in) {
-        throw new UnsupportedOperationException("Field is not streamable");
-    }
 
     public Field(AnalyzedRelation relation, Path path, DataType valueType) {
         this.relation = relation;
