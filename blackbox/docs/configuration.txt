@@ -648,9 +648,26 @@ All current applied cluster settings can be read by querying the
 :ref:`sys.cluster.settings <sys-cluster-settings>` column. Most
 cluster settings can be changed at runtime using the
 :ref:`SET/RESET<administration-set-reset>` statement. This is documented at each setting.
-It's not recommended to add cluster wide settings to the crate.yml file of each node,
-as this will result to each node having a different setting which can lead to
-a non-deterministic behavior of the cluster.
+
+
+.. _applying-cluster-settings:
+
+Applying Non-Runtime Cluster Wide Settings
+------------------------------------------
+
+Cluster wide settings which cannot be changed at runtime need to be
+specified in the configuration of each node in the cluster.
+
+.. NOTE::
+
+   Cluster settings specified via node configurations are required to
+   be exactly the same on every node in the cluster for proper
+   operation of the cluster.
+
+Such settings can be changed on a running cluster by first rolling out
+the new configuration to all nodes in the cluster and then restart one
+of the cluster nodes to apply the new configuration.
+
 
 .. _conf_collecting_stats:
 
@@ -1892,6 +1909,47 @@ Javascript Language
 
   Setting to enable the Javascript language. As The Javascript language is an
   experimental feature and is not securely sandboxed its disabled by default.
+
+Authentication
+==============
+
+.. _host_based_auth:
+
+Host Based Authentication
+-------------------------
+
+**auth.host_based**
+  | *Runtime:*     ``no``
+  | *Examples:*
+  |  ``a: {user:crate, address: 172.16.0.0/16}``
+  |  ``b: {method: trust}``
+  |  ``3: {user:crate, address: 172.16.0.0/16, method:trust}``
+
+  The :ref:`administration_hba` setting is a list of predicates that users can
+  specify to restrict or allow access to CrateDB.
+
+  The meaning of the fields are as follows:
+
+  **order:**
+    | An identifier that specifies the natural order of the host based
+    | configuration entry. This key guarantees that the entry lookup order will
+    | remain independent from the insertion order of the entries.
+
+  **user:**
+    | Specifies an existing CrateDB username, only ``crate`` user (superuser)
+    | is available. If no user is specified in the entry, then
+    | all existing users can have access.
+
+  **address:**
+    | The client machine addresses that the client matches, and which are
+    | allowed to authenticate. This field can contain an IP address or a CIDR
+    | mask. For example: ``127.0.0.1`` or ``127.0.0.1/32``. If no address is specified
+    | in the entry, then access to CrateDB is open for all hosts.
+
+  **method:**
+    | The authentication method to use when a connection matches this entry.
+    | At the moment only the ``trust`` method is available. If no method is
+    | specified, the ``trust`` method is used by default.( See :ref:`auth_trust` )
 
 
 .. _`same-origin policy`: https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy

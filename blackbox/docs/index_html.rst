@@ -30,3 +30,4 @@ Contents
    best_practice/index
    protocols/index
    enterprise/index
+   administration/index
