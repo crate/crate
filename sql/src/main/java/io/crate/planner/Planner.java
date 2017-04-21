@@ -22,8 +22,6 @@
 
 package io.crate.planner;
 
-import com.carrotsearch.hppc.IntHashSet;
-import com.carrotsearch.hppc.IntSet;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -167,65 +165,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         public String handlerNode() {
             return handlerNode;
-        }
-
-        public static class ReaderAllocations {
-
-            private final TreeMap<Integer, String> readerIndices = new TreeMap<>();
-            private final Map<String, IntSet> nodeReaders = new HashMap<>();
-            private final TreeMap<String, Integer> bases;
-            private final Multimap<TableIdent, String> tableIndices;
-            private final Map<String, TableIdent> indicesToIdents;
-
-
-            ReaderAllocations(TreeMap<String, Integer> bases,
-                              Map<String, Map<Integer, String>> shardNodes,
-                              Multimap<TableIdent, String> tableIndices) {
-                this.bases = bases;
-                this.tableIndices = tableIndices;
-                this.indicesToIdents = new HashMap<>(tableIndices.values().size());
-                for (Map.Entry<TableIdent, String> entry : tableIndices.entries()) {
-                    indicesToIdents.put(entry.getValue(), entry.getKey());
-                }
-                for (Map.Entry<String, Integer> entry : bases.entrySet()) {
-                    readerIndices.put(entry.getValue(), entry.getKey());
-                }
-                for (Map.Entry<String, Map<Integer, String>> entry : shardNodes.entrySet()) {
-                    Integer base = bases.get(entry.getKey());
-                    if (base == null) {
-                        continue;
-                    }
-                    for (Map.Entry<Integer, String> nodeEntries : entry.getValue().entrySet()) {
-                        int readerId = base + nodeEntries.getKey();
-                        IntSet readerIds = nodeReaders.get(nodeEntries.getValue());
-                        if (readerIds == null) {
-                            readerIds = new IntHashSet();
-                            nodeReaders.put(nodeEntries.getValue(), readerIds);
-                        }
-                        readerIds.add(readerId);
-                    }
-                }
-            }
-
-            public Multimap<TableIdent, String> tableIndices() {
-                return tableIndices;
-            }
-
-            public TreeMap<Integer, String> indices() {
-                return readerIndices;
-            }
-
-            public Map<String, IntSet> nodeReaders() {
-                return nodeReaders;
-            }
-
-            public TreeMap<String, Integer> bases() {
-                return bases;
-            }
-
-            public Map<String, TableIdent> indicesToIdents() {
-                return indicesToIdents;
-            }
         }
 
         public ReaderAllocations buildReaderAllocations() {

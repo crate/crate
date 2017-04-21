@@ -31,6 +31,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.Planner;
+import io.crate.planner.ReaderAllocations;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.projection.FetchProjection;
@@ -126,7 +127,7 @@ public final class FetchPushDown {
          *  They can only be build after the plans are processed and all shards and readers are allocated.
          */
         public PhaseAndProjection build(Planner.Context plannerContext) {
-            Planner.Context.ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
+            ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
 
             FetchPhase fetchPhase = new FetchPhase(
                 plannerContext.nextExecutionPhaseId(),
