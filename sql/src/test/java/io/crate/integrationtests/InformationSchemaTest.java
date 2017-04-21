@@ -756,6 +756,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                     "(2, 'content42'), " +
                     "(1, 'content2'), " +
                     "(3, 'content6')");
+            fail("expected to throw an \"blocked\" exception");
         } catch (SQLActionException e) {
             assertThat(e.getMessage(), containsString("blocked by: [FORBIDDEN/8/index write (api)];"));
         }
