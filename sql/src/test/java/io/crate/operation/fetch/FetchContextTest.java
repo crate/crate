@@ -28,7 +28,7 @@ import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.fetch.IndexBaseVisitor;
+import io.crate.planner.fetch.IndexBaseBuilder;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
@@ -72,13 +72,14 @@ public class FetchContextTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSearcherIsAcquiredForShard() throws Exception {
+        ImmutableList<Integer> shards= ImmutableList.of(1, 2);
         Routing routing = new Routing(
             TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
                 "dummy",
-                TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("i1", ImmutableList.of(1, 2)).map()).map());
+                TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("i1", shards).map()).map());
 
-        IndexBaseVisitor ibv = new IndexBaseVisitor();
-        routing.walkLocations(ibv);
+        IndexBaseBuilder ibb = new IndexBaseBuilder();
+        ibb.allocate("i1", shards);
 
         HashMultimap<TableIdent, String> tableIndices = HashMultimap.create();
         tableIndices.put(new TableIdent(null, "i1"), "i1");
@@ -95,7 +96,7 @@ public class FetchContextTest extends CrateDummyClusterServiceUnitTest {
             new FetchPhase(
                 1,
                 null,
-                ibv.build(),
+                ibb.build(),
                 tableIndices,
                 ImmutableList.of(createReference("i1", new ColumnIdent("x"), DataTypes.STRING))),
             "dummy",

@@ -29,7 +29,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
-import io.crate.planner.fetch.IndexBaseVisitor;
+import io.crate.planner.fetch.IndexBaseBuilder;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -70,10 +70,7 @@ final class RoutingBuilder {
         // ensure all routings of this table are allocated
         // and update new routing by merging with existing ones
         for (TableRouting existingRouting : existingRoutings) {
-            if (!existingRouting.nodesAllocated) {
-                allocateRoutingNodes(tableInfo.ident(), existingRouting.routing.locations());
-                existingRouting.nodesAllocated = true;
-            }
+            allocateIfRequired(tableInfo.ident(), existingRouting);
             // Merge locations with existing routing
             routing.mergeLocations(existingRouting.routing.locations());
         }
@@ -110,29 +107,35 @@ final class RoutingBuilder {
             return readerAllocations;
         }
 
-        IndexBaseVisitor visitor = new IndexBaseVisitor();
+        Multimap<TableIdent, String> indicesByTable = HashMultimap.create();
+        IndexBaseBuilder indexBaseBuilder = new IndexBaseBuilder();
 
-        // tableIdent -> indexName
-        final Multimap<TableIdent, String> usedTableIndices = HashMultimap.create();
         for (final Map.Entry<TableIdent, List<TableRouting>> tableRoutingEntry : routingListByTable.entrySet()) {
-            for (TableRouting tr : tableRoutingEntry.getValue()) {
-                if (!tr.nodesAllocated) {
-                    allocateRoutingNodes(tableRoutingEntry.getKey(), tr.routing.locations());
-                    tr.nodesAllocated = true;
-                }
-                tr.routing.walkLocations(visitor);
-                tr.routing.walkLocations(new Routing.RoutingLocationVisitor() {
-                    @Override
-                    public boolean visitNode(String nodeId, Map<String, List<Integer>> nodeRouting) {
-                        usedTableIndices.putAll(tableRoutingEntry.getKey(), nodeRouting.keySet());
-                        return super.visitNode(nodeId, nodeRouting);
-                    }
-                });
+            TableIdent table = tableRoutingEntry.getKey();
+            List<TableRouting> routingList = tableRoutingEntry.getValue();
+            for (TableRouting tr : routingList) {
+                allocateIfRequired(table, tr);
 
+                for (Map.Entry<String, Map<String, List<Integer>>> entry : tr.routing.locations().entrySet()) {
+                    Map<String, List<Integer>> shardsByIndex = entry.getValue();
+                    indicesByTable.putAll(table, shardsByIndex.keySet());
+
+                    for (Map.Entry<String, List<Integer>> shardsByIndexEntry : shardsByIndex.entrySet()) {
+                        indexBaseBuilder.allocate(shardsByIndexEntry.getKey(), shardsByIndexEntry.getValue());
+                    }
+                }
             }
         }
-        readerAllocations = new ReaderAllocations(visitor.build(), shardNodes, usedTableIndices);
+        readerAllocations = new ReaderAllocations(indexBaseBuilder.build(), shardNodes, indicesByTable);
         return readerAllocations;
+    }
+
+    private void allocateIfRequired(TableIdent table, TableRouting tr) {
+        if (tr.nodesAllocated) {
+            return;
+        }
+        tr.nodesAllocated = true;
+        allocateRoutingNodes(table, tr.routing.locations());
     }
 
     private boolean allocateRoutingNodes(TableIdent tableIdent, Map<String, Map<String, List<Integer>>> locations) {

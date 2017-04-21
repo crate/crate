@@ -18,47 +18,6 @@ public class Routing implements Streamable {
     private Map<String, Map<String, List<Integer>>> locations;
     private volatile int numShards = -1;
 
-    public static abstract class RoutingLocationVisitor {
-
-        public boolean visitLocations(Map<String, Map<String, List<Integer>>> locations) {
-            return true;
-        }
-
-        public boolean visitNode(String nodeId, Map<String, List<Integer>> nodeRouting) {
-            return true;
-        }
-
-        public boolean visitIndex(String nodeId, String index, List<Integer> shardIds) {
-            return true;
-        }
-
-        public boolean visitShard(String nodeId, String index, Integer shardId) {
-            return false;
-        }
-    }
-
-    public void walkLocations(RoutingLocationVisitor visitor) {
-        if (!visitor.visitLocations(locations)) {
-            return;
-        }
-        for (Map.Entry<String, Map<String, List<Integer>>> location : locations.entrySet()) {
-            if (!visitor.visitNode(location.getKey(), location.getValue())) {
-                break;
-            }
-            for (Map.Entry<String, List<Integer>> entry : location.getValue().entrySet()) {
-                if (!visitor.visitIndex(location.getKey(), entry.getKey(), entry.getValue())) {
-                    break;
-                }
-                for (Integer shardId : entry.getValue()) {
-                    //noinspection ConstantConditions
-                    if (!visitor.visitShard(location.getKey(), entry.getKey(), shardId)) {
-                        break;
-                    }
-                }
-            }
-        }
-    }
-
     private Routing() {
     }
 
