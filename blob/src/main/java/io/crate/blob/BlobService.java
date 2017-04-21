@@ -50,18 +50,20 @@ public class BlobService extends AbstractLifecycleComponent {
 
     private final Injector injector;
     private final BlobHeadRequestHandler blobHeadRequestHandler;
-
+    private final PeerRecoverySourceService peerRecoverySourceService;
     private final ClusterService clusterService;
 
     @Inject
     public BlobService(Settings settings,
                        ClusterService clusterService,
                        Injector injector,
-                       BlobHeadRequestHandler blobHeadRequestHandler) {
+                       BlobHeadRequestHandler blobHeadRequestHandler,
+                       PeerRecoverySourceService peerRecoverySourceService) {
         super(settings);
         this.clusterService = clusterService;
         this.injector = injector;
         this.blobHeadRequestHandler = blobHeadRequestHandler;
+        this.peerRecoverySourceService = peerRecoverySourceService;
     }
 
     public RemoteDigestBlob newBlob(String index, String digest) {
@@ -77,13 +79,13 @@ public class BlobService extends AbstractLifecycleComponent {
         logger.info("BlobService.doStart() {}", this);
 
         blobHeadRequestHandler.registerHandler();
-        RecoverySettings recoverySettings = injector.getInstance(RecoverySettings.class);
-        recoverySettings.registerRecoverySourceHandlerProvider(new RecoverySourceHandlerProvider() {
+        peerRecoverySourceService.registerRecoverySourceHandlerProvider(new RecoverySourceHandlerProvider() {
             @Override
             public RecoverySourceHandler get(IndexShard shard,
                                              StartRecoveryRequest request,
                                              RemoteRecoveryTargetHandler recoveryTarget,
                                              Function<String, Releasable> delayNewRecoveries,
+                                             int fileChunkSizeInBytes,
                                              Supplier<Long> currentClusterStateVersionSupplier,
                                              Logger logger) {
                 if (!BlobIndex.isBlobIndex(shard.shardId().getIndexName())) {
@@ -95,7 +97,7 @@ public class BlobService extends AbstractLifecycleComponent {
                     request,
                     currentClusterStateVersionSupplier,
                     delayNewRecoveries,
-                    recoverySettings,
+                    fileChunkSizeInBytes,
                     logger,
                     injector.getInstance(TransportService.class),
                     injector.getInstance(BlobTransferTarget.class),
