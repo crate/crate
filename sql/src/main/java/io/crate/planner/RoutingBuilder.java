@@ -36,7 +36,7 @@ import java.util.*;
 
 final class RoutingBuilder {
 
-    private final Multimap<TableIdent, TableRouting> tableRoutings = HashMultimap.create();
+    final Map<TableIdent, List<TableRouting>> routingListByTable = new HashMap<>();
 
     //index, shardId, node
     private Map<String, Map<Integer, String>> shardNodes;
@@ -58,38 +58,50 @@ final class RoutingBuilder {
     }
 
     Routing allocateRouting(TableInfo tableInfo, WhereClause where, @Nullable String preference) {
-        Collection<TableRouting> existingRoutings = tableRoutings.get(tableInfo.ident());
-        // allocate routing nodes only if we have more than one table routings
-        Routing routing;
-        if (existingRoutings.isEmpty()) {
-            routing = tableInfo.getRouting(where, preference);
-            assert routing != null : tableInfo + " returned empty routing. Routing must not be null";
-        } else {
-            for (TableRouting existing : existingRoutings) {
-                assert preference == null || preference.equals(existing.preference) :
-                    "preference must not be null or equals existing preference";
-                if (Objects.equals(existing.where, where)) {
-                    return existing.routing;
-                }
-            }
+        List<TableRouting> existingRoutings = routingListByTable.get(tableInfo.ident());
+        if (existingRoutings == null) {
+            return allocateNewRouting(tableInfo, where, preference);
+        }
+        Routing existing = tryFindMatchInExisting(where, preference, existingRoutings);
+        if (existing != null) return existing;
 
-            routing = tableInfo.getRouting(where, preference);
-            // ensure all routings of this table are allocated
-            // and update new routing by merging with existing ones
-            for (TableRouting existingRouting : existingRoutings) {
-                if (!existingRouting.nodesAllocated) {
-                    allocateRoutingNodes(tableInfo.ident(), existingRouting.routing.locations());
-                    existingRouting.nodesAllocated = true;
-                }
-                // Merge locations with existing routing
-                routing.mergeLocations(existingRouting.routing.locations());
+        Routing routing = tableInfo.getRouting(where, preference);
+        existingRoutings.add(new TableRouting(where, preference, routing));
+        // ensure all routings of this table are allocated
+        // and update new routing by merging with existing ones
+        for (TableRouting existingRouting : existingRoutings) {
+            if (!existingRouting.nodesAllocated) {
+                allocateRoutingNodes(tableInfo.ident(), existingRouting.routing.locations());
+                existingRouting.nodesAllocated = true;
             }
-            if (!allocateRoutingNodes(tableInfo.ident(), routing.locations())) {
-                throw new UnsupportedOperationException(
-                    "Nodes of existing routing are not allocated, routing rebuild needed");
+            // Merge locations with existing routing
+            routing.mergeLocations(existingRouting.routing.locations());
+        }
+        if (!allocateRoutingNodes(tableInfo.ident(), routing.locations())) {
+            throw new UnsupportedOperationException(
+                "Nodes of existing routing are not allocated, routing rebuild needed");
+        }
+        return routing;
+    }
+
+    private static Routing tryFindMatchInExisting(WhereClause where,
+                                                  @Nullable String preference,
+                                                  Iterable<TableRouting> existingRoutings) {
+        for (TableRouting existing : existingRoutings) {
+            assert preference == null || preference.equals(existing.preference) :
+                "preference must not be null or equals existing preference";
+            if (Objects.equals(existing.where, where)) {
+                return existing.routing;
             }
         }
-        tableRoutings.put(tableInfo.ident(), new TableRouting(where, preference, routing));
+        return null;
+    }
+
+    private Routing allocateNewRouting(TableInfo tableInfo, WhereClause where, @Nullable String preference) {
+        List<TableRouting> existingRoutings = new ArrayList<>();
+        routingListByTable.put(tableInfo.ident(), existingRoutings);
+        Routing routing = tableInfo.getRouting(where, preference);
+        existingRoutings.add(new TableRouting(where, preference, routing));
         return routing;
     }
 
@@ -102,7 +114,7 @@ final class RoutingBuilder {
 
         // tableIdent -> indexName
         final Multimap<TableIdent, String> usedTableIndices = HashMultimap.create();
-        for (final Map.Entry<TableIdent, Collection<TableRouting>> tableRoutingEntry : tableRoutings.asMap().entrySet()) {
+        for (final Map.Entry<TableIdent, List<TableRouting>> tableRoutingEntry : routingListByTable.entrySet()) {
             for (TableRouting tr : tableRoutingEntry.getValue()) {
                 if (!tr.nodesAllocated) {
                     allocateRoutingNodes(tableRoutingEntry.getKey(), tr.routing.locations());
@@ -131,26 +143,28 @@ final class RoutingBuilder {
         if (shardNodes == null) {
             shardNodes = new HashMap<>();
         }
-        for (Map.Entry<String, Map<String, List<Integer>>> location : locations.entrySet()) {
-            for (Map.Entry<String, List<Integer>> indexEntry : location.getValue().entrySet()) {
-                Map<Integer, String> shardsOnIndex = shardNodes.get(indexEntry.getKey());
-                tableIndices.put(tableIdent, indexEntry.getKey());
-                List<Integer> shards = indexEntry.getValue();
+        for (Map.Entry<String, Map<String, List<Integer>>> indicesByNodeId : locations.entrySet()) {
+            String nodeId = indicesByNodeId.getKey();
+            for (Map.Entry<String, List<Integer>> shardsByIndexEntry : indicesByNodeId.getValue().entrySet()) {
+                String index = shardsByIndexEntry.getKey();
+                Map<Integer, String> shardsOnIndex = shardNodes.get(index);
+                tableIndices.put(tableIdent, index);
+                List<Integer> shards = shardsByIndexEntry.getValue();
                 if (shardsOnIndex == null) {
                     shardsOnIndex = new HashMap<>(shards.size());
-                    shardNodes.put(indexEntry.getKey(), shardsOnIndex);
+                    shardNodes.put(index, shardsOnIndex);
                     for (Integer id : shards) {
-                        shardsOnIndex.put(id, location.getKey());
+                        shardsOnIndex.put(id, nodeId);
                     }
                 } else {
                     for (Integer id : shards) {
                         String allocatedNodeId = shardsOnIndex.get(id);
                         if (allocatedNodeId != null) {
-                            if (!allocatedNodeId.equals(location.getKey())) {
+                            if (!allocatedNodeId.equals(nodeId)) {
                                 success = false;
                             }
                         } else {
-                            shardsOnIndex.put(id, location.getKey());
+                            shardsOnIndex.put(id, nodeId);
                         }
                     }
                 }

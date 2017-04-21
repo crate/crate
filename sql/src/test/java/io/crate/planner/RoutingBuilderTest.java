@@ -23,7 +23,6 @@
 package io.crate.planner;
 
 import com.carrotsearch.hppc.IntSet;
-import com.google.common.collect.Multimap;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
@@ -35,7 +34,7 @@ import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Iterator;
+import java.util.List;
 
 import static io.crate.analyze.TableDefinitions.shardRouting;
 import static io.crate.analyze.TableDefinitions.shardRoutingForReplicas;
@@ -65,16 +64,12 @@ public class RoutingBuilderTest {
         routingBuilder.allocateRouting(tableInfo2, whereClause, null);
 
         // 2 routing allocations with different where clause must result in 2 allocated routings
-        java.lang.reflect.Field tableRoutings = RoutingBuilder.class.getDeclaredField("tableRoutings");
-        tableRoutings.setAccessible(true);
-        Multimap<TableIdent, RoutingBuilder.TableRouting> routing =
-            (Multimap<TableIdent, RoutingBuilder.TableRouting>) tableRoutings.get(routingBuilder);
-        assertThat(routing.size(), is(2));
+        List<RoutingBuilder.TableRouting> tableRoutings = routingBuilder.routingListByTable.get(custom);
+        assertThat(tableRoutings.size(), is(2));
 
         // The routings must be the same after merging the locations
-        Iterator<RoutingBuilder.TableRouting> iterator = routing.values().iterator();
-        Routing routing1 = iterator.next().routing;
-        Routing routing2 = iterator.next().routing;
+        Routing routing1 = tableRoutings.get(0).routing;
+        Routing routing2 = tableRoutings.get(1).routing;
         assertThat(routing1, is(routing2));
     }
 
