@@ -23,7 +23,7 @@
 package io.crate.protocols.postgres.types;
 
 import com.google.common.primitives.Bytes;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
@@ -57,7 +57,7 @@ class PGArray extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         int dimensions = getDimensions(value);
 
         List<Integer> dimensionsList = new ArrayList<>();
@@ -102,7 +102,7 @@ class PGArray extends PGType {
     }
 
     @Override
-    public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
+    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
         int dimensions = buffer.readInt();
         buffer.readInt(); // flags bit 0: 0=no-nulls, 1=has-nulls
         buffer.readInt(); // element oid
@@ -287,7 +287,7 @@ class PGArray extends PGType {
         return array.length;
     }
 
-    private int writeArrayAsBinary(ChannelBuffer buffer, Object[] array, List<Integer> dimensionsList, int currentDimension) {
+    private int writeArrayAsBinary(ByteBuf buffer, Object[] array, List<Integer> dimensionsList, int currentDimension) {
         int bytesWritten = 0;
 
         if (array == null) {
@@ -323,7 +323,7 @@ class PGArray extends PGType {
         return bytesWritten;
     }
 
-    private void readArrayAsBinary(ChannelBuffer buffer,
+    private void readArrayAsBinary(ByteBuf buffer,
                                    final Object[] array,
                                    final int[] dims,
                                    final int thisDimension) {

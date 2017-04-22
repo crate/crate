@@ -52,7 +52,7 @@ public abstract class BlobTransferRequest<T extends ReplicationRequest<T>>
         return last;
     }
 
-    public BlobTransferRequest(String index, UUID transferId, BytesArray content, boolean last) {
+    public BlobTransferRequest(String index, UUID transferId, BytesReference content, boolean last) {
         this.index = index;
         this.transferId = transferId;
         this.content = content;

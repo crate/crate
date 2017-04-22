@@ -24,8 +24,8 @@ package io.crate.protocols.postgres.types;
 
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.test.integration.CrateUnitTest;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 
 import static org.hamcrest.Matchers.is;
 
@@ -42,7 +42,7 @@ public abstract class BasePGTypeTest<T> extends CrateUnitTest {
     }
 
     void assertBytesWritten(Object value, byte[] expectedBytes, int expectedLength) {
-        ChannelBuffer writeBuffer = ChannelBuffers.dynamicBuffer();
+        ByteBuf writeBuffer = Unpooled.buffer();
         int bytesWritten = pgType.writeAsBinary(writeBuffer, value);
         assertThat(bytesWritten, is(expectedLength));
 
@@ -69,7 +69,7 @@ public abstract class BasePGTypeTest<T> extends CrateUnitTest {
 
     @SuppressWarnings("unchecked")
     private void assertBytesRead(byte[] value, T expectedValue, int pos, FormatCodes.FormatCode formatCode) {
-        ChannelBuffer buffer = ChannelBuffers.wrappedBuffer(value);
+        ByteBuf buffer = Unpooled.wrappedBuffer(value);
         T readValue;
         if (formatCode == FormatCodes.FormatCode.BINARY) {
             readValue = (T) pgType.readBinaryValue(buffer, pos);

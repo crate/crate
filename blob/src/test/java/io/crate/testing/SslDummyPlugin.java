@@ -26,13 +26,13 @@ import io.crate.blob.BlobService;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.plugin.BlobPlugin;
+import io.netty.channel.ChannelHandler;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jboss.netty.channel.ChannelPipelineFactory;
 
 public class SslDummyPlugin extends BlobPlugin {
 
@@ -70,13 +70,13 @@ public class SslDummyPlugin extends BlobPlugin {
         }
 
         @Override
-        public ChannelPipelineFactory configureServerChannelPipelineFactory() {
-            return new SslChannelPipelineFactory(this, true, detailedErrorsEnabled);
+        public ChannelHandler configureServerChannelHandler() {
+            return new SslChannelHandler(this, true, detailedErrorsEnabled);
         }
 
-        class SslChannelPipelineFactory extends CrateNettyHttpServerTransport.CrateHttpChannelPipelineFactory {
+        class SslChannelHandler extends CrateHttpChannelHandler {
 
-            SslChannelPipelineFactory(CrateNettyHttpServerTransport transport, boolean sslEnabled, boolean detailedErrorsEnabled) {
+            SslChannelHandler(CrateNettyHttpServerTransport transport, boolean sslEnabled, boolean detailedErrorsEnabled) {
                 super(transport, sslEnabled, detailedErrorsEnabled, threadPool);
             }
         }

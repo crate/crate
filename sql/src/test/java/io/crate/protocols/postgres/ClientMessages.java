@@ -23,8 +23,8 @@
 package io.crate.protocols.postgres;
 
 import io.crate.types.DataTypes;
+import io.netty.buffer.ByteBuf;
 import org.apache.lucene.util.BytesRef;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -37,7 +37,7 @@ import java.util.List;
  */
 class ClientMessages {
 
-    static void sendStartupMessage(ChannelBuffer buffer, String dbName) {
+    static void sendStartupMessage(ByteBuf buffer, String dbName) {
         byte[] dbKey = "database".getBytes(StandardCharsets.UTF_8);
         byte[] dbValue = dbName.getBytes(StandardCharsets.UTF_8);
         buffer.writeInt(8 + dbKey.length + 1 + dbValue.length + 1);
@@ -48,7 +48,7 @@ class ClientMessages {
         buffer.writeByte(0);
     }
 
-    static void sendParseMessage(ChannelBuffer buffer, String stmtName, String query, int[] paramOids) {
+    static void sendParseMessage(ByteBuf buffer, String stmtName, String query, int[] paramOids) {
         buffer.writeByte('P');
         byte[] stmtNameBytes = stmtName.getBytes(StandardCharsets.UTF_8);
         byte[] queryBytes = query.getBytes(StandardCharsets.UTF_8);
@@ -66,17 +66,17 @@ class ClientMessages {
         }
     }
 
-    private static void writeCString(ChannelBuffer buffer, byte[] bytes) {
+    private static void writeCString(ByteBuf buffer, byte[] bytes) {
         buffer.writeBytes(bytes);
         buffer.writeByte(0);
     }
 
-    static void sendFlush(ChannelBuffer buffer) {
+    static void sendFlush(ByteBuf buffer) {
         buffer.writeByte('H');
         buffer.writeInt(4);
     }
 
-    static void sendBindMessage(ChannelBuffer buffer,
+    static void sendBindMessage(ByteBuf buffer,
                                 String portalName,
                                 String statementName,
                                 List<Object> params) {

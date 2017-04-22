@@ -32,8 +32,8 @@ import io.crate.test.integration.CrateUnitTest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -59,7 +59,7 @@ public class PingTaskTest extends CrateUnitTest {
     private HttpTestServer testServer;
 
     @After
-    public void cleanUp() {
+    public void cleanUp() throws Exception {
         if (testServer != null) {
             testServer.shutDown();
         }
