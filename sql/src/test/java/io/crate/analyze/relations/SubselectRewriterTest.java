@@ -34,10 +34,9 @@ import io.crate.testing.T3;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
 
+import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsSame.sameInstance;
 
 public class SubselectRewriterTest extends CrateUnitTest {
@@ -454,5 +453,19 @@ public class SubselectRewriterTest extends CrateUnitTest {
         assertThat(t1.querySpec().where().query(), is(nullValue()));
         RelationSource t2 = mss.sources().get(T3.T2);
         assertThat(t2.querySpec().where().query(), is(nullValue()));
+    }
+
+
+    @Test
+    public void testOuterRelationWithFewerOutputsThanInnerRelation() throws Exception {
+        QueriedRelation relation = normalize("select a, x from (" +
+                                           "  select * from (" +
+                                           "    select * from t1 order by a desc limit 3" +
+                                           "  ) t " +
+                                           "  order by a asc limit 2" +
+                                           ") t " +
+                                           "order by a desc limit 1");
+        // outputs of inner relation must not be present in outputs of outer relation:
+        assertThat(relation.querySpec().outputs(), contains(isField("a"), isField("x")));
     }
 }
