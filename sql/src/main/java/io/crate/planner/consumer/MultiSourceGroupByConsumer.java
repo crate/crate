@@ -25,24 +25,13 @@ package io.crate.planner.consumer;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPairs;
-import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
-import io.crate.metadata.RowGranularity;
-import io.crate.planner.Limits;
-import io.crate.planner.Merge;
 import io.crate.planner.Plan;
-import io.crate.planner.PositionalOrderBy;
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.ExecutionPhases;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 import io.crate.sql.tree.QualifiedName;
@@ -78,7 +67,6 @@ public class MultiSourceGroupByConsumer implements Consumer {
         public Plan visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, ConsumerContext context) {
             QuerySpec querySpec = multiSourceSelect.querySpec();
 
-            // Check if group by is present - if not skip and continue with next consumer in chain.
             if (!querySpec.groupBy().isPresent()) {
                 return null;
             }
@@ -101,179 +89,19 @@ public class MultiSourceGroupByConsumer implements Consumer {
             removePostGroupingActionsFromQuerySpec(multiSourceSelect, splitPoints);
 
             context.setFetchMode(FetchMode.NEVER);
+
             Plan plan = context.plannerContext().planSubRelation(multiSourceSelect, context);
 
-            if (isExecutedOnHandler(context, plan)) {
-                addNonDistributedGroupProjection(plan, splitPoints, groupKeys);
-                addFilterProjection(plan, splitPoints, groupKeys, querySpec);
-                addTopN(plan, splitPoints, groupKeys, querySpec, context, outputs);
-            } else {
-                addDistributedGroupProjection(plan, splitPoints, groupKeys);
-                plan = createReduceMerge(plan, splitPoints, groupKeys, querySpec, context, outputs);
-            }
-
-            return plan;
-        }
-
-        /**
-         * Returns true for non distributed and false for distributed execution.
-         */
-        private static boolean isExecutedOnHandler(ConsumerContext context, Plan plan) {
-            return ExecutionPhases.executesOnHandler(
-                context.plannerContext().handlerNode(),
-                plan.resultDescription().nodeIds()
-            );
-        }
-
-        /**
-         * Creates and returns the merge plan.
-         */
-        private Merge createReduceMerge(Plan plan,
-                                        SplitPoints splitPoints,
-                                        List<Symbol> groupKeys,
-                                        QuerySpec querySpec,
-                                        ConsumerContext context,
-                                        List<Symbol> outputs) {
-            ArrayList<Symbol> groupProjectionOutputs = new ArrayList<>(groupKeys);
-            groupProjectionOutputs.addAll(splitPoints.aggregates());
-
-            List<Projection> reducerProjections = new ArrayList<>();
-            reducerProjections.add(projectionBuilder.groupProjection(
-                groupProjectionOutputs,
-                groupKeys,
-                splitPoints.aggregates(),
-                AggregateMode.PARTIAL_FINAL,
-                RowGranularity.CLUSTER)
-            );
-
-            addFilterProjectionIfNecessary(reducerProjections, querySpec, groupProjectionOutputs);
-
-            Limits limits = context.plannerContext().getLimits(querySpec);
-            Optional<OrderBy> orderBy = querySpec.orderBy();
-
-            PositionalOrderBy positionalOrderBy = PositionalOrderBy.of(orderBy.orElse(null), outputs);
-            reducerProjections.add(ProjectionBuilder.topNOrEval(
-                groupProjectionOutputs,
-                orderBy.orElse(null),
-                0, // No offset since this is distributed.
-                limits.limitAndOffset(),
-                outputs)
-            );
-
-            return new Merge(
+            return GroupingSubselectConsumer.createPlan(
                 plan,
-                createMergePhase(context, plan, reducerProjections),
-                limits.finalLimit(),
-                limits.offset(),
-                outputs.size(),
-                limits.limitAndOffset(),
-                positionalOrderBy
-            );
-        }
-
-        /**
-         * Creates and returns the merge phase.
-         */
-        private static MergePhase createMergePhase(ConsumerContext context,
-                                                   Plan plan,
-                                                   List<Projection> reducerProjections) {
-            return new MergePhase(
-                context.plannerContext().jobId(),
-                context.plannerContext().nextExecutionPhaseId(),
-                "distributed merge",
-                plan.resultDescription().nodeIds().size(),
-                plan.resultDescription().nodeIds(),
-                plan.resultDescription().streamOutputs(),
-                reducerProjections,
-                DistributionInfo.DEFAULT_BROADCAST,
-                null
-            );
-        }
-
-        /**
-         * Add filter projection to reducer projections.
-         */
-        private static void addFilterProjectionIfNecessary(List<Projection> reducerProjections,
-                                                           QuerySpec querySpec,
-                                                           List<Symbol> collectOutputs) {
-            Optional<HavingClause> havingClause = querySpec.having();
-            if (havingClause.isPresent()) {
-                HavingClause having = havingClause.get();
-                reducerProjections.add(ProjectionBuilder.filterProjection(collectOutputs, having));
-            }
-        }
-
-        /**
-         * Add topN and re-order the column after messed up by groupBy.
-         */
-        private static void addTopN(Plan plan,
-                                    SplitPoints splitPoints,
-                                    List<Symbol> groupKeys,
-                                    QuerySpec querySpec,
-                                    ConsumerContext context,
-                                    List<Symbol> outputs) {
-            OrderBy orderBy = querySpec.orderBy().orElse(null);
-            Limits limits = context.plannerContext().getLimits(querySpec);
-            ArrayList<Symbol> groupProjectionOutputs = new ArrayList<>(groupKeys);
-            groupProjectionOutputs.addAll(splitPoints.aggregates());
-            Projection postAggregationProjection = ProjectionBuilder.topNOrEval(
-                groupProjectionOutputs,
-                orderBy,
-                limits.offset(),
-                limits.finalLimit(),
-                outputs
-            );
-            plan.addProjection(postAggregationProjection, null, null, null);
-        }
-
-        /**
-         * Adds the group projection to the given plan in order to handle the groupBy.
-         */
-        private void addNonDistributedGroupProjection(Plan plan,
-                                                      SplitPoints splitPoints,
-                                                      List<Symbol> groupKeys) {
-            GroupProjection groupProjection = projectionBuilder.groupProjection(
+                context,
+                splitPoints,
                 splitPoints.toCollect(),
                 groupKeys,
-                splitPoints.aggregates(),
-                AggregateMode.ITER_FINAL,
-                RowGranularity.CLUSTER
+                outputs,
+                querySpec,
+                projectionBuilder
             );
-            plan.addProjection(groupProjection, null, null, null);
-        }
-
-        /**
-         * Adds the group projection to the given plan in order to handle the groupBy.
-         */
-        private void addDistributedGroupProjection(Plan plan,
-                                                   SplitPoints splitPoints,
-                                                   List<Symbol> groupKeys) {
-            GroupProjection groupProjection = projectionBuilder.groupProjection(
-                splitPoints.toCollect(),
-                groupKeys,
-                splitPoints.aggregates(),
-                AggregateMode.ITER_PARTIAL,
-                RowGranularity.SHARD
-            );
-            plan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
-            plan.addProjection(groupProjection, null, null, null);
-        }
-
-        /**
-         * Adds the filter projection to the given plan in order to handle the `having` clause.
-         */
-        private static void addFilterProjection(Plan plan,
-                                                SplitPoints splitPoints,
-                                                List<Symbol> groupKeys,
-                                                QuerySpec querySpec) {
-            Optional<HavingClause> havingClause = querySpec.having();
-            if (havingClause.isPresent()) {
-                List<Symbol> postGroupingOutputs = new ArrayList<>(groupKeys);
-                postGroupingOutputs.addAll(splitPoints.aggregates());
-                HavingClause having = havingClause.get();
-                FilterProjection filterProjection = ProjectionBuilder.filterProjection(postGroupingOutputs, having);
-                plan.addProjection(filterProjection, null, null, null);
-            }
         }
 
         /**
