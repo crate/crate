@@ -52,7 +52,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "select aliased_sub.x / aliased_sub.i from (select x, i from t1) as aliased_sub");
         QueriedDocTable relation = (QueriedDocTable) statement.relation();
         assertThat(relation.fields().size(), is(1));
-        assertThat(relation.fields().get(0), isField("(x / i)"));
+        assertThat(relation.fields().get(0), isField("divide(x, i)"));
         assertThat(relation.tableRelation().tableInfo(), is(T1_INFO));
     }
 
@@ -80,7 +80,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedDocTable relation = (QueriedDocTable) statement.relation();
         assertThat(relation.fields().size(), is(2));
         assertThat(relation.fields().get(0), isField("aa"));
-        assertThat(relation.fields().get(1), isField("(xi + 1)"));
+        assertThat(relation.fields().get(1), isField("add(add(x, i), 1)"));
         assertThat(relation.tableRelation().tableInfo(), is(T1_INFO));
     }
 
