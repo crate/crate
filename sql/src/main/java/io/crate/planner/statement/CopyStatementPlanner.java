@@ -22,7 +22,7 @@
 
 package io.crate.planner.statement;
 
-import com.carrotsearch.hppc.procedures.ObjectProcedure;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.CopyFromAnalyzedStatement;
@@ -53,7 +53,6 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 public class CopyStatementPlanner {
@@ -204,13 +203,13 @@ public class CopyStatementPlanner {
     private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes,
                                                         int maxNodes,
                                                         final Predicate<DiscoveryNode> nodeFilters) {
-        final AtomicInteger counter = new AtomicInteger(maxNodes);
+        int counter = maxNodes;
         final List<String> nodes = new ArrayList<>(allNodes.getSize());
-        allNodes.getDataNodes().values().forEach((ObjectProcedure<DiscoveryNode>) value -> {
-            if (nodeFilters.test(value) && counter.getAndDecrement() > 0) {
-                nodes.add(value.getId());
+        for (ObjectCursor<DiscoveryNode> cursor : allNodes.getDataNodes().values()) {
+            if (nodeFilters.test(cursor.value) && counter-- > 0) {
+                nodes.add(cursor.value.getId());
             }
-        });
+        }
         return nodes;
     }
 }
