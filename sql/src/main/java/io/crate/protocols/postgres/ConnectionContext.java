@@ -23,23 +23,31 @@
 package io.crate.protocols.postgres;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.operation.auth.Authentication;
+import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.network.InetAddresses;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.*;
+import org.jboss.netty.channel.socket.SocketChannel;
+import org.jboss.netty.channel.socket.nio.NioSocketChannel;
 import org.jboss.netty.handler.codec.frame.FrameDecoder;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -67,12 +75,17 @@ import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
  *
  *
  *  startup:
+ *  The authentication flow is handled by implementations of {@link AuthenticationMethod}.
  *
  *          |                                  |
  *          |      StartupMessage              |
  *          |--------------------------------->|
  *          |                                  |
+ *          |      Authentication<Method>      |
+ *          |      or                          |
  *          |      AuthenticationOK            |
+ *          |      or                          |
+ *          |      ErrorResponse               |
  *          |<---------------------------------|
  *          |                                  |
  *          |       ParameterStatus            |
@@ -144,16 +157,18 @@ import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
 
 class ConnectionContext {
 
-    private final static Logger LOGGER = Loggers.getLogger(ConnectionContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(ConnectionContext.class);
 
     final MessageDecoder decoder;
     final MessageHandler handler;
     private final SQLOperations sqlOperations;
+    private final Authentication authService;
 
     private int msgLength;
     private byte msgType;
     private SQLOperations.Session session;
     private boolean ignoreTillSync = false;
+    private SessionContext sessionContext;
 
     enum State {
         SSL_NEG,
@@ -165,8 +180,9 @@ class ConnectionContext {
 
     private State state = STARTUP_HEADER;
 
-    ConnectionContext(SQLOperations sqlOperations) {
+    ConnectionContext(SQLOperations sqlOperations, Authentication authService) {
         this.sqlOperations = sqlOperations;
+        this.authService = authService;
         decoder = new MessageDecoder();
         handler = new MessageHandler();
     }
@@ -188,9 +204,9 @@ class ConnectionContext {
         return new String(bytes, 0, bytes.length - 1, StandardCharsets.UTF_8);
     }
 
-    private SQLOperations.Session readStartupMessage(ChannelBuffer buffer) {
+    private SessionContext readStartupMessage(ChannelBuffer buffer) {
+        Properties properties = new Properties();
         ChannelBuffer channelBuffer = buffer.readBytes(msgLength);
-        String defaultSchema = null;
         while (true) {
             String key = readCString(channelBuffer);
             if (key == null) {
@@ -198,11 +214,11 @@ class ConnectionContext {
             }
             String value = readCString(channelBuffer);
             LOGGER.trace("payload: key={} value={}", key, value);
-            if (key.equals("database") && !"".equals(value)) {
-                defaultSchema = value;
+            if (!"".equals(key) && !"".equals(value)) {
+                properties.setProperty(key, value);
             }
         }
-        return sqlOperations.createSession(defaultSchema, Option.NONE, 0);
+        return new SessionContext(properties);
     }
 
     private static class ReadyForQueryCallback implements BiConsumer<Object, Throwable> {
@@ -343,9 +359,54 @@ class ConnectionContext {
     }
 
     private void handleStartupBody(ChannelBuffer buffer, Channel channel) {
-        session = readStartupMessage(buffer);
-        Messages.sendAuthenticationOK(channel);
+        sessionContext = readStartupMessage(buffer);
+        session = sqlOperations.createSession(sessionContext);
+        authenticate(channel);
+    }
 
+    private void authenticate(Channel channel) {
+        InetAddress address = getRemoteAddress(channel);
+        AuthenticationMethod authMethod = authService.resolveAuthenticationType(sessionContext.userName(), address);
+        if (authMethod == null) {
+            String errorMessage = String.format(
+                Locale.ENGLISH,
+                "No valid auth.host_based entry found for host \"%s\", user \"%s\", schema \"%s\"",
+                address.getHostAddress(), sessionContext.userName(), sessionContext.defaultSchema()
+            );
+            Messages.sendAuthenticationError(channel, errorMessage);
+        } else {
+            authMethod.pgAuthenticate(channel, sessionContext)
+                .whenComplete((success, throwable) -> {
+                    if (throwable == null) {
+                        if (success) {
+                            if (LOGGER.isTraceEnabled()) {
+                                LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".",
+                                    sessionContext.userName(), authMethod.name());
+                            }
+                            sendReadyForQuery(channel);
+                        } else {
+                            LOGGER.warn("Authentication failed for user \"{}\" and method \"{}\".",
+                                sessionContext.userName(), authMethod.name());
+                        }
+                    } else {
+                        Messages.sendAuthenticationError(channel, throwable.getMessage());
+                    }
+                });
+        }
+    }
+
+    private static InetAddress getRemoteAddress(Channel channel) {
+        if (channel.getRemoteAddress() instanceof InetSocketAddress) {
+            return ((InetSocketAddress) channel.getRemoteAddress()).getAddress();
+        }
+        // In certain cases the channel is an EmbeddedChannel (e.g. in tests)
+        // and this type of channel has an EmbeddedSocketAddress instance as remoteAddress
+        // which does not have an address.
+        // An embedded socket address is handled like a local connection via loopback.
+        return InetAddresses.forString("127.0.0.1");
+    }
+
+    private void sendReadyForQuery(Channel channel) {
         Messages.sendParameterStatus(channel, "server_version", "9.5.0");
         Messages.sendParameterStatus(channel, "server_encoding", "UTF8");
         Messages.sendParameterStatus(channel, "client_encoding", "UTF8");

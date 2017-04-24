@@ -103,6 +103,7 @@ public class CrateSettings implements ClusterStateListener {
             SharedSettings.ENTERPRISE_LICENSE_SETTING,
             SharedSettings.LICENSE_IDENT_SETTING
 
+
         ));
 
     private static final List<CrateSetting> EXPOSED_ES_SETTINGS = Collections.unmodifiableList(

@@ -1,3 +1,4 @@
+.. _postgres_wire_protocol:
 
 ======================
 Postgres Wire Protocol

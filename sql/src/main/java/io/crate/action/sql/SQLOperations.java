@@ -86,11 +86,15 @@ public class SQLOperations {
         this.isReadOnly = NODE_READ_ONLY_SETTING.get(settings);
     }
 
-    public Session createSession(@Nullable String defaultSchema, Set<Option> options, int defaultLimit) {
+    public Session createSession(SessionContext sessionContext) {
         if (disabled) {
             throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
-        return new Session(executorProvider.get(), new SessionContext(defaultLimit, options, defaultSchema));
+        return new Session(executorProvider.get(), sessionContext);
+    }
+
+    public Session createSession(@Nullable String defaultSchema, @Nullable String userName, Set<Option> options, int defaultLimit) {
+        return createSession(new SessionContext(defaultLimit, options, defaultSchema, userName));
     }
 
     /**
@@ -122,7 +126,7 @@ public class SQLOperations {
                                                      String preparedStmtName,
                                                      String sqlStmt,
                                                      int defaultLimit) {
-        Session session = createSession(defaultSchema, Option.NONE, defaultLimit);
+        Session session = createSession(defaultSchema, null, Option.NONE, defaultLimit);
         session.parse(preparedStmtName, sqlStmt, Collections.emptyList());
         return new SQLDirectExecutor(session, preparedStmtName, sqlStmt);
     }

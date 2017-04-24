@@ -42,6 +42,7 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
+import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.operation.collect.CollectOperationModule;
 import io.crate.operation.collect.files.FileCollectModule;
 import io.crate.operation.operator.OperatorModule;
@@ -106,6 +107,10 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         // Postgres settings are node settings
         settings.add(PostgresNetty.PSQL_ENABLED_SETTING.setting());
         settings.add(PostgresNetty.PSQL_PORT_SETTING.setting());
+
+        // Authentication settings are node settings
+        settings.add(AuthenticationProvider.AUTH_HOST_BASED_ENABLED_SETTING.setting());
+        settings.add(AuthenticationProvider.AUTH_HOST_BASED_CONFIG_SETTING.setting());
 
         // also add CrateSettings
         for (CrateSetting crateSetting : CrateSettings.CRATE_CLUSTER_SETTINGS) {

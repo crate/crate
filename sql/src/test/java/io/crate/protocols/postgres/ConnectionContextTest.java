@@ -22,9 +22,10 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.SessionContext;
 import io.crate.executor.Executor;
+import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -37,12 +38,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
-import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
@@ -64,8 +61,8 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
             clusterService
         ) {
             @Override
-            public Session createSession(@Nullable String defaultSchema, Set<Option> options, int defaultLimit) {
-                Session session = super.createSession(defaultSchema, options, defaultLimit);
+            public Session createSession(SessionContext sessionContext) {
+                Session session = super.createSession(sessionContext);
                 sessions.add(session);
                 return session;
             }
@@ -74,7 +71,7 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHandleEmptySimpleQuery() throws Exception {
-        ConnectionContext ctx = new ConnectionContext(mock(SQLOperations.class));
+        ConnectionContext ctx = new ConnectionContext(mock(SQLOperations.class), AuthenticationProvider.NOOP_AUTH);
 
         ChannelBuffer channelBuffer = ChannelBuffers.dynamicBuffer();
         Messages.writeCString(channelBuffer, ";".getBytes(StandardCharsets.UTF_8));
@@ -96,8 +93,8 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
     public void testFlushMessageResultsInSyncCallOnSession() throws Exception {
         SQLOperations sqlOperations = mock(SQLOperations.class);
         SQLOperations.Session session = mock(SQLOperations.Session.class);
-        when(sqlOperations.createSession(anyString(), anySetOf(Option.class), anyInt())).thenReturn(session);
-        ConnectionContext ctx = new ConnectionContext(sqlOperations);
+        when(sqlOperations.createSession(any(SessionContext.class))).thenReturn(session);
+        ConnectionContext ctx = new ConnectionContext(sqlOperations, AuthenticationProvider.NOOP_AUTH);
         DecoderEmbedder<ChannelBuffer> e = new DecoderEmbedder<>(ctx.decoder, ctx.handler);
 
         ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
@@ -111,7 +108,7 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBindMessageCanBeReadIfTypeForParamsIsUnknown() throws Exception {
-        ConnectionContext ctx = new ConnectionContext(sqlOperations);
+        ConnectionContext ctx = new ConnectionContext(sqlOperations, AuthenticationProvider.NOOP_AUTH);
         DecoderEmbedder<ChannelBuffer> e = new DecoderEmbedder<>(ctx.decoder, ctx.handler);
 
         ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();

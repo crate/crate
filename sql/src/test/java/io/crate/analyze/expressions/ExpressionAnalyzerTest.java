@@ -92,7 +92,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     public void testQuotedSubscriptExpression() throws Exception {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            new SessionContext(0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null),
+            new SessionContext(0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null),
             paramTypeHints,
             new FullQualifedNameFieldProvider(dummySources),
             null);
@@ -130,7 +130,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         // the same way it's handled when the subscript operator `[]` is used
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            new SessionContext(0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null),
+            new SessionContext(0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null),
             paramTypeHints,
             new FullQualifedNameFieldProvider(dummySources),
             null);

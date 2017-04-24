@@ -67,6 +67,7 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.action.sql.SQLOperations.Session.UNNAMED;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 public class SQLTransportExecutor {
 
@@ -149,9 +150,14 @@ public class SQLTransportExecutor {
         return false;
     }
 
+    public String jdbcUrl() {
+        assertTrue("It seems like JDBC is not enabled for this test. Did you forget to annotate the test with @UseJdbc(value = 1)?", isJdbcEnabled());
+        return clientProvider.pgUrl();
+    }
 
     public ActionFuture<SQLResponse> execute(String stmt, @Nullable Object[] args) {
         return execute(stmt, args, clientProvider.sqlOperations().createSession(
+            null,
             null,
             Option.NONE,
             DEFAULT_SOFT_LIMIT
@@ -186,6 +192,7 @@ public class SQLTransportExecutor {
 
     private void execute(String stmt, @Nullable Object[][] bulkArgs, final ActionListener<SQLBulkResponse> listener) {
         SQLOperations.Session session = clientProvider.sqlOperations().createSession(
+            null,
             null,
             Option.NONE,
             DEFAULT_SOFT_LIMIT

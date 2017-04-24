@@ -28,10 +28,11 @@ import org.elasticsearch.common.settings.Setting;
 public class SharedSettings {
 
     public static final CrateSetting<Boolean> ENTERPRISE_LICENSE_SETTING = CrateSetting.of(Setting.boolSetting(
-        "license.enterprise", true,
-        Setting.Property.NodeScope), DataTypes.BOOLEAN);
+        "license.enterprise", true, Setting.Property.NodeScope),
+        DataTypes.BOOLEAN);
 
     public static final CrateSetting<String> LICENSE_IDENT_SETTING = CrateSetting.of(Setting.simpleString(
-        "license.ident", Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING);
+        "license.ident", Setting.Property.NodeScope, Setting.Property.Dynamic),
+        DataTypes.STRING);
 
 }

@@ -26,19 +26,26 @@ import com.google.common.base.MoreObjects;
 import io.crate.metadata.Schemas;
 
 import javax.annotation.Nullable;
+import java.util.Properties;
 import java.util.Set;
 
 public class SessionContext {
 
-    public static final SessionContext SYSTEM_SESSION = new SessionContext(0, Option.NONE, null);
+    public static final SessionContext SYSTEM_SESSION = new SessionContext(0, Option.NONE, null, null);
 
     private final int defaultLimit;
     private final Set<Option> options;
     private String defaultSchema;
+    private final String userName;
 
-    public SessionContext(int defaultLimit, Set<Option> options, @Nullable String defaultSchema ) {
+    public SessionContext(Properties properties) {
+        this(0, Option.NONE, properties.getProperty("database"), properties.getProperty("user"));
+    }
+
+    public SessionContext(int defaultLimit, Set<Option> options, @Nullable String defaultSchema, @Nullable String userName) {
         this.defaultLimit = defaultLimit;
         this.options = options;
+        this.userName = userName;
         setDefaultSchema(defaultSchema);
     }
 
@@ -48,6 +55,11 @@ public class SessionContext {
 
     public String defaultSchema() {
         return defaultSchema;
+    }
+
+    @Nullable
+    public String userName() {
+        return userName;
     }
 
     public void setDefaultSchema(@Nullable String schema) {

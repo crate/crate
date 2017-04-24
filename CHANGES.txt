@@ -21,6 +21,10 @@ Breaking Changes
 Changes
 =======
 
+ - Added support for host based authentication (HBA) via the Postgres Wire
+   Protocol.
+   Please see :ref:`Host Based Authentication <administration_hba>`.
+
  - Added support for ``GROUP BY`` in combination with subselect. E.g.::
 
      select x, count(*) from (select x from t limit 1) as tt group by x;

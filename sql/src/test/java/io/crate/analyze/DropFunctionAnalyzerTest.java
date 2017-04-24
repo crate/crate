@@ -61,7 +61,7 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testDropFunctionWithSessionSetSchema() throws Exception {
         DropFunctionAnalyzedStatement analysis = (DropFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement("DROP FUNCTION bar(long, object)"),
-            new SessionContext(0, Option.NONE, "my_schema"),
+            new SessionContext(0, Option.NONE, "my_schema", null),
             new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
 
         assertThat(analysis.schema(), is("my_schema"));
@@ -72,7 +72,7 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testDropFunctionExplicitSchemaSupersedesSessionSchema() throws Exception {
         DropFunctionAnalyzedStatement analysis = (DropFunctionAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement("DROP FUNCTION my_other_schema.bar(long, object)"),
-            new SessionContext(0, Option.NONE, "my_schema"),
+            new SessionContext(0, Option.NONE, "my_schema", null),
             new ParameterContext(Row.EMPTY, Collections.emptyList())).analyzedStatement();
 
         assertThat(analysis.schema(), is("my_other_schema"));

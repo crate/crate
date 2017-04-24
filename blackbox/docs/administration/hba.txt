@@ -1,0 +1,124 @@
+.. _administration_hba:
+
+===============================
+Host Based Authentication (HBA)
+===============================
+
+.. NOTE::
+
+   *Host Based Authentication* (HBA) is an Enterprise Edition feature.
+
+This section explains how to configure CrateDB client connection and authentication.
+
+By default, the boolean setting ``auth.host_based.enabled`` is ``false`` and
+therefore host based authentication is disabled. In this instance,
+the CrateDB cluster allows any unauthenticated connections.
+
+To allow authenticated access to CrateDB from specific hosts, you need to set
+the ``auth.host_based.enabled`` setting in the ``crate.yml`` to ``true`` and
+specify HBA entries in the ``auth.host_based.config`` group setting.
+
+See: :ref:`applying-cluster-settings`.
+
+Allowing Authentication to CrateDB
+==================================
+
+.. NOTE::
+
+   This feature only concerns connections over :ref:`postgres_wire_protocol`.
+
+Client access and authentication is configured by the ``auth.host_based.config``
+setting in the ``crate.yml`` file.
+
+The general format of the ``auth.host_based.config`` setting is a map of remote client
+access entries, where the key of the map defines the order in which the entries
+are used, which permit authentication to CrateDB. Each entry may contain no, one,
+or multiple fields. Allowed fields are ``user``, ``ip`` or ``cidr``, and
+``method``. The description of these fields can be found in
+:ref:`host_based_auth`.
+
+When a client sends an authentication request, CrateDB matches the provided
+username and IP address against these entries to determine which authentication
+method is required. If no entry matches, the client authentication request
+will be denied.
+
+If ``auth.host_based`` is not set, the host based authentication is disabled.
+If the setting ``auth.host_based`` is present and the configurations list
+does not contain any entry, then no client can authenticate.
+
+For example, a host based configuration can look like this:
+
+.. code-block:: yaml
+
+    auth:
+      host_based:
+        enabled: true
+        config:
+          0:
+            user: mike
+            address: 32.0.0.0/8
+            method: trust
+          a:
+            user: barb
+            address: 172.16.0.0
+          b:
+            user: crate
+            address: 32.0.0.0/8
+            method: trust
+          y:
+            user: eleven
+          z:
+            method: trust
+
+.. NOTE::
+
+   In the ``auth.host_based.config`` setting, the order of the entries is
+   defined by the natural order of the group keys of the setting.
+   The authentication method of the first entry that matches the client
+   user and address will be used. If the authentication attempt fails,
+   subsequent entries will not be considered. The entry look-up order is
+   determined by the ``order`` identifier of each entry.
+
+In the example above:
+
+``{user: mike, address: 32.0.0.0/8, method: trust}`` means that the user ``mike``
+can authenticate to CrateDB from any IP address ranging from ``32.0.0.0`` to
+``32.255.255.255``, using the ``trust`` authentication method.
+
+``{user: crate, address: 32.0.0.0/8, method: trust}`` means that the superuser
+``crate`` can authenticate to CrateDB from any IP address ranging from
+``32.0.0.0`` to ``32.255.255.255``, using the ``trust`` authentication method.
+
+``{user: barb, address: 172.16.0.0}`` means that the user ``barb`` can
+authenticate to CrateDB from the ``172.16.0.0`` IP Address. Since no
+authentication method is specified, the ``trust`` method will be used by default.
+
+The entry: ``{user: eleven}`` means that the user ``eleven`` can authenticate
+to CrateDB from any IP address, using the ``trust`` method.
+
+And finally the entry ``{method: trust}`` means that any existing user (or superuser)
+can authenticate to CrateDB from any IP address using the ``trust`` method.
+
+Authenticating as a Superuser
+=============================
+
+``crate`` Superuser
+-------------------
+
+When CrateDB is started, the cluster contains one predefined superuser. This user
+is called ``crate``.
+
+To authenticate as the superuser from a specific IP address, ``crate`` should be
+specified in the the ``auth.host_based`` setting, like this:
+
+.. code-block:: yaml
+
+    auth:
+      host_based:
+        enabled: true
+        config:
+          0:
+            user: crate
+            address: 172.16.0.0
+            method: trust
+
