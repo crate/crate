@@ -18,7 +18,7 @@
 #   Depending on the OS the best place to do so is
 #   '/etc/default/crate' or '/etc/sysconfig/crate'
 # - disable swapping
-#bootstrap.mlockall: true
+#bootstrap.memory_lock : true
 
 # Name of the Node, e.g. '$(hostname -s)'
 #node.name: "Piz Buin"
