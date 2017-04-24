@@ -21,6 +21,9 @@ Breaking Changes
 Changes
 =======
 
+ - Implemented hash sum scalar functions (MD5, SHA1).
+   Please see :ref:`sha1 <sha1>`.
+
 Fixes
 =====
 

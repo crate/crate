@@ -31,6 +31,7 @@ import io.crate.operation.scalar.conditional.*;
 import io.crate.operation.scalar.geo.*;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.operation.scalar.regex.ReplaceFunction;
+import io.crate.operation.scalar.string.HashFunctions;
 import io.crate.operation.scalar.string.LengthFunction;
 import io.crate.operation.scalar.string.StringCaseFunction;
 import io.crate.operation.scalar.systeminformation.CurrentSchemaFunction;
@@ -103,6 +104,7 @@ public class ScalarFunctionModule extends AbstractModule {
         ConcatFunction.register(this);
 
         LengthFunction.register(this);
+        HashFunctions.register(this);
 
         MapFunction.register(this);
         ArrayFunction.register(this);

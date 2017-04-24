@@ -214,6 +214,29 @@ locale-sensitive or context-sensitive mappings.
     +----------------------+
     SELECT 1 row in set (... sec)
 
+.. _sha1:
+
+sha1('string') returns string
+-----------------------------
+
+Computes the SHA1 checksum of the given string.
+
+::
+
+    cr> select sha1('crate');
+    +------------------------------------------+
+    | sha1('crate')                            |
+    +------------------------------------------+
+    | 1673dc397042322a0a5ac49c79cc08d3a25cb0f6 |
+    +------------------------------------------+
+    SELECT 1 row in set (... sec)
+
+md5('string') returns string
+----------------------------
+
+Computes the MD5 checksum of the given string.
+See :ref:`sha1 <sha1>` for an example.
+
 
 Date/Time Functions
 ===================
