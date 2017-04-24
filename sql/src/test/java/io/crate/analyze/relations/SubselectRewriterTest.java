@@ -22,37 +22,65 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.RelationSource;
-import io.crate.analyze.SelectAnalyzedStatement;
+import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.*;
 import io.crate.analyze.symbol.Field;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocSchemaInfoFactory;
+import io.crate.metadata.doc.TestingDocTableInfoFactory;
+import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.*;
 
-public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
+public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor executor;
+    private RelationAnalyzer analyzer;
 
     @Before
-    public void prepare() {
-        executor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    public void setupAnalyzer() throws Exception {
+        Functions functions = getFunctions();
+        UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService);
+        TestingDocTableInfoFactory docTableInfoFactory = new TestingDocTableInfoFactory(
+            ImmutableMap.of(
+                T3.T1_INFO.ident(), T3.T1_INFO,
+                T3.T2_INFO.ident(), T3.T2_INFO
+            )
+        );
+        Schemas schemas = new Schemas(
+            Settings.EMPTY,
+            ImmutableMap.of(
+                Schemas.DEFAULT_SCHEMA_NAME,
+                new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, docTableInfoFactory)),
+            clusterService,
+            new DocSchemaInfoFactory(docTableInfoFactory, functions, udfService)
+        );
+        analyzer = new RelationAnalyzer(clusterService, functions, schemas);
     }
-    private QueriedRelation normalize(String stmt) {
-        SelectAnalyzedStatement statement = executor.analyze(stmt);
-        return statement.relation();
+
+    private QueriedRelation rewrite(String stmt) {
+        AnalyzedRelation relation = analyzer.analyze(SqlParser.createStatement(stmt), new Analysis(
+            SessionContext.SYSTEM_SESSION,
+            ParameterContext.EMPTY,
+            ParamTypeHints.EMPTY
+        ));
+        return (QueriedRelation) SubselectRewriter.rewrite(relation);
     }
 
     @Test
     public void testOrderByPushDown() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select * from (select * from t1 limit 10 offset 5) as tt order by x");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(),
@@ -61,7 +89,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrderByMerge() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select x from (select * from (select concat(a, a) as aa, x from t1) as t order by aa) as tt order by x");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(),
@@ -70,7 +98,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testLimitOffsetMerge() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select * from (select * from t1 limit 10 offset 5) as tt limit 5 offset 2");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(),
@@ -79,10 +107,10 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrderByLimitsOnInnerNotMerged() throws Exception {
-        QueriedRelation relation = normalize("select * from (" +
-                                                "select * from (" +
-                                                    "select * from t1 order by a limit 10" +
-                                                ") as tt" +
+        QueriedRelation relation = rewrite("select * from (" +
+                                             "select * from (" +
+                                             "select * from t1 order by a limit 10" +
+                                             ") as tt" +
                                              ") as ttt order by x");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
@@ -96,10 +124,10 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrderByMultiLimitsSameOrderByMerge() throws Exception {
-        QueriedRelation relation = normalize("select * from (" +
-                                                "select * from (" +
-                                                    "select * from t1 order by a offset 5" +
-                                                ") as tt" +
+        QueriedRelation relation = rewrite("select * from (" +
+                                             "select * from (" +
+                                             "select * from t1 order by a offset 5" +
+                                             ") as tt" +
                                              ") as ttt order by a limit 5");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(),
@@ -108,10 +136,10 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrderByLimitsNotMerged() throws Exception {
-        QueriedRelation relation = normalize("select * from (" +
-                                                "select * from (" +
-                                                    "select * from t1 order by a limit 10 offset 5" +
-                                                ") as tt" +
+        QueriedRelation relation = rewrite("select * from (" +
+                                             "select * from (" +
+                                             "select * from t1 order by a limit 10 offset 5" +
+                                             ") as tt" +
                                              ") as ttt order by a desc limit 5");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
@@ -125,7 +153,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOutputsMerge() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select aa, (xxi + 1)" +
             " from (select (xx + i) as xxi, concat(a, a) as aa" +
             "  from (select a, i, (x + x) as xx from t1) as t) as tt");
@@ -136,7 +164,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testWhereMerge() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select x from (select x, (i + i) as ii from t1 where a = 'a') as tt where ii > 10");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(),
@@ -145,7 +173,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByPushUp() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select * from (select sum(i) as ii from t1 group by x) as tt");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(), isSQL("SELECT sum(doc.t1.i) GROUP BY doc.t1.x"));
@@ -153,7 +181,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByPushDown() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select sum(i) from (select i, x from t1) as tt group by x");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(), isSQL("SELECT sum(doc.t1.i) GROUP BY doc.t1.x"));
@@ -161,7 +189,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHavingPushUp() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select * from (select i from t1 group by i having i > 10) as tt");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(), isSQL("SELECT doc.t1.i GROUP BY doc.t1.i HAVING (doc.t1.i > 10)"));
@@ -169,7 +197,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHavingPushDown() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select i from (select * from t1) as tt group by i having i > 10");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(), isSQL("SELECT doc.t1.i GROUP BY doc.t1.i HAVING (doc.t1.i > 10)"));
@@ -177,21 +205,21 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRewritableNestedAggregation() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select count(*) from (select sum(i) as ii from t1 group by x) as tt");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
     }
 
     @Test
     public void testNestedGroupByAggregation() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select i from (select i, x from t1 group by i, x) as tt group by i");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
     }
 
     @Test
     public void testFilterOnAggregatedField() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select ii, xx from ( " +
             "  select i + i as ii, xx from (" +
             "    select i, sum(x) as xx from t1 group by i) as t) as tt " +
@@ -201,7 +229,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFilterOnNotAggregatedField() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select * from (select sum(i) as ii, x from t1 group by x) as tt where x = 10");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(),
@@ -210,7 +238,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrderByOnAggregation() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select * from (select sum(i) as ii from t1 group by x) as tt order by ii");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(),
@@ -219,11 +247,11 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrderByGroupedField() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select x from (" +
-                  "    select * from t1 order by i) as tt " +
-                  "group by x " +
-                  "order by x");
+            "    select * from t1 order by i) as tt " +
+            "group by x " +
+            "order by x");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(),
             isSQL("SELECT doc.t1.x GROUP BY doc.t1.x ORDER BY doc.t1.x"));
@@ -231,7 +259,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrderByNonGroupedField() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select count(*), avg(x) as avgX from ( select * from (" +
             "  select * from t1 order by i) as tt) as ttt");
         assertThat(relation, instanceOf(QueriedDocTable.class));
@@ -242,13 +270,13 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGlobalAggOnSubQueryWithLimit() throws Exception {
         // need to apply limit before aggregation is done
-        QueriedRelation relation = normalize("select sum(x) from (select x from t1 limit 1) t");
+        QueriedRelation relation = rewrite("select sum(x) from (select x from t1 limit 1) t");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
     }
 
     @Test
     public void testSubSelectOnJoins() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select ab " +
             "from (select (ii + y) as iiy, concat(a, b) as ab " +
             "  from (select t1.a, t2.b, t2.y, (t1.i + t2.i) as ii " +
@@ -262,7 +290,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSubSelectOnOuterJoins() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select ab " +
             "from (select (ii + y) as iiy, concat(a, b) as ab " +
             "  from (select t1.a, t2.b, t2.y, (t1.i + t2.i) as ii " +
@@ -273,7 +301,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
             "SELECT concat(doc.t1.a, doc.t2.b) ORDER BY add(add(doc.t1.i, doc.t2.i), doc.t2.y)"));
         assertThat(((MultiSourceSelect) relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
-        relation = normalize(
+        relation = rewrite(
             "select ab " +
             "from (select (ii + y) as iiy, concat(a, b) as ab " +
             "  from (select t1.a, t2.b, t2.y, (t1.i + t2.i) as ii " +
@@ -284,7 +312,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
             "SELECT concat(doc.t1.a, doc.t2.b) ORDER BY add(add(doc.t1.i, doc.t2.i), doc.t2.y)"));
         assertThat(((MultiSourceSelect) relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
-        relation = normalize(
+        relation = rewrite(
             "select ab " +
             "from (select (ii + y) as iiy, concat(a, b) as ab " +
             "  from (select t1.a, t2.b, t2.y, (t1.i + t2.i) as ii " +
@@ -298,7 +326,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSubSelectOnJoinsWithFilter() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select col1, col2 from ( " +
             "  select t1.a as col1, t2.i as col2, t2.y as col3 " +
             "  from t1, t2 where t2.y > 60) as t " +
@@ -316,7 +344,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSubSelectOnLeftJoinWithFilterRewrittenToInner() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select col1, col2 from ( " +
             "  select t1.a as col1, t2.i as col2, t2.y as col3 " +
             "  from t1 left join t2 on t1.a = t2.b where t2.y > 60) as t " +
@@ -337,7 +365,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSubSelectOnRightJoinWithFilterRewrittenToInner() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select col1, col2 from ( " +
             "  select t1.a as col1, t2.i as col2, t2.y as col3 " +
             "  from t1 right join t2 on t1.a = t2.b where t1.x > 60) as t " +
@@ -358,7 +386,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSubSelectOnJoinsWithLimitAndOffset() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select col1, col2 from ( " +
             "  select t1.a as col1, t2.i as col2, t2.y as col3 " +
             "  from t1, t2 limit 5 offset 5) as t " +
@@ -370,7 +398,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFullJoinWithFiltersRewrittenToInner() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select t1.a, t2.i " +
             "from t1 full join t2 on t1.a = t2.b " +
             "where t2.y is not null and t1.a = 'a'");
@@ -390,7 +418,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFullJoinWithFiltersRewrittenToLeft() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select t1.a, t2.i " +
             "from t1 full join t2 on t1.a = t2.b " +
             "where t2.y is null and t1.a = 'a'");
@@ -413,7 +441,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFullJoinWithFiltersRewrittenToRight() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select t1.a as col1, t2.i as col2 " +
             "from t1 full join t2 on t1.a = t2.b " +
             "where t1.x is null and t2.b = 'b'");
@@ -436,7 +464,7 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFullJoinWithFiltersNotRewritten() throws Exception {
-        QueriedRelation relation = normalize(
+        QueriedRelation relation = rewrite(
             "select t1.a as col1, t2.i as col2, t2.y as col3 " +
             "from t1 full join t2 on t1.a = t2.b " +
             "where t1.x is null and t2.b = null order by col3");
