@@ -69,7 +69,6 @@ public class CountPlan implements Plan, ResultDescription {
     public void addProjection(Projection projection,
                               @Nullable Integer newLimit,
                               @Nullable Integer newOffset,
-                              @Nullable Integer newNumOutputs,
                               @Nullable PositionalOrderBy newOrderBy) {
         mergePhase.addProjection(projection);
     }

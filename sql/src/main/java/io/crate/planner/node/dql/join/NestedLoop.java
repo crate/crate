@@ -151,7 +151,6 @@ public class NestedLoop implements Plan, ResultDescription {
     public void addProjection(Projection projection,
                               @Nullable Integer newLimit,
                               @Nullable Integer newOffset,
-                              @Nullable Integer newNumOutputs,
                               @Nullable PositionalOrderBy newOrderBy) {
         nestedLoopPhase.addProjection(projection);
         if (newLimit != null) {
@@ -163,9 +162,7 @@ public class NestedLoop implements Plan, ResultDescription {
         if (newOrderBy != null) {
             orderBy = newOrderBy;
         }
-        if (newNumOutputs != null) {
-            numOutputs = newNumOutputs;
-        }
+        numOutputs = projection.outputs().size();
     }
 
     @Override

@@ -127,10 +127,10 @@ public class Merge implements Plan, ResultDescription {
         for (Projection projection : projections) {
             assert projection.outputs().size() == resultDescription.numOutputs()
                 : "projection must not affect numOutputs";
-            subPlan.addProjection(projection, null, null, null, null);
+            subPlan.addProjection(projection, null, null, null);
         }
         if (topN != null) {
-            subPlan.addProjection(topN, TopN.NO_LIMIT, 0, resultDescription.numOutputs(), null);
+            subPlan.addProjection(topN, TopN.NO_LIMIT, 0, null);
         }
         // resultDescription.orderBy can be ignored here because it is only relevant to do a sorted merge
         // (of a pre-sorted result)
@@ -184,7 +184,6 @@ public class Merge implements Plan, ResultDescription {
     public void addProjection(Projection projection,
                               @Nullable Integer newLimit,
                               @Nullable Integer newOffset,
-                              @Nullable Integer newNumOutputs,
                               @Nullable PositionalOrderBy newOrderBy) {
         mergePhase.addProjection(projection);
         if (newLimit != null) {
@@ -196,9 +195,7 @@ public class Merge implements Plan, ResultDescription {
         if (newOrderBy != null) {
             orderBy = newOrderBy;
         }
-        if (newNumOutputs != null) {
-            numOutputs = newNumOutputs;
-        }
+        numOutputs = projection.outputs().size();
     }
 
     @Override

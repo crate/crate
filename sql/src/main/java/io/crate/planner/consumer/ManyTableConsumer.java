@@ -372,7 +372,6 @@ public class ManyTableConsumer implements Consumer {
                 phaseAndProjection.projection,
                 null,
                 null,
-                phaseAndProjection.projection.outputs().size(),
                 null
             );
             return new QueryThenFetch(plan,  phaseAndProjection.phase);

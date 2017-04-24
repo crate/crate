@@ -83,7 +83,6 @@ public class QueryAndFetchConsumer implements Consumer {
                 fetchPhaseAndProjection.projection,
                 null,
                 null,
-                fetchPhaseAndProjection.projection.outputs().size(),
                 null
             );
             return new QueryThenFetch(plan, fetchPhaseAndProjection.phase);

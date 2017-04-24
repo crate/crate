@@ -65,9 +65,8 @@ public class QueryThenFetch implements Plan {
     public void addProjection(Projection projection,
                               @Nullable Integer newLimit,
                               @Nullable Integer newOffset,
-                              @Nullable Integer newNumOutputs,
                               @Nullable PositionalOrderBy newOrderBy) {
-        subPlan.addProjection(projection, newLimit, newOffset, newNumOutputs, newOrderBy);
+        subPlan.addProjection(projection, newLimit, newOffset, newOrderBy);
     }
 
     @Override

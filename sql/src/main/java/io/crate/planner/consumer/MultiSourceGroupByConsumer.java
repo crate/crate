@@ -25,7 +25,10 @@ package io.crate.planner.consumer;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPairs;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.AggregateMode;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.FieldsVisitor;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
@@ -44,7 +47,10 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 import io.crate.sql.tree.QualifiedName;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public class MultiSourceGroupByConsumer implements Consumer {
 
@@ -217,7 +223,7 @@ public class MultiSourceGroupByConsumer implements Consumer {
                 limits.finalLimit(),
                 outputs
             );
-            plan.addProjection(postAggregationProjection, null, null, outputs.size(), null);
+            plan.addProjection(postAggregationProjection, null, null, null);
         }
 
         /**
@@ -233,7 +239,7 @@ public class MultiSourceGroupByConsumer implements Consumer {
                 AggregateMode.ITER_FINAL,
                 RowGranularity.CLUSTER
             );
-            plan.addProjection(groupProjection, null, null, groupProjection.outputs().size(), null);
+            plan.addProjection(groupProjection, null, null, null);
         }
 
         /**
@@ -250,7 +256,7 @@ public class MultiSourceGroupByConsumer implements Consumer {
                 RowGranularity.SHARD
             );
             plan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
-            plan.addProjection(groupProjection, null, null, groupProjection.outputs().size(), null);
+            plan.addProjection(groupProjection, null, null, null);
         }
 
         /**
@@ -266,7 +272,7 @@ public class MultiSourceGroupByConsumer implements Consumer {
                 postGroupingOutputs.addAll(splitPoints.aggregates());
                 HavingClause having = havingClause.get();
                 FilterProjection filterProjection = ProjectionBuilder.filterProjection(postGroupingOutputs, having);
-                plan.addProjection(filterProjection, null, null, null, null);
+                plan.addProjection(filterProjection, null, null, null);
             }
         }
 

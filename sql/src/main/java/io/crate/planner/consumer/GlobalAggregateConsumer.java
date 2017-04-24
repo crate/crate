@@ -78,7 +78,7 @@ class GlobalAggregateConsumer implements Consumer {
         WhereClause where = qs.where();
         if (where.hasQuery() || where.noMatch()) {
             FilterProjection whereFilter = ProjectionBuilder.filterProjection(splitPoints.toCollect(), where);
-            plan.addProjection(whereFilter, null, null, null, null);
+            plan.addProjection(whereFilter, null, null, null);
         }
         List<Projection> postAggregationProjections = createPostAggregationProjections(qs, splitPoints, plannerContext);
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
@@ -88,9 +88,9 @@ class GlobalAggregateConsumer implements Consumer {
                 AggregateMode.ITER_FINAL,
                 RowGranularity.CLUSTER
             );
-            plan.addProjection(finalAggregation, null, null, splitPoints.aggregates().size(), null);
+            plan.addProjection(finalAggregation, null, null, null);
             for (Projection postAggregationProjection : postAggregationProjections) {
-                plan.addProjection(postAggregationProjection, null, null, null, null);
+                plan.addProjection(postAggregationProjection, null, null, null);
             }
             return plan;
         } else {
@@ -100,7 +100,7 @@ class GlobalAggregateConsumer implements Consumer {
                 AggregateMode.ITER_PARTIAL,
                 RowGranularity.CLUSTER
             );
-            plan.addProjection(partialAggregation, null, null, splitPoints.aggregates().size(), null);
+            plan.addProjection(partialAggregation, null, null, null);
 
             AggregationProjection finalAggregation = projectionBuilder.aggregationProjection(
                 splitPoints.aggregates(),

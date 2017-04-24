@@ -82,7 +82,6 @@ public class Collect implements Plan, ResultDescription {
     public void addProjection(Projection projection,
                               @Nullable Integer newLimit,
                               @Nullable Integer newOffset,
-                              @Nullable Integer newNumOutputs,
                               @Nullable PositionalOrderBy newOrderBy) {
         collectPhase.addProjection(projection);
         if (newLimit != null) {
@@ -94,9 +93,7 @@ public class Collect implements Plan, ResultDescription {
         if (newOrderBy != null) {
             orderBy = newOrderBy;
         }
-        if (newNumOutputs != null) {
-            numOutputs = newNumOutputs;
-        }
+        numOutputs = projection.outputs().size();
     }
 
     @Override

@@ -36,7 +36,6 @@ public abstract class UnnestablePlan implements Plan {
     public void addProjection(Projection projection,
                               @Nullable Integer newLimit,
                               @Nullable Integer newOffset,
-                              @Nullable Integer newNumOutputs,
                               @Nullable PositionalOrderBy newOrderBy) {
         throw new UnsupportedOperationException("addProjection() is not supported on: " + getClass().getSimpleName());
     }
