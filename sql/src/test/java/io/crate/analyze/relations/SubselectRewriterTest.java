@@ -38,7 +38,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
-public class RelationNormalizerTest extends CrateUnitTest {
+public class SubselectRewriterTest extends CrateUnitTest {
 
     private SQLExecutor executor = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
 
@@ -77,9 +77,9 @@ public class RelationNormalizerTest extends CrateUnitTest {
     @Test
     public void testOrderByLimitsOnInnerNotMerged() throws Exception {
         QueriedRelation relation = normalize("select * from (" +
-                                                "select * from (" +
-                                                    "select * from t1 order by a limit 10" +
-                                                ") as tt" +
+                                             "select * from (" +
+                                             "select * from t1 order by a limit 10" +
+                                             ") as tt" +
                                              ") as ttt order by x");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
@@ -95,9 +95,9 @@ public class RelationNormalizerTest extends CrateUnitTest {
     @Test
     public void testOrderByMultiLimitsSameOrderByMerge() throws Exception {
         QueriedRelation relation = normalize("select * from (" +
-                                                "select * from (" +
-                                                    "select * from t1 order by a offset 5" +
-                                                ") as tt" +
+                                             "select * from (" +
+                                             "select * from t1 order by a offset 5" +
+                                             ") as tt" +
                                              ") as ttt order by a limit 5");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(),
@@ -107,9 +107,9 @@ public class RelationNormalizerTest extends CrateUnitTest {
     @Test
     public void testOrderByLimitsNotMerged() throws Exception {
         QueriedRelation relation = normalize("select * from (" +
-                                                "select * from (" +
-                                                    "select * from t1 order by a limit 10 offset 5" +
-                                                ") as tt" +
+                                             "select * from (" +
+                                             "select * from t1 order by a limit 10 offset 5" +
+                                             ") as tt" +
                                              ") as ttt order by a desc limit 5");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
@@ -221,9 +221,9 @@ public class RelationNormalizerTest extends CrateUnitTest {
     public void testOrderByGroupedField() throws Exception {
         QueriedRelation relation = normalize(
             "select x from (" +
-                  "    select * from t1 order by i) as tt " +
-                  "group by x " +
-                  "order by x");
+            "    select * from t1 order by i) as tt " +
+            "group by x " +
+            "order by x");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(),
             isSQL("SELECT doc.t1.x GROUP BY doc.t1.x ORDER BY doc.t1.x"));
