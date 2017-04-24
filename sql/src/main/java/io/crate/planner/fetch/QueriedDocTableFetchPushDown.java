@@ -45,7 +45,6 @@ class QueriedDocTableFetchPushDown {
     private final QuerySpec querySpec;
     private final DocTableRelation tableRelation;
     private LinkedHashMap<Reference, FetchReference> fetchRefs;
-    private LinkedHashMap<Reference, FetchReference> partitionRefs;
 
     // must not be static as the index could be changed due to usage on e.g. unions
     private final InputColumn docIdCol = new InputColumn(0, DataTypes.LONG);
@@ -75,12 +74,9 @@ class QueriedDocTableFetchPushDown {
             }
             return toFetchReference(ref, fetchRefs);
         } else {
-            assert tableRelation.tableInfo().isPartitioned() && granularity == RowGranularity.PARTITION :
-                "table must be partitioned and granularity must be " + RowGranularity.PARTITION;
-            if (partitionRefs == null) {
-                partitionRefs = new LinkedHashMap<>(tableRelation.tableInfo().partitionedBy().size());
-            }
-            return toFetchReference(ref, partitionRefs);
+             assert tableRelation.tableInfo().isPartitioned() && granularity == RowGranularity.PARTITION
+                 : "table must be partitioned and granularity must be " + RowGranularity.PARTITION;
+            return new FetchReference(docIdCol, ref);
         }
     }
 
