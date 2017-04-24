@@ -21,6 +21,10 @@ Breaking Changes
 Changes
 =======
 
+ - Added support for ``GROUP BY`` in combination with subselect. E.g.::
+
+     select x, count(*) from (select x from t limit 1) as tt group by x;
+
  - Implemented hash sum scalar functions (MD5, SHA1).
    Please see :ref:`sha1 <sha1>`.
 

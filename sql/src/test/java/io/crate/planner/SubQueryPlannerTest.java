@@ -22,6 +22,8 @@
 
 package io.crate.planner;
 
+import io.crate.analyze.symbol.Function;
+import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.PlanWithFetchDescription;
 import io.crate.planner.node.dql.QueryThenFetch;
@@ -140,8 +142,8 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNestedSimpleSelectWithJoin() throws Exception {
         QueryThenFetch qtf = e.plan("select t1x from (" +
-                                     "select t1.x as t1x, t2.i as t2i from t1 as t1, t1 as t2 order by t1x asc limit 10" +
-                                   ") t order by t1x desc limit 3");
+                                    "select t1.x as t1x, t2.i as t2i from t1 as t1, t1 as t2 order by t1x asc limit 10" +
+                                    ") t order by t1x desc limit 3");
         List<Projection> projections = ((NestedLoop) qtf.subPlan()).nestedLoopPhase().projections();
         assertThat(projections, Matchers.contains(
             instanceOf(OrderedTopNProjection.class),
@@ -151,5 +153,19 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         // Assert that the OrderedTopNProjections have correct outputs
         assertThat(projections.get(0).outputs(), isSQL("INPUT(0), INPUT(1)"));
         assertThat(projections.get(2).outputs(), isSQL("INPUT(0)"));
+    }
+
+    @Test
+    public void testNestedSimpleSelectContainsGroupProjectionWithFunction() throws Exception {
+        Merge merge = e.plan("select c + 100, max(max) from " +
+                             "    (select x + 10 as c, max(i) as max from t1 group by x + 10) t " +
+                             "group by c + 100 order by c + 100 " +
+                             "limit 100");
+        // We assume that an add function is present in the group projection keys.
+        List<Projection> projections = merge.mergePhase().projections();
+        GroupProjection projection = (GroupProjection) projections.get(2);
+        Function function = (Function) projection.keys().get(0);
+
+        assertEquals(AddFunction.NAME, function.info().ident().name());
     }
 }

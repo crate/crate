@@ -22,8 +22,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -133,12 +133,13 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testNestedGroupByAggregation() throws Exception {
         setup.groupBySetup();
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot create plan for: ");
         execute("select count(*) from (" +
                 "  select min(age) as minAge from characters group by gender) as ch " +
                 "group by minAge");
+        List<Object[]> rows = Arrays.asList(response.rows());
+        Collections.sort(rows, OrderingByPosition.arrayOrdering(0, true, null));
+        assertThat(TestingHelpers.printedTable(rows.toArray(new Object[0][])),
+            is("1\n1\n"));
     }
 
     @Test

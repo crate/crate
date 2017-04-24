@@ -618,13 +618,24 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNestedGroupByAggregation() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot create plan for: ");
-        e.plan("select count(*) from (" +
-             "  select max(load['1']) as maxLoad, hostname " +
-             "  from sys.nodes " +
-             "  group by hostname having max(load['1']) > 50) as nodes " +
-             "group by hostname");
+        // Test distributed nested group by.
+        Merge merge = e.plan("select count(*) from (" +
+                             "  select max(load['1']) as maxLoad, hostname " +
+                             "  from sys.nodes " +
+                             "  group by hostname having max(load['1']) > 50) as nodes " +
+                             "group by hostname");
+
+        // At the first, the collect phase, we expect an aggregation mode of 'ITER_PARTIAL'.
+        CollectPhase collectPhase = ((Collect) merge.subPlan()).collectPhase();
+        Projection firstGroupProjection = collectPhase.projections().get(0);
+        assertThat(((GroupProjection) firstGroupProjection).mode(), is(AggregateMode.ITER_PARTIAL));
+        assertThat(collectPhase.projections(), contains(
+            instanceOf(GroupProjection.class)
+        ));
+
+        // At the second, the merge phase, we expect an aggregation mode of 'PARTIAL_FINAL'.
+        Projection secondGroupProjection = merge.mergePhase().projections().get(0);
+        assertThat(((GroupProjection) secondGroupProjection).mode(), is(AggregateMode.PARTIAL_FINAL));
     }
 
     @Test
