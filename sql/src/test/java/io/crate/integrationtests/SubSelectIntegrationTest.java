@@ -376,7 +376,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t");
 
         execute("select sum(x) from (select min(x) as x from (select max(x) as x from t) as t) as t");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2.0\n"));
     }
 
     @Test

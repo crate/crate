@@ -40,6 +40,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.*;
@@ -483,5 +484,19 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(t1.querySpec().where().query(), is(nullValue()));
         RelationSource t2 = mss.sources().get(T3.T2);
         assertThat(t2.querySpec().where().query(), is(nullValue()));
+    }
+
+
+    @Test
+    public void testOuterRelationWithFewerOutputsThanInnerRelation() throws Exception {
+        QueriedRelation relation = rewrite("select a, x from (" +
+                                           "  select * from (" +
+                                           "    select * from t1 order by a desc limit 3" +
+                                           "  ) t " +
+                                           "  order by a asc limit 2" +
+                                           ") t " +
+                                           "order by a desc limit 1");
+        // outputs of inner relation must not be present in outputs of outer relation:
+        assertThat(relation.querySpec().outputs(), contains(isField("a"), isField("x")));
     }
 }
