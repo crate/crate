@@ -145,6 +145,8 @@ Changes
 Fixes
 =====
 
+ - Enterprise license ident wording has been corrected in the admin UI.
+
  - Fix: Usage of ``DISTINCT`` in a query with a ``GROUP BY`` was producing
    wrong results and  was changed to throw UnsupportedOperationException.
    e.g.: ``SELECT DISTINCT col1 from t1 GROUP BY col2, col1``
