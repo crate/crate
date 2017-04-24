@@ -76,9 +76,9 @@ final class SubselectRewriter {
             // Try to merge with parent query spec
             if (context.currentParentQSpec != null) {
                 context.currentParentQSpec.replace(new FieldReplacer(querySpec.outputs()));
-            }
-            if (canBeMerged(querySpec, context.currentParentQSpec)) {
-                querySpec = mergeQuerySpec(querySpec, context.currentParentQSpec);
+                if (canBeMerged(querySpec, context.currentParentQSpec)) {
+                    querySpec = mergeQuerySpec(querySpec, context.currentParentQSpec);
+                }
             }
 
             // Try to push down to the child
@@ -146,10 +146,7 @@ final class SubselectRewriter {
 
     }
 
-    private static QuerySpec mergeQuerySpec(QuerySpec childQSpec, @Nullable QuerySpec parentQSpec) {
-        if (parentQSpec == null) {
-            return childQSpec;
-        }
+    private static QuerySpec mergeQuerySpec(QuerySpec childQSpec, QuerySpec parentQSpec) {
         // merge everything: validation that merge is possible has already been done.
         OrderBy newOrderBy;
         if (parentQSpec.hasAggregates() || parentQSpec.groupBy().isPresent()) {
@@ -228,9 +225,6 @@ final class SubselectRewriter {
     }
 
     private static boolean canBeMerged(QuerySpec childQuerySpec, QuerySpec parentQuerySpec) {
-        if (parentQuerySpec == null) {
-            return true;
-        }
         WhereClause parentWhere = parentQuerySpec.where();
         boolean parentHasWhere = !parentWhere.equals(WhereClause.MATCH_ALL);
         boolean childHasLimit = childQuerySpec.limit().isPresent();
