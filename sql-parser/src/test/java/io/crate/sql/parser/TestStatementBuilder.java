@@ -374,6 +374,12 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testDropUserStmtBuilder() {
+        printStatement("drop user \"Günter\"");
+        printStatement("drop user root");
+    }
+
+    @Test
     public void testCreateFunctionStmtBuilder() {
         printStatement("create function foo.bar() returns boolean language ? as ?");
         printStatement("create function foo.bar() returns boolean language $1 as $2");
@@ -1017,7 +1023,8 @@ public class TestStatementBuilder {
             statement instanceof CreateTable ||
             statement instanceof CopyFrom ||
             statement instanceof CreateFunction ||
-            statement instanceof CreateUser) {
+            statement instanceof CreateUser ||
+            statement instanceof DropUser) {
             println(SqlFormatter.formatSql(statement));
             println("");
             assertFormattedSql(statement);
