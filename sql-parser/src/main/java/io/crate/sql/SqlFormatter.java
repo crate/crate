@@ -340,6 +340,12 @@ public final class SqlFormatter {
         }
 
         @Override
+        public Void visitDropUser(DropUser node, Integer indent) {
+            builder.append("DROP USER ").append(quoteIdentifierIfNeeded(node.name()));
+            return null;
+        }
+
+        @Override
         public Void visitFunctionArgument(FunctionArgument node, Integer context) {
             node.name().ifPresent(s -> builder.append(s).append(" "));
             builder.append(node.type());
