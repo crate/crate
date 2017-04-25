@@ -44,6 +44,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeOperationTree;
+import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.sources.SystemCollectSource;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.planner.*;
@@ -108,6 +109,7 @@ public class TransportExecutor implements Executor {
                              DDLStatementDispatcher ddlAnalysisDispatcherProvider,
                              ShowStatementDispatcher showStatementDispatcherProvider,
                              ClusterService clusterService,
+                             NodeJobsCounter nodeJobsCounter,
                              IndicesService indicesService,
                              SystemCollectSource systemCollectSource) {
         this.jobContextService = jobContextService;
@@ -124,6 +126,7 @@ public class TransportExecutor implements Executor {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
             clusterService,
+            nodeJobsCounter,
             functions,
             indexNameExpressionResolver,
             threadPool,

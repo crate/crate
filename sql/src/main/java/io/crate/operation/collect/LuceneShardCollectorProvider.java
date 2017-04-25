@@ -32,6 +32,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.operation.InputFactory;
+import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.collect.collectors.CrateDocCollectorBuilder;
 import io.crate.operation.collect.collectors.LuceneOrderedDocCollector;
@@ -63,15 +64,15 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     public LuceneShardCollectorProvider(Schemas schemas,
                                         LuceneQueryBuilder luceneQueryBuilder,
                                         ClusterService clusterService,
+                                        NodeJobsCounter nodeJobsCounter,
                                         Functions functions,
                                         IndexNameExpressionResolver indexNameExpressionResolver,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
                                         IndexShard indexShard) {
-        super(clusterService, ShardReferenceResolver.create(clusterService, schemas, indexShard), functions,
-            indexNameExpressionResolver, threadPool, settings, transportActionProvider,
-            indexShard);
+        super(clusterService, nodeJobsCounter, ShardReferenceResolver.create(clusterService, schemas, indexShard),
+            functions, indexNameExpressionResolver, threadPool, settings, transportActionProvider, indexShard);
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.indexShard = indexShard;
         this.localNodeId = clusterService.localNode().getId();
