@@ -81,6 +81,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
+    protected R visitDropUserStatement(DropUserAnalyzedStatement analysis, C context) {
+        return visitDDLStatement(analysis, context);
+    }
+
     protected R visitDropTableStatement(DropTableAnalyzedStatement analysis, C context) {
         return visitDDLStatement(analysis, context);
     }

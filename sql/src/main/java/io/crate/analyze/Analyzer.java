@@ -294,6 +294,13 @@ public class Analyzer {
         }
 
         @Override
+        public AnalyzedStatement visitDropUser(DropUser node, Analysis context) {
+            return new DropUserAnalyzedStatement(
+                node.name()
+            );
+        }
+
+        @Override
         public AnalyzedStatement visitDropSnapshot(DropSnapshot node, Analysis context) {
             return dropSnapshotAnalyzer.analyze(node);
         }
