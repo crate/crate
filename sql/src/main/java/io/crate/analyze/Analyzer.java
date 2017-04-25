@@ -69,6 +69,7 @@ public class Analyzer {
     private final UnboundAnalyzer unboundAnalyzer;
     private final CreateFunctionAnalyzer createFunctionAnalyzer;
     private final DropFunctionAnalyzer dropFunctionAnalyzer;
+    private final CreateUserAnalyzer createUserAnalyzer;
 
     @Inject
     public Analyzer(Schemas schemas,
@@ -112,6 +113,7 @@ public class Analyzer {
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
+        this.createUserAnalyzer = new CreateUserAnalyzer();
     }
 
     public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
@@ -279,6 +281,11 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitDropFunction(DropFunction node, Analysis context) {
             return dropFunctionAnalyzer.analyze(node, context);
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateUser(CreateUser node, Analysis context) {
+            return createUserAnalyzer.analyze(node);
         }
 
         @Override
