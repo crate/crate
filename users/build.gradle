@@ -9,6 +9,7 @@ dependencies {
     testCompile project(':integration-testing')
     testCompile project(path: ':sql', configuration: 'testOutput')
     testCompile project(path: ':dex', configuration: 'testOutput')
+    testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
     testCompile('io.crate:crate-jdbc:2.1.5') {
         exclude group: 'net.java.dev.jna', module: 'jna'
         exclude group: 'commons-logging', module: 'commons-logging'
