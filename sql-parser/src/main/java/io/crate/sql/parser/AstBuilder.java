@@ -500,7 +500,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             visit(context.columnConstraint(), ColumnConstraint.class));
     }
 
-    // Assignments
+    @Override
+    public Node visitAlterTableOpenClose(SqlBaseParser.AlterTableOpenCloseContext context) {
+        return new AlterTableOpenClose(
+            (Table) visit(context.alterTableDefinition()),
+            context.OPEN() != null
+        );
+    }
+// Assignments
 
     @Override
     public Node visitSetGlobalAssignment(SqlBaseParser.SetGlobalAssignmentContext context) {
