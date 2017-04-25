@@ -99,6 +99,7 @@ public class ContextPreparer extends AbstractComponent {
     public ContextPreparer(Settings settings,
                            MapSideDataCollectOperation collectOperation,
                            ClusterService clusterService,
+                           NodeJobsCounter nodeJobsCounter,
                            CrateCircuitBreakerService breakerService,
                            CountOperation countOperation,
                            ThreadPool threadPool,
@@ -120,6 +121,7 @@ public class ContextPreparer extends AbstractComponent {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
         this.projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
+            nodeJobsCounter,
             functions,
             indexNameExpressionResolver,
             threadPool,

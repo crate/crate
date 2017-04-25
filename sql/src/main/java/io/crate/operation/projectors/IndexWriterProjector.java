@@ -27,6 +27,7 @@ import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import org.apache.logging.log4j.Logger;
@@ -58,6 +59,7 @@ public class IndexWriterProjector implements Projector {
     private final BatchAccumulator<Row, Iterator<? extends Row>> accumulator;
 
     public IndexWriterProjector(ClusterService clusterService,
+                                NodeJobsCounter nodeJobsCounter,
                                 ScheduledExecutorService scheduler,
                                 Functions functions,
                                 Settings settings,
@@ -100,6 +102,7 @@ public class IndexWriterProjector implements Projector {
 
         accumulator = new ShardingShardRequestAccumulator<>(
             clusterService,
+            nodeJobsCounter,
             scheduler,
             10_000,
             100,

@@ -38,6 +38,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.InputFactory;
+import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
@@ -84,6 +85,7 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
         threadPool = new TestThreadPool(Thread.currentThread().getName());
         projectorFactory = new ProjectionToProjectorVisitor(
             mock(ClusterService.class),
+            new NodeJobsCounter(),
             functions,
             new IndexNameExpressionResolver(Settings.EMPTY),
             threadPool,
