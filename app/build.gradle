@@ -350,6 +350,9 @@ distributions {
             into("lib") {
                 from jar
             }
+            into("lib") {
+                from("enterpriseModules")
+            }
             into('plugins') {
                 from('plugins') {
                     includeEmptyDirs = true
@@ -390,8 +393,25 @@ jar {
     from fileTree(buildDir).matching { include 'META-INF/services/*' }
 }
 
+task downloadEnterpriseModules(dependsOn: [':users:jar'])  {
+    doLast {
+        copy {
+            from(project(':users').tasks.jar.archivePath)
+            into 'enterpriseModules'
+        }
+
+    }
+}
+
+downloadEnterpriseModules.outputs.file ('enterpriseModules')
+
 task downloadPlugins(
-        dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es:es-repository-hdfs:jar', ':azure-discovery:jar', ':jmx-monitoring:jar', ':lang-js:jar']) {
+        dependsOn: [':admin-ui:downloadPlugin',
+                    ':sigar:jar',
+                    ':es:es-repository-hdfs:jar',
+                    ':azure-discovery:jar',
+                    ':jmx-monitoring:jar',
+                    ':lang-js:jar']) {
     doLast {
         // copy es-repository-hdfs plugin
         copy {
@@ -451,7 +471,7 @@ task downloadCrash {
     }
 }
 
-processResources.dependsOn(downloadPlugins, downloadCrash)
+processResources.dependsOn(downloadPlugins, downloadCrash, downloadEnterpriseModules)
 
 task(runDebug, dependsOn: 'classes', type: JavaExec) {
     main = 'io.crate.bootstrap.CrateDB'
