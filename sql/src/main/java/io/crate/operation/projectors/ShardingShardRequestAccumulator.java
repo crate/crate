@@ -30,24 +30,36 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
+import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
+import org.elasticsearch.cluster.routing.ShardIterator;
+import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -63,6 +75,7 @@ public class ShardingShardRequestAccumulator<TReq extends ShardRequest<TReq, TIt
         "bulk.request_timeout", new TimeValue(1, TimeUnit.MINUTES),
         Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING);
 
+    private static final Logger logger = Loggers.getLogger(ShardingShardRequestAccumulator.class);
     private static final BackoffPolicy BACK_OFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
 
     private final ClusterService clusterService;
@@ -78,13 +91,15 @@ public class ShardingShardRequestAccumulator<TReq extends ShardRequest<TReq, TIt
     private final boolean autoCreateIndices;
     private final BulkRequestExecutor<TReq> requestExecutor;
     private final TransportBulkCreateIndicesAction createIndicesAction;
-    private final Map<ShardId, TReq> requestsByShard = new HashMap<>();
+    private final Map<ShardLocation, TReq> requestsByShard = new HashMap<ShardLocation, TReq>();
     private final Map<String, List<PendingRequest<TItem>>> pendingRequestsByIndex = new HashMap<>();
     private final BitSet responses = new BitSet();
+    private final NodeJobsCounter nodeJobsCounter;
 
     private int location = -1;
 
     public ShardingShardRequestAccumulator(ClusterService clusterService,
+                                           NodeJobsCounter nodeJobsCounter,
                                            ScheduledExecutorService scheduler,
                                            int bulkSize,
                                            int createIndicesBulkSize,
@@ -98,6 +113,7 @@ public class ShardingShardRequestAccumulator<TReq extends ShardRequest<TReq, TIt
                                            BulkRequestExecutor<TReq> requestExecutor,
                                            TransportBulkCreateIndicesAction createIndicesAction) {
         this.clusterService = clusterService;
+        this.nodeJobsCounter = nodeJobsCounter;
         this.scheduler = scheduler;
         this.bulkSize = bulkSize;
         this.createIndicesBulkSize = createIndicesBulkSize;
@@ -121,19 +137,19 @@ public class ShardingShardRequestAccumulator<TReq extends ShardRequest<TReq, TIt
         }
         TItem item = itemFactory.apply(rowShardResolver.id());
         String indexName = indexNameResolver.get();
-        ShardId shardId = getShardId(indexName, rowShardResolver.id(), rowShardResolver.routing());
-        if (shardId == null) {
+        ShardLocation shardLocation = getShardLocation(indexName, rowShardResolver.id(), rowShardResolver.routing());
+        if (shardLocation == null) {
             addToPendingRequests(item, indexName);
         } else {
-            addToRequest(item, shardId);
+            addToRequest(item, shardLocation);
         }
     }
 
-    private void addToRequest(TItem item, ShardId shardId) {
-        TReq req = requestsByShard.get(shardId);
+    private void addToRequest(TItem item, ShardLocation shardLocation) {
+        TReq req = requestsByShard.get(shardLocation);
         if (req == null) {
-            req = requestFactory.apply(shardId, rowShardResolver.routing());
-            requestsByShard.put(shardId, req);
+            req = requestFactory.apply(shardLocation.shardId, rowShardResolver.routing());
+            requestsByShard.put(shardLocation, req);
         }
         location++;
         req.add(location, item);
@@ -149,19 +165,61 @@ public class ShardingShardRequestAccumulator<TReq extends ShardRequest<TReq, TIt
     }
 
     @Nullable
-    private ShardId getShardId(String indexName, String id, @Nullable String routing) {
+    private ShardLocation getShardLocation(String indexName, String id, @Nullable String routing) {
         try {
-            return clusterService.operationRouting().indexShards(
+            ShardIterator shardIterator = clusterService.operationRouting().indexShards(
                 clusterService.state(),
                 indexName,
                 id,
                 routing
-            ).shardId();
+            );
+
+            String nodeId;
+            ShardRouting shardRouting = shardIterator.nextOrNull();
+            if (shardRouting == null || shardRouting.active() == false) {
+                nodeId = shardRouting.relocatingNodeId();
+            } else {
+                nodeId = shardRouting.currentNodeId();
+            }
+
+            if(nodeId == null) {
+                logger.debug("Unable to get the node id for index {} and shard {}", indexName, id);
+            }
+            return new ShardLocation(shardIterator.shardId(), nodeId);
         } catch (IndexNotFoundException e) {
             if (!autoCreateIndices) {
                 throw e;
             }
             return null;
+        }
+    }
+
+    private static class ShardLocation {
+
+        private final ShardId shardId;
+        private final String nodeId;
+
+        public ShardLocation(ShardId shardId, String nodeId) {
+            this.shardId = shardId;
+            this.nodeId = nodeId;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            ShardLocation that = (ShardLocation) o;
+
+            if (!shardId.equals(that.shardId)) return false;
+            return nodeId != null ? nodeId.equals(that.nodeId) : that.nodeId == null;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = shardId.hashCode();
+            result = 31 * result + (nodeId != null ? nodeId.hashCode() : 0);
+            return result;
         }
     }
 
@@ -191,21 +249,25 @@ public class ShardingShardRequestAccumulator<TReq extends ShardRequest<TReq, TIt
         }
         CompletableFuture<BitSet> result = new CompletableFuture<>();
         AtomicInteger numRequests = new AtomicInteger(requestsByShard.size());
-        for (Iterator<Map.Entry<ShardId, TReq>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
-            Map.Entry<ShardId, TReq> entry = it.next();
+        for (Iterator<Map.Entry<ShardLocation, TReq>> it = requestsByShard.entrySet().iterator(); it.hasNext(); ) {
+            Map.Entry<ShardLocation, TReq> entry = it.next();
             TReq request = entry.getValue();
             it.remove();
 
+            final ShardLocation shardLocation = entry.getKey();
+            nodeJobsCounter.increment(shardLocation.nodeId);
             ActionListener<ShardResponse> listener = new ActionListener<ShardResponse>() {
 
                 @Override
                 public void onResponse(ShardResponse shardResponse) {
+                    nodeJobsCounter.decrement(shardLocation.nodeId);
                     processShardResponse(shardResponse);
                     countdown();
                 }
 
                 @Override
                 public void onFailure(Exception e) {
+                    nodeJobsCounter.decrement(shardLocation.nodeId);
                     countdown();
                 }
 
@@ -215,6 +277,7 @@ public class ShardingShardRequestAccumulator<TReq extends ShardRequest<TReq, TIt
                     }
                 }
             };
+
             listener = new RetryListener<>(
                 scheduler,
                 l -> requestExecutor.execute(request, l),
@@ -274,10 +337,10 @@ public class ShardingShardRequestAccumulator<TReq extends ShardRequest<TReq, TIt
 
             for (int i = 0; i < pendingRequests.size(); i++) {
                 PendingRequest<TItem> pendingRequest = pendingRequests.get(i);
-                ShardId shardId = getShardId(index, pendingRequest.item.id(), pendingRequest.routing);
-                assert shardId != null : "TODO";
+                ShardLocation shardLocation = getShardLocation(index, pendingRequest.item.id(), pendingRequest.routing);
+                assert shardLocation != null : "TODO";
 
-                addToRequest(pendingRequest.item, shardId);
+                addToRequest(pendingRequest.item, shardLocation);
             }
         }
     }
