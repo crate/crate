@@ -21,16 +21,44 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.data.BatchIterator;
+import io.crate.data.Bucket;
 import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.data.RowsBatchIterator;
+import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSysColumns;
+import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
+import io.crate.testing.TestingBatchConsumer;
+import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import static io.crate.testing.TestingHelpers.isRow;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 
 public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
@@ -46,16 +74,15 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         InputCollectExpression sourceInput = new InputCollectExpression(1);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
 
-        /*
         IndexWriterProjector writerProjector = new IndexWriterProjector(
             internalCluster().getInstance(ClusterService.class),
+            new NodeJobsCounter(),
+            internalCluster().getInstance(ThreadPool.class).scheduler(),
             internalCluster().getInstance(Functions.class),
-            new IndexNameExpressionResolver(Settings.EMPTY),
             Settings.EMPTY,
             internalCluster().getInstance(TransportBulkCreateIndicesAction.class),
             internalCluster().getInstance(TransportShardUpsertAction.class)::execute,
             IndexNameResolver.forTable(new TableIdent(null, "bulk_import")),
-            internalCluster().getInstance(BulkRetryCoordinatorPool.class),
             new Reference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW), RowGranularity.DOC, DataTypes.STRING),
             Arrays.asList(ID_IDENT),
             Arrays.<Symbol>asList(new InputColumn(0)),
@@ -85,6 +112,5 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         execute("select count(*) from bulk_import");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], is(100L));
-        */
     }
 }

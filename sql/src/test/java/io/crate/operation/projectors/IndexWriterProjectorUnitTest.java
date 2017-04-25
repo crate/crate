@@ -21,19 +21,39 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.data.BatchIterator;
 import io.crate.data.Row;
-import io.crate.metadata.*;
+import io.crate.data.RowN;
+import io.crate.data.RowsBatchIterator;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.TestingBatchConsumer;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mock;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Executors;
+
+import static org.mockito.Mockito.mock;
 
 public class IndexWriterProjectorUnitTest extends CrateUnitTest {
 
@@ -49,29 +69,30 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
     public void testNullPKValue() throws Throwable {
         InputCollectExpression sourceInput = new InputCollectExpression(0);
         List<CollectExpression<Row, ?>> collectExpressions = Collections.<CollectExpression<Row, ?>>singletonList(sourceInput);
-        /*
-        final IndexWriterProjector indexWriter = new IndexWriterProjector(
+
+        TransportBulkCreateIndicesAction transportBulkCreateIndicesAction = mock(TransportBulkCreateIndicesAction.class);
+        IndexWriterProjector indexWriter = new IndexWriterProjector(
             clusterService,
+            new NodeJobsCounter(),
+            Executors.newScheduledThreadPool(1),
             TestingHelpers.getFunctions(),
-            new IndexNameExpressionResolver(Settings.EMPTY),
             Settings.EMPTY,
-            mock(TransportBulkCreateIndicesAction.class),
-            mock(BulkRequestExecutor.class),
-            () -> "foo",
-            mock(BulkRetryCoordinatorPool.class, Answers.RETURNS_DEEP_STUBS.get()),
+            transportBulkCreateIndicesAction,
+            (request, listener) -> {},
+            IndexNameResolver.forTable(new TableIdent(null, "bulk_import")),
             rawSourceReference,
-            ImmutableList.of(ID_IDENT),
+            Arrays.asList(ID_IDENT),
             Arrays.<Symbol>asList(new InputColumn(1)),
             null,
             null,
             sourceInput,
             collectExpressions,
             20,
-            null, null,
+            null,
+            null,
             false,
             false,
-            UUID.randomUUID()
-        );
+            UUID.randomUUID());
 
         RowN rowN = new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null});
         BatchIterator batchIterator = RowsBatchIterator.newInstance(Collections.singletonList(rowN), rowN.numColumns());
@@ -83,6 +104,5 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("A primary key value must not be NULL");
         testingBatchConsumer.getResult();
-        */
     }
 }

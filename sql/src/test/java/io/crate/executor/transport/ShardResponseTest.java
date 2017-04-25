@@ -20,25 +20,30 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.executor.transport;
 
-import io.crate.data.*;
+import io.crate.test.integration.CrateUnitTest;
+import org.junit.Test;
 
-class DMLProjector implements Projector {
+import java.util.BitSet;
 
-    private final ShardDMLExecutor batchAccumulator;
+import static org.hamcrest.core.Is.is;
 
-    DMLProjector(ShardDMLExecutor batchAccumulator) {
-        this.batchAccumulator = batchAccumulator;
+public class ShardResponseTest extends CrateUnitTest {
+
+    @Test
+    public void testMarkResponseItemsAndFailures() {
+        ShardResponse shardResponse = new ShardResponse();
+        shardResponse.add(0);
+        shardResponse.add(1);
+        shardResponse.add(2, new ShardResponse.Failure());
+
+        BitSet bitSet = new BitSet();
+        ShardResponse.markResponseItemsAndFailures(shardResponse, bitSet);
+
+        assertThat(bitSet.get(0), is(true));
+        assertThat(bitSet.get(1), is(true));
+        assertThat(bitSet.get(2), is(false));
     }
 
-    @Override
-    public BatchIterator apply(BatchIterator batchIterator) {
-        return CollectingBatchIterator.newInstance(batchIterator, batchAccumulator, 1);
-    }
-
-    @Override
-    public boolean providesIndependentScroll() {
-        return false;
-    }
 }

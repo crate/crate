@@ -35,7 +35,7 @@ import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.operation.projectors.RetryListener;
-import io.crate.operation.projectors.ShardingShardRequestAccumulator;
+import io.crate.operation.projectors.ShardingUpsertExecutor;
 import io.crate.planner.node.dml.UpsertById;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -66,7 +66,7 @@ import static java.util.Collections.singletonList;
 
 public class UpsertByIdTask extends JobTask {
 
-    private static final Logger LOGGER = Loggers.getLogger(UpsertByIdTask.class);
+    private static final Logger LOGGER = Loggers.getLogger(UpsertById.class);
     private static final BackoffPolicy BACK_OFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
 
     private final ClusterService clusterService;
@@ -80,8 +80,6 @@ public class UpsertByIdTask extends JobTask {
     private final List<Integer> bulkIndices;
     private final boolean isUpdate;
     private final boolean isDebugEnabled;
-
-    private static final Logger LOGGER = Loggers.getLogger(UpsertById.class);
 
     public UpsertByIdTask(UpsertById upsertById,
                           ClusterService clusterService,
@@ -104,7 +102,7 @@ public class UpsertByIdTask extends JobTask {
         this.isDebugEnabled = LOGGER.isDebugEnabled();
 
         reqBuilder = new ShardUpsertRequest.Builder(
-            ShardingShardRequestAccumulator.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             false,
             upsertById.numBulkResponses() > 0 || items.size() > 1,
             upsertById.updateColumns(),
