@@ -962,6 +962,15 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testAlterTableOpenClose() throws Exception {
+        printStatement("alter table t close");
+        printStatement("alter table t open");
+
+        printStatement("alter table t partition (partitioned_col=1) close");
+        printStatement("alter table t partition (partitioned_col=1) open");
+    }
+
+    @Test
     public void testSubSelects() throws Exception {
         printStatement("select * from (select * from foo) as f");
         printStatement("select * from (select * from (select * from foo) as f1) as f2");
