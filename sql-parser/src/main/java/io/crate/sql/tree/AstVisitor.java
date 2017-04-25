@@ -504,4 +504,8 @@ public abstract class AstVisitor<R, C> {
     public R visitShowTransaction(ShowTransaction showTransaction, C context) {
         return visitStatement(showTransaction, context);
     }
+
+    public R visitCreateUser(CreateUser node, C context) {
+        return visitStatement(node, context);
+    }
 }
