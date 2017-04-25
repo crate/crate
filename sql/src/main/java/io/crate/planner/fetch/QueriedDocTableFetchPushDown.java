@@ -28,7 +28,7 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.*;
-import io.crate.metadata.DocReferenceConverter;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
@@ -68,7 +68,7 @@ class QueriedDocTableFetchPushDown {
     private FetchReference allocateReference(Reference ref) {
         RowGranularity granularity = ref.granularity();
         if (granularity == RowGranularity.DOC) {
-            ref = DocReferenceConverter.toSourceLookup(ref);
+            ref = DocReferences.toSourceLookup(ref);
             if (fetchRefs == null) {
                 fetchRefs = new LinkedHashMap<>();
             }

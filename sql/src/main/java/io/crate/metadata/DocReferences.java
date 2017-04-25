@@ -24,37 +24,70 @@ package io.crate.metadata;
 
 import io.crate.analyze.symbol.RefReplacer;
 import io.crate.analyze.symbol.Symbol;
-
-import static org.elasticsearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
+import io.crate.metadata.doc.DocSysColumns;
 
 /**
  * Visitor to change a _doc reference into a regular column reference.
  * <p/>
  * e.g.   s.t._doc['col'] -&gt; s.t.col
  */
-public final class InverseDocReferenceConverter {
+public final class DocReferences {
 
-    /**
-     * convert _doc references to regular column references
-     */
-    public static Symbol convertSourceLookupColumns(Symbol symbol) {
-        return RefReplacer.replaceRefs(symbol, InverseDocReferenceConverter::tryConvert);
+    private DocReferences() {
     }
 
-    private static Reference tryConvert(Reference reference) {
+    /**
+     * Convert any _doc references to regular column references
+     * <pre>
+     *     _doc['x'] -> x
+     * </pre>
+     */
+    public static Symbol inverseSourceLookup(Symbol symbol) {
+        return RefReplacer.replaceRefs(symbol, DocReferences::docRefToRegularRef);
+    }
+
+    /**
+     * Replace any suitable references within tree with _doc references.
+     * Suitable references are any non-system columns from user tables with DOC granularity.
+     * <pre>
+     *     x -> _doc['x']
+     * </pre>
+     */
+    public static Symbol toSourceLookup(Symbol tree) {
+        return RefReplacer.replaceRefs(tree, DocReferences::toSourceLookup);
+    }
+
+    /**
+     * Rewrite the reference to do a source lookup if possible.
+     * @see #toSourceLookup(Symbol)
+     *
+     * <pre>
+     *     x -> _doc['x']
+     * </pre>
+     */
+    public static Reference toSourceLookup(Reference reference) {
+        ReferenceIdent ident = reference.ident();
+        if (ident.columnIdent().isSystemColumn()) {
+            return reference;
+        }
+        if (reference.granularity() == RowGranularity.DOC && Schemas.isDefaultOrCustomSchema(ident.tableIdent().schema())) {
+            return reference.getRelocated(
+                new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(DocSysColumns.Names.DOC)));
+        }
+        return reference;
+    }
+
+    private static Reference docRefToRegularRef(Reference reference) {
         ReferenceIdent ident = reference.ident();
 
         if (!ident.isColumn()
             && Schemas.isDefaultOrCustomSchema(ident.tableIdent().schema())
-            && ident.columnIdent().name().equals(DOC_FIELD_NAME)) {
+            && ident.columnIdent().name().equals(DocSysColumns.Names.DOC)) {
 
             return reference.getRelocated(
                 new ReferenceIdent(ident.tableIdent(), ident.columnIdent().shiftRight())
             );
         }
         return reference;
-    }
-
-    private InverseDocReferenceConverter() {
     }
 }

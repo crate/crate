@@ -26,7 +26,7 @@ import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.RelationSource;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.*;
-import io.crate.metadata.DocReferenceConverter;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
@@ -104,7 +104,7 @@ class MultiSourceFetchPushDown {
                 }
                 for (Field field : canBeFetched) {
                     FetchReference fr = new FetchReference(
-                        fetchIdInput, DocReferenceConverter.toSourceLookup(rel.resolveField(field)));
+                        fetchIdInput, DocReferences.toSourceLookup(rel.resolveField(field)));
                     allocateFetchedReference(fr, rel);
                     topLevelOutputMap.put(field, fr);
                 }
