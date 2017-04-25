@@ -21,5 +21,6 @@ include 'es',
         'app',
         'blackbox',
         'jmx-monitoring',
-        'lang-js'
+        'lang-js',
+        'users'
 
