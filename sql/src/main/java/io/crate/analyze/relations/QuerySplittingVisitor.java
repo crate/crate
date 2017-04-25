@@ -151,7 +151,7 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
             }
         } else {
             context.seenRelations.clear();
-            RelationSplitter.RelationCounter.INSTANCE.process(function, context.seenRelations);
+            FieldsVisitor.visitFields(function, f -> context.seenRelations.add(f.relation()));
             context.multiRelation = context.seenRelations.size() > 1;
             if (context.seenRelations.size() == 1) {
                 context.seenRelation = Iterables.getOnlyElement(context.seenRelations);

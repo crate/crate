@@ -23,7 +23,9 @@ package io.crate.analyze.symbol;
 
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -129,26 +131,5 @@ public class Symbols {
         public Boolean visitReference(Reference symbol, ColumnIdent context) {
             return context.equals(symbol.ident().columnIdent());
         }
-    }
-
-    private static class FieldReplaceVisitor
-        extends ReplacingSymbolVisitor<java.util.function.Function<? super Field, ? extends Symbol>> {
-
-        public final static FieldReplaceVisitor INSTANCE = new FieldReplaceVisitor();
-
-        private FieldReplaceVisitor() {
-            super(ReplaceMode.COPY);
-        }
-
-        @Override
-        public Symbol visitField(Field field,
-                                 java.util.function.Function<? super Field, ? extends Symbol> replaceFunction) {
-            return replaceFunction.apply(field);
-        }
-    }
-
-    public static Symbol replaceField(Symbol symbol,
-                                      java.util.function.Function<? super Field, ? extends Symbol> replaceFunction) {
-        return FieldReplaceVisitor.INSTANCE.process(symbol, replaceFunction);
     }
 }

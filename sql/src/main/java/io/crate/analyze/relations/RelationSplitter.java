@@ -35,6 +35,7 @@ import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Consumer;
 
 public final class RelationSplitter {
 
@@ -102,21 +103,22 @@ public final class RelationSplitter {
     private void processOutputs() {
         SetMultimap<AnalyzedRelation, Symbol> fieldsByRelation = Multimaps.newSetMultimap(
             new IdentityHashMap<AnalyzedRelation, Collection<Symbol>>(specs.size()), LinkedHashSet::new);
+        Consumer<Field> addFieldToMap = f -> fieldsByRelation.put(f.relation(), f);
 
         // declare all symbols from the remaining order by as required for query
         if (remainingOrderBy != null) {
             OrderBy orderBy = remainingOrderBy.orderBy();
             requiredForQuery.addAll(orderBy.orderBySymbols());
             // we need to add also the used symbols for query phase
-            FieldCollectingVisitor.collectFields(orderBy.orderBySymbols(), fieldsByRelation);
+            FieldsVisitor.visitFields(orderBy.orderBySymbols(), addFieldToMap);
         }
 
         if (querySpec.where().hasQuery()) {
-            FieldCollectingVisitor.collectFields(querySpec.where().query(), fieldsByRelation);
+            FieldsVisitor.visitFields(querySpec.where().query(), addFieldToMap);
         }
 
         // collect all fields from all join conditions
-        FieldCollectingVisitor.collectFields(joinConditions, fieldsByRelation);
+        FieldsVisitor.visitFields(joinConditions, addFieldToMap);
 
         // set the limit and offset where possible
         Optional<Symbol> limit = querySpec.limit();
@@ -141,7 +143,7 @@ public final class RelationSplitter {
         // capture items from the outputs
         canBeFetched = FetchFieldExtractor.process(querySpec.outputs(), fieldsByRelation);
 
-        FieldCollectingVisitor.collectFields(querySpec.outputs(), fieldsByRelation);
+        FieldsVisitor.visitFields(querySpec.outputs(), addFieldToMap);
 
         // generate the outputs of the subSpecs
         for (Map.Entry<AnalyzedRelation, QuerySpec> entry : specs.entrySet()) {
@@ -171,6 +173,7 @@ public final class RelationSplitter {
         }
         OrderBy orderBy = querySpec.orderBy().get();
         Set<AnalyzedRelation> relations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
+        Consumer<Field> addToRelations = f -> relations.add(f.relation());
         Multimap<AnalyzedRelation, Integer> splits = Multimaps.newSetMultimap(
             new IdentityHashMap<AnalyzedRelation, Collection<Integer>>(specs.size()),
             INT_SET_SUPPLIER);
@@ -181,7 +184,7 @@ public final class RelationSplitter {
         // to the remaining OrderBy in the correct order.
         for (Symbol symbol : orderBy.orderBySymbols()) {
             relations.clear();
-            RelationCounter.INSTANCE.process(symbol, relations);
+            FieldsVisitor.visitFields(symbol, addToRelations);
 
             int relationsSize = relations.size();
             if (relationsSize > 1 ||
@@ -201,7 +204,7 @@ public final class RelationSplitter {
                 continue;
             }
             relations.clear();
-            RelationCounter.INSTANCE.process(symbol, relations);
+            FieldsVisitor.visitFields(symbol, addToRelations);
 
             // If remainingOrderBy detected then don't push down anything but
             // merge it with remainingOrderBy since we need to re-apply this
@@ -226,17 +229,6 @@ public final class RelationSplitter {
             assert !spec.orderBy().isPresent() : "spec.orderBy() must not be present";
             spec.orderBy(newOrderBy);
             requiredForQuery.addAll(newOrderBy.orderBySymbols());
-        }
-    }
-
-    static class RelationCounter extends DefaultTraversalSymbolVisitor<Set<AnalyzedRelation>, Void> {
-
-        static final RelationCounter INSTANCE = new RelationCounter();
-
-        @Override
-        public Void visitField(Field field, Set<AnalyzedRelation> context) {
-            context.add(field.relation());
-            return super.visitField(field, context);
         }
     }
 

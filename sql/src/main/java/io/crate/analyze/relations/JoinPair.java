@@ -87,7 +87,7 @@ public class JoinPair {
         return Objects.hashCode(left, right, joinType, condition);
     }
 
-    public void replaceCondition(Function<? super Symbol, Symbol> replaceFunction) {
+    public void replaceCondition(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         condition = replaceFunction.apply(condition);
     }
 
