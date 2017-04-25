@@ -34,7 +34,6 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 
 public class ReferenceToLiteralConverterTest extends CrateUnitTest {
 
-    private static final ReferenceToLiteralConverter REFERENCE_TO_LITERAL_CONVERTER = new ReferenceToLiteralConverter();
     private static final TableIdent TABLE_IDENT = new TableIdent(null, "characters");
 
     @Test
@@ -43,11 +42,11 @@ public class ReferenceToLiteralConverterTest extends CrateUnitTest {
         Reference idRef = new Reference(
             new ReferenceIdent(TABLE_IDENT, new ColumnIdent("id")), RowGranularity.DOC, DataTypes.INTEGER);
 
-        ReferenceToLiteralConverter.Context context = new ReferenceToLiteralConverter.Context(
+        ReferenceToLiteralConverter convertFunction = new ReferenceToLiteralConverter(
             ImmutableList.of(idRef), ImmutableList.of(idRef));
-        context.values(inputValues);
+        convertFunction.values(inputValues);
 
-        Symbol replacedSymbol = REFERENCE_TO_LITERAL_CONVERTER.process(idRef, context);
+        Symbol replacedSymbol = convertFunction.apply(idRef);
         assertThat(replacedSymbol, isLiteral(1, DataTypes.INTEGER));
     }
 
@@ -62,11 +61,11 @@ public class ReferenceToLiteralConverterTest extends CrateUnitTest {
             new ReferenceIdent(TABLE_IDENT, new ColumnIdent("user", ImmutableList.of("name"))),
             RowGranularity.DOC, DataTypes.STRING);
 
-        ReferenceToLiteralConverter.Context context = new ReferenceToLiteralConverter.Context(
+        ReferenceToLiteralConverter convertFunction = new ReferenceToLiteralConverter(
             ImmutableList.of(userRef), ImmutableList.of(nameRef));
-        context.values(inputValues);
+        convertFunction.values(inputValues);
 
-        Symbol replacedSymbol = REFERENCE_TO_LITERAL_CONVERTER.process(nameRef, context);
+        Symbol replacedSymbol = convertFunction.apply(nameRef);
         assertThat(replacedSymbol, isLiteral("Ford", DataTypes.STRING));
     }
 
@@ -83,11 +82,11 @@ public class ReferenceToLiteralConverterTest extends CrateUnitTest {
             new ReferenceIdent(TABLE_IDENT, new ColumnIdent("user", ImmutableList.of("profile", "name"))),
             RowGranularity.DOC, DataTypes.STRING);
 
-        ReferenceToLiteralConverter.Context context = new ReferenceToLiteralConverter.Context(
+        ReferenceToLiteralConverter convertFunction = new ReferenceToLiteralConverter(
             ImmutableList.of(userRef), ImmutableList.of(nameRef));
-        context.values(inputValues);
+        convertFunction.values(inputValues);
 
-        Symbol replacedSymbol = REFERENCE_TO_LITERAL_CONVERTER.process(nameRef, context);
+        Symbol replacedSymbol = convertFunction.apply(nameRef);
         assertThat(replacedSymbol, isLiteral("Ford", DataTypes.STRING));
     }
 }

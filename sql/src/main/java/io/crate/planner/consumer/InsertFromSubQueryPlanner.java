@@ -100,7 +100,7 @@ public final class InsertFromSubQueryPlanner {
             List<Symbol> outputs = table.querySpec().outputs();
             assert !table.querySpec().orderBy().isPresent() : "insert from subquery with order by is not supported";
             for (int i = 0; i < outputs.size(); i++) {
-                outputs.set(i, DocReferenceConverter.convertIf(outputs.get(i)));
+                outputs.set(i, DocReferenceConverter.toSourceLookup(outputs.get(i)));
             }
             return null;
         }

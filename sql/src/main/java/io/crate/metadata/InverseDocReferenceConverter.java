@@ -22,9 +22,8 @@
 
 package io.crate.metadata;
 
+import io.crate.analyze.symbol.RefReplacer;
 import io.crate.analyze.symbol.Symbol;
-
-import java.util.function.Predicate;
 
 import static org.elasticsearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 
@@ -33,47 +32,27 @@ import static org.elasticsearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
  * <p/>
  * e.g.   s.t._doc['col'] -&gt; s.t.col
  */
-public class InverseDocReferenceConverter {
-
-    private final static Visitor VISITOR = new Visitor();
-
-    private final static Predicate<Reference> DEFAULT_PREDICATE = input -> {
-        assert input != null : "input must not be null";
-        ReferenceIdent ident = input.ident();
-        String schema = ident.tableIdent().schema();
-        return Schemas.isDefaultOrCustomSchema(schema);
-    };
+public final class InverseDocReferenceConverter {
 
     /**
      * convert _doc references to regular column references
      */
-    public static Symbol convertIf(Symbol symbol) {
-        return VISITOR.process(symbol, DEFAULT_PREDICATE);
+    public static Symbol convertSourceLookupColumns(Symbol symbol) {
+        return RefReplacer.replaceRefs(symbol, InverseDocReferenceConverter::tryConvert);
     }
 
-    public static Reference toColumnReference(Reference reference) {
+    private static Reference tryConvert(Reference reference) {
         ReferenceIdent ident = reference.ident();
-        if (!ident.isColumn() && ident.columnIdent().name().startsWith(DOC_FIELD_NAME)) {
+
+        if (!ident.isColumn()
+            && Schemas.isDefaultOrCustomSchema(ident.tableIdent().schema())
+            && ident.columnIdent().name().equals(DOC_FIELD_NAME)) {
+
             return reference.getRelocated(
                 new ReferenceIdent(ident.tableIdent(), ident.columnIdent().shiftRight())
             );
         }
         return reference;
-    }
-
-    private static class Visitor extends ReplacingSymbolVisitor<Predicate<Reference>> {
-
-        public Visitor() {
-            super(ReplaceMode.COPY);
-        }
-
-        @Override
-        public Symbol visitReference(Reference symbol, Predicate<Reference> predicate) {
-            if (predicate.test(symbol)) {
-                return toColumnReference(symbol);
-            }
-            return symbol;
-        }
     }
 
     private InverseDocReferenceConverter() {

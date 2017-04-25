@@ -64,8 +64,6 @@ public class GeneratedColumnComparisonReplacer {
 
     private static class ComparisonReplaceVisitor extends ReplacingSymbolVisitor<ComparisonReplaceVisitor.Context> {
 
-        private final static ReferenceReplacer REFERENCE_REPLACER = new ReferenceReplacer();
-
         static class Context {
             private final Multimap<Reference, GeneratedReference> referencedRefsToGeneratedColumn;
 
@@ -156,9 +154,14 @@ public class GeneratedColumnComparisonReplacer {
         }
 
         private Symbol wrapInGenerationExpression(Symbol wrapMeLikeItsHot, Reference generatedReference) {
-            ReferenceReplacer.Context ctx = new ReferenceReplacer.Context(wrapMeLikeItsHot,
+            ReplaceIfMatch replaceIfMatch = new ReplaceIfMatch(
+                wrapMeLikeItsHot,
                 ((GeneratedReference) generatedReference).referencedReferences().get(0));
-            return REFERENCE_REPLACER.process(((GeneratedReference) generatedReference).generatedExpression(), ctx);
+
+            return RefReplacer.replaceRefs(
+                ((GeneratedReference) generatedReference).generatedExpression(),
+                replaceIfMatch
+            );
         }
 
         private Multimap<Reference, GeneratedReference> extractGeneratedReferences(DocTableInfo tableInfo) {
@@ -174,29 +177,23 @@ public class GeneratedColumnComparisonReplacer {
         }
     }
 
-    private static class ReferenceReplacer extends ReplacingSymbolVisitor<ReferenceReplacer.Context> {
 
-        static class Context {
+    static class ReplaceIfMatch implements java.util.function.Function<Reference, Symbol> {
 
-            private final Symbol replaceWith;
-            private final Reference toReplace;
+        private final Symbol replaceWith;
+        private final Reference toReplace;
 
-            public Context(Symbol replaceWith, Reference toReplace) {
-                this.replaceWith = replaceWith;
-                this.toReplace = toReplace;
-            }
-        }
-
-        ReferenceReplacer() {
-            super(ReplaceMode.COPY);
+        ReplaceIfMatch(Symbol replaceWith, Reference toReplace) {
+            this.replaceWith = replaceWith;
+            this.toReplace = toReplace;
         }
 
         @Override
-        public Symbol visitReference(Reference symbol, Context context) {
-            if (symbol.equals(context.toReplace)) {
-                return context.replaceWith;
+        public Symbol apply(Reference ref) {
+            if (ref.equals(toReplace)) {
+                return replaceWith;
             }
-            return symbol;
+            return ref;
         }
     }
 }
