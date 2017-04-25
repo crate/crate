@@ -30,6 +30,8 @@ import io.crate.executor.transport.RepositoryService;
 import io.crate.executor.transport.SnapshotRestoreDDLDispatcher;
 import io.crate.executor.transport.TableCreator;
 import io.crate.operation.udf.UserDefinedFunctionDDLClient;
+import io.crate.operation.user.UserManager;
+import io.crate.operation.user.UserManagerProvider;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.forcemerge.TransportForceMergeAction;
@@ -65,6 +67,7 @@ public class DDLStatementDispatcher {
     private final Provider<TransportUpgradeAction> transportUpgradeActionProvider;
     private final Provider<TransportForceMergeAction> transportForceMergeActionProvider;
     private final Provider<TransportRefreshAction> transportRefreshActionProvider;
+    private final UserManager userManager;
 
     private final InnerVisitor innerVisitor = new InnerVisitor();
 
@@ -76,6 +79,7 @@ public class DDLStatementDispatcher {
                                   RepositoryService repositoryService,
                                   SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
                                   UserDefinedFunctionDDLClient udfDDLClient,
+                                  UserManagerProvider userManagerProvider,
                                   Provider<TransportUpgradeAction> transportUpgradeActionProvider,
                                   Provider<TransportForceMergeAction> transportForceMergeActionProvider,
                                   Provider<TransportRefreshAction> transportRefreshActionProvider) {
@@ -88,6 +92,7 @@ public class DDLStatementDispatcher {
         this.transportUpgradeActionProvider = transportUpgradeActionProvider;
         this.transportForceMergeActionProvider = transportForceMergeActionProvider;
         this.transportRefreshActionProvider = transportRefreshActionProvider;
+        this.userManager = userManagerProvider.get();
     }
 
     public CompletableFuture<Long> dispatch(AnalyzedStatement analyzedStatement, Row parameters) {
@@ -196,6 +201,16 @@ public class DDLStatementDispatcher {
         @Override
         public CompletableFuture<Long> visitDropFunctionStatement(DropFunctionAnalyzedStatement analysis, Row parameters) {
             return udfDDLClient.execute(analysis);
+        }
+
+        @Override
+        protected CompletableFuture<Long> visitCreateUserStatement(CreateUserAnalyzedStatement analysis, Row parameters) {
+            return userManager.createUser(analysis);
+        }
+
+        @Override
+        protected CompletableFuture<Long> visitDropUserStatement(DropUserAnalyzedStatement analysis, Row parameters) {
+            return userManager.dropUser(analysis);
         }
     }
 
