@@ -80,5 +80,4 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
         properties.setProperty("user", "foo");
         DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties);
     }
-
 }
