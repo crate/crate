@@ -22,29 +22,20 @@
 
 package io.crate.analyze;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.junit.Test;
+public class DropUserAnalyzedStatement implements DDLStatement {
 
-import static org.hamcrest.CoreMatchers.is;
+    private final String userName;
 
-public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
-
-    private SQLExecutor e = SQLExecutor.builder(clusterService).build();
-
-    @Test
-    public void testCreateUserSimple() {
-        CreateUserAnalyzedStatement analysis = e.analyze("CREATE USER ROOT");
-        assertThat(analysis.userName(), is("root"));
-        analysis = e.analyze("CREATE USER \"ROOT\"");
-        assertThat(analysis.userName(), is("ROOT"));
+    public DropUserAnalyzedStatement(String userName) {
+        this.userName = userName;
     }
 
-    @Test
-    public void testDropUserSimple() {
-        DropUserAnalyzedStatement analysis = e.analyze("DROP USER ROOT");
-        assertThat(analysis.userName(), is("root"));
-        analysis = e.analyze("DROP USER \"ROOT\"");
-        assertThat(analysis.userName(), is("ROOT"));
+    @Override
+    public <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitDropUserStatement(this, context);
+    }
+
+    public String userName() {
+        return userName;
     }
 }

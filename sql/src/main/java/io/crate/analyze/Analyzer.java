@@ -70,6 +70,7 @@ public class Analyzer {
     private final CreateFunctionAnalyzer createFunctionAnalyzer;
     private final DropFunctionAnalyzer dropFunctionAnalyzer;
     private final CreateUserAnalyzer createUserAnalyzer;
+    private final DropUserAnalyzer dropUserAnalyzer;
 
     @Inject
     public Analyzer(Schemas schemas,
@@ -114,6 +115,7 @@ public class Analyzer {
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.createUserAnalyzer = new CreateUserAnalyzer();
+        this.dropUserAnalyzer = new DropUserAnalyzer();
     }
 
     public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
@@ -286,6 +288,11 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitCreateUser(CreateUser node, Analysis context) {
             return createUserAnalyzer.analyze(node);
+        }
+
+        @Override
+        public AnalyzedStatement visitDropUser(DropUser node, Analysis context) {
+            return dropUserAnalyzer.analyze(node);
         }
 
         @Override
