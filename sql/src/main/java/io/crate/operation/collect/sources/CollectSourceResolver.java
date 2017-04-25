@@ -37,6 +37,7 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.InputFactory;
+import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
@@ -72,6 +73,7 @@ public class CollectSourceResolver {
 
     @Inject
     public CollectSourceResolver(ClusterService clusterService,
+                                 NodeJobsCounter nodeJobsCounter,
                                  IndexNameExpressionResolver indexNameExpressionResolver,
                                  Functions functions,
                                  Settings settings,
@@ -91,6 +93,7 @@ public class CollectSourceResolver {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
+            nodeJobsCounter,
             functions,
             indexNameExpressionResolver,
             threadPool,

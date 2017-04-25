@@ -31,11 +31,16 @@ import io.crate.data.Row1;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
+import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nullable;
 import java.util.BitSet;
 import java.util.Collections;
 import java.util.Iterator;
@@ -49,6 +54,8 @@ import java.util.function.Supplier;
 public class ShardRequestAccumulator<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
     implements BatchAccumulator<Row, Iterator<? extends Row>> {
 
+    private static final Logger logger = Loggers.getLogger(ShardRequestAccumulator.class);
+
     private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
 
     private final int batchSize;
@@ -58,6 +65,8 @@ public class ShardRequestAccumulator<TReq extends ShardRequest<TReq, TItem>, TIt
     private final Function<String, TItem> itemFactory;
     private final BitSet responses;
     private final BiConsumer<TReq, ActionListener<ShardResponse>> transportAction;
+    private final ClusterService clusterService;
+    private final NodeJobsCounter operationsTracker;
 
     private TReq currentRequest;
     private int numItems = -1;
@@ -65,12 +74,16 @@ public class ShardRequestAccumulator<TReq extends ShardRequest<TReq, TItem>, TIt
     public ShardRequestAccumulator(int batchSize,
                                    ScheduledExecutorService scheduler,
                                    CollectExpression<Row, ?> uidExpression,
+                                   ClusterService clusterService,
+                                   NodeJobsCounter operationsTracker,
                                    Supplier<TReq> requestFactory,
                                    Function<String, TItem> itemFactory,
                                    BiConsumer<TReq, ActionListener<ShardResponse>> transportAction) {
         this.batchSize = batchSize;
         this.scheduler = scheduler;
         this.uidExpression = uidExpression;
+        this.clusterService = clusterService;
+        this.operationsTracker = operationsTracker;
         this.requestFactory = requestFactory;
         this.itemFactory = itemFactory;
         this.transportAction = transportAction;
@@ -95,8 +108,13 @@ public class ShardRequestAccumulator<TReq extends ShardRequest<TReq, TItem>, TIt
         if (currentRequest.itemIndices().isEmpty() && isLastBatch) {
             return CompletableFuture.completedFuture(getSingleRowWithRowCount());
         }
+
+        final String nodeId = getLocalNodeId();
+        operationsTracker.increment(nodeId);
+
         FutureActionListener<ShardResponse, Iterator<? extends Row>> listener = new FutureActionListener<>(r -> {
             currentRequest = requestFactory.get();
+            operationsTracker.decrement(nodeId);
             return responseToRowIt(isLastBatch, r);
         });
         transportAction.accept(
@@ -108,6 +126,17 @@ public class ShardRequestAccumulator<TReq extends ShardRequest<TReq, TItem>, TIt
             )
         );
         return listener;
+    }
+
+    @Nullable
+    private String getLocalNodeId() {
+        String nodeId = null;
+        try {
+            nodeId= clusterService.localNode().getId();
+        } catch (IllegalStateException e) {
+            logger.debug("Unable to get local node id", e);
+        }
+        return nodeId;
     }
 
     private Iterator<Row> responseToRowIt(boolean isLastBatch, ShardResponse response) {

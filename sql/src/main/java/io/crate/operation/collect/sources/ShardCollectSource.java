@@ -38,6 +38,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.operation.InputFactory;
+import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.*;
 import io.crate.operation.collect.collectors.CompositeCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
@@ -147,7 +148,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private final Map<ShardId, ShardCollectorProvider> shards = new ConcurrentHashMap<>();
     private final Functions functions;
     private final LuceneQueryBuilder luceneQueryBuilder;
-
+    private final NodeJobsCounter nodeJobsCounter;
 
     @Inject
     public ShardCollectSource(Settings settings,
@@ -156,6 +157,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                               IndicesService indicesService,
                               Functions functions,
                               ClusterService clusterService,
+                              NodeJobsCounter nodeJobsCounter,
                               LuceneQueryBuilder luceneQueryBuilder,
                               ThreadPool threadPool,
                               TransportActionProvider transportActionProvider,
@@ -170,6 +172,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.indicesService = indicesService;
         this.clusterService = clusterService;
+        this.nodeJobsCounter = nodeJobsCounter;
         this.threadPool = threadPool;
         this.transportActionProvider = transportActionProvider;
         this.remoteCollectorFactory = remoteCollectorFactory;
@@ -187,6 +190,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
         sharedProjectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
+            nodeJobsCounter,
             functions,
             indexNameExpressionResolver,
             threadPool,
@@ -232,12 +236,12 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             ShardCollectorProvider provider;
             if (isBlobIndex(indexShard.shardId().getIndexName())) {
                 BlobShard blobShard = blobIndicesService.blobShardSafe(indexShard.shardId());
-                provider = new BlobShardCollectorProvider(blobShard, clusterService, functions,
+                provider = new BlobShardCollectorProvider(blobShard, clusterService, nodeJobsCounter, functions,
                     indexNameExpressionResolver, threadPool, settings, transportActionProvider);
             } else {
                 provider = new LuceneShardCollectorProvider(
-                    schemas, luceneQueryBuilder, clusterService, functions, indexNameExpressionResolver, threadPool,
-                    settings, transportActionProvider, indexShard);
+                    schemas, luceneQueryBuilder, clusterService, nodeJobsCounter, functions,
+                    indexNameExpressionResolver, threadPool, settings, transportActionProvider, indexShard);
             }
             shards.put(indexShard.shardId(), provider);
 
