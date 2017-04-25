@@ -1,0 +1,11 @@
+/.idea/
+.DS_Store
+/*.iml
+/.classpath
+/.project
+/.settings/
+/test-output/
+/data/
+/logs/
+/build/
+/reports/
