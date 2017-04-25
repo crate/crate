@@ -22,29 +22,13 @@
 
 package io.crate.analyze;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.junit.Test;
+import io.crate.sql.tree.DropUser;
 
-import static org.hamcrest.CoreMatchers.is;
+public class DropUserAnalyzer {
 
-public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
-
-    private SQLExecutor e = SQLExecutor.builder(clusterService).build();
-
-    @Test
-    public void testCreateUserSimple() {
-        CreateUserAnalyzedStatement analysis = e.analyze("CREATE USER ROOT");
-        assertThat(analysis.userName(), is("root"));
-        analysis = e.analyze("CREATE USER \"ROOT\"");
-        assertThat(analysis.userName(), is("ROOT"));
-    }
-
-    @Test
-    public void testDropUserSimple() {
-        DropUserAnalyzedStatement analysis = e.analyze("DROP USER ROOT");
-        assertThat(analysis.userName(), is("root"));
-        analysis = e.analyze("DROP USER \"ROOT\"");
-        assertThat(analysis.userName(), is("ROOT"));
+    public DropUserAnalyzedStatement analyze(DropUser node) {
+        return new DropUserAnalyzedStatement(
+            node.name()
+        );
     }
 }
