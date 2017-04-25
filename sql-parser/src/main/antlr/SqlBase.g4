@@ -49,6 +49,7 @@ statement
         (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterTableProperties
     | ALTER BLOB TABLE alterTableDefinition
         (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterBlobTableProperties
+    | ALTER TABLE alterTableDefinition (OPEN | CLOSE)                                #alterTableOpenClose
     | RESET GLOBAL primaryExpression (',' primaryExpression)*                        #resetGlobal
     | SET (SESSION | LOCAL)? qname
         (EQ | TO) (DEFAULT | setExpr (',' setExpr)*)                                 #set
@@ -561,7 +562,7 @@ nonReserved
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
-    | ISOLATION | TRANSACTION | LEVEL | LANGUAGE
+    | ISOLATION | TRANSACTION | LEVEL | LANGUAGE | OPEN | CLOSE
     ;
 
 SELECT: 'SELECT';
@@ -650,6 +651,9 @@ ONLY: 'ONLY';
 
 ADD: 'ADD';
 COLUMN: 'COLUMN';
+
+OPEN: 'OPEN';
+CLOSE: 'CLOSE';
 
 BOOLEAN: 'BOOLEAN';
 BYTE: 'BYTE';
