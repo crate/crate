@@ -38,6 +38,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.InputFactory;
+import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.RowFilter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.fetch.FetchProjector;
@@ -48,7 +49,6 @@ import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.SysRowUpdater;
 import io.crate.planner.projection.*;
 import io.crate.types.StringType;
-
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -67,6 +67,7 @@ public class ProjectionToProjectorVisitor
     extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
 
     private final ClusterService clusterService;
+    private final NodeJobsCounter nodeJobsCounter;
     private final Functions functions;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final ThreadPool threadPool;
@@ -79,6 +80,7 @@ public class ProjectionToProjectorVisitor
     private final ShardId shardId;
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        NodeJobsCounter nodeJobsCounter,
                                         Functions functions,
                                         IndexNameExpressionResolver indexNameExpressionResolver,
                                         ThreadPool threadPool,
@@ -89,6 +91,7 @@ public class ProjectionToProjectorVisitor
                                         Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter,
                                         @Nullable ShardId shardId) {
         this.clusterService = clusterService;
+        this.nodeJobsCounter = nodeJobsCounter;
         this.functions = functions;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.threadPool = threadPool;
@@ -101,6 +104,7 @@ public class ProjectionToProjectorVisitor
     }
 
     public ProjectionToProjectorVisitor(ClusterService clusterService,
+                                        NodeJobsCounter nodeJobsCounter,
                                         Functions functions,
                                         IndexNameExpressionResolver indexNameExpressionResolver,
                                         ThreadPool threadPool,
@@ -110,6 +114,7 @@ public class ProjectionToProjectorVisitor
                                         EvaluatingNormalizer normalizer,
                                         Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter) {
         this(clusterService,
+            nodeJobsCounter,
             functions,
             indexNameExpressionResolver,
             threadPool,
@@ -283,6 +288,7 @@ public class ProjectionToProjectorVisitor
             IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         return new IndexWriterProjector(
             clusterService,
+            nodeJobsCounter,
             threadPool.scheduler(),
             functions,
             clusterService.state().metaData().settings(),
@@ -318,6 +324,7 @@ public class ProjectionToProjectorVisitor
         }
         return new ColumnIndexWriterProjector(
             clusterService,
+            nodeJobsCounter,
             threadPool.scheduler(),
             functions,
             clusterService.state().metaData().settings(),
@@ -347,41 +354,46 @@ public class ProjectionToProjectorVisitor
     public Projector visitUpdateProjection(final UpdateProjection projection, Context context) {
         checkShardLevel("Update projection can only be executed on a shard");
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            ShardingShardRequestAccumulator.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             false,
             false,
             projection.assignmentsColumns(),
             null,
             context.jobId
         );
-        ShardRequestAccumulator<ShardUpsertRequest, ShardUpsertRequest.Item> shardRequestAccumulator = new ShardRequestAccumulator<>(
-            10_000,
+        ShardDMLExecutor<ShardUpsertRequest, ShardUpsertRequest.Item> shardDMLExecutor = new ShardDMLExecutor<>(
+            ShardDMLExecutor.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
             resolveUidCollectExpression(projection.uidSymbol()),
+            clusterService,
+            nodeJobsCounter,
             () -> builder.newRequest(shardId, null),
             id -> new ShardUpsertRequest.Item(id, projection.assignments(), null, projection.requiredVersion()),
             transportActionProvider.transportShardUpsertAction()::execute
         );
 
-        return new DMLProjector(shardRequestAccumulator);
+        return new DMLProjector(shardDMLExecutor);
     }
 
     @Override
     public Projector visitDeleteProjection(DeleteProjection projection, Context context) {
         checkShardLevel("Delete projection can only be executed on a shard");
         ShardDeleteRequest.Builder builder = new ShardDeleteRequest.Builder(
-            ShardingShardRequestAccumulator.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             context.jobId
         );
-        ShardRequestAccumulator<ShardDeleteRequest, ShardDeleteRequest.Item> shardRequestAccumulator = new ShardRequestAccumulator<>(
-            10_000,
+
+        ShardDMLExecutor<ShardDeleteRequest, ShardDeleteRequest.Item> shardDMLExecutor = new ShardDMLExecutor<>(
+            ShardDMLExecutor.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
             resolveUidCollectExpression(projection.uidSymbol()),
+            clusterService,
+            nodeJobsCounter,
             () -> builder.newRequest(shardId, null),
             ShardDeleteRequest.Item::new,
             transportActionProvider.transportShardDeleteAction()::execute
         );
-        return new DMLProjector(shardRequestAccumulator);
+        return new DMLProjector(shardDMLExecutor);
     }
 
     private void checkShardLevel(String errorMessage) {
@@ -440,7 +452,7 @@ public class ProjectionToProjectorVisitor
         }
 
         SysRowUpdater<?> rowUpdater = sysUpdaterGetter.apply(tableIdent);
-        assert rowUpdater != null: "row updater needs to exist";
+        assert rowUpdater != null : "row updater needs to exist";
         Consumer<Object> rowWriter = rowUpdater.newRowWriter(assignmentCols, valueInputs, readCtx.expressions());
         return new SysUpdateProjector(rowWriter);
     }

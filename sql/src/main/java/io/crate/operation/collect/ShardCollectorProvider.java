@@ -33,6 +33,7 @@ import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.InputFactory;
+import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.ProjectingBatchConsumer;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
@@ -41,8 +42,8 @@ import io.crate.operation.reference.ReferenceResolver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.Projections;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -58,6 +59,7 @@ public abstract class ShardCollectorProvider {
     final EvaluatingNormalizer shardNormalizer;
 
     ShardCollectorProvider(ClusterService clusterService,
+                           NodeJobsCounter nodeJobsCounter,
                            ReferenceResolver<ReferenceImplementation<?>> shardResolver,
                            Functions functions,
                            IndexNameExpressionResolver indexNameExpressionResolver,
@@ -75,6 +77,7 @@ public abstract class ShardCollectorProvider {
         );
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
+            nodeJobsCounter,
             functions,
             indexNameExpressionResolver,
             threadPool,

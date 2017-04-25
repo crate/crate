@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.MoreObjects;
 import io.crate.analyze.symbol.Assignments;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.*;
@@ -30,6 +31,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.operation.InputRow;
+import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -46,9 +48,10 @@ import java.util.function.Supplier;
 
 public class ColumnIndexWriterProjector implements Projector {
 
-    private final ShardingShardRequestAccumulator accumulator;
+    private final ShardingUpsertExecutor shardingUpsertExecutor;
 
     ColumnIndexWriterProjector(ClusterService clusterService,
+                               NodeJobsCounter nodeJobsCounter,
                                ScheduledExecutorService scheduler,
                                Functions functions,
                                Settings settings,
@@ -81,7 +84,7 @@ public class ColumnIndexWriterProjector implements Projector {
             assignments = convert.v2();
         }
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            ShardingShardRequestAccumulator.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             false, // overwriteDuplicates
             true, // continueOnErrors
             updateColumnNames,
@@ -92,11 +95,11 @@ public class ColumnIndexWriterProjector implements Projector {
         Function<String, ShardUpsertRequest.Item> itemFactory = id -> new ShardUpsertRequest.Item(
             id, assignments, insertValues.materialize(), null);
 
-        accumulator = new ShardingShardRequestAccumulator<>(
+        shardingUpsertExecutor = new ShardingUpsertExecutor<>(
             clusterService,
+            nodeJobsCounter,
             scheduler,
-            10_000,
-            100,
+            MoreObjects.firstNonNull(bulkActions, 100),
             jobId,
             rowShardResolver,
             itemFactory,
@@ -111,7 +114,7 @@ public class ColumnIndexWriterProjector implements Projector {
 
     @Override
     public BatchIterator apply(BatchIterator batchIterator) {
-        return new AsyncOperationBatchIterator(batchIterator, 1, accumulator);
+        return CollectingBatchIterator.newInstance(batchIterator, shardingUpsertExecutor, 1);
     }
 
     @Override

@@ -32,6 +32,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 
 public class ShardResponse extends ReplicationResponse implements WriteResponse {
@@ -178,4 +179,21 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         out.writeBoolean(forcedRefresh);
     }
 
+    /**
+     * Iterates over the provided ShardResponse locations and marks the corresponding location in the provided BitSet
+     * with true if the response has an item at the location or false if the location is a failure.
+     */
+    public static void markResponseItemsAndFailures(ShardResponse shardResponse, BitSet bitSet) {
+        IntArrayList itemIndices = shardResponse.itemIndices();
+        List<Failure> failures = shardResponse.failures();
+        for (int i = 0; i < itemIndices.size(); i++) {
+            int location = itemIndices.get(i);
+            ShardResponse.Failure failure = failures.get(i);
+            if (failure == null) {
+                bitSet.set(location, true);
+            } else {
+                bitSet.set(location, false);
+            }
+        }
+    }
 }
