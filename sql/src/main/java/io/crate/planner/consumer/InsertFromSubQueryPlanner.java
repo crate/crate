@@ -30,7 +30,7 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.DocReferenceConverter;
+import io.crate.metadata.DocReferences;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -100,7 +100,7 @@ public final class InsertFromSubQueryPlanner {
             List<Symbol> outputs = table.querySpec().outputs();
             assert !table.querySpec().orderBy().isPresent() : "insert from subquery with order by is not supported";
             for (int i = 0; i < outputs.size(); i++) {
-                outputs.set(i, DocReferenceConverter.toSourceLookup(outputs.get(i)));
+                outputs.set(i, DocReferences.toSourceLookup(outputs.get(i)));
             }
             return null;
         }

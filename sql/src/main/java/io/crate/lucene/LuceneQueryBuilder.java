@@ -40,7 +40,10 @@ import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.match.CrateRegexCapabilities;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.lucene.match.MatchQueries;
-import io.crate.metadata.*;
+import io.crate.metadata.DocReferences;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.DocInputFactory;
@@ -126,7 +129,7 @@ public class LuceneQueryBuilder {
         } else if (!whereClause.hasQuery()) {
             ctx.query = Queries.newMatchAllQuery();
         } else {
-            Symbol query = InverseDocReferenceConverter.convertSourceLookupColumns(whereClause.query());
+            Symbol query = DocReferences.inverseSourceLookup(whereClause.query());
             ctx.query = VISITOR.process(query, ctx);
         }
         if (LOGGER.isTraceEnabled()) {
@@ -1296,7 +1299,7 @@ public class LuceneQueryBuilder {
             // reason1: analyzed columns or columns with index off wouldn't work
             //   substr(n, 1, 1) in the case of n => analyzed would throw an error because n would be an array
             // reason2: would have to load each value into the field cache
-            function = (Function) DocReferenceConverter.toSourceLookup(function);
+            function = (Function) DocReferences.toSourceLookup(function);
 
             final InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = context.docInputFactory.getCtx();
             @SuppressWarnings("unchecked")

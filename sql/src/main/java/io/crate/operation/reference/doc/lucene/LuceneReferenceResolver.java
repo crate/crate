@@ -25,15 +25,12 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.DocReferenceConverter;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.types.*;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -116,7 +113,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                 return new GeoShapeColumnReference(colName);
             case ArrayType.ID:
             case SetType.ID:
-                return DocCollectorExpression.create(DocReferenceConverter.toSourceLookup(refInfo));
+                return DocCollectorExpression.create(DocReferences.toSourceLookup(refInfo));
             default:
                 throw new UnhandledServerException(String.format(Locale.ENGLISH, "unsupported type '%s'", refInfo.valueType().getName()));
         }
