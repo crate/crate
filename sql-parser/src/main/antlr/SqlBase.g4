@@ -402,6 +402,7 @@ createStmt
         RETURNS returnType=dataType
         LANGUAGE language=parameterOrIdent
         AS body=parameterOrString                                                    #createFunction
+    | CREATE USER name=ident                                                         #createUser
     ;
 
 functionArgument
@@ -563,6 +564,7 @@ nonReserved
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
     | ISOLATION | TRANSACTION | LEVEL | LANGUAGE | OPEN | CLOSE
+    | ISOLATION | TRANSACTION | LEVEL | LANGUAGE | OPEN | CLOSE | USER
     ;
 
 SELECT: 'SELECT';
@@ -758,6 +760,9 @@ GENERATED: 'GENERATED';
 ALWAYS: 'ALWAYS';
 
 READ: 'READ';
+
+USER: 'USER';
+
 
 EQ  : '=';
 NEQ : '<>' | '!=';
