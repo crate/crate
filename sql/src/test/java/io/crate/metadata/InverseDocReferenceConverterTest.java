@@ -40,27 +40,27 @@ public class InverseDocReferenceConverterTest {
     public void testConvertDocReference() throws Exception {
         // users._doc['name'] -> users.name
         Reference reference = stringRef("_doc.name");
-        Reference newRef = (Reference) InverseDocReferenceConverter.convertIf(reference);
+        Reference newRef = (Reference) InverseDocReferenceConverter.convertSourceLookupColumns(reference);
         assertEquals(stringRef("name").ident(), newRef.ident());
 
         // users._doc -> users._doc
         reference = stringRef("_doc");
-        newRef = (Reference) InverseDocReferenceConverter.convertIf(reference);
+        newRef = (Reference) InverseDocReferenceConverter.convertSourceLookupColumns(reference);
         assertEquals(stringRef("_doc").ident(), newRef.ident());
     }
 
     @Test
     public void testDontConvertOtherReferences() throws Exception {
         Reference reference = stringRef("_raw");
-        Reference newRef = (Reference) InverseDocReferenceConverter.convertIf(reference);
+        Reference newRef = (Reference) InverseDocReferenceConverter.convertSourceLookupColumns(reference);
         assertEquals(reference.ident(), newRef.ident());
 
         reference = stringRef("_id");
-        newRef = (Reference) InverseDocReferenceConverter.convertIf(reference);
+        newRef = (Reference) InverseDocReferenceConverter.convertSourceLookupColumns(reference);
         assertEquals(reference.ident(), newRef.ident());
 
         reference = stringRef("address.zip_code");
-        newRef = (Reference) InverseDocReferenceConverter.convertIf(reference);
+        newRef = (Reference) InverseDocReferenceConverter.convertSourceLookupColumns(reference);
         assertEquals(reference.ident(), newRef.ident());
     }
 }

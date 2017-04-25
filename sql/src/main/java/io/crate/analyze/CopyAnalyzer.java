@@ -202,7 +202,7 @@ class CopyAnalyzer {
                 Symbol symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
                 symbol = normalizer.normalize(symbol, analysis.transactionContext());
                 outputNames.add(SymbolPrinter.INSTANCE.printSimple(symbol));
-                outputs.add(DocReferenceConverter.convertIf(symbol));
+                outputs.add(DocReferenceConverter.toSourceLookup(symbol));
             }
             columnsDefined = true;
         } else {

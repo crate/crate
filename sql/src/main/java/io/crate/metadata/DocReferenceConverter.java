@@ -21,32 +21,22 @@
 
 package io.crate.metadata;
 
+import io.crate.analyze.symbol.RefReplacer;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.doc.DocSysColumns;
-
-import java.util.function.Predicate;
 
 /**
  * Visitor to change regular column references into references using the DOC sys column.
  * <p/>
  * e.g.   s.t.colname -&gt; s.t._DOC['colname']
  */
-public class DocReferenceConverter {
-
-    private final static Visitor VISITOR = new Visitor();
-
-    private final static Predicate<Reference> DEFAULT_PREDICATE = input -> {
-        assert input != null : "input must not be null";
-        ReferenceIdent ident = input.ident();
-        String schema = ident.tableIdent().schema();
-        return Schemas.isDefaultOrCustomSchema(schema);
-    };
+public final class DocReferenceConverter {
 
     /**
      * will convert any references that are analyzed or not indexed to doc-references
      */
-    public static Symbol convertIf(Symbol symbol) {
-        return VISITOR.process(symbol, DEFAULT_PREDICATE);
+    public static Symbol toSourceLookup(Symbol tree) {
+        return RefReplacer.replaceRefs(tree, DocReferenceConverter::toSourceLookup);
     }
 
     public static Reference toSourceLookup(Reference reference) {
@@ -54,26 +44,11 @@ public class DocReferenceConverter {
         if (ident.columnIdent().isSystemColumn()) {
             return reference;
         }
-        if (reference.granularity() == RowGranularity.DOC) {
+        if (reference.granularity() == RowGranularity.DOC && Schemas.isDefaultOrCustomSchema(ident.tableIdent().schema())) {
             return reference.getRelocated(
                 new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(DocSysColumns.DOC.name())));
         }
         return reference;
-    }
-
-    private static class Visitor extends ReplacingSymbolVisitor<Predicate<Reference>> {
-
-        public Visitor() {
-            super(ReplaceMode.COPY);
-        }
-
-        @Override
-        public Symbol visitReference(Reference symbol, Predicate<Reference> predicate) {
-            if (predicate.test(symbol)) {
-                return toSourceLookup(symbol);
-            }
-            return symbol;
-        }
     }
 
     private DocReferenceConverter() {

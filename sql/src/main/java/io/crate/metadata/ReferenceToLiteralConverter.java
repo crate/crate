@@ -29,72 +29,65 @@ import io.crate.types.DataType;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import java.util.*;
+import java.util.function.Function;
 
-public class ReferenceToLiteralConverter extends ReplacingSymbolVisitor<ReferenceToLiteralConverter.Context> {
+public class ReferenceToLiteralConverter implements Function<Reference, Symbol> {
 
-    public static class Context {
-        private final Map<Reference, InputColumn> referenceInputColumnMap;
-        private final BitSet inputIsMap;
-        private Object[] values;
+    private final Map<Reference, InputColumn> referenceInputColumnMap;
+    private final BitSet inputIsMap;
+    private Object[] values;
 
-        public Context(List<Reference> insertColumns, Collection<Reference> allReferencedReferences) {
-            referenceInputColumnMap = new HashMap<>(allReferencedReferences.size());
-            inputIsMap = new BitSet(insertColumns.size());
-            for (Reference reference : allReferencedReferences) {
-                int idx = 0;
-                for (Reference insertColumn : insertColumns) {
-                    if (insertColumn.equals(reference)) {
-                        referenceInputColumnMap.put(reference, new InputColumn(idx, reference.valueType()));
-                        inputIsMap.set(idx, false);
-                        break;
-                    } else if (reference.ident().columnIdent().isChildOf(insertColumn.ident().columnIdent())) {
-                        referenceInputColumnMap.put(reference, new InputColumn(idx, reference.valueType()));
-                        inputIsMap.set(idx, true);
-                        break;
-                    }
-                    idx++;
+    public ReferenceToLiteralConverter(List<Reference> insertColumns, Collection<Reference> allReferencedReferences) {
+        referenceInputColumnMap = new HashMap<>(allReferencedReferences.size());
+        inputIsMap = new BitSet(insertColumns.size());
+        for (Reference reference : allReferencedReferences) {
+            int idx = 0;
+            for (Reference insertColumn : insertColumns) {
+                if (insertColumn.equals(reference)) {
+                    referenceInputColumnMap.put(reference, new InputColumn(idx, reference.valueType()));
+                    inputIsMap.set(idx, false);
+                    break;
+                } else if (reference.ident().columnIdent().isChildOf(insertColumn.ident().columnIdent())) {
+                    referenceInputColumnMap.put(reference, new InputColumn(idx, reference.valueType()));
+                    inputIsMap.set(idx, true);
+                    break;
                 }
+                idx++;
             }
         }
-
-        public void values(Object[] values) {
-            this.values = values;
-        }
-
-
-        public Symbol resolveReferenceValue(Reference reference) {
-            assert values != null : "values must be set first";
-
-            InputColumn inputColumn = referenceInputColumnMap.get(reference);
-            if (inputColumn != null) {
-                assert inputColumn.valueType() != null : "expects dataType to be set on InputColumn";
-                DataType dataType = inputColumn.valueType();
-                Object value;
-                if (inputIsMap.get(inputColumn.index())) {
-                    ColumnIdent columnIdent = reference.ident().columnIdent().shiftRight();
-                    assert columnIdent != null : "shifted ColumnIdent must not be null";
-
-                    //noinspection unchecked
-                    value = XContentMapValues.extractValue(
-                        columnIdent.fqn(), (Map) values[inputColumn.index()]);
-                } else {
-                    value = values[inputColumn.index()];
-                }
-                return Literal.of(dataType, dataType.value(value));
-            }
-
-            DataType dataType = reference.valueType();
-            return Literal.of(dataType, dataType.value(null));
-        }
-
     }
 
-    public ReferenceToLiteralConverter() {
-        super(ReplaceMode.COPY);
+    public void values(Object[] values) {
+        this.values = values;
+    }
+
+    private Symbol resolveReferenceValue(Reference reference) {
+        assert values != null : "values must be set first";
+
+        InputColumn inputColumn = referenceInputColumnMap.get(reference);
+        if (inputColumn != null) {
+            assert inputColumn.valueType() != null : "expects dataType to be set on InputColumn";
+            DataType dataType = inputColumn.valueType();
+            Object value;
+            if (inputIsMap.get(inputColumn.index())) {
+                ColumnIdent columnIdent = reference.ident().columnIdent().shiftRight();
+                assert columnIdent != null : "shifted ColumnIdent must not be null";
+
+                //noinspection unchecked
+                value = XContentMapValues.extractValue(
+                    columnIdent.fqn(), (Map) values[inputColumn.index()]);
+            } else {
+                value = values[inputColumn.index()];
+            }
+            return Literal.of(dataType, dataType.value(value));
+        }
+
+        DataType dataType = reference.valueType();
+        return Literal.of(dataType, dataType.value(null));
     }
 
     @Override
-    public Symbol visitReference(Reference reference, Context context) {
-        return context.resolveReferenceValue(reference);
+    public Symbol apply(Reference reference) {
+        return resolveReferenceValue(reference);
     }
 }

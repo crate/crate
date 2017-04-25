@@ -27,10 +27,8 @@ import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
-import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolType;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
@@ -51,8 +49,6 @@ import java.util.*;
 import java.util.function.Function;
 
 class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
-
-    private static final ReferenceToLiteralConverter TO_LITERAL_CONVERTER = new ReferenceToLiteralConverter();
 
     private static class ValuesResolver implements io.crate.analyze.ValuesAwareExpressionAnalyzer.ValuesResolver {
 
@@ -119,7 +115,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         for (GeneratedReference reference : tableInfo.generatedColumns()) {
             allReferencedReferences.addAll(reference.referencedReferences());
         }
-        ReferenceToLiteralConverter.Context referenceToLiteralContext = new ReferenceToLiteralConverter.Context(
+        ReferenceToLiteralConverter refToLiteral = new ReferenceToLiteralConverter(
             statement.columns(), allReferencedReferences);
 
         ValueNormalizer valuesNormalizer = new ValueNormalizer(schemas);
@@ -144,7 +140,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 node.onDuplicateKeyAssignments(),
                 statement,
                 analysis.parameterContext(),
-                referenceToLiteralContext);
+                refToLiteral);
         }
         return statement;
     }
@@ -191,7 +187,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                List<Assignment> assignments,
                                InsertFromValuesAnalyzedStatement statement,
                                ParameterContext parameterContext,
-                               ReferenceToLiteralConverter.Context referenceToLiteralContext) {
+                               ReferenceToLiteralConverter refToLiteral) {
         validateValuesSize(node.values(), statement, tableRelation);
 
         try {
@@ -214,7 +210,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                         node,
                         assignments,
                         statement,
-                        referenceToLiteralContext,
+                        refToLiteral,
                         numPks,
                         idFunction,
                         i
@@ -233,7 +229,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                     node,
                     assignments,
                     statement,
-                    referenceToLiteralContext,
+                    refToLiteral,
                     numPks,
                     idFunction,
                     -1
@@ -255,7 +251,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                            ValuesList node,
                            List<Assignment> assignments,
                            InsertFromValuesAnalyzedStatement context,
-                           ReferenceToLiteralConverter.Context referenceToLiteralContext,
+                           ReferenceToLiteralConverter refToLiteral,
                            int numPrimaryKeys,
                            Function<List<BytesRef>, String> idFunction,
                            int bulkIdx) throws IOException {
@@ -354,7 +350,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             context,
             normalizer,
             transactionContext,
-            referenceToLiteralContext,
+            refToLiteral,
             primaryKeyValues,
             insertValues,
             routingValue);
@@ -430,7 +426,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
         private final DocTableRelation tableRelation;
         private final InsertFromValuesAnalyzedStatement analyzedStatement;
-        private final ReferenceToLiteralConverter.Context referenceToLiteralContext;
+        private final ReferenceToLiteralConverter refToLiteral;
         private final TransactionContext transactionContext;
         private final List<BytesRef> primaryKeyValues;
         private final EvaluatingNormalizer normalizer;
@@ -444,7 +440,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                            InsertFromValuesAnalyzedStatement analyzedStatement,
                                            EvaluatingNormalizer normalizer,
                                            TransactionContext transactionContext,
-                                           ReferenceToLiteralConverter.Context referenceToLiteralContext,
+                                           ReferenceToLiteralConverter refToLiteral,
                                            List<BytesRef> primaryKeyValues,
                                            Object[] insertValues,
                                            @Nullable String routingValue) {
@@ -454,16 +450,16 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             this.primaryKeyValues = primaryKeyValues;
             this.insertValues = insertValues;
             this.routingValue = routingValue;
-            this.referenceToLiteralContext = referenceToLiteralContext;
+            this.refToLiteral = refToLiteral;
             this.normalizer = normalizer;
-            referenceToLiteralContext.values(insertValues);
+            refToLiteral.values(insertValues);
         }
     }
 
     private void processGeneratedExpressions(GeneratedExpressionContext context) {
         List<ColumnIdent> primaryKey = context.analyzedStatement.tableInfo().primaryKey();
         for (GeneratedReference reference : context.tableRelation.tableInfo().generatedColumns()) {
-            Symbol valueSymbol = TO_LITERAL_CONVERTER.process(reference.generatedExpression(), context.referenceToLiteralContext);
+            Symbol valueSymbol = RefReplacer.replaceRefs(reference.generatedExpression(), context.refToLiteral);
             valueSymbol = context.normalizer.normalize(valueSymbol, context.transactionContext);
             if (valueSymbol.symbolType() == SymbolType.LITERAL) {
                 Object value = ((Input) valueSymbol).value();
@@ -525,5 +521,4 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 givenValue, generatedValue));
         }
     }
-
 }

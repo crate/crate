@@ -126,7 +126,7 @@ public class LuceneQueryBuilder {
         } else if (!whereClause.hasQuery()) {
             ctx.query = Queries.newMatchAllQuery();
         } else {
-            Symbol query = InverseDocReferenceConverter.convertIf(whereClause.query());
+            Symbol query = InverseDocReferenceConverter.convertSourceLookupColumns(whereClause.query());
             ctx.query = VISITOR.process(query, ctx);
         }
         if (LOGGER.isTraceEnabled()) {
@@ -1296,7 +1296,7 @@ public class LuceneQueryBuilder {
             // reason1: analyzed columns or columns with index off wouldn't work
             //   substr(n, 1, 1) in the case of n => analyzed would throw an error because n would be an array
             // reason2: would have to load each value into the field cache
-            function = (Function) DocReferenceConverter.convertIf(function);
+            function = (Function) DocReferenceConverter.toSourceLookup(function);
 
             final InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = context.docInputFactory.getCtx();
             @SuppressWarnings("unchecked")
