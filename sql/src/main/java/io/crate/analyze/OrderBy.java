@@ -154,7 +154,7 @@ public class OrderBy implements Streamable {
         return new OrderBy(Lists2.copyAndReplace(orderBySymbols, replaceFunction), reverseFlags, nullsFirst);
     }
 
-    public void replace(Function<? super Symbol, Symbol> replaceFunction) {
+    public void replace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         ListIterator<Symbol> listIt = orderBySymbols.listIterator();
         while (listIt.hasNext()) {
             listIt.set(replaceFunction.apply(listIt.next()));

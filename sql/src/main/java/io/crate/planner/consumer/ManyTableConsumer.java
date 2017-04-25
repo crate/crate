@@ -406,25 +406,15 @@ public class ManyTableConsumer implements Consumer {
     }
 
     static void replaceFieldsWithRelationColumns(MultiSourceSelect mss) {
-        final FieldToRelationColumnCtx ctx = new FieldToRelationColumnCtx(mss);
-        Function<Symbol, Symbol> replaceFunction = new Function<Symbol, Symbol>() {
-            @Nullable
-            @Override
-            public Symbol apply(@Nullable Symbol input) {
-                if (input == null) {
-                    return null;
-                }
-                return FieldToRelationColumnVisitor.INSTANCE.process(input, ctx);
-            }
-        };
-
+        final FieldToRelationColumn ctx = new FieldToRelationColumn(mss);
+        Function<? super Symbol, ? extends Symbol> replaceFieldsInTreeWithRC = FieldReplacer.bind(ctx);
         if (mss.remainingOrderBy().isPresent()) {
-            mss.remainingOrderBy().get().orderBy().replace(replaceFunction);
+            mss.remainingOrderBy().get().orderBy().replace(replaceFieldsInTreeWithRC);
         }
         for (JoinPair joinPair : mss.joinPairs()) {
-            joinPair.replaceCondition(replaceFunction);
+            joinPair.replaceCondition(replaceFieldsInTreeWithRC);
         }
-        mss.querySpec().replace(replaceFunction);
+        mss.querySpec().replace(replaceFieldsInTreeWithRC);
     }
 
     private static class SubSetOfQualifiedNamesPredicate implements Predicate<Symbol> {
@@ -502,32 +492,23 @@ public class ManyTableConsumer implements Consumer {
         }
     }
 
-    private static class FieldToRelationColumnCtx {
+    private static class FieldToRelationColumn implements Function<Field, Symbol> {
         private final Map<AnalyzedRelation, QualifiedName> relationToName;
         private final MultiSourceSelect mss;
 
-        FieldToRelationColumnCtx(MultiSourceSelect mss) {
+        FieldToRelationColumn(MultiSourceSelect mss) {
             relationToName = new IdentityHashMap<>(mss.sources().size());
             for (Map.Entry<QualifiedName, RelationSource> entry : mss.sources().entrySet()) {
                 relationToName.put(entry.getValue().relation(), entry.getKey());
             }
             this.mss = mss;
         }
-    }
-
-    private static class FieldToRelationColumnVisitor extends ReplacingSymbolVisitor<FieldToRelationColumnCtx> {
-
-        private static final FieldToRelationColumnVisitor INSTANCE = new FieldToRelationColumnVisitor(ReplaceMode.COPY);
-
-        FieldToRelationColumnVisitor(ReplaceMode mode) {
-            super(mode);
-        }
 
         @Override
-        public Symbol visitField(Field field, FieldToRelationColumnCtx ctx) {
-            QualifiedName qualifiedName = ctx.relationToName.get(field.relation());
+        public Symbol apply(Field field) {
+            QualifiedName qualifiedName = relationToName.get(field.relation());
             int idx = 0;
-            for (Symbol symbol : ctx.mss.sources().get(qualifiedName).querySpec().outputs()) {
+            for (Symbol symbol : mss.sources().get(qualifiedName).querySpec().outputs()) {
                 if (symbol instanceof Field) {
                     if (((Field) symbol).path().equals(field.path())) {
                         return new RelationColumn(qualifiedName, idx, field.valueType());

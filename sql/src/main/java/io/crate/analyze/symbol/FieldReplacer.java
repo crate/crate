@@ -22,25 +22,32 @@
 
 package io.crate.analyze.symbol;
 
-import java.util.function.Consumer;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.ReplacingSymbolVisitor;
 
-public final class FieldsVisitor extends DefaultTraversalSymbolVisitor<Consumer<? super Field>, Void> {
+import java.util.function.Function;
 
-    private static final FieldsVisitor FIELDS_VISITOR = new FieldsVisitor();
+public final class FieldReplacer extends ReplacingSymbolVisitor<Function<? super Field, ? extends Symbol>> {
+
+    private final static FieldReplacer REPLACER = new FieldReplacer();
+
+    private FieldReplacer() {
+        super(ReplaceMode.COPY);
+    }
+
+    public static Symbol replaceFields(Symbol tree, Function<? super Field, ? extends Symbol> replaceFunc) {
+        if (tree == null) {
+            return null;
+        }
+        return REPLACER.process(tree, replaceFunc);
+    }
+
+    public static Function<? super Symbol, ? extends Symbol> bind(Function<? super Field, ? extends Symbol> replaceFunc) {
+        return st -> replaceFields(st, replaceFunc);
+    }
 
     @Override
-    public Void visitField(Field field, Consumer<? super Field> context) {
-        context.accept(field);
-        return null;
-    }
-
-    public static void visitFields(Symbol symbolTree, Consumer<? super Field> consumer) {
-        FIELDS_VISITOR.process(symbolTree, consumer);
-    }
-
-    public static void visitFields(Iterable<? extends Symbol> symbolTrees, Consumer<? super Field> consumer) {
-        for (Symbol symbolTree : symbolTrees) {
-            visitFields(symbolTree, consumer);
-        }
+    public Symbol visitField(Field field, Function<? super Field, ? extends Symbol> replaceFunc) {
+        return replaceFunc.apply(field);
     }
 }

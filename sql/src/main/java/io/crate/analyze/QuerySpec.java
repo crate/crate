@@ -36,7 +36,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.function.Consumer;
 
 public class QuerySpec {
 
@@ -268,7 +267,7 @@ public class QuerySpec {
         return newSpec;
     }
 
-    public void replace(Function<? super Symbol, Symbol> replaceFunction) {
+    public void replace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         Lists2.replaceItems(outputs, replaceFunction);
         if (where.hasQuery()) {
             where = new WhereClause(replaceFunction.apply(where.query()), where.docKeys().orElse(null), where.partitions());

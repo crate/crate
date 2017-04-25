@@ -58,7 +58,7 @@ public class Lists2 {
      * This is similar to {@link Lists#transform(List, com.google.common.base.Function)}, but instead of creating a
      * view on a backing list this function is actually mutating the provided list
      */
-    public static <T> void replaceItems(@Nullable List<T> list, Function<? super T, T> replaceFunction) {
+    public static <T> void replaceItems(@Nullable List<T> list, Function<? super T, ? extends T> replaceFunction) {
         if (list == null || list.isEmpty()) {
             return;
         }

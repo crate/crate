@@ -105,17 +105,13 @@ public class Rewriter {
             if (outerRelationQuery != null) {
                 QuerySpec outerSpec = outerRelations.get(outerRelation);
 
-                Symbol symbol = Symbols.replaceField(
+                Symbol symbol = FieldReplacer.replaceFields(
                     outerRelationQuery,
-                    new java.util.function.Function<Field, Symbol>() {
-                        @Nullable
-                        @Override
-                        public Symbol apply(@Nullable Field input) {
-                            if (input != null && input.relation().getQualifiedName().equals(outerRelation)) {
-                                return Literal.NULL;
-                            }
-                            return input;
+                    field -> {
+                        if (field.relation().getQualifiedName().equals(outerRelation)) {
+                            return Literal.NULL;
                         }
+                        return field;
                     }
                 );
                 Symbol normalized = normalizer.normalize(symbol, null);
@@ -143,7 +139,7 @@ public class Rewriter {
                                               Symbol outerRelationQuery) {
         RemoveFieldsNotToCollectFunction removeFieldsNotToCollectFunction =
             new RemoveFieldsNotToCollectFunction(outerRelation, multiSourceQuerySpec.outputs(), joinPair.condition());
-        outerSpec.where(outerSpec.where().add(Symbols.replaceField(
+        outerSpec.where(outerSpec.where().add(FieldReplacer.replaceFields(
             outerRelationQuery,
             removeFieldsNotToCollectFunction)));
         if (splitQueries.isEmpty()) { // All queries where successfully pushed down
