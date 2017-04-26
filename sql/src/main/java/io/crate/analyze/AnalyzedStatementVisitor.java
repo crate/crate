@@ -121,6 +121,10 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitDDLStatement(analysis, context);
     }
 
+    public R visitAlterTableOpenCloseStatement(AlterTableOpenCloseAnalyzedStatement analysis, C context) {
+        return visitDDLStatement(analysis, context);
+    }
+
     public R visitKillAnalyzedStatement(KillAnalyzedStatement analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
