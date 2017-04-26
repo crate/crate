@@ -24,4 +24,7 @@ Changes
 Fixes
 =====
 
+ - Fix: Log4j would yield a "No log4j2 configuration file found" error when 
+   shutting down crate ungracefully (via kill signal)
+
  - Fix: Restoring empty partitioned tables wasn't possible
