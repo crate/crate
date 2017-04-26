@@ -29,10 +29,12 @@ import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSn
 import org.elasticsearch.action.admin.cluster.snapshots.delete.TransportDeleteSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.get.TransportGetSnapshotsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshotAction;
+import org.elasticsearch.action.admin.indices.close.TransportCloseIndexAction;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
+import org.elasticsearch.action.admin.indices.open.TransportOpenIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
@@ -41,6 +43,7 @@ import org.elasticsearch.action.get.TransportGetAction;
 import org.elasticsearch.action.get.TransportMultiGetAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.transport.Transport;
 
 public class TransportActionProvider {
 
@@ -70,6 +73,9 @@ public class TransportActionProvider {
     private final Provider<TransportRestoreSnapshotAction> transportRestoreSnapshotActionProvider;
     private final Provider<TransportGetSnapshotsAction> transportGetSnapshotsActionProvider;
 
+    private final Provider<TransportOpenIndexAction> transportOpenIndexActionProvider;
+    private final Provider<TransportCloseIndexAction> transportCloseIndexActionProvider;
+
     @Inject
     public TransportActionProvider(Provider<TransportFetchNodeAction> transportFetchNodeActionProvider,
                                    Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,
@@ -91,7 +97,9 @@ public class TransportActionProvider {
                                    Provider<TransportDeleteSnapshotAction> transportDeleteSnapshotActionProvider,
                                    Provider<TransportCreateSnapshotAction> transportCreateSnapshotActionProvider,
                                    Provider<TransportRestoreSnapshotAction> transportRestoreSnapshotActionProvider,
-                                   Provider<TransportGetSnapshotsAction> transportGetSnapshotsActionPovider) {
+                                   Provider<TransportGetSnapshotsAction> transportGetSnapshotsActionPovider,
+                                   Provider<TransportOpenIndexAction> transportOpenIndexActionProvider,
+                                   Provider<TransportCloseIndexAction> transportCloseIndexActionProvider) {
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportPutIndexTemplateActionProvider = transportPutIndexTemplateActionProvider;
@@ -113,6 +121,8 @@ public class TransportActionProvider {
         this.transportCreateSnapshotActionProvider = transportCreateSnapshotActionProvider;
         this.transportRestoreSnapshotActionProvider = transportRestoreSnapshotActionProvider;
         this.transportGetSnapshotsActionProvider = transportGetSnapshotsActionPovider;
+        this.transportOpenIndexActionProvider = transportOpenIndexActionProvider;
+        this.transportCloseIndexActionProvider = transportCloseIndexActionProvider;
     }
 
     public TransportCreateIndexAction transportCreateIndexAction() {
@@ -197,5 +207,13 @@ public class TransportActionProvider {
 
     public TransportGetSnapshotsAction transportGetSnapshotsAction() {
         return transportGetSnapshotsActionProvider.get();
+    }
+
+    public TransportOpenIndexAction transportOpenIndexAction() {
+        return transportOpenIndexActionProvider.get();
+    }
+
+    public TransportCloseIndexAction transportCloseIndexAction() {
+        return transportCloseIndexActionProvider.get();
     }
 }
