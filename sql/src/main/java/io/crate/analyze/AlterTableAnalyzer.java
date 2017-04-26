@@ -89,7 +89,7 @@ class AlterTableAnalyzer {
     }
 
     @Nullable
-    private static PartitionName getPartitionName(List<Assignment> partitionsProperties,
+    public static PartitionName getPartitionName(List<Assignment> partitionsProperties,
                                                   DocTableInfo tableInfo,
                                                   Row parameters) {
         if (partitionsProperties.isEmpty()) {

@@ -116,6 +116,11 @@ public class DDLStatementDispatcher {
             return alterTableOperation.executeAlterTableAddColumn(analysis);
         }
 
+        public CompletableFuture<Long> visitAlterTableOpenCloseStatement(AlterTableOpenCloseAnalyzedStatement analysis,
+                                                                         Row parameters) {
+            return alterTableOperation.executeAlterTableOpenClose(analysis);
+        }
+
         @Override
         public CompletableFuture<Long> visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, Row parameters) {
             if (analysis.settings().getAsBoolean(OptimizeSettings.UPGRADE_SEGMENTS.name(),
