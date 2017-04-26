@@ -158,7 +158,7 @@ class NestedLoopConsumer implements Consumer {
                     functions, context.plannerContext().transactionContext());
             }
 
-            context.setFetchDecider(FetchDecider.NEVER);
+            context.setFetchMode(FetchMode.NEVER);
             Plan leftPlan = context.plannerContext().planSubRelation(left, context);
             Plan rightPlan = context.plannerContext().planSubRelation(right, context);
             context.requiredPageSize(null);

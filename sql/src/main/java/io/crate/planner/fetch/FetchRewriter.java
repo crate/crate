@@ -26,10 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.analyze.symbol.FetchReference;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.RefReplacer;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.*;
 import io.crate.collections.Lists2;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
@@ -93,7 +90,16 @@ public final class FetchRewriter {
         private final TableIdent tableIdent;
         private final List<Reference> partitionedByColumns;
         private final Reference fetchId;
-        final List<Symbol> preFetchOutputs;
+        private final List<Symbol> preFetchOutputs;
+
+        /**
+          * Symbols describing the outputs after the fetch.
+          *
+          * These are the columns from the selectList/querySpec#outputs but may have been modified
+          * (For example to do a source lookup)
+          *
+          * The order of the column matches the order they had in the selectList/querySpec
+          */
         final List<Symbol> postFetchOutputs;
         private final Collection<Reference> fetchRefs;
 
@@ -121,6 +127,68 @@ public final class FetchRewriter {
 
         public TableIdent table() {
             return tableIdent;
+        }
+
+        public Collection<? extends Symbol> preFetchOutputs() {
+            return preFetchOutputs;
+        }
+
+        /**
+         * Test if any Fields within {@code tree} are available pre-fetch.
+         *
+         */
+        public boolean availablePreFetch(Symbol tree) {
+            boolean[] available = new boolean[] { true };
+            FieldsVisitor.visitFields(tree, f -> {
+                Symbol symbol = mapFieldToPostFetchOutput(f);
+                if (preFetchOutputs.contains(symbol)) {
+                    available[0] &= true;
+                } else {
+                    RefVisitor.visitRefs(symbol, r -> {
+                        available[0] &= preFetchOutputs.contains(r);
+                    });
+                }
+            });
+            return available[0];
+        }
+
+        public boolean availablePreFetch(Iterable<? extends Symbol> trees) {
+            for (Symbol tree : trees) {
+                if (!availablePreFetch(tree)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public Function<? super Symbol,? extends Symbol> mapFieldsInTreeToPostFetch() {
+            return FieldReplacer.bind(this::mapFieldToPostFetchOutput);
+        }
+
+        /**
+         * Update the postFetchOutput to include any evaluations from the selectList of a parent relation.
+         *
+         * Example:
+         * <pre>
+         *     select x + x, y from (select y, x from t order by x) tt
+         *                           preFetch: Ref[_fetchId], Ref[x]
+         *                           postFetch: Ref[_docY], Ref[x]
+         *            updatePostFetchOutputs add(Field[x, idx=1], Field[x, idx=1]), Ref[_docY]
+         *            ->
+         *            postFetch: add(Ref[x], Ref[x]), Ref[_docY]
+         * </pre>
+         */
+        public void updatePostFetchOutputs(List<Symbol> newOutputs) {
+            List<Symbol> newPostFetchOutputs = Lists2.copyAndReplace(
+                newOutputs,
+                st -> FieldReplacer.replaceFields(st, this::mapFieldToPostFetchOutput));
+            postFetchOutputs.clear();
+            postFetchOutputs.addAll(newPostFetchOutputs);
+        }
+
+
+        private Symbol mapFieldToPostFetchOutput(Field field) {
+            return postFetchOutputs.get(field.index());
         }
     }
 

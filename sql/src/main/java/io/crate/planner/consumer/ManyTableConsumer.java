@@ -355,11 +355,11 @@ public class ManyTableConsumer implements Consumer {
         public Plan visitMultiSourceSelect(MultiSourceSelect mss, ConsumerContext context) {
             if (isUnsupportedStatement(mss, context)) return null;
 
-            if (mss.canBeFetched().isEmpty() || context.fetchDecider().tryFetchRewrite() == false) {
+            if (mss.canBeFetched().isEmpty() || context.fetchMode() == FetchMode.NEVER) {
                 return getPlan(mss, context);
             }
 
-            context.setFetchDecider(FetchDecider.NEVER);
+            context.setFetchMode(FetchMode.NEVER);
             FetchPushDown.Builder<MultiSourceSelect> builder = FetchPushDown.pushDown(mss);
             if (builder == null) {
                 return getPlan(mss, context);

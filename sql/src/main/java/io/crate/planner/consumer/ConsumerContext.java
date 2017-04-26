@@ -31,7 +31,7 @@ public class ConsumerContext {
     private final Planner.Context plannerContext;
 
     private ValidationException validationException;
-    private FetchDecider fetchDecider = FetchDecider.ALWAYS;
+    private FetchMode fetchMode = FetchMode.NO_PROPAGATION;
     private Integer requiredPageSize;
 
     public ConsumerContext(Planner.Context plannerContext) {
@@ -51,12 +51,12 @@ public class ConsumerContext {
         return plannerContext;
     }
 
-    public void setFetchDecider(FetchDecider fetchDecider) {
-        this.fetchDecider = fetchDecider;
+    public void setFetchMode(FetchMode fetchMode) {
+        this.fetchMode = fetchMode;
     }
 
-    FetchDecider fetchDecider() {
-        return fetchDecider;
+    FetchMode fetchMode() {
+        return fetchMode;
     }
 
     void requiredPageSize(Integer requiredPageSize) {

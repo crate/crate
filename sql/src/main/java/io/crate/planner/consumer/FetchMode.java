@@ -26,33 +26,12 @@ package io.crate.planner.consumer;
  * Component to help make decisions in the planner on how/if fetch-phases should be planned.
  *
  * This is mostly relevant for nested-relations where the plan being created will also contain one or more sub-plans.
- * A planner component for a parent-relation can set a FetchDecider on the {@link ConsumerContext} to influence the planning of
+ * A planner component for a parent-relation can set a FetchMode on the {@link ConsumerContext} to influence the planning of
  * child-relations.
  */
-@FunctionalInterface
-public interface FetchDecider {
+public enum FetchMode {
 
-    FetchDecider NEVER = () -> false;
-    FetchDecider ALWAYS = () -> true;
-    FetchDecider NO_FINALIZE = new FetchDecider() {
-        @Override
-        public boolean tryFetchRewrite() {
-            return true;
-        }
-
-        @Override
-        public boolean finalizeFetch() {
-            return false;
-        }
-    };
-
-    /**
-     * Verify if it makes sense to attempt doing a fetch-rewrite.
-     * This is an approximation, if it returns true it may not be possible to really fetch anything.
-     */
-    boolean tryFetchRewrite();
-
-    default boolean finalizeFetch() {
-        return true;
-    }
+    NEVER,
+    NO_PROPAGATION,
+    WITH_PROPAGATION
 }

@@ -184,7 +184,7 @@ public class FetchRewriterTest extends CrateDummyClusterServiceUnitTest {
         QueriedDocTable docTable = (QueriedDocTable) stmt.relation();
         FetchRewriter.FetchDescription fetchDescription = FetchRewriter.rewrite(docTable);
 
-        assertThat(fetchDescription.preFetchOutputs, contains(isReference("_fetchid"), isFunction("add")));
+        assertThat(fetchDescription.preFetchOutputs(), contains(isReference("_fetchid"), isFunction("add")));
         assertThat(fetchDescription.postFetchOutputs, contains(isFunction("add"), isReference("_doc['a']")));
 
         List<Symbol> fetchOutputs = FetchRewriter.generateFetchOutputs(fetchDescription);

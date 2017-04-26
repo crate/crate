@@ -100,7 +100,7 @@ public class MultiSourceGroupByConsumer implements Consumer {
 
             removePostGroupingActionsFromQuerySpec(multiSourceSelect, splitPoints);
 
-            context.setFetchDecider(FetchDecider.NEVER);
+            context.setFetchMode(FetchMode.NEVER);
             Plan plan = context.plannerContext().planSubRelation(multiSourceSelect, context);
 
             if (isExecutedOnHandler(context, plan)) {

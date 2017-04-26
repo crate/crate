@@ -39,7 +39,7 @@ import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.consumer.ConsumerContext;
-import io.crate.planner.consumer.FetchDecider;
+import io.crate.planner.consumer.FetchMode;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.projection.MergeCountProjection;
@@ -191,7 +191,7 @@ public class CopyStatementPlanner {
             outputFormat);
 
         ConsumerContext consumerContext = new ConsumerContext(context);
-        consumerContext.setFetchDecider(FetchDecider.NEVER);
+        consumerContext.setFetchMode(FetchMode.NEVER);
         Plan plan = context.planSubRelation(statement.subQueryRelation(), consumerContext);
         if (plan == null) {
             return null;

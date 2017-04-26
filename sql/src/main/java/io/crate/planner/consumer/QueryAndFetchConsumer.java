@@ -42,10 +42,8 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.node.fetch.FetchSource;
-import io.crate.planner.projection.FetchProjection;
-import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.*;
+import io.crate.planner.projection.builder.InputColumns;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import javax.annotation.Nullable;
@@ -75,13 +73,13 @@ public class QueryAndFetchConsumer implements Consumer {
             if (!isSimpleSelect(qs, context)) {
                 return null;
             }
-            FetchDecider fetchDecider = context.fetchDecider();
-            if (!fetchDecider.tryFetchRewrite() || !FetchRewriter.isFetchFeasible(qs)) {
+            FetchMode fetchMode = context.fetchMode();
+            if (fetchMode == FetchMode.NEVER || !FetchRewriter.isFetchFeasible(qs)) {
                 return normalSelect(table, context);
             }
             FetchRewriter.FetchDescription fetchDescription = FetchRewriter.rewrite(table);
             Plan subPlan = normalSelect(table, context);
-            if (fetchDecider.finalizeFetch()) {
+            if (fetchMode == FetchMode.NO_PROPAGATION) {
                 Planner.Context plannerContext = context.plannerContext();
                 subPlan = Merge.ensureOnHandler(subPlan, plannerContext);
                 return planFetch(fetchDescription, plannerContext, subPlan);
@@ -108,26 +106,118 @@ public class QueryAndFetchConsumer implements Consumer {
                 return null;
             }
             Planner.Context plannerContext = context.plannerContext();
-            context.setFetchDecider(FetchDecider.NO_FINALIZE);
             QueriedRelation subRelation = relation.subRelation();
+            FetchMode parentFetchMode = context.fetchMode();
+            context.setFetchMode(FetchMode.WITH_PROPAGATION);
             Plan subPlan = plannerContext.planSubRelation(subRelation, context);
+            context.setFetchMode(parentFetchMode);
+
             FetchRewriter.FetchDescription fetchDescription = subPlan.resultDescription().fetchDescription();
             if (fetchDescription == null) {
                 return finalizeQueriedSelectPlanWithoutFetch(qs, plannerContext, subRelation, subPlan);
             }
-            return finalizeFetchAndQueriedSelectPlan(qs, subRelation, subPlan, plannerContext);
+            return tryToPropagateFetch(qs, subRelation, subPlan, context);
         }
     }
 
-    private static Plan finalizeFetchAndQueriedSelectPlan(QuerySpec querySpec,
-                                                          QueriedRelation subRelation,
-                                                          Plan plan,
-                                                          Planner.Context plannerContext) {
+    /**
+     *  - Applies WHERE / ORDER BY / LIMIT projections PRE-fetch if possible
+     *  - Propagates FetchDescription to parent relation if possible (only if requested via FetchMode)
+     *  - Finalizes plan (fetch projection + phase) if propagation is not possible or wasn't requested by a parent relation
+     */
+    private static Plan tryToPropagateFetch(QuerySpec querySpec,
+                                            QueriedRelation subRelation,
+                                            Plan plan,
+                                            ConsumerContext context) {
         FetchRewriter.FetchDescription fetchDescription = plan.resultDescription().fetchDescription();
+        Planner.Context plannerContext = context.plannerContext();
         plan = Merge.ensureOnHandler(plan, plannerContext);
-        plan = planFetch(fetchDescription, plannerContext, plan);
 
-        return finalizeQueriedSelectPlanWithoutFetch(querySpec, plannerContext, subRelation, plan);
+        WhereClause where = querySpec.where();
+        boolean appliedWhere = tryApplyWherePreFetch(plan, fetchDescription, where);
+
+        Limits limits = plannerContext.getLimits(querySpec);
+        boolean appliedOrderByAndLimit = false;
+        if (appliedWhere) {
+            appliedOrderByAndLimit = tryApplyOrderAndLimitPreFetch(querySpec, plan, fetchDescription, limits);
+        }
+
+        if (appliedWhere && appliedOrderByAndLimit && context.fetchMode() == FetchMode.WITH_PROPAGATION) {
+            fetchDescription.updatePostFetchOutputs(querySpec.outputs());
+            return new PlanWithFetchDescription(plan, fetchDescription);
+        }
+
+        plan = planFetch(fetchDescription, plannerContext, plan);
+        if (!appliedWhere) {
+            applyFilter(plan, subRelation.fields(), where);
+        }
+        if (appliedOrderByAndLimit) {
+            if (!querySpec.outputs().equals(subRelation.fields())) {
+                EvalProjection eval = new EvalProjection(
+                    InputColumns.create(querySpec.outputs(), new InputColumns.Context(subRelation.fields())));
+                plan.addProjection(eval, null, null, null);
+            }
+        } else {
+            Projection projection = ProjectionBuilder.topNOrEval(
+                subRelation.fields(),
+                querySpec.orderBy().orElse(null),
+                limits.offset(),
+                limits.finalLimit(),
+                querySpec.outputs()
+            );
+            plan.addProjection(projection, null, null, null);
+        }
+        return plan;
+    }
+
+    private static boolean tryApplyWherePreFetch(Plan plan,
+                                                 FetchRewriter.FetchDescription fetchDescription,
+                                                 WhereClause where) {
+        if (where.noMatch()) {
+            applyFilter(plan, fetchDescription.preFetchOutputs(), where);
+            return true;
+        }
+        if (!where.hasQuery()) {
+            return true;
+        }
+        if (fetchDescription.availablePreFetch(where.query())) {
+            Symbol query = fetchDescription.mapFieldsInTreeToPostFetch().apply(where.query());
+            FilterProjection filterProjection = new FilterProjection(
+                InputColumns.create(query, fetchDescription.preFetchOutputs()),
+                InputColumn.fromSymbols(fetchDescription.preFetchOutputs())
+            );
+            plan.addProjection(filterProjection, null, null, null);
+            return true;
+        }
+        return false;
+    }
+
+    private static boolean tryApplyOrderAndLimitPreFetch(QuerySpec qs,
+                                                         Plan plan,
+                                                         FetchRewriter.FetchDescription fetchDescription,
+                                                         Limits limits) {
+        OrderBy orderBy = qs.orderBy().orElse(null);
+        if (orderBy == null) {
+            TopNProjection topN = new TopNProjection(
+                limits.finalLimit(),
+                limits.offset(),
+                InputColumn.fromSymbols(fetchDescription.preFetchOutputs()));
+            plan.addProjection(topN, null, null, null);
+            return true;
+        }
+        if (fetchDescription.availablePreFetch(orderBy.orderBySymbols())) {
+            orderBy.replace(fetchDescription.mapFieldsInTreeToPostFetch());
+            Projection projection = ProjectionBuilder.topNOrEval(
+                fetchDescription.preFetchOutputs(),
+                orderBy,
+                limits.offset(),
+                limits.finalLimit(),
+                fetchDescription.preFetchOutputs()
+            );
+            plan.addProjection(projection, null, null, null);
+            return true;
+        }
+        return false;
     }
 
     private static Plan planFetch(FetchRewriter.FetchDescription fetchDescription,
