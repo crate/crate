@@ -22,6 +22,7 @@
 
 package io.crate.planner;
 
+import io.crate.planner.fetch.FetchRewriter;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -84,4 +85,8 @@ public interface ResultDescription {
      * sorting
      */
     List<DataType> streamOutputs();
+
+    default FetchRewriter.FetchDescription fetchDescription() {
+        return null;
+    }
 }

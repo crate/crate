@@ -23,6 +23,7 @@
 package io.crate.planner;
 
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.PlanWithFetchDescription;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.*;
@@ -51,7 +52,9 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testNestedSimpleSelectUsesFetch() throws Exception {
         QueryThenFetch qtf = e.plan(
             "select x, i from (select x, i from t1 order by x asc limit 10) ti order by x desc limit 3");
-        List<Projection> projections = ((Collect) qtf.subPlan()).collectPhase().projections();
+        PlanWithFetchDescription planWithFetchDescription = (PlanWithFetchDescription) qtf.subPlan();
+        Collect collect = (Collect) planWithFetchDescription.subPlan();
+        List<Projection> projections = collect.collectPhase().projections();
         assertThat(projections, Matchers.contains(
             instanceOf(TopNProjection.class),
             instanceOf(TopNProjection.class),
@@ -69,7 +72,9 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                                     "   (select x, i from t1 order by x asc limit 10) ti " +
                                     "where ti.x = 10 " +
                                     "order by x desc limit 3");
-        List<Projection> projections = ((Collect) qtf.subPlan()).collectPhase().projections();
+        PlanWithFetchDescription planWithFetchDescription = (PlanWithFetchDescription) qtf.subPlan();
+        Collect collect = (Collect) planWithFetchDescription.subPlan();
+        List<Projection> projections = collect.collectPhase().projections();
         assertThat(projections, Matchers.hasItem(instanceOf(FilterProjection.class)));
     }
 

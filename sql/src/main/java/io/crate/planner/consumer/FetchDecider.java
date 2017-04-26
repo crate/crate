@@ -34,10 +34,25 @@ public interface FetchDecider {
 
     FetchDecider NEVER = () -> false;
     FetchDecider ALWAYS = () -> true;
+    FetchDecider NO_FINALIZE = new FetchDecider() {
+        @Override
+        public boolean tryFetchRewrite() {
+            return true;
+        }
+
+        @Override
+        public boolean finalizeFetch() {
+            return false;
+        }
+    };
 
     /**
      * Verify if it makes sense to attempt doing a fetch-rewrite.
      * This is an approximation, if it returns true it may not be possible to really fetch anything.
      */
     boolean tryFetchRewrite();
+
+    default boolean finalizeFetch() {
+        return true;
+    }
 }

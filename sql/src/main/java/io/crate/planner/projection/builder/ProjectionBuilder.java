@@ -25,7 +25,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.symbol.*;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
+import io.crate.metadata.RowGranularity;
 import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.projection.*;
@@ -125,7 +128,7 @@ public class ProjectionBuilder {
                                         @Nullable OrderBy orderBy,
                                         int offset,
                                         int limit,
-                                        @Nullable Collection<Symbol> outputs) {
+                                        @Nullable Collection<? extends Symbol> outputs) {
 
         InputColumns.Context context = new InputColumns.Context(inputs);
         List<Symbol> inputsProcessed = InputColumns.create(inputs, context);
