@@ -12,7 +12,7 @@ does not work out of the box.
 Luckily, Crate has several built-in mechanisms for unicast host discovery,
 also one for EC2. EC2 discovery uses the `EC2 API`_ to look up other EC2 hosts
 that are then used as unicast hosts for node discovery (see
-:ref:`conf_discovery`).
+:ref:`conf_host_discovery`).
 
 .. note::
 
