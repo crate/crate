@@ -507,7 +507,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             context.OPEN() != null
         );
     }
-// Assignments
 
     @Override
     public Node visitSetGlobalAssignment(SqlBaseParser.SetGlobalAssignmentContext context) {

@@ -167,7 +167,8 @@ public class DocIndexMetaData {
     }
 
     public static boolean isClosed(IndexMetaData indexMetaData, Map<String, Object> mappingMap, boolean isPartitioned) {
-        // First, we must check that if the table is partitioned, whether the metadata flag is there.
+        // Checking here for whether the closed flag exists on the template metadata, as partitioned tables that are
+        // empty (and thus have no indexes who have states) need a way to set their state.
         if (isPartitioned) {
             return getNested(getNested(mappingMap, "_meta", null), SETTING_CLOSED, false);
         }

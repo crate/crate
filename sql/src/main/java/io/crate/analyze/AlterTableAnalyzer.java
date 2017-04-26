@@ -47,7 +47,7 @@ class AlterTableAnalyzer {
     public AlterTableAnalyzedStatement analyze(AlterTable node, Row parameters, String defaultSchema) {
         Table table = node.table();
         DocTableInfo docTableInfo = schemas.getTableInfo(TableIdent.of(table, defaultSchema), Operation.ALTER_BLOCKS);
-        PartitionName partitionName = getPartitionName(table.partitionProperties(), docTableInfo, parameters);
+        PartitionName partitionName = createPartitionName(table.partitionProperties(), docTableInfo, parameters);
         TableParameterInfo tableParameterInfo = getTableParameterInfo(table, docTableInfo, partitionName);
         TableParameter tableParameter = getTableParameter(node, parameters, tableParameterInfo);
         maybeRaiseBlockedException(docTableInfo, tableParameter.settings());
@@ -87,10 +87,19 @@ class AlterTableAnalyzer {
         }
     }
 
+    /**
+     * Creates and returns a PartitionName based on a list of partition properties, table info and row params from
+     * the query. Used so that the analyzer/operation can determine the partition supplied with the query.
+     *
+     * @param partitionsProperties A list of partition property assignments
+     * @param tableInfo The table info of the relevant table
+     * @param parameters The parameters supplied with the query
+     * @return An instance of PartitionName based on the supplied partition properties, table info and params.
+     */
     @Nullable
-    private static PartitionName getPartitionName(List<Assignment> partitionsProperties,
-                                                  DocTableInfo tableInfo,
-                                                  Row parameters) {
+    public static PartitionName createPartitionName(List<Assignment> partitionsProperties,
+                                                    DocTableInfo tableInfo,
+                                                    Row parameters) {
         if (partitionsProperties.isEmpty()) {
             return null;
         }
