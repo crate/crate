@@ -39,6 +39,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testChecksPresenceAndSeverityLevels() throws Exception {
         internalCluster().startNode();
+        internalCluster().ensureAtLeastNumDataNodes(1);
 
         SQLResponse response = execute("select severity, passed from sys.checks order by id asc");
         assertThat(response.rowCount(), equalTo(4L));
@@ -52,6 +53,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
         Settings settings = Settings.builder().put("discovery.zen.minimum_master_nodes", 1).build();
         internalCluster().startNode(settings);
         internalCluster().startNode(settings);
+        internalCluster().ensureAtLeastNumDataNodes(2);
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
         assertThat(TestingHelpers.printedTable(response.rows()), is("3| false\n"));
     }
@@ -61,6 +63,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
         Settings settings = Settings.builder().put("discovery.zen.minimum_master_nodes", 2).build();
         internalCluster().startNode(settings);
         internalCluster().startNode(settings);
+        internalCluster().ensureAtLeastNumDataNodes(2);
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
         assertThat(TestingHelpers.printedTable(response.rows()), is("3| true\n"));
     }
@@ -68,6 +71,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testNumberOfPartitionCheckPassedForDocTablesCustomAndDefaultSchemas() {
         internalCluster().startNode();
+        internalCluster().ensureAtLeastNumDataNodes(1);
         execute("create table foo.bar (id int) partitioned by (id)");
         execute("create table bar (id int) partitioned by (id)");
         execute("insert into foo.bar (id) values (?)", new Object[]{1});
