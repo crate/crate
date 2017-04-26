@@ -951,10 +951,10 @@ those queries.
   Defines the timeout of internal shard-based requests involved
   in the execution of SQL DML Statements over a huge amount of rows.
 
+.. _conf_discovery:
 
 Discovery
 ---------
-.. _discovery.zen.minimum_master_nodes:
 
 **discovery.zen.minimum_master_nodes**
   | *Default:*   ``1``
@@ -987,7 +987,7 @@ Discovery
 
    Multicast used to be an option for node discovery, but was deprecated in CrateDB 1.0.3 and removed in CrateDB 1.1.
 
-.. _conf_discovery:
+.. _conf_host_discovery:
 
 Unicast Host Discovery
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -1606,6 +1606,9 @@ Metadata
   Defines how often the cluster collect metadata information
   (e.g. disk usages etc.) if no concrete  event is triggered.
 
+
+.. _metadata_gateway:
+
 Metadata Gateway
 ~~~~~~~~~~~~~~~~
 
@@ -1613,7 +1616,7 @@ Metadata Gateway
   changes. This data is stored persistently across full cluster restarts and
   recovered after nodes are started again.
 
-.. _gateway.expected_nodes:
+.. _gateway_expected_nodes:
 
 **gateway.expected_nodes**
   | *Default:*   ``-1``

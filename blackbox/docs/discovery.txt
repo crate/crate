@@ -9,7 +9,7 @@ Amazon EC2 Discovery
 
 CrateDB has native discovery support when running a cluster with *Amazon Web Services*
 (AWS). The discovery mechanism uses the `Amazon EC2`_ API to to generate the
-list of hosts for the unicast host discovery (see :ref:`conf_discovery`).
+list of hosts for the unicast host discovery (see :ref:`conf_host_discovery`).
 
 There is a :ref:`best practice <ec2_setup>` how to configure and run a CrateDB
 cluster on Amazon EC2.
@@ -25,7 +25,7 @@ Microsoft Azure Discovery
 CrateDB has native discovery support when running a cluster on `Microsoft
 Azure`_ infrastructure. The discovery mechanism uses the *Azure Resource
 Management* (ARM) API to generate the list of hosts for the unicast host discovery
-(see :ref:`conf_discovery`).
+(see :ref:`conf_host_discovery`).
 
 The discovery mechanism is implemented as a plugin and resides within the plugin
 folder of the CrateDB installation. However, since the Azure Java SDKs does have
