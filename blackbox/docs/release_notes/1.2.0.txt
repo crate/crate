@@ -24,25 +24,25 @@ Breaking Changes
 ================
 
  - To accommodate user-defined functions, some new reserved keywords have been
-   added to the CrateDB SQL dialect: ``RETURNS``, ``CALLED`, ``REPLACE``,
+   added to the CrateDB SQL dialect: ``RETURNS``, ``CALLED``, ``REPLACE``,
    ``FUNCTION``, ``LANGUAGE``, ``INPUT``
 
- - The ``enterprise.license`` setting is set to ``true`` by default.  
-   This enables the CrateDB `enterprise edition`_.  
+ - The :ref:`conf_enterprise_license` setting is set to ``true`` by default.
+   This enables the CrateDB `Enterprise Edition`_.
 
-   Once you have evaluated the `enterprise edition`_ of CrateDB, you must
-   either buy an enterprise license, or disable this setting.  
+   Once you have evaluated the `Enterprise Edition`_ of CrateDB, you must
+   either buy an enterprise license, or disable this setting.
 
    If you disable this setting, CrateDB will run with the standard feature set.
 
  - The default value of the ``node.max_local_storage_nodes`` node setting has
    been changed to ``1`` to prevent running multiple nodes on the same data
-   path by default.  
+   path by default.
 
    Previous versions of CrateDB defaulted to allowing up to 50 nodes running on
    the same data path. This was confusing where users accidentally started
    multiple nodes and ended up thinking they have lost data because the second
-   node will start with an empty directory.  
+   node will start with an empty directory.
 
    Running multiple nodes on the same data path tends to be an exception,
    so this is a safer default.
@@ -131,9 +131,9 @@ Changes
 
  - The license identifier is now displayed in the Enterprise Edition.
 
- - Added JavaScript language for functions.
-
  - Added support for user-defined functions.
+
+ - Added JavaScript language for functions.
 
  - Added cluster check and warning for unlicensed usage of CrateDB Enterprise.
 
@@ -149,7 +149,7 @@ Changes
  - Improved performance of blob stats computation by calculating them in an
    incremental manner.
 
- - Optimized performance of negation queries on ``NOT NULL`` columns.  
+ - Optimized performance of negation queries on ``NOT NULL`` columns.
    e.g.::
 
      SELECT * FROM t WHERE not_null_col != 10
@@ -164,11 +164,11 @@ Fixes
    wrong results and  was changed to throw ``UnsupportedOperationException``.
    e.g.::
 
-     ``SELECT DISTINCT col1 from t1 GROUP BY col2, col1``
+     SELECT DISTINCT col1 from t1 GROUP BY col2, col1
 
  - Fix: An error was thrown when using ``ORDER BY count(*)`` on ``JOINS``.
    e.g.::
-   
-      ``SELECT count(*) from t1, t2 order by 1``
+
+      SELECT count(*) from t1, t2 order by 1
 
 .. _enterprise edition: https://crate.io/enterprise-edition/
