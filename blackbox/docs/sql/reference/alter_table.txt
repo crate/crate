@@ -88,4 +88,3 @@ columns with a value each to identify the partition to alter.
 :value: The columns value.
 
 .. seealso:: :ref:`Alter Partitioned Tables <partitioned_tables_alter>`
-

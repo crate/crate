@@ -28,10 +28,7 @@ import io.crate.Constants;
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
-import io.crate.analyze.AddColumnAnalyzedStatement;
-import io.crate.analyze.AlterTableAnalyzedStatement;
-import io.crate.analyze.PartitionedTableParameterInfo;
-import io.crate.analyze.TableParameter;
+import io.crate.analyze.*;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
@@ -41,8 +38,14 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
+import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
+import org.elasticsearch.action.admin.indices.close.CloseIndexResponse;
+import org.elasticsearch.action.admin.indices.close.TransportCloseIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
+import org.elasticsearch.action.admin.indices.open.OpenIndexRequest;
+import org.elasticsearch.action.admin.indices.open.OpenIndexResponse;
+import org.elasticsearch.action.admin.indices.open.TransportOpenIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
@@ -54,6 +57,7 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -73,14 +77,20 @@ public class AlterTableOperation {
 
     private final ClusterService clusterService;
     private final TransportActionProvider transportActionProvider;
+    private final Provider<TransportOpenIndexAction> transportOpenIndexActionProvider;
+    private final Provider<TransportCloseIndexAction> transportCloseIndexActionProvider;
     private final SQLOperations sqlOperations;
 
     @Inject
     public AlterTableOperation(ClusterService clusterService,
                                TransportActionProvider transportActionProvider,
+                               Provider<TransportOpenIndexAction> transportOpenIndexActionProvider,
+                               Provider<TransportCloseIndexAction> transportCloseIndexActionProvider,
                                SQLOperations sqlOperations) {
         this.clusterService = clusterService;
         this.transportActionProvider = transportActionProvider;
+        this.transportOpenIndexActionProvider = transportOpenIndexActionProvider;
+        this.transportCloseIndexActionProvider = transportCloseIndexActionProvider;
         this.sqlOperations = sqlOperations;
     }
 
@@ -107,7 +117,52 @@ public class AlterTableOperation {
         return result;
     }
 
-    private class ResultSetReceiver implements ResultReceiver {
+    public CompletableFuture<Long> executeAlterTableOpenClose(final AlterTableOpenCloseAnalyzedStatement analysis) {
+        List<CompletableFuture<Long>> results = new ArrayList<>(2);
+        DocTableInfo table = analysis.tableInfo();
+
+        String[] concreteIndices;
+        Optional<PartitionName> partitionName = analysis.partitionName();
+        if (partitionName.isPresent()) {
+            concreteIndices = new String[]{partitionName.get().asIndexName()};
+        } else {
+            concreteIndices = analysis.tableInfo().concreteIndices();
+            if (table.isPartitioned()) {
+                results.add(updateOpenCloseOnPartitionTemplate(analysis.openTable(), table.ident()));
+            } else if (!table.isClosed() == analysis.openTable()) {
+                return CompletableFuture.completedFuture(-1L);
+            }
+        }
+
+        if (concreteIndices.length > 0) {
+            if (analysis.openTable()) {
+                results.add(openTable(concreteIndices));
+            } else {
+                results.add(closeTable(concreteIndices));
+            }
+        }
+
+        final CompletableFuture<Long> result = new CompletableFuture<>();
+        applyMultiFutureCallback(result, results);
+        return result;
+    }
+
+    private CompletableFuture<Long> openTable(String... indices) {
+        FutureActionListener<OpenIndexResponse, Long> listener = new FutureActionListener<>(r -> 0L);
+        OpenIndexRequest request = new OpenIndexRequest(indices);
+        transportOpenIndexActionProvider.get().execute(request, listener);
+        return listener;
+    }
+
+    private CompletableFuture<Long> closeTable(String... indices) {
+        FutureActionListener<CloseIndexResponse, Long> listener = new FutureActionListener<>(r -> 0L);
+        CloseIndexRequest request = new CloseIndexRequest(indices);
+        transportCloseIndexActionProvider.get().execute(request, listener);
+        return listener;
+    }
+
+
+        private class ResultSetReceiver implements ResultReceiver {
 
         private final AddColumnAnalyzedStatement analysis;
         private final CompletableFuture<?> result;
@@ -191,11 +246,29 @@ public class AlterTableOperation {
         return result;
     }
 
+    private CompletableFuture<Long> updateOpenCloseOnPartitionTemplate(boolean openTable, TableIdent tableIdent) {
+        Map metaMap = Collections.singletonMap("_meta", Collections.singletonMap("closed", true));
+        if (openTable) {
+            //Remove the mapping from the template.
+            return updateTemplate(Collections.emptyMap(), metaMap, Settings.EMPTY, tableIdent);
+        } else {
+            //Otherwise, add the mapping to the template.
+            return updateTemplate(metaMap, Settings.EMPTY, tableIdent);
+        }
+    }
+
     private CompletableFuture<Long> updateTemplate(TableParameter tableParameter, TableIdent tableIdent) {
         return updateTemplate(tableParameter.mappings(), tableParameter.settings(), tableIdent);
     }
 
     private CompletableFuture<Long> updateTemplate(Map<String, Object> newMappings,
+                                                   Settings newSettings,
+                                                   TableIdent tableIdent) {
+        return updateTemplate(newMappings, Collections.emptyMap(), newSettings, tableIdent);
+    }
+
+    private CompletableFuture<Long> updateTemplate(Map<String, Object> newMappings,
+                                                   Map<String, Object> mappingsToRemove,
                                                    Settings newSettings,
                                                    TableIdent tableIdent) {
         String templateName = PartitionName.templateName(tableIdent.schema(), tableIdent.name());
@@ -208,6 +281,9 @@ public class AlterTableOperation {
         // merge mappings
         Map<String, Object> mapping = mergeTemplateMapping(indexTemplateMetaData, newMappings);
 
+        // remove mappings
+        mapping = removeFromMapping(mapping, mappingsToRemove);
+
         // merge settings
         Settings.Builder settingsBuilder = Settings.builder();
         settingsBuilder.put(indexTemplateMetaData.settings());
@@ -219,6 +295,7 @@ public class AlterTableOperation {
             .order(indexTemplateMetaData.order())
             .settings(settingsBuilder.build())
             .template(indexTemplateMetaData.template());
+
         for (ObjectObjectCursor<String, AliasMetaData> container : indexTemplateMetaData.aliases()) {
             Alias alias = new Alias(container.key);
             request.alias(alias);
@@ -283,6 +360,21 @@ public class AlterTableOperation {
         }
         XContentHelper.update(mergedMapping, newMapping, false);
         return mergedMapping;
+    }
+
+    private static Map<String, Object> removeFromMapping(Map<String, Object> mapping, Map<String, Object> mappingsToRemove) {
+        for (String key : mappingsToRemove.keySet()) {
+            if (mapping.containsKey(key)) {
+                if (mapping.get(key) instanceof Map) {
+                    mapping.put(key, removeFromMapping( (Map<String, Object>) mapping.get(key),
+                                                 (Map<String, Object>) mappingsToRemove.get(key)));
+                } else {
+                    mapping.remove(key);
+                }
+            }
+        }
+
+        return mapping;
     }
 
     private CompletableFuture<Long> updateSettings(TableParameter concreteTableParameter, String... indices) {

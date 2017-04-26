@@ -1032,17 +1032,12 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("create table t (i int)");
         ensureYellow();
 
-        // TODO: replace with `alter table t close` once supported
-        String[] indices = client().admin().indices().getIndex(new GetIndexRequest()).actionGet().getIndices();
-        client().admin().indices().close(new CloseIndexRequest(indices[0])).actionGet();
-
+        execute("alter table t close");
         execute("select closed from information_schema.tables where table_name = 't'");
         assertEquals(1, response.rowCount());
         assertEquals(true, response.rows()[0][0]);
 
-        // TODO: replace with `alter table t partition (i = 1) close` once supported
-        client().admin().indices().open(new OpenIndexRequest(indices[0])).actionGet();
-
+        execute("alter table t open");
         execute("select closed from information_schema.tables where table_name = 't'");
         assertEquals(1, response.rowCount());
         assertEquals(false, response.rows()[0][0]);
@@ -1067,9 +1062,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(false, response.rows()[1][0]);
         assertEquals(false, response.rows()[2][0]);
 
-        // TODO: replace with `alter table t partition (i = 1) close` once supported
-        client().admin().indices().close(new CloseIndexRequest(partitionIdent)).actionGet();
-
+        execute("alter table t partition (i = 1) close");
         execute("select partition_ident, values from information_schema.table_partitions" +
                 " where table_name = 't' and closed = true");
 
@@ -1079,9 +1072,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(1, values.get("i"));
         assertTrue(partitionIdent.endsWith((String) response.rows()[0][0]));
 
-        // TODO: replace with `alter table t partition (i = 1) open` once supported
-        client().admin().indices().open(new OpenIndexRequest(partitionIdent)).actionGet();
-
+        execute("alter table t partition (i = 1) open");
         execute("select closed from information_schema.table_partitions");
 
         assertEquals(3, response.rowCount());
