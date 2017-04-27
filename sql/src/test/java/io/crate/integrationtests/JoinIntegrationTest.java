@@ -575,6 +575,26 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testSimpleOrderByNonUniqueValues() throws Exception {
+        execute("create table t1 (a integer)");
+        execute("create table t2 (x integer)");
+        ensureYellow();
+        execute("insert into t1 (a) values (1), (1), (2), (2)");
+        execute("insert into t2 (x) values (1), (2)");
+        execute("refresh table t1, t2");
+        execute("select a, x from t1, t2 order by a, x");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("1| 1\n" +
+               "1| 1\n" +
+               "1| 2\n" +
+               "1| 2\n" +
+               "2| 1\n" +
+               "2| 1\n" +
+               "2| 2\n" +
+               "2| 2\n"));
+    }
+
+    @Test
     public void testJoinOnInformationSchema() throws Exception {
         execute("create table t (id int, name string) with (number_of_replicas = 1)");
         ensureYellow();

@@ -27,6 +27,10 @@ Changes
 Fixes
 =====
 
+ - ``ORDER BY`` on joins caused incorrect order of values when having multiple
+   non-distinct values on the left part of the join. Now ``ORDER BY`` is
+   correctly applied.
+
  - Fix: Log4j would yield a "No log4j2 configuration file found" error when 
    shutting down crate ungracefully (via kill signal)
 
