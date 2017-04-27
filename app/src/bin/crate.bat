@@ -56,6 +56,9 @@ REM JAVA_OPTS=%JAVA_OPTS% -Xloggc:/var/log/crate/gc.log
 REM Ensure UTF-8 encoding by default (e.g. filenames)
 set JAVA_OPTS=%JAVA_OPTS% -Dfile.encoding=UTF-8
 
+REM log4j options
+set JAVA_OPTS=%JAVA_OPTS% -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx=true -Dlog4j.skipJansi=true
+
 if "%CRATE_CLASSPATH%" == "" (
     set CRATE_CLASSPATH=%CRATE_HOME%/lib/crate-app-@version@.jar;%CRATE_HOME%/lib/*
 ) else (
