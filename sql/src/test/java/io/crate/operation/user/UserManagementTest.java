@@ -36,7 +36,7 @@ public class UserManagementTest extends CrateUnitTest {
     public void testNoopUserManagerLoaded() throws Exception {
         expectedException.expect(ExecutionException.class);
         expectedException.expectMessage(containsString("CREATE USER is only supported in enterprise version"));
-        UserManager defaultUserManager = new UserManagerProvider(null, null).get();
+        UserManager defaultUserManager = new UserManagerProvider(null, null, null, null, null, null, null).get();
         defaultUserManager.createUser(new CreateUserAnalyzedStatement("root")).get();
     }
 }
