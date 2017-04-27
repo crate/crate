@@ -21,14 +21,13 @@
 
 import unittest
 import doctest
-import subprocess
 import zc.customdoctests
 from crate.testing.layer import CrateLayer
 import os
+import time
 import shutil
 import re
 import tempfile
-import glob
 from functools import partial
 from . import process_test
 from testutils.paths import crate_path, project_path
@@ -56,6 +55,7 @@ class CrateTestCmd(CrateCmd):
         else:
             self.execute(stmt)
 
+
 cmd = CrateTestCmd(is_tty=False)
 
 
@@ -64,10 +64,12 @@ def wait_for_schema_update(schema, table, column):
     c = conn.cursor()
     count = 0
     while count == 0:
-        c.execute(('select count(*) from information_schema.columns '
-                   'where table_schema = ? and table_name = ? '
-                   'and column_name = ?'),
-                   (schema, table, column))
+        c.execute(
+            ('select count(*) from information_schema.columns '
+             'where table_schema = ? and table_name = ? '
+             'and column_name = ?'),
+            (schema, table, column)
+        )
         count = c.fetchone()[0]
 
 
@@ -99,7 +101,8 @@ def bash_transform(s):
         return u'cmd.stmt({0})'.format(repr(s.strip().rstrip(';')))
     return (
         r'import subprocess;'
-        r'print(subprocess.check_output(r"""%s""",stderr=subprocess.STDOUT,shell=True).decode("utf-8"))' % s) + '\n'
+        r'print(subprocess.check_output(r"""%s""",stderr=subprocess.STDOUT,shell=True).decode("utf-8"))' % s
+    ) + '\n'
 
 
 def crash_transform(s):
@@ -127,21 +130,7 @@ class ConnectingCrateLayer(CrateLayer):
         super(ConnectingCrateLayer, self).__init__(*args, **kwargs)
 
     def start(self):
-        # this is a copy from CrateLayer.start
-        # with an extension to set `env`:
-        # This is somehow necessary to get travis to launch Crate using
-        # Java 8 instead of 7
-        if os.path.exists(self._wd):
-            shutil.rmtree(self._wd)
-        env = {'JAVA_HOME': os.environ.get('JAVA_HOME', '')}
-        self.process = subprocess.Popen(self.start_cmd, env=env)
-        returncode = self.process.poll()
-        if returncode is not None:
-            raise SystemError('Failed to start server rc={0} cmd={1}'.format(
-                returncode, self.start_cmd))
-        self._wait_for_start()
-        self._wait_for_master()
-
+        super(ConnectingCrateLayer, self).start()
         cmd._connect(self.crate_servers[0])
 
     def tearDown(self):
@@ -155,6 +144,7 @@ crate_layer = ConnectingCrateLayer(
     crate_home=crate_path(),
     port=CRATE_HTTP_PORT,
     transport_port=CRATE_TRANSPORT_PORT,
+    env={'JAVA_HOME': os.environ.get('JAVA_HOME', '')},
     settings={
         'license.enterprise': 'true',
         'lang.js.enabled': 'true'
@@ -186,7 +176,7 @@ def setUpLocations(test):
           index name_description_ft using fulltext(name, description) with (analyzer='english')
         ) clustered by(id) into 2 shards with (number_of_replicas=0)""".strip())
     cmd.stmt("delete from locations")
-    locations_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "locations.json"))
+    locations_file = get_abspath("locations.json")
     cmd.stmt("""copy locations from '{0}'""".format(locations_file))
     cmd.stmt("""refresh table locations""")
 
@@ -205,7 +195,7 @@ def setUpUserVisits(test):
           last_visit timestamp
         )
     """.strip())
-    uservisits_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "uservisits.json"))
+    uservisits_file = get_abspath("uservisits.json")
     cmd.stmt("""copy uservisits from '{0}'""".format(uservisits_file))
     cmd.stmt("""refresh table uservisits""")
 
@@ -222,7 +212,7 @@ def setUpArticles(test):
           name string,
           price float
         ) clustered by(id) into 2 shards with (number_of_replicas=0)""".strip())
-    articles_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "articles.json"))
+    articles_file = get_abspath("articles.json")
     cmd.stmt("""copy articles from '{0}'""".format(articles_file))
     cmd.stmt("""refresh table articles""")
 
@@ -240,7 +230,7 @@ def setUpColors(test):
           rgb string,
           coolness float
         ) with (number_of_replicas=0)""".strip())
-    colors_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "colors.json"))
+    colors_file = get_abspath("colors.json")
     cmd.stmt("""copy colors from '{0}'""".format(colors_file))
     cmd.stmt("""refresh table colors""")
 
@@ -259,7 +249,7 @@ def setUpEmployees(test):
           dept_id integer,
           sex string
         ) with (number_of_replicas=0)""".strip())
-    emp_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "employees.json"))
+    emp_file = get_abspath("employees.json")
     cmd.stmt("""copy employees from '{0}'""".format(emp_file))
     cmd.stmt("""refresh table employees""")
 
@@ -277,7 +267,7 @@ def setUpDepartments(test):
           manager_id integer,
           location integer
         ) with (number_of_replicas=0)""".strip())
-    dept_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "departments.json"))
+    dept_file = get_abspath("departments.json")
     cmd.stmt("""copy departments from '{0}'""".format(dept_file))
     cmd.stmt("""refresh table departments""")
 
@@ -298,12 +288,16 @@ def setUpQuotes(test):
     import_dir = '/tmp/import_data'
     if not os.path.isdir(import_dir):
         os.mkdir(import_dir)
-    shutil.copy(project_path('sql/src/test/resources/essetup/data/copy', 'test_copy_from.json'),
-                os.path.join(import_dir, "quotes.json"))
+    shutil.copy(
+        project_path('sql/src/test/resources/essetup/data/copy',
+                     'test_copy_from.json'),
+        os.path.join(import_dir, "quotes.json")
+    )
 
 
 def tearDownQuotes(test):
     cmd.stmt("""drop table if exists quotes""")
+
 
 def setUpPhotos(test):
     test.globs['cmd'] = cmd
@@ -312,12 +306,14 @@ def setUpPhotos(test):
           name string,
           location geo_point
         ) with(number_of_replicas=0)""".strip())
-    dept_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "photos.json"))
+    dept_file = get_abspath("photos.json")
     cmd.stmt("""copy photos from '{0}'""".format(dept_file))
     cmd.stmt("""refresh table photos""")
 
+
 def tearDownPhotos(test):
     cmd.stmt("""drop table if exists photos""")
+
 
 def setUpCountries(test):
     test.globs['cmd'] = cmd
@@ -326,16 +322,19 @@ def setUpCountries(test):
           name string,
           "geo" geo_shape INDEX using GEOHASH with (precision='1km')
         ) with(number_of_replicas=0)""".strip())
-    dept_file = os.path.abspath(os.path.join(os.path.dirname(__file__), "countries.json"))
+    dept_file = get_abspath("countries.json")
     cmd.stmt("""copy countries from '{0}'""".format(dept_file))
     cmd.stmt("""refresh table countries""")
+
 
 def tearDownCountries(test):
     cmd.stmt("""drop table if exists countries""")
 
+
 def setUpLocationsAndQuotes(test):
     setUpLocations(test)
     setUpQuotes(test)
+
 
 def tearDownLocationsAndQuotes(test):
     tearDownLocations(test)
@@ -346,6 +345,7 @@ def setUpColorsAndArticles(test):
     setUpColors(test)
     setUpArticles(test)
 
+
 def tearDownColorsAndArticles(test):
     tearDownArticles(test)
     tearDownColors(test)
@@ -354,6 +354,7 @@ def tearDownColorsAndArticles(test):
 def setUpLocationsQuotesAndUserVisits(test):
     setUpLocationsAndQuotes(test)
     setUpUserVisits(test)
+
 
 def tearDownLocationsQuotesAndUserVisits(test):
     tearDownLocationsAndQuotes(test)
@@ -364,6 +365,7 @@ def setUpEmployeesAndDepartments(test):
     setUpEmployees(test)
     setUpDepartments(test)
 
+
 def tearDownEmployeesAndDepartments(test):
     tearDownEmployees(test)
     tearDownDepartments(test)
@@ -373,14 +375,17 @@ def setUpPhotosAndCountries(test):
     setUpPhotos(test)
     setUpCountries(test)
 
+
 def tearDownPhotosAndCountries(test):
     tearDownPhotos(test)
     tearDownCountries(test)
+
 
 def setUpEmpDeptAndColourArticlesAndGeo(test):
     setUpEmployeesAndDepartments(test)
     setUpColorsAndArticles(test)
     setUpPhotosAndCountries(test)
+
 
 def tearDownEmpDeptAndColourArticlesAndGeo(test):
     tearDownEmployeesAndDepartments(test)
@@ -405,7 +410,6 @@ def setUpTutorials(test):
 def setUp(test):
     test.globs['cmd'] = cmd
     test.globs['wait_for_schema_update'] = wait_for_schema_update
-
 
 
 docsuite = partial(doctest.DocFileSuite,
@@ -481,7 +485,6 @@ def test_suite():
         s.layer = crate_layer
         docs_suite.addTest(s)
 
-
     for fn in ('sql/dml.txt',):
         s = docsuite('../../' + fn,
                      parser=crash_parser,
@@ -510,3 +513,9 @@ def test_suite():
 
     suite.addTests(docs_suite)
     return suite
+
+
+def get_abspath(name):
+    return os.path.abspath(
+        os.path.join(os.path.dirname(__file__), name)
+    )
