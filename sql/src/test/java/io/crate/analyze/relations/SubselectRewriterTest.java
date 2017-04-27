@@ -26,6 +26,7 @@ import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.RelationSource;
 import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.symbol.Field;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -37,6 +38,7 @@ import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.IsSame.sameInstance;
 
 public class SubselectRewriterTest extends CrateUnitTest {
 
@@ -84,9 +86,8 @@ public class SubselectRewriterTest extends CrateUnitTest {
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.querySpec(),
-            isSQL("SELECT io.crate.analyze.QueriedSelectRelation.a, " +
-                  "io.crate.analyze.QueriedSelectRelation.x, " +
-                  "io.crate.analyze.QueriedSelectRelation.i ORDER BY io.crate.analyze.QueriedSelectRelation.x"));
+            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.x"));
+        assertThat(((Field) outerRelation.querySpec().outputs().get(0)).relation(), sameInstance(outerRelation.subRelation()));
         assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
         assertThat(outerRelation.subRelation().querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.a LIMIT 10"));
@@ -114,10 +115,8 @@ public class SubselectRewriterTest extends CrateUnitTest {
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.querySpec(),
-            isSQL("SELECT io.crate.analyze.QueriedSelectRelation.a, " +
-                  "io.crate.analyze.QueriedSelectRelation.x, " +
-                  "io.crate.analyze.QueriedSelectRelation.i " +
-                  "ORDER BY io.crate.analyze.QueriedSelectRelation.a DESC LIMIT 5"));
+            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.a DESC LIMIT 5"));
+        assertThat(((Field) outerRelation.querySpec().outputs().get(0)).relation(), sameInstance(outerRelation.subRelation()));
         assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
         assertThat(outerRelation.subRelation().querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.a LIMIT 10 OFFSET 5"));

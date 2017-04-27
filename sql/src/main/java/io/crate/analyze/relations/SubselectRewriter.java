@@ -29,7 +29,6 @@ import io.crate.analyze.*;
 import io.crate.analyze.symbol.Aggregations;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
@@ -77,12 +76,15 @@ final class SubselectRewriter {
         public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, Context context) {
             QuerySpec querySpec = relation.querySpec();
             // Try to merge with parent query spec
+            if (context.currentParentQSpec != null) {
+                context.currentParentQSpec.replace(new FieldReplacer(querySpec.outputs()));
+            }
             if (canBeMerged(querySpec, context.currentParentQSpec)) {
                 querySpec = mergeQuerySpec(querySpec, context.currentParentQSpec);
             }
 
             // Try to push down to the child
-            context.currentParentQSpec = querySpec.copyAndReplace(i -> i);
+            context.currentParentQSpec = querySpec.copyAndReplace(input -> input);
             AnalyzedRelation processedChildRelation = process(relation.subRelation(), context);
 
             // If cannot be pushed down replace qSpec with possibly merged qSpec from context
@@ -100,7 +102,7 @@ final class SubselectRewriter {
                 return table;
             }
             QuerySpec querySpec = table.querySpec();
-            context.currentParentQSpec.replace(FieldReferenceResolver.INSTANCE);
+            context.currentParentQSpec.replace(new FieldReplacer(querySpec.outputs()));
             if (!canBeMerged(querySpec, context.currentParentQSpec)) {
                 return null;
             }
@@ -115,7 +117,7 @@ final class SubselectRewriter {
                 return table;
             }
             QuerySpec querySpec = table.querySpec();
-            context.currentParentQSpec.replace(FieldReferenceResolver.INSTANCE);
+            context.currentParentQSpec.replace(new FieldReplacer(table.querySpec().outputs()));
             if (!canBeMerged(querySpec, context.currentParentQSpec)) {
                 return null;
             }
@@ -129,7 +131,7 @@ final class SubselectRewriter {
             if (context.currentParentQSpec == null) {
                 return multiSourceSelect;
             }
-            context.currentParentQSpec.replace(FieldReferenceResolver.INSTANCE);
+            context.currentParentQSpec.replace(new FieldReplacer(multiSourceSelect.querySpec().outputs()));
             QuerySpec querySpec = multiSourceSelect.querySpec();
             if (!canBeMerged(querySpec, context.currentParentQSpec)) {
                 return null;
@@ -144,6 +146,7 @@ final class SubselectRewriter {
                 querySpec,
                 multiSourceSelect.joinPairs());
         }
+
     }
 
     private static QuerySpec mergeQuerySpec(QuerySpec childQSpec, @Nullable QuerySpec parentQSpec) {
@@ -256,86 +259,23 @@ final class SubselectRewriter {
         return true;
     }
 
-    /**
-     * Function to replace Fields with the Reference from the output of the relation the Field is pointing to.
-     * E.g.
-     *
-     * <pre>
-     * select t.x from (select x from t1) t
-     *         |         |
-     *       Field       \                  ____ Reference that is used as replacement.
-     *          relation: t                /
-     *                    +-- QS.outputs: [x]
-     *                                     ^
-     *                                     |
-     *          index: 0 ------------------+
-     *
-     * </pre>
-     */
-    private static class FieldReferenceResolver extends ReplacingSymbolVisitor<Void> implements Function<Symbol, Symbol> {
+    private final static class FieldReplacer extends ReplacingSymbolVisitor<Void> implements Function<Symbol, Symbol> {
 
-        public static final FieldReferenceResolver INSTANCE = new FieldReferenceResolver(ReplaceMode.MUTATE);
-        private static final FieldRelationVisitor<Symbol> FIELD_RELATION_VISITOR = new FieldRelationVisitor<>(INSTANCE);
+        private final List<Symbol> outputs;
 
-        private FieldReferenceResolver(ReplaceMode mode) {
-            super(mode);
+        FieldReplacer(List<Symbol> outputs) {
+            super(ReplaceMode.COPY);
+            this.outputs = outputs;
         }
 
         @Override
         public Symbol visitField(Field field, Void context) {
-            Symbol output = FIELD_RELATION_VISITOR.process(field.relation(), field);
-            return output != null ? output : field;
-        }
-
-        @Nullable
-        @Override
-        public Symbol apply(@Nullable Symbol input) {
-            if (input == null) {
-                return null;
-            }
-            return process(input, null);
-        }
-    }
-
-    /**
-     * Visits an output symbol in a queried relation using the provided field index.
-     */
-    private static class FieldRelationVisitor<R> extends AnalyzedRelationVisitor<Field, R> {
-
-        private final SymbolVisitor<?, R> symbolVisitor;
-
-        FieldRelationVisitor(SymbolVisitor<?, R> symbolVisitor) {
-            this.symbolVisitor = symbolVisitor;
+            return outputs.get(field.index());
         }
 
         @Override
-        protected R visitAnalyzedRelation(AnalyzedRelation relation, Field context) {
-            return null;
-        }
-
-        @Override
-        public R visitQueriedTable(QueriedTable relation, Field field) {
-            return visitQueriedRelation(relation, field);
-        }
-
-        @Override
-        public R visitQueriedDocTable(QueriedDocTable relation, Field field) {
-            return visitQueriedRelation(relation, field);
-        }
-
-        @Override
-        public R visitMultiSourceSelect(MultiSourceSelect relation, Field field) {
-            return visitQueriedRelation(relation, field);
-        }
-
-        @Override
-        public R visitQueriedSelectRelation(QueriedSelectRelation relation, Field field) {
-            return visitQueriedRelation(relation, field);
-        }
-
-        private R visitQueriedRelation(QueriedRelation relation, Field field) {
-            Symbol output = relation.querySpec().outputs().get(field.index());
-            return symbolVisitor.process(output, null);
+        public Symbol apply(Symbol symbol) {
+            return process(symbol, null);
         }
     }
 
