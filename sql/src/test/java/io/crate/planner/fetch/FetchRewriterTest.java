@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
+import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Function;
@@ -34,15 +35,23 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.scalar.arithmetic.AbsFunction;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+import io.crate.testing.T3;
 import io.crate.types.DataTypes;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.util.List;
+
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
-public class FetchRewriterTest {
+public class FetchRewriterTest extends CrateDummyClusterServiceUnitTest {
 
     private static final TableIdent TABLE_IDENT = new TableIdent("s", "t");
     private static final DocTableInfo TABLE_INFO = TestingTableInfo.builder(TABLE_IDENT, mock(Routing.class)).build();
@@ -59,6 +68,13 @@ public class FetchRewriterTest {
         new ReferenceIdent(new TableIdent("s", "t"), "a"),
         RowGranularity.DOC,
         DataTypes.STRING);
+
+    private SQLExecutor e;
+
+    @Before
+    public void setupExecutor() throws Exception {
+        e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
+    }
 
     @Test
     public void testRewriteWithoutOrderBy() throws Exception {
@@ -147,6 +163,32 @@ public class FetchRewriterTest {
         FetchRewriter.rewrite(table);
 
         assertThat(table.querySpec(), isSQL("SELECT s.t._fetchid, s.t.i, s.t._score ORDER BY s.t.i DESC NULLS LAST"));
+    }
+
+    @Test
+    public void testQuerySymbolsAreNotFetchedIfUsedWithinSelectListFunction() throws Exception {
+        SelectAnalyzedStatement stmt = e.analyze("select x + x, a from t1 order by x");
+        QueriedDocTable docTable = (QueriedDocTable) stmt.relation();
+        FetchRewriter.FetchDescription fetchDescription = FetchRewriter.rewrite(docTable);
+
+        assertThat(fetchDescription.postFetchOutputs, contains(isFunction("add"), isReference("_doc['a']")));
+        assertThat(((Function) fetchDescription.postFetchOutputs.get(0)).arguments().get(0), isReference("x"));
+
+        List<Symbol> fetchOutputs = FetchRewriter.generateFetchOutputs(fetchDescription);
+        assertThat(fetchOutputs, isSQL("add(INPUT(1), INPUT(1)), FETCH(INPUT(0), doc.t1._doc['a'])"));
+    }
+
+    @Test
+    public void testPreFetchOutputCanContainFunctions() throws Exception {
+        SelectAnalyzedStatement stmt = e.analyze("select x + x, a from t1 order by 1");
+        QueriedDocTable docTable = (QueriedDocTable) stmt.relation();
+        FetchRewriter.FetchDescription fetchDescription = FetchRewriter.rewrite(docTable);
+
+        assertThat(fetchDescription.preFetchOutputs, contains(isReference("_fetchid"), isFunction("add")));
+        assertThat(fetchDescription.postFetchOutputs, contains(isFunction("add"), isReference("_doc['a']")));
+
+        List<Symbol> fetchOutputs = FetchRewriter.generateFetchOutputs(fetchDescription);
+        assertThat(fetchOutputs, isSQL("INPUT(1), FETCH(INPUT(0), doc.t1._doc['a'])"));
     }
 
     private static Function abs(Symbol symbol) {

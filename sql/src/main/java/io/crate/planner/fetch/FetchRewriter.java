@@ -51,10 +51,10 @@ public final class FetchRewriter {
      * <pre>
      *     fetchDescription
      *          preFetchOutputs: [_fetchId, x]
-     *          postFetchOutputs: [z, y, x]
+     *          postFetchOutputs: [z, y, x + x]
      *
      *     result:
-     *         [FetchRef(ic0, z), FetchRef(ic0, y), ic1]
+     *         [FetchRef(ic0, z), FetchRef(ic0, y), ic1 + ic1]
      *
      * </pre>
      */
@@ -63,13 +63,29 @@ public final class FetchRewriter {
             fetchDescription.preFetchOutputs.indexOf(fetchDescription.fetchId), fetchDescription.fetchId.valueType());
         return Lists2.copyAndReplace(
             fetchDescription.postFetchOutputs,
-            st -> {
-                int indexOf = fetchDescription.preFetchOutputs.indexOf(st);
-                if (indexOf == -1) {
-                    return RefReplacer.replaceRefs(st, r -> new FetchReference(fetchId, r));
+            st -> toFetchReferenceOrInputColumn(st, fetchDescription.preFetchOutputs, fetchId));
+    }
+
+    /**
+     * Replace {@code tree} or any reference within it with a {@link InputColumn} if present in {@code preFetchOutputs}.
+     *
+     * Any references within {@code tree} that are not available until after the fetch phase
+     * will be replaced with a {@link FetchReference}
+     */
+    private static Symbol toFetchReferenceOrInputColumn(Symbol tree,
+                                                        List<? extends Symbol> preFetchOutputs,
+                                                        InputColumn fetchId) {
+        int indexOf = preFetchOutputs.indexOf(tree);
+        if (indexOf == -1) {
+            return RefReplacer.replaceRefs(tree, r -> {
+                int i = preFetchOutputs.indexOf(r);
+                if (i == -1) {
+                    return new FetchReference(fetchId, r);
                 }
-                return new InputColumn(indexOf, fetchDescription.preFetchOutputs.get(indexOf).valueType());
+                return new InputColumn(i, preFetchOutputs.get(i).valueType());
             });
+        }
+        return new InputColumn(indexOf, preFetchOutputs.get(indexOf).valueType());
     }
 
     public final static class FetchDescription {
@@ -77,8 +93,8 @@ public final class FetchRewriter {
         private final TableIdent tableIdent;
         private final List<Reference> partitionedByColumns;
         private final Reference fetchId;
-        private final List<Symbol> preFetchOutputs;
-        private final List<Symbol> postFetchOutputs;
+        final List<Symbol> preFetchOutputs;
+        final List<Symbol> postFetchOutputs;
         private final Collection<Reference> fetchRefs;
 
         private FetchDescription(TableIdent tableIdent,
@@ -181,6 +197,9 @@ public final class FetchRewriter {
             if (ref.granularity() == RowGranularity.DOC) {
                 if (ref.ident().columnIdent().equals(DocSysColumns.SCORE)) {
                     scoreRef = ref;
+                    return ref;
+                }
+                if (querySymbols.contains(ref)) {
                     return ref;
                 }
                 Reference reference = DocReferences.toSourceLookup(ref);
