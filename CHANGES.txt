@@ -22,6 +22,9 @@ Changes
 Fixes
 =====
 
+ - Wrong results were returned from queries with more than one level
+   of nested subselects.
+
  - ``ORDER BY`` on joins caused incorrect order of values when having multiple
    non-distinct values on the left part of the join. Now ``ORDER BY`` is
    correctly applied.

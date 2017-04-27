@@ -52,15 +52,16 @@ final class SubselectRewriter {
         return INSTANCE.process(relation, null);
     }
 
-    private final static class Visitor extends AnalyzedRelationVisitor<QueriedRelation, AnalyzedRelation> {
+    private final static class Visitor extends AnalyzedRelationVisitor<QueriedSelectRelation, AnalyzedRelation> {
 
         @Override
-        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, QueriedRelation parent) {
+        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, QueriedSelectRelation parent) {
             return relation;
         }
 
         @Override
-        public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, QueriedRelation parent) {
+        public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, QueriedSelectRelation parent) {
+            boolean mergedWithParent = false;
             QuerySpec currentQS = relation.querySpec();
             if (parent != null) {
                 FieldReplacer fieldReplacer = new FieldReplacer(currentQS.outputs());
@@ -72,18 +73,29 @@ final class SubselectRewriter {
                         namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.replacedFieldsByNewOutput),
                         currentWithParentMerged
                     );
+                    mergedWithParent = true;
                 }
             }
-            QueriedRelation origSubRelation = relation.subRelation();
-            AnalyzedRelation subRelation = process(origSubRelation, relation);
+            AnalyzedRelation origSubRelation = relation.subRelation();
+            QueriedRelation subRelation = (QueriedRelation) process(origSubRelation, relation);
+
             if (origSubRelation == subRelation) {
                 return relation;
             }
+            if (!mergedWithParent && parent != null) {
+                parent.subRelation(subRelation);
+                FieldReplacer fieldReplacer = new FieldReplacer(subRelation.fields());
+                parent.querySpec().replace(fieldReplacer);
+            }
+            if (relation.subRelation() != origSubRelation) {
+                return relation;
+            }
+
             return subRelation;
         }
 
         @Override
-        public AnalyzedRelation visitQueriedTable(QueriedTable table, QueriedRelation parent) {
+        public AnalyzedRelation visitQueriedTable(QueriedTable table, QueriedSelectRelation parent) {
             if (parent == null) {
                 return table;
             }
@@ -102,7 +114,7 @@ final class SubselectRewriter {
         }
 
         @Override
-        public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, QueriedRelation parent) {
+        public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, QueriedSelectRelation parent) {
             if (parent == null) {
                 return table;
             }
@@ -121,7 +133,7 @@ final class SubselectRewriter {
         }
 
         @Override
-        public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, QueriedRelation parent) {
+        public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, QueriedSelectRelation parent) {
             if (parent == null) {
                 return multiSourceSelect;
             }
@@ -270,10 +282,10 @@ final class SubselectRewriter {
 
     private final static class FieldReplacer extends ReplacingSymbolVisitor<Void> implements Function<Symbol, Symbol> {
 
-        private final List<Symbol> outputs;
+        private final List<? extends Symbol> outputs;
         final HashMap<Symbol, Field> replacedFieldsByNewOutput = new HashMap<>();
 
-        FieldReplacer(List<Symbol> outputs) {
+        FieldReplacer(List<? extends Symbol> outputs) {
             super(ReplaceMode.COPY);
             this.outputs = outputs;
         }
