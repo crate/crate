@@ -22,6 +22,10 @@ Changes
 Fixes
 =====
 
+ - ``ORDER BY`` on joins caused incorrect order of values when having multiple
+   non-distinct values on the left part of the join. Now ``ORDER BY`` is
+   correctly applied.
+
  - Fix: Usage of ``DISTINCT`` in a query with a ``GROUP BY`` was producing
    wrong results and  was changed to throw UnsupportedOperationException.
    e.g.: ``SELECT DISTINCT col1 from t1 GROUP BY col2, col1``

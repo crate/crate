@@ -23,10 +23,7 @@
 package io.crate.analyze.relations;
 
 import com.google.common.base.Supplier;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
@@ -38,6 +35,7 @@ import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Consumer;
 
 public final class RelationSplitter {
 
@@ -50,12 +48,7 @@ public final class RelationSplitter {
     private Set<Field> canBeFetched;
     private RemainingOrderBy remainingOrderBy;
 
-    private static final Supplier<Set<Integer>> INT_SET_SUPPLIER = new Supplier<Set<Integer>>() {
-        @Override
-        public Set<Integer> get() {
-            return new HashSet<>();
-        }
-    };
+    private static final java.util.function.Supplier<Set<Integer>> INT_SET_SUPPLIER = HashSet::new;
 
     public RelationSplitter(QuerySpec querySpec,
                             Collection<? extends AnalyzedRelation> relations,
@@ -173,62 +166,98 @@ public final class RelationSplitter {
         }
         OrderBy orderBy = querySpec.orderBy().get();
         Set<AnalyzedRelation> relations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
-        Multimap<AnalyzedRelation, Integer> splits = Multimaps.newSetMultimap(
-            new IdentityHashMap<AnalyzedRelation, Collection<Integer>>(specs.size()),
-            INT_SET_SUPPLIER);
+        Consumer<Field> relationsConsumer = f -> relations.add(f.relation());
 
-        // Detect remaining orderBy before any push down happens,
-        // since if remaining orderBy is detected we need to
-        // process again all pushed down orderBys and merge them
-        // to the remaining OrderBy in the correct order.
-        for (Symbol symbol : orderBy.orderBySymbols()) {
-            relations.clear();
-            RelationCounter.INSTANCE.process(symbol, relations);
+        // We copy all ORDER BY symbols to remainingOrderBy
+        extractRemainingOrderBy(orderBy, relations, relationsConsumer);
 
-            int relationsSize = relations.size();
-            if (relationsSize > 1 ||
-                // Outer Join requires post-order-by because the nested loop adds rows which affects ordering
-                (relationsSize == 1 &&
-                    JoinPairs.isOuterRelation(relations.iterator().next().getQualifiedName(), joinPairs))) {
-                remainingOrderBy = new RemainingOrderBy();
-                break;
-            }
-        }
+        Multimap<AnalyzedRelation, Integer> splits = extractOrderByForPushDown(orderBy, relations, relationsConsumer);
 
-        Integer idx = 0;
-        for (Symbol symbol : orderBy.orderBySymbols()) {
-            // If order by is pointing to an aggregation we cannot push it down because ordering needs to happen AFTER
-            // the join
-            if (Aggregations.containsAggregation(symbol)) {
-                continue;
-            }
-            relations.clear();
-            RelationCounter.INSTANCE.process(symbol, relations);
-
-            // If remainingOrderBy detected then don't push down anything but
-            // merge it with remainingOrderBy since we need to re-apply this
-            // sort again at the place where remainingOrderBy is applied.
-            if (remainingOrderBy != null) {
-                OrderBy newOrderBy = orderBy.subset(Collections.singletonList(idx));
-                for (AnalyzedRelation rel : relations) {
-                    remainingOrderBy.addRelation(rel.getQualifiedName());
-                }
-                remainingOrderBy.addOrderBy(newOrderBy);
-            } else { // push down
-                splits.put(Iterables.getOnlyElement(relations), idx);
-            }
-            idx++;
-        }
-
-        // Process pushed down order by
+        // Pushed down the orderBy to subquery specs and also set the limitAndOffset if present
+        Optional<Symbol> limitAndOffset = Limits.mergeAdd(querySpec.limit(), querySpec.offset());
         for (Map.Entry<AnalyzedRelation, Collection<Integer>> entry : splits.asMap().entrySet()) {
             AnalyzedRelation relation = entry.getKey();
             OrderBy newOrderBy = orderBy.subset(entry.getValue());
             QuerySpec spec = getSpec(relation);
             assert !spec.orderBy().isPresent() : "spec.orderBy() must not be present";
             spec.orderBy(newOrderBy);
+            if (limitAndOffset.isPresent()) {
+                spec.limit(limitAndOffset);
+            }
             requiredForQuery.addAll(newOrderBy.orderBySymbols());
         }
+    }
+
+    private void extractRemainingOrderBy(OrderBy orderBy, Set<AnalyzedRelation> relations, Consumer<Field> relationsConsumer) {
+        Integer idx = 0;
+        for (Symbol symbol : orderBy.orderBySymbols()) {
+            // If order by is pointing to an aggregation we cannot push it down
+            // because ordering needs to happen AFTER the join
+            if (Aggregations.containsAggregation(symbol)) {
+                continue;
+            }
+            relations.clear();
+            RelationCounter.INSTANCE.process(symbol, relations);
+
+            // instantiate remainingOrderBy really only if needed!
+            // because it is used as a marker
+            if (remainingOrderBy == null) {
+                remainingOrderBy = new RemainingOrderBy();
+            }
+
+            OrderBy newOrderBy = orderBy.subset(Collections.singletonList(idx));
+            for (AnalyzedRelation rel : relations) {
+                remainingOrderBy.addRelation(rel.getQualifiedName());
+            }
+            remainingOrderBy.addOrderBy(newOrderBy);
+            idx++;
+        }
+        relations.clear();
+    }
+
+    /**
+     * Extract the ORDER BY symbols which can be pushed down to subqueries.
+     * To extract them, the symbols are processed from left to right in their stated order.
+     * A symbol can only be pushed down if it contains a single relation.
+     * Additionally either the previous symbol (from left to right) contained the same relation,
+     * or that relation of the symbol did not occur yet.
+     * Once a symbols contains more than a single relation no further order by symbols may be pushed down.
+     *
+     * Examples:
+     * ORDER BY t1.a, t1.b, t2.x, t2.y -> t1: a, b, t2: x, y
+     * ORDER BY t1.a, t2.x, t1.b, t2.x -> t1: a, t2: x
+     * ORDER BY t1.a, fn(t1.a, t2.x), t2.x -> t1: a
+     * ORDER BY fn(t1.a, t2.x), t3.z -> none
+     */
+    private Multimap<AnalyzedRelation, Integer> extractOrderByForPushDown(OrderBy orderBy, Set<AnalyzedRelation> relations, Consumer<Field> relationsConsumer) {
+        Multimap<AnalyzedRelation, Integer> splits = Multimaps.newSetMultimap(
+            new IdentityHashMap<AnalyzedRelation, Collection<Integer>>(specs.size()),
+            INT_SET_SUPPLIER::get);
+
+        Integer idx = 0;
+        List<QualifiedName> allRelations = new ArrayList<>();
+        for (Symbol symbol : orderBy.orderBySymbols()) {
+            // If order by is pointing to an aggregation we cannot push it down
+            // because ordering needs to happen AFTER the join
+            if (Aggregations.containsAggregation(symbol)) {
+                continue;
+            }
+            relations.clear();
+            RelationCounter.INSTANCE.process(symbol, relations);
+
+            if (relations.size() == 1) {
+                AnalyzedRelation rel = Iterables.getOnlyElement(relations);
+                if (!allRelations.contains(rel.getQualifiedName()) || allRelations.get(allRelations.size() - 1).equals(rel.getQualifiedName())) {
+                    splits.put(rel, idx);
+                    allRelations.add(rel.getQualifiedName());
+                }
+            } else {
+                break;
+            }
+            idx++;
+        }
+        relations.clear();
+        return splits;
     }
 
     static class RelationCounter extends DefaultTraversalSymbolVisitor<Set<AnalyzedRelation>, Void> {
