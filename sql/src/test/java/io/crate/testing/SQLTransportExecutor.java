@@ -153,6 +153,7 @@ public class SQLTransportExecutor {
     public ActionFuture<SQLResponse> execute(String stmt, @Nullable Object[] args) {
         return execute(stmt, args, clientProvider.sqlOperations().createSession(
             null,
+            null,
             Option.NONE,
             DEFAULT_SOFT_LIMIT
         ));
@@ -186,6 +187,7 @@ public class SQLTransportExecutor {
 
     private void execute(String stmt, @Nullable Object[][] bulkArgs, final ActionListener<SQLBulkResponse> listener) {
         SQLOperations.Session session = clientProvider.sqlOperations().createSession(
+            null,
             null,
             Option.NONE,
             DEFAULT_SOFT_LIMIT

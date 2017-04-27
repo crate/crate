@@ -68,6 +68,9 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             // force binary transfer & use server-side prepared statements
             properties.setProperty("prepareThreshold", "-1");
         }
+        if (randomBoolean()) {
+            properties.setProperty("user", "crate");
+        }
     }
 
     @Test
