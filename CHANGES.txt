@@ -21,6 +21,8 @@ Changes
 Fixes
 =====
 
+ - Fix: Appereance of NPE during startup of crate
+
  - Fix: Log4j would yield a "No log4j2 configuration file found" error when 
    shutting down crate ungracefully (via kill signal)
 

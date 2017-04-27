@@ -241,7 +241,7 @@ public class DocSchemaInfo implements SchemaInfo {
         // search for aliases of deleted and created indices, they must be invalidated also
         MetaData prevMetaData = event.previousState().metaData();
         for (Index index : event.indicesDeleted()) {
-            invalidateAliases(prevMetaData.index(index).getAliases());
+            invalidateFromIndex(index, prevMetaData);
         }
         MetaData newMetaData = event.state().metaData();
         for (String index : event.indicesCreated()) {
@@ -321,6 +321,18 @@ public class DocSchemaInfo implements SchemaInfo {
             }
         }
         return udfFunctions;
+    }
+
+    /**
+     * checks if metaData contains a particular index and
+     * invalidates its aliases if so
+     */
+    @VisibleForTesting
+    void invalidateFromIndex(Index index, MetaData metaData) {
+        IndexMetaData indexMetaData = metaData.index(index);
+        if (indexMetaData != null) {
+            invalidateAliases(indexMetaData.getAliases());
+        }
     }
 
     private String getIndexName(String tableName) {

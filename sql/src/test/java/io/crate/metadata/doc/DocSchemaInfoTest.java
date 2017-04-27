@@ -24,7 +24,6 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.CreateFunctionAnalyzedStatement;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -36,7 +35,8 @@ import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.operation.udf.UserDefinedFunctionsMetaData;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.index.Index;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -110,6 +110,14 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(functionImpl.size(), is(1));
         // the valid functions will be registered
         assertThat(functionImpl.entrySet().iterator().next().getKey().name(), is("valid"));
+    }
+
+    @Test
+    public void testNoNPEIfDeletedIndicesNotInPreviousClusterState() throws Exception {
+        // sometimes on startup it occurs that a ClusterChangedEvent contains deleted indices
+        // which are not in the previousState.
+        MetaData metaData = new MetaData.Builder().build();
+        docSchemaInfo.invalidateFromIndex(new Index("my_index", "asdf"), metaData);
     }
 
 }
