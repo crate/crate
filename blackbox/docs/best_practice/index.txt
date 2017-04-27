@@ -1,8 +1,8 @@
-=============
-Best Practice
-=============
+==============
+Best Practices
+==============
 
-This is a collection of best practice examples how to use Crate in the wild.
+A collection of CrateDB best practices and tips for common scenarios.
 
 |
 
