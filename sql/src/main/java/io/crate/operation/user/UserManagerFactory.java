@@ -23,10 +23,21 @@
 package io.crate.operation.user;
 
 import io.crate.metadata.sys.SysSchemaInfo;
+import org.elasticsearch.action.support.ActionFilters;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
 
 public interface UserManagerFactory {
 
-    UserManager create(ClusterService clusterService, SysSchemaInfo sysSchemaInfo);
+    UserManager create(Settings settings,
+                       TransportService transportService,
+                       ClusterService clusterService,
+                       ThreadPool threadPool,
+                       ActionFilters actionFilters,
+                       IndexNameExpressionResolver indexNameExpressionResolver,
+                       SysSchemaInfo sysSchemaInfo);
 
 }
