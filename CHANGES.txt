@@ -27,6 +27,8 @@ Changes
 Fixes
 =====
 
+ - Fix: Appereance of NPE during startup of crate
+
  - ``ORDER BY`` on joins caused incorrect order of values when having multiple
    non-distinct values on the left part of the join. Now ``ORDER BY`` is
    correctly applied.
