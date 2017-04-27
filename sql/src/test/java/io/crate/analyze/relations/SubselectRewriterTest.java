@@ -71,12 +71,11 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private QueriedRelation rewrite(String stmt) {
-        AnalyzedRelation relation = analyzer.analyze(SqlParser.createStatement(stmt), new Analysis(
+        return (QueriedRelation) analyzer.analyze(SqlParser.createStatement(stmt), new Analysis(
             SessionContext.SYSTEM_SESSION,
             ParameterContext.EMPTY,
             ParamTypeHints.EMPTY
         ));
-        return (QueriedRelation) SubselectRewriter.rewrite(relation);
     }
 
     @Test
@@ -150,6 +149,23 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
         assertThat(outerRelation.subRelation().querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.a LIMIT 10 OFFSET 5"));
+    }
+
+    @Test
+    public void testPartiallyMergedInner() throws Exception {
+        QueriedRelation relation = rewrite("select a, x from (" +
+                                             "select * from (" +
+                                               "select * from t1 order by x desc limit 4" +
+                                             ") t order by x desc limit 2" +
+                                           ") t order by a asc");
+        assertThat(relation, instanceOf(QueriedSelectRelation.class));
+        QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
+        assertThat(outerRelation.querySpec(),
+                   isSQL("SELECT doc.t1.a, doc.t1.x ORDER BY doc.t1.a"));
+        assertThat(((Field) outerRelation.querySpec().outputs().get(0)).relation(), sameInstance(outerRelation.subRelation()));
+        assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
+        assertThat(outerRelation.subRelation().querySpec(),
+                   isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.x DESC LIMIT least(4, 2)"));
     }
 
     @Test
