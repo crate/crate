@@ -281,7 +281,7 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
     public void testLimitIncludesOffsetOnNestedLoopTopNProjection() throws Exception {
         Merge merge = plan("select u1.name, u2.name from users u1, users u2 where u1.id = u2.id order by u1.name, u2.name limit 15 offset 10");
         NestedLoop nl = (NestedLoop) merge.subPlan();
-        TopNProjection distTopN = (TopNProjection) nl.nestedLoopPhase().projections().get(1);
+        OrderedTopNProjection distTopN = (OrderedTopNProjection) nl.nestedLoopPhase().projections().get(1);
 
         assertThat(distTopN.limit(), is(25));
         assertThat(distTopN.offset(), is(0));
@@ -296,7 +296,7 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = plan("select u1.name from users u1, users u2 where u1.id = u2.id order by 1");
         NestedLoop nl = (NestedLoop) merge.subPlan();
         CollectPhase cpLeft = ((Collect) nl.left()).collectPhase();
-        assertThat(cpLeft.toCollect(), contains(isReference("id"), isReference("name")));
+        assertThat(cpLeft.toCollect(), contains(isReference("name"), isReference("id")));
         CollectPhase cpRight = ((Collect) nl.right()).collectPhase();
         assertThat(cpRight.toCollect(), contains(isReference("id")));
     }
@@ -357,12 +357,12 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(nestedLoop.nestedLoopPhase().projections(),
             Matchers.contains(
                 instanceOf(FilterProjection.class),
-                instanceOf(EvalProjection.class),
+                instanceOf(OrderedTopNProjection.class),
                 instanceOf(GroupProjection.class)
             )
         );
 
-        EvalProjection eval = ((EvalProjection) nestedLoop.nestedLoopPhase().projections().get(1));
-        assertThat(eval.outputs().size(), is(2));
+        OrderedTopNProjection projection = (OrderedTopNProjection) nestedLoop.nestedLoopPhase().projections().get(1);
+        assertThat(projection.outputs().size(), is(2));
     }
 }

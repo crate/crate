@@ -36,6 +36,7 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
 class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor.Context> {
 
@@ -48,6 +49,7 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
     public static class Context {
         private AnalyzedRelation seenRelation;
         private final Set<AnalyzedRelation> seenRelations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
+        private Consumer<Field> relationsConsumer = field -> seenRelations.add(field.relation());
         private final Multimap<QualifiedName, Symbol> queries = HashMultimap.create();
         private final List<JoinPair> joinPairs;
         private boolean multiRelation = false;
@@ -151,7 +153,7 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
             }
         } else {
             context.seenRelations.clear();
-            RelationSplitter.RelationCounter.INSTANCE.process(function, context.seenRelations);
+            FieldsVisitor.visitFields(function, context.relationsConsumer);
             context.multiRelation = context.seenRelations.size() > 1;
             if (context.seenRelations.size() == 1) {
                 context.seenRelation = Iterables.getOnlyElement(context.seenRelations);
