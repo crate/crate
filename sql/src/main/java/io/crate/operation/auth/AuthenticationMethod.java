@@ -22,6 +22,7 @@
 
 package io.crate.operation.auth;
 
+import io.crate.action.sql.SessionContext;
 import org.elasticsearch.common.settings.Settings;
 import org.jboss.netty.channel.Channel;
 
@@ -31,7 +32,7 @@ import org.jboss.netty.channel.Channel;
  * An auth method must provide a unique name which is exposed via the {@link #name()} method.
  *
  * It is also responsible for authentication for the Postgres Wire Protocol,
- * {@link #pgAuthenticate(Channel channel, Settings settings)},
+ * {@link #pgAuthenticate(Channel channel, SessionContext session, Settings settings)},
  */
 public interface AuthenticationMethod {
     /**
@@ -39,9 +40,10 @@ public interface AuthenticationMethod {
      * sends AuthenticationOK if authentication is successful
      * If authentication fails it send ErrorResponse
      * @param channel request channel
+     * @param session the sessionContext of the connection
      * @param settings from the cluster state
      */
-    void pgAuthenticate(Channel channel, Settings settings);
+    void pgAuthenticate(Channel channel, SessionContext session, Settings settings);
 
 
     /**
