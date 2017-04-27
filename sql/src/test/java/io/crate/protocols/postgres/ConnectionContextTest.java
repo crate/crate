@@ -64,8 +64,8 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
             clusterService
         ) {
             @Override
-            public Session createSession(@Nullable String defaultSchema, Set<Option> options, int defaultLimit) {
-                Session session = super.createSession(defaultSchema, options, defaultLimit);
+            public Session createSession(@Nullable String defaultSchema, @Nullable String userName, Set<Option> options, int defaultLimit) {
+                Session session = super.createSession(defaultSchema, userName, options, defaultLimit);
                 sessions.add(session);
                 return session;
             }
@@ -96,7 +96,7 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
     public void testFlushMessageResultsInSyncCallOnSession() throws Exception {
         SQLOperations sqlOperations = mock(SQLOperations.class);
         SQLOperations.Session session = mock(SQLOperations.Session.class);
-        when(sqlOperations.createSession(anyString(), anySetOf(Option.class), anyInt())).thenReturn(session);
+        when(sqlOperations.createSession(anyString(), anyString(), anySetOf(Option.class), anyInt())).thenReturn(session);
         ConnectionContext ctx = new ConnectionContext(sqlOperations);
         DecoderEmbedder<ChannelBuffer> e = new DecoderEmbedder<>(ctx.decoder, ctx.handler);
 

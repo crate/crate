@@ -39,14 +39,14 @@ public class CurrentSchemaFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeCurrentSchemaDefaultSchema() throws Exception {
-        sqlExpressions = new SqlExpressions(tableSources, new SessionContext(0, Option.NONE, null));
+        sqlExpressions = new SqlExpressions(tableSources, new SessionContext(0, Option.NONE, null, null));
         functions = sqlExpressions.getInstance(Functions.class);
         assertNormalize("current_schema()", isLiteral("doc"), false);
     }
 
     @Test
     public void testNormalizeCurrentSchemaCustomSchema() throws Exception {
-        sqlExpressions = new SqlExpressions(tableSources, new SessionContext(0, Option.NONE, "custom_schema"));
+        sqlExpressions = new SqlExpressions(tableSources, new SessionContext(0, Option.NONE, "custom_schema", null));
         functions = sqlExpressions.getInstance(Functions.class);
         assertNormalize("current_schema()", isLiteral("custom_schema"), false);
     }

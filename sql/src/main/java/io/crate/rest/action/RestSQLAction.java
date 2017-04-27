@@ -117,6 +117,7 @@ public class RestSQLAction extends BaseRestHandler {
     private RestChannelConsumer executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request) {
         SQLOperations.Session session = sqlOperations.createSession(
             request.header(REQUEST_HEADER_SCHEMA),
+            null,
             toOptions(request),
             DEFAULT_SOFT_LIMIT);
         try {
@@ -155,6 +156,7 @@ public class RestSQLAction extends BaseRestHandler {
     private RestChannelConsumer executeBulkRequest(SQLXContentSourceContext context, final RestRequest request) {
         SQLOperations.Session session = sqlOperations.createSession(
             request.header(REQUEST_HEADER_SCHEMA),
+            null,
             toOptions(request),
             DEFAULT_SOFT_LIMIT);
         try {

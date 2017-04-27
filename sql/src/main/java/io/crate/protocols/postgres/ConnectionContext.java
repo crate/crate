@@ -189,20 +189,20 @@ class ConnectionContext {
     }
 
     private SQLOperations.Session readStartupMessage(ChannelBuffer buffer) {
+        Properties properties = new Properties();
         ChannelBuffer channelBuffer = buffer.readBytes(msgLength);
-        String defaultSchema = null;
         while (true) {
             String key = readCString(channelBuffer);
             if (key == null) {
                 break;
             }
             String value = readCString(channelBuffer);
-            LOGGER.trace("payload: key={} value={}", key, value);
-            if (key.equals("database") && !"".equals(value)) {
-                defaultSchema = value;
+            if (!"".equals(key) && !"".equals(value)) {
+                LOGGER.trace("payload: key={} value={}", key, value);
+                properties.setProperty(key, value);
             }
         }
-        return sqlOperations.createSession(defaultSchema, Option.NONE, 0);
+        return sqlOperations.createSession(properties);
     }
 
     private static class ReadyForQueryCallback implements BiConsumer<Object, Throwable> {
