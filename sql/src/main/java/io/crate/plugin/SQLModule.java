@@ -26,8 +26,9 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.operation.udf.TransportCreateUserDefinedFunctionAction;
-import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.operation.udf.TransportDropUserDefinedFunctionAction;
+import io.crate.operation.udf.UserDefinedFunctionService;
+import io.crate.operation.user.UserManagerProvider;
 import io.crate.planner.Planner;
 import io.crate.planner.TableStats;
 import io.crate.planner.TableStatsService;
@@ -50,5 +51,6 @@ public class SQLModule extends AbstractModule {
         bind(TransportCreateUserDefinedFunctionAction.class).asEagerSingleton();
         bind(TransportDropUserDefinedFunctionAction.class).asEagerSingleton();
         bind(AuthenticationProvider.class).asEagerSingleton();
+        bind(UserManagerProvider.class).asEagerSingleton();
     }
 }
