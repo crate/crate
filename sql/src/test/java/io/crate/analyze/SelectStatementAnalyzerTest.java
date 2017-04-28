@@ -1999,4 +1999,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("Non table function abs is not supported in from clause");
         analyze("select * from abs(1)");
     }
+
+    @Test
+    public void testMatchInExplicitJoinConditionIsProhibited() throws Exception {
+        expectedException.expectMessage("Cannot use MATCH predicates on columns of 2 different relations");
+        analyze("select * from users u1 inner join users u2 on match((u1.name, u2.name), 'foo')");
+    }
 }
