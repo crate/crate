@@ -33,7 +33,6 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.planner.Limits;
 import io.crate.sql.tree.QualifiedName;
 
-import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -64,6 +63,7 @@ public final class RelationSplitter {
         joinConditions = new ArrayList<>(joinPairs.size());
         for (JoinPair joinPair : joinPairs) {
             if (joinPair.condition() != null) {
+                JoinConditionValidator.validate(joinPair.condition());
                 joinConditions.add(joinPair.condition());
             }
         }
@@ -153,7 +153,7 @@ public final class RelationSplitter {
         Symbol query = querySpec.where().query();
         assert query != null : "query must not be null";
         QuerySplittingVisitor.Context context = QuerySplittingVisitor.INSTANCE.process(querySpec.where().query(), joinPairs);
-        JoinConditionValidator.INSTANCE.process(context.query(), null);
+        JoinConditionValidator.validate(context.query());
         querySpec.where(new WhereClause(context.query()));
         for (Map.Entry<QualifiedName, Collection<Symbol>> entry : context.queries().asMap().entrySet()) {
             getSpec(entry.getKey()).where(new WhereClause(AndOperator.join(entry.getValue())));
@@ -271,21 +271,17 @@ public final class RelationSplitter {
         }
     }
 
-    private static class JoinConditionValidator extends SymbolVisitor<Void, Symbol> {
+    private final static class JoinConditionValidator extends DefaultTraversalSymbolVisitor<Void, Symbol> {
 
         private static final JoinConditionValidator INSTANCE = new JoinConditionValidator();
 
-        @Override
-        public Symbol process(Symbol symbol, @Nullable Void context) {
-            return symbol != null ? super.process(symbol, context) : null;
-        }
-
-        @Override
-        public Symbol visitFunction(Function symbol, Void context) {
-            for (Symbol argument : symbol.arguments()) {
-                process(argument, context);
+        /**
+         * @throws IllegalArgumentException thrown if the join condition is not valid
+         */
+        public static void validate(Symbol joinCondition) {
+            if (joinCondition != null) {
+                INSTANCE.process(joinCondition, null);
             }
-            return null;
         }
 
         @Override
