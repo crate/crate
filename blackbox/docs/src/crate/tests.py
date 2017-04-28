@@ -28,6 +28,7 @@ import time
 import shutil
 import re
 import tempfile
+import logging
 from functools import partial
 from . import process_test
 from testutils.paths import crate_path, project_path
@@ -39,6 +40,11 @@ from crate.client import connect
 
 CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
 CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
+
+log = logging.getLogger('crate.testing.layer')
+ch = logging.StreamHandler()
+ch.setLevel(logging.ERROR)
+log.addHandler(ch)
 
 
 class CrateTestCmd(CrateCmd):
