@@ -60,7 +60,7 @@ public class QueryStatsTest {
     public static void beforeClass() {
         SQLOperations sqlOperations = mock(SQLOperations.class);
 
-        when(sqlOperations.createSession(anyString(), anyObject(), anyInt())).thenReturn(session);
+        when(sqlOperations.createSession(anyString(), anyString(), anyObject(), anyInt())).thenReturn(session);
         doNothing().when(session).parse(anyString(), anyString(), anyListOf(DataType.class));
 
         queryStats = spy(new QueryStats(sqlOperations, Settings.EMPTY));
