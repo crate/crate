@@ -65,7 +65,7 @@ public class QueryStats implements QueryStatsMBean {
 
     public QueryStats(SQLOperations sqlOperations, Settings settings) {
         logger = Loggers.getLogger(QueryStats.class, settings);
-        session = sqlOperations.createSession("sys", Option.NONE, 10000);
+        session = sqlOperations.createSession("sys", null, Option.NONE, 10000);
         session.parse(NAME, STMT, Collections.emptyList());
 
         lastQueried = new ConcurrentHashMap<>();
