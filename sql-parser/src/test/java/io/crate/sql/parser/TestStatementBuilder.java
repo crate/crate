@@ -984,6 +984,11 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testAlterTableRename() throws Exception {
+        printStatement("alter table t rename to t2");
+    }
+
+    @Test
     public void testSubSelects() throws Exception {
         printStatement("select * from (select * from foo) as f");
         printStatement("select * from (select * from (select * from foo) as f1) as f2");
