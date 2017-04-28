@@ -122,6 +122,23 @@ Breaking Changes
  - Changed default bind and publish address from ``0.0.0.0`` to the system
    ``loopback`` addresses.
 
+ - The ``discovery.ec2.ping_timeout`` setting has been removed and the
+   ``discovery.zen.ping_timeout`` setting is now also used for EC2 discovery.
+
+ - The ``monitor.jvm.gc.[old|young].[debug|info|warn]`` settings used to
+   configure logging of garbage collection have been renamed (adding
+   ``collector``) to
+   ``monitor.jvm.gc.collector.[old|young].[debug|info|warn]``.
+
+ - Recovery timeout settings changes:
+
+     - ``indices.recovery.retry_internal_action_timeout`` has been renamed to
+       ``indices.recovery.internal_action_timeout``
+     - ``indices.recovery.retry_internal_long_action_timeout`` has been renamed
+       to ``indices.recovery.internal_action_long_timeout``
+     - ``indices.recovery.retry_activity_timeout`` has been renamed to
+       ``indices.recovery.recovery_activity_timeout``
+
 Changes
 =======
 
