@@ -20,6 +20,7 @@ package io.crate.operation.user;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -37,5 +38,20 @@ public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(containsString("User already exists"));
         execute("create user fridolin");
+    }
+
+    @Test
+    public void testSysUsersTableColumns() throws Exception {
+        // The sys users table contains two columns, name and superuser
+        execute("select column_name, data_type from information_schema.columns where table_name='users' and table_schema='sys'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("name| string\n" +
+                                                                    "superuser| boolean\n"));
+    }
+
+    @Test
+    public void testSysUsersTableDefaultUser() throws Exception {
+        // The sys.users table always contains the superuser crate
+        execute("select name, superuser from sys.users");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("crate| true\n"));
     }
 }

@@ -22,7 +22,7 @@
 
 package io.crate.operation.user;
 
-import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.operation.collect.sources.SysTableRegistry;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -38,6 +38,6 @@ public interface UserManagerFactory {
                        ThreadPool threadPool,
                        ActionFilters actionFilters,
                        IndexNameExpressionResolver indexNameExpressionResolver,
-                       SysSchemaInfo sysSchemaInfo);
+                       SysTableRegistry sysTableRegistry);
 
 }
