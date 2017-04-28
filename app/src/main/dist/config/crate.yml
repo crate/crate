@@ -572,10 +572,6 @@
 # set the enpoint that should be used.
 #
 # cloud.aws.ec2.endpoind: http://example.com/endpoint
-#
-# Timeout for pings of existing EC2 instances during discovery.
-#
-#discovery.ec2.ping_timeout: 3s
 
 ############################## Azure Discovery #################################
 
@@ -759,13 +755,13 @@
 
 ################################## GC Logging ################################
 
-#monitor.jvm.gc.young.warn: 1000ms
-#monitor.jvm.gc.young.info: 700ms
-#monitor.jvm.gc.young.debug: 400ms
+#monitor.jvm.gc.collector.young.warn: 1000ms
+#monitor.jvm.gc.collector.young.info: 700ms
+#monitor.jvm.gc.collector.young.debug: 400ms
 
-#monitor.jvm.gc.old.warn: 10s
-#monitor.jvm.gc.old.info: 5s
-#monitor.jvm.gc.old.debug: 2s
+#monitor.jvm.gc.collector.old.warn: 10s
+#monitor.jvm.gc.collector.old.info: 5s
+#monitor.jvm.gc.collector.old.debug: 2s
 
 
 ###################################### SQL ####################################

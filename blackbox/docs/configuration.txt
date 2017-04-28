@@ -484,43 +484,43 @@ Garbage Collection
 Crate logs if JVM garbage collection on different memory pools takes too long.
 The following settings can be used to adjust these timeouts:
 
-**monitor.jvm.gc.young.warn**
+**monitor.jvm.gc.collector.young.warn**
   | *Default:* ``1000ms``
   | *Runtime:* ``no``
 
   CrateDB will log a warning message if it takes more than the configured timespan
   to collect the *Eden Space* (heap).
 
-**monitor.jvm.gc.young.info**
-  | *Default:* ``1000ms``
+**monitor.jvm.gc.collector.young.info**
+  | *Default:* ``700ms``
   | *Runtime:* ``no``
 
   CrateDB will log an info message if it takes more than the configured timespan
   to collect the *Eden Space* (heap).
 
-**monitor.jvm.gc.young.debug**
-  | *Default:* ``1000ms``
+**monitor.jvm.gc.collector.young.debug**
+  | *Default:* ``400ms``
   | *Runtime:* ``no``
 
   CrateDB will log a debug message if it takes more than the configured timespan
   to collect the *Eden Space* (heap).
 
-**monitor.jvm.gc.old.warn**
-  | *Default:* ``1000ms``
+**monitor.jvm.gc.collector.old.warn**
+  | *Default:* ``10000ms``
   | *Runtime:* ``no``
 
   CrateDB will log a warning message if it takes more than the configured timespan
   to collect the *Old Gen* / *Tenured Gen* (heap).
 
-**monitor.jvm.gc.old.info**
-  | *Default:* ``1000ms``
+**monitor.jvm.gc.collector.old.info**
+  | *Default:* ``5000ms``
   | *Runtime:* ``no``
 
   CrateDB will log an info message if it takes more than the configured timespan
   to collect the *Old Gen* / *Tenured Gen* (heap).
 
-**monitor.jvm.gc.old.debug**
-  | *Default:* ``1000ms``
+**monitor.jvm.gc.collector.old.debug**
+  | *Default:* ``2000ms``
   | *Runtime:* ``no``
 
   CrateDB will log a debug message if it takes more than the configured timespan
@@ -1089,13 +1089,6 @@ Following settings control the discovery:
   A list of availability zones. Only instances within the given availability
   zone will be used for unicast host discovery.
 
-**discovery.ec2.ping_timeout**
-  | *Runtime:*  ``no``
-  | *Default:*  ``3s``
-
-  The timeout for pings of existing EC2 instances during discovery. If no time
-  suffix is specified, milliseconds are used.
-
 .. _discovery_ec2_tags:
 
 **discovery.ec2.tag.<name>**
@@ -1415,26 +1408,18 @@ Recovery
   Defines the time to wait after an issue caused by the network
   before retrying to recover.
 
-.. _indices.recovery.retry_activity_timeout:
+.. _indices.recovery.internal_action_timeout:
 
-**indices.recovery.retry_activity_timeout**
-  | *Default:*  ``15m``
-  | *Runtime:*  ``yes``
-
-  Defines the interval after which idle recoveries will be failed.
-
-.. _indices.recovery.retry_internal_action_timeout:
-
-**indices.recovery.retry_internal_action_timeout**
+**indices.recovery.internal_action_timeout**
   | *Default:*  ``15m``
   | *Runtime:*  ``yes``
 
   Defines the timeout for internal requests made as part of the
   recovery.
 
-.. _indices.recovery.retry_internal_long_action_timeout:
+.. _indices.recovery.internal_action_long_timeout:
 
-**indices.recovery.retry_internal_long_action_timeout**
+**indices.recovery.internal_action_long_timeout**
   | *Default:*  ``30m``
   | *Runtime:*  ``yes``
 
