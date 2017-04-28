@@ -22,6 +22,8 @@
 
 package io.crate.planner;
 
+import io.crate.analyze.symbol.Function;
+import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.*;
@@ -68,5 +70,19 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                                     "order by x desc limit 3");
         List<Projection> projections = ((Collect) qtf.subPlan()).collectPhase().projections();
         assertThat(projections, Matchers.hasItem(instanceOf(FilterProjection.class)));
+    }
+
+    @Test
+    public void testNestedSimpleSelectContainsGroupProjectionWithFunction() throws Exception {
+        Merge merge = e.plan("select c + 100, max(max) from " +
+                             "    (select x + 10 as c, max(i) as max from t1 group by x + 10) t " +
+                             "group by c + 100 order by c + 100 " +
+                             "limit 100");
+        // We assume that an add function is present in the group projection keys.
+        List<Projection> projections = merge.mergePhase().projections();
+        GroupProjection projection = (GroupProjection) projections.get(2);
+        Function function = (Function) projection.keys().get(0);
+
+        assertEquals(AddFunction.NAME, function.info().ident().name());
     }
 }

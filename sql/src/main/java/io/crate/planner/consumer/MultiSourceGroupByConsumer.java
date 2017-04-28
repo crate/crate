@@ -96,6 +96,7 @@ public class MultiSourceGroupByConsumer implements Consumer {
                 plan,
                 context,
                 splitPoints,
+                splitPoints.toCollect(),
                 groupKeys,
                 outputs,
                 querySpec,

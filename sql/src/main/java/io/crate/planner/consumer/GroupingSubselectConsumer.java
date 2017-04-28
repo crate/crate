@@ -90,6 +90,7 @@ public class GroupingSubselectConsumer implements Consumer {
                 plan,
                 context,
                 SplitPoints.create(querySpec),
+                relation.subRelation().fields(),
                 querySpec.groupBy().get(),
                 querySpec.outputs(),
                 querySpec,
@@ -101,6 +102,7 @@ public class GroupingSubselectConsumer implements Consumer {
     public static Plan createPlan(Plan plan,
                                   ConsumerContext context,
                                   SplitPoints splitPoints,
+                                  List<? extends Symbol> subRelationOutputs,
                                   List<Symbol> groupKeys,
                                   List<Symbol> outputs,
                                   QuerySpec querySpec,
@@ -110,11 +112,11 @@ public class GroupingSubselectConsumer implements Consumer {
             plan.resultDescription().nodeIds()
         );
         if (isExecutedOnHandler) {
-            addNonDistributedGroupProjection(plan, splitPoints, groupKeys, projectionBuilder);
+            addNonDistributedGroupProjection(plan, splitPoints, subRelationOutputs, groupKeys, projectionBuilder);
             addFilterProjection(plan, splitPoints, groupKeys, querySpec);
             addTopN(plan, splitPoints, groupKeys, querySpec, context, outputs);
         } else {
-            addDistributedGroupProjection(plan, splitPoints, groupKeys, projectionBuilder);
+            addDistributedGroupProjection(plan, splitPoints, subRelationOutputs, groupKeys, projectionBuilder);
             plan = createReduceMerge(plan, splitPoints, groupKeys, querySpec, context, outputs, projectionBuilder);
         }
 
@@ -138,24 +140,15 @@ public class GroupingSubselectConsumer implements Consumer {
     }
 
     /**
-     * Returns true for non distributed and false for distributed execution.
-     */
-    private static boolean isExecutedOnHandler(ConsumerContext context, Plan plan) {
-        return ExecutionPhases.executesOnHandler(
-            context.plannerContext().handlerNode(),
-            plan.resultDescription().nodeIds()
-        );
-    }
-
-    /**
      * Adds the group projection to the given plan in order to handle the groupBy.
      */
     private static void addNonDistributedGroupProjection(Plan plan,
                                                          SplitPoints splitPoints,
+                                                         List<? extends Symbol> subRelationOutputs,
                                                          List<Symbol> groupKeys,
                                                          ProjectionBuilder projectionBuilder) {
         GroupProjection groupProjection = projectionBuilder.groupProjection(
-            splitPoints.toCollect(),
+            subRelationOutputs,
             groupKeys,
             splitPoints.aggregates(),
             AggregateMode.ITER_FINAL,
@@ -209,10 +202,11 @@ public class GroupingSubselectConsumer implements Consumer {
      */
     private static void addDistributedGroupProjection(Plan plan,
                                                       SplitPoints splitPoints,
+                                                      List<? extends Symbol> subRelationOutputs,
                                                       List<Symbol> groupKeys,
                                                       ProjectionBuilder projectionBuilder) {
         GroupProjection groupProjection = projectionBuilder.groupProjection(
-            splitPoints.toCollect(),
+            subRelationOutputs,
             groupKeys,
             splitPoints.aggregates(),
             AggregateMode.ITER_PARTIAL,

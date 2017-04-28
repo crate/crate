@@ -55,8 +55,8 @@ public class ProjectionBuilder {
     }
 
     public GroupProjection groupProjection(
-        Collection<Symbol> inputs,
-        Collection<Symbol> keys,
+        Collection<? extends Symbol> inputs,
+        Collection<? extends Symbol> keys,
         Collection<Function> values,
         AggregateMode mode,
         RowGranularity requiredGranularity) {
