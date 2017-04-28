@@ -18,6 +18,7 @@
 
 package io.crate.operation.user;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
@@ -31,6 +32,8 @@ import static io.crate.operation.user.UsersMetaData.PROTO;
 import static io.crate.operation.user.UsersMetaData.TYPE;
 
 public class UserManagerService implements UserManager {
+
+    private final User crateUser = new User("crate", true);
 
     static {
         MetaData.registerPrototype(TYPE, PROTO);
@@ -52,5 +55,9 @@ public class UserManagerService implements UserManager {
     @Override
     public CompletableFuture<Long> dropUser(DropUserAnalyzedStatement analysis) {
         return CompletableFutures.failedFuture(new NotImplementedException());
+    }
+
+    public Iterable<User> userGetter() {
+        return ImmutableList.of(crateUser);
     }
 }

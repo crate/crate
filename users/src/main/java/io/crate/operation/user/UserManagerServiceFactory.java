@@ -18,13 +18,15 @@
 
 package io.crate.operation.user;
 
-import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.operation.collect.sources.SysTableRegistry;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import java.util.concurrent.CompletableFuture;
 
 public class UserManagerServiceFactory implements UserManagerFactory {
 
@@ -35,9 +37,14 @@ public class UserManagerServiceFactory implements UserManagerFactory {
                               ThreadPool threadPool,
                               ActionFilters actionFilters,
                               IndexNameExpressionResolver indexNameExpressionResolver,
-                              SysSchemaInfo sysSchemaInfo) {
+                              SysTableRegistry sysTableRegistry) {
         TransportCreateUserAction transportAction = new TransportCreateUserAction(
             settings, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver);
-        return new UserManagerService(transportAction);
+        UserManagerService userManagerService = new UserManagerService(transportAction);
+
+        sysTableRegistry.registerSysTable(new SysUsersTableInfo(clusterService),
+            () -> CompletableFuture.completedFuture(userManagerService.userGetter()),
+            User.sysUsersExpressions());
+        return userManagerService;
     }
 }
