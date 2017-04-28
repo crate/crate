@@ -57,6 +57,7 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -73,7 +74,7 @@ public class SystemCollectSource implements CollectSource {
 
     private final Functions functions;
     private final NodeSysExpression nodeSysExpression;
-    private final ImmutableMap<String, Supplier<CompletableFuture<? extends Iterable<?>>>> iterableGetters;
+    private final Map<String, Supplier<CompletableFuture<? extends Iterable<?>>>> iterableGetters;
     private final ImmutableMap<TableIdent, SysRowUpdater<?>> rowUpdaters;
     private final ClusterService clusterService;
     private final InputFactory inputFactory;
@@ -96,42 +97,41 @@ public class SystemCollectSource implements CollectSource {
 
         rowUpdaters = ImmutableMap.of(SysNodeChecksTableInfo.IDENT, sysNodeChecks);
 
-        iterableGetters = ImmutableMap.<String, Supplier<CompletableFuture<? extends Iterable<?>>>>builder()
-            .put(InformationSchemataTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(informationSchemaIterables.schemas()))
-            .put(InformationTablesTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(informationSchemaIterables.tables()))
-            .put(InformationPartitionsTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(informationSchemaIterables.partitions()))
-            .put(InformationColumnsTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(informationSchemaIterables.columns()))
-            .put(InformationTableConstraintsTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(informationSchemaIterables.constraints()))
-            .put(InformationRoutinesTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(informationSchemaIterables.routines()))
-            .put(InformationSqlFeaturesTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(informationSchemaIterables.features()))
-            .put(SysJobsTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(jobsLogs.jobsGetter()))
-            .put(SysJobsLogTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(jobsLogs.jobsLogGetter()))
-            .put(SysOperationsTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(jobsLogs.operationsGetter()))
-            .put(SysOperationsLogTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(jobsLogs.operationsLogGetter()))
-            .put(SysChecksTableInfo.IDENT.fqn(),
-                () -> new SysChecker<>(sysChecks).checksGetter())
-            .put(SysNodeChecksTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(sysNodeChecks))
-            .put(SysRepositoriesTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(sysRepositoriesService.repositoriesGetter()))
-            .put(SysSnapshotsTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(sysSnapshots.snapshotsGetter()))
-            .put(SysSummitsTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(new SummitsIterable().summitsGetter()))
-            .put(PgTypeTable.IDENT.fqn(),
-                () -> synchronousIterableGetter(pgCatalogTables.typesGetter()))
-            .build();
+        iterableGetters = new HashMap<>();
+        iterableGetters.put(InformationSchemataTableInfo.IDENT.fqn(),
+            () -> synchronousIterableGetter(informationSchemaIterables.schemas()));
+        iterableGetters.put(InformationTablesTableInfo.IDENT.fqn(),
+            () -> synchronousIterableGetter(informationSchemaIterables.tables()));
+        iterableGetters.put(InformationPartitionsTableInfo.IDENT.fqn(),
+           () -> synchronousIterableGetter(informationSchemaIterables.partitions()));
+        iterableGetters.put(InformationColumnsTableInfo.IDENT.fqn(),
+           () -> synchronousIterableGetter(informationSchemaIterables.columns()));
+        iterableGetters.put(InformationTableConstraintsTableInfo.IDENT.fqn(),
+           () -> synchronousIterableGetter(informationSchemaIterables.constraints()));
+        iterableGetters.put(InformationRoutinesTableInfo.IDENT.fqn(),
+           () -> synchronousIterableGetter(informationSchemaIterables.routines()));
+        iterableGetters.put(InformationSqlFeaturesTableInfo.IDENT.fqn(),
+           () -> synchronousIterableGetter(informationSchemaIterables.features()));
+        iterableGetters.put(SysJobsTableInfo.IDENT.fqn(),
+           () -> synchronousIterableGetter(jobsLogs.jobsGetter()));
+        iterableGetters.put(SysJobsLogTableInfo.IDENT.fqn(),
+           () -> synchronousIterableGetter(jobsLogs.jobsLogGetter()));
+        iterableGetters.put(SysOperationsTableInfo.IDENT.fqn(),
+           () -> synchronousIterableGetter(jobsLogs.operationsGetter()));
+        iterableGetters.put(SysOperationsLogTableInfo.IDENT.fqn(),
+           () -> synchronousIterableGetter(jobsLogs.operationsLogGetter()));
+        iterableGetters.put(SysChecksTableInfo.IDENT.fqn(),
+           () -> new SysChecker<>(sysChecks).checksGetter());
+        iterableGetters.put(SysNodeChecksTableInfo.IDENT.fqn(),
+           () -> synchronousIterableGetter(sysNodeChecks));
+        iterableGetters.put(SysRepositoriesTableInfo.IDENT.fqn(),
+           () -> synchronousIterableGetter(sysRepositoriesService.repositoriesGetter()));
+        iterableGetters.put(SysSnapshotsTableInfo.IDENT.fqn(),
+           () -> synchronousIterableGetter(sysSnapshots.snapshotsGetter()));
+        iterableGetters.put(SysSummitsTableInfo.IDENT.fqn(),
+           () -> synchronousIterableGetter(new SummitsIterable().summitsGetter()));
+        iterableGetters.put(PgTypeTable.IDENT.fqn(),
+           () -> synchronousIterableGetter(pgCatalogTables.typesGetter()));
     }
 
     private CompletableFuture<? extends Iterable<?>> synchronousIterableGetter(Iterable<?> iterable) {
@@ -190,5 +190,9 @@ public class SystemCollectSource implements CollectSource {
     public SysRowUpdater<?> getRowUpdater(TableIdent ident) {
         assert rowUpdaters.containsKey(ident) : "RowUpdater for " + ident.fqn() + " must exist";
         return rowUpdaters.get(ident);
+    }
+
+    public void registerIterableGetter(String fqn, Supplier<CompletableFuture<? extends Iterable<?>>> iterableSupplier) {
+        iterableGetters.put(fqn, iterableSupplier);
     }
 }
