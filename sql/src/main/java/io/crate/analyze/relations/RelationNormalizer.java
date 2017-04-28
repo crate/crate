@@ -22,7 +22,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.collect.Maps;
 import io.crate.analyze.*;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
@@ -87,11 +86,7 @@ final class RelationNormalizer {
             QuerySpec querySpec = mss.querySpec();
             querySpec.normalize(normalizer, context);
             // must create a new MultiSourceSelect because paths and query spec changed
-            mss = new MultiSourceSelect(
-                Maps.transformValues(mss.sources(), RelationSource::relation),
-                mss.fields(),
-                querySpec,
-                mss.joinPairs());
+            mss = new MultiSourceSelect(mss, querySpec);
             mss.pushDownQuerySpecs();
             if (mss.sources().size() == 2) {
                 Iterator<RelationSource> it = mss.sources().values().iterator();

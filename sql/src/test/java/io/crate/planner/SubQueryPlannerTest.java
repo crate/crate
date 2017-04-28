@@ -24,6 +24,7 @@ package io.crate.planner;
 
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.*;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -34,8 +35,8 @@ import org.junit.Test;
 
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.instanceOf;
-
 
 public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -43,21 +44,23 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws Exception {
-         e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
+        e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
     }
 
     @Test
     public void testNestedSimpleSelectUsesFetch() throws Exception {
         QueryThenFetch qtf = e.plan(
             "select x, i from (select x, i from t1 order by x asc limit 10) ti order by x desc limit 3");
-        Collect collect = (Collect) qtf.subPlan();
-        assertThat(collect.collectPhase().projections(), Matchers.contains(
+        List<Projection> projections = ((Collect) qtf.subPlan()).collectPhase().projections();
+        assertThat(projections, Matchers.contains(
             instanceOf(TopNProjection.class),
             instanceOf(TopNProjection.class),
             // TODO: We can optimize this to delay fetch until after the OrderedTopNProjection
             instanceOf(FetchProjection.class),
-            instanceOf(OrderedTopNProjection.class)
-        ));
+            instanceOf(OrderedTopNProjection.class)));
+
+        // Assert that the OrderedTopNProjection has correct outputs
+        assertThat(projections.get(3).outputs(), isSQL("INPUT(0), INPUT(1)"));
     }
 
     @Test
@@ -68,5 +71,21 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                                     "order by x desc limit 3");
         List<Projection> projections = ((Collect) qtf.subPlan()).collectPhase().projections();
         assertThat(projections, Matchers.hasItem(instanceOf(FilterProjection.class)));
+    }
+
+    @Test
+    public void testNestedSimpleSelectWithJoin() throws Exception {
+        QueryThenFetch qtf = e.plan("select t1x from (" +
+                                     "select t1.x as t1x, t2.i as t2i from t1 as t1, t1 as t2 order by t1x asc limit 10" +
+                                   ") t order by t1x desc limit 3");
+        List<Projection> projections = ((NestedLoop) qtf.subPlan()).nestedLoopPhase().projections();
+        assertThat(projections, Matchers.contains(
+            instanceOf(OrderedTopNProjection.class),
+            instanceOf(FetchProjection.class),
+            instanceOf(OrderedTopNProjection.class)));
+
+        // Assert that the OrderedTopNProjections have correct outputs
+        assertThat(projections.get(0).outputs(), isSQL("INPUT(0), INPUT(1)"));
+        assertThat(projections.get(2).outputs(), isSQL("INPUT(0)"));
     }
 }

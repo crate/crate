@@ -30,6 +30,7 @@ import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class MultiSourceSelect implements QueriedRelation {
 
@@ -55,6 +56,17 @@ public class MultiSourceSelect implements QueriedRelation {
         for (Path path : outputNames) {
             fields.add(path, new Field(this, path, outputsIterator.next().valueType()));
         }
+    }
+
+    public MultiSourceSelect(MultiSourceSelect mss, QuerySpec querySpec) {
+        this.sources = mss.sources;
+        this.joinPairs = mss.joinPairs;
+        this.splitter = new RelationSplitter(
+            querySpec,
+            sources.values().stream().map(rs -> rs.relation()).collect(Collectors.toList()),
+            joinPairs);
+        this.querySpec = querySpec;
+        this.fields = mss.fields;
     }
 
     public Set<Symbol> requiredForQuery() {
