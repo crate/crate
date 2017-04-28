@@ -13,4 +13,5 @@ else
     exit 1
 fi
 
+.venv/bin/python -m pip install -U pip setuptools
 .venv/bin/python -m pip install -r requirements.txt
