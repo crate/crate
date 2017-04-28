@@ -200,6 +200,6 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(root.toString(), is("join.join.doc.t1.doc.t3.doc.t2"));
         TwoTableJoin t1Andt3 = ((TwoTableJoin) root.left().relation());
         assertThat(t1Andt3.toString(), is("join.doc.t1.doc.t3"));
-        assertThat(root.right().qualifiedName().toString(), is("doc.t2"));
+        assertThat(root.right().relation().getQualifiedName().toString(), is("doc.t2"));
     }
 }

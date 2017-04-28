@@ -92,8 +92,8 @@ final class RelationNormalizer {
                 Iterator<RelationSource> it = mss.sources().values().iterator();
                 RelationSource leftSource = it.next();
                 RelationSource rightSource = it.next();
-                QualifiedName left = leftSource.qualifiedName();
-                QualifiedName right = rightSource.qualifiedName();
+                QualifiedName left = leftSource.relation().getQualifiedName();
+                QualifiedName right = rightSource.relation().getQualifiedName();
                 Rewriter.tryRewriteOuterToInnerJoin(
                     normalizer,
                     JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs(), false),

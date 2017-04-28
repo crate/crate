@@ -55,7 +55,10 @@ public class TwoTableJoin implements QueriedRelation {
         this.querySpec = querySpec;
         this.left = left;
         this.right = right;
-        this.name = QualifiedName.of("join", left.qualifiedName().toString(), right.qualifiedName().toString());
+        this.name = QualifiedName.of(
+            "join",
+            left.relation().getQualifiedName().toString(),
+            right.relation().getQualifiedName().toString());
         this.remainingOrderBy = remainingOrderBy;
         this.joinPair = joinPair;
         fields = new ArrayList<>(querySpec.outputs().size());
@@ -111,11 +114,11 @@ public class TwoTableJoin implements QueriedRelation {
     }
 
     public QualifiedName leftName() {
-        return left.qualifiedName();
+        return left.relation().getQualifiedName();
     }
 
     public QualifiedName rightName() {
-        return right.qualifiedName();
+        return right.relation().getQualifiedName();
     }
 
     @Override

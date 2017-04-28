@@ -23,26 +23,19 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.sql.tree.QualifiedName;
 
 public class RelationSource {
 
-    private final QualifiedName qualifiedName;
     private final AnalyzedRelation relation;
     private QuerySpec querySpec;
 
-    public RelationSource(QualifiedName qualifiedName, AnalyzedRelation relation) {
-        this(qualifiedName, relation, null);
+    public RelationSource(AnalyzedRelation relation) {
+        this(relation, null);
     }
 
-    public RelationSource(QualifiedName qualifiedName, AnalyzedRelation relation, QuerySpec querySpec) {
-        this.qualifiedName = qualifiedName;
+    public RelationSource(AnalyzedRelation relation, QuerySpec querySpec) {
         this.relation = relation;
         this.querySpec = querySpec;
-    }
-
-    public QualifiedName qualifiedName() {
-        return qualifiedName;
     }
 
     public QuerySpec querySpec() {
@@ -60,7 +53,6 @@ public class RelationSource {
     @Override
     public String toString() {
         return "Source{" +
-               "qName=" + qualifiedName +
                ", rel=" + relation +
                ", qs=" + querySpec +
                '}';

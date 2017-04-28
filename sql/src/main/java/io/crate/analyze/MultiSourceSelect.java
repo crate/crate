@@ -121,7 +121,8 @@ public class MultiSourceSelect implements QueriedRelation {
     private static HashMap<QualifiedName, RelationSource> initializeSources(Map<QualifiedName, AnalyzedRelation> originalSources) {
         HashMap<QualifiedName, RelationSource> sources = new LinkedHashMap<>(originalSources.size());
         for (Map.Entry<QualifiedName, AnalyzedRelation> entry : originalSources.entrySet()) {
-            RelationSource source = new RelationSource(entry.getKey(), entry.getValue());
+            entry.getValue().setQualifiedName(entry.getKey());
+            RelationSource source = new RelationSource(entry.getValue());
             sources.put(entry.getKey(), source);
         }
         return sources;

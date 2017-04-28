@@ -236,7 +236,7 @@ public class ManyTableConsumer implements Consumer {
             // NestedLoop will add NULL rows - so order by needs to be applied after the NestedLoop
             TwoTableJoin join = new TwoTableJoin(
                 newQuerySpec,
-                new RelationSource(leftName, leftRelation, leftQuerySpec),
+                new RelationSource(leftRelation, leftQuerySpec),
                 rightSource,
                 remainingOrderByToApply,
                 joinPair
