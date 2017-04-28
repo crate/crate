@@ -184,6 +184,13 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertSettingsDefault(SharedSettings.ENTERPRISE_LICENSE_SETTING);
     }
 
+
+    @Test
+    public void testDefaultHbaSetting() {
+        execute("select settings from sys.cluster");
+        assertSettingsDefault(SharedSettings.AUTH_HOST_BASED_SETTING);
+    }
+
     @Test
     public void testDefaultLicenseIdentSetting() {
         execute("select settings from sys.cluster");

@@ -20,10 +20,15 @@ package io.crate.operation.auth;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
+import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.jboss.netty.channel.Channel;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
@@ -31,6 +36,8 @@ import java.util.*;
 import static io.crate.operation.auth.AuthenticationService.Matchers.isValidAddress;
 import static io.crate.operation.auth.AuthenticationService.Matchers.isValidUser;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
 public class AuthenticationServiceTest extends CrateUnitTest {
@@ -52,6 +59,32 @@ public class AuthenticationServiceTest extends CrateUnitTest {
         .put("method", "md5")
         .build();
 
+    private ClusterService clusterService;
+    private AuthenticationService authService;
+
+    private Settings settings;
+
+    @Before
+    private void setUpTest(){
+        settings = Settings.EMPTY;
+        clusterService = createClusterService(settings);
+        authService = new AuthenticationService(clusterService, settings);
+    }
+
+    private ClusterService createClusterService(Settings settings){
+        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
+        Set<Setting<?>> cSettings = new HashSet<>();
+        cSettings.addAll(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
+        cSettings.addAll(sqlPlugin.getSettings());
+        ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, cSettings);
+
+        ClusterService clusterService = mock(ClusterService.class);
+        when(clusterService.getSettings()).thenReturn(settings);
+        when(clusterService.getClusterSettings()).thenReturn(clusterSettings);
+
+        return clusterService;
+    }
+
     @SafeVarargs
     private static Map<String, Map<String, String>> createHbaConf(Map<String, String>... entries) {
         ImmutableMap.Builder<String, Map<String, String>> builder = ImmutableMap.builder();
@@ -65,13 +98,11 @@ public class AuthenticationServiceTest extends CrateUnitTest {
 
     @Test
     public void testMissingHbaConf() throws Exception {
-        AuthenticationService authService = new AuthenticationService();
         assertFalse(authService.enabled());
     }
 
     @Test
     public void testMissingUserOrAddress() throws Exception {
-        AuthenticationService authService = new AuthenticationService();
         authService.updateHbaConfig(Collections.emptyMap());
         AuthenticationMethod method;
         method = authService.resolveAuthenticationType(null, "127.0.0.1");
@@ -82,7 +113,6 @@ public class AuthenticationServiceTest extends CrateUnitTest {
 
     @Test
     public void testEmptyHbaConf() throws Exception {
-        AuthenticationService authService = new AuthenticationService();
         authService.updateHbaConfig(Collections.emptyMap());
         AuthenticationMethod method = authService.resolveAuthenticationType("crate", "127.0.0.1");
         assertNull(method);
@@ -100,7 +130,7 @@ public class AuthenticationServiceTest extends CrateUnitTest {
                 return "trust";
             }
         };
-        AuthenticationService authService = new AuthenticationService();
+
         authService.registerAuthMethod(noopAuthMethod);
         authService.updateHbaConfig(createHbaConf(HBA_1));
         AuthenticationMethod method = authService.resolveAuthenticationType("crate", "127.0.0.1");
@@ -109,7 +139,6 @@ public class AuthenticationServiceTest extends CrateUnitTest {
 
     @Test
     public void testFilterEntriesSimple() throws Exception {
-        AuthenticationService authService = new AuthenticationService();
         authService.updateHbaConfig(createHbaConf(HBA_1));
         Optional entry;
 
@@ -125,7 +154,6 @@ public class AuthenticationServiceTest extends CrateUnitTest {
 
     @Test
     public void testFilterEntriesCIDR() throws Exception {
-        AuthenticationService authService = new AuthenticationService();
         authService.updateHbaConfig(createHbaConf(HBA_2, HBA_3));
         Optional<Map.Entry<String, Map<String, String>>> entry;
 
@@ -180,5 +208,20 @@ public class AuthenticationServiceTest extends CrateUnitTest {
         );
         assertTrue(isValidAddress(entry,
             String.format("%s.%s.%s.%s", randomInt(255), randomInt(255), randomInt(255), randomInt(255))));
+    }
+
+    @Test
+    public void testConvertHBASetting() throws Exception {
+        Settings settings = Settings.builder()
+            .put("auth.host_based.0.user", "crate")
+            .put("auth.host_based.0.address", "127.0.0.1")
+            .put("auth.host_based.0.method", "trust")
+            .put("auth.host_based.1.user", "crate")
+            .put("auth.host_based.1.address", "0.0.0.0/0")
+            .put("auth.host_based.1.method", "fake")
+            .build();
+
+        AuthenticationService authService = new AuthenticationService(createClusterService(settings), settings);
+        assertThat(authService.hbaConf(), is(createHbaConf(HBA_1, HBA_2)));
     }
 }
