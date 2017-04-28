@@ -31,6 +31,7 @@ import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.planner.TableStatsService;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.settings.AuthenticationSettings;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
 import io.crate.types.DataTypes;
@@ -104,7 +105,10 @@ public class CrateSettings implements ClusterStateListener {
 
             // ENTERPRISE
             SharedSettings.ENTERPRISE_LICENSE_SETTING,
-            SharedSettings.LICENSE_IDENT_SETTING
+            SharedSettings.LICENSE_IDENT_SETTING,
+
+            // AUTHENTICATION
+            AuthenticationSettings.AUTH_HOST_BASED_SETTING
 
         ));
 
