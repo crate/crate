@@ -30,6 +30,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Version;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -55,17 +56,14 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
     private static final String PREP_STMT_NAME = "tables_need_upgrade_syscheck";
 
     private final Logger logger;
-    private final SQLOperations.SQLDirectExecutor sqlDirectExecutor;
+    private final Provider<SQLOperations> sqlOperationsProvider;
+    private SQLOperations.SQLDirectExecutor sqlDirectExecutor;
     private volatile Collection<String> tablesNeedUpgrade;
 
     @Inject
-    public TablesNeedUpgradeSysCheck(SQLOperations sqlOperations, Settings settings) {
+    public TablesNeedUpgradeSysCheck(Provider<SQLOperations> sqlOperationsProvider, Settings settings) {
         super(ID, DESCRIPTION, Severity.MEDIUM);
-        this.sqlDirectExecutor = sqlOperations.createSQLDirectExecutor(
-            "sys",
-            PREP_STMT_NAME,
-            STMT,
-            LIMIT);
+        this.sqlOperationsProvider = sqlOperationsProvider;
         this.logger = Loggers.getLogger(TablesNeedUpgradeSysCheck.class, settings);
     }
 
@@ -79,7 +77,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
     public CompletableFuture<?> computeResult() {
         final CompletableFuture<Collection<String>> result = new CompletableFuture<>();
         try {
-            sqlDirectExecutor.execute(new SycCheckResultReceiver(result), Collections.emptyList());
+            directExecutor().execute(new SycCheckResultReceiver(result), Collections.emptyList());
         } catch (Throwable t) {
             result.completeExceptionally(t);
         }
@@ -90,6 +88,14 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
                 logger.error("error while checking for tables that need upgrade", throwable);
             }
         });
+    }
+
+    private SQLOperations.SQLDirectExecutor directExecutor() {
+        if (sqlDirectExecutor == null) {
+            sqlDirectExecutor = sqlOperationsProvider.get().createSQLDirectExecutor(
+                "sys", PREP_STMT_NAME, STMT, LIMIT);
+        }
+        return sqlDirectExecutor;
     }
 
     @Override

@@ -18,15 +18,19 @@
 
 package io.crate.operation.user;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.action.FutureActionListener;
 import org.elasticsearch.cluster.metadata.MetaData;
 
+import java.util.EnumSet;
 import java.util.concurrent.CompletableFuture;
 
 import static io.crate.operation.user.UsersMetaData.PROTO;
 import static io.crate.operation.user.UsersMetaData.TYPE;
 
 public class UserManagerService implements UserManager {
+
+    private final User crateUser = new User("crate", EnumSet.of(User.Role.SUPERUSER));
 
     static {
         MetaData.registerPrototype(TYPE, PROTO);
@@ -43,5 +47,9 @@ public class UserManagerService implements UserManager {
         FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> 1L);
         transportCreateUserAction.execute(new CreateUserRequest(userName), listener);
         return listener;
+    }
+
+    public Iterable<User> users() {
+        return ImmutableList.of(crateUser);
     }
 }

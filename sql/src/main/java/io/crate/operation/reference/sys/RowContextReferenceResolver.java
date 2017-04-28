@@ -87,6 +87,10 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
         tableFactories.put(PgTypeTable.IDENT, PgCatalogTables.pgTypeExpressions());
     }
 
+    public void registerTableFactory(TableIdent ident, Map<ColumnIdent, ? extends RowCollectExpressionFactory> expressionFactories) {
+        tableFactories.put(ident, expressionFactories);
+    }
+
     private Map<ColumnIdent, RowCollectExpressionFactory> getSysOperationLogExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
             .put(SysOperationsLogTableInfo.Columns.ID, new RowCollectExpressionFactory() {
