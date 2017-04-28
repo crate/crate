@@ -507,6 +507,15 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             context.OPEN() != null
         );
     }
+
+    @Override
+    public Node visitAlterTableRename(SqlBaseParser.AlterTableRenameContext context) {
+        return new AlterTableRename(
+            (Table) visit(context.alterTableDefinition()),
+            getQualifiedName(context.qname())
+        );
+    }
+
 // Assignments
 
     @Override

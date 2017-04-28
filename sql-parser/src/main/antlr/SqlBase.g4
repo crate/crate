@@ -50,6 +50,7 @@ statement
     | ALTER BLOB TABLE alterTableDefinition
         (SET '(' genericProperties ')' | RESET ('(' ident (',' ident)* ')')?)        #alterBlobTableProperties
     | ALTER TABLE alterTableDefinition (OPEN | CLOSE)                                #alterTableOpenClose
+    | ALTER TABLE alterTableDefinition RENAME TO qname                               #alterTableRename
     | RESET GLOBAL primaryExpression (',' primaryExpression)*                        #resetGlobal
     | SET (SESSION | LOCAL)? qname
         (EQ | TO) (DEFAULT | setExpr (',' setExpr)*)                                 #set
@@ -654,6 +655,8 @@ COLUMN: 'COLUMN';
 
 OPEN: 'OPEN';
 CLOSE: 'CLOSE';
+
+RENAME: 'RENAME';
 
 BOOLEAN: 'BOOLEAN';
 BYTE: 'BYTE';
