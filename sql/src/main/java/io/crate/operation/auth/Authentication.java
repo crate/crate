@@ -23,12 +23,13 @@
 package io.crate.operation.auth;
 
 import javax.annotation.Nullable;
+import java.net.InetAddress;
 
 public interface Authentication {
 
     boolean enabled();
 
     @Nullable
-    AuthenticationMethod resolveAuthenticationType(String user, String address);
+    AuthenticationMethod resolveAuthenticationType(String user, InetAddress address);
 
 }

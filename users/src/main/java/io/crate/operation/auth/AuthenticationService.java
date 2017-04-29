@@ -20,7 +20,6 @@ package io.crate.operation.auth;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.net.InetAddresses;
 import io.crate.settings.SharedSettings;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -33,6 +32,7 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 
 public class AuthenticationService implements Authentication {
@@ -41,10 +41,6 @@ public class AuthenticationService implements Authentication {
     private static final String KEY_USER = "user";
     private static final String KEY_ADDRESS = "address";
     private static final String KEY_METHOD = "method";
-
-    private final Map<String, AuthenticationMethod> authMethodRegistry = new HashMap<>();
-    private final ClusterService clusterService;
-
 
     /*
      * The cluster state contains the hbaConf from the setting in this format:
@@ -58,11 +54,8 @@ public class AuthenticationService implements Authentication {
      }
      */
     private Map<String, Map<String, String>> hbaConf;
-
-    @VisibleForTesting
-    protected Map<String, Map<String, String>> hbaConf() {
-        return hbaConf;
-    }
+    private final Map<String, Supplier<AuthenticationMethod>> authMethodRegistry = new HashMap<>();
+    private final ClusterService clusterService;
 
     @Inject
     AuthenticationService(ClusterService clusterService, Settings settings) {
@@ -70,13 +63,11 @@ public class AuthenticationService implements Authentication {
         Settings hbaSettings = SharedSettings.AUTH_HOST_BASED_SETTING.setting().get(settings);
         updateHbaConfig(convertHbaSettingsToHbaConf(hbaSettings));
         clusterService.getClusterSettings()
-            .addSettingsUpdateConsumer(
-                SharedSettings.AUTH_HOST_BASED_SETTING
-                    .setting(), this::updateHbaConfig);
-
+            .addSettingsUpdateConsumer(SharedSettings.AUTH_HOST_BASED_SETTING.setting(), this::updateHbaConfig);
+        registerAuthMethod(TrustAuthentication.NAME, TrustAuthentication::new);
     }
 
-    public void updateHbaConfig(Settings hbaSetting) {
+    private void updateHbaConfig(Settings hbaSetting) {
         this.hbaConf = convertHbaSettingsToHbaConf(hbaSetting);
     }
 
@@ -84,7 +75,7 @@ public class AuthenticationService implements Authentication {
         this.hbaConf = hbaConf;
     }
 
-    Map<String, Map<String, String>> convertHbaSettingsToHbaConf(Settings hbaSetting) {
+    private Map<String, Map<String, String>> convertHbaSettingsToHbaConf(Settings hbaSetting) {
         if (hbaSetting == null || hbaSetting.isEmpty()) {
             return null;
         }
@@ -98,8 +89,8 @@ public class AuthenticationService implements Authentication {
         return hostBasedConf.build();
     }
 
-    void registerAuthMethod(AuthenticationMethod method) {
-        authMethodRegistry.put(method.name(), method);
+    void registerAuthMethod(String name, Supplier<AuthenticationMethod> supplier) {
+        authMethodRegistry.put(name, supplier);
     }
 
     @Override
@@ -109,20 +100,28 @@ public class AuthenticationService implements Authentication {
 
     @Override
     @Nullable
-    public AuthenticationMethod resolveAuthenticationType(String user, String address) {
+    public AuthenticationMethod resolveAuthenticationType(String user, InetAddress address) {
         assert hbaConf != null : "hba configuration is missing";
         Optional<Map.Entry<String, Map<String, String>>> entry = getEntry(user, address);
         if (entry.isPresent()) {
             String methodName = entry.get()
                 .getValue()
                 .getOrDefault(KEY_METHOD, DEFAULT_AUTH_METHOD);
-            return authMethodRegistry.get(methodName);
+            Supplier<AuthenticationMethod> supplier = authMethodRegistry.get(methodName);
+            if (supplier != null) {
+                return supplier.get();
+            }
         }
         return null;
     }
 
     @VisibleForTesting
-    Optional<Map.Entry<String, Map<String, String>>> getEntry(String user, String address) {
+    Map<String, Map<String, String>> hbaConf() {
+        return hbaConf;
+    }
+
+    @VisibleForTesting
+    Optional<Map.Entry<String, Map<String, String>>> getEntry(String user, InetAddress address) {
         if (user == null || address == null) {
             return Optional.empty();
         }
@@ -139,9 +138,8 @@ public class AuthenticationService implements Authentication {
             return hbaUser == null || user.equals(hbaUser);
         }
 
-        static boolean isValidAddress(Map.Entry<String, Map<String, String>> entry, String address) {
+        static boolean isValidAddress(Map.Entry<String, Map<String, String>> entry, InetAddress address) {
             String hbaAddress = entry.getValue().get(KEY_ADDRESS);
-            InetAddress inetAddr = InetAddresses.forString(address);
             if (hbaAddress == null) {
                 // no IP/CIDR --> 0.0.0.0/0 --> match all
                 return true;
@@ -150,7 +148,7 @@ public class AuthenticationService implements Authentication {
                 hbaAddress += "/32";
             }
             try {
-                return CIDR4.newCIDR(hbaAddress).contains(inetAddr);
+                return CIDR4.newCIDR(hbaAddress).contains(address);
             } catch (UnknownHostException e) {
                 // this should not happen because we add the required network mask upfront
             }

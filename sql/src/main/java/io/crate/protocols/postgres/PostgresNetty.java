@@ -26,6 +26,8 @@ import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
+import io.crate.operation.auth.Authentication;
+import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
@@ -80,6 +82,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final boolean enabled;
     private final String port;
     private final Logger namedLogger;
+    private final Authentication authService;
 
     private ServerBootstrap bootstrap;
 
@@ -89,8 +92,12 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private  BoundTransportAddress boundAddress = null;
 
     @Inject
-    public PostgresNetty(Settings settings, SQLOperations sqlOperations, NetworkService networkService) {
+    public PostgresNetty(Settings settings,
+                         SQLOperations sqlOperations,
+                         NetworkService networkService,
+                         AuthenticationProvider authProvider) {
         super(settings);
+        authService = authProvider.authService();
         namedLogger = Loggers.getLogger("psql", settings);
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
@@ -117,7 +124,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         bootstrap.setOption("child.keepAlive", settings.getAsBoolean("tcp_keep_alive", true));
         bootstrap.setPipelineFactory(() -> {
             ChannelPipeline pipeline = Channels.pipeline();
-            ConnectionContext connectionContext = new ConnectionContext(sqlOperations);
+            ConnectionContext connectionContext = new ConnectionContext(sqlOperations, authService);
             pipeline.addLast("frame-decoder", connectionContext.decoder);
             pipeline.addLast("handler", connectionContext.handler);
             return pipeline;

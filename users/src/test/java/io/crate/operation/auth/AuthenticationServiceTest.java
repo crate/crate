@@ -26,12 +26,15 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 import org.jboss.netty.channel.Channel;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.net.InetAddress;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 import static io.crate.operation.auth.AuthenticationService.Matchers.isValidAddress;
 import static io.crate.operation.auth.AuthenticationService.Matchers.isValidUser;
@@ -59,16 +62,12 @@ public class AuthenticationServiceTest extends CrateUnitTest {
         .put("method", "md5")
         .build();
 
-    private ClusterService clusterService;
+    private static final InetAddress LOCALHOST = InetAddresses.forString("127.0.0.1");
     private AuthenticationService authService;
-
-    private Settings settings;
 
     @Before
     private void setUpTest(){
-        settings = Settings.EMPTY;
-        clusterService = createClusterService(settings);
-        authService = new AuthenticationService(clusterService, settings);
+        authService = new AuthenticationService(createClusterService(Settings.EMPTY), Settings.EMPTY);
     }
 
     private ClusterService createClusterService(Settings settings){
@@ -105,7 +104,7 @@ public class AuthenticationServiceTest extends CrateUnitTest {
     public void testMissingUserOrAddress() throws Exception {
         authService.updateHbaConfig(Collections.emptyMap());
         AuthenticationMethod method;
-        method = authService.resolveAuthenticationType(null, "127.0.0.1");
+        method = authService.resolveAuthenticationType(null, LOCALHOST);
         assertNull(method);
         method = authService.resolveAuthenticationType("crate", null);
         assertNull(method);
@@ -114,7 +113,7 @@ public class AuthenticationServiceTest extends CrateUnitTest {
     @Test
     public void testEmptyHbaConf() throws Exception {
         authService.updateHbaConfig(Collections.emptyMap());
-        AuthenticationMethod method = authService.resolveAuthenticationType("crate", "127.0.0.1");
+        AuthenticationMethod method = authService.resolveAuthenticationType("crate", LOCALHOST);
         assertNull(method);
     }
 
@@ -122,7 +121,8 @@ public class AuthenticationServiceTest extends CrateUnitTest {
     public void testResolveAuthMethod() throws Exception {
         AuthenticationMethod noopAuthMethod = new AuthenticationMethod() {
             @Override
-            public void pgAuthenticate(Channel channel, SessionContext session, Settings settings) {
+            public CompletableFuture<Boolean> pgAuthenticate(Channel channel, SessionContext session) {
+                return null;
             }
 
             @Override
@@ -130,10 +130,9 @@ public class AuthenticationServiceTest extends CrateUnitTest {
                 return "trust";
             }
         };
-
-        authService.registerAuthMethod(noopAuthMethod);
+        authService.registerAuthMethod(noopAuthMethod.name(), () -> noopAuthMethod);
         authService.updateHbaConfig(createHbaConf(HBA_1));
-        AuthenticationMethod method = authService.resolveAuthenticationType("crate", "127.0.0.1");
+        AuthenticationMethod method = authService.resolveAuthenticationType("crate", LOCALHOST);
         assertThat(method, is(noopAuthMethod));
     }
 
@@ -142,13 +141,13 @@ public class AuthenticationServiceTest extends CrateUnitTest {
         authService.updateHbaConfig(createHbaConf(HBA_1));
         Optional entry;
 
-        entry = authService.getEntry("crate", "127.0.0.1");
+        entry = authService.getEntry("crate", LOCALHOST);
         assertThat(entry.isPresent(), is(true));
 
-        entry = authService.getEntry("cr8", "127.0.0.1");
+        entry = authService.getEntry("cr8", LOCALHOST);
         assertThat(entry.isPresent(), is(false));
 
-        entry = authService.getEntry("crate", "127.0.0.2");
+        entry = authService.getEntry("crate", InetAddresses.forString("10.0.0.1"));
         assertThat(entry.isPresent(), is(false));
     }
 
@@ -157,15 +156,15 @@ public class AuthenticationServiceTest extends CrateUnitTest {
         authService.updateHbaConfig(createHbaConf(HBA_2, HBA_3));
         Optional<Map.Entry<String, Map<String, String>>> entry;
 
-        entry = authService.getEntry("crate", "123.45.67.89");
+        entry = authService.getEntry("crate", InetAddresses.forString("123.45.67.89"));
         assertTrue(entry.isPresent());
         assertThat(entry.get().getValue().get("method"), is("fake"));
 
-        entry = authService.getEntry("cr8", "127.0.0.1");
+        entry = authService.getEntry("cr8", InetAddresses.forString("127.0.0.1"));
         assertTrue(entry.isPresent());
         assertThat(entry.get().getValue().get("method"), is("md5"));
 
-        entry = authService.getEntry("cr8", "123.45.67.89");
+        entry = authService.getEntry("cr8", InetAddresses.forString("123.45.67.89"));
         assertThat(entry.isPresent(), is(false));
     }
 
@@ -191,23 +190,26 @@ public class AuthenticationServiceTest extends CrateUnitTest {
         Map.Entry<String, Map<String, String>> entry = new HashMap.SimpleEntry<>(
             "0", Collections.singletonMap("address", "10.0.1.100")
         );
-        assertTrue(isValidAddress(entry, "10.0.1.100"));
-        assertFalse(isValidAddress(entry, "10.0.1.99"));
-        assertFalse(isValidAddress(entry, "10.0.1.101"));
+        assertTrue(isValidAddress(entry, InetAddresses.forString("10.0.1.100")));
+        assertFalse(isValidAddress(entry, InetAddresses.forString("10.0.1.99")));
+        assertFalse(isValidAddress(entry, InetAddresses.forString("10.0.1.101")));
 
         entry = new HashMap.SimpleEntry<>(
             "0", Collections.singletonMap("address", "10.0.1.0/24") // 10.0.1.0 -- 10.0.1.255
         );
-        assertTrue(isValidAddress(entry, "10.0.1.0"));
-        assertTrue(isValidAddress(entry, "10.0.1.255"));
-        assertFalse(isValidAddress(entry, "10.0.0.255"));
-        assertFalse(isValidAddress(entry, "10.0.2.0"));
+        assertTrue(isValidAddress(entry, InetAddresses.forString("10.0.1.0")));
+        assertTrue(isValidAddress(entry, InetAddresses.forString("10.0.1.255")));
+        assertFalse(isValidAddress(entry, InetAddresses.forString("10.0.0.255")));
+        assertFalse(isValidAddress(entry, InetAddresses.forString("10.0.2.0")));
 
         entry = new HashMap.SimpleEntry<>(
             "0", Collections.emptyMap() // key "address" is missing
         );
         assertTrue(isValidAddress(entry,
-            String.format("%s.%s.%s.%s", randomInt(255), randomInt(255), randomInt(255), randomInt(255))));
+            InetAddresses.forString(
+                String.format("%s.%s.%s.%s", randomInt(255), randomInt(255), randomInt(255), randomInt(255)))
+            )
+        );
     }
 
     @Test
