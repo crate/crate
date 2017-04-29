@@ -86,23 +86,15 @@ public class SQLOperations {
         this.isReadOnly = NODE_READ_ONLY_SETTING.get(settings);
     }
 
-    public Session createSession(Properties properties) {
-        return createSession(
-            properties.getProperty("database"),
-            properties.getProperty("user"),
-            Option.NONE,
-            0
-        );
-    }
-
-    public Session createSession(@Nullable String defaultSchema, @Nullable String userName, Set<Option> options, int defaultLimit) {
+    public Session createSession(SessionContext sessionContext) {
         if (disabled) {
             throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
-        return new Session(
-            executorProvider.get(),
-            new SessionContext(defaultLimit, options, defaultSchema, userName)
-        );
+        return new Session(executorProvider.get(), sessionContext);
+    }
+
+    public Session createSession(@Nullable String defaultSchema, @Nullable String userName, Set<Option> options, int defaultLimit) {
+        return createSession(new SessionContext(defaultLimit, options, defaultSchema, userName));
     }
 
     /**

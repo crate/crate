@@ -26,6 +26,7 @@ import com.google.common.base.MoreObjects;
 import io.crate.metadata.Schemas;
 
 import javax.annotation.Nullable;
+import java.util.Properties;
 import java.util.Set;
 
 public class SessionContext {
@@ -36,6 +37,10 @@ public class SessionContext {
     private final Set<Option> options;
     private String defaultSchema;
     private final String userName;
+
+    public SessionContext(Properties properties) {
+        this(0, Option.NONE, properties.getProperty("database"), properties.getProperty("user"));
+    }
 
     public SessionContext(int defaultLimit, Set<Option> options, @Nullable String defaultSchema, @Nullable String userName) {
         this.defaultLimit = defaultLimit;

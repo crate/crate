@@ -55,12 +55,12 @@ import java.util.Locale;
  * <p>
  * See https://www.postgresql.org/docs/9.2/static/protocol-message-formats.html
  */
-class Messages {
+public class Messages {
 
     private final static Logger LOGGER = Loggers.getLogger(Messages.class);
 
 
-    static void sendAuthenticationOK(Channel channel) {
+    public static ChannelFuture sendAuthenticationOK(Channel channel) {
         ChannelBuffer buffer = ChannelBuffers.buffer(9);
         buffer.writeByte('R');
         buffer.writeInt(8); // size excluding char
@@ -74,6 +74,7 @@ class Messages {
                 }
             });
         }
+        return channelFuture;
     }
 
     /**
@@ -188,14 +189,14 @@ class Messages {
         }
     }
 
-    /**
-     * 'E' | int32 len | char code | str value | \0 | char code | str value | \0 | ... | \0
-     * <p>
-     * char code / str value -> key-value fields
-     * example error fields are: message, detail, hint, error position
-     * <p>
-     * See https://www.postgresql.org/docs/9.2/static/protocol-error-fields.html for a list of error codes
-     */
+    public static ChannelFuture sendAuthenticationError(Channel channel, String message) {
+        byte[] msg = message.getBytes(StandardCharsets.UTF_8);
+        byte[] severity = "FATAL".getBytes(StandardCharsets.UTF_8);
+        byte[] errorCode = "28000".getBytes(StandardCharsets.UTF_8);
+        byte[] method = "ClientAuthentication".getBytes(StandardCharsets.UTF_8);
+        return sendErrorResponse(channel, message, msg, severity, null, null, method, errorCode);
+    }
+
     static void sendErrorResponse(Channel channel, Throwable throwable) {
         final String message = SQLExceptions.messageOf(throwable);
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
@@ -226,6 +227,18 @@ class Messages {
             // internal_error
             errorCode = "XX000".getBytes(StandardCharsets.UTF_8);
         }
+        sendErrorResponse(channel, message, msg, severity, lineNumber, fileName, methodName, errorCode);
+    }
+
+    /**
+     * 'E' | int32 len | char code | str value | \0 | char code | str value | \0 | ... | \0
+     * <p>
+     * char code / str value -> key-value fields
+     * example error fields are: message, detail, hint, error position
+     * <p>
+     * See https://www.postgresql.org/docs/9.2/static/protocol-error-fields.html for a list of error codes
+     */
+    private static ChannelFuture sendErrorResponse(Channel channel, String message, byte[] msg, byte[] severity, byte[] lineNumber, byte[] fileName, byte[] methodName, byte[] errorCode) {
         int length = 4 +
             1 + (severity.length + 1) +
             1 + (msg.length + 1) +
@@ -265,6 +278,7 @@ class Messages {
                 }
             });
         }
+        return channelFuture;
     }
 
     /**

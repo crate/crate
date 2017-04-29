@@ -22,32 +22,21 @@
 
 package io.crate.operation.auth;
 
-import io.crate.action.sql.SessionContext;
-import org.elasticsearch.common.settings.Settings;
-import org.jboss.netty.channel.Channel;
 
-import java.util.concurrent.CompletableFuture;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
 
 /**
- * Common interface for Authentication methods.
- *
- * An auth method must provide a unique name which is exposed via the {@link #name()} method.
- *
- * It is also responsible for authentication for the Postgres Wire Protocol,
- * {@link #pgAuthenticate(Channel channel, SessionContext session)},
+ * This is a marker interface for a factory implementation that lives in the "user" module
+ * which is only available for the Enterprise Edition.
+ * Also, the implementations returned by this factory are part of the "user" module.
+ * The interfaces, however, are part of the "sql" module.
  */
-public interface AuthenticationMethod {
-    /**
-     * Authenticates the Postgres Wire Protocol client,
-     * sends AuthenticationOK if authentication is successful
-     * If authentication fails it send ErrorResponse
-     * @param channel request channel
-     * @param session the sessionContext of the connection
-     */
-    CompletableFuture<Boolean> pgAuthenticate(Channel channel, SessionContext session);
+public interface UserServiceFactory {
 
     /**
-     * @return name of the authentication method
+     * Return implementation of {@link Authentication} interface.
      */
-    String name();
+    Authentication authService(ClusterService clusterService, Settings settings);
+
 }
