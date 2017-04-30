@@ -29,6 +29,7 @@ import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.common.settings.Settings;
+import org.hamcrest.Matchers;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -39,11 +40,9 @@ import org.mockito.ArgumentCaptor;
 
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
 
@@ -96,7 +95,7 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
     public void testFlushMessageResultsInSyncCallOnSession() throws Exception {
         SQLOperations sqlOperations = mock(SQLOperations.class);
         SQLOperations.Session session = mock(SQLOperations.Session.class);
-        when(sqlOperations.createSession(anyString(), anyString(), anySetOf(Option.class), anyInt())).thenReturn(session);
+        when(sqlOperations.createSession(any(Properties.class))).thenReturn(session);
         ConnectionContext ctx = new ConnectionContext(sqlOperations);
         DecoderEmbedder<ChannelBuffer> e = new DecoderEmbedder<>(ctx.decoder, ctx.handler);
 
