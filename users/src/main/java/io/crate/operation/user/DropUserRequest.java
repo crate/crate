@@ -18,44 +18,54 @@
 
 package io.crate.operation.user;
 
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.action.ActionRequestValidationException;
+import org.elasticsearch.action.ValidateActions;
+import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class WriteUserResponse extends AcknowledgedResponse {
+public class DropUserRequest extends MasterNodeRequest<DropUserRequest> {
 
-    private long affectedRows;
+    private String userName;
+    private boolean ifExists;
 
-    WriteUserResponse() {
-        affectedRows = 1L;
+    public DropUserRequest() {
     }
 
-    WriteUserResponse(boolean acknowledged) {
-        this(acknowledged, 1L);
+    public DropUserRequest(String userName, boolean ifExists) {
+        this.userName = userName;
+        this.ifExists = ifExists;
     }
 
-    WriteUserResponse(boolean acknowledged, long affectedRows) {
-        super(acknowledged);
-        this.affectedRows = affectedRows;
+    public String userName() {
+        return userName;
     }
 
-    long affectedRows() {
-        return affectedRows;
+    public boolean ifExists() {
+        return ifExists;
+    }
+
+    @Override
+    public ActionRequestValidationException validate() {
+        if (userName == null) {
+            return ValidateActions.addValidationError("userName is missing", null);
+        }
+        return null;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        readAcknowledged(in);
-        affectedRows = in.readLong();
+        userName = in.readString();
+        ifExists = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        writeAcknowledged(out);
-        out.writeLong(affectedRows);
+        out.writeString(userName);
+        out.writeBoolean(ifExists);
     }
 }

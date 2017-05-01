@@ -377,6 +377,7 @@ public class TestStatementBuilder {
     public void testDropUserStmtBuilder() {
         printStatement("drop user \"Günter\"");
         printStatement("drop user root");
+        printStatement("drop user if exists root");
     }
 
     @Test

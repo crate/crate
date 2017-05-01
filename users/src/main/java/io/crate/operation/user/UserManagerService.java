@@ -37,15 +37,25 @@ public class UserManagerService implements UserManager {
     }
 
     private final TransportCreateUserAction transportCreateUserAction;
+    private final TransportDropUserAction transportDropUserAction;
 
-    UserManagerService(TransportCreateUserAction transportCreateUserAction) {
+    UserManagerService(TransportCreateUserAction transportCreateUserAction,
+                       TransportDropUserAction transportDropUserAction) {
         this.transportCreateUserAction = transportCreateUserAction;
+        this.transportDropUserAction = transportDropUserAction;
     }
 
     @Override
     public CompletableFuture<Long> createUser(String userName) {
         FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> 1L);
         transportCreateUserAction.execute(new CreateUserRequest(userName), listener);
+        return listener;
+    }
+
+    @Override
+    public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
+        FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(WriteUserResponse::affectedRows);
+        transportDropUserAction.execute(new DropUserRequest(userName, ifExists), listener);
         return listener;
     }
 

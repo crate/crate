@@ -24,6 +24,7 @@ import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
+import static java.lang.Thread.sleep;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
@@ -53,5 +54,21 @@ public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
         // The sys.users table always contains the superuser crate
         execute("select name, superuser from sys.users");
         assertThat(TestingHelpers.printedTable(response.rows()), is("crate| true\n"));
+    }
+
+    @Test
+    public void testDropUser() throws Exception {
+        execute("create user ford");
+        sleep(5L); // TODO: replace sleep with wait method when user table is merged
+        execute("drop user ford");
+        // TODO: that no conflict exception is thrown, shows that the user got deleted successfully.
+        // Replace this with a real check as soon as user table is merged
+        execute("create user ford");
+    }
+
+    @Test
+    public void testDropUserIfExists() throws Exception {
+        execute("drop user if exists ford");
+        assertThat(response.rowCount(), is(0L));
     }
 }

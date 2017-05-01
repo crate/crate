@@ -83,5 +83,12 @@ public class UserManagerProvider implements Provider<UserManager> {
                 new UnsupportedFeatureException("CREATE USER is only supported in enterprise version")
             );
         }
+
+        @Override
+        public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
+            return CompletableFutures.failedFuture(
+                new UnsupportedFeatureException("DROP USER is only supported in enterprise version")
+            );
+        }
     }
 }

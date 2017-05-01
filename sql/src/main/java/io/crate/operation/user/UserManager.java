@@ -36,4 +36,11 @@ public interface UserManager {
      * @return a future which returns the number of rows when the User is created
      */
     CompletableFuture<Long> createUser(String userName);
+
+    /**
+     * deletes a user
+     * @param userName name of the user to drop
+     * @return a future which returns the number of rows when the User is dropped
+     */
+    CompletableFuture<Long> dropUser(String userName, boolean ifExists);
 }

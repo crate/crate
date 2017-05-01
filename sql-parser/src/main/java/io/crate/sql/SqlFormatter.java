@@ -341,7 +341,11 @@ public final class SqlFormatter {
 
         @Override
         public Void visitDropUser(DropUser node, Integer indent) {
-            builder.append("DROP USER ").append(quoteIdentifierIfNeeded(node.name()));
+            builder.append("DROP USER ");
+            if (node.ifExists()) {
+                builder.append("IF EXISTS ");
+            }
+            builder.append(quoteIdentifierIfNeeded(node.name()));
             return null;
         }
 

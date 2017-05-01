@@ -125,7 +125,8 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitDropUser(SqlBaseParser.DropUserContext context) {
         return new DropUser(
-            getIdentText(context.name)
+            getIdentText(context.name),
+            context.EXISTS() != null
         );
     }
 

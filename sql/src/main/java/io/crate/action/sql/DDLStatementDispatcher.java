@@ -212,6 +212,11 @@ public class DDLStatementDispatcher {
         protected CompletableFuture<Long> visitCreateUserStatement(CreateUserAnalyzedStatement analysis, Row parameters) {
             return userManager.createUser(analysis.userName());
         }
+
+        @Override
+        protected CompletableFuture<Long> visitDropUserStatement(DropUserAnalyzedStatement analysis, Row parameters) {
+            return userManager.dropUser(analysis.userName(), analysis.ifExists());
+        }
     }
 
     private static CompletableFuture<Long> executeMergeSegments(OptimizeTableAnalyzedStatement analysis,
