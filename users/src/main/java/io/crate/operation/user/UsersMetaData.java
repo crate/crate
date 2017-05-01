@@ -60,6 +60,10 @@ public class UsersMetaData extends AbstractDiffable<MetaData.Custom> implements 
         users.add(name);
     }
 
+    public void remove(String name) {
+        users.remove(name);
+    }
+
     public List<String> users() {
         return users;
     }
