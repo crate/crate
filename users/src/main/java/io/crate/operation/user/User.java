@@ -25,6 +25,7 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import org.apache.lucene.util.BytesRef;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class User {
 
@@ -59,5 +60,19 @@ public class User {
                 }
             })
             .build();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User that = (User)o;
+        return Objects.equals(name, that.name) &&
+               Objects.equals(superuser, that.superuser);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, superuser);
     }
 }
