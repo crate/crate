@@ -18,27 +18,36 @@
 
 package io.crate.operation.user;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import static java.lang.Thread.sleep;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
 
+    private void assertUserIsCreated(String userName) throws Exception {
+        assertBusy(() -> {
+            SQLResponse response = execute("select count(*) from sys.users where name = ?", new Object[]{userName});
+            assertThat(response.rows()[0][0], is(1L));
+        });
+    }
+
+    private void assertUserDoesntExist(String userName) throws Exception {
+        assertBusy(() -> {
+            SQLResponse response = execute("select count(*) from sys.users where name = ?", new Object[]{userName});
+            assertThat(response.rows()[0][0], is(0L));
+        });
+    }
+
     @Test
     public void testCreateUser() throws Exception {
-        execute("create user fridolin");
+        execute("create user trillian");
         assertThat(response.rowCount(), is(1L));
-        // it's not possible to create the same user again
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(containsString("User already exists"));
-        execute("create user fridolin");
+        assertUserIsCreated("trillian");
     }
 
     @Test
@@ -52,18 +61,25 @@ public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSysUsersTableDefaultUser() throws Exception {
         // The sys.users table always contains the superuser crate
-        execute("select name, superuser from sys.users");
+        execute("select name, superuser from sys.users where name = 'crate'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("crate| true\n"));
+    }
+
+    @Test
+    public void testSysUsersTable() throws Exception {
+        execute("create user arthur");
+        assertUserIsCreated("arthur");
+        execute("select name, superuser from sys.users order by name limit 1");
+        // Every created user is not a superuser
+        assertThat(TestingHelpers.printedTable(response.rows()), is("arthur| false\n"));
     }
 
     @Test
     public void testDropUser() throws Exception {
         execute("create user ford");
-        sleep(5L); // TODO: replace sleep with wait method when user table is merged
+        assertUserIsCreated("ford");
         execute("drop user ford");
-        // TODO: that no conflict exception is thrown, shows that the user got deleted successfully.
-        // Replace this with a real check as soon as user table is merged
-        execute("create user ford");
+        assertUserDoesntExist("ford");
     }
 
     @Test

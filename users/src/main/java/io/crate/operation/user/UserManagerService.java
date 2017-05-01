@@ -18,19 +18,26 @@
 
 package io.crate.operation.user;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.crate.action.FutureActionListener;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.internal.Nullable;
 
 import java.util.EnumSet;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import static io.crate.operation.user.UsersMetaData.PROTO;
 import static io.crate.operation.user.UsersMetaData.TYPE;
 
-public class UserManagerService implements UserManager {
+public class UserManagerService implements UserManager, ClusterStateListener {
 
-    private final User crateUser = new User("crate", EnumSet.of(User.Role.SUPERUSER));
+    static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER));
+
+    private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
 
     static {
         MetaData.registerPrototype(TYPE, PROTO);
@@ -40,9 +47,21 @@ public class UserManagerService implements UserManager {
     private final TransportDropUserAction transportDropUserAction;
 
     UserManagerService(TransportCreateUserAction transportCreateUserAction,
-                       TransportDropUserAction transportDropUserAction) {
+                       TransportDropUserAction transportDropUserAction,
+                       ClusterService clusterService) {
         this.transportCreateUserAction = transportCreateUserAction;
         this.transportDropUserAction = transportDropUserAction;
+        clusterService.add(this);
+    }
+
+    static Set<User> getUsers(@Nullable UsersMetaData metaData) {
+        ImmutableSet.Builder<User> usersBuilder = new ImmutableSet.Builder<User>().add(CRATE_USER);
+        if (metaData != null) {
+            for (String userName : metaData.users()) {
+                usersBuilder.add(new User(userName, ImmutableSet.of()));
+            }
+        }
+        return usersBuilder.build();
     }
 
     @Override
@@ -60,6 +79,14 @@ public class UserManagerService implements UserManager {
     }
 
     public Iterable<User> users() {
-        return ImmutableList.of(crateUser);
+        return users;
+    }
+
+    @Override
+    public void clusterChanged(ClusterChangedEvent event) {
+        if (!event.metaDataChanged()) {
+            return;
+        }
+        users = getUsers(event.state().metaData().custom(UsersMetaData.TYPE));
     }
 }
