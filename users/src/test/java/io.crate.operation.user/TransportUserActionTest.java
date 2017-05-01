@@ -20,22 +20,24 @@ package io.crate.operation.user;
 
 import io.crate.exceptions.ConflictException;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.ResourceNotFoundException;
 import org.junit.Test;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 
-public class TransportCreateUserActionTest extends CrateUnitTest {
+public class TransportUserActionTest extends CrateUnitTest {
 
     @Test
-    public void testFirstUser() throws Exception {
+    public void testCreateFirstUser() throws Exception {
         UsersMetaData metaData = TransportCreateUserAction.putUser(null, "root");
         assertThat(metaData.users().size(), is(1));
         assertThat(metaData.users().get(0), is("root"));
     }
 
     @Test
-    public void testUserAlreadyExists() throws Exception {
+    public void testCreateUserAlreadyExists() throws Exception {
         expectedException.expect(ConflictException.class);
         expectedException.expectMessage("User already exists");
         UsersMetaData oldMetaData = UsersMetaData.of("root");
@@ -43,9 +45,33 @@ public class TransportCreateUserActionTest extends CrateUnitTest {
     }
 
     @Test
-    public void testAddUser() throws Exception {
+    public void testCreateUser() throws Exception {
         UsersMetaData oldMetaData = UsersMetaData.of("Trillian");
         UsersMetaData newMetaData = TransportCreateUserAction.putUser(oldMetaData, "Arthur");
         assertThat(newMetaData.users(), containsInAnyOrder("Trillian", "Arthur"));
+    }
+
+    @Test
+    public void testDropUserNoUsersAtAll() throws Exception {
+        expectedException.expect(ResourceNotFoundException.class);
+        expectedException.expectMessage("User does not exist");
+        TransportDropUserAction.dropUser(null, "root");
+    }
+
+    @Test
+    public void testDropNonExistingUser() throws Exception {
+        expectedException.expect(ResourceNotFoundException.class);
+        expectedException.expectMessage("User does not exist");
+        TransportDropUserAction.dropUser(
+            UsersMetaData.of("arthur"),
+            "trillian"
+        );
+    }
+
+    @Test
+    public void testDropUser() throws Exception {
+        UsersMetaData oldMetaData = UsersMetaData.of("ford", "arthur");
+        UsersMetaData newMetaData = TransportDropUserAction.dropUser(oldMetaData, "arthur");
+        assertThat(newMetaData.users(), contains("ford"));
     }
 }
