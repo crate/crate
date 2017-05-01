@@ -24,6 +24,7 @@ package io.crate.module;
 
 import io.crate.ClusterIdService;
 import io.crate.plugin.IndexEventListenerProxy;
+import io.crate.rest.CrateRestFilter;
 import io.crate.rest.CrateRestMainAction;
 import io.crate.settings.SharedSettings;
 import org.apache.logging.log4j.Logger;
@@ -52,6 +53,9 @@ public class CrateCoreModule extends AbstractModule {
             logger.warn("You are currently using the Enterprise Edition, " +
                 "but have not configured a license. Please request a license or deactivate the "+
                 "Enterprise Edition. https://crate.io/enterprise");
+        }
+        if (CrateRestFilter.ES_API_ENABLED_SETTING.get(settings)) {
+            logger.warn("The Elasticsearch API is currently enabled, which makes it possible to request user data.");
         }
     }
 
