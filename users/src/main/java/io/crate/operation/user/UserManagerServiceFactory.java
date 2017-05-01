@@ -38,9 +38,11 @@ public class UserManagerServiceFactory implements UserManagerFactory {
                               ActionFilters actionFilters,
                               IndexNameExpressionResolver indexNameExpressionResolver,
                               SysTableRegistry sysTableRegistry) {
-        TransportCreateUserAction transportAction = new TransportCreateUserAction(
+        TransportCreateUserAction transportCreateAction = new TransportCreateUserAction(
             settings, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver);
-        UserManagerService userManagerService = new UserManagerService(transportAction);
+        TransportDropUserAction transportDropUserAction = new TransportDropUserAction(
+            settings, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver);
+        UserManagerService userManagerService = new UserManagerService(transportCreateAction, transportDropUserAction);
 
         sysTableRegistry.registerSysTable(new SysUsersTableInfo(clusterService),
             () -> CompletableFuture.completedFuture(userManagerService.userGetter()),

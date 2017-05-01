@@ -22,9 +22,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
-import io.crate.concurrent.CompletableFutures;
 import org.elasticsearch.cluster.metadata.MetaData;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -40,9 +38,12 @@ public class UserManagerService implements UserManager {
     }
 
     private final TransportCreateUserAction transportCreateUserAction;
+    private final TransportDropUserAction transportDropUserAction;
 
-    UserManagerService(TransportCreateUserAction transportCreateUserAction) {
+    UserManagerService(TransportCreateUserAction transportCreateUserAction,
+                       TransportDropUserAction transportDropUserAction) {
         this.transportCreateUserAction = transportCreateUserAction;
+        this.transportDropUserAction = transportDropUserAction;
     }
 
     @Override
@@ -54,7 +55,9 @@ public class UserManagerService implements UserManager {
 
     @Override
     public CompletableFuture<Long> dropUser(DropUserAnalyzedStatement analysis) {
-        return CompletableFutures.failedFuture(new NotImplementedException());
+        FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> 1L);
+        transportDropUserAction.execute(new DropUserRequest(analysis.userName()), listener);
+        return listener;
     }
 
     public Iterable<User> userGetter() {
