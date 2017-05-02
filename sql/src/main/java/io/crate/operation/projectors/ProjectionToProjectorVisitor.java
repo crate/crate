@@ -354,7 +354,7 @@ public class ProjectionToProjectorVisitor
     public Projector visitUpdateProjection(final UpdateProjection projection, Context context) {
         checkShardLevel("Update projection can only be executed on a shard");
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            ShardingShardRequestAccumulator.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             false,
             false,
             projection.assignmentsColumns(),
@@ -379,7 +379,7 @@ public class ProjectionToProjectorVisitor
     public Projector visitDeleteProjection(DeleteProjection projection, Context context) {
         checkShardLevel("Delete projection can only be executed on a shard");
         ShardDeleteRequest.Builder builder = new ShardDeleteRequest.Builder(
-            ShardingShardRequestAccumulator.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             context.jobId
         );
 

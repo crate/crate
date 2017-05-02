@@ -47,7 +47,7 @@ import java.util.function.Supplier;
 
 public class ColumnIndexWriterProjector implements Projector {
 
-    private final ShardingShardRequestAccumulator accumulator;
+    private final ShardingUpsertExecutor iteratorConsumer;
 
     ColumnIndexWriterProjector(ClusterService clusterService,
                                NodeJobsCounter nodeJobsCounter,
@@ -83,7 +83,7 @@ public class ColumnIndexWriterProjector implements Projector {
             assignments = convert.v2();
         }
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            ShardingShardRequestAccumulator.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             false, // overwriteDuplicates
             true, // continueOnErrors
             updateColumnNames,
@@ -94,7 +94,7 @@ public class ColumnIndexWriterProjector implements Projector {
         Function<String, ShardUpsertRequest.Item> itemFactory = id -> new ShardUpsertRequest.Item(
             id, assignments, insertValues.materialize(), null);
 
-        accumulator = new ShardingShardRequestAccumulator<>(
+        iteratorConsumer = new ShardingUpsertExecutor<>(
             clusterService,
             nodeJobsCounter,
             scheduler,
@@ -114,7 +114,7 @@ public class ColumnIndexWriterProjector implements Projector {
 
     @Override
     public BatchIterator apply(BatchIterator batchIterator) {
-        return new AsyncOperationBatchIterator(batchIterator, 1, accumulator);
+        return CollectingBatchIterator.newInstance(batchIterator, iteratorConsumer, 1);
     }
 
     @Override
