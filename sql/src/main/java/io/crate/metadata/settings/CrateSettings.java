@@ -28,7 +28,7 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.collect.stats.JobsLogService;
-import io.crate.operation.projectors.ShardingShardRequestAccumulator;
+import io.crate.operation.projectors.ShardingUpsertExecutor;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.planner.TableStatsService;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -83,7 +83,7 @@ public class CrateSettings implements ClusterStateListener {
             CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
 
             // BULK
-            ShardingShardRequestAccumulator.BULK_REQUEST_TIMEOUT_SETTING,
+            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING,
 
             // GRACEFUL STOP
             DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP,
