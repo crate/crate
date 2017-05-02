@@ -31,5 +31,3 @@ jar {
     }
 }
 jar.dependsOn('getVersion')
-
-sourceSets.test.output.resourcesDir = 'src/test/java'
