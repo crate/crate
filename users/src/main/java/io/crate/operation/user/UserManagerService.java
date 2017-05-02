@@ -37,7 +37,7 @@ import static io.crate.operation.user.UsersMetaData.TYPE;
 public class UserManagerService implements UserManager, ClusterStateListener {
 
     static User CRATE_USER = new User("crate", true);
-    private Set<User> users = ImmutableSet.of(CRATE_USER);
+    private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
 
     static {
         MetaData.registerPrototype(TYPE, PROTO);
