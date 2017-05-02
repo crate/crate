@@ -30,6 +30,7 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -378,20 +379,6 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         assertNull(response.rows()[0][0]);
         assertEquals(2, response.rows()[0][1]);
-    }
-
-    @Test
-    public void testUpdateWithNestedObjectArrayIdxAccess() throws Exception {
-        execute("create table test (coolness array(float)) with (number_of_replicas=0)");
-        ensureYellow();
-        execute("insert into test values (?)", new Object[]{new Object[]{2.2, 2.3, 2.4}});
-        assertEquals(1, response.rowCount());
-        refresh();
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Array index must be in range 1 to 2147483648");
-
-        execute("update test set coolness[0] = 3.3");
     }
 
     @Test

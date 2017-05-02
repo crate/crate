@@ -21,6 +21,8 @@ Changes
 Fixes
 =====
 
+ - Improved error message when trying to update an element of an array. 
+
  - Fixed a regression that lead to `ArrayIndexOutOfBoundsException` if a JOIN
    query was made with a WHERE clause on partitioned columns.
 
