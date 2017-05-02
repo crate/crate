@@ -87,7 +87,6 @@ final class RelationNormalizer {
             querySpec.normalize(normalizer, context);
             // must create a new MultiSourceSelect because paths and query spec changed
             mss = new MultiSourceSelect(mss, querySpec);
-            mss.pushDownQuerySpecs();
             if (mss.sources().size() == 2) {
                 Iterator<RelationSource> it = mss.sources().values().iterator();
                 RelationSource leftSource = it.next();
