@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -42,11 +43,19 @@ import java.util.stream.Collectors;
 public class CollectingBatchIterator<A> implements BatchIterator {
 
     private final BatchIterator source;
-    private final Collector<Row, A, ? extends Iterable<Row>> collector;
+    private final Function<BatchIterator, CompletableFuture<? extends Iterable<Row>>> consumer;
     private final RowColumns rowData;
 
     private Iterator<Row> it = Collections.emptyIterator();
     private CompletableFuture<? extends Iterable<Row>> resultFuture;
+
+    private CollectingBatchIterator(BatchIterator source,
+                                    Function<BatchIterator, CompletableFuture<? extends Iterable<Row>>> consumer,
+                                    int numCols) {
+        this.source = source;
+        this.consumer = consumer;
+        this.rowData = new RowColumns(numCols);
+    }
 
     /**
      * Create a BatchIterator which will consume the source, summing up the first column (must be of type long).
@@ -68,14 +77,22 @@ public class CollectingBatchIterator<A> implements BatchIterator {
         );
     }
 
-    public static <A> BatchIterator newInstance(BatchIterator source, Collector<Row, A, ? extends Iterable<Row>> collector, int numCols) {
-        return new CloseAssertingBatchIterator(new CollectingBatchIterator<>(source, collector, numCols));
+    public static <A> BatchIterator newInstance(BatchIterator source,
+                                                Collector<Row, A, ? extends Iterable<Row>> collector,
+                                                int numCols) {
+        return new CloseAssertingBatchIterator(
+            new CollectingBatchIterator<>(
+                source,
+                bi -> BatchRowVisitor.visitRows(source, collector),
+                numCols
+            )
+        );
     }
 
-    private CollectingBatchIterator(BatchIterator source, Collector<Row, A, ? extends Iterable<Row>> collector, int numCols) {
-        this.source = source;
-        this.collector = collector;
-        this.rowData = new RowColumns(numCols);
+    public static BatchIterator newInstance(BatchIterator source,
+                                            Function<BatchIterator, CompletableFuture<? extends Iterable<Row>>> consumer,
+                                            int numCols) {
+        return new CloseAssertingBatchIterator(new CollectingBatchIterator<>(source, consumer, numCols));
     }
 
     @Override
@@ -112,7 +129,7 @@ public class CollectingBatchIterator<A> implements BatchIterator {
     @Override
     public CompletionStage<?> loadNextBatch() {
         if (resultFuture == null) {
-            resultFuture = BatchRowVisitor.visitRows(source, collector)
+            resultFuture = consumer.apply(source)
                 .whenComplete((r, t) -> {
                     source.close();
                     if (t == null) {

@@ -35,7 +35,7 @@ import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.metadata.PartitionName;
 import io.crate.operation.projectors.RetryListener;
-import io.crate.operation.projectors.ShardingShardRequestAccumulator;
+import io.crate.operation.projectors.ShardingUpsertExecutor;
 import io.crate.planner.node.dml.UpsertById;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -102,7 +102,7 @@ public class UpsertByIdTask extends JobTask {
         this.isDebugEnabled = LOGGER.isDebugEnabled();
 
         reqBuilder = new ShardUpsertRequest.Builder(
-            ShardingShardRequestAccumulator.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             false,
             upsertById.numBulkResponses() > 0 || items.size() > 1,
             upsertById.updateColumns(),

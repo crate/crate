@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import com.google.common.base.Splitter;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.operation.collect.stats.JobsLogService;
-import io.crate.operation.projectors.ShardingShardRequestAccumulator;
+import io.crate.operation.projectors.ShardingUpsertExecutor;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
 import io.crate.testing.UseJdbc;
@@ -51,7 +51,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         Settings.Builder builder = Settings.builder().put(super.nodeSettings(nodeOrdinal));
-        builder.put(ShardingShardRequestAccumulator.BULK_REQUEST_TIMEOUT_SETTING.getKey(), "42s");
+        builder.put(ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.getKey(), "42s");
         return builder.build();
     }
 

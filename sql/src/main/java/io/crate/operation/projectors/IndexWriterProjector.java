@@ -46,7 +46,6 @@ import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -56,7 +55,7 @@ import java.util.function.Supplier;
 
 public class IndexWriterProjector implements Projector {
 
-    private final BatchAccumulator<Row, Iterator<? extends Row>> accumulator;
+    private final ShardingUpsertExecutor accumulator;
 
     public IndexWriterProjector(ClusterService clusterService,
                                 NodeJobsCounter nodeJobsCounter,
@@ -89,7 +88,7 @@ public class IndexWriterProjector implements Projector {
         }
         RowShardResolver rowShardResolver = new RowShardResolver(functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-            ShardingShardRequestAccumulator.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
+            ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.setting().get(settings),
             overwriteDuplicates,
             true,
             null,
@@ -100,7 +99,7 @@ public class IndexWriterProjector implements Projector {
         Function<String, ShardUpsertRequest.Item> itemFactory = id ->
             new ShardUpsertRequest.Item(id, null, new Object[]{source.value()}, null);
 
-        accumulator = new ShardingShardRequestAccumulator<>(
+        accumulator = new ShardingUpsertExecutor<>(
             clusterService,
             nodeJobsCounter,
             scheduler,
@@ -121,7 +120,7 @@ public class IndexWriterProjector implements Projector {
 
     @Override
     public BatchIterator apply(BatchIterator batchIterator) {
-        return new AsyncOperationBatchIterator(batchIterator, 1, accumulator);
+        return CollectingBatchIterator.newInstance(batchIterator, accumulator, 1);
     }
 
     @Override
