@@ -186,7 +186,7 @@ public class CollectSourceResolver {
 
         @Override
         public CrateCollector getCollector(CollectPhase collectPhase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
-            return RowsCollector.empty(consumer);
+            return RowsCollector.empty(consumer, collectPhase.toCollect().size());
         }
     }
 }

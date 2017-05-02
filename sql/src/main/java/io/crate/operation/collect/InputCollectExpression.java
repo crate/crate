@@ -62,4 +62,9 @@ public class InputCollectExpression implements CollectExpression<Row, Object> {
         result = 31 * result + (value != null ? value.hashCode() : 0);
         return result;
     }
+
+    @Override
+    public String toString() {
+        return "Input{pos=" + position + '}';
+    }
 }

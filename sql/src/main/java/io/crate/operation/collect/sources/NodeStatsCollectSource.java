@@ -41,8 +41,8 @@ import io.crate.operation.collect.collectors.NodeStatsIterator;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -73,13 +73,13 @@ public class NodeStatsCollectSource implements CollectSource {
     public CrateCollector getCollector(CollectPhase phase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         if (collectPhase.whereClause().noMatch()) {
-            return RowsCollector.empty(consumer);
+            return RowsCollector.empty(consumer, phase.toCollect().size());
         }
         Collection<DiscoveryNode> nodes = nodeIds(collectPhase.whereClause(),
             Lists.newArrayList(clusterService.state().getNodes().iterator()),
             functions);
         if (nodes.isEmpty()) {
-            return RowsCollector.empty(consumer);
+            return RowsCollector.empty(consumer, phase.toCollect().size());
         }
         BatchIterator nodeStatsIterator = NodeStatsIterator.newInstance(
             nodeStatsAction,

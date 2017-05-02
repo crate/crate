@@ -42,8 +42,8 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.Projections;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -128,7 +128,7 @@ public abstract class ShardCollectorProvider {
 
         final CrateCollector.Builder builder;
         if (normalizedCollectNode.whereClause().noMatch()) {
-            builder = RowsCollector.emptyBuilder();
+            builder = RowsCollector.emptyBuilder(collectPhase.toCollect().size());
         } else {
             assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
             builder = getBuilder(normalizedCollectNode, requiresScroll, jobCollectContext);

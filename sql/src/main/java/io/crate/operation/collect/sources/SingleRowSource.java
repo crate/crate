@@ -57,7 +57,7 @@ public class SingleRowSource implements CollectSource {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         collectPhase = collectPhase.normalize(clusterNormalizer, null);
         if (collectPhase.whereClause().noMatch()) {
-            return RowsCollector.empty(consumer);
+            return RowsCollector.empty(consumer, phase.toCollect().size());
         }
         assert !collectPhase.whereClause().hasQuery()
             : "WhereClause should have been normalized to either MATCH_ALL or NO_MATCH";
