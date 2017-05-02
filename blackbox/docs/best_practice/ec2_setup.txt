@@ -30,14 +30,26 @@ allow Crate to accept and respond to pings from other Crate instances with the
 same cluster name and form a cluster.
 
 Once you have your instances running and Crate installed, you can enable the
-EC2 discovery by **simply setting the discovery type to "ec2"**::
+EC2 discovery by setting the discovery type to ``ec2``::
 
   discovery.type: ec2
 
-To be able to use the EC2 API, Crate must `sign the requests`_ by using 
-AWS credentials consisting of an access key and a secret key. Therefore 
-AWS provides `IAM roles`_ to avoid any distribution of your AWS credentials 
+To be able to use the EC2 API, Crate must `sign the requests`_ by using
+AWS credentials consisting of an access key and a secret key. Therefore
+AWS provides `IAM roles`_ to avoid any distribution of your AWS credentials
 to the instances.
+
+Crate binds to the loopback interface by default. To get EC2 discovery working,
+you need to update the :ref:`conf_hosts` setting to bind to and publish the
+site-local address::
+
+    network.host: _site_
+
+.. NOTE::
+
+   The requirement to explicitly configure Crate to bind to and publish the
+   site-local address is new in :ref:`version_1.2.0`.
+
 
 .. _ec2_authentication:
 
@@ -45,10 +57,10 @@ Authentication
 --------------
 
 For that it is recommended to create a separate user that has only the necessary
-permissions to describe instances. First, you need to create an IAM role in 
-order to assign the instances later on. This `AWS guide`_ gives you a short 
-description of how you can create a policy ofer CLI or the AWS management 
-console. An example policy file is attached below and should at least contain 
+permissions to describe instances. First, you need to create an IAM role in
+order to assign the instances later on. This `AWS guide`_ gives you a short
+description of how you can create a policy ofer CLI or the AWS management
+console. An example policy file is attached below and should at least contain
 this API permissions/actions:
 
 .. code-block:: json
@@ -68,7 +80,7 @@ this API permissions/actions:
     "Version": "2012-10-17"
   }
 
-This policy allows the instances to find each other if they have been assigned 
+This policy allows the instances to find each other if they have been assigned
 to this role on startup.
 
 .. note::
@@ -87,9 +99,9 @@ You could also provide them as system properties or as settings in the
   Crate process, which is usually the user ``crate`` in production.
 
 Now you are ready to start your Crate instances and they will discovery each
-other automatically. Use the `AWS CLI`_ or the `AWS Console`_ to run instances 
-and assign them with an IAM role. Note that all Crate instances of the same 
-region will join the cluster as long as their cluster name is equal and they are 
+other automatically. Use the `AWS CLI`_ or the `AWS Console`_ to run instances
+and assign them with an IAM role. Note that all Crate instances of the same
+region will join the cluster as long as their cluster name is equal and they are
 able to communicate to each other over the transport port.
 
 
