@@ -25,7 +25,6 @@ import com.google.common.base.Splitter;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.operation.collect.stats.JobsLogService;
 import io.crate.operation.udf.UserDefinedFunctionService;
-import io.crate.settings.AuthenticationSettings;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
 import io.crate.testing.UseJdbc;
@@ -187,9 +186,9 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
 
     @Test
-    public void testDefaultHBASetting() {
+    public void testDefaultHbaSetting() {
         execute("select settings from sys.cluster");
-        assertSettingsDefault(AuthenticationSettings.AUTH_HOST_BASED_SETTING);
+        assertSettingsDefault(SharedSettings.AUTH_HOST_BASED_SETTING);
     }
 
     @Test

@@ -19,7 +19,12 @@
 package io.crate.operation.auth;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.net.InetAddresses;
+import io.crate.settings.SharedSettings;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
 import org.jboss.netty.handler.ipfilter.CIDR4;
 
 import javax.annotation.Nullable;
@@ -38,10 +43,8 @@ public class AuthenticationService implements Authentication {
     private static final String KEY_METHOD = "method";
 
     private final Map<String, AuthenticationMethod> authMethodRegistry = new HashMap<>();
-    private Map<String, Map<String, String>> hbaConf;
+    private final ClusterService clusterService;
 
-    AuthenticationService() {
-    }
 
     /*
      * The cluster state contains the hbaConf from the setting in this format:
@@ -54,8 +57,45 @@ public class AuthenticationService implements Authentication {
        ...
      }
      */
+    private Map<String, Map<String, String>> hbaConf;
+
+    @VisibleForTesting
+    protected Map<String, Map<String, String>> hbaConf() {
+        return hbaConf;
+    }
+
+    @Inject
+    AuthenticationService(ClusterService clusterService, Settings settings) {
+        this.clusterService = clusterService;
+        Settings hbaSettings = SharedSettings.AUTH_HOST_BASED_SETTING.setting().get(settings);
+        updateHbaConfig(convertHbaSettingsToHbaConf(hbaSettings));
+        clusterService.getClusterSettings()
+            .addSettingsUpdateConsumer(
+                SharedSettings.AUTH_HOST_BASED_SETTING
+                    .setting(), this::updateHbaConfig);
+
+    }
+
+    public void updateHbaConfig(Settings hbaSetting) {
+        this.hbaConf = convertHbaSettingsToHbaConf(hbaSetting);
+    }
+
     public void updateHbaConfig(Map<String, Map<String, String>> hbaConf) {
         this.hbaConf = hbaConf;
+    }
+
+    Map<String, Map<String, String>> convertHbaSettingsToHbaConf(Settings hbaSetting) {
+        if (hbaSetting == null || hbaSetting.isEmpty()) {
+            return null;
+        }
+
+        Map<String, Settings> childSettings = clusterService.getSettings().getGroups(SharedSettings.AUTH_HOST_BASED_SETTING.getKey());
+        ImmutableMap.Builder<String, Map<String, String>> hostBasedConf = ImmutableMap.builder();
+
+        for (Map.Entry<String, Settings> entry : childSettings.entrySet()) {
+            hostBasedConf.put(entry.getKey(), entry.getValue().getAsMap());
+        }
+        return hostBasedConf.build();
     }
 
     void registerAuthMethod(AuthenticationMethod method) {
