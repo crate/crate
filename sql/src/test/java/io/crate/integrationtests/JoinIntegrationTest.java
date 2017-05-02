@@ -699,4 +699,16 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("select sum(t1.val), avg(t2.id), min(t3.id) from t1 inner join t2 on t1.t2 = t2.id inner join t3 on t2.t3 = t3.id");
         assertThat(TestingHelpers.printedTable(response.rows()), is("3.689999930560589| 2.0| 1\n"));
     }
+
+    @Test
+    public void testJoinWithWhereOnPartitionColumnThatDoesNotMatch() throws Exception {
+        execute("create table t (id int, p int) clustered into 1 shards partitioned by (p)");
+        execute("insert into t (id, p) values (1, 1), (2, 2)");
+        ensureYellow();
+
+        // regression test:
+        // whereClause with query on partitioned column becomes a noMatch after normalization on collector
+        // which leads to using RowsBatchIterator.empty() which always had a columnSize of 0
+        execute("select * from t as t1 inner join t as t2 on t1.id = t2.id where t2.p = 2");
+    }
 }

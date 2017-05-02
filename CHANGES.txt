@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - Fixed a regression that lead to `ArrayIndexOutOfBoundsException` if a JOIN
+   query was made with a WHERE clause on partitioned columns.
+
  - Fixed a NullPointerException which could occur if an attempt was made to use
    `match` on two different relations within an explicit join condition.
    This now raises a proper error stating that it's not supported.

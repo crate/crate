@@ -64,7 +64,7 @@ public class TableFunctionCollectSource implements CollectSource {
         TableFunctionCollectPhase phase = (TableFunctionCollectPhase) collectPhase;
         WhereClause whereClause = phase.whereClause();
         if (whereClause.noMatch()) {
-            return RowsCollector.empty(consumer);
+            return RowsCollector.empty(consumer, collectPhase.toCollect().size());
         }
 
         TableFunctionImplementation functionImplementation = phase.relation().functionImplementation();

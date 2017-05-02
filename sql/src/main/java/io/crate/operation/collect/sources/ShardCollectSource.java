@@ -313,7 +313,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
         switch (builders.size()) {
             case 0:
-                return RowsCollector.empty(firstConsumer);
+                return RowsCollector.empty(firstConsumer, phase.toCollect().size());
             case 1:
                 CrateCollector.Builder collectorBuilder = builders.iterator().next();
                 return collectorBuilder.build(collectorBuilder.applyProjections(firstConsumer));

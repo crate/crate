@@ -29,8 +29,8 @@ import java.util.Collections;
 
 public final class RowsCollector {
 
-    public static CrateCollector empty(BatchConsumer consumer) {
-        return BatchIteratorCollectorBridge.newInstance(RowsBatchIterator.empty(), consumer);
+    public static CrateCollector empty(BatchConsumer consumer, int numColumns) {
+        return BatchIteratorCollectorBridge.newInstance(RowsBatchIterator.empty(numColumns), consumer);
     }
 
     public static CrateCollector single(Row row, BatchConsumer consumer) {
@@ -44,8 +44,8 @@ public final class RowsCollector {
         return BatchIteratorCollectorBridge.newInstance(RowsBatchIterator.newInstance(rows, numCols), consumer);
     }
 
-    static CrateCollector.Builder emptyBuilder() {
-        return consumer -> BatchIteratorCollectorBridge.newInstance(RowsBatchIterator.empty(), consumer);
+    static CrateCollector.Builder emptyBuilder(int numColumns) {
+        return consumer -> BatchIteratorCollectorBridge.newInstance(RowsBatchIterator.empty(numColumns), consumer);
     }
 
     public static CrateCollector.Builder builder(final Iterable<Row> rows, int numCols) {

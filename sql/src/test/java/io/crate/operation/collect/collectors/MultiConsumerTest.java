@@ -61,7 +61,7 @@ public class MultiConsumerTest extends CrateUnitTest {
         TestingBatchConsumer batchConsumer = new TestingBatchConsumer();
         BatchConsumer consumer = new CompositeCollector.MultiConsumer(2, batchConsumer, CompositeBatchIterator::new);
         consumer.accept(null, new IllegalStateException("dummy"));
-        consumer.accept(RowsBatchIterator.empty(), null);
+        consumer.accept(RowsBatchIterator.empty(1), null);
 
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("dummy");

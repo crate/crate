@@ -39,7 +39,7 @@ public class NoopTask implements Task {
 
     @Override
     public void execute(BatchConsumer consumer, Row parameters) {
-        consumer.accept(RowsBatchIterator.empty(), null);
+        consumer.accept(RowsBatchIterator.empty(0), null);
     }
 
     @Override

@@ -40,8 +40,8 @@ public class RowsBatchIterator implements BatchIterator {
 
     private Iterator<? extends Row> it;
 
-    public static BatchIterator empty() {
-        return newInstance(Collections.emptyList(), 0);
+    public static BatchIterator empty(int numCols) {
+        return newInstance(Collections.emptyList(), numCols);
     }
 
     public static BatchIterator newInstance(Row row) {
