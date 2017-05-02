@@ -64,7 +64,7 @@ public class SetSessionTask extends JobTask {
                 LOGGER.warn("SET SESSION STATEMENT WILL BE IGNORED: {}", setting);
             }
         }
-        consumer.accept(RowsBatchIterator.empty(), null);
+        consumer.accept(RowsBatchIterator.empty(0), null);
     }
 }
 

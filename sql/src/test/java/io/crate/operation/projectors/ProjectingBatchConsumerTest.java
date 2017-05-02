@@ -185,7 +185,7 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
             projectorFactory
         );
 
-        batchConsumer.accept(RowsBatchIterator.empty(), null);
+        batchConsumer.accept(RowsBatchIterator.empty(1), null);
 
         expectedException.expect(UnhandledServerException.class);
         expectedException.expectMessage("Failed to open output");

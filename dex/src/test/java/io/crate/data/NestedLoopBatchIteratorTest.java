@@ -115,8 +115,8 @@ public class NestedLoopBatchIteratorTest {
     @Test
     public void testNestedLoopLeftAndRightEmpty() throws Exception {
         BatchIterator iterator = NestedLoopBatchIterator.crossJoin(
-            RowsBatchIterator.empty(),
-            RowsBatchIterator.empty()
+            RowsBatchIterator.empty(1),
+            RowsBatchIterator.empty(1)
         );
         TestingBatchConsumer consumer = new TestingBatchConsumer();
         consumer.accept(iterator, null);
@@ -126,7 +126,7 @@ public class NestedLoopBatchIteratorTest {
     @Test
     public void testNestedLoopLeftEmpty() throws Exception {
         BatchIterator iterator = NestedLoopBatchIterator.crossJoin(
-            RowsBatchIterator.empty(),
+            RowsBatchIterator.empty(1),
             TestingBatchIterators.range(0, 5)
         );
         TestingBatchConsumer consumer = new TestingBatchConsumer();
@@ -138,7 +138,7 @@ public class NestedLoopBatchIteratorTest {
     public void testNestedLoopRightEmpty() throws Exception {
         BatchIterator iterator = NestedLoopBatchIterator.crossJoin(
             TestingBatchIterators.range(0, 5),
-            RowsBatchIterator.empty()
+            RowsBatchIterator.empty(1)
         );
         TestingBatchConsumer consumer = new TestingBatchConsumer();
         consumer.accept(iterator, null);

@@ -101,7 +101,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testProjectLimitOnly0() throws Throwable {
         Projector projector = prepareProjector(10, TopN.NO_OFFSET);
-        consumer.accept(projector.apply(RowsBatchIterator.empty()), null);
+        consumer.accept(projector.apply(RowsBatchIterator.empty(1)), null);
 
         Bucket projected = consumer.getBucket();
         assertThat(projected, emptyIterable());
@@ -195,7 +195,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     @Test
     public void testProjectLimitOnly0UpStream() throws Throwable {
         Projector projector = prepareProjector(10, TopN.NO_OFFSET);
-        consumer.accept(projector.apply(RowsBatchIterator.empty()), null);
+        consumer.accept(projector.apply(RowsBatchIterator.empty(1)), null);
         Bucket projected = consumer.getBucket();
         assertThat(projected, emptyIterable());
     }

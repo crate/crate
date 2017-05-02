@@ -107,7 +107,7 @@ public class ESGetTask extends JobTask {
         protected void innerStart() {
             if (request == null) {
                 // request can be null if id is null -> since primary keys cannot be null this is a no-match
-                consumer.accept(RowsBatchIterator.empty(), null);
+                consumer.accept(RowsBatchIterator.empty(task.inputRow.numColumns()), null);
                 close();
             } else {
                 transportAction.execute(request, this);
@@ -257,7 +257,7 @@ public class ESGetTask extends JobTask {
                 }
                 consumer.accept(RowsBatchIterator.newInstance(task.inputRow), null);
             } else {
-                consumer.accept(RowsBatchIterator.empty(), null);
+                consumer.accept(RowsBatchIterator.empty(task.inputRow.numColumns()), null);
             }
             close();
         }
@@ -266,7 +266,7 @@ public class ESGetTask extends JobTask {
         public void onFailure(Throwable e) {
             if (task.esGet.tableInfo().isPartitioned() && e instanceof IndexNotFoundException) {
                 // this means we have no matching document
-                consumer.accept(RowsBatchIterator.empty(), null);
+                consumer.accept(RowsBatchIterator.empty(task.inputRow.numColumns()), null);
                 close();
             } else {
                 consumer.accept(null, e);

@@ -73,13 +73,13 @@ public class NodeStatsCollectSource implements CollectSource {
     public CrateCollector getCollector(CollectPhase phase, BatchConsumer consumer, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         if (collectPhase.whereClause().noMatch()) {
-            return RowsCollector.empty(consumer);
+            return RowsCollector.empty(consumer, phase.toCollect().size());
         }
         Collection<DiscoveryNode> nodes = nodeIds(collectPhase.whereClause(),
             Lists.newArrayList(clusterService.state().getNodes().iterator()),
             functions);
         if (nodes.isEmpty()) {
-            return RowsCollector.empty(consumer);
+            return RowsCollector.empty(consumer, phase.toCollect().size());
         }
         BatchIterator nodeStatsIterator = NodeStatsIterator.newInstance(
             nodeStatsAction,

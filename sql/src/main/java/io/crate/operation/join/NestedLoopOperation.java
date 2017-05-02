@@ -59,10 +59,10 @@ public class NestedLoopOperation implements CompletionListenable {
             });
     }
 
-    private BatchIterator createNestedLoopIterator(BatchIterator left,
-                                                   BatchIterator right,
-                                                   JoinType joinType,
-                                                   Predicate<Row> joinCondition) {
+    private static BatchIterator createNestedLoopIterator(BatchIterator left,
+                                                          BatchIterator right,
+                                                          JoinType joinType,
+                                                          Predicate<Row> joinCondition) {
         switch (joinType) {
             case CROSS:
                 return NestedLoopBatchIterator.crossJoin(left, right);
@@ -83,7 +83,7 @@ public class NestedLoopOperation implements CompletionListenable {
         throw new AssertionError("Invalid joinType: " + joinType);
     }
 
-    private Function<Columns, BooleanSupplier> getJoinCondition(Predicate<Row> joinCondition) {
+    private static Function<Columns, BooleanSupplier> getJoinCondition(Predicate<Row> joinCondition) {
         return columns -> {
             final Row row = RowBridging.toRow(columns);
             return () -> joinCondition.test(row);
