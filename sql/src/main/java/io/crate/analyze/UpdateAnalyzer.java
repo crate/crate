@@ -31,11 +31,20 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.SubscriptExpression;
 import io.crate.sql.tree.Update;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -55,6 +64,7 @@ public class UpdateAnalyzer {
         input -> input != null
         && input.valueType().id() == ArrayType.ID
         && ((ArrayType) input.valueType()).innerType().equals(DataTypes.OBJECT);
+    private static final UpdateSubscriptValidator UPDATE_SUBSCRIPT_VALIDATOR = new UpdateSubscriptValidator();
 
     private final Functions functions;
     private final RelationAnalyzer relationAnalyzer;
@@ -159,6 +169,8 @@ public class UpdateAnalyzer {
                                    ExpressionAnalyzer columnExpressionAnalyzer,
                                    ExpressionAnalysisContext expressionAnalysisContext,
                                    TransactionContext transactionContext) {
+        UPDATE_SUBSCRIPT_VALIDATOR.process(node.columnName(), false);
+
         // unknown columns in strict objects handled in here
         Reference reference = (Reference) normalizer.normalize(
             columnExpressionAnalyzer.convert(node.columnName(), expressionAnalysisContext),
@@ -193,4 +205,20 @@ public class UpdateAnalyzer {
         return false;
     }
 
+    private static class UpdateSubscriptValidator extends AstVisitor<Void, Boolean> {
+
+        @Override
+        protected Void visitSubscriptExpression(SubscriptExpression node, Boolean context) {
+            process(node.index(), true);
+            return super.visitSubscriptExpression(node, context);
+        }
+
+        @Override
+        protected Void visitLongLiteral(LongLiteral node, Boolean context) {
+            if (context) {
+                throw new IllegalArgumentException("Updating a single element of an array is not supported");
+            }
+            return null;
+        }
+    }
 }
