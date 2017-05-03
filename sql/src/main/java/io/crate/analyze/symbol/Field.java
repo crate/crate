@@ -21,7 +21,6 @@
 
 package io.crate.analyze.symbol;
 
-import com.google.common.base.MoreObjects;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
@@ -72,10 +71,9 @@ public class Field extends Symbol implements Path {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(Field.class)
-            .add("path", path)
-            .add("valueType", valueType)
-            .add("relation", relation).toString();
+        return "Field{" + relation + "." + path +
+               ", type=" + valueType +
+               '}';
     }
 
     @Override

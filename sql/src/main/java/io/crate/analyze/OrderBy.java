@@ -205,4 +205,28 @@ public class OrderBy implements Streamable {
     public int hashCode() {
         return Objects.hash(orderBySymbols, reverseFlags, nullsFirst);
     }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder("OrderBy{");
+        for (int i = 0; i < orderBySymbols.size(); i++) {
+            Symbol symbol = orderBySymbols.get(i);
+            sb.append(symbol);
+            sb.append(" ");
+            if (reverseFlags[i]) {
+                sb.append("ASC");
+            } else {
+                sb.append("DESC");
+            }
+            Boolean nullFirst = nullsFirst[i];
+            if (nullFirst != null) {
+                sb.append(" ");
+                sb.append(nullFirst ? "NULLS FIRST" : "NULLS LAST");
+            }
+            if (i + 1 < orderBySymbols.size()) {
+                sb.append(" ");
+            }
+        }
+        return sb.toString();
+    }
 }
