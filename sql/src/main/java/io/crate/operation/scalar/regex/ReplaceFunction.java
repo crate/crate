@@ -25,8 +25,8 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
-import io.crate.metadata.*;
 import io.crate.data.Input;
+import io.crate.metadata.*;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -108,7 +108,7 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Functio
         if (arguments.size() == 4) {
             assert arguments.get(3).symbolType() == SymbolType.LITERAL
                 : "4th argument must be of type " + SymbolType.LITERAL;
-            flags = (BytesRef) ((Literal) arguments.get(2)).value();
+            flags = (BytesRef) ((Literal) arguments.get(3)).value();
         }
 
         if (pattern != null) {
