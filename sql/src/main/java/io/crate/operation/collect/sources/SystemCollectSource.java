@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect.sources;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -51,6 +52,7 @@ import io.crate.operation.reference.sys.check.node.SysNodeChecks;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
 import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
+import io.crate.operation.reference.sys.snapshot.SysSnapshot;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -125,13 +127,25 @@ public class SystemCollectSource implements CollectSource {
                 () -> synchronousIterableGetter(sysNodeChecks))
             .put(SysRepositoriesTableInfo.IDENT.fqn(),
                 () -> synchronousIterableGetter(sysRepositoriesService.repositoriesGetter()))
-            .put(SysSnapshotsTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(sysSnapshots.snapshotsGetter()))
+            .put(SysSnapshotsTableInfo.IDENT.fqn(), snapshotSupplier(sysSnapshots))
             .put(SysSummitsTableInfo.IDENT.fqn(),
                 () -> synchronousIterableGetter(new SummitsIterable().summitsGetter()))
             .put(PgTypeTable.IDENT.fqn(),
                 () -> synchronousIterableGetter(pgCatalogTables.typesGetter()))
             .build();
+    }
+
+    @VisibleForTesting
+    static Supplier<CompletableFuture<? extends Iterable<?>>> snapshotSupplier(SysSnapshots sysSnapshots) {
+        return () -> {
+            CompletableFuture<Iterable<SysSnapshot>> f = new CompletableFuture<>();
+            try {
+                f.complete(sysSnapshots.snapshotsGetter());
+            } catch (Exception e) {
+                f.completeExceptionally(e);
+            }
+            return f;
+        };
     }
 
     private CompletableFuture<? extends Iterable<?>> synchronousIterableGetter(Iterable<?> iterable) {

@@ -31,6 +31,9 @@ Changes
 Fixes
 =====
 
+ - Fix: `sys.snapshot` queries hung instead of throwing an error if something
+   went wrong.
+
  - Fixed an issue with `regexp_replace`: In some cases it used the third
    argument as flags parameter instead of the fourth argument.
 

@@ -31,6 +31,8 @@ import io.crate.data.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
+import io.crate.operation.reference.sys.snapshot.SysSnapshot;
+import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.types.DataTypes;
@@ -38,6 +40,8 @@ import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.repositories.RepositoryException;
+import org.elasticsearch.snapshots.SnapshotException;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -45,7 +49,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
@@ -118,5 +127,23 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
 
         readIsolationIterable.add("c");
         assertThat(Iterables.size(rows), is(2));
+    }
+
+    @Test
+    public void testSnapshotSupplierExposesError() throws Exception {
+        // SysSnapshots issues queries, so errors may occur. This test ensures that this errors are exposed.
+        expectedException.expect(ExecutionException.class);
+        expectedException.expectMessage(containsString("[my_repository] failed to find repository"));
+        Supplier<CompletableFuture<? extends Iterable<?>>> snapshotSupplier = SystemCollectSource.snapshotSupplier(
+            new SysSnapshots(null, null, null) {
+
+                @Override
+                public Iterable<SysSnapshot> snapshotsGetter() throws SnapshotException, RepositoryException {
+                    throw new RepositoryException("my_repository", "failed to find repository");
+                }
+            }
+        );
+        CompletableFuture future = snapshotSupplier.get();
+        future.get(1, TimeUnit.SECONDS);
     }
 }
