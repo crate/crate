@@ -40,17 +40,15 @@ public class ReplaceFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testEvaluateWithFlags() throws Exception {
-        assertEvaluate(
-            "regexp_replace(name, '(ba)', 'Crate', 'usn g')",
-            "fooCraterbequebaz bar",
-            Literal.of("foobarbequebaz bar"));
-    }
-
-    @Test
     public void testNormalizeSymbol() throws Exception {
         assertNormalize("regexp_replace('foobarbequebaz bar', '(ba)', 'Crate')", isLiteral("fooCraterbequebaz bar"));
         assertNormalize("regexp_replace(name, '(ba)', 'Crate')", isFunction(ReplaceFunction.NAME));
+    }
+
+    @Test
+    public void testEvalWithFlags() throws Exception {
+        assertEvaluate("regexp_replace('st. cloud', '[^a-z]', '', 'g')", "stcloud");
+        assertEvaluate("regexp_replace(name, '[^a-z]', '', 'g')", "stcloud", Literal.of("st. cloud"));
     }
 
     @Test

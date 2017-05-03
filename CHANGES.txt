@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue with `regexp_replace`: In some cases it used the third
+   argument as flags parameter instead of the fourth argument.
+
  - Fixed an issue which lead to brief unavailability of already registered
    functions after a function was created or dropped in the same schema.
 
