@@ -1674,6 +1674,8 @@ Parameters can be set with the ``SET/SET SESSION`` statement, see :ref:`ref-set`
    list of strings. However, CrateDB only considers the first element when a
    list is provided.
 
+.. _conf-logging:
+
 Logging
 =======
 

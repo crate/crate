@@ -15,8 +15,11 @@ Released on 2017/03/21.
    This version was removed from all release channels. This changelog is kept
    for information purposes only.
 
+Changelog
+=========
+
 Breaking Changes
-================
+----------------
 
  - Removed multicast discovery.
 
@@ -32,7 +35,7 @@ Breaking Changes
    as an alias for ``indices.breaker.fielddata``.
 
 Changes
-=======
+-------
 
  - Serve admin UI from ``/``. Previously used URIs will direct to ``/``.
 
@@ -114,7 +117,7 @@ Changes
    loading on result sets larger than 100 rows.
 
 Fixes
-=====
+-----
 
  - Fixed an issue that prevent a node from starting on Windows if the
    sigar-plugin is removed.

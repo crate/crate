@@ -4,8 +4,8 @@
 Release Notes
 =============
 
-Versions
-========
+1.x
+---
 
 .. toctree::
     :maxdepth: 1
@@ -25,5 +25,4 @@ Versions
 
 For earlier versions, see the 0.57.8 CHANGES.txt_ file.
 
-.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
 .. _CHANGES.txt: https://github.com/crate/crate/blob/ed8a1c1f786891f3c4cde403baca37751037db14/CHANGES.txt

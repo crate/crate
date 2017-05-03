@@ -1,17 +1,18 @@
 .. highlight:: sh
-.. _cluster_upgrade:
+.. _rolling_upgrade:
 
-=====================
-Zero Downtime Upgrade
-=====================
+===============
+Rolling Upgrade
+===============
 
 
-CrateDB provides an easy way to perform a cluster upgrade with zero downtime.
+CrateDB provides an easy way to perform a rolling cluster upgrade with zero
+downtime.
 
 .. warning::
 
-    Zero downtime upgrades are only possible if you are using a stable version
-    of CrateDB and are upgrading to a new patch version (see
+    Rolling upgrades are only possible if you are using a stable version of
+    CrateDB and are upgrading to a new patch version (see
     :ref:`versions <sys-versions>`).
 
     If you are upgrading to a testing version or are upgrading to a new major
@@ -21,7 +22,7 @@ CrateDB provides an easy way to perform a cluster upgrade with zero downtime.
     specific instructions that may override this.
 
 To perform a rolling upgrade of a cluster, one node at a time has to be stopped
-using the ``graceful stop`` procedure.
+using the graceful stop procedure (see :ref:`cli_signals`).
 
 This procedure will disable a node, which will cause it to reject any new
 requests but will make sure that any pending requests are finished.
@@ -29,7 +30,7 @@ requests but will make sure that any pending requests are finished.
 .. note::
 
    Due to the distributed execution of requests, some client requests might fail
-   during a zero downtime upgrade.
+   during a rolling upgrade.
 
 This process will ensure a certain data availability. Which can either be
 ``none``, ``primaries`` or ``full`` and can be configured using :ref:`ref-set`.
@@ -268,5 +269,5 @@ Step 4: Repeat
 
 Repeat step two, three, and four for all other nodes.
 
-.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
 .. _accompanying notes: https://crate.io/a/upgrade-your-cluster-to-0-55/
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
