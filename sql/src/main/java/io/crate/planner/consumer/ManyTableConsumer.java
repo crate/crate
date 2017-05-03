@@ -406,7 +406,7 @@ public class ManyTableConsumer implements Consumer {
     }
 
     static void replaceFieldsWithRelationColumns(MultiSourceSelect mss) {
-        final FieldToRelationColumn ctx = new FieldToRelationColumn(mss);
+        final FieldToRelationColumn ctx = new FieldToRelationColumn(mss.sources());
         Function<? super Symbol, ? extends Symbol> replaceFieldsInTreeWithRC = FieldReplacer.bind(ctx);
         if (mss.remainingOrderBy().isPresent()) {
             mss.remainingOrderBy().get().orderBy().replace(replaceFieldsInTreeWithRC);
@@ -493,22 +493,18 @@ public class ManyTableConsumer implements Consumer {
     }
 
     private static class FieldToRelationColumn implements Function<Field, Symbol> {
-        private final Map<AnalyzedRelation, QualifiedName> relationToName;
-        private final MultiSourceSelect mss;
 
-        FieldToRelationColumn(MultiSourceSelect mss) {
-            relationToName = new IdentityHashMap<>(mss.sources().size());
-            for (Map.Entry<QualifiedName, RelationSource> entry : mss.sources().entrySet()) {
-                relationToName.put(entry.getValue().relation(), entry.getKey());
-            }
-            this.mss = mss;
+        private final Map<QualifiedName, RelationSource> sources;
+
+        FieldToRelationColumn(Map<QualifiedName, RelationSource> sources) {
+            this.sources = sources;
         }
 
         @Override
         public Symbol apply(Field field) {
-            QualifiedName qualifiedName = relationToName.get(field.relation());
+            QualifiedName qualifiedName = field.relation().getQualifiedName();
             int idx = 0;
-            for (Symbol symbol : mss.sources().get(qualifiedName).querySpec().outputs()) {
+            for (Symbol symbol : sources.get(qualifiedName).querySpec().outputs()) {
                 if (symbol instanceof Field) {
                     if (((Field) symbol).path().equals(field.path())) {
                         return new RelationColumn(qualifiedName, idx, field.valueType());
