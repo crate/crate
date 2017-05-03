@@ -11,17 +11,20 @@ Released on 2016/12/05.
    If you are upgrading a cluster, you must be running CrateDB 0.57.0 or higher
    before you upgrade to 1.0.0.
 
-   You cannot perform a :ref:`cluster_upgrade` to this version. Any upgrade to
-   this version will require a full cluster restart.
+   You cannot perform a :ref:`rolling_upgrade` to this version. Any upgrade to
+   this version will require a :ref:`full_restart_upgrade`.
 
-.. warning::
+.. WARNING::
 
-    Before upgrading, you should `back up your data`_.
+   Before upgrading, you should `back up your data`_.
 
 .. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
 
+Changelog
+=========
+
 Breaking Changes
-================
+----------------
 
  - Removed ``schema_name`` from ``information_schema.tables``,
    ``information_schema.columns``, and ``information_schema.table_constraints``
@@ -47,7 +50,7 @@ Breaking Changes
    you what has to be done.
 
 Changes
-=======
+-------
 
  - Removed the ``client`` package which contained the deprecated
    ``crate-client``. You should start using the PostgreSQL JDBC driver instead.
@@ -122,7 +125,7 @@ Changes
       of CrateDB.
 
 Fixes
-=====
+-----
 
  - Fixed issue in joins with 3 or more tables where limit was applied before
    ``WHERE`` clause filtering which produced  wrong results.

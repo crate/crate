@@ -11,18 +11,23 @@ Released on 2017/01/09.
    If you are upgrading a cluster, you must be running CrateDB 0.57.0 or higher
    before you upgrade to 1.0.2.
 
-   If you want to perform a :ref:`cluster_upgrade`, your current CrateDB version
-   number must be :ref:`version_1.0.0` or higher. Any upgrade from a version
-   prior to this will require a full cluster restart.
+   If you want to perform a :ref:`rolling_upgrade`, your current CrateDB
+   version number must be :ref:`version_1.0.0` or higher. If you want to
+   upgrade from a version prior to this, the upgrade will introduce all of the
+   breaking changes listed for :ref:`version_1.0.0`, and will require a
+   :ref:`full_restart_upgrade`.
 
-.. warning::
+.. WARNING::
 
-    Before upgrading, you should `back up your data`_.
+   Before upgrading, you should `back up your data`_.
 
 .. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
 
+Changelog
+=========
+
 Changes
-=======
+-------
 
  - Do not display current statement in ``sys.jobs`` that disabled stats.
 
@@ -35,7 +40,7 @@ Changes
       admin-ui from ``/admin/`` instead of ``/_plugins/crate-admin/``.
 
 Fixes
-=====
+-----
 
  - Fixed a NPE when using a ``percentile`` aggregation in a multi-node
    environment.

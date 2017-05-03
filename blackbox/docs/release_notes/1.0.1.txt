@@ -11,18 +11,23 @@ Released on 2016/12/12.
    If you are upgrading a cluster, you must be running CrateDB 0.57.0 or higher
    before you upgrade to 1.0.1.
 
-   If you want to perform a :ref:`cluster_upgrade`, your current CrateDB
-   version number must be :ref:`version_1.0.0`. Any upgrade from a version
-   prior to this will require a full cluster restart.
+   If you want to perform a :ref:`rolling_upgrade`, your current CrateDB
+   version number must be :ref:`version_1.0.0`. If you want to upgrade from a
+   version prior to this, the upgrade will introduce all of the breaking
+   changes listed for :ref:`version_1.0.0`, and will require a
+   :ref:`full_restart_upgrade`.
 
-.. warning::
+.. WARNING::
 
-    Before upgrading, you should `back up your data`_.
+   Before upgrading, you should `back up your data`_.
 
 .. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
 
+Changelog
+=========
+
 Changes
-=======
+-------
 
  - ``INSERT`` statements now support ``SELECT`` statements without parentheses.
 
@@ -46,7 +51,7 @@ Changes
     - Updated link to support website in contact widget.
 
 Fixes
-=====
+-----
 
  - Fixed scalar signature registration, NULL literals are now supported.
 
