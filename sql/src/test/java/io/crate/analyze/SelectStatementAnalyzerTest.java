@@ -1961,7 +1961,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testSelectStarWithInvalidPrefix() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("relation \"foo\" is not in the FROM clause");
+        expectedException.expectMessage("The relation \"foo\" is not in the FROM clause.");
         analyze("select foo.* from sys.operations");
     }
 
@@ -1977,7 +1977,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testFullQualifiedStarPrefixWithAliasForTable() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("relation \"sys.operations\" is not in the FROM clause");
+        expectedException.expectMessage("The relation \"sys.operations\" is not in the FROM clause.");
         analyze("select sys.operations.* from sys.operations t1");
     }
 
@@ -1993,7 +1993,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testAmbiguousStarPrefix() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("referenced relation \"users\" is ambiguous");
+        expectedException.expectMessage("The referenced relation \"users\" is ambiguous.");
         analyze("select users.* from doc.users, foo.users");
     }
 

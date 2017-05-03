@@ -59,6 +59,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final String routingHashFunction;
     private final Version versionCreated;
     private final Version versionUpgraded;
+    private final boolean closed;
 
     private static final Map<ColumnIdent, Reference> INFOS = new LinkedHashMap<>();
 
@@ -77,7 +78,8 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
                          BytesRef blobsPath,
                          String routingHashFunction,
                          @Nullable Version versionCreated,
-                         @Nullable Version versionUpgraded) {
+                         @Nullable Version versionUpgraded,
+                         boolean closed) {
         this.ident = ident;
         this.index = index;
         this.clusterService = clusterService;
@@ -89,6 +91,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.routingHashFunction = routingHashFunction;
         this.versionCreated = versionCreated;
         this.versionUpgraded = versionUpgraded;
+        this.closed = closed;
 
         registerStaticColumns();
     }
@@ -215,6 +218,11 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
         return routingHashFunction;
     }
 
+    @Override
+    public boolean isClosed() {
+        return closed;
+    }
+
     @Nullable
     @Override
     public Version versionCreated() {
@@ -226,4 +234,5 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     public Version versionUpgraded() {
         return versionUpgraded;
     }
+
 }
