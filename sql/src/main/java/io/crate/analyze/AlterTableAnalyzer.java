@@ -46,7 +46,7 @@ class AlterTableAnalyzer {
 
     public AlterTableAnalyzedStatement analyze(AlterTable node, Row parameters, String defaultSchema) {
         Table table = node.table();
-        DocTableInfo tableInfo = schemas.getWritableTable(TableIdent.of(table, defaultSchema));
+        DocTableInfo tableInfo = schemas.getAlterableTable(TableIdent.of(table, defaultSchema));
         PartitionName partitionName = getPartitionName(table.partitionProperties(), tableInfo, parameters);
 
         TableParameterInfo tableParameterInfo = getTableParameterInfo(table, tableInfo, partitionName);

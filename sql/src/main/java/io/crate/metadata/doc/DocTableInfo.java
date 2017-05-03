@@ -84,6 +84,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Version versionCreated;
     private final Version versionUpgraded;
 
+    private final boolean closed;
+
     private final ColumnPolicy columnPolicy;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
 
@@ -110,6 +112,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                         String routingHashFunction,
                         @Nullable Version versionCreated,
                         @Nullable Version versionUpgraded,
+                        boolean closed,
                         Set<Operation> supportedOperations) {
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         assert (partitionedBy.size() ==
@@ -137,6 +140,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.routingHashFunction = routingHashFunction;
         this.versionCreated = versionCreated;
         this.versionUpgraded = versionUpgraded;
+        this.closed = closed;
         this.supportedOperations = supportedOperations;
         if (isPartitioned) {
             tableParameterInfo = PartitionedTableParameterInfo.INSTANCE;
@@ -356,6 +360,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public Version versionUpgraded() {
         return versionUpgraded;
+    }
+
+    @Override
+    public boolean isClosed() {
+        return closed;
     }
 
     public TableParameterInfo tableParameterInfo() {

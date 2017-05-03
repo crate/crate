@@ -49,6 +49,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION,
             Version.CURRENT,
             null,
+            false,
             Operation.ALL
         );
 
@@ -103,6 +104,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION,
             Version.CURRENT,
             null,
+            false,
             Operation.ALL
         );
 

@@ -51,7 +51,6 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
 
     private static final Predicate<ObjectObjectCursor<String, IndexMetaData>> PARTITION_INDICES_PREDICATE = input ->
         input != null
-        && input.value.getState() == IndexMetaData.State.OPEN
         && PartitionName.isPartition(input.key);
 
     private static final Function<ObjectObjectCursor<String, IndexMetaData>, PartitionInfo> CREATE_PARTITION_INFO_FUNCTION =
@@ -73,6 +72,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
                         DocIndexMetaData.getRoutingHashFunction(mappingMap),
                         DocIndexMetaData.getVersionCreated(mappingMap),
                         DocIndexMetaData.getVersionUpgraded(mappingMap),
+                        DocIndexMetaData.isClosed(input.value),
                         valuesMap,
                         TableParameterInfo.tableParametersFromIndexMetaData(input.value));
                 } catch (Exception e) {

@@ -24,6 +24,7 @@ package io.crate.metadata;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.udf.UserDefinedFunctionMetaData;
@@ -77,12 +78,14 @@ public class SchemasTest {
     @Test
     public void testSystemSchemaIsNotWritable() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("The table foo.bar is read-only. Write, Drop or Alter operations are not supported");
+        expectedException.expectMessage("The table foo.bar is read-only. " +
+                                        "Only READ operations are supported.");
 
         TableIdent tableIdent = new TableIdent("foo", "bar");
         SchemaInfo schemaInfo = mock(SchemaInfo.class);
         TableInfo tableInfo = mock(TableInfo.class);
         when(tableInfo.ident()).thenReturn(tableIdent);
+        when(tableInfo.supportedOperations()).thenReturn(Operation.READ_ONLY);
         when(schemaInfo.getTableInfo(tableIdent.name())).thenReturn(tableInfo);
         when(schemaInfo.name()).thenReturn(tableIdent.schema());
 
@@ -93,7 +96,7 @@ public class SchemasTest {
     @Test
     public void testTableAliasIsNotWritable() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("foo.bar is an alias. Write, Drop or Alter operations are not supported");
+        expectedException.expectMessage("foo.bar is an alias. Only READ operations are supported.");
 
         TableIdent tableIdent = new TableIdent("foo", "bar");
         SchemaInfo schemaInfo = mock(SchemaInfo.class);

@@ -32,6 +32,7 @@ import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.udf.UserDefinedFunctionMetaData;
@@ -83,28 +84,50 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
     public DocTableInfo getDroppableTable(TableIdent tableIdent) {
         TableInfo tableInfo = getTableInfo(tableIdent);
-        if (!(tableInfo instanceof DocTableInfo)) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "The table %s is not dropable.", tableInfo.ident()));
-        }
+        Operation.blockedRaiseException(tableInfo, Operation.DROP);
         DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
         if (docTableInfo.isAlias() && !docTableInfo.isPartitioned() && !isOrphanedAlias(docTableInfo)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "%s is an alias and hence not dropable.", tableInfo.ident()));
+        }
+        if (docTableInfo.isClosed()) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "The table %s is closed. No operation beside opening it using ALTER is supported.",
+                tableInfo.ident()));
         }
         return docTableInfo;
     }
 
     public DocTableInfo getWritableTable(TableIdent tableIdent) {
         TableInfo tableInfo = getTableInfo(tableIdent);
-        if (!(tableInfo instanceof DocTableInfo)) {
+        if (Operation.isReadOnly(tableInfo)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "The table %s is read-only. Write, Drop or Alter operations are not supported", tableInfo.ident()));
+                "The table %s is read-only. Only READ operations are supported.", tableInfo.ident()));
         }
         DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
         if (docTableInfo.isAlias() && !docTableInfo.isPartitioned()) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "%s is an alias. Write, Drop or Alter operations are not supported", tableInfo.ident()));
+                "%s is an alias. Only READ operations are supported.", tableInfo.ident()));
+        }
+        if (docTableInfo.isClosed()) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "The table %s is closed. No operation beside opening it using ALTER is supported.",
+                tableInfo.ident()));
+        }
+        return docTableInfo;
+    }
+
+    public DocTableInfo getAlterableTable(TableIdent tableIdent) {
+        TableInfo tableInfo = getTableInfo(tableIdent);
+        // If the table is not an instance of doctableinfo, then it is a system table.
+        if (!(tableInfo instanceof DocTableInfo)) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "The table %s is read-only. Only READ operations are supported.", tableInfo.ident()));
+        }
+        DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
+        if (docTableInfo.isAlias() && !docTableInfo.isPartitioned()) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "%s is an alias. Only READ operations are supported.", tableInfo.ident()));
         }
         return docTableInfo;
     }

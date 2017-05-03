@@ -58,6 +58,7 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
             Columns.TABLE_VERSION_UPGRADED_CRATEDB, DataTypes.OBJECT);
         public static final Reference TABLE_VERSION_UPGRADED_ES = createRef(
             Columns.TABLE_VERSION_UPGRADED_ES, DataTypes.OBJECT);
+        public static final Reference CLOSED = createRef(Columns.CLOSED, DataTypes.BOOLEAN);
 
         public static final Reference TABLE_SETTINGS = createRef(Columns.TABLE_SETTINGS, DataTypes.OBJECT);
 
@@ -129,6 +130,7 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                 .put(Columns.TABLE_VERSION_UPGRADED, References.TABLE_VERSION_UPGRADED)
                 .put(Columns.TABLE_VERSION_UPGRADED_CRATEDB, References.TABLE_VERSION_UPGRADED_CRATEDB)
                 .put(Columns.TABLE_VERSION_UPGRADED_ES, References.TABLE_VERSION_UPGRADED_ES)
+                .put(Columns.CLOSED, References.CLOSED)
                 .put(Columns.TABLE_SETTINGS, References.TABLE_SETTINGS)
                 .put(Columns.TABLE_SETTINGS_BLOCKS, References.TABLE_SETTINGS_BLOCKS)
                 .put(Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, References.TABLE_SETTINGS_BLOCKS_READ_ONLY)
@@ -151,6 +153,7 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                 .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, References.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
                 .build(),
             ImmutableList.of(
+                References.CLOSED,
                 References.NUMBER_OF_REPLICAS,
                 References.NUMBER_OF_SHARDS,
                 References.PARTITION_IDENT,
