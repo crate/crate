@@ -175,7 +175,7 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
         for (Field field : matchPredicate.identBoostMap().keySet()) {
             if (relation == null) {
                 relation = field.relation();
-            } else if (relation != field.relation()) {
+            } else if (!relation.equals(field.relation())) {
                 throw new IllegalArgumentException("Must not use columns from more than 1 relation inside the MATCH predicate");
             }
         }

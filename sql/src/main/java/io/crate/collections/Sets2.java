@@ -20,41 +20,19 @@
  * agreement.
  */
 
-package io.crate.analyze;
+package io.crate.collections;
 
-import io.crate.analyze.relations.AnalyzedRelation;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Function;
 
-public class RelationSource {
+public class Sets2 {
 
-    private final AnalyzedRelation relation;
-    private QuerySpec querySpec;
-
-    public RelationSource(AnalyzedRelation relation) {
-        this(relation, null);
-    }
-
-    public RelationSource(AnalyzedRelation relation, QuerySpec querySpec) {
-        this.relation = relation;
-        this.querySpec = querySpec;
-    }
-
-    public QuerySpec querySpec() {
-        return querySpec;
-    }
-
-    public void querySpec(QuerySpec querySpec) {
-        this.querySpec = querySpec;
-    }
-
-    public AnalyzedRelation relation() {
-        return relation;
-    }
-
-    @Override
-    public String toString() {
-        return "Source{" +
-               ", rel=" + relation +
-               ", qs=" + querySpec +
-               '}';
+    public static <I, R> Set<R> transformedCopy(Set<? extends I> input, Function<? super I, ? extends R> func) {
+        HashSet<R> result = new HashSet<>(input.size());
+        for (I i : input) {
+            result.add(func.apply(i));
+        }
+        return result;
     }
 }

@@ -66,7 +66,7 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
                                         "join t3 on t2.b = t3.c " +
                                         "order by t1.a, t2.b, t3.c");
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
-        TwoTableJoin t1AndT2 = ((TwoTableJoin) root.left().relation());
+        TwoTableJoin t1AndT2 = (TwoTableJoin) root.left();
 
         assertThat(t1AndT2.joinPair().condition(), isSQL("(doc.t1.a = doc.t2.b)"));
         assertThat(root.joinPair().condition(), isSQL("(join.doc.t1.doc.t2.doc.t2['b'] = doc.t3.c)"));
@@ -78,7 +78,7 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
                                         "where t3.c = t2.b " +
                                         "order by t3.c");
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
-        TwoTableJoin left = (TwoTableJoin) root.left().relation();
+        TwoTableJoin left = (TwoTableJoin) root.left();
 
         assertThat(left.querySpec().where().query(), isSQL("(doc.t3.c = doc.t2.b)"));
     }
@@ -90,7 +90,7 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
                                         "join t3 on t2.b = t3.c " +
                                         "order by t3.c, t1.a, t2.b");
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
-        TwoTableJoin t3AndT1 = ((TwoTableJoin) root.left().relation());
+        TwoTableJoin t3AndT1 = (TwoTableJoin) root.left();
 
         assertThat(t3AndT1.querySpec().where().query(), isSQL("null"));
 
@@ -166,7 +166,7 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
                                         "left join t3 on t2.b = t3.c " +
                                         "order by t2.b, t3.c");
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
-        TwoTableJoin t1AndT2 = ((TwoTableJoin) root.left().relation());
+        TwoTableJoin t1AndT2 = (TwoTableJoin) root.left();
 
         assertThat(t1AndT2.right().querySpec().orderBy().isPresent(), is(false));
         assertThat(t1AndT2.querySpec().orderBy().get(), isSQL("doc.t2.b"));
@@ -193,8 +193,8 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
                                         "where t1.a=t3.c");
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
         assertThat(root.toString(), is("join.join.doc.t1.doc.t3.doc.t2"));
-        TwoTableJoin t1Andt3 = ((TwoTableJoin) root.left().relation());
+        TwoTableJoin t1Andt3 = (TwoTableJoin) root.left();
         assertThat(t1Andt3.toString(), is("join.doc.t1.doc.t3"));
-        assertThat(root.right().relation().getQualifiedName().toString(), is("doc.t2"));
+        assertThat(root.right().getQualifiedName().toString(), is("doc.t2"));
     }
 }

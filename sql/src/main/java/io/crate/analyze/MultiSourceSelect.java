@@ -23,48 +23,96 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.FieldReplacer;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.collections.Sets2;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Path;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.function.Function;
 
 public class MultiSourceSelect implements QueriedRelation {
 
-    private final Map<QualifiedName, RelationSource> sources;
-    private final QuerySpec querySpec;
+    private final Map<QualifiedName, AnalyzedRelation> sources;
     private final Fields fields;
     private final List<JoinPair> joinPairs;
     private final Set<Symbol> requiredForQuery;
     private final Set<Field> canBeFetched;
     private final Optional<RemainingOrderBy> remainingOrderBy;
     private QualifiedName qualifiedName;
+    private QuerySpec querySpec;
 
-    public static MultiSourceSelect createWithPushDown(MultiSourceSelect mss, QuerySpec querySpec) {
+    /**
+     * Create a new MultiSourceSelect which has it's sources transformed into subQueries which contain
+     * any expressions that only affect a single source.
+     * Example:
+     * <pre>
+     *     select t1.x, t2.y from t1, t2 where t1.x = 10
+     *
+     *     becomes
+     *
+     *     select t1.x, t2.y from
+     *          (select x from t1 where x = 10) t1,
+     *          (select y from t2)
+     * </pre>
+     */
+    public static MultiSourceSelect createWithPushDown(Functions functions,
+                                                       TransactionContext transactionContext,
+                                                       MultiSourceSelect mss,
+                                                       QuerySpec querySpec) {
         RelationSplitter splitter = new RelationSplitter(
             querySpec,
-            mss.sources.values().stream().map(RelationSource::relation).collect(Collectors.toList()),
+            mss.sources.values(),
             mss.joinPairs
         );
         splitter.process();
 
-        for (RelationSource source : mss.sources.values()) {
-            QuerySpec spec = splitter.getSpec(source.relation());
-            source.querySpec(spec);
-        }
+        Function<Field, Field> convertFieldToPointToNewRelations = Function.identity();
+        for (Map.Entry<QualifiedName, AnalyzedRelation> entry : mss.sources.entrySet()) {
+            AnalyzedRelation relation = entry.getValue();
+            QuerySpec spec = splitter.getSpec(relation);
+            QueriedRelation queriedRelation = Relations.applyQSToRelation(functions, transactionContext, relation, spec);
+            Function<Field, Field> convertField = f -> mapFieldToNewRelation(f, relation, queriedRelation);
+            querySpec = querySpec.copyAndReplace(FieldReplacer.bind(convertField));
+            entry.setValue(queriedRelation);
 
+            convertFieldToPointToNewRelations = convertFieldToPointToNewRelations.andThen(convertField);
+        }
+        Function<? super Symbol, ? extends Symbol> convertFieldInSymbolsToNewRelations =
+            FieldReplacer.bind(convertFieldToPointToNewRelations);
+
+        if (splitter.remainingOrderBy().isPresent()) {
+            splitter.remainingOrderBy().get().orderBy().replace(convertFieldInSymbolsToNewRelations);
+        }
+        for (JoinPair joinPair : mss.joinPairs) {
+            joinPair.replaceCondition(convertFieldInSymbolsToNewRelations);
+        }
+        Set<Symbol> requiredForQuery = Sets2.transformedCopy(splitter.requiredForQuery(), convertFieldInSymbolsToNewRelations);
+        Set<Field> canBeFetched = Sets2.transformedCopy(splitter.canBeFetched(), convertFieldToPointToNewRelations);
         return new MultiSourceSelect(
             mss.sources(),
             mss.fields(),
             querySpec,
             mss.joinPairs,
-            splitter.requiredForQuery(),
-            splitter.canBeFetched(),
+            requiredForQuery,
+            canBeFetched,
             splitter.remainingOrderBy()
         );
+    }
+
+
+    private static Field mapFieldToNewRelation(Field f, AnalyzedRelation oldRelation, QueriedRelation newRelation) {
+        if (f.relation().equals(oldRelation)) {
+            Field field = newRelation.getField(f.path(), Operation.READ);
+            assert field != null : "Must be able to resolve field from injected relation: " + f;
+            return field;
+        }
+        return f;
     }
 
     public MultiSourceSelect(Map<QualifiedName, AnalyzedRelation> sources,
@@ -72,7 +120,10 @@ public class MultiSourceSelect implements QueriedRelation {
                              QuerySpec querySpec,
                              List<JoinPair> joinPairs) {
         assert sources.size() > 1 : "MultiSourceSelect requires at least 2 relations";
-        this.sources = initializeSources(sources);
+        this.sources = sources;
+        for (Map.Entry<QualifiedName, AnalyzedRelation> entry : sources.entrySet()) {
+            entry.getValue().setQualifiedName(entry.getKey());
+        }
         this.querySpec = querySpec;
         this.joinPairs = joinPairs;
         assert outputNames.size() == querySpec.outputs().size() : "size of outputNames and outputSymbols must match";
@@ -86,7 +137,7 @@ public class MultiSourceSelect implements QueriedRelation {
         this.remainingOrderBy = Optional.empty();
     }
 
-    private MultiSourceSelect(Map<QualifiedName, RelationSource> sources,
+    private MultiSourceSelect(Map<QualifiedName, AnalyzedRelation> sources,
                               Collection<Field> fields,
                               QuerySpec querySpec,
                               List<JoinPair> joinPairs,
@@ -113,7 +164,7 @@ public class MultiSourceSelect implements QueriedRelation {
         return canBeFetched;
     }
 
-    public Map<QualifiedName, RelationSource> sources() {
+    public Map<QualifiedName, AnalyzedRelation> sources() {
         return sources;
     }
 
@@ -154,15 +205,6 @@ public class MultiSourceSelect implements QueriedRelation {
         return querySpec;
     }
 
-    private static HashMap<QualifiedName, RelationSource> initializeSources(Map<QualifiedName, AnalyzedRelation> originalSources) {
-        HashMap<QualifiedName, RelationSource> sources = new LinkedHashMap<>(originalSources.size());
-        for (Map.Entry<QualifiedName, AnalyzedRelation> entry : originalSources.entrySet()) {
-            entry.getValue().setQualifiedName(entry.getKey());
-            RelationSource source = new RelationSource(entry.getValue());
-            sources.put(entry.getKey(), source);
-        }
-        return sources;
-    }
 
     public Optional<RemainingOrderBy> remainingOrderBy() {
         return remainingOrderBy;

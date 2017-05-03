@@ -103,6 +103,7 @@ public class NestedLoop implements Plan, ResultDescription {
                       int limit,
                       int offset,
                       int maxRowsPerNode,
+                      int numOutputs,
                       @Nullable PositionalOrderBy orderBy) {
         this.jobId = nestedLoopPhase.jobId();
         this.left = left;
@@ -112,7 +113,7 @@ public class NestedLoop implements Plan, ResultDescription {
         this.offset = offset;
         this.maxRowsPerNode = maxRowsPerNode;
         this.orderBy = orderBy;
-        this.numOutputs = nestedLoopPhase.outputTypes().size();
+        this.numOutputs = numOutputs;
     }
 
     public Plan left() {

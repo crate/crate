@@ -24,9 +24,9 @@ package io.crate.planner.consumer;
 
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.RelationSource;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPairs;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
@@ -107,8 +107,8 @@ public class MultiSourceGroupByConsumer implements Consumer {
             querySpec.hasAggregates(false);
             removePostGroupingActions(querySpec);
 
-            for (RelationSource relationSource : mss.sources().values()) {
-                removePostGroupingActions(relationSource.querySpec());
+            for (AnalyzedRelation relation : mss.sources().values()) {
+                removePostGroupingActions(((QueriedRelation) relation).querySpec());
             }
         }
 

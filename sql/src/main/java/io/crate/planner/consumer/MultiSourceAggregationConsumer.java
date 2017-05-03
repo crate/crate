@@ -24,10 +24,10 @@ package io.crate.planner.consumer;
 
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.RelationSource;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPairs;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
@@ -94,8 +94,8 @@ class MultiSourceAggregationConsumer implements Consumer {
         // OrderBy can be ignored because it's also applied after aggregation but there is always only 1 row so it
         // wouldn't have any effect.
         removeLimitOffsetAndOrder(querySpec);
-        for (RelationSource relationSource : mss.sources().values()) {
-            removeLimitOffsetAndOrder(relationSource.querySpec());
+        for (AnalyzedRelation relation : mss.sources().values()) {
+            removeLimitOffsetAndOrder(((QueriedRelation) relation).querySpec());
         }
 
         // need to change the types on the fields of the MSS to match the new outputs
