@@ -294,7 +294,6 @@ public class DocSchemaInfo implements SchemaInfo {
         }
 
         // re register UDFs for this schema
-        functions.deregisterUdfResolversForSchema(schemaName);
         UserDefinedFunctionsMetaData udfMetaData = newMetaData.custom(UserDefinedFunctionsMetaData.TYPE);
         if (udfMetaData != null) {
             Stream<UserDefinedFunctionMetaData> udfFunctions = udfMetaData.functionsMetaData().stream()
