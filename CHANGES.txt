@@ -22,6 +22,10 @@ Changes
 Fixes
 =====
 
+  - Fixed issue which lead to an object's column policy being changed to 
+   the default DYNAMIC when adding a nested object column using the 
+   `alter table` statement.
+
  - Fixed an issue with `regexp_replace`: In some cases it used the third
    argument as flags parameter instead of the fourth argument.
 

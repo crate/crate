@@ -93,7 +93,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateUnitTest {
     public void testFromQueryWithSubQueryColumns() throws Exception {
         InsertFromSubQueryAnalyzedStatement analysis =
             e.analyze("insert into users (" +
-                      "  select id, other_id, name, text, no_index, details, " +
+                      "  select id, other_id, name, text, no_index, details, address, " +
                       "      awesome, counters, friends, tags, bytes, shorts, date, shape, ints, floats " +
                       "  from users " +
                       "  where name = 'Trillian'" +
