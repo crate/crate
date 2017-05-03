@@ -31,6 +31,8 @@ Changes
 Fixes
 =====
 
+ - Use crate favicon instead of elasticsearch.
+
  - Fixed issue which lead to an object's column policy being changed to 
    the default DYNAMIC when adding a nested object column using the 
    `alter table` statement.
