@@ -23,7 +23,6 @@
 package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Maps;
 import io.crate.analyze.*;
 import io.crate.analyze.symbol.Aggregations;
 import io.crate.analyze.symbol.Field;
@@ -142,7 +141,7 @@ final class SubselectRewriter {
             if (canBeMerged(currentQS, parentQS)) {
                 QuerySpec currentWithParentMerged = mergeQuerySpec(currentQS, parentQS);
                 return new MultiSourceSelect(
-                    Maps.transformValues(multiSourceSelect.sources(), RelationSource::relation),
+                    multiSourceSelect.sources(),
                     namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.replacedFieldsByNewOutput),
                     currentWithParentMerged,
                     multiSourceSelect.joinPairs()

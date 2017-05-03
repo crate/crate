@@ -200,18 +200,17 @@ public class ManyTableConsumer implements Consumer {
 
         QualifiedName leftName = it.next();
         QuerySpec rootQuerySpec = mss.querySpec();
-        RelationSource leftSource = mss.sources().get(leftName);
-        AnalyzedRelation leftRelation = leftSource.relation();
-        QuerySpec leftQuerySpec = leftSource.querySpec();
+        QueriedRelation leftRelation = (QueriedRelation) mss.sources().get(leftName);
+        QuerySpec leftQuerySpec = leftRelation.querySpec();
         Optional<RemainingOrderBy> remainingOrderBy = mss.remainingOrderBy();
         List<JoinPair> joinPairs = mss.joinPairs();
         List<TwoTableJoin> twoTableJoinList = new ArrayList<>(orderedRelationNames.size());
 
         QualifiedName rightName;
-        RelationSource rightSource;
+        QueriedRelation rightRelation;
         while (it.hasNext()) {
             rightName = it.next();
-            rightSource = mss.sources().get(rightName);
+            rightRelation = (QueriedRelation) mss.sources().get(rightName);
 
             // process where clause
             Set<QualifiedName> names = Sets.newHashSet(leftName, rightName);
@@ -231,13 +230,13 @@ public class ManyTableConsumer implements Consumer {
             // get explicit join definition
             JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(leftName, rightName, joinPairs, true);
 
-            JoinPairs.removeOrderByOnOuterRelation(leftName, rightName, leftQuerySpec, rightSource.querySpec(), joinPair);
+            JoinPairs.removeOrderByOnOuterRelation(leftName, rightName, leftQuerySpec, rightRelation.querySpec(), joinPair);
 
             // NestedLoop will add NULL rows - so order by needs to be applied after the NestedLoop
             TwoTableJoin join = new TwoTableJoin(
                 newQuerySpec,
-                new RelationSource(leftRelation, leftQuerySpec),
-                rightSource,
+                leftRelation,
+                rightRelation,
                 remainingOrderByToApply,
                 joinPair
             );
@@ -259,10 +258,10 @@ public class ManyTableConsumer implements Consumer {
              */
             if (it.hasNext()) { // The outer left join becomes the root {@link TwoTableJoin}
                 final AnalyzedRelation left = leftRelation;
-                final AnalyzedRelation right = rightSource.relation();
+                final AnalyzedRelation right = rightRelation;
 
                 Function<? super Symbol, ? extends Symbol> replaceFunction = FieldReplacer.bind(f -> {
-                    if (f.relation() == left || f.relation() == right) {
+                    if (f.relation().equals(left) || f.relation().equals(right)) {
                         // path is prefixed with relationName so that they are still unique
                         ColumnIdent path = new ColumnIdent(f.relation().getQualifiedName().toString(), f.path().outputName());
                         Field field = join.getField(path, Operation.READ);
@@ -350,10 +349,10 @@ public class ManyTableConsumer implements Consumer {
         QualifiedName left = it.next();
         QualifiedName right = it.next();
         JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs(), true);
-        RelationSource leftSource = mss.sources().get(left);
-        RelationSource rightSource = mss.sources().get(right);
+        QueriedRelation leftRelation = (QueriedRelation) mss.sources().get(left);
+        QueriedRelation rightRelation = (QueriedRelation) mss.sources().get(right);
 
-        JoinPairs.removeOrderByOnOuterRelation(left, right, leftSource.querySpec(), rightSource.querySpec(), joinPair);
+        JoinPairs.removeOrderByOnOuterRelation(left, right, leftRelation.querySpec(), rightRelation.querySpec(), joinPair);
 
         Optional<OrderBy> remainingOrderByToApply = Optional.empty();
         if (mss.remainingOrderBy().isPresent() &&
@@ -363,8 +362,8 @@ public class ManyTableConsumer implements Consumer {
 
         return new TwoTableJoin(
             mss.querySpec(),
-            leftSource,
-            rightSource,
+            leftRelation,
+            rightRelation,
             remainingOrderByToApply,
             joinPair
         );

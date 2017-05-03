@@ -79,7 +79,7 @@ public class OrderBy implements Streamable {
         boolean[] reverseFlags = new boolean[positions.size()];
         int pos = 0;
         for (Integer i : positions) {
-            orderBySymbols.add(this.orderBySymbols.get(i));
+            orderBySymbols.add(Symbols.DEEP_COPY.apply(this.orderBySymbols.get(i)));
             nullsFirst[pos] = this.nullsFirst[i];
             reverseFlags[pos] = this.reverseFlags[i];
             pos++;

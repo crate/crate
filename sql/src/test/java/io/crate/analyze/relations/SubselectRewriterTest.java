@@ -353,10 +353,10 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
             "SELECT doc.t1.a, doc.t2.i ORDER BY doc.t2.y"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
-        RelationSource t1 = ((MultiSourceSelect) relation).sources().get(T3.T1);
+        QueriedRelation t1 = ((QueriedRelation) ((MultiSourceSelect) relation).sources().get(T3.T1));
         assertThat(t1.querySpec().where().query(), isSQL("(doc.t1.a = 'a')"));
-        RelationSource t2 = ((MultiSourceSelect) relation).sources().get(T3.T2);
-        assertThat(t2.querySpec().where().query(), isSQL("(true AND (doc.t2.y > 60))"));
+        QueriedRelation t2 = ((QueriedRelation) ((MultiSourceSelect) relation).sources().get(T3.T2));
+        assertThat(t2.querySpec().where().query(), isSQL("(doc.t2.y > 60)"));
     }
 
     @Test
@@ -374,9 +374,9 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mss.joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
-        RelationSource t1 = mss.sources().get(T3.T1);
+        QueriedRelation t1 = ((QueriedRelation) mss.sources().get(T3.T1));
         assertThat(t1.querySpec().where().query(), isSQL("(doc.t1.a = 'a')"));
-        RelationSource t2 = mss.sources().get(T3.T2);
+        QueriedRelation t2 = ((QueriedRelation) mss.sources().get(T3.T2));
         assertThat(t2.querySpec().where().query(), isSQL("(doc.t2.y > 60)"));
     }
 
@@ -395,9 +395,9 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mss.joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
-        RelationSource t1 = mss.sources().get(T3.T1);
+        QueriedRelation t1 = ((QueriedRelation) mss.sources().get(T3.T1));
         assertThat(t1.querySpec().where().query(), isSQL("(doc.t1.x > 60)"));
-        RelationSource t2 = mss.sources().get(T3.T2);
+        QueriedRelation t2 = ((QueriedRelation) mss.sources().get(T3.T2));
         assertThat(t2.querySpec().where().query(), isSQL("(doc.t2.i = 10)"));
     }
 
@@ -427,9 +427,9 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mss.joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
         // make sure that the conditions of where clause were pushed down to the relations
-        RelationSource t1 = mss.sources().get(T3.T1);
+        QueriedRelation t1 = ((QueriedRelation) mss.sources().get(T3.T1));
         assertThat(t1.querySpec().where().query(), isSQL("(doc.t1.a = 'a')"));
-        RelationSource t2 = mss.sources().get(T3.T2);
+        QueriedRelation t2 = ((QueriedRelation) mss.sources().get(T3.T2));
         assertThat(t2.querySpec().where().query(), isSQL("(NOT (ISNULL doc.t2.y))"));
     }
 
@@ -450,9 +450,9 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mss.joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
         // make sure that where clause for t1 wasn't pushed down since but be applied after the FULL join
-        RelationSource t1 = mss.sources().get(T3.T1);
+        QueriedRelation t1 = ((QueriedRelation) mss.sources().get(T3.T1));
         assertThat(t1.querySpec().where().query(), isSQL("(doc.t1.a = 'a')"));
-        RelationSource t2 = mss.sources().get(T3.T2);
+        QueriedRelation t2 = ((QueriedRelation) mss.sources().get(T3.T2));
         assertThat(t2.querySpec().where().query(), is(nullValue()));
     }
 
@@ -473,9 +473,9 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mss.joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
         // make sure that where clause for t2 wasn't pushed down since but be applied after the FULL join
-        RelationSource t1 = mss.sources().get(T3.T1);
+        QueriedRelation t1 = ((QueriedRelation) mss.sources().get(T3.T1));
         assertThat(t1.querySpec().where().query(), is(nullValue()));
-        RelationSource t2 = mss.sources().get(T3.T2);
+        QueriedRelation t2 = ((QueriedRelation) mss.sources().get(T3.T2));
         assertThat(t2.querySpec().where().query(), isSQL("(doc.t2.b = 'b')"));
     }
 
@@ -496,9 +496,9 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mss.joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
         // make sure that where clause wasn't pushed down since but be applied after the FULL join
-        RelationSource t1 = mss.sources().get(T3.T1);
+        QueriedRelation t1 = ((QueriedRelation) mss.sources().get(T3.T1));
         assertThat(t1.querySpec().where().query(), is(nullValue()));
-        RelationSource t2 = mss.sources().get(T3.T2);
+        QueriedRelation t2 = ((QueriedRelation) mss.sources().get(T3.T2));
         assertThat(t2.querySpec().where().query(), is(nullValue()));
     }
 

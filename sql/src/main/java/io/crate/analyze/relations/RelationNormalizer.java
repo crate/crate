@@ -68,7 +68,7 @@ final class RelationNormalizer {
             relation.subRelation(normalizedSubRelation);
             if (subRelation != normalizedSubRelation) {
                 relation.querySpec().replace(FieldReplacer.bind(f -> {
-                    if (f.relation() == subRelation) {
+                    if (f.relation().equals(subRelation)) {
                         return normalizedSubRelation.getField(f.path(), Operation.READ);
                     }
                     return f;
@@ -95,7 +95,7 @@ final class RelationNormalizer {
             QuerySpec querySpec = mss.querySpec();
             querySpec.normalize(normalizer, context);
             // must create a new MultiSourceSelect because paths and query spec changed
-            mss = MultiSourceSelect.createWithPushDown(mss, querySpec);
+            mss = MultiSourceSelect.createWithPushDown(functions, context, mss, querySpec);
             Rewriter.tryRewriteOuterToInnerJoin(normalizer, mss);
             return mss;
         }

@@ -24,9 +24,12 @@ package io.crate.planner.consumer;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.JoinPair;
+import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
-import io.crate.exceptions.ValidationException;
+import io.crate.collections.Lists2;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.projectors.TopN;
@@ -75,18 +78,12 @@ class NestedLoopConsumer implements Consumer {
         public Plan visitTwoTableJoin(TwoTableJoin statement, ConsumerContext context) {
             QuerySpec querySpec = statement.querySpec();
 
-            List<Symbol> nlOutputs = new ArrayList<>();
-            QueriedRelation left;
-            QueriedRelation right;
-            try {
-                left = SubRelationConverter.INSTANCE.process(statement.left().relation(), statement.left());
-                right = SubRelationConverter.INSTANCE.process(statement.right().relation(), statement.right());
-                nlOutputs.addAll(statement.left().querySpec().outputs());
-                nlOutputs.addAll(statement.right().querySpec().outputs());
-            } catch (ValidationException e) {
-                context.validationException(e);
-                return null;
+            QueriedRelation left = statement.left();
+            QueriedRelation right = statement.right();
+            if (left instanceof QueriedSelectRelation || right instanceof QueriedSelectRelation) {
+                throw new UnsupportedOperationException("JOIN with sub queries is not supported");
             }
+            List<Symbol> nlOutputs = Lists2.concat(left.fields(), right.fields());
 
             // for nested loops we are fine to remove pushed down orders
             OrderBy orderByBeforeSplit = querySpec.orderBy().orElse(null);
@@ -126,21 +123,20 @@ class NestedLoopConsumer implements Consumer {
                 context.requiredPageSize(limits.limitAndOffset());
             }
 
-            // this normalization is required to replace fields of the table relations
+            // Fields on QueriedTableRelation are normalized to References in the relationNormalizer,
+            // but we currently add fields later on (e.g _fetchid) and they need to be normalized as
+            // well before the subRelations can be planned
             if (left instanceof QueriedTableRelation) {
-                ((QueriedTableRelation) left).normalize(
-                    functions, context.plannerContext().transactionContext());
+                ((QueriedTableRelation) left).normalize(functions, context.plannerContext().transactionContext());
             }
             if (right instanceof QueriedTableRelation) {
-                ((QueriedTableRelation) right).normalize(
-                    functions, context.plannerContext().transactionContext());
+                ((QueriedTableRelation) right).normalize(functions, context.plannerContext().transactionContext());
             }
 
             context.setFetchMode(FetchMode.NEVER);
             Plan leftPlan = context.plannerContext().planSubRelation(left, context);
             Plan rightPlan = context.plannerContext().planSubRelation(right, context);
             context.requiredPageSize(null);
-
 
             ResultDescription leftResultDesc = leftPlan.resultDescription();
             ResultDescription rightResultDesc = rightPlan.resultDescription();
@@ -226,7 +222,8 @@ class NestedLoopConsumer implements Consumer {
                 joinCondition = InputColumns.create(joinCondition, nlOutputs);
                 assert joinCondition instanceof Function : "Only function symbols are valid join conditions";
                 assert !SymbolVisitors.any(Symbols.IS_COLUMN, joinCondition)
-                    : "Columns are not valid in processed join condition";
+                    : "Processed joinCondition must not contain column symbols.\njoinCondition="
+                      + joinCondition + " nlOutputs=" + nlOutputs;
             }
 
             List<Symbol> postNLOutputs = Lists.newArrayList(querySpec.outputs());
@@ -266,6 +263,9 @@ class NestedLoopConsumer implements Consumer {
                 left.querySpec().outputs().size(),
                 right.querySpec().outputs().size()
             );
+
+             // postNLOutputs includes orderBy only symbols, these need to be stripped in the handlerMerge
+            int postMergeNumOutput = querySpec.outputs().size();
             if (isDistributed) {
                 return new NestedLoop(
                     nl,
@@ -274,10 +274,11 @@ class NestedLoopConsumer implements Consumer {
                     limits.finalLimit(),
                     limits.offset(),
                     limit,
+                    postMergeNumOutput,
                     PositionalOrderBy.of(orderByBeforeSplit, postNLOutputs)
                 );
             } else {
-                return new NestedLoop(nl, leftPlan, rightPlan, TopN.NO_LIMIT, 0, limit, null);
+                return new NestedLoop(nl, leftPlan, rightPlan, TopN.NO_LIMIT, 0, limit, postMergeNumOutput, null);
             }
         }
 
@@ -312,37 +313,6 @@ class NestedLoopConsumer implements Consumer {
                 return false;
             }
             return true;
-        }
-    }
-
-    private static class SubRelationConverter extends AnalyzedRelationVisitor<RelationSource, QueriedRelation> {
-
-        static final SubRelationConverter INSTANCE = new SubRelationConverter();
-
-        @Override
-        public QueriedRelation visitTableRelation(TableRelation tableRelation, RelationSource source) {
-            return new QueriedTable(tableRelation, source.querySpec());
-        }
-
-        @Override
-        public QueriedRelation visitDocTableRelation(DocTableRelation tableRelation, RelationSource source) {
-            return new QueriedDocTable(tableRelation, source.querySpec());
-        }
-
-        @Override
-        public QueriedRelation visitTwoTableJoin(TwoTableJoin twoTableJoin, RelationSource context) {
-            return twoTableJoin;
-        }
-
-        @Override
-        public QueriedRelation visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation,
-                                                          RelationSource context) {
-            return new QueriedTable(tableFunctionRelation, context.querySpec());
-        }
-
-        @Override
-        protected QueriedTableRelation visitAnalyzedRelation(AnalyzedRelation relation, RelationSource source) {
-            throw new ValidationException("JOIN with sub queries is not supported");
         }
     }
 }

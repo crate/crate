@@ -882,8 +882,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         // make sure that where clause was pushed down and didn't disappear somehow
         assertThat(relation.querySpec().where().query(), isSQL("null"));
-        RelationSource users =
-            ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("doc", "users"));
+        QueriedRelation users =
+            ((QueriedRelation) ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("doc", "users")));
         assertThat(users.querySpec().where().query(), isSQL("(doc.users.name = 'Arthur')"));
     }
 
@@ -894,11 +894,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analysis.relation().querySpec().where(), is(WhereClause.MATCH_ALL));
         assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
 
-        RelationSource source1 = ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("t1"));
-        RelationSource source2 = ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("t2"));
+        QueriedRelation subRel1 = (QueriedRelation) ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("t1"));
+        QueriedRelation subRel2 = (QueriedRelation) ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("t2"));
 
-        assertThat(source1.querySpec().where().query(), isSQL("(doc.users.name = 'foo')"));
-        assertThat(source2.querySpec().where().query(), isSQL("(true AND (doc.users.name = 'bar'))"));
+        assertThat(subRel1.querySpec().where().query(), isSQL("(doc.users.name = 'foo')"));
+        assertThat(subRel2.querySpec().where().query(), isSQL("(doc.users.name = 'bar')"));
     }
 
     @Test
