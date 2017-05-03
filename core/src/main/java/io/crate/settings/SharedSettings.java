@@ -29,17 +29,19 @@ import org.elasticsearch.common.settings.Settings;
 public class SharedSettings {
 
     public static final CrateSetting<Boolean> ENTERPRISE_LICENSE_SETTING = CrateSetting.of(Setting.boolSetting(
-        "license.enterprise", true,
-        Setting.Property.NodeScope), DataTypes.BOOLEAN);
+        "license.enterprise", true, Setting.Property.NodeScope),
+        DataTypes.BOOLEAN);
 
     public static final CrateSetting<String> LICENSE_IDENT_SETTING = CrateSetting.of(Setting.simpleString(
-        "license.ident", Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING);
+        "license.ident", Setting.Property.NodeScope, Setting.Property.Dynamic),
+        DataTypes.STRING);
 
-    public static final CrateSetting<Settings> AUTH_HOST_BASED_SETTING = CrateSetting.of(
-        Setting.groupSetting("auth.host_based.",
-            Setting.Property.Dynamic,
-            Setting.Property.NodeScope),
-        DataTypes.OBJECT
-    );
+    public static final CrateSetting<Boolean> AUTH_HOST_BASED_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
+        "auth.host_based.enabled", false, Setting.Property.NodeScope, Setting.Property.Dynamic),
+        DataTypes.BOOLEAN);
+
+    public static final CrateSetting<Settings> AUTH_HOST_BASED_CONFIG_SETTING = CrateSetting.of(Setting.groupSetting(
+        "auth.host_based.config.", Setting.Property.NodeScope, Setting.Property.Dynamic),
+        DataTypes.OBJECT);
 
 }

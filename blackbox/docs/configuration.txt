@@ -1918,39 +1918,67 @@ Authentication
 Host Based Authentication
 -------------------------
 
-**auth.host_based**
-  | *Runtime:*     ``no``
-  | *Examples:*
-  |  ``a: {user:crate, address: 172.16.0.0/16}``
-  |  ``b: {method: trust}``
-  |  ``3: {user:crate, address: 172.16.0.0/16, method:trust}``
+**auth.host_based.enabled**
+  | *Runtime:* ``no``
+  | *Default:* ``false``
 
-  The :ref:`administration_hba` setting is a list of predicates that users can
-  specify to restrict or allow access to CrateDB.
+  Setting to enable or disable Host Based Authentication (HBA). It is disabled
+  by default.
 
-  The meaning of the fields are as follows:
+HBA Entries
+...........
 
-  **order:**
-    | An identifier that is used as a natural order key when looking up the
-    | host based configuration entries. For example, an order key of ``a`` will
-    | be looked up before an order key of ``b``. This key guarantees that the entry
-    | lookup order will remain independent from the insertion order of the entries.
+The ``auth.host_based.config.`` setting is a group setting that can have zero,
+one or multiple groups that are defined by their group key (``${order}``) and
+their fields (``user``, ``address``, ``method``).
 
-  **user:**
-    | Specifies an existing CrateDB username, only ``crate`` user (superuser)
-    | is available. If no user is specified in the entry, then
-    | all existing users can have access.
+**${order}:**
+  | An identifier that is used as a natural order key when looking up the
+  | host based configuration entries. For example, an order key of ``a`` will
+  | be looked up before an order key of ``b``. This key guarantees that the entry
+  | lookup order will remain independent from the insertion order of the entries.
 
-  **address:**
-    | The client machine addresses that the client matches, and which are
-    | allowed to authenticate. This field can contain an IP address or a CIDR
-    | mask. For example: ``127.0.0.1`` or ``127.0.0.1/32``. If no address is specified
-    | in the entry, then access to CrateDB is open for all hosts.
+The :ref:`administration_hba` setting is a list of predicates that users can
+specify to restrict or allow access to CrateDB.
 
-  **method:**
-    | The authentication method to use when a connection matches this entry.
-    | At the moment only the ``trust`` method is available. If no method is
-    | specified, the ``trust`` method is used by default.( See :ref:`auth_trust` )
+The meaning of the fields of the are as follows:
+
+**auth.host_based.config.${order}.user**
+  | *Runtime:*  ``no``
+
+  | Specifies an existing CrateDB username, only ``crate`` user (superuser)
+  | is available. If no user is specified in the entry, then
+  | all existing users can have access.
+
+**auth.host_based.config.${order}.address**
+  | *Runtime:* ``no``
+
+  | The client machine addresses that the client matches, and which are
+  | allowed to authenticate. This field can contain an IP address or a CIDR
+  | mask. For example: ``127.0.0.1`` or ``127.0.0.1/32``. If no address is specified
+  | in the entry, then access to CrateDB is open for all hosts.
+
+**auth.host_based.config.${order}.method**
+  | *Runtime:* ``no``
+
+  | The authentication method to use when a connection matches this entry.
+  | At the moment only the ``trust`` method is available. If no method is
+  | specified, the ``trust`` method is used by default (see :ref:`auth_trust`).
+
+**Example of config groups:**
+
+.. code-block:: yaml
+
+    auth.host_based.config:
+      entry_a:
+        user: crate
+        address: 127.16.0.0/16
+      entry_b:
+        method: trust
+      entry_3:
+        user: crate
+        address: 172.16.0.0/16
+        method: trust
 
 
 .. _`same-origin policy`: https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy

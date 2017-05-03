@@ -36,21 +36,13 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put("network.host", "127.0.0.1")
-            .put(Settings.builder()
-                .put("auth.host_based.a.user", "crate")
-                .put("auth.host_based.a.method", "trust")
-                .put("auth.host_based.a.address", "127.0.0.1")
-                .build())
-            .put(Settings.builder()
-                .put("auth.host_based.b.user", "cr8")
-                .put("auth.host_based.b.method", "trust")
-                .put("auth.host_based.b.address", "0.0.0.0/0")
-                .build())
-            .put(Settings.builder()
-                .put("auth.host_based.c.user", "foo")
-                .put("auth.host_based.c.method", "fake")
-                .put("auth.host_based.c.address", "127.0.0.1/32")
-                .build())
+            .put("auth.host_based.enabled", true)
+            .put("auth.host_based.config",
+                "a", new String[]{"user", "method", "address"}, new String[]{"crate", "trust", "127.0.0.1"})
+            .put("auth.host_based.config",
+                "b", new String[]{"user", "method", "address"}, new String[]{"cr8", "trust", "0.0.0.0/0"})
+            .put("auth.host_based.config",
+                "c", new String[]{"user", "method", "address"}, new String[]{"foo", "fake", "127.0.0.1/32"})
             .build();
     }
 

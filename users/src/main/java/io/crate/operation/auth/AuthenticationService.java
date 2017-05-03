@@ -29,6 +29,7 @@ import org.jboss.netty.handler.ipfilter.CIDR4;
 import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -54,36 +55,38 @@ public class AuthenticationService implements Authentication {
      }
      */
     private Map<String, Map<String, String>> hbaConf;
+    private boolean enabled;
+
     private final Map<String, Supplier<AuthenticationMethod>> authMethodRegistry = new HashMap<>();
-    private final ClusterService clusterService;
 
     @Inject
     AuthenticationService(ClusterService clusterService, Settings settings) {
-        this.clusterService = clusterService;
-        Settings hbaSettings = SharedSettings.AUTH_HOST_BASED_SETTING.setting().get(settings);
-        updateHbaConfig(convertHbaSettingsToHbaConf(hbaSettings));
+        enabled = SharedSettings.AUTH_HOST_BASED_ENABLED_SETTING.setting().get(settings);
         clusterService.getClusterSettings()
-            .addSettingsUpdateConsumer(SharedSettings.AUTH_HOST_BASED_SETTING.setting(), this::updateHbaConfig);
+            .addSettingsUpdateConsumer(SharedSettings.AUTH_HOST_BASED_ENABLED_SETTING.setting(), (s) -> { enabled = s; });
+
+        updateHbaConfig(SharedSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings));
+        clusterService.getClusterSettings()
+            .addSettingsUpdateConsumer(SharedSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting(), this::updateHbaConfig);
+
         registerAuthMethod(TrustAuthentication.NAME, TrustAuthentication::new);
     }
 
     private void updateHbaConfig(Settings hbaSetting) {
-        this.hbaConf = convertHbaSettingsToHbaConf(hbaSetting);
+        updateHbaConfig(convertHbaSettingsToHbaConf(hbaSetting));
     }
 
-    public void updateHbaConfig(Map<String, Map<String, String>> hbaConf) {
-        this.hbaConf = hbaConf;
+    void updateHbaConfig(Map<String, Map<String, String>> hbaMap) {
+        hbaConf = hbaMap;
     }
 
     private Map<String, Map<String, String>> convertHbaSettingsToHbaConf(Settings hbaSetting) {
-        if (hbaSetting == null || hbaSetting.isEmpty()) {
-            return null;
+        if (hbaSetting.isEmpty()) {
+            return Collections.emptyMap();
         }
 
-        Map<String, Settings> childSettings = clusterService.getSettings().getGroups(SharedSettings.AUTH_HOST_BASED_SETTING.getKey());
         ImmutableMap.Builder<String, Map<String, String>> hostBasedConf = ImmutableMap.builder();
-
-        for (Map.Entry<String, Settings> entry : childSettings.entrySet()) {
+        for (Map.Entry<String, Settings> entry : hbaSetting.getAsGroups().entrySet()) {
             hostBasedConf.put(entry.getKey(), entry.getValue().getAsMap());
         }
         return hostBasedConf.build();
@@ -95,7 +98,7 @@ public class AuthenticationService implements Authentication {
 
     @Override
     public boolean enabled() {
-        return hbaConf != null;
+        return enabled;
     }
 
     @Override

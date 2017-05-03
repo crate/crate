@@ -21,6 +21,7 @@ package io.crate.operation.auth;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.plugin.SQLPlugin;
+import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -66,11 +67,18 @@ public class AuthenticationServiceTest extends CrateUnitTest {
     private AuthenticationService authService;
 
     @Before
-    private void setUpTest(){
-        authService = new AuthenticationService(createClusterService(Settings.EMPTY), Settings.EMPTY);
+    private void setUpTest() {
+        Settings settings = Settings.builder()
+            .put(SharedSettings.AUTH_HOST_BASED_ENABLED_SETTING.getKey(), true)
+            .build();
+        authService = authServiceWithSettings(settings);
     }
 
-    private ClusterService createClusterService(Settings settings){
+    private static AuthenticationService authServiceWithSettings(Settings settings){
+        return new AuthenticationService(createClusterService(settings), settings);
+    }
+
+    private static ClusterService createClusterService(Settings settings){
         SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
         Set<Setting<?>> cSettings = new HashSet<>();
         cSettings.addAll(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
@@ -96,8 +104,15 @@ public class AuthenticationServiceTest extends CrateUnitTest {
     }
 
     @Test
-    public void testMissingHbaConf() throws Exception {
+    public void testEnableAuthentication() throws Exception {
+        Authentication authService = authServiceWithSettings(Settings.EMPTY);
         assertFalse(authService.enabled());
+
+        Settings settings = Settings.builder()
+            .put(SharedSettings.AUTH_HOST_BASED_ENABLED_SETTING.getKey(), true)
+            .build();
+        authService = authServiceWithSettings(settings);
+        assertTrue(authService.enabled());
     }
 
     @Test
@@ -213,14 +228,15 @@ public class AuthenticationServiceTest extends CrateUnitTest {
     }
 
     @Test
-    public void testConvertHBASetting() throws Exception {
+    public void testConvertSettingsToConf() throws Exception {
         Settings settings = Settings.builder()
-            .put("auth.host_based.0.user", "crate")
-            .put("auth.host_based.0.address", "127.0.0.1")
-            .put("auth.host_based.0.method", "trust")
-            .put("auth.host_based.1.user", "crate")
-            .put("auth.host_based.1.address", "0.0.0.0/0")
-            .put("auth.host_based.1.method", "fake")
+            .put("auth.host_based.enabled", true)
+            .put("auth.host_based.config",
+                "0", new String[]{"user", "address", "method"}, new String[]{"crate", "127.0.0.1", "trust"})
+            .put("auth.host_based.config",
+                "1", new String[]{"user", "address", "method"}, new String[]{"crate", "0.0.0.0/0", "fake"})
+            .put("auth.host_based.config",
+                "2", new String[]{}, new String[]{}) // ignored because empty
             .build();
 
         AuthenticationService authService = new AuthenticationService(createClusterService(settings), settings);
