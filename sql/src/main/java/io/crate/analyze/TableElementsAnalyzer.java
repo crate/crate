@@ -117,11 +117,17 @@ public class TableElementsAnalyzer {
                 AnalyzedColumnDefinition leaf = parent;
                 for (String name : ident.path()) {
                     parent.dataType(DataTypes.OBJECT.getName());
-                    // Check if parent is already defined and if it's an array
+                    // Check if parent is already defined.
+                    // If it is an array, set the collection type to array, or if it's an object keep the object column
+                    // policy.
                     if (context.tableInfo != null) {
                         Reference parentRef = context.tableInfo.getReference(parent.ident());
-                        if (parentRef != null && parentRef.valueType().equals(DataTypes.OBJECT_ARRAY)) {
-                            parent.collectionType("array");
+                        if (parentRef != null) {
+                            if (parentRef.valueType().equals(DataTypes.OBJECT_ARRAY)) {
+                                parent.collectionType("array");
+                            } else {
+                                parent.objectType(String.valueOf(parentRef.columnPolicy().mappingValue()));
+                            }
                         }
                     }
                     parent.markAsParentColumn();

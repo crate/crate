@@ -34,6 +34,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -76,6 +77,8 @@ public final class TableDefinitions {
         .add("text", DataTypes.STRING, null, Reference.IndexType.ANALYZED)
         .add("no_index", DataTypes.STRING, null, Reference.IndexType.NO)
         .add("details", DataTypes.OBJECT, null)
+        .add("address", DataTypes.OBJECT, null, ColumnPolicy.STRICT)
+        .add("postcode", DataTypes.STRING, Collections.singletonList("address"))
         .add("awesome", DataTypes.BOOLEAN, null)
         .add("counters", new ArrayType(DataTypes.LONG), null)
         .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
