@@ -177,14 +177,14 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("create table t (n integer) partitioned by (n)");
         ensureYellow();
         execute("insert into t (n) values (1)");
-        ensureYellow();
 
         String[] indices = client().admin().indices().getIndex(new GetIndexRequest()).actionGet().getIndices();
         client().admin().indices().close(new CloseIndexRequest(indices[0])).actionGet();
+        execute("insert into t (n) values (100)");
+        ensureYellow();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("Unable to access the partition %s, it is closed", indices[0]));
-        execute("insert into t (n) values (1)");
+        execute("select count(*) from t");
+        assertEquals(0L, response.rows()[0][0]);
     }
 
     @Test
@@ -197,9 +197,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         String[] indices = client().admin().indices().getIndex(new GetIndexRequest()).actionGet().getIndices();
         client().admin().indices().close(new CloseIndexRequest(indices[0])).actionGet();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("Unable to access the partition %s, it is closed", indices[0]));
         execute("select count(*) from t");
+        assertEquals(0L, response.rows()[0][0]);
     }
 
     @Test
@@ -250,9 +249,10 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("select * from information_schema.tables where table_schema='doc' order by table_name");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][8], is("quotes"));
-        assertThat(response.rows()[0][6], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
-        TestingHelpers.assertCrateVersion(response.rows()[0][10], Version.CURRENT, null);
+        assertThat(response.rows()[0][9], is("quotes"));
+        assertThat(response.rows()[0][7], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        assertThat(response.rows()[0][1], is(false));
+        TestingHelpers.assertCrateVersion(response.rows()[0][11], Version.CURRENT, null);
         execute("select * from information_schema.columns where table_name='quotes' order by ordinal_position");
         assertThat(response.rowCount(), is(3L));
         assertThat(response.rows()[0][0], is("id"));

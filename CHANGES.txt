@@ -21,6 +21,10 @@ Breaking Changes
 Changes
 =======
 
+ - Information on the state of tables/partitions is now exposed
+   by a new column `closed` on the `information_schema.tables`
+   and `information_schema.table_partitions` tables.
+
  - Added full support for ``DISTINCT`` on queries where ``GROUP BY``
    is present.
 

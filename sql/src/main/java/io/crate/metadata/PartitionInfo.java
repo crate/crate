@@ -38,6 +38,7 @@ public class PartitionInfo implements StoredTable {
     private final String routingHashFunction;
     private final Version versionCreated;
     private final Version versionUpgraded;
+    private final boolean closed;
     private final Map<String, Object> values;
     private final ImmutableMap<String, Object> tableParameters;
 
@@ -47,6 +48,7 @@ public class PartitionInfo implements StoredTable {
                          String routingHashFunction,
                          @Nullable Version versionCreated,
                          @Nullable Version versionUpgraded,
+                         boolean closed,
                          Map<String, Object> values,
                          ImmutableMap<String, Object> tableParameters) {
         this.name = name;
@@ -55,6 +57,7 @@ public class PartitionInfo implements StoredTable {
         this.routingHashFunction = routingHashFunction;
         this.versionCreated = versionCreated;
         this.versionUpgraded = versionUpgraded;
+        this.closed = closed;
         this.values = values;
         this.tableParameters = tableParameters;
     }
@@ -73,6 +76,10 @@ public class PartitionInfo implements StoredTable {
 
     public String routingHashFunction() {
         return routingHashFunction;
+    }
+
+    public boolean isClosed() {
+        return closed;
     }
 
     public Map<String, Object> values() {
@@ -110,6 +117,7 @@ public class PartitionInfo implements StoredTable {
             .add("routingHashFunction", routingHashFunction)
             .add("versionCreated", versionCreated)
             .add("versionUpgraded", versionUpgraded)
+            .add("closed", closed)
             .toString();
     }
 

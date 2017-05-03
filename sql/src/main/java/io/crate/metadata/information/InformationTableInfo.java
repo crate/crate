@@ -60,6 +60,7 @@ public class InformationTableInfo extends StaticTableInfo {
             ImmutableList.of(Version.Property.UPGRADED.toString(), Version.CRATEDB_VERSION_KEY));
         public static final ColumnIdent TABLE_VERSION_UPGRADED_ES = new ColumnIdent("version",
             ImmutableList.of(Version.Property.UPGRADED.toString(), Version.ES_VERSION_KEY));
+        public static final ColumnIdent CLOSED = new ColumnIdent("closed");
         public static final ColumnIdent TABLE_SETTINGS = new ColumnIdent("settings");
         public static final ColumnIdent TABLE_SETTINGS_BLOCKS = new ColumnIdent("settings",
             ImmutableList.of("blocks"));

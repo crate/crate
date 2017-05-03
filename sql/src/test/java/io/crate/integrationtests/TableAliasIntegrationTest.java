@@ -169,7 +169,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
     public void testDropTableWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("doc.mytablealias is an alias and hence not dropable.");
+        expectedException.expectMessage("The relation \"doc.mytablealias\" doesn't support or allow DROP operations.");
         execute(String.format(Locale.ENGLISH, "drop table %s", tableAlias));
     }
 
@@ -177,7 +177,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
     public void testCopyFromWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("doc.mytablealias is an alias. Write, Drop or Alter operations are not supported");
+        expectedException.expectMessage("The table doc.mytablealias is read-only. Only READ operations are supported.");
 
         execute(String.format(Locale.ENGLISH, "copy %s from '/tmp/file.json'", tableAlias));
 
@@ -187,7 +187,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
     public void testInsertWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("doc.mytablealias is an alias. Write, Drop or Alter operations are not supported");
+        expectedException.expectMessage("The table doc.mytablealias is read-only. Only READ operations are supported.");
 
         execute(
             String.format(Locale.ENGLISH, "insert into %s (id, content) values (?, ?)", tableAlias),
@@ -199,7 +199,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
     public void testUpdateWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"doc.mytablealias\" doesn't support or allow UPDATE operations");
+        expectedException.expectMessage("The relation \"doc.mytablealias\" doesn't support or allow UPDATE operations.");
 
         execute(String.format(Locale.ENGLISH, "update %s set id=?, content=?", tableAlias), new Object[]{1, "bla"});
     }
@@ -208,7 +208,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
     public void testDeleteWithTableAlias() throws Exception {
         String tableAlias = tableAliasSetup();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"doc.mytablealias\" doesn't support or allow DELETE operations");
+        expectedException.expectMessage("The relation \"doc.mytablealias\" doesn't support or allow DELETE operations.");
 
         execute(String.format(Locale.ENGLISH, "delete from %s where id=?", tableAlias), new Object[]{1});
     }

@@ -52,7 +52,8 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     @Test
     public void testAddColumnOnSystemTableIsNotAllowed() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("The table sys.shards is read-only. Write, Drop or Alter operations are not supported");
+        expectedException.expectMessage("The table sys.shards is read-only. " +
+                                        "Only READ operations are supported.");
         e.analyze("alter table sys.shards add column foobar string");
     }
 

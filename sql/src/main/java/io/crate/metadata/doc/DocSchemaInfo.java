@@ -196,7 +196,7 @@ public class DocSchemaInfo implements SchemaInfo {
     private Collection<String> tableNames() {
         Set<String> tables = new HashSet<>();
 
-        Stream.of(clusterService.state().metaData().getConcreteAllOpenIndices())
+        Stream.of(clusterService.state().metaData().getConcreteAllIndices())
             .filter(NO_BLOB)
             .filter(NO_PARTITION)
             .filter(this::indexMatchesSchema)

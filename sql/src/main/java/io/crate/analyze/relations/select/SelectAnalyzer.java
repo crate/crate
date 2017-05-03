@@ -91,12 +91,12 @@ public class SelectAnalyzer {
                 }
                 switch (matches) {
                     case 0:
-                        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "relation \"%s\" is not in the FROM clause", prefix));
+                        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "The relation \"%s\" is not in the FROM clause.", prefix));
                     case 1:
                         return null; // yay found something
                     default:
                         // e.g. select mytable.* from foo.mytable, bar.mytable
-                        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "referenced relation \"%s\" is ambiguous", prefix));
+                        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "The referenced relation \"%s\" is ambiguous.", prefix));
                 }
             } else {
                 for (AnalyzedRelation relation : context.sources().values()) {
