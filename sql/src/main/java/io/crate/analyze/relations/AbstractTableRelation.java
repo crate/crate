@@ -21,7 +21,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.base.MoreObjects;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Field;
 import io.crate.metadata.ColumnIdent;
@@ -177,7 +176,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this).add("table", tableInfo.ident()).toString();
+        return getClass().getSimpleName() + '{' + tableInfo.ident() + '}';
     }
 
 
