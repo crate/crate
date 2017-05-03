@@ -192,6 +192,7 @@ public class InformationSchemaExpressionFactories {
             })
             .put(InformationPartitionsTableInfo.Columns.ROUTING_HASH_FUNCTION,
                 InformationTablePartitionsExpression.PartitionsRoutingHashFunctionExpression::new)
+            .put(InformationPartitionsTableInfo.Columns.CLOSED, InformationTablePartitionsExpression.ClosedExpression::new)
             .put(InformationPartitionsTableInfo.Columns.TABLE_VERSION, PartitionsVersionExpression::new)
             .put(InformationPartitionsTableInfo.Columns.TABLE_SETTINGS, new RowCollectExpressionFactory() {
 
@@ -413,6 +414,16 @@ public class InformationSchemaExpressionFactories {
                         if (row instanceof ShardedTable) {
                             return new BytesRef(DocIndexMetaData.getRoutingHashFunctionPrettyName(
                                 ((ShardedTable) row).routingHashFunction()));
+                        }
+                        return null;
+                    }
+                })
+            .put(InformationTablesTableInfo.Columns.CLOSED,
+                () -> new RowContextCollectorExpression<TableInfo, Boolean>() {
+                    @Override
+                    public Boolean value() {
+                        if (row instanceof ShardedTable) {
+                            return ((ShardedTable) row).isClosed();
                         }
                         return null;
                     }

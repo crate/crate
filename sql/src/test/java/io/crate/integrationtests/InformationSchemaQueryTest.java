@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
 
     @Test
-    public void testIgnoreClosedTables() throws Exception {
+    public void testDoNotIgnoreClosedTables() throws Exception {
         execute("create table t3 (col1 integer, col2 string) " +
                 "clustered into 5 shards " +
                 "with (number_of_replicas=8)");
@@ -46,12 +46,12 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
         client().admin().indices().close(new CloseIndexRequest("t3")).actionGet();
 
         execute("select * from information_schema.tables where table_schema = 'doc'");
-        assertEquals(1L, response.rowCount());
+        assertEquals(2L, response.rowCount());
         execute("select * from information_schema.columns where table_name = 't3'");
-        assertEquals(0, response.rowCount());
+        assertEquals(2, response.rowCount());
 
         execute("select * from sys.shards");
-        assertEquals(5L, response.rowCount()); // t3 isn't included
+        assertEquals(5L, response.rowCount()); // t3 isn't included, as it is closed.
     }
 
     @Test

@@ -46,7 +46,8 @@ public class BlobTableInfoTest extends CrateUnitTest {
         new BytesRef("/tmp/blobs_path"),
         DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION,
         Version.CURRENT,
-        null);
+        null,
+        false);
 
     @Test
     public void testGetColumnInfo() throws Exception {
