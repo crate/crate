@@ -46,6 +46,11 @@ import org.junit.Test;
 import javax.script.ScriptException;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -131,11 +136,9 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
 
             execute("select foo(id) from test order by id asc");
             assertThat(response.rows()[0][0], is("DUMMY EATS long"));
-
-        } catch (Exception e){
+        } finally {
             dropFunction("foo", ImmutableList.of(DataTypes.LONG));
             dropFunction("foo", ImmutableList.of(DataTypes.STRING));
-            throw e;
         }
     }
 
@@ -182,12 +185,52 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
             assertThat(response.rows()[0][3], is("function subtract_test(a, b, c) { return a - b - c; }"));
             assertThat(response.rows()[0][4], is("doc"));
             assertThat(response.rows()[0][5], is("subtract_test(long, long, long)"));
-        } catch (Exception e){
+        } finally {
             execute("drop function if exists subtract_test(long, long, long)");
-            throw e;
         }
     }
 
+    @Test
+    public void testConcurrentFunctionRegistering() throws Throwable {
+        // This test creates a function which is executed repeatedly while another function
+        // is created and dropped on the same schema. It proves that creating and dropping
+        // functions doesn't affect already registered functions.
+        execute("create function foo(long) returns string language dummy_lang as 'f doo()'");
+        assertFunctionIsCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "foo", ImmutableList.of(DataTypes.LONG));
+
+        final CountDownLatch latch = new CountDownLatch(50);
+        final AtomicReference<Throwable> lastThrowable = new AtomicReference<>();
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.submit(() -> {
+            while (latch.getCount() > 0) {
+                try {
+                    execute("create function bar(long) returns long language dummy_lang as 'dummy'");
+                    assertFunctionIsCreatedOnAll(Schemas.DEFAULT_SCHEMA_NAME, "bar", ImmutableList.of(DataTypes.LONG));
+                    execute("drop function bar(long)");
+                } catch (Exception e) {
+                    lastThrowable.set(e);
+                } finally {
+                    latch.countDown();
+                }
+            }
+        });
+        try {
+            while (latch.getCount() > 0) {
+                execute("select foo(5)");
+            }
+        } finally {
+            executor.shutdown();
+            executor.awaitTermination(500, TimeUnit.MILLISECONDS);
+            execute("DROP FUNCTION foo(long)");
+            execute("DROP FUNCTION IF EXISTS bar(long)");
+            Throwable throwable = lastThrowable.get();
+            if (throwable != null) {
+                throw throwable;
+            }
+        }
+
+    }
 
     private void dropFunction(String name, List<DataType> types) throws Exception {
         execute(String.format(Locale.ENGLISH, "drop function %s(%s)",

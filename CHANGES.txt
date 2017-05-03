@@ -31,6 +31,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue which lead to brief unavailability of already registered
+   functions after a function was created or dropped in the same schema.
+
  - Improved error message when trying to update an element of an array. 
 
  - Fixed a regression that lead to `ArrayIndexOutOfBoundsException` if a JOIN
