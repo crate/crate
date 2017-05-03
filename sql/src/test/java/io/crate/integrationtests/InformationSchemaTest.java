@@ -28,6 +28,9 @@ import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
+import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
+import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
+import org.elasticsearch.action.admin.indices.open.OpenIndexRequest;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -63,26 +66,26 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(20L, response.rowCount());
 
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| columns| information_schema| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| routines| information_schema| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| schemata| information_schema| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| sql_features| information_schema| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| table_constraints| information_schema| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| table_partitions| information_schema| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| tables| information_schema| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| pg_type| pg_catalog| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| checks| sys| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| cluster| sys| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| jobs| sys| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| jobs_log| sys| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| node_checks| sys| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| nodes| sys| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| operations| sys| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| operations_log| sys| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| repositories| sys| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| shards| sys| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| snapshots| sys| NULL\n" +
-            "NULL| NULL| strict| 0| 1| NULL| NULL| NULL| summits| sys| NULL\n"));
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| columns| information_schema| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| routines| information_schema| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| schemata| information_schema| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| sql_features| information_schema| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| table_constraints| information_schema| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| table_partitions| information_schema| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| tables| information_schema| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| pg_type| pg_catalog| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| checks| sys| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| cluster| sys| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| jobs| sys| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| jobs_log| sys| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| node_checks| sys| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| nodes| sys| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| operations| sys| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| operations_log| sys| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| repositories| sys| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| shards| sys| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| snapshots| sys| NULL\n" +
+            "NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| summits| sys| NULL\n"));
     }
 
     @Test
@@ -136,21 +139,23 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from INFORMATION_SCHEMA.Tables where table_schema='doc' order by table_name asc");
         assertThat(response.rowCount(), is(2L));
 
-        TestingHelpers.assertCrateVersion(response.rows()[0][10], Version.CURRENT, null);
-        assertThat(response.rows()[0][9], is("doc"));
-        assertThat(response.rows()[0][8], is("foo"));
-        assertThat(response.rows()[0][6], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
-        assertThat(response.rows()[0][4], is(3));
-        assertThat(response.rows()[0][3], is("1"));
-        assertThat(response.rows()[0][1], is("col1"));
+        TestingHelpers.assertCrateVersion(response.rows()[0][11], Version.CURRENT, null);
+        assertThat(response.rows()[0][10], is("doc"));
+        assertThat(response.rows()[0][9], is("foo"));
+        assertThat(response.rows()[0][7], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        assertThat(response.rows()[0][5], is(3));
+        assertThat(response.rows()[0][4], is("1"));
+        assertThat(response.rows()[0][2], is("col1"));
+        assertThat(response.rows()[0][1], is(false));
 
-        TestingHelpers.assertCrateVersion(response.rows()[0][10], Version.CURRENT, null);
-        assertThat(response.rows()[1][9], is("doc"));
-        assertThat(response.rows()[1][8], is("test"));
-        assertThat(response.rows()[1][6], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
-        assertThat(response.rows()[1][4], is(5));
-        assertThat(response.rows()[1][3], is("1"));
-        assertThat(response.rows()[1][1], is("col1"));
+        TestingHelpers.assertCrateVersion(response.rows()[0][11], Version.CURRENT, null);
+        assertThat(response.rows()[1][10], is("doc"));
+        assertThat(response.rows()[1][9], is("test"));
+        assertThat(response.rows()[1][7], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        assertThat(response.rows()[1][5], is(5));
+        assertThat(response.rows()[1][4], is("1"));
+        assertThat(response.rows()[1][2], is("col1"));
+        assertThat(response.rows()[0][1], is(false));
     }
 
     @Test
@@ -191,13 +196,14 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from INFORMATION_SCHEMA.Tables where table_schema='doc' order by table_name asc limit 1 offset 1");
         assertThat(response.rowCount(), is(1L));
 
-        TestingHelpers.assertCrateVersion(response.rows()[0][10], Version.CURRENT, null); // version
-        assertThat(response.rows()[0][9], is("doc")); // table_schema
-        assertThat(response.rows()[0][8], is("test"));  // table_name
-        assertThat(response.rows()[0][6], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME)); // routing_hash_function
-        assertThat(response.rows()[0][4], is(5)); // number_of_shards
-        assertThat(response.rows()[0][3], is("1")); // number_of_replicas
-        assertThat(response.rows()[0][1], is("col1")); // primary key
+        TestingHelpers.assertCrateVersion(response.rows()[0][11], Version.CURRENT, null); // version
+        assertThat(response.rows()[0][10], is("doc")); // table_schema
+        assertThat(response.rows()[0][9], is("test"));  // table_name
+        assertThat(response.rows()[0][7], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME)); // routing_hash_function
+        assertThat(response.rows()[0][5], is(5)); // number_of_shards
+        assertThat(response.rows()[0][4], is("1")); // number_of_replicas
+        assertThat(response.rows()[0][2], is("col1")); // primary key
+        assertThat(response.rows()[0][1], is(false)); // closed
     }
 
     @Test
@@ -265,13 +271,14 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from INFORMATION_SCHEMA.Tables where table_schema='doc'");
         assertThat(response.rowCount(), is(1L));
 
-        TestingHelpers.assertCrateVersion(response.rows()[0][10], Version.CURRENT, null);
-        assertThat(response.rows()[0][9], is("doc"));
-        assertThat(response.rows()[0][8], is("test"));
-        assertThat(response.rows()[0][6], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
-        assertThat(response.rows()[0][4], is(5));
-        assertThat(response.rows()[0][3], is("1"));
-        assertThat(response.rows()[0][1], is("_id"));
+        TestingHelpers.assertCrateVersion(response.rows()[0][11], Version.CURRENT, null);
+        assertThat(response.rows()[0][10], is("doc"));
+        assertThat(response.rows()[0][9], is("test"));
+        assertThat(response.rows()[0][7], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        assertThat(response.rows()[0][5], is(5));
+        assertThat(response.rows()[0][4], is("1"));
+        assertThat(response.rows()[0][2], is("_id"));
+        assertThat(response.rows()[0][1], is(false));
     }
 
     @Test
@@ -455,7 +462,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(384, response.rowCount());
+        assertEquals(386, response.rowCount());
     }
 
     @Test
@@ -683,8 +690,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
         Object[] row1 = new String[]{"name", "content"};
         Object[] row2 = new String[]{"name"};
-        assertThat((Object[]) response.rows()[0][5], arrayContaining(row1));
-        assertThat((Object[]) response.rows()[1][5], arrayContaining(row2));
+        assertThat((Object[]) response.rows()[0][6], arrayContaining(row1));
+        assertThat((Object[]) response.rows()[1][6], arrayContaining(row2));
     }
 
     @Test
@@ -1018,5 +1025,68 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
               "routine_type\n" +
               "specific_name\n"
             ));
+    }
+
+    @Test
+    public void testOpenCloseTableInformation() throws Exception {
+        execute("create table t (i int)");
+        ensureYellow();
+
+        // TODO: replace with `alter table t close` once supported
+        String[] indices = client().admin().indices().getIndex(new GetIndexRequest()).actionGet().getIndices();
+        client().admin().indices().close(new CloseIndexRequest(indices[0])).actionGet();
+
+        execute("select closed from information_schema.tables where table_name = 't'");
+        assertEquals(1, response.rowCount());
+        assertEquals(true, response.rows()[0][0]);
+
+        // TODO: replace with `alter table t partition (i = 1) close` once supported
+        client().admin().indices().open(new OpenIndexRequest(indices[0])).actionGet();
+
+        execute("select closed from information_schema.tables where table_name = 't'");
+        assertEquals(1, response.rowCount());
+        assertEquals(false, response.rows()[0][0]);
+    }
+
+    @Test
+    public void testOpenClosePartitionInformation() throws Exception {
+        execute("create table t (i int) partitioned by (i)");
+        ensureYellow();
+
+        execute("insert into t values (1)");
+        ensureYellow();
+        String partitionIdent = client().admin().indices().getIndex(new GetIndexRequest()).actionGet().getIndices()[0];
+
+        execute("insert into t values (2), (3)");
+        ensureYellow();
+
+        execute("select closed from information_schema.table_partitions where table_name = 't'");
+
+        assertEquals(3, response.rowCount());
+        assertEquals(false, response.rows()[0][0]);
+        assertEquals(false, response.rows()[1][0]);
+        assertEquals(false, response.rows()[2][0]);
+
+        // TODO: replace with `alter table t partition (i = 1) close` once supported
+        client().admin().indices().close(new CloseIndexRequest(partitionIdent)).actionGet();
+
+        execute("select partition_ident, values from information_schema.table_partitions" +
+                " where table_name = 't' and closed = true");
+
+        assertEquals(1, response.rowCount());
+
+        HashMap values = (HashMap) response.rows()[0][1];
+        assertEquals(1, values.get("i"));
+        assertTrue(partitionIdent.endsWith((String) response.rows()[0][0]));
+
+        // TODO: replace with `alter table t partition (i = 1) open` once supported
+        client().admin().indices().open(new OpenIndexRequest(partitionIdent)).actionGet();
+
+        execute("select closed from information_schema.table_partitions");
+
+        assertEquals(3, response.rowCount());
+        assertEquals(false, response.rows()[0][0]);
+        assertEquals(false, response.rows()[1][0]);
+        assertEquals(false, response.rows()[2][0]);
     }
 }

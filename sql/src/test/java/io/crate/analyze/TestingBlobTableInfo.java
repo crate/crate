@@ -55,7 +55,8 @@ class TestingBlobTableInfo extends BlobTableInfo {
             blobsPath,
             IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION,
             Version.CURRENT,
-            null);
+            null,
+            false);
         this.routing = routing;
     }
 

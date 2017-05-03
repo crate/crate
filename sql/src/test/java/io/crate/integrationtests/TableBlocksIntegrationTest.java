@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -61,7 +62,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"doc.t1\" doesn't support or allow INSERT operations");
+        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow INSERT operations.");
         execute("insert into t1 (id) values (1)");
     }
 
@@ -71,7 +72,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"doc.t1\" doesn't support or allow UPDATE operations");
+        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow UPDATE operations.");
         execute("update t1 set id = 2");
     }
 
@@ -81,7 +82,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"doc.t1\" doesn't support or allow DELETE operations");
+        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow DELETE operations.");
         execute("delete from t1");
     }
 
@@ -91,7 +92,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"doc.t1\" doesn't support or allow DROP operations");
+        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow DROP operations.");
         execute("drop table t1");
     }
 
@@ -101,7 +102,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"doc.t1\" doesn't support or allow ALTER operations");
+        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow ALTER operations.");
         execute("alter table t1 add column name string");
     }
 
@@ -111,7 +112,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"doc.t1\" doesn't support or allow ALTER operations");
+        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow ALTER operations.");
         execute("alter table t1 set (number_of_replicas = 1)");
     }
 
@@ -135,7 +136,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (id) values (1)");
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"doc.t1\" doesn't support or allow READ operations");
+        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow READ operations.");
         execute("select * from t1");
     }
 
@@ -147,7 +148,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t1 (id) values (1)");
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"doc.t1\" doesn't support or allow READ operations");
+        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow READ operations.");
         execute("insert into t2 (id) (select id from t1)");
     }
 
@@ -158,7 +159,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"doc.t1\" doesn't support or allow READ operations");
+        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow READ operations.");
         execute("select * from t2, t1");
     }
 
@@ -177,7 +178,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"doc.t1\" doesn't support or allow INSERT operations");
+        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow INSERT operations.");
         execute("copy t1 from '/tmp'");
     }
 
@@ -202,7 +203,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
             new Object[]{TEMPORARY_FOLDER.newFolder().getAbsolutePath()});
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("relation \"doc.t1\" doesn't support or allow READ operations");
+        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow READ operations.");
         execute("CREATE SNAPSHOT repo.snap ALL WITH (wait_for_completion=true)");
     }
 

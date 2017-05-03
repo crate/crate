@@ -181,6 +181,7 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("The relation \"doc.mytablealias\" doesn't support or allow INSERT " +
                                         "operations, as it is read-only.");
+
         execute(String.format(Locale.ENGLISH, "copy %s from '/tmp/file.json'", tableAlias));
 
     }
@@ -191,7 +192,6 @@ public class TableAliasIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("The relation \"doc.mytablealias\" doesn't support or allow INSERT " +
                                         "operations, as it is read-only.");
-
         execute(
             String.format(Locale.ENGLISH, "insert into %s (id, content) values (?, ?)", tableAlias),
             new Object[]{1, "bla"}
