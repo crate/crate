@@ -24,6 +24,7 @@ package io.crate.operation.scalar.regex;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.CharsRef;
 import org.apache.lucene.util.UnicodeUtil;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
 import java.util.regex.Matcher;
@@ -42,6 +43,10 @@ public class RegexMatcher {
     }
 
     public RegexMatcher(String regex, @Nullable BytesRef flags) {
+        this(regex, parseFlags(BytesRefs.toString(flags)), isGlobal(BytesRefs.toString(flags)));
+    }
+
+    public RegexMatcher(String regex, @Nullable String flags) {
         this(regex, parseFlags(flags), isGlobal(flags));
     }
 
@@ -84,21 +89,21 @@ public class RegexMatcher {
         return null;
     }
 
-    public BytesRef replace(BytesRef term, BytesRef replacement) {
+    public BytesRef replace(BytesRef term, String replacement) {
         UTF8toUTF16(term, utf16);
         if (globalFlag) {
-            return new BytesRef(matcher.replaceAll(replacement.utf8ToString()));
+            return new BytesRef(matcher.replaceAll(replacement));
         } else {
-            return new BytesRef(matcher.replaceFirst(replacement.utf8ToString()));
+            return new BytesRef(matcher.replaceFirst(replacement));
         }
     }
 
-    public static int parseFlags(@Nullable BytesRef flagsString) {
+    public static int parseFlags(@Nullable String flagsString) {
         int flags = 0;
         if (flagsString == null) {
             return flags;
         }
-        for (char flag : flagsString.utf8ToString().toCharArray()) {
+        for (char flag : flagsString.toCharArray()) {
             switch (flag) {
                 case 'i':
                     flags = flags | Pattern.CASE_INSENSITIVE;
@@ -129,11 +134,11 @@ public class RegexMatcher {
         return flags;
     }
 
-    public static boolean isGlobal(@Nullable BytesRef flags) {
+    public static boolean isGlobal(@Nullable String flags) {
         if (flags == null) {
             return false;
         }
-        return flags.utf8ToString().indexOf('g') != -1;
+        return flags.indexOf('g') != -1;
     }
 
 
