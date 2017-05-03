@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
@@ -63,7 +64,8 @@ public class AnalyzedColumnDefinition {
     private Reference.IndexType indexType;
     private String geoTree;
     private String analyzer;
-    private String objectType = "true"; // dynamic = true
+    @VisibleForTesting
+    String objectType = "true"; // dynamic = true
     private boolean isPrimaryKey = false;
     private boolean isNotNull = false;
     private Settings analyzerSettings = Settings.EMPTY;

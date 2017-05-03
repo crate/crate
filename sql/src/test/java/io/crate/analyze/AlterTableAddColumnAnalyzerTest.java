@@ -199,6 +199,31 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
     }
 
     @Test
+    public void testAddColumnToObjectTypeMaintainsObjectPolicy() throws Exception {
+        AddColumnAnalyzedStatement analysis = e.analyze(
+            "alter table users add column address['street'] string");
+        List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
+        assertThat(columns.size(), is(2));
+
+        AnalyzedColumnDefinition address = columns.get(0);
+        assertThat(address.objectType, is("strict"));
+    }
+
+    @Test
+    public void testAddColumnToStrictObject() {
+        AddColumnAnalyzedStatement analysis = e.analyze(
+            "alter table users add column address['street'] string");
+        List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
+        assertThat(columns.size(), is(2));
+
+        AnalyzedColumnDefinition address = columns.get(0);
+        AnalyzedColumnDefinition street = address.children().get(0);
+        assertThat(street.ident(), is(ColumnIdent.fromPath("address.street")));
+        assertThat(street.dataType(), is("string"));
+        assertThat(street.isParentColumn(), is(false));
+    }
+
+    @Test
     public void testAddNewNestedColumnToObjectColumn() throws Exception {
         AddColumnAnalyzedStatement analysis = e.analyze(
             "alter table users add column details['foo'] object as (score float, name string)");
