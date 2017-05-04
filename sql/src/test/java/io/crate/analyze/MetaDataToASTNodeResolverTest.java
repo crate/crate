@@ -23,9 +23,9 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.metadata.IndexMappings;
 import io.crate.Version;
 import io.crate.metadata.*;
-import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.Operation;
@@ -68,28 +68,28 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                          List<ColumnIdent> partitionedBy,
                          ColumnPolicy policy) {
             super(ident,
-                columns,
-                partitionedByColumns,
-                generatedColumns,
-                indexColumns,
-                references,
-                analyzers,
-                primaryKeys,
-                clusteredBy,
-                false, false,
-                new String[0],
-                mock(ClusterService.class),
-                new IndexNameExpressionResolver(Settings.EMPTY),
-                numberOfShards,
-                new BytesRef(numberOfReplicas),
-                tableParameters,
-                partitionedBy,
-                ImmutableList.of(),
-                policy,
-                DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION,
-                Version.CURRENT,
-                null,
-                Operation.ALL);
+                  columns,
+                  partitionedByColumns,
+                  generatedColumns,
+                  indexColumns,
+                  references,
+                  analyzers,
+                  primaryKeys,
+                  clusteredBy,
+                  false, false,
+                  new String[0],
+                  mock(ClusterService.class),
+                  new IndexNameExpressionResolver(Settings.EMPTY),
+                  numberOfShards,
+                  new BytesRef(numberOfReplicas),
+                  tableParameters,
+                  partitionedBy,
+                  ImmutableList.of(),
+                  policy,
+                  IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION,
+                  Version.CURRENT,
+                  null,
+                  Operation.ALL);
         }
     }
 
