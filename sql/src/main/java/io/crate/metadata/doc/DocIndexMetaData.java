@@ -21,7 +21,6 @@
 
 package io.crate.metadata.doc;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
@@ -48,7 +47,6 @@ import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateReque
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.cluster.routing.Murmur3HashFunction;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -59,18 +57,7 @@ import java.util.*;
 
 public class DocIndexMetaData {
 
-    public static final String SETTING_ROUTING_HASH_FUNCTION = "routing_hash_function";
-    public static final String DEFAULT_ROUTING_HASH_FUNCTION = Murmur3HashFunction.class.getName();
-
-    @VisibleForTesting
-    public static final String DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME = "Murmur3";
-
     private static final String ID = "_id";
-    private static final String VERSION_STRING = "version";
-    private static final Map<String, String> routingHashFunctionPrettyNameLookupMap =
-        ImmutableMap.of("org.elasticsearch.cluster.routing.SimpleHashFunction", "Simple",
-                        "org.elasticsearch.cluster.routing.DjbHashFunction", "Djb",
-                        "org.elasticsearch.cluster.routing.Murmur3HashFunction", "Murmur3");
 
     private final IndexMetaData metaData;
     private final Map<String, Object> mappingMap;
@@ -151,15 +138,15 @@ public class DocIndexMetaData {
     }
 
     private static Map<String, Object> getVersionMap(Map<String, Object> mappingMap) {
-        return getNested(getNested(mappingMap, "_meta", null), VERSION_STRING,null);
+        return getNested(getNested(mappingMap, "_meta", null), IndexMappings.VERSION_STRING, null);
     }
 
     public static String getRoutingHashFunction(Map<String, Object> mappingMap) {
-        return getNested(getNested(mappingMap, "_meta", null), SETTING_ROUTING_HASH_FUNCTION, null);
+        return getNested(getNested(mappingMap, "_meta", null), IndexMappings.SETTING_ROUTING_HASH_FUNCTION, null);
     }
 
     public static String getRoutingHashFunctionPrettyName(String routingHashFunction) {
-        return routingHashFunctionPrettyNameLookupMap.getOrDefault(routingHashFunction, routingHashFunction);
+        return IndexMappings.routingHashFunctionPrettyNameLookupMap.getOrDefault(routingHashFunction, routingHashFunction);
     }
 
     @Nullable
@@ -172,15 +159,6 @@ public class DocIndexMetaData {
     public static Version getVersionUpgraded(Map<String, Object> mappingMap) {
         Map<String, Object> versionMap = getVersionMap(mappingMap);
         return Version.fromMap(getNested(versionMap, Version.Property.UPGRADED.toString(), null));
-    }
-
-    public static void putVersionToMap(Map<String, Object> metaMap, Version.Property key, Version version) {
-        Map<String, Object> versionMap = (Map<String, Object>) metaMap.get(VERSION_STRING);
-        if (versionMap == null) {
-            versionMap = new HashMap<>(1);
-            metaMap.put(VERSION_STRING, versionMap);
-        }
-        versionMap.put(key.toString(), Version.toMap(version));
     }
 
     @SuppressWarnings("unchecked")

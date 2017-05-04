@@ -26,12 +26,12 @@ import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 import io.crate.Constants;
 import io.crate.Version;
+import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import org.elasticsearch.cluster.metadata.CustomUpgradeService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -44,12 +44,14 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardStateMetaData;
 
 import javax.annotation.Nullable;
-import javax.print.Doc;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Crate specific {@link CustomUpgradeService} which hooks in into ES's {@link org.elasticsearch.gateway.GatewayMetaState}.
@@ -156,7 +158,7 @@ public class CrateMetaDataUpgradeService extends AbstractComponent implements Cu
         String hashFunction = DocIndexMetaData.getRoutingHashFunction(mappingMap);
         if (hashFunction == null) {
             if (routingHashFunction == null) {
-                routingHashFunction = DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION;
+                routingHashFunction = IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION;
             }
             // create new map, existing one can be immutable
             Map<String, Object> newMappingMap = mappingMap == null
@@ -168,7 +170,7 @@ public class CrateMetaDataUpgradeService extends AbstractComponent implements Cu
                 newMetaMap = new HashMap<>(1);
                 newMappingMap.put("_meta", newMetaMap);
             }
-            newMetaMap.put(DocIndexMetaData.SETTING_ROUTING_HASH_FUNCTION, routingHashFunction);
+            newMetaMap.put(IndexMappings.SETTING_ROUTING_HASH_FUNCTION, routingHashFunction);
             markAsUpgraded(newMappingMap);
 
             Map<String, Object> typeAndMapping = new HashMap<>(1);
@@ -181,7 +183,7 @@ public class CrateMetaDataUpgradeService extends AbstractComponent implements Cu
     private static void markAsUpgraded(Map<String, Object> mappingMap) throws IOException {
         assert mappingMap != null : "mapping metadata must not be null to be marked as upgraded";
         Map<String, Object> newMetaMap = (Map<String, Object>) mappingMap.get("_meta");
-        DocIndexMetaData.putVersionToMap(newMetaMap, Version.Property.UPGRADED, Version.CURRENT);
+        IndexMappings.putVersionToMap(newMetaMap, Version.Property.UPGRADED, Version.CURRENT);
     }
 
     private static void upgradeShardMetaData(NodeEnvironment nodeEnv,

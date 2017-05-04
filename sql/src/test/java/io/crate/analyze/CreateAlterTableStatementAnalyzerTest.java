@@ -28,8 +28,8 @@ import io.crate.data.Row;
 import io.crate.exceptions.*;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.IndexMappings;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocIndexMetaData;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
@@ -990,7 +990,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table default_routing_hash_set (id int)");
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
-        assertThat(metaMapping.get(DocIndexMetaData.SETTING_ROUTING_HASH_FUNCTION), is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION));
+        assertThat(metaMapping.get(IndexMappings.SETTING_ROUTING_HASH_FUNCTION),
+                   is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION));
     }
 
     @Test

@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
-import io.crate.metadata.doc.DocIndexMetaData;
+import io.crate.metadata.IndexMappings;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -140,7 +140,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         TestingHelpers.assertCrateVersion(response.rows()[0][10], Version.CURRENT, null);
         assertThat(response.rows()[0][9], is("doc"));
         assertThat(response.rows()[0][8], is("foo"));
-        assertThat(response.rows()[0][6], is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        assertThat(response.rows()[0][6], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
         assertThat(response.rows()[0][4], is(3));
         assertThat(response.rows()[0][3], is("1"));
         assertThat(response.rows()[0][1], is("col1"));
@@ -148,7 +148,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         TestingHelpers.assertCrateVersion(response.rows()[0][10], Version.CURRENT, null);
         assertThat(response.rows()[1][9], is("doc"));
         assertThat(response.rows()[1][8], is("test"));
-        assertThat(response.rows()[1][6], is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        assertThat(response.rows()[1][6], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
         assertThat(response.rows()[1][4], is(5));
         assertThat(response.rows()[1][3], is("1"));
         assertThat(response.rows()[1][1], is("col1"));
@@ -195,7 +195,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         TestingHelpers.assertCrateVersion(response.rows()[0][10], Version.CURRENT, null); // version
         assertThat(response.rows()[0][9], is("doc")); // table_schema
         assertThat(response.rows()[0][8], is("test"));  // table_name
-        assertThat(response.rows()[0][6], is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME)); // routing_hash_function
+        assertThat(response.rows()[0][6], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME)); // routing_hash_function
         assertThat(response.rows()[0][4], is(5)); // number_of_shards
         assertThat(response.rows()[0][3], is("1")); // number_of_replicas
         assertThat(response.rows()[0][1], is("col1")); // primary key
@@ -266,7 +266,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         TestingHelpers.assertCrateVersion(response.rows()[0][10], Version.CURRENT, null);
         assertThat(response.rows()[0][9], is("doc"));
         assertThat(response.rows()[0][8], is("test"));
-        assertThat(response.rows()[0][6], is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        assertThat(response.rows()[0][6], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
         assertThat(response.rows()[0][4], is(5));
         assertThat(response.rows()[0][3], is("1"));
         assertThat(response.rows()[0][1], is("_id"));

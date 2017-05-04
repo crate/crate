@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.Version;
-import io.crate.metadata.doc.DocIndexMetaData;
+import io.crate.metadata.IndexMappings;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.TestUtil;
@@ -86,7 +86,7 @@ public class CrateMetaDataUpgradeServiceTest extends SQLTransportIntegrationTest
         assertThat(response.rowCount(), is(3L));
         assertThat(response.rows()[0][0], is("Djb"));
         assertThat(response.rows()[1][0], is("Djb"));
-        assertThat(response.rows()[2][0], is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        assertThat(response.rows()[2][0], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
         TestingHelpers.assertCrateVersion(response.rows()[0][1], null, Version.CURRENT);
         TestingHelpers.assertCrateVersion(response.rows()[1][1], null, Version.CURRENT);
         TestingHelpers.assertCrateVersion(response.rows()[2][1], null, Version.CURRENT);
@@ -151,7 +151,7 @@ public class CrateMetaDataUpgradeServiceTest extends SQLTransportIntegrationTest
                 "where table_name in ('test_upgrade_required', 'test_upgrade_required_parted') order by table_name");
         assertThat(response.rowCount(), is(2L));
         assertThat(response.rows()[0][0], is("Djb"));
-        assertThat(response.rows()[1][0], is(DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        assertThat(response.rows()[1][0], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
         TestingHelpers.assertCrateVersion(response.rows()[0][1], null, Version.CURRENT);
         TestingHelpers.assertCrateVersion(response.rows()[1][1], null, Version.CURRENT);
 
