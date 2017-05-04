@@ -22,19 +22,24 @@
 
 package io.crate.metadata.settings;
 
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.collect.stats.JobsLogService;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.settings.CrateSetting;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.GatewayService;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
@@ -113,7 +118,7 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDefaultValuesAreSet() {
-        CrateSettings crateSettings = new CrateSettings(clusterService);
+        CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
         assertThat(
             crateSettings.settings().get(JobsLogService.STATS_ENABLED_SETTING.getKey()),
             is(JobsLogService.STATS_ENABLED_SETTING.setting().getDefaultRaw(Settings.EMPTY)));
@@ -121,7 +126,7 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testReferenceMapIsBuild() {
-        CrateSettings crateSettings = new CrateSettings(clusterService);
+        CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
         NestedObjectExpression stats = (NestedObjectExpression) crateSettings.referenceImplementationTree().get("stats");
         CrateSettings.SettingExpression statsEnabled = (CrateSettings.SettingExpression) stats.getChildImplementation("enabled");
         assertThat(statsEnabled.name(), is("enabled"));
@@ -130,7 +135,7 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSettingsChanged() {
-        CrateSettings crateSettings = new CrateSettings(clusterService);
+        CrateSettings crateSettings = new CrateSettings(clusterService, clusterService.getSettings());
 
         ClusterState newState = ClusterState.builder(clusterService.state())
             .metaData(MetaData.builder().transientSettings(
@@ -140,5 +145,43 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             crateSettings.settings().getAsBoolean(JobsLogService.STATS_ENABLED_SETTING.getKey(), false),
             is(true));
+    }
+
+
+    @Test
+    public void testBuildGroupSettingReferenceTree() {
+        // create groupSetting to be used in tests
+        CrateSetting<Settings> TEST_SETTING = CrateSetting.of(
+            Setting.groupSetting("test.",
+                Setting.Property.Dynamic,
+                Setting.Property.NodeScope),
+            DataTypes.OBJECT
+        );
+
+        Settings initialSettings = Settings.builder()
+            .put("test.setting.a.user", "42")
+            .put("test.setting.a.method", "something")
+            .put("test.setting.b", "value-b")
+            .put("test.setting.c", "value-c")
+            .build();
+        CrateSettings crateSettings = new CrateSettings(clusterService, initialSettings);
+
+        Map<String, Settings> settingsMap = initialSettings.getGroups(TEST_SETTING.getKey(), true);
+        //build reference Map for TEST_SETTING
+        Map<String, ReferenceImplementation> referenceMap = new HashMap<>(4);
+        for (Map.Entry<String, Settings> entry : settingsMap.entrySet()) {
+            crateSettings.buildGroupSettingReferenceTree(TEST_SETTING.getKey(), entry.getKey(), entry.getValue(),
+                referenceMap);
+        }
+
+        NestedObjectExpression test = (NestedObjectExpression) referenceMap.get("test");
+        NestedObjectExpression testSetting = (NestedObjectExpression) test.getChildImplementation("setting");
+        assertThat(testSetting.value().containsKey("a"), is(true));
+        assertThat(testSetting.value().containsKey("b"), is(true));
+        assertThat(testSetting.value().containsKey("c"), is(true));
+
+        CrateSettings.NestedSettingExpression a = (CrateSettings.NestedSettingExpression) testSetting.getChildImplementation("a");
+        assertThat(a.value().containsKey("method"), is(true));
+        assertThat(a.value().containsKey("user"), is(true));
     }
 }

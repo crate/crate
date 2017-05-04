@@ -61,7 +61,7 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
         when(clusterService.getSettings()).thenReturn(settings);
 
         ClusterSettingsExpression clusterSettingsExpression = new ClusterSettingsExpression(
-            clusterService, new CrateSettings(clusterService));
+            clusterService, new CrateSettings(clusterService, clusterService.getSettings()));
 
         assertThat(((BytesRef) clusterSettingsExpression
                 .getChildImplementation("bulk")
@@ -72,7 +72,7 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
     @Test
     public void testSettingsAreUpdated() throws Exception {
         ClusterSettingsExpression expression = new ClusterSettingsExpression(
-            clusterService, new CrateSettings(clusterService));
+            clusterService, new CrateSettings(clusterService, clusterService.getSettings()));
 
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 1)

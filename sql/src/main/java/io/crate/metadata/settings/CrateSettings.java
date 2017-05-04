@@ -22,6 +22,7 @@
 
 package io.crate.metadata.settings;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
@@ -251,11 +252,11 @@ public class CrateSettings implements ClusterStateListener {
     private volatile Settings settings;
 
     @Inject
-    public CrateSettings(ClusterService clusterService) {
-        logger = Loggers.getLogger(this.getClass(), clusterService.getSettings());
+    public CrateSettings(ClusterService clusterService, Settings settings) {
+        logger = Loggers.getLogger(this.getClass(), settings);
         initialSettings = Settings.builder()
             .put(BUILT_IN_SETTINGS_DEFAULTS_MAP)
-            .put(clusterService.getSettings())
+            .put(settings)
             .build();
         this.settings = initialSettings;
         referenceImplementationTree = buildReferenceTree();
@@ -287,13 +288,45 @@ public class CrateSettings implements ClusterStateListener {
     private Map<String, ReferenceImplementation> buildReferenceTree() {
         Map<String, ReferenceImplementation> referenceMap = new HashMap<>(BUILT_IN_SETTINGS.size());
         for (CrateSetting crateSetting : BUILT_IN_SETTINGS) {
+            if (crateSetting.isGroupSetting()) {
+                Map<String, Settings> settingsMap = initialSettings.getGroups(crateSetting.getKey(), true);
+                for (Map.Entry<String, Settings> entry : settingsMap.entrySet()) {
+                    buildGroupSettingReferenceTree(crateSetting.getKey(), entry.getKey(), entry.getValue(),
+                        referenceMap);
+                }
+            }
             buildReferenceTree(referenceMap, crateSetting);
         }
         return referenceMap;
     }
 
-    private void buildReferenceTree(Map<String, ReferenceImplementation> referenceMap,
-                                    CrateSetting<?> crateSetting) {
+    @VisibleForTesting
+    void buildGroupSettingReferenceTree(String prefix,
+                                        String settingKey,
+                                        Settings settingValue,
+                                        Map<String, ReferenceImplementation> referenceMap) {
+        Map<String, String> settingsMap = settingValue.getAsMap();
+
+        //this is a nested setting
+        if (!settingsMap.isEmpty()) {
+            //we need to build the reference tree for the current setting
+            buildReferenceTree(referenceMap,
+                CrateSetting.of(Setting.groupSetting(prefix + settingKey + ".",
+                    Setting.Property.NodeScope),
+                    DataTypes.OBJECT));
+            //build the reference tree for every child setting
+            for (Map.Entry<String, String> entry : settingsMap.entrySet()) {
+                String nestedPrefix = prefix + settingKey + "." + entry.getKey();
+
+                buildReferenceTree(referenceMap,
+                    CrateSetting.of(Setting.simpleString(nestedPrefix,
+                        Setting.Property.NodeScope),
+                        DataTypes.STRING));
+            }
+        }
+    }
+
+    private void buildReferenceTree(Map<String, ReferenceImplementation> referenceMap, CrateSetting<?> crateSetting) {
         String fullName = crateSetting.setting().getKey();
         List<String> parts = crateSetting.path();
         int numParts = parts.size();
@@ -355,7 +388,8 @@ public class CrateSettings implements ClusterStateListener {
         }
     }
 
-    private static class NestedSettingExpression extends NestedObjectExpression {
+    @VisibleForTesting
+    static class NestedSettingExpression extends NestedObjectExpression {
 
         void putChildImplementation(String name, ReferenceImplementation settingExpression) {
             childImplementations.put(name, settingExpression);

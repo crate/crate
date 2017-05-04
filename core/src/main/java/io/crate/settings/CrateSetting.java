@@ -40,10 +40,12 @@ public class CrateSetting<T> {
     private final Setting<T> setting;
     private final DataType dataType;
     private final List<String> path;
+    private final Boolean isGroupSetting;
 
     private CrateSetting(Setting<T> setting, DataType dataType) {
         this.setting = setting;
         this.dataType = dataType;
+        this.isGroupSetting = setting.getKey().endsWith(".");
         path = DOT_SPLITTER.splitToList(setting.getKey());
     }
 
@@ -65,5 +67,13 @@ public class CrateSetting<T> {
 
     public T getDefault() {
         return setting.getDefault(Settings.EMPTY);
+    }
+
+    public boolean isGroupSetting() {
+        /**
+         * there is already a method called isGroupSetting in ES Setting class
+         * however it is package private.
+         */
+        return isGroupSetting;
     }
 }
