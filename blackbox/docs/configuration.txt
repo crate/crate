@@ -1931,9 +1931,10 @@ Host Based Authentication
   The meaning of the fields are as follows:
 
   **order:**
-    | An identifier that specifies the natural order of the host based
-    | configuration entry. This key guarantees that the entry lookup order will
-    | remain independent from the insertion order of the entries.
+    | An identifier that is used as a natural order key when looking up the
+    | host based configuration entries. For example, an order key of ``a`` will
+    | be looked up before an order key of ``b``. This key guarantees that the entry
+    | lookup order will remain independent from the insertion order of the entries.
 
   **user:**
     | Specifies an existing CrateDB username, only ``crate`` user (superuser)
