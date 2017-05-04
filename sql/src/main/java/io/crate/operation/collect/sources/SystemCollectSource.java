@@ -51,13 +51,13 @@ import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.check.node.SysNodeChecks;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
-import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.reference.sys.snapshot.SysSnapshot;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.repositories.RepositoriesService;
 
 import java.util.List;
 import java.util.Map;
@@ -88,7 +88,7 @@ public class SystemCollectSource implements CollectSource {
                                InformationSchemaIterables informationSchemaIterables,
                                Set<SysCheck> sysChecks,
                                SysNodeChecks sysNodeChecks,
-                               SysRepositoriesService sysRepositoriesService,
+                               RepositoriesService repositoriesService,
                                SysSnapshots sysSnapshots,
                                PgCatalogTables pgCatalogTables) {
         this.clusterService = clusterService;
@@ -126,7 +126,7 @@ public class SystemCollectSource implements CollectSource {
             .put(SysNodeChecksTableInfo.IDENT.fqn(),
                 () -> synchronousIterableGetter(sysNodeChecks))
             .put(SysRepositoriesTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(sysRepositoriesService.repositoriesGetter()))
+                () -> synchronousIterableGetter(repositoriesService.getRepositoriesList()))
             .put(SysSnapshotsTableInfo.IDENT.fqn(), snapshotSupplier(sysSnapshots))
             .put(SysSummitsTableInfo.IDENT.fqn(),
                 () -> synchronousIterableGetter(new SummitsIterable().summitsGetter()))

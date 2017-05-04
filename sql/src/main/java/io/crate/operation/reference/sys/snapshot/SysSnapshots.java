@@ -23,11 +23,10 @@ package io.crate.operation.reference.sys.snapshot;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
-import io.crate.operation.reference.sys.repositories.SysRepository;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotsService;
@@ -39,23 +38,20 @@ import java.util.List;
 @Singleton
 public class SysSnapshots {
 
-    private final SysRepositoriesService sysRepositoriesService;
     private final SnapshotsService snapshotsService;
     private final RepositoriesService repositoriesService;
 
     @Inject
-    public SysSnapshots(SysRepositoriesService sysRepositoriesService,
-                        SnapshotsService snapshotsService,
+    public SysSnapshots(SnapshotsService snapshotsService,
                         RepositoriesService repositoriesService) {
-        this.sysRepositoriesService = sysRepositoriesService;
         this.snapshotsService = snapshotsService;
         this.repositoriesService = repositoriesService;
     }
 
     public Iterable<SysSnapshot> snapshotsGetter() {
         List<SysSnapshot> sysSnapshots = new ArrayList<>();
-        for (Object entry : sysRepositoriesService.repositoriesGetter()) {
-            final String repositoryName = ((SysRepository) entry).name();
+        for (Repository repository : repositoriesService.getRepositoriesList()) {
+            final String repositoryName = repository.getMetadata().name();
 
 
             List<SnapshotId> snapshotIds = repositoriesService.repository(repositoryName).getRepositoryData().getSnapshotIds();

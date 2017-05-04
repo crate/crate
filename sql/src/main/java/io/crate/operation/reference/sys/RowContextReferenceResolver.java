@@ -41,12 +41,12 @@ import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.node.SysNodesExpressionFactories;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
-import io.crate.operation.reference.sys.repositories.SysRepository;
 import io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsExpressionFactories;
 import io.crate.operation.reference.sys.snapshot.SysSnapshot;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.repositories.Repository;
 
 import javax.annotation.Nullable;
 import java.util.HashMap;
@@ -465,10 +465,10 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
             .put(SysRepositoriesTableInfo.Columns.NAME, new RowCollectExpressionFactory() {
                 @Override
                 public RowCollectExpression create() {
-                    return new RowContextCollectorExpression<SysRepository, BytesRef>() {
+                    return new RowContextCollectorExpression<Repository, BytesRef>() {
                         @Override
                         public BytesRef value() {
-                            return new BytesRef(row.name());
+                            return new BytesRef(row.getMetadata().name());
                         }
                     };
                 }
@@ -476,10 +476,10 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
             .put(SysRepositoriesTableInfo.Columns.TYPE, new RowCollectExpressionFactory() {
                 @Override
                 public RowCollectExpression create() {
-                    return new RowContextCollectorExpression<SysRepository, BytesRef>() {
+                    return new RowContextCollectorExpression<Repository, BytesRef>() {
                         @Override
                         public BytesRef value() {
-                            return new BytesRef(row.type());
+                            return new BytesRef(row.getMetadata().type());
                         }
                     };
                 }
@@ -487,10 +487,10 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
             .put(SysRepositoriesTableInfo.Columns.SETTINGS, new RowCollectExpressionFactory() {
                 @Override
                 public RowCollectExpression create() {
-                    return new RowContextCollectorExpression<SysRepository, Map<String, Object>>() {
+                    return new RowContextCollectorExpression<Repository, Map<String, Object>>() {
                         @Override
                         public Map<String, Object> value() {
-                            return row.settings();
+                            return row.getMetadata().settings().getAsStructuredMap();
                         }
                     };
                 }
