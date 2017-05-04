@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - NullPointerException thrown when selecting ``routing_hash_function``
+   or ``version`` columns from sys.shards for blob tables.
+
  - Fixed an issue which caused failing `sys.snapshot` queries if the
    `data.path` of an existing fs repository was not configured anymore
 

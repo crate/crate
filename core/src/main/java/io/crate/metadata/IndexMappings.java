@@ -24,6 +24,7 @@ package io.crate.metadata;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Version;
 import org.elasticsearch.cluster.routing.Murmur3HashFunction;
+import org.elasticsearch.common.collect.MapBuilder;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -39,6 +40,8 @@ public final class IndexMappings {
                         "org.elasticsearch.cluster.routing.DjbHashFunction", "Djb",
                         "org.elasticsearch.cluster.routing.Murmur3HashFunction", "Murmur3");
 
+    public static final Map<String, Object> DEFAULT_TABLE_MAPPING = createDefaultTableMapping();
+
     public static void putDefaultSettingsToMeta(Map<String, Object> metaMap) {
         // set the default routing hash function type
         metaMap.put(IndexMappings.SETTING_ROUTING_HASH_FUNCTION, IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION);
@@ -53,5 +56,11 @@ public final class IndexMappings {
             metaMap.put(VERSION_STRING, versionMap);
         }
         versionMap.put(key.toString(), Version.toMap(version));
+    }
+
+    private static Map<String, Object> createDefaultTableMapping() {
+        Map<String, Object> metaMap = new HashMap<>(1);
+        putDefaultSettingsToMeta(metaMap);
+        return MapBuilder.<String, Object>newMapBuilder().put("_meta", metaMap).map();
     }
 }
