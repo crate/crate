@@ -31,6 +31,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue which caused failing `sys.snapshot` queries if the
+   `data.path` of an existing fs repository was not configured anymore
+
  - Fixed error thrown when applying filtering, ordering or limit on
    joins with more than 2 tables.
 

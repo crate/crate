@@ -135,7 +135,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
         expectedException.expect(ExecutionException.class);
         expectedException.expectMessage(containsString("[my_repository] failed to find repository"));
         Supplier<CompletableFuture<? extends Iterable<?>>> snapshotSupplier = SystemCollectSource.snapshotSupplier(
-            new SysSnapshots(null, null, null) {
+            new SysSnapshots(null, null) {
 
                 @Override
                 public Iterable<SysSnapshot> snapshotsGetter() throws SnapshotException, RepositoryException {

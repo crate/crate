@@ -50,8 +50,6 @@ import io.crate.operation.reference.sys.check.SysChecksModule;
 import io.crate.operation.reference.sys.check.node.SysNodeChecksModule;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.node.local.SysNodeExpressionModule;
-import io.crate.operation.reference.sys.repositories.SysRepositoriesModule;
-import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -121,8 +119,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             NodeDisconnectJobMonitorService.class,
             PostgresNetty.class,
             JobContextService.class,
-            Schemas.class,
-            SysRepositoriesService.class);
+            Schemas.class);
     }
 
     @Override
@@ -152,7 +149,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new SysChecksModule());
         modules.add(new SysNodeChecksModule());
         modules.add(new RepositorySettingsModule());
-        modules.add(new SysRepositoriesModule());
         modules.add(new ArrayMapperModule());
         return modules;
     }
