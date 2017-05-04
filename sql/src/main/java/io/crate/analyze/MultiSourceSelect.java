@@ -67,6 +67,11 @@ public class MultiSourceSelect implements QueriedRelation {
             joinPairs);
         this.querySpec = querySpec;
         this.fields = mss.fields;
+        splitter.process();
+        for (RelationSource source : sources.values()) {
+            QuerySpec spec = splitter.getSpec(source.relation());
+            source.querySpec(spec);
+        }
     }
 
     public Set<Symbol> requiredForQuery() {
@@ -126,14 +131,6 @@ public class MultiSourceSelect implements QueriedRelation {
             sources.put(entry.getKey(), source);
         }
         return sources;
-    }
-
-    public void pushDownQuerySpecs() {
-        splitter.process();
-        for (RelationSource source : sources.values()) {
-            QuerySpec spec = splitter.getSpec(source.relation());
-            source.querySpec(spec);
-        }
     }
 
     public Optional<RemainingOrderBy> remainingOrderBy() {
