@@ -228,13 +228,16 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
 
         execute("select table_name, number_of_shards, number_of_replicas, " +
-                "clustered_by, blobs_path from INFORMATION_SCHEMA.Tables where table_schema='blob' ");
+                "clustered_by, blobs_path, routing_hash_function, version " +
+                "from INFORMATION_SCHEMA.Tables where table_schema='blob' ");
         assertEquals(1L, response.rowCount());
         assertEquals("test", response.rows()[0][0]);
         assertEquals(5, response.rows()[0][1]);
         assertEquals("1", response.rows()[0][2]);
         assertEquals("digest", response.rows()[0][3]);
         assertEquals(blobsPath, response.rows()[0][4]);
+        assertThat(response.rows()[0][5], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
+        TestingHelpers.assertCrateVersion(response.rows()[0][6], Version.CURRENT, null);
 
         // cleanup blobs path, tempDir hook will be deleted before table would be deleted, avoid error in log
         execute("drop blob table test");

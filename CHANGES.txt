@@ -22,6 +22,9 @@ Changes
 Fixes
 =====
 
+ - NullPointerException thrown when selecting ``routing_hash_function``
+   or ``version`` columns from sys.shards for blob tables.
+
  - Fixed error thrown when applying filtering, ordering or limit on
    joins with more than 2 tables.
 

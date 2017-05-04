@@ -23,6 +23,7 @@
 package io.crate.blob.v2;
 
 import com.google.common.base.Functions;
+import io.crate.Constants;
 import io.crate.action.FutureActionListener;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -42,6 +43,7 @@ import java.util.concurrent.CompletableFuture;
 
 import static io.crate.blob.v2.BlobIndex.fullIndexName;
 import static io.crate.blob.v2.BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED;
+import static io.crate.metadata.IndexMappings.DEFAULT_TABLE_MAPPING;
 
 /**
  * DDL Client for blob tables - used to create, update or delete blob tables.
@@ -83,7 +85,10 @@ public class BlobAdminClient {
         builder.put(SETTING_INDEX_BLOBS_ENABLED, true);
 
         final CompletableFuture<Void> result = new CompletableFuture<>();
-        createIndexAction.execute(new CreateIndexRequest(fullIndexName(tableName), builder.build()),
+        CreateIndexRequest createIndexRequest = new CreateIndexRequest(fullIndexName(tableName), builder.build())
+            .mapping(Constants.DEFAULT_MAPPING_TYPE, DEFAULT_TABLE_MAPPING);
+        createIndexAction.execute(
+            createIndexRequest,
             new ActionListener<CreateIndexResponse>() {
                 @Override
                 public void onResponse(CreateIndexResponse createIndexResponse) {
