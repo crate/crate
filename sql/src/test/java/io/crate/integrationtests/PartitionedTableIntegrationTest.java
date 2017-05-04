@@ -152,6 +152,27 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
+    @UseJdbc(0) // copy from has no rowcount
+    public void testCopyFromIntoPartitionedTableWithGeneratedColumnPK() throws Exception {
+        execute("create table quotes (" +
+                "  id integer, " +
+                "  quote string index using fulltext, " +
+                "  gen_lower_quote string generated always as lower(quote), " +
+                "  PRIMARY KEY(id, gen_lower_quote) " +
+                ") partitioned by (gen_lower_quote)");
+        ensureYellow();
+
+        execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
+        assertEquals(3L, response.rowCount());
+        refresh();
+        ensureYellow();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+        assertThat(response.rows()[0].length, is(3));
+    }
+
+    @Test
     public void testInsertIntoClosedPartition() throws Exception {
         execute("create table t (n integer) partitioned by (n)");
         ensureYellow();
