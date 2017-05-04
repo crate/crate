@@ -31,14 +31,17 @@ Changes
 Fixes
 =====
 
+ - Fixed error thrown when applying filtering, ordering or limit on
+   joins with more than 2 tables.
+
  - Use the region of the EC2 instance for EC2 discovery when neither
    ``cloud.aws.ec2.endpoint`` nor ``cloud.aws.region`` are specified or do not
    resolve in a valid service endpoint.
 
  - Use crate favicon instead of elasticsearch.
 
- - Fixed issue which lead to an object's column policy being changed to 
-   the default DYNAMIC when adding a nested object column using the 
+ - Fixed issue which lead to an object's column policy being changed to
+   the default DYNAMIC when adding a nested object column using the
    `alter table` statement.
 
  - Fix: `sys.snapshot` queries hung instead of throwing an error if something
@@ -50,7 +53,7 @@ Fixes
  - Fixed an issue which lead to brief unavailability of already registered
    functions after a function was created or dropped in the same schema.
 
- - Improved error message when trying to update an element of an array. 
+ - Improved error message when trying to update an element of an array.
 
  - Fixed a regression that lead to `ArrayIndexOutOfBoundsException` if a JOIN
    query was made with a WHERE clause on partitioned columns.
