@@ -34,19 +34,44 @@ import java.util.stream.Collectors;
 
 public class MultiSourceSelect implements QueriedRelation {
 
-    private final RelationSplitter splitter;
-    private final HashMap<QualifiedName, RelationSource> sources;
+    private final Map<QualifiedName, RelationSource> sources;
     private final QuerySpec querySpec;
     private final Fields fields;
     private final List<JoinPair> joinPairs;
+    private final Set<Symbol> requiredForQuery;
+    private final Set<Field> canBeFetched;
+    private final Optional<RemainingOrderBy> remainingOrderBy;
     private QualifiedName qualifiedName;
+
+    public static MultiSourceSelect createWithPushDown(MultiSourceSelect mss, QuerySpec querySpec) {
+        RelationSplitter splitter = new RelationSplitter(
+            querySpec,
+            mss.sources.values().stream().map(RelationSource::relation).collect(Collectors.toList()),
+            mss.joinPairs
+        );
+        splitter.process();
+
+        for (RelationSource source : mss.sources.values()) {
+            QuerySpec spec = splitter.getSpec(source.relation());
+            source.querySpec(spec);
+        }
+
+        return new MultiSourceSelect(
+            mss.sources(),
+            mss.fields(),
+            querySpec,
+            mss.joinPairs,
+            splitter.requiredForQuery(),
+            splitter.canBeFetched(),
+            splitter.remainingOrderBy()
+        );
+    }
 
     public MultiSourceSelect(Map<QualifiedName, AnalyzedRelation> sources,
                              Collection<? extends Path> outputNames,
                              QuerySpec querySpec,
                              List<JoinPair> joinPairs) {
         assert sources.size() > 1 : "MultiSourceSelect requires at least 2 relations";
-        this.splitter = new RelationSplitter(querySpec, sources.values(), joinPairs);
         this.sources = initializeSources(sources);
         this.querySpec = querySpec;
         this.joinPairs = joinPairs;
@@ -56,25 +81,36 @@ public class MultiSourceSelect implements QueriedRelation {
         for (Path path : outputNames) {
             fields.add(path, new Field(this, path, outputsIterator.next().valueType()));
         }
+        this.requiredForQuery = Collections.emptySet();
+        this.canBeFetched = Collections.emptySet();
+        this.remainingOrderBy = Optional.empty();
     }
 
-    public MultiSourceSelect(MultiSourceSelect mss, QuerySpec querySpec) {
-        this.sources = mss.sources;
-        this.joinPairs = mss.joinPairs;
-        this.splitter = new RelationSplitter(
-            querySpec,
-            sources.values().stream().map(rs -> rs.relation()).collect(Collectors.toList()),
-            joinPairs);
+    private MultiSourceSelect(Map<QualifiedName, RelationSource> sources,
+                              Collection<Field> fields,
+                              QuerySpec querySpec,
+                              List<JoinPair> joinPairs,
+                              Set<Symbol> requiredForQuery,
+                              Set<Field> canBeFetched,
+                              Optional<RemainingOrderBy> remainingOrderBy) {
+        this.sources = sources;
+        this.joinPairs = joinPairs;
         this.querySpec = querySpec;
-        this.fields = mss.fields;
+        this.fields = new Fields(fields.size());
+        for (Field field : fields) {
+            this.fields.add(field.path(), new Field(this, field.path(), field.valueType()));
+        }
+        this.requiredForQuery = requiredForQuery;
+        this.canBeFetched = canBeFetched;
+        this.remainingOrderBy = remainingOrderBy;
     }
 
     public Set<Symbol> requiredForQuery() {
-        return splitter.requiredForQuery();
+        return requiredForQuery;
     }
 
     public Set<Field> canBeFetched() {
-        return splitter.canBeFetched();
+        return canBeFetched;
     }
 
     public Map<QualifiedName, RelationSource> sources() {
@@ -128,15 +164,13 @@ public class MultiSourceSelect implements QueriedRelation {
         return sources;
     }
 
-    public void pushDownQuerySpecs() {
-        splitter.process();
-        for (RelationSource source : sources.values()) {
-            QuerySpec spec = splitter.getSpec(source.relation());
-            source.querySpec(spec);
-        }
+    public Optional<RemainingOrderBy> remainingOrderBy() {
+        return remainingOrderBy;
     }
 
-    public Optional<RemainingOrderBy> remainingOrderBy() {
-        return splitter.remainingOrderBy();
+    @Override
+    public String toString() {
+        return "MSS{" + sources.keySet() + '}';
     }
+
 }

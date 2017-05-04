@@ -23,9 +23,11 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.*;
+import io.crate.analyze.symbol.FieldReplacer;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.Iterator;
@@ -64,7 +66,17 @@ final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, TransactionContext context) {
-            relation.subRelation((QueriedRelation) process(relation.subRelation(), context));
+            QueriedRelation subRelation = relation.subRelation();
+            QueriedRelation normalizedSubRelation = (QueriedRelation) process(relation.subRelation(), context);
+            relation.subRelation(normalizedSubRelation);
+            if (subRelation != normalizedSubRelation) {
+                relation.querySpec().replace(FieldReplacer.bind(f -> {
+                    if (f.relation() == subRelation) {
+                        return normalizedSubRelation.getField(f.path(), Operation.READ);
+                    }
+                    return f;
+                }));
+            }
             return relation;
         }
 
@@ -86,8 +98,7 @@ final class RelationNormalizer {
             QuerySpec querySpec = mss.querySpec();
             querySpec.normalize(normalizer, context);
             // must create a new MultiSourceSelect because paths and query spec changed
-            mss = new MultiSourceSelect(mss, querySpec);
-            mss.pushDownQuerySpecs();
+            mss = MultiSourceSelect.createWithPushDown(mss, querySpec);
             if (mss.sources().size() == 2) {
                 Iterator<RelationSource> it = mss.sources().values().iterator();
                 RelationSource leftSource = it.next();
