@@ -144,7 +144,6 @@ final class SubselectRewriter {
                 QuerySpec currentWithParentMerged = mergeQuerySpec(currentQS, parentQS);
                 return new MultiSourceSelect(
                     mapSourceRelations(multiSourceSelect),
-                    multiSourceSelect.outputSymbols(),
                     namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.replacedFieldsByNewOutput),
                     currentWithParentMerged,
                     multiSourceSelect.joinPairs()

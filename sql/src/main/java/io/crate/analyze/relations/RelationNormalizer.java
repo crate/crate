@@ -22,15 +22,15 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.collect.Maps;
 import io.crate.analyze.*;
+import io.crate.analyze.symbol.FieldReplacer;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.Iterator;
-import java.util.Map;
 
 /**
  * The RelationNormalizer tries to merge the tree of relations in a QueriedSelectRelation into a single QueriedRelation.
@@ -66,7 +66,17 @@ final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, TransactionContext context) {
-            relation.subRelation((QueriedRelation) process(relation.subRelation(), context));
+            QueriedRelation subRelation = relation.subRelation();
+            QueriedRelation normalizedSubRelation = (QueriedRelation) process(relation.subRelation(), context);
+            relation.subRelation(normalizedSubRelation);
+            if (subRelation != normalizedSubRelation) {
+                relation.querySpec().replace(FieldReplacer.bind(f -> {
+                    if (f.relation() == subRelation) {
+                        return normalizedSubRelation.getField(f.path(), Operation.READ);
+                    }
+                    return f;
+                })::apply);
+            }
             return relation;
         }
 
@@ -88,13 +98,7 @@ final class RelationNormalizer {
             QuerySpec querySpec = mss.querySpec();
             querySpec.normalize(normalizer, context);
             // must create a new MultiSourceSelect because paths and query spec changed
-            mss = new MultiSourceSelect(
-                mapSourceRelations(mss),
-                mss.outputSymbols(),
-                mss.fields(),
-                querySpec,
-                mss.joinPairs());
-            mss.pushDownQuerySpecs();
+            mss = MultiSourceSelect.createWithPushDown(mss, querySpec);
             if (mss.sources().size() == 2) {
                 Iterator<RelationSource> it = mss.sources().values().iterator();
                 RelationSource leftSource = it.next();
@@ -104,7 +108,7 @@ final class RelationNormalizer {
                 Rewriter.tryRewriteOuterToInnerJoin(
                     normalizer,
                     JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs(), false),
-                    mss.outputSymbols(),
+                    mss.querySpec().outputs(),
                     mss.querySpec(),
                     left,
                     right,
@@ -113,9 +117,5 @@ final class RelationNormalizer {
             }
             return mss;
         }
-    }
-
-    private static Map<QualifiedName, AnalyzedRelation> mapSourceRelations(MultiSourceSelect multiSourceSelect) {
-        return Maps.transformValues(multiSourceSelect.sources(), input -> input.relation());
     }
 }
