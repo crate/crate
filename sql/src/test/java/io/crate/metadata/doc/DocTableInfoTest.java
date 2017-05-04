@@ -2,6 +2,7 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.metadata.IndexMappings;
 import io.crate.Version;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.metadata.*;
@@ -46,7 +47,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             ImmutableList.of(),
             ImmutableList.of(),
             ColumnPolicy.DYNAMIC,
-            DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION,
+            IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION,
             Version.CURRENT,
             null,
             Operation.ALL
@@ -100,7 +101,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             ImmutableList.of(),
             ImmutableList.of(),
             ColumnPolicy.DYNAMIC,
-            DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION,
+            IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION,
             Version.CURRENT,
             null,
             Operation.ALL

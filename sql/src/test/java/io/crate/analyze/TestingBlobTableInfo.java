@@ -23,11 +23,11 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.metadata.IndexMappings;
 import io.crate.Version;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobTableInfo;
-import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
 
@@ -53,7 +53,7 @@ class TestingBlobTableInfo extends BlobTableInfo {
             numberOfReplicas,
             tableParameters,
             blobsPath,
-            DocIndexMetaData.DEFAULT_ROUTING_HASH_FUNCTION,
+            IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION,
             Version.CURRENT,
             null);
         this.routing = routing;
