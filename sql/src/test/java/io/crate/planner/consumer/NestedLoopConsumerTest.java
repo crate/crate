@@ -326,7 +326,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
                                    "left join users u2 on u1.id=u2.id " +
                                    "left join users u3 on u2.id=u3.id " +
                                    "left join users u4 on u3.id=u4.id " +
-                                   "where u1.name = u4.name " +
+                                   "where u3.name = 'foo' " +
                                    "limit 10");
         NestedLoopPhase nl = ((NestedLoop) plan.subPlan()).nestedLoopPhase();
         assertThat(nl.projections().get(1), instanceOf(TopNProjection.class));
