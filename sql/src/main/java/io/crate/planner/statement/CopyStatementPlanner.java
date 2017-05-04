@@ -52,7 +52,12 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Predicate;
 
 public class CopyStatementPlanner {
@@ -116,15 +121,21 @@ public class CopyStatementPlanner {
             table.isPartitioned() // autoCreateIndices
         );
         List<Projection> projections = Collections.singletonList(sourceIndexWriterProjection);
-        partitionedByNames.removeAll(Lists.transform(table.primaryKey(), ColumnIdent::fqn));
-        int referencesSize = table.primaryKey().size() + partitionedByNames.size() + 1;
-        referencesSize = clusteredByPrimaryKeyIdx == -1 ? referencesSize + 1 : referencesSize;
 
-        List<Symbol> toCollect = new ArrayList<>(referencesSize);
+        List<ColumnIdent> primaryKeys = new ArrayList<>(table.primaryKey().size());
+        List<Symbol> toCollect = new ArrayList<>();
         // add primaryKey columns
         for (ColumnIdent primaryKey : table.primaryKey()) {
-            toCollect.add(table.getReference(primaryKey));
+            Reference reference = table.getReference(primaryKey);
+            if (reference instanceof GeneratedReference && table.partitionedByColumns().contains(reference)) {
+                // will track this reference in the partitioned by list (so we can extract its references and
+                // the function expression
+                continue;
+            }
+            toCollect.add(reference);
+            primaryKeys.add(primaryKey);
         }
+        partitionedByNames.removeAll(Lists.transform(primaryKeys, ColumnIdent::fqn));
 
         // add partitioned columns (if not part of primaryKey)
         Set<Reference> referencedReferences = new HashSet<>();

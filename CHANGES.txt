@@ -31,6 +31,9 @@ Changes
 Fixes
 =====
 
+ - Fixed `copy from` to be able to copy data into a partitioned table with a 
+   generated column as both the primary key and the partitioned column.
+
  - NullPointerException thrown when selecting ``routing_hash_function``
    or ``version`` columns from sys.shards for blob tables.
 
