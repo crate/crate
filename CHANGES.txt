@@ -22,6 +22,9 @@ Changes
 Fixes
 =====
 
+ - Improved the accuracy of results if arithmetic operators +,-,*,/ are used
+   in expressions that contain only float-type values.
+
  - Fixed `copy from` to be able to copy data into a partitioned table with a 
    generated column as both the primary key and the partitioned column.
 

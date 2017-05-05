@@ -385,4 +385,19 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("select (d - 10) from t order by (d - 10) nulls first limit 2");
         assertThat(response.rows()[0][0], is(nullValue()));
     }
+
+    @Test
+    public void testMathOperatorsFloatAccuracy() throws Exception {
+        execute("create table t (f_float float) clustered into 1 shards with (number_of_replicas=0)");
+        ensureGreen();
+        execute("insert into t (f_float) values (?)", new Object[]{
+            55.55F
+        });
+        execute("refresh table t");
+        execute("select (0 - f_float), (0 + f_float), (1 * f_float), (f_float / f_float) from t");
+        assertThat(response.rows()[0][0], is(-55.55F));
+        assertThat(response.rows()[0][1], is(55.55F));
+        assertThat(response.rows()[0][2], is(55.55F));
+        assertThat(response.rows()[0][3], is(1.0F));
+    }
 }
