@@ -22,18 +22,24 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.io.IOException;
+import java.util.*;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
+import static org.elasticsearch.mock.orig.Mockito.mock;
+import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.when;
 
 public class RoutingTest extends CrateUnitTest {
 
@@ -104,5 +110,49 @@ public class RoutingTest extends CrateUnitTest {
         assertThat(routing.locations().get("node-0").get("index-1"), containsInAnyOrder(1, 2, 5));
         assertThat(routing.locations().get("node-1").get("index-0"), containsInAnyOrder(3, 4, 6));
         assertThat(routing.locations().get("node-1").get("index-1"), containsInAnyOrder(3, 4, 6));
+    }
+
+    @Test
+    public void testRoutingForRandomMasterOrDataNode() throws IOException {
+        Map<String, String> attr = ImmutableMap.of();
+        Set<DiscoveryNode.Role> master_and_data = ImmutableSet.of(DiscoveryNode.Role.MASTER, DiscoveryNode.Role.DATA);
+        DiscoveryNode local = new DiscoveryNode("client_node_1", LocalTransportAddress.buildUnique(), attr, ImmutableSet.of(), null);
+        DiscoveryNodes nodes = new DiscoveryNodes.Builder()
+            .add(new DiscoveryNode("data_master_node_1", LocalTransportAddress.buildUnique(), attr, master_and_data, null))
+            .add(new DiscoveryNode("data_master_node_2", LocalTransportAddress.buildUnique(), attr, master_and_data, null))
+            .add(local)
+            .add(new DiscoveryNode("client_node_2", LocalTransportAddress.buildUnique(), attr, ImmutableSet.of(), null))
+            .add(new DiscoveryNode("client_node_3", LocalTransportAddress.buildUnique(), attr, ImmutableSet.of(), null))
+            .build();
+        ClusterState state = new ClusterState.Builder(new ClusterName("my_cluster")).nodes(nodes).build();
+
+        ClusterService clusterService = mock(ClusterService.class);
+        when(clusterService.localNode()).thenReturn(local);
+        when(clusterService.state()).thenReturn(state);
+
+        Routing routing = Routing.forRandomMasterOrDataNode(new TableIdent("doc", "table"), clusterService);
+        assertThat(routing.locations().keySet(), anyOf(contains("data_master_node_1"), contains("data_master_node_2")));
+    }
+
+    @Test
+    public void testRoutingForRandomMasterOrDataNodePrefersLocal() throws Exception {
+        Set<DiscoveryNode.Role> data = ImmutableSet.of(DiscoveryNode.Role.DATA);
+        Map<String, String> attr = ImmutableMap.of();
+        DiscoveryNode local = new DiscoveryNode("local_data", LocalTransportAddress.buildUnique(), attr, data, null);
+        DiscoveryNodes nodes = new DiscoveryNodes.Builder()
+            .add(local)
+            .add(new DiscoveryNode("data_1", LocalTransportAddress.buildUnique(), attr, data, null))
+            .add(new DiscoveryNode("data_2", LocalTransportAddress.buildUnique(), attr, data, null))
+            .add(new DiscoveryNode("data_3", LocalTransportAddress.buildUnique(), attr, data, null))
+            .add(new DiscoveryNode("data_4", LocalTransportAddress.buildUnique(), attr, data, null))
+            .build();
+        ClusterState state = new ClusterState.Builder(new ClusterName("my_cluster")).nodes(nodes).build();
+
+        ClusterService clusterService = mock(ClusterService.class);
+        when(clusterService.localNode()).thenReturn(local);
+        when(clusterService.state()).thenReturn(state);
+
+        Routing routing = Routing.forRandomMasterOrDataNode(new TableIdent("doc", "table"), clusterService);
+        assertThat(routing.locations().keySet(), contains("local_data"));
     }
 }

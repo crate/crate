@@ -5,6 +5,9 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.TreeMapBuilder;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -286,6 +289,25 @@ public class Routing implements Streamable {
             nodesMapBuilder.put(node.getId(), tableMap);
         }
         return new Routing(nodesMapBuilder.map());
+    }
+
+    public static Routing forRandomMasterOrDataNode(TableIdent tableIdent, ClusterService clusterService) {
+        DiscoveryNode localNode = clusterService.localNode();
+        if (localNode.isMasterNode() || localNode.isDataNode()) {
+            return forTableOnSingleNode(tableIdent, localNode.getId());
+        }
+        ImmutableOpenMap<String, DiscoveryNode> masterAndDataNodes = clusterService.state().nodes().getMasterAndDataNodes();
+        int randomIdx = Randomness.get().nextInt(masterAndDataNodes.size());
+        Iterator<DiscoveryNode> it = masterAndDataNodes.valuesIt();
+        int currIdx = 0;
+        while (it.hasNext()) {
+            if (currIdx == randomIdx) {
+                return forTableOnSingleNode(tableIdent, it.next().getId());
+            }
+            currIdx++;
+        }
+        throw new AssertionError(String.format(Locale.ENGLISH,
+            "Cannot find a master or data node with given random index %d", randomIdx));
     }
 
     @Override
