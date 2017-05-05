@@ -31,14 +31,9 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 
 import javax.annotation.Nullable;
-import java.util.Iterator;
-import java.util.Locale;
-import java.util.Random;
 
 public class SysSnapshotsTableInfo extends StaticTableInfo {
 
@@ -57,8 +52,6 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
 
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.NAME, Columns.REPOSITORY);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
-
-    private Random random = new Random();
 
     public SysSnapshotsTableInfo(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
@@ -87,21 +80,7 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         // route to random master or data node,
         // because RepositoriesService (and so snapshots info) is only available there
-        return Routing.forTableOnSingleNode(IDENT, randomMasterOrDataNode().getId());
+        return Routing.forRandomMasterOrDataNode(IDENT, clusterService);
     }
 
-    private DiscoveryNode randomMasterOrDataNode() {
-        ImmutableOpenMap<String, DiscoveryNode> masterAndDataNodes = clusterService.state().nodes().getMasterAndDataNodes();
-        int randomIdx = random.nextInt(masterAndDataNodes.size());
-        Iterator<DiscoveryNode> it = masterAndDataNodes.valuesIt();
-        int currIdx = 0;
-        while (it.hasNext()) {
-            if (currIdx == randomIdx) {
-                return it.next();
-            }
-            currIdx++;
-        }
-        throw new AssertionError(String.format(Locale.ENGLISH,
-            "Cannot find a master or data node with given random index %d", randomIdx));
-    }
 }
