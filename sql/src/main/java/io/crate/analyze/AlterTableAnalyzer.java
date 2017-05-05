@@ -29,6 +29,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterTable;
+import io.crate.sql.tree.AlterTableRename;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -54,6 +55,24 @@ class AlterTableAnalyzer {
         TableParameter tableParameter = getTableParameter(node, parameters, tableParameterInfo);
         maybeRaiseBlockedException(docTableInfo, tableParameter.settings());
         return new AlterTableAnalyzedStatement(docTableInfo, partitionName, tableParameter, table.excludePartitions());
+    }
+
+    AlterTableRenameAnalyzedStatement analyzeRename(AlterTableRename node, SessionContext sessionContext) {
+        TableIdent tableIdent = TableIdent.of(node.table(), sessionContext.defaultSchema());
+        DocTableInfo tableInfo = schemas.getTableInfo(tableIdent, sessionContext.user());
+        if (!node.table().partitionProperties().isEmpty()) {
+            throw new UnsupportedOperationException("Renaming a single partition is not supported");
+        }
+
+        // we do not support renaming to a different schema, thus the target table identifier must not include a schema
+        // this is an artificial limitation, technically it can be done
+        List<String> newIdentParts = node.newName().getParts();
+        if (newIdentParts.size() > 1) {
+            throw new IllegalArgumentException("Target table name must not include a schema");
+        }
+
+        TableIdent newTableIdent = new TableIdent(tableIdent.schema(), newIdentParts.get(0));
+        return new AlterTableRenameAnalyzedStatement(tableInfo, newTableIdent);
     }
 
     private static TableParameterInfo getTableParameterInfo(Table table,

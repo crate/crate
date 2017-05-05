@@ -251,6 +251,11 @@ public class Analyzer {
         }
 
         @Override
+        public AnalyzedStatement visitAlterTableRename(AlterTableRename node, Analysis context) {
+            return alterTableAnalyzer.analyzeRename(node, context.sessionContext());
+        }
+
+        @Override
         public AnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, Analysis context) {
             return alterTableAddColumnAnalyzer.analyze(node, context);
         }
