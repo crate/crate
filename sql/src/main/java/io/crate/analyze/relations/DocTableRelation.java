@@ -21,7 +21,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
@@ -31,7 +30,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Path;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 
@@ -41,7 +39,6 @@ import java.util.Optional;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
-    private static final ImmutableSet<ColumnIdent> HIDDEN_COLUMNS = ImmutableSet.of(DocSysColumns.FETCHID);
     private final static SortValidator SORT_VALIDATOR = new SortValidator();
 
     private static class SortValidator extends SymbolVisitor<DocTableRelation, Void> {
@@ -90,9 +87,6 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
     @Override
     public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
         ColumnIdent ci = toColumnIdent(path);
-        if (HIDDEN_COLUMNS.contains(ci)) {
-            return null;
-        }
         if (operation == Operation.UPDATE) {
             ensureColumnCanBeUpdated(ci);
         }

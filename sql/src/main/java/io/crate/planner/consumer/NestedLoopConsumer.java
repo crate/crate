@@ -39,7 +39,6 @@ import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.InputColumns;
 import io.crate.planner.projection.builder.ProjectionBuilder;
-import io.crate.sql.tree.QualifiedName;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
@@ -60,19 +59,6 @@ class NestedLoopConsumer implements Consumer {
         return visitor.process(rootRelation, context);
     }
 
-    private static void replaceFields(QuerySpec parentQuerySpec, Map<Symbol, Symbol> symbolMap) {
-        MappingSymbolVisitor.inPlace().processInplace(parentQuerySpec.outputs(), symbolMap);
-        WhereClause where = parentQuerySpec.where();
-        if (where != null && where.hasQuery()) {
-            parentQuerySpec.where(new WhereClause(
-                MappingSymbolVisitor.inPlace().process(where.query(), symbolMap)
-            ));
-        }
-        if (parentQuerySpec.orderBy().isPresent()) {
-            MappingSymbolVisitor.inPlace().processInplace(parentQuerySpec.orderBy().get().orderBySymbols(), symbolMap);
-        }
-    }
-
     private static class Visitor extends RelationPlanningVisitor {
 
         private final ClusterService clusterService;
@@ -89,15 +75,14 @@ class NestedLoopConsumer implements Consumer {
         public Plan visitTwoTableJoin(TwoTableJoin statement, ConsumerContext context) {
             QuerySpec querySpec = statement.querySpec();
 
-            List<RelationColumn> nlOutputs = new ArrayList<>();
-            final Map<Symbol, Symbol> symbolMap = new HashMap<>();
+            List<Symbol> nlOutputs = new ArrayList<>();
             QueriedRelation left;
             QueriedRelation right;
             try {
                 left = SubRelationConverter.INSTANCE.process(statement.left().relation(), statement.left());
                 right = SubRelationConverter.INSTANCE.process(statement.right().relation(), statement.right());
-                addOutputsAndSymbolMap(statement.left().querySpec().outputs(), statement.leftName(), nlOutputs, symbolMap);
-                addOutputsAndSymbolMap(statement.right().querySpec().outputs(), statement.rightName(), nlOutputs, symbolMap);
+                nlOutputs.addAll(statement.left().querySpec().outputs());
+                nlOutputs.addAll(statement.right().querySpec().outputs());
             } catch (ValidationException e) {
                 context.validationException(e);
                 return null;
@@ -106,20 +91,13 @@ class NestedLoopConsumer implements Consumer {
             // for nested loops we are fine to remove pushed down orders
             OrderBy orderByBeforeSplit = querySpec.orderBy().orElse(null);
 
-            // replace all the fields in the root query spec
-            replaceFields(statement.querySpec(), symbolMap);
             if (statement.remainingOrderBy().isPresent()) {
                 querySpec.orderBy(statement.remainingOrderBy().get());
-                MappingSymbolVisitor.inPlace().processInplace(statement.remainingOrderBy().get().orderBySymbols(), symbolMap);
             }
 
             JoinPair joinPair = statement.joinPair();
             JoinType joinType = joinPair.joinType();
             Symbol joinCondition = joinPair.condition();
-            if (joinCondition != null) {
-                // replace all fields of the join condition
-                MappingSymbolVisitor.inPlace().process(joinCondition, symbolMap);
-            }
 
             WhereClause where = querySpec.where();
             /*
@@ -247,8 +225,8 @@ class NestedLoopConsumer implements Consumer {
             if (joinCondition != null) {
                 joinCondition = InputColumns.create(joinCondition, nlOutputs);
                 assert joinCondition instanceof Function : "Only function symbols are valid join conditions";
-                boolean hasRelCol = SymbolVisitors.any(s -> s instanceof RelationColumn, joinCondition);
-                assert  !hasRelCol : "RelationColumns are not valid join condition arguments";
+                assert !SymbolVisitors.any(Symbols.IS_COLUMN, joinCondition)
+                    : "Columns are not valid in processed join condition";
             }
 
             List<Symbol> postNLOutputs = Lists.newArrayList(querySpec.outputs());
@@ -300,18 +278,6 @@ class NestedLoopConsumer implements Consumer {
                 );
             } else {
                 return new NestedLoop(nl, leftPlan, rightPlan, TopN.NO_LIMIT, 0, limit, null);
-            }
-        }
-
-        private void addOutputsAndSymbolMap(Iterable<? extends Symbol> outputs,
-                                            QualifiedName name,
-                                            List<RelationColumn> nlOutputs,
-                                            Map<Symbol, Symbol> symbolMap) {
-            int index = 0;
-            for (Symbol symbol : outputs) {
-                RelationColumn rc = new RelationColumn(name, index++, symbol.valueType());
-                nlOutputs.add(rc);
-                symbolMap.put(symbol, rc);
             }
         }
 

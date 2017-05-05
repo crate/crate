@@ -270,20 +270,6 @@ public class SymbolPrinter {
         }
 
         @Override
-        public Void visitRelationColumn(RelationColumn relationColumn, SymbolPrinterContext context) {
-            if (context.verifyMaxDepthReached()) {
-                return null;
-            }
-
-            context.builder.append("RELCOL(")
-                .append(relationColumn.relationName())
-                .append(", ")
-                .append(relationColumn.index())
-                .append(")");
-            return null;
-        }
-
-        @Override
         public Void visitInputColumn(InputColumn inputColumn, SymbolPrinterContext context) {
             if (context.verifyMaxDepthReached()) {
                 return null;

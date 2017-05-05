@@ -27,8 +27,8 @@ import io.crate.analyze.*;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ValidationException;
-import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.ReplacingSymbolVisitor;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.table.Operation;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
@@ -243,17 +243,35 @@ public class ManyTableConsumer implements Consumer {
             );
 
             assert leftQuerySpec != null : "leftQuerySpec must not be null";
-            final RelationColumnReWriteCtx reWriteCtx = new RelationColumnReWriteCtx(join);
 
-            Function<Symbol, Symbol> replaceFunction =
-                (Symbol symbol) -> RelationColumnReWriter.INSTANCE.process(symbol, reWriteCtx);
-
-            /**
-             * Rewrite where, join and order by clauses and create a new query spec, where all RelationColumn symbols
-             * with a QualifiedName of {@link RelationColumnReWriteCtx#left} or {@link RelationColumnReWriteCtx#right}
-             * are replaced with a RelationColumn with QualifiedName of {@link RelationColumnReWriteCtx#newName}
+            /*
+             * Create a new QuerySpec & update fields to point to the newly created TwoTableJoin relation.
+             *
+             * The names of the field are prefixed with their "source" relationName so that they're still unique.
+             *
+             * Example:
+             *
+             *     select t1.x, t2.x, t3.x
+             *
+             *     ->
+             *
+             *     twoTableJoin.outputs: [ [join.t1.t2].t1.x,  [join.t1.t2].t2.x, t3.x ]
              */
             if (it.hasNext()) { // The outer left join becomes the root {@link TwoTableJoin}
+                final AnalyzedRelation left = leftRelation;
+                final AnalyzedRelation right = rightSource.relation();
+
+                Function<? super Symbol, ? extends Symbol> replaceFunction = FieldReplacer.bind(f -> {
+                    if (f.relation() == left || f.relation() == right) {
+                        // path is prefixed with relationName so that they are still unique
+                        ColumnIdent path = new ColumnIdent(f.relation().getQualifiedName().toString(), f.path().outputName());
+                        Field field = join.getField(path, Operation.READ);
+                        assert field != null : "must be able to resolve the field from the twoTableJoin";
+                        return field;
+                    }
+                    return f;
+                });
+
                 splitQuery =
                     rewriteSplitQueryNames(splitQuery, leftName, rightName, join.getQualifiedName(), replaceFunction);
                 JoinPairs.rewriteNames(leftName, rightName, join.getQualifiedName(), replaceFunction, joinPairs);
@@ -291,7 +309,7 @@ public class ManyTableConsumer implements Consumer {
                                                                           QualifiedName leftName,
                                                                           QualifiedName rightName,
                                                                           QualifiedName newName,
-                                                                          java.util.function.Function<? super Symbol, Symbol> replaceFunction) {
+                                                                          java.util.function.Function<? super Symbol, ? extends Symbol> replaceFunction) {
         Map<Set<QualifiedName>, Symbol> newMap = new HashMap<>(splitQuery.size());
         for (Map.Entry<Set<QualifiedName>, Symbol> entry : splitQuery.entrySet()) {
             Set<QualifiedName> key = entry.getKey();
@@ -310,7 +328,7 @@ public class ManyTableConsumer implements Consumer {
                                             QualifiedName leftName,
                                             QualifiedName rightName,
                                             QualifiedName newName,
-                                            Function<? super Symbol, Symbol> replaceFunction) {
+                                            Function<? super Symbol, ? extends Symbol> replaceFunction) {
         if (remainingOrderBy.isPresent()) {
             Set<QualifiedName> relations = remainingOrderBy.get().relations();
             replace(leftName, newName, relations);
@@ -381,7 +399,6 @@ public class ManyTableConsumer implements Consumer {
         }
 
         private static Plan getPlan(MultiSourceSelect mss, ConsumerContext context) {
-            replaceFieldsWithRelationColumns(mss);
             if (mss.sources().size() == 2) {
                 return planSubRelation(context, twoTableJoin(mss));
             }
@@ -408,18 +425,6 @@ public class ManyTableConsumer implements Consumer {
 
     }
 
-    static void replaceFieldsWithRelationColumns(MultiSourceSelect mss) {
-        final FieldToRelationColumn ctx = new FieldToRelationColumn(mss.sources());
-        Function<? super Symbol, ? extends Symbol> replaceFieldsInTreeWithRC = FieldReplacer.bind(ctx);
-        if (mss.remainingOrderBy().isPresent()) {
-            mss.remainingOrderBy().get().orderBy().replace(replaceFieldsInTreeWithRC);
-        }
-        for (JoinPair joinPair : mss.joinPairs()) {
-            joinPair.replaceCondition(replaceFieldsInTreeWithRC);
-        }
-        mss.querySpec().replace(replaceFieldsInTreeWithRC);
-    }
-
     private static class SubSetOfQualifiedNamesPredicate implements Predicate<Symbol> {
         private final Set<QualifiedName> qualifiedNames;
         private final HashSet<QualifiedName> foundNames;
@@ -444,78 +449,9 @@ public class ManyTableConsumer implements Consumer {
         public static final QualifiedNameCounter INSTANCE = new QualifiedNameCounter();
 
         @Override
-        public Void visitRelationColumn(RelationColumn relationColumn, Set<QualifiedName> context) {
-            context.add(relationColumn.relationName());
-            return null;
-        }
-
-        @Override
         public Void visitField(Field field, Set<QualifiedName> context) {
             context.add(field.relation().getQualifiedName());
             return null;
-        }
-    }
-
-    private static class RelationColumnReWriteCtx {
-        private final QualifiedName newName;
-        private final QualifiedName left;
-        private final QualifiedName right;
-        private final int rightOffset;
-
-        RelationColumnReWriteCtx(TwoTableJoin join) {
-            this(join.getQualifiedName(), join.leftName(), join.rightName(), join.left().querySpec().outputs().size());
-        }
-
-        RelationColumnReWriteCtx(QualifiedName newName, QualifiedName left, QualifiedName right, int rightOffset) {
-            this.newName = newName;
-            this.left = left;
-            this.right = right;
-            this.rightOffset = rightOffset;
-        }
-    }
-
-    private static class RelationColumnReWriter extends ReplacingSymbolVisitor<RelationColumnReWriteCtx> {
-
-        private static final RelationColumnReWriter INSTANCE = new RelationColumnReWriter(ReplaceMode.COPY);
-
-        RelationColumnReWriter(ReplaceMode mode) {
-            super(mode);
-        }
-
-        @Override
-        public Symbol visitRelationColumn(RelationColumn relationColumn, RelationColumnReWriteCtx context) {
-            if (relationColumn.relationName().equals(context.left)) {
-                return new RelationColumn(context.newName, relationColumn.index(), relationColumn.valueType());
-            }
-            if (relationColumn.relationName().equals(context.right)) {
-                return new RelationColumn(context.newName,
-                    relationColumn.index() + context.rightOffset, relationColumn.valueType());
-            }
-            return super.visitRelationColumn(relationColumn, context);
-        }
-    }
-
-    private static class FieldToRelationColumn implements Function<Field, Symbol> {
-
-        private final Map<QualifiedName, RelationSource> sources;
-
-        FieldToRelationColumn(Map<QualifiedName, RelationSource> sources) {
-            this.sources = sources;
-        }
-
-        @Override
-        public Symbol apply(Field field) {
-            QualifiedName qualifiedName = field.relation().getQualifiedName();
-            int idx = 0;
-            for (Symbol symbol : sources.get(qualifiedName).querySpec().outputs()) {
-                if (symbol instanceof Field) {
-                    if (((Field) symbol).path().equals(field.path())) {
-                        return new RelationColumn(qualifiedName, idx, field.valueType());
-                    }
-                }
-                idx++;
-            }
-            return field;
         }
     }
 }

@@ -103,9 +103,11 @@ public final class RelationSplitter {
         // declare all symbols from the remaining order by as required for query
         if (remainingOrderBy != null) {
             OrderBy orderBy = remainingOrderBy.orderBy();
-            requiredForQuery.addAll(orderBy.orderBySymbols());
-            // we need to add also the used symbols for query phase
-            FieldsVisitor.visitFields(orderBy.orderBySymbols(), addFieldToMap);
+
+            FieldsVisitor.visitFields(orderBy.orderBySymbols(), f -> {
+                fieldsByRelation.put(f.relation(), f);
+                requiredForQuery.add(f);
+            });
         }
 
         if (querySpec.where().hasQuery()) {
@@ -127,8 +129,9 @@ public final class RelationSplitter {
 
         // add all order by symbols to context outputs
         for (Map.Entry<AnalyzedRelation, QuerySpec> entry : specs.entrySet()) {
-            if (entry.getValue().orderBy().isPresent()) {
-                fieldsByRelation.putAll(entry.getKey(), entry.getValue().orderBy().get().orderBySymbols());
+            QuerySpec querySpec = entry.getValue();
+            if (querySpec.orderBy().isPresent()) {
+                FieldsVisitor.visitFields(querySpec.orderBy().get().orderBySymbols(), addFieldToMap);
             }
         }
 

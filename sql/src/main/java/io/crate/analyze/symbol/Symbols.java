@@ -39,8 +39,7 @@ import java.util.function.Predicate;
 
 public class Symbols {
 
-    public static final Predicate<Symbol> IS_COLUMN = s ->
-        s instanceof Field || s instanceof Reference || s instanceof RelationColumn;
+    public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof Field || s instanceof Reference;
 
     private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
 

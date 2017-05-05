@@ -126,6 +126,11 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     }
 
     @Override
+    public Symbol visitFetchReference(FetchReference fetchReference, Context context) {
+        return fetchReference;
+    }
+
+    @Override
     public Symbol visitAggregation(Aggregation symbol, Context context) {
         throw new AssertionError("Aggregation Symbols must not be visited with " +
                                  getClass().getCanonicalName());

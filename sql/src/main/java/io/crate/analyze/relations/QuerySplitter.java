@@ -41,11 +41,9 @@ public class QuerySplitter {
 
     /**
      * <p>
-     * Splits a (function) symbol on <code>AND</code> based on relation occurrences of {@link io.crate.analyze.symbol.RelationColumn}
+     * Splits a (function) symbol on <code>AND</code> based on relation occurrences of {@link io.crate.analyze.symbol.Field}
      * into multiple symbols.
      * </p>
-     * <p>
-     * <b>This does not work with  {@link io.crate.analyze.symbol.Field}</b>
      * <p>
      * <h3>Examples:</h3>
      * <p>

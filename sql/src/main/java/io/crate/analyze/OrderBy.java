@@ -150,7 +150,7 @@ public class OrderBy implements Streamable {
         }
     }
 
-    public OrderBy copyAndReplace(Function<? super Symbol, Symbol> replaceFunction) {
+    public OrderBy copyAndReplace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         return new OrderBy(Lists2.copyAndReplace(orderBySymbols, replaceFunction), reverseFlags, nullsFirst);
     }
 

@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.analyze.symbol.RelationColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.metadata.TransactionContext;
@@ -232,16 +231,16 @@ public class QuerySpec {
         }
 
         @Override
-        public Void visitRelationColumn(RelationColumn relationColumn, SubsetContext context) {
-            if (context.predicate.test(relationColumn)) {
-                context.outputs.add(relationColumn);
+        protected Void visitSymbol(Symbol symbol, SubsetContext context) {
+            if (context.predicate.test(symbol)) {
+                context.outputs.add(symbol);
             }
             return null;
         }
     }
 
 
-    public QuerySpec copyAndReplace(Function<? super Symbol, Symbol> replaceFunction) {
+    public QuerySpec copyAndReplace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         QuerySpec newSpec = new QuerySpec()
             .limit(limit)
             .offset(offset)

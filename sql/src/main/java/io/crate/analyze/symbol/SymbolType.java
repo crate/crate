@@ -44,7 +44,6 @@ public enum SymbolType {
     VALUE(Value::new),
     MATCH_PREDICATE(null),
     FETCH_REFERENCE(null),
-    RELATION_COLUMN(RelationColumn::new),
     INDEX_REFERENCE(IndexReference::new),
     GEO_REFERENCE(GeoReference::new),
     GENERATED_REFERENCE(GeneratedReference::new),

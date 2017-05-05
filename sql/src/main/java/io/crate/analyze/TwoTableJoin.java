@@ -26,14 +26,15 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.ColumnIndex;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -43,7 +44,7 @@ public class TwoTableJoin implements QueriedRelation {
     private final RelationSource left;
     private final RelationSource right;
     private final Optional<OrderBy> remainingOrderBy;
-    private final List<Field> fields;
+    private final Fields fields;
     private final QualifiedName name;
     private final JoinPair joinPair;
 
@@ -61,9 +62,18 @@ public class TwoTableJoin implements QueriedRelation {
             right.relation().getQualifiedName().toString());
         this.remainingOrderBy = remainingOrderBy;
         this.joinPair = joinPair;
-        fields = new ArrayList<>(querySpec.outputs().size());
+        fields = new Fields(querySpec.outputs().size());
         for (int i = 0; i < querySpec.outputs().size(); i++) {
-            fields.add(new Field(this, new ColumnIndex(i), querySpec.outputs().get(i).valueType()));
+            Symbol output = querySpec.outputs().get(i);
+            String name = SymbolPrinter.INSTANCE.printSimple(output);
+            Path fqPath;
+            // prefix paths with origin relationName to keep them unique
+            if (left.querySpec().outputs().contains(output)) {
+                fqPath = new ColumnIdent(left.relation().getQualifiedName().toString(), name);
+            } else {
+                fqPath = new ColumnIdent(right.relation().getQualifiedName().toString(), name);
+            }
+            fields.add(fqPath, new Field(this, fqPath, output.valueType()));
         }
     }
 
@@ -95,12 +105,15 @@ public class TwoTableJoin implements QueriedRelation {
 
     @Override
     public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getField is not supported");
+        if (operation != Operation.READ) {
+            throw new UnsupportedOperationException("getField on TwoTableJoin is only supported for READ operations");
+        }
+        return fields.get(path);
     }
 
     @Override
     public List<Field> fields() {
-        return fields;
+        return fields.asList();
     }
 
     @Override
@@ -111,14 +124,6 @@ public class TwoTableJoin implements QueriedRelation {
     @Override
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         throw new UnsupportedOperationException("method not supported");
-    }
-
-    public QualifiedName leftName() {
-        return left.relation().getQualifiedName();
-    }
-
-    public QualifiedName rightName() {
-        return right.relation().getQualifiedName();
     }
 
     @Override

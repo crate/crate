@@ -121,7 +121,7 @@ public final class JoinPairs {
     public static void rewriteNames(QualifiedName left,
                                     QualifiedName right,
                                     QualifiedName newName,
-                                    Function<? super Symbol, Symbol> replaceFunction,
+                                    Function<? super Symbol, ? extends Symbol> replaceFunction,
                                     List<JoinPair> joinPairs) {
         for (JoinPair joinPair : joinPairs) {
             joinPair.replaceNames(left, right, newName);

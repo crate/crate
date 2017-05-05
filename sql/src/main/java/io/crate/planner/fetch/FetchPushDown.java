@@ -32,6 +32,7 @@ import io.crate.planner.ReaderAllocations;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.builder.InputColumns;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -59,7 +60,7 @@ public final class FetchPushDown {
         return new Builder<>(
             fetchRefs,
             pd.fetchSources(),
-            pd.remainingOutputs(),
+            InputColumns.create(pd.remainingOutputs(), new InputColumns.Context(mss.querySpec().outputs())),
             mss
         );
     }

@@ -313,12 +313,6 @@ public class SymbolPrinterTest extends CrateUnitTest {
     }
 
     @Test
-    public void testPrintRelationColumn() throws Exception {
-        Symbol relationColumn = new RelationColumn(new QualifiedName(TABLE_NAME), 42, DataTypes.STRING);
-        assertPrint(relationColumn, "RELCOL(formatter, 42)");
-    }
-
-    @Test
     public void testPrintLikeOperator() throws Exception {
         Symbol likeQuery = sqlExpressions.asSymbol("foo like '%bla%'");
         assertPrint(likeQuery, "(doc.formatter.foo LIKE '%bla%')");

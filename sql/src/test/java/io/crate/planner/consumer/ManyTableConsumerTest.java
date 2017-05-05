@@ -56,9 +56,7 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
     private MultiSourceSelect analyze(String statement) {
         Analysis analysis = e.analyzer.boundAnalyze(
             SqlParser.createStatement(statement), SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
-        MultiSourceSelect mss = (MultiSourceSelect) ((SelectAnalyzedStatement) analysis.analyzedStatement()).relation();
-        ManyTableConsumer.replaceFieldsWithRelationColumns(mss);
-        return mss;
+        return (MultiSourceSelect) ((SelectAnalyzedStatement) analysis.analyzedStatement()).relation();
     }
 
     @Test
@@ -70,8 +68,8 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
         TwoTableJoin t1AndT2 = ((TwoTableJoin) root.left().relation());
 
-        assertThat(t1AndT2.joinPair().condition(), isSQL("(RELCOL(doc.t1, 0) = RELCOL(doc.t2, 0))"));
-        assertThat(root.joinPair().condition(), isSQL("(RELCOL(join.doc.t1.doc.t2, 3) = RELCOL(doc.t3, 0))"));
+        assertThat(t1AndT2.joinPair().condition(), isSQL("(doc.t1.a = doc.t2.b)"));
+        assertThat(root.joinPair().condition(), isSQL("(join.doc.t1.doc.t2.doc.t2['b'] = doc.t3.c)"));
     }
 
     @Test
@@ -82,7 +80,7 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
         TwoTableJoin left = (TwoTableJoin) root.left().relation();
 
-        assertThat(left.querySpec().where().query(), isSQL("(RELCOL(doc.t3, 0) = RELCOL(doc.t2, 0))"));
+        assertThat(left.querySpec().where().query(), isSQL("(doc.t3.c = doc.t2.b)"));
     }
 
     @Test
@@ -98,10 +96,7 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(root.joinPair().condition(), Matchers.anyOf(
             // order of the AND clauses is not deterministic, but both are okay as they're semantically the same
-            isSQL("((RELCOL(doc.t2, 0) = RELCOL(join.doc.t3.doc.t1, 0)) " +
-                  "AND (RELCOL(join.doc.t3.doc.t1, 2) = RELCOL(doc.t2, 0)))"),
-            isSQL("((RELCOL(join.doc.t3.doc.t1, 2) = RELCOL(doc.t2, 0)) " +
-                  "AND (RELCOL(doc.t2, 0) = RELCOL(join.doc.t3.doc.t1, 0)))")));
+            isSQL("((join.doc.t3.doc.t1.doc.t1['a'] = doc.t2.b) AND (doc.t2.b = join.doc.t3.doc.t1.doc.t3['c']))")));
     }
 
     @Test
@@ -110,7 +105,7 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
                                         "where t1.x = 1 or t2.y = 1 " +
                                         "order by t1.x + t1.x");
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
-        assertThat(root.querySpec().orderBy().get().orderBySymbols(), isSQL("add(RELCOL(doc.t1, 0), RELCOL(doc.t1, 0))"));
+        assertThat(root.querySpec().orderBy().get().orderBySymbols(), isSQL("add(doc.t1.x, doc.t1.x)"));
         assertThat(root.left().querySpec().orderBy().get().orderBySymbols(), isSQL("add(doc.t1.x, doc.t1.x)"));
     }
 
@@ -161,7 +156,7 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
         TwoTableJoin root = ManyTableConsumer.twoTableJoin(mss);
 
         assertThat(root.right().querySpec().orderBy().isPresent(), is(false));
-        assertThat(root.querySpec().orderBy().get(), isSQL("RELCOL(doc.t2, 0)"));
+        assertThat(root.querySpec().orderBy().get(), isSQL("doc.t2.b"));
     }
 
     @Test
@@ -174,10 +169,10 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
         TwoTableJoin t1AndT2 = ((TwoTableJoin) root.left().relation());
 
         assertThat(t1AndT2.right().querySpec().orderBy().isPresent(), is(false));
-        assertThat(t1AndT2.querySpec().orderBy().get(), isSQL("RELCOL(doc.t2, 0)"));
+        assertThat(t1AndT2.querySpec().orderBy().get(), isSQL("doc.t2.b"));
 
         assertThat(root.right().querySpec().orderBy().isPresent(), is(false));
-        assertThat(root.querySpec().orderBy().get(), isSQL("RELCOL(join.doc.t1.doc.t2, 3), RELCOL(doc.t3, 0)"));
+        assertThat(root.querySpec().orderBy().get(), isSQL("join.doc.t1.doc.t2.doc.t2['b'], doc.t3.c"));
     }
 
     @Test
@@ -189,7 +184,7 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
         // if Rewriter does not operate correctly on the joinPairs, t2 RelationColumn index would be 1 instead of 0
         // 2 outputs, t2.y + t2.b on t2 are rewritten to t2.b only because whereClause outputs must not be collected
         // so index for t2.b must be shifted
-        assertThat(root.joinPair().condition(), isSQL("(RELCOL(doc.t1, 0) = RELCOL(doc.t2, 0))"));
+        assertThat(root.joinPair().condition(), isSQL("(doc.t1.a = doc.t2.b)"));
     }
 
     @Test

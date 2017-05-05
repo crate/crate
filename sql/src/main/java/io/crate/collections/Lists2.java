@@ -72,7 +72,7 @@ public class Lists2 {
      * Create a copy of the given list with {@code replaceFunc} applied on each item.
      * Opposed to {@link java.util.stream.Stream#map(Function)} / {@link Collectors#toList()} this minimizes allocations.
      */
-    public static <T> List<T> copyAndReplace(List<T> list, Function<? super T, T> replaceFunc) {
+    public static <T> List<T> copyAndReplace(List<T> list, Function<? super T, ? extends T> replaceFunc) {
         List<T> copy = new ArrayList<T>(list.size());
         for (T item : list) {
             copy.add(replaceFunc.apply(item));
