@@ -20,6 +20,9 @@ Changes
 
 Fixes
 =====
+ 
+ - Improved the accuracy of results if arithmetic operators +,-,*,/ are used
+   in expressions that contain only float-type values.
 
  - Fixed validation so that ``SELECT DISTINCT`` can be used only if there
    is no ``GROUP BY`` present or if the set of ``GROUP BY`` expressions is
