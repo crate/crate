@@ -77,6 +77,11 @@ public class StreamerVisitor {
         }
 
         @Override
+        public Streamer<?>[] visitPrimaryKeyLookupPhase(PrimaryKeyLookupPhase phase, Void context) {
+            return DataTypes.getStreamers(phase.outputTypes());
+        }
+
+        @Override
         protected Streamer<?>[] visitExecutionPhase(ExecutionPhase node, Void context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Got unsupported ExecutionNode %s", node.getClass().getName()));
         }

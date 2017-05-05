@@ -150,4 +150,8 @@ public class TableIdent {
         out.writeString(schema);
         out.writeString(name);
     }
+
+    public static TableIdent fromStream(StreamInput in) throws IOException {
+        return new TableIdent(in);
+    }
 }

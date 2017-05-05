@@ -33,6 +33,7 @@ import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.ESGetStatementPlanner;
+import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.Map;
 
@@ -40,8 +41,8 @@ class SelectStatementPlanner {
 
     private final Visitor visitor;
 
-    SelectStatementPlanner(ConsumingPlanner consumingPlanner) {
-        visitor = new Visitor(consumingPlanner);
+    SelectStatementPlanner(ConsumingPlanner consumingPlanner, ClusterService clusterService) {
+        visitor = new Visitor(consumingPlanner, clusterService);
     }
 
     public Plan plan(SelectAnalyzedStatement statement, Planner.Context context) {
@@ -51,9 +52,11 @@ class SelectStatementPlanner {
     private static class Visitor extends AnalyzedRelationVisitor<Planner.Context, Plan> {
 
         private final ConsumingPlanner consumingPlanner;
+        private final ClusterService clusterService;
 
-        public Visitor(ConsumingPlanner consumingPlanner) {
+        public Visitor(ConsumingPlanner consumingPlanner, ClusterService clusterService) {
             this.consumingPlanner = consumingPlanner;
+            this.clusterService = clusterService;
         }
 
         private Plan invokeConsumingPlanner(AnalyzedRelation relation, Planner.Context context) {
@@ -82,10 +85,12 @@ class SelectStatementPlanner {
             if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
                 return invokeConsumingPlanner(table, context);
             }
-            if (querySpec.where().docKeys().isPresent() && !table.tableRelation().tableInfo().isAlias()) {
+            // TODO: Remove ESGetStatementPlanner and create new consumer for nested queries.
+            if (querySpec.where().docKeys().isPresent() &&
+                !table.tableRelation().tableInfo().isAlias()) {
                 SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
                 Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(table.querySpec());
-                return MultiPhasePlan.createIfNeeded(ESGetStatementPlanner.convert(table, context), subQueries);
+                return MultiPhasePlan.createIfNeeded(ESGetStatementPlanner.convert(table, context, clusterService), subQueries);
             }
             if (querySpec.where().hasVersions()) {
                 throw new VersionInvalidException();

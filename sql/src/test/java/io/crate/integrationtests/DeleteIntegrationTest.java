@@ -149,7 +149,6 @@ public class DeleteIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testDeleteToDeleteRequestByPlanner() throws Exception {
         this.setup.createTestTableWithPrimaryKey();
-
         execute("insert into test (pk_col, message) values ('123', 'bar')");
         assertEquals(1, response.rowCount());
         refresh();
