@@ -60,4 +60,9 @@ public class Fields {
     public List<Field> asList() {
         return fieldsList;
     }
+
+    @Override
+    public String toString() {
+        return "Fields{" + fieldsList + '}';
+    }
 }

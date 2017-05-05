@@ -847,7 +847,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         MultiSourceSelect relation = (MultiSourceSelect) analysis.relation();
         assertThat(relation.requiredForQuery(), isSQL(
-            "doc.users_multi_pk.id, doc.users_multi_pk.name, doc.users.name"));
+            "doc.users.name, doc.users_multi_pk.id, doc.users_multi_pk.name"));
     }
 
     @Test

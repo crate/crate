@@ -58,4 +58,9 @@ public class RemainingOrderBy {
     public OrderBy orderBy() {
         return orderBy;
     }
+
+    @Override
+    public String toString() {
+        return "RemainingOrderBy{" + orderBy + '}';
+    }
 }

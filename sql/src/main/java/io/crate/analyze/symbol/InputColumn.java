@@ -106,10 +106,7 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
 
     @Override
     public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("index", index)
-            .add("type", dataType)
-            .toString();
+        return "IC{" + index + ", " + dataType + '}';
     }
 
     @Override
