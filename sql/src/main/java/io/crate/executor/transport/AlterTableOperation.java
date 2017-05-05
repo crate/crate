@@ -33,6 +33,8 @@ import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
 import io.crate.exceptions.AlterTableAliasException;
+import io.crate.executor.transport.ddl.RenameTableRequest;
+import io.crate.executor.transport.ddl.RenameTableResponse;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
@@ -125,7 +127,7 @@ public class AlterTableOperation {
                 metaMap.put("_meta", innerMap);
                 if (analysis.openTable()) {
                     //Remove the mapping from the template.
-                    results.add(updateTemplate(Collections.EMPTY_MAP, metaMap, Settings.EMPTY, table.ident()));
+                    results.add(updateTemplate(Collections.emptyMap(), metaMap, Settings.EMPTY, table.ident()));
                 } else {
                     //Otherwise, add the mapping to the template.
                     results.add(updateTemplate(metaMap, Settings.EMPTY, table.ident()));
@@ -163,49 +165,6 @@ public class AlterTableOperation {
         return listener;
     }
 
-
-        private class ResultSetReceiver implements ResultReceiver {
-
-        private final AddColumnAnalyzedStatement analysis;
-        private final CompletableFuture<?> result;
-
-        private long count;
-
-        ResultSetReceiver(AddColumnAnalyzedStatement analysis, CompletableFuture<?> result) {
-            this.analysis = analysis;
-            this.result = result;
-        }
-
-        @Override
-        public void setNextRow(Row row) {
-            count = (long) row.get(0);
-        }
-
-        @Override
-        public void batchFinished() {
-        }
-
-        @Override
-        public void allFinished(boolean interrupted) {
-            if (count == 0L) {
-                addColumnToTable(analysis, result);
-            } else {
-                String columnFailure = analysis.newPrimaryKeys() ? "primary key" : "generated";
-                fail(new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "Cannot add a %s column to a table that isn't empty", columnFailure)));
-            }
-        }
-
-        @Override
-        public void fail(@Nonnull Throwable t) {
-            result.completeExceptionally(t);
-        }
-
-        @Override
-        public CompletableFuture<?> completionFuture() {
-            return result;
-        }
-    }
 
     public CompletableFuture<Long> executeAlterTable(AlterTableAnalyzedStatement analysis) {
         DocTableInfo table = analysis.table();
@@ -248,6 +207,49 @@ public class AlterTableOperation {
         return result;
     }
 
+    public CompletableFuture<Long> executeAlterTableRenameTable(AlterTableRenameAnalyzedStatement statement) {
+        DocTableInfo sourceTableInfo = statement.sourceTableInfo();
+        TableIdent sourceTableIdent = sourceTableInfo.ident();
+        TableIdent targetTableIdent = statement.targetTableIdent();
+
+        // FIXME: Check if a table was already closed. If so, leave out closeTable call, and don't open it after the rename
+        // FIXME: This must be done once the isClosed() information is available at the TableInfo
+        return closeTable(sourceTableInfo)
+            .thenCompose(r -> renameTable(sourceTableIdent, targetTableIdent))
+                .whenComplete((r, f) -> {
+                    TableIdent tableToOpen = targetTableIdent;
+                    if (f != null) {
+                        tableToOpen = sourceTableIdent;
+                    }
+                    openTable(tableToOpen).whenComplete((rr, ff) -> {
+                        if (f != null) {
+                            throw new RuntimeException(f);
+                        }
+                    });
+                });
+    }
+
+    private CompletableFuture<Long> renameTable(TableIdent sourceTableIdent, TableIdent targetTableIdent) {
+        RenameTableRequest request = new RenameTableRequest(sourceTableIdent, targetTableIdent);
+        FutureActionListener<RenameTableResponse, Long> listener = new FutureActionListener<>(r -> 0L);
+        transportActionProvider.transportRenameTableAction().execute(request, listener);
+        return listener;
+    }
+
+    private CompletableFuture<Long> closeTable(DocTableInfo tableInfo) {
+        CloseIndexRequest request = new CloseIndexRequest(tableInfo.concreteIndices());
+        FutureActionListener<CloseIndexResponse, Long> listener = new FutureActionListener<>(r -> 0L);
+        transportActionProvider.transportCloseIndexAction().execute(request, listener);
+        return listener;
+    }
+
+    private CompletableFuture<Long> openTable(TableIdent tableIdent) {
+        OpenIndexRequest request = new OpenIndexRequest(tableIdent.indexName());
+        FutureActionListener<OpenIndexResponse, Long> listener = new FutureActionListener<>(r -> 0L);
+        transportActionProvider.transportOpenIndexAction().execute(request, listener);
+        return listener;
+    }
+
     private CompletableFuture<Long> updateTemplate(TableParameter tableParameter, TableIdent tableIdent) {
         return updateTemplate(tableParameter.mappings(), tableParameter.settings(), tableIdent);
     }
@@ -255,7 +257,7 @@ public class AlterTableOperation {
     private CompletableFuture<Long> updateTemplate(Map<String, Object> newMappings,
                                                    Settings newSettings,
                                                    TableIdent tableIdent) {
-        return updateTemplate(newMappings, Collections.EMPTY_MAP, newSettings, tableIdent);
+        return updateTemplate(newMappings, Collections.emptyMap(), newSettings, tableIdent);
     }
 
     private CompletableFuture<Long> updateTemplate(Map<String, Object> newMappings,
@@ -285,8 +287,8 @@ public class AlterTableOperation {
             .mapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
             .order(indexTemplateMetaData.order())
             .settings(settingsBuilder.build())
-            .template(indexTemplateMetaData.template());
-
+            .template(indexTemplateMetaData.template())
+            .alias(new Alias(tableIdent.indexName()));
         for (ObjectObjectCursor<String, AliasMetaData> container : indexTemplateMetaData.aliases()) {
             Alias alias = new Alias(container.key);
             request.alias(alias);
@@ -442,5 +444,48 @@ public class AlterTableOperation {
             }
         }
         return true;
+    }
+
+    private class ResultSetReceiver implements ResultReceiver {
+
+        private final AddColumnAnalyzedStatement analysis;
+        private final CompletableFuture<?> result;
+
+        private long count;
+
+        ResultSetReceiver(AddColumnAnalyzedStatement analysis, CompletableFuture<?> result) {
+            this.analysis = analysis;
+            this.result = result;
+        }
+
+        @Override
+        public void setNextRow(Row row) {
+            count = (long) row.get(0);
+        }
+
+        @Override
+        public void batchFinished() {
+        }
+
+        @Override
+        public void allFinished(boolean interrupted) {
+            if (count == 0L) {
+                addColumnToTable(analysis, result);
+            } else {
+                String columnFailure = analysis.newPrimaryKeys() ? "primary key" : "generated";
+                fail(new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "Cannot add a %s column to a table that isn't empty", columnFailure)));
+            }
+        }
+
+        @Override
+        public void fail(@Nonnull Throwable t) {
+            result.completeExceptionally(t);
+        }
+
+        @Override
+        public CompletableFuture<?> completionFuture() {
+            return result;
+        }
     }
 }
