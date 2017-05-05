@@ -127,6 +127,11 @@ public class DDLStatementDispatcher {
         }
 
         @Override
+        public CompletableFuture<Long> visitAlterTableRenameStatement(AlterTableRenameAnalyzedStatement analysis, Row parameters) {
+            return alterTableOperation.executeAlterTableRenameTable(analysis);
+        }
+
+        @Override
         public CompletableFuture<Long> visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, Row parameters) {
             if (analysis.settings().getAsBoolean(OptimizeSettings.UPGRADE_SEGMENTS.name(),
                 OptimizeSettings.UPGRADE_SEGMENTS.defaultValue())) {
