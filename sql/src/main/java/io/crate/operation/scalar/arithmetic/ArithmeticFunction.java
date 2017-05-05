@@ -52,6 +52,14 @@ abstract class ArithmeticFunction extends Scalar<Number, Number> {
         return new FunctionInfo(new FunctionIdent(functionName, dataTypes), DataTypes.DOUBLE, FunctionInfo.Type.SCALAR, features);
     }
 
+    static FunctionInfo genFloatInfo(String functionName, List<DataType> dataTypes) {
+        return genFloatInfo(functionName, dataTypes, FunctionInfo.DETERMINISTIC_ONLY);
+    }
+
+    static FunctionInfo genFloatInfo(String functionName, List<DataType> dataTypes, Set<FunctionInfo.Feature> features) {
+        return new FunctionInfo(new FunctionIdent(functionName, dataTypes), DataTypes.FLOAT, FunctionInfo.Type.SCALAR, features);
+    }
+
     static FunctionInfo genLongInfo(String functionName, List<DataType> dataTypes) {
         return genLongInfo(functionName, dataTypes, FunctionInfo.DETERMINISTIC_ONLY);
     }
@@ -63,6 +71,15 @@ abstract class ArithmeticFunction extends Scalar<Number, Number> {
     static boolean containsTypesWithDecimal(List<DataType> dataTypes) {
         for (DataType dataType : dataTypes) {
             if (NUMERIC_WITH_DECIMAL.contains(dataType)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static boolean containsDouble(List<DataType> dataTypes) {
+        for (DataType dataType : dataTypes) {
+            if (dataType.equals(DataTypes.DOUBLE)) {
                 return true;
             }
         }

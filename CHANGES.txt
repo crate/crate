@@ -31,6 +31,9 @@ Changes
 Fixes
 =====
 
+ - Improved the accuracy of results if arithmetic operators +,-,*,/ are used
+   in expressions that contain only float-type values.
+
  - Removed ``psql.enabled`` and ``psql.port`` settings from ``sys.cluster``
    because they where wrongly exposed in this table.
 

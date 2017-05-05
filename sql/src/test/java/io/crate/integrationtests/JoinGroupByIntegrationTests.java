@@ -113,7 +113,7 @@ public class JoinGroupByIntegrationTests extends SQLTransportIntegrationTest {
 
         assertThat(
             TestingHelpers.printedTable(response.rows()),
-            is("banana| yellow| 20.640000019073486| banana| 2\n")
+            is("banana| yellow| 20.64| banana| 2\n")
         );
     }
 
@@ -131,7 +131,7 @@ public class JoinGroupByIntegrationTests extends SQLTransportIntegrationTest {
 
         assertThat(
             TestingHelpers.printedTable(response.rows()),
-            is("banana| yellow| 20.640000019073486| banana| 1\n")
+            is("banana| yellow| 20.64| banana| 1\n")
         );
     }
 
@@ -201,7 +201,7 @@ public class JoinGroupByIntegrationTests extends SQLTransportIntegrationTest {
 
         assertThat(
             TestingHelpers.printedTable(response.rows()),
-            is("banana| yellow| 20.640000019073486\n")
+            is("banana| yellow| 20.64\n")
         );
     }
 
@@ -219,8 +219,8 @@ public class JoinGroupByIntegrationTests extends SQLTransportIntegrationTest {
         assertThat(
             TestingHelpers.printedTable(new CollectionBucket(rows)),
             is("yellow| 5.0\n" +
-               "yellow| 8.00000011920929\n" +
-               "red| 18.99999976158142\n")
+               "yellow| 8.0\n" +
+               "red| 19.0\n")
         );
     }
 
@@ -238,8 +238,8 @@ public class JoinGroupByIntegrationTests extends SQLTransportIntegrationTest {
         assertThat(
             TestingHelpers.printedTable(new CollectionBucket(rows)),
             is("yellow| 5.0\n" +
-               "yellow| 8.00000011920929\n" +
-               "yellow| 18.99999976158142\n")
+               "yellow| 8.0\n" +
+               "yellow| 19.0\n")
         );
     }
 
@@ -255,8 +255,8 @@ public class JoinGroupByIntegrationTests extends SQLTransportIntegrationTest {
         assertThat(
             TestingHelpers.printedTable(response.rows()),
             is("yellow| 5.0\n" +
-               "yellow| 8.00000011920929\n" +
-               "yellow| 18.99999976158142\n")
+               "yellow| 8.0\n" +
+               "yellow| 19.0\n")
         );
     }
 }

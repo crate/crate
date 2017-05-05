@@ -71,6 +71,28 @@ public abstract class MultiplyFunction extends ArithmeticFunction implements Ope
         }
     }
 
+    private static class FloatMultiplyFunction extends SubtractFunction {
+
+        FloatMultiplyFunction(FunctionInfo info) {
+            super(info);
+        }
+
+        @Override
+        public Number evaluate(Input[] args) {
+            assert args.length == 2 : "number of args must be 2";
+            Object arg0Value = args[0].value();
+            Object arg1Value = args[1].value();
+
+            if (arg0Value == null) {
+                return null;
+            }
+            if (arg1Value == null) {
+                return null;
+            }
+            return ((Number) arg0Value).floatValue() * ((Number) arg1Value).floatValue();
+        }
+    }
+
     private static class LongMultiplyFunction extends MultiplyFunction {
 
         LongMultiplyFunction(FunctionInfo info) {
@@ -98,7 +120,10 @@ public abstract class MultiplyFunction extends ArithmeticFunction implements Ope
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             if (containsTypesWithDecimal(dataTypes)) {
-                return new DoubleMultiplyFunction(genDoubleInfo(NAME, dataTypes));
+                if (containsDouble(dataTypes)) {
+                    return new DoubleMultiplyFunction(genDoubleInfo(NAME, dataTypes));
+                }
+                return new FloatMultiplyFunction(genFloatInfo(NAME, dataTypes));
             }
             return new LongMultiplyFunction(genLongInfo(NAME, dataTypes));
         }

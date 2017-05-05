@@ -139,7 +139,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t1, t2");
 
         execute("select round(t1.price * t2.price) as total_price from t1, t2 order by total_price");
-        assertThat(printedTable(response.rows()), is("424\n574\n"));
+        assertThat(printedTable(response.rows()), is("425\n574\n"));
     }
 
     @Test
