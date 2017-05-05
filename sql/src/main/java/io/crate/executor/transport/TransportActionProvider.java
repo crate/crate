@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 import io.crate.action.job.TransportJobAction;
+import io.crate.executor.transport.ddl.TransportRenameTableAction;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
@@ -29,10 +30,12 @@ import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSn
 import org.elasticsearch.action.admin.cluster.snapshots.delete.TransportDeleteSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.get.TransportGetSnapshotsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshotAction;
+import org.elasticsearch.action.admin.indices.close.TransportCloseIndexAction;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
+import org.elasticsearch.action.admin.indices.open.TransportOpenIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
@@ -53,6 +56,9 @@ public class TransportActionProvider {
     private final Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider;
     private final Provider<TransportShardDeleteAction> transportShardDeleteActionProvider;
     private final Provider<TransportDeleteAction> transportDeleteActionProvider;
+    private final Provider<TransportRenameTableAction> transportRenameTableActionProvider;
+    private final Provider<TransportCloseIndexAction> transportCloseIndexActionProvider;
+    private final Provider<TransportOpenIndexAction> transportOpenIndexActionProvider;
 
     private final Provider<TransportGetAction> transportGetActionProvider;
     private final Provider<TransportMultiGetAction> transportMultiGetActionProvider;
@@ -79,6 +85,9 @@ public class TransportActionProvider {
                                    Provider<TransportClusterUpdateSettingsAction> transportClusterUpdateSettingsActionProvider,
                                    Provider<TransportShardDeleteAction> transportShardDeleteActionProvider,
                                    Provider<TransportDeleteAction> transportDeleteActionProvider,
+                                   Provider<TransportRenameTableAction> transportRenameTableActionProvider,
+                                   Provider<TransportCloseIndexAction> transportCloseIndexActionProvider,
+                                   Provider<TransportOpenIndexAction> transportOpenIndexActionProvider,
                                    Provider<TransportGetAction> transportGetActionProvider,
                                    Provider<TransportMultiGetAction> transportMultiGetActionProvider,
                                    Provider<TransportShardUpsertAction> transportShardUpsertActionProvider,
@@ -99,6 +108,9 @@ public class TransportActionProvider {
         this.transportClusterUpdateSettingsActionProvider = transportClusterUpdateSettingsActionProvider;
         this.transportShardDeleteActionProvider = transportShardDeleteActionProvider;
         this.transportDeleteActionProvider = transportDeleteActionProvider;
+        this.transportRenameTableActionProvider = transportRenameTableActionProvider;
+        this.transportCloseIndexActionProvider = transportCloseIndexActionProvider;
+        this.transportOpenIndexActionProvider = transportOpenIndexActionProvider;
         this.transportGetActionProvider = transportGetActionProvider;
         this.transportMultiGetActionProvider = transportMultiGetActionProvider;
         this.transportShardUpsertActionProvider = transportShardUpsertActionProvider;
@@ -141,6 +153,18 @@ public class TransportActionProvider {
 
     public TransportDeleteAction transportDeleteAction() {
         return transportDeleteActionProvider.get();
+    }
+
+    TransportRenameTableAction transportRenameTableAction() {
+        return transportRenameTableActionProvider.get();
+    }
+
+    TransportCloseIndexAction transportCloseIndexAction() {
+        return transportCloseIndexActionProvider.get();
+    }
+
+    TransportOpenIndexAction transportOpenIndexAction() {
+        return transportOpenIndexActionProvider.get();
     }
 
     public TransportGetAction transportGetAction() {
