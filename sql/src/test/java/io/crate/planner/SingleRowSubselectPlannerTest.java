@@ -23,7 +23,6 @@
 package io.crate.planner;
 
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -69,7 +68,7 @@ public class SingleRowSubselectPlannerTest extends CrateDummyClusterServiceUnitT
     @Test
     public void testSingleRowSubSelectAndDocKeysInWhereClause() throws Exception {
         MultiPhasePlan plan = e.plan("select (select 'foo' from sys.cluster) from users where id = 10");
-        assertThat(plan.rootPlan(), instanceOf(ESGet.class));
+        assertThat(plan.rootPlan(), instanceOf(Merge.class));
         assertThat(plan.dependencies().keySet(), contains(instanceOf(Collect.class)));
     }
 
