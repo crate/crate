@@ -54,3 +54,24 @@ And now a nested column named ``name`` is added to the ``obj_column``::
     | obj_column['name'] | string    |
     +--------------------+-----------+
     SELECT 3 rows in set (... sec)
+
+Closing and Opening Tables
+--------------------------
+
+A table can be closed by using ``ALTER TABLE`` with the ``CLOSE`` clause::
+
+    cr> alter table my_table1 close;
+    ALTER OK, -1 rows affected (... sec)
+
+Closing a table will cause all operations beside ``ALTER TABLE ... OPEN`` to fail.
+
+A table can be reopened again by using ``ALTER TABLE`` with the ``OPEN`` clause::
+
+    cr> alter table my_table1 open;
+    ALTER OK, -1 rows affected (... sec)
+
+.. note::
+
+    This setting is *not* the same as the :ref:`Blocks Settings <ref-configuration-blocks>`.
+    Closing and opening a table will preserve these settings if they are already
+    set.
