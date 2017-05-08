@@ -62,6 +62,8 @@ For more info about table creating syntax please refer to :ref:`ref-create-table
 
   Specifies the refresh interval of a shard in milliseconds.
 
+.. _ref-configuration-blocks:
+
 Blocks
 ------
 
