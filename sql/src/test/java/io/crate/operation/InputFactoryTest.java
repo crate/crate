@@ -27,9 +27,10 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
 import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.scalar.arithmetic.AddFunction;
+import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -74,7 +75,12 @@ public class InputFactoryTest extends CrateUnitTest {
         // select x, y * 2 ... group by x, y * 2
 
         // keys: [ in(0), in(1) + 10 ]
-        Function add = AddFunction.of(new InputColumn(1, DataTypes.INTEGER), Literal.of(10));
+        Function add = ArithmeticFunctions.of(
+            ArithmeticFunctions.Names.ADD,
+            new InputColumn(1, DataTypes.INTEGER),
+            Literal.of(10),
+            FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT
+        );
         List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), add);
 
         InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations();
@@ -104,7 +110,11 @@ public class InputFactoryTest extends CrateUnitTest {
         // select count(x), x, y * 2 ... group by x, y * 2
 
         // keys: [ in(0), in(1) + 10 ]
-        Function add = AddFunction.of(new InputColumn(1, DataTypes.INTEGER), Literal.of(10));
+        Function add = ArithmeticFunctions.of(
+            ArithmeticFunctions.Names.ADD,
+            new InputColumn(1, DataTypes.INTEGER),
+            Literal.of(10),
+            FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT);
         List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.LONG), add);
 
         Function countX = (Function) expressions.asSymbol("count(x)");

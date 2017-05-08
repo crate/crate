@@ -34,8 +34,8 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -874,7 +874,7 @@ public class InsertFromValuesAnalyzerTest extends CrateUnitTest {
         Symbol[] assignments = statement.onDuplicateKeyAssignments().get(0);
         assertThat(assignments.length, is(2));
         assertThat(assignments[0], isLiteral("Ar"));
-        assertThat(assignments[1], isFunction(AddFunction.NAME));
+        assertThat(assignments[1], isFunction(ArithmeticFunctions.Names.ADD));
         Function function = (Function) assignments[1];
         assertThat(function.arguments().get(0), isReference("other_id"));
     }

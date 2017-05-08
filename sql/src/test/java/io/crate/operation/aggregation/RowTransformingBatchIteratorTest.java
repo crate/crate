@@ -26,9 +26,10 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.metadata.FunctionInfo;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.scalar.arithmetic.AddFunction;
+import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchIteratorTester;
 import io.crate.testing.TestingBatchIterators;
@@ -56,7 +57,12 @@ public class RowTransformingBatchIteratorTest extends CrateUnitTest {
     public void createInputs() throws Exception {
         InputFactory inputFactory = new InputFactory(getFunctions());
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
-        inputs = Collections.singletonList(ctx.add(AddFunction.of(new InputColumn(0), Literal.of(2L))));
+        inputs = Collections.singletonList(ctx.add(ArithmeticFunctions.of(
+            ArithmeticFunctions.Names.ADD,
+            new InputColumn(0),
+            Literal.of(2L),
+            FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT
+        )));
         expressions = ctx.expressions();
     }
 

@@ -66,12 +66,7 @@ public class ScalarFunctionModule extends AbstractModule {
         MatchesFunction.register(this);
         ReplaceFunction.register(this);
 
-        AddFunction.register(this);
-        SubtractFunction.register(this);
-        MultiplyFunction.register(this);
-        DivideFunction.register(this);
-        ModulusFunction.register(this);
-        PowerFunction.register(this);
+        ArithmeticFunctions.register(this);
 
         DistanceFunction.register(this);
         WithinFunction.register(this);

@@ -32,10 +32,17 @@ import java.util.Locale;
 import java.util.Map;
 
 
-abstract class SingleArgumentArithmeticFunction extends ArithmeticFunction {
+abstract class SingleArgumentArithmeticFunction extends Scalar<Number, Number> {
+
+    protected FunctionInfo info;
 
     SingleArgumentArithmeticFunction(FunctionInfo info) {
-        super(info);
+        this.info = info;
+    }
+
+    @Override
+    public FunctionInfo info() {
+       return info;
     }
 
     static FunctionInfo generateFloatFunctionInfo(String name, List<DataType> dataTypes) {

@@ -33,7 +33,7 @@ public class AddFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testTimestampTypeValidation() throws Exception {
-        functions.get(new FunctionIdent(AddFunction.NAME,
+        functions.get(new FunctionIdent(ArithmeticFunctions.Names.ADD,
             Arrays.<DataType>asList(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP)));
     }
 }
