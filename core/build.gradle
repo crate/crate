@@ -33,13 +33,15 @@ task getVersion(dependsOn: 'classes') {
 
         if (gradle.taskGraph.hasTask(':app:release')) {
             assert gitTag == version, "Version mismatch gitTag: " + gitTag + " does not match crate version: " + version
-        } else if (gradle.taskGraph.hasTask(':app:nightly')) {
-            def date = new Date().format('yyyyMMddHHmm')
-            def shortHash = "git rev-parse --short HEAD".execute().in.text.trim()
-            ext.version = version.replace('-SNAPSHOT', '') + "-" + date + "-" + shortHash
-        } else if (!gradle.taskGraph.hasTask(':app:uploadArchives')) {
-            def shortHash = "git rev-parse --short HEAD".execute().in.text.trim()
-            ext.version = version + "-" + shortHash
+        } else {
+            ext.buildDate = new Date().format('yyyyMMddHHmm')
+            ext.buildShortHash = "git rev-parse --short HEAD".execute().in.text.trim()
+
+            if (gradle.taskGraph.hasTask(':app:nightly')) {
+                ext.version = version.replace('-SNAPSHOT', '') + "-" + ext.buildDate + "-" + ext.buildShortHash
+            } else if (!gradle.taskGraph.hasTask(':app:uploadArchives')) {
+                ext.version = version + "-" + ext.buildShortHash
+            }
         }
 
         logger.quiet("gitTag: " + gitTag)
