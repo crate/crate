@@ -44,6 +44,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Paging;
+import io.crate.operation.user.User;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.plugin.BlobPlugin;
@@ -486,7 +487,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      */
     SQLOperations.Session createSessionOnNode(String nodeName) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, nodeName);
-        return sqlOperations.createSession(null, null, Option.NONE, DEFAULT_SOFT_LIMIT);
+        return sqlOperations.createSession(
+            null, new User("crate", EnumSet.of(User.Role.SUPERUSER)), Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
     /**

@@ -20,7 +20,12 @@ package io.crate.operation.user;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.action.sql.Option;
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.CreateUserAnalyzedStatement;
+import io.crate.analyze.DropUserAnalyzedStatement;
+import io.crate.exceptions.UnauthorizedException;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.junit.Test;
 
 import java.util.Set;
@@ -29,7 +34,7 @@ import static io.crate.operation.user.UserManagerService.CRATE_USER;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 
-public class UserManagerServiceTest extends CrateUnitTest {
+public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNullAndEmptyMetaData() {
@@ -45,5 +50,37 @@ public class UserManagerServiceTest extends CrateUnitTest {
     public void testNewUser() {
         Set<User> users = UserManagerService.getUsers(new UsersMetaData(ImmutableList.of("arthur")));
         assertThat(users, containsInAnyOrder(new User("arthur", ImmutableSet.of()), CRATE_USER));
+    }
+
+    @Test
+    public void testCreateUserStatementCheckPermissionFalse() {
+        expectedException.expect(UnauthorizedException.class);
+        expectedException.expectMessage("User \"null\" is not authorized to execute statement");
+        UserManagerService userManagerService = new UserManagerService(null, null, clusterService);
+        userManagerService.ensureAuthorized(new CreateUserAnalyzedStatement(""),
+            new SessionContext(0, Option.NONE, "my_schema", null));
+    }
+
+    @Test
+    public void testCreateUserStatementCheckPermissionTrue() {
+        UserManagerService userManagerService = new UserManagerService(null, null, clusterService);
+        userManagerService.ensureAuthorized(new CreateUserAnalyzedStatement("bla"),
+            new SessionContext(0, Option.NONE, "my_schema", UserManagerService.CRATE_USER));
+    }
+
+    @Test
+    public void testDropUserStatementCheckPermissionFalse() {
+        expectedException.expect(UnauthorizedException.class);
+        expectedException.expectMessage("User \"null\" is not authorized to execute statement");
+        UserManagerService userManagerService = new UserManagerService(null, null, clusterService);
+        userManagerService.ensureAuthorized(new DropUserAnalyzedStatement("", false),
+            new SessionContext(0, Option.NONE, "my_schema", null));
+    }
+
+    @Test
+    public void testDropUserStatementCheckPermissionTrue() {
+        UserManagerService userManagerService = new UserManagerService(null, null, clusterService);
+        userManagerService.ensureAuthorized(new DropUserAnalyzedStatement("bla", false),
+            new SessionContext(0, Option.NONE, "my_schema", UserManagerService.CRATE_USER));
     }
 }

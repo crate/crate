@@ -58,13 +58,13 @@ public class SessionContext {
         return defaultSchema;
     }
 
+    public void setDefaultSchema(@Nullable String schema) {
+        defaultSchema = MoreObjects.firstNonNull(schema, Schemas.DEFAULT_SCHEMA_NAME);
+    }
+
     @Nullable
     public User user() {
         return user;
-    }
-
-    public void setDefaultSchema(@Nullable String schema) {
-        defaultSchema = MoreObjects.firstNonNull(schema, Schemas.DEFAULT_SCHEMA_NAME);
     }
 
     public int defaultLimit() {

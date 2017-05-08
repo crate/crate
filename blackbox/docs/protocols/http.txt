@@ -311,6 +311,8 @@ Currently the defined error codes are:
     ----- ---------------------------------------------------------------------
     4006  The used column alias is ambiguous.
     ----- ---------------------------------------------------------------------
+    4010  User is not authorized to perform the SQL statement.
+    ----- ---------------------------------------------------------------------
     4031  Only read operations are allowed on this node.
     ----- ---------------------------------------------------------------------
     4041  Unknown table.

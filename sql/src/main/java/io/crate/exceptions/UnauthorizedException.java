@@ -20,45 +20,16 @@
  * agreement.
  */
 
-package io.crate.operation.user;
+package io.crate.exceptions;
 
-import java.util.Objects;
-import java.util.Set;
+public class UnauthorizedException extends RuntimeException implements CrateException {
 
-public class User {
-
-    public enum Role {
-        SUPERUSER
-    }
-
-    private final Set<Role> roles;
-
-    private final String name;
-
-    public User(String name, Set<Role> roles) {
-        this.roles = roles;
-        this.name = name;
-    }
-
-    public Set<Role> roles() {
-        return roles;
-    }
-
-    public String name() {
-        return name;
+    public UnauthorizedException(String message)  {
+        super(message);
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        User that = (User)o;
-        return Objects.equals(name, that.name) &&
-               Objects.equals(roles, that.roles);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, roles);
+    public int errorCode() {
+        return 0;
     }
 }

@@ -21,12 +21,16 @@ package io.crate.operation.user;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.FutureActionListener;
 import org.elasticsearch.cluster.metadata.MetaData;
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.*;
+import io.crate.exceptions.UnauthorizedException;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.internal.Nullable;
 
 import java.util.EnumSet;
+import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -37,14 +41,14 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER));
 
-    private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
-
     static {
         MetaData.registerPrototype(TYPE, PROTO);
     }
 
     private final TransportCreateUserAction transportCreateUserAction;
     private final TransportDropUserAction transportDropUserAction;
+    private final PermissionVisitor permissionVisitor = new PermissionVisitor();
+    private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
 
     UserManagerService(TransportCreateUserAction transportCreateUserAction,
                        TransportDropUserAction transportDropUserAction,
@@ -83,10 +87,65 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     }
 
     @Override
+    public void ensureAuthorized(AnalyzedStatement analyzedStatement,
+                                 SessionContext sessionContext) {
+        permissionVisitor.process(analyzedStatement, sessionContext);
+    }
+
+    @Override
     public void clusterChanged(ClusterChangedEvent event) {
         if (!event.metaDataChanged()) {
             return;
         }
         users = getUsers(event.state().metaData().custom(UsersMetaData.TYPE));
+    }
+
+    private class PermissionVisitor extends AnalyzedStatementVisitor<SessionContext, Boolean> {
+
+        boolean isSuperUser(@Nullable User user){
+            return user != null && user.roles().contains(User.Role.SUPERUSER);
+        }
+
+        @Override
+        protected Boolean visitAnalyzedStatement(AnalyzedStatement analyzedStatement,
+                                                 SessionContext sessionContext) {
+            return true;
+        }
+
+        @Override
+        protected Boolean visitSelectStatement(SelectAnalyzedStatement analysis,
+                                               SessionContext sessionContext) {
+
+            QueriedTable queriedTable = (QueriedTable) analysis.relation();
+            if (queriedTable.tableRelation().tableInfo().ident().name().equals("users") &&
+                queriedTable.tableRelation().tableInfo().ident().schema().equals("sys") &&
+                !isSuperUser(sessionContext.user()))
+                {
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "User \"%s\" is not authorized to execute statement \"%s\"",
+                    sessionContext.user() == null ? null: sessionContext.user().name(), analysis));
+            }
+            return true;
+        }
+
+        @Override
+        protected Boolean visitCreateUserStatement(CreateUserAnalyzedStatement analysis,
+                                                   SessionContext sessionContext) {
+            if (!isSuperUser(sessionContext.user())){
+                throw new UnauthorizedException(String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute statement \"%s\"",
+                    sessionContext.user() == null ? null : sessionContext.user().name(), analysis));
+            }
+            return true;
+        }
+
+        @Override
+        protected Boolean visitDropUserStatement(DropUserAnalyzedStatement analysis,
+                                                 SessionContext sessionContext) {
+            if (!isSuperUser(sessionContext.user())){
+                throw new UnauthorizedException(String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute statement \"%s\"",
+                    sessionContext.user() == null ? null: sessionContext.user().name(), analysis));
+            }
+            return true;
+        }
     }
 }

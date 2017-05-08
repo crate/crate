@@ -22,6 +22,10 @@
 
 package io.crate.operation.user;
 
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.exceptions.UnauthorizedException;
+
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -43,4 +47,13 @@ public interface UserManager {
      * @return a future which returns the number of rows when the User is dropped
      */
     CompletableFuture<Long> dropUser(String userName, boolean ifExists);
+
+    /**
+     * checks if user is allowed to execute statement
+     * @param analysis          analysed statement
+     * @param sessionContext    current session context
+     * @throws UnauthorizedException if the user is not authorized to perform the statement
+     */
+    void ensureAuthorized(AnalyzedStatement analysis, SessionContext sessionContext);
+
 }

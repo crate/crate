@@ -127,6 +127,9 @@ public class SQLExceptions {
             if (e instanceof ValidationException) {
                 errorCode = 4000 + crateException.errorCode();
                 restStatus = RestStatus.BAD_REQUEST;
+            } else if (e instanceof UnauthorizedException){
+                errorCode = 4010 + crateException.errorCode();
+                restStatus = RestStatus.UNAUTHORIZED;
             } else if (e instanceof ReadOnlyException) {
                 errorCode = 4030 + crateException.errorCode();
                 restStatus = RestStatus.FORBIDDEN;
