@@ -22,6 +22,8 @@
 
 package io.crate.operation.user;
 
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.concurrent.CompletableFutures;
@@ -91,6 +93,11 @@ public class UserManagerProvider implements Provider<UserManager> {
             return CompletableFutures.failedFuture(
                 new UnsupportedFeatureException("DROP USER is only supported in enterprise version")
             );
+        }
+
+        @Override
+        public void checkPermission(AnalyzedStatement analysis, SessionContext sessionContext) {
+
         }
     }
 }

@@ -47,6 +47,7 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.udf.UserDefinedFunctionService;
+import io.crate.operation.user.UserManagerProvider;
 import io.crate.planner.TableStats;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -163,7 +164,14 @@ public class SQLExecutor {
                     ),
                     new ModulesBuilder().add(new RepositorySettingsModule())
                         .createInjector()
-                        .getInstance(RepositoryParamValidator.class)
+                        .getInstance(RepositoryParamValidator.class),
+                    new UserManagerProvider(null,
+                        null,
+                        clusterService,
+                        null,
+                        null ,
+                        null ,
+                        null)
                 ),
                 new Planner(
                     clusterService,

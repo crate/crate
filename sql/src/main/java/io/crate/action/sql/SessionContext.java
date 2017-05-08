@@ -42,7 +42,19 @@ public class SessionContext {
         this(0, Option.NONE, properties.getProperty("database"), properties.getProperty("user"));
     }
 
-    public SessionContext(int defaultLimit, Set<Option> options, @Nullable String defaultSchema, @Nullable String userName) {
+    public SessionContext(int defaultLimit,
+                          Set<Option> options,
+                          @Nullable String defaultSchema) {
+        this.defaultLimit = defaultLimit;
+        this.options = options;
+        this.userName = null;
+        setDefaultSchema(defaultSchema);
+    }
+
+    public SessionContext(int defaultLimit,
+                          Set<Option> options,
+                          @Nullable String defaultSchema,
+                          @Nullable String userName) {
         this.defaultLimit = defaultLimit;
         this.options = options;
         this.userName = userName;
@@ -57,13 +69,13 @@ public class SessionContext {
         return defaultSchema;
     }
 
+    public void setDefaultSchema(@Nullable String schema) {
+        defaultSchema = MoreObjects.firstNonNull(schema, Schemas.DEFAULT_SCHEMA_NAME);
+    }
+
     @Nullable
     public String userName() {
         return userName;
-    }
-
-    public void setDefaultSchema(@Nullable String schema) {
-        defaultSchema = MoreObjects.firstNonNull(schema, Schemas.DEFAULT_SCHEMA_NAME);
     }
 
     public int defaultLimit() {

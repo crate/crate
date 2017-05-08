@@ -29,6 +29,8 @@ import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
+import io.crate.operation.user.UserManager;
+import io.crate.operation.user.UserManagerProvider;
 import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -71,6 +73,7 @@ public class Analyzer {
     private final DropFunctionAnalyzer dropFunctionAnalyzer;
     private final CreateUserAnalyzer createUserAnalyzer;
     private final DropUserAnalyzer dropUserAnalyzer;
+    private final UserManager userManager;
 
     @Inject
     public Analyzer(Schemas schemas,
@@ -78,7 +81,8 @@ public class Analyzer {
                     ClusterService clusterService,
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
-                    RepositoryParamValidator repositoryParamValidator) {
+                    RepositoryParamValidator repositoryParamValidator,
+                    UserManagerProvider userManagerProvider) {
         NumberOfShards numberOfShards = new NumberOfShards(clusterService);
         this.relationAnalyzer = new RelationAnalyzer(clusterService, functions, schemas);
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
@@ -116,11 +120,13 @@ public class Analyzer {
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.createUserAnalyzer = new CreateUserAnalyzer();
         this.dropUserAnalyzer = new DropUserAnalyzer();
+        this.userManager = userManagerProvider.get();
     }
 
     public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
         Analysis analysis = new Analysis(sessionContext, parameterContext, ParamTypeHints.EMPTY);
         AnalyzedStatement analyzedStatement = analyzedStatement(statement, analysis);
+        userManager.checkPermission(analyzedStatement, sessionContext);
         analysis.analyzedStatement(analyzedStatement);
         return analysis;
     }
