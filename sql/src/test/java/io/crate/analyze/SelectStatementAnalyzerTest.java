@@ -46,7 +46,7 @@ import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.scalar.SubscriptFunction;
-import io.crate.operation.scalar.arithmetic.AddFunction;
+import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
@@ -1035,7 +1035,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testArithmeticPlus() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select load['1'] + load['5'] from sys.nodes");
-        assertThat(((Function) analysis.relation().querySpec().outputs().get(0)).info().ident().name(), is(AddFunction.NAME));
+        assertThat(((Function) analysis.relation().querySpec().outputs().get(0)).info().ident().name(), is(ArithmeticFunctions.Names.ADD));
     }
 
     @Test

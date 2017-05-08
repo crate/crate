@@ -85,6 +85,6 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     public void testExecutionErrorContainsStackTrace() throws Exception {
         CloseableHttpResponse resp = post("{\"stmt\": \"select 1 / 0\"}");
         String bodyAsString = EntityUtils.toString(resp.getEntity());
-        assertThat(bodyAsString, containsString("DivideFunction.java"));
+        assertThat(bodyAsString, containsString("ArithmeticFunctions.java"));
     }
 }

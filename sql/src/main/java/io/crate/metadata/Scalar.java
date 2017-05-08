@@ -24,6 +24,7 @@ package io.crate.metadata;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.format.OperatorFormatSpec;
 import io.crate.data.Input;
 
 import java.util.Collection;
@@ -49,6 +50,11 @@ import java.util.List;
  * @param <ReturnType> the class of the returned value
  */
 public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation {
+
+    public static <R, I> Scalar<R, I> withOperator(Scalar<R, I> func, String operator) {
+        return new OperatorScalar<>(func, operator);
+    }
+
 
     /**
      * Evaluate the function using the provided arguments
@@ -106,5 +112,30 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
         }
         //noinspection unchecked
         return Literal.of(function.info().returnType(), scalar.evaluate(inputs));
+    }
+
+    private static class OperatorScalar<R, I> extends Scalar<R, I> implements OperatorFormatSpec {
+        private final Scalar<R, I> func;
+        private final String operator;
+
+        OperatorScalar(Scalar<R, I> func, String operator) {
+            this.func = func;
+            this.operator = operator;
+        }
+
+        @Override
+        public FunctionInfo info() {
+            return func.info();
+        }
+
+        @Override
+        public R evaluate(Input<I>... args) {
+            return func.evaluate(args);
+        }
+
+        @Override
+        public String operator(Function function) {
+            return operator;
+        }
     }
 }
