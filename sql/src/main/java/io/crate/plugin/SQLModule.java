@@ -25,7 +25,6 @@ import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.action.sql.SQLOperations;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.operation.auth.AuthenticationProvider;
-import io.crate.operation.auth.UserServiceFactory;
 import io.crate.operation.udf.TransportCreateUserDefinedFunctionAction;
 import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.operation.udf.TransportDropUserDefinedFunctionAction;

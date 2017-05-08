@@ -22,8 +22,6 @@
 
 package io.crate.operation.auth;
 
-
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
 /**
@@ -37,6 +35,6 @@ public interface UserServiceFactory {
     /**
      * Return implementation of {@link Authentication} interface.
      */
-    Authentication authService(ClusterService clusterService, Settings settings);
+    Authentication authService(Settings settings);
 
 }

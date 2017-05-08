@@ -22,13 +22,12 @@
 
 package io.crate.operation.auth;
 
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 
 public class UserServiceFactoryImpl implements UserServiceFactory {
 
     @Override
-    public Authentication authService(ClusterService clusterService, Settings settings) {
-        return new AuthenticationService(clusterService, settings);
+    public Authentication authService(Settings settings) {
+        return new AuthenticationService(settings);
     }
 }

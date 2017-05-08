@@ -652,8 +652,8 @@ cluster settings can be changed at runtime using the
 
 .. _applying-cluster-settings:
 
-Applying Non-Runtime Cluster Wide Settings
-------------------------------------------
+Non-Runtime Cluster Wide Settings
+---------------------------------
 
 Cluster wide settings which cannot be changed at runtime need to be
 specified in the configuration of each node in the cluster.
@@ -663,10 +663,6 @@ specified in the configuration of each node in the cluster.
    Cluster settings specified via node configurations are required to
    be exactly the same on every node in the cluster for proper
    operation of the cluster.
-
-Such settings can be changed on a running cluster by first rolling out
-the new configuration to all nodes in the cluster and then restart one
-of the cluster nodes to apply the new configuration.
 
 
 .. _conf_collecting_stats:
@@ -1913,6 +1909,10 @@ Javascript Language
 Authentication
 ==============
 
+Authentication settings are node settings, which means that their values apply
+only to the node where they are applied and different nodes may have different
+authentication settings.
+
 .. _host_based_auth:
 
 Host Based Authentication
@@ -1926,7 +1926,7 @@ Host Based Authentication
   by default.
 
 HBA Entries
-...........
+~~~~~~~~~~~
 
 The ``auth.host_based.config.`` setting is a group setting that can have zero,
 one or multiple groups that are defined by their group key (``${order}``) and

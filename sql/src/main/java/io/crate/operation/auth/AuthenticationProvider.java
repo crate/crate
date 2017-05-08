@@ -26,7 +26,6 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SessionContext;
 import io.crate.protocols.postgres.Messages;
 import io.crate.settings.SharedSettings;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -72,13 +71,12 @@ public class AuthenticationProvider {
     };
 
     @Inject
-    public AuthenticationProvider(ClusterService clusterService,
-                                  Settings settings) {
+    public AuthenticationProvider(Settings settings) {
         if (!SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
             authService = NOOP_AUTH;
         } else {
             UserServiceFactory serviceFactory = getUserServiceFactory();
-            authService = serviceFactory == null ? NOOP_AUTH : serviceFactory.authService(clusterService, settings);
+            authService = serviceFactory == null ? NOOP_AUTH : serviceFactory.authService(settings);
         }
     }
 

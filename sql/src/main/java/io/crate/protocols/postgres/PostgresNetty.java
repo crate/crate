@@ -81,8 +81,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
     private final boolean enabled;
     private final String port;
+    private final AuthenticationProvider authProvider;
     private final Logger namedLogger;
-    private final Authentication authService;
 
     private ServerBootstrap bootstrap;
 
@@ -97,10 +97,10 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                          NetworkService networkService,
                          AuthenticationProvider authProvider) {
         super(settings);
-        authService = authProvider.authService();
         namedLogger = Loggers.getLogger("psql", settings);
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
+        this.authProvider = authProvider;
 
         enabled = PSQL_ENABLED_SETTING.setting().get(settings);
         port = PSQL_PORT_SETTING.setting().get(settings);
@@ -116,6 +116,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         if (!enabled) {
             return;
         }
+        Authentication authService = authProvider.authService();
         bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(
             Executors.newCachedThreadPool(daemonThreadFactory(settings, "postgres-netty-boss")),
             Executors.newCachedThreadPool(daemonThreadFactory(settings, "postgres-netty-worker"))

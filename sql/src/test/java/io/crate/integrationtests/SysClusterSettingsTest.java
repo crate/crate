@@ -186,13 +186,6 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testDefaultAuthenticationSettings() {
-        execute("select settings from sys.cluster");
-        assertSettingsDefault(SharedSettings.AUTH_HOST_BASED_ENABLED_SETTING);
-        assertSettingsDefault(SharedSettings.AUTH_HOST_BASED_CONFIG_SETTING);
-    }
-
-    @Test
     public void testReadChangedElasticsearchSetting() throws Exception {
         execute("set global transient indices.store.throttle.type = ?",
             new Object[]{StoreRateLimiting.Type.MERGE.toString()});

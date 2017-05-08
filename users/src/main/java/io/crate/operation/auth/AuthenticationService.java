@@ -21,7 +21,6 @@ package io.crate.operation.auth;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.crate.settings.SharedSettings;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.jboss.netty.handler.ipfilter.CIDR4;
@@ -59,21 +58,10 @@ public class AuthenticationService implements Authentication {
 
     private final Map<String, Supplier<AuthenticationMethod>> authMethodRegistry = new HashMap<>();
 
-    @Inject
-    AuthenticationService(ClusterService clusterService, Settings settings) {
+    AuthenticationService(Settings settings) {
         enabled = SharedSettings.AUTH_HOST_BASED_ENABLED_SETTING.setting().get(settings);
-        clusterService.getClusterSettings()
-            .addSettingsUpdateConsumer(SharedSettings.AUTH_HOST_BASED_ENABLED_SETTING.setting(), (s) -> { enabled = s; });
-
-        updateHbaConfig(SharedSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings));
-        clusterService.getClusterSettings()
-            .addSettingsUpdateConsumer(SharedSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting(), this::updateHbaConfig);
-
+        hbaConf = convertHbaSettingsToHbaConf(SharedSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings));
         registerAuthMethod(TrustAuthentication.NAME, TrustAuthentication::new);
-    }
-
-    private void updateHbaConfig(Settings hbaSetting) {
-        updateHbaConfig(convertHbaSettingsToHbaConf(hbaSetting));
     }
 
     void updateHbaConfig(Map<String, Map<String, String>> hbaMap) {
