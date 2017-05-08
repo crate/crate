@@ -35,10 +35,24 @@ public class SessionContext {
     private final int defaultLimit;
     private final Set<Option> options;
     private String defaultSchema;
+    private final String userName;
 
-    public SessionContext(int defaultLimit, Set<Option> options, @Nullable String defaultSchema ) {
+    public SessionContext(int defaultLimit,
+                          Set<Option> options,
+                          @Nullable String defaultSchema) {
         this.defaultLimit = defaultLimit;
         this.options = options;
+        this.userName = null;
+        setDefaultSchema(defaultSchema);
+    }
+
+    public SessionContext(int defaultLimit,
+                          Set<Option> options,
+                          @Nullable String defaultSchema,
+                          @Nullable String userName) {
+        this.defaultLimit = defaultLimit;
+        this.options = options;
+        this.userName = userName;
         setDefaultSchema(defaultSchema);
     }
 
@@ -52,6 +66,11 @@ public class SessionContext {
 
     public void setDefaultSchema(@Nullable String schema) {
         defaultSchema = MoreObjects.firstNonNull(schema, Schemas.DEFAULT_SCHEMA_NAME);
+    }
+
+    @Nullable
+    public String userName() {
+        return userName;
     }
 
     public int defaultLimit() {

@@ -93,6 +93,13 @@ public class SQLOperations {
         return new Session(executorProvider.get(), new SessionContext(defaultLimit, options, defaultSchema));
     }
 
+    public Session createSession(@Nullable String defaultSchema, Set<Option> options, int defaultLimit, String username) {
+        if (disabled) {
+            throw new NodeDisconnectedException(clusterService.localNode(), "sql");
+        }
+        return new Session(executorProvider.get(), new SessionContext(defaultLimit, options, defaultSchema, username));
+    }
+
     /**
      * Disable processing of new sql statements.
      * {@link io.crate.cluster.gracefulstop.DecommissioningService} must call this while before starting to decommission.

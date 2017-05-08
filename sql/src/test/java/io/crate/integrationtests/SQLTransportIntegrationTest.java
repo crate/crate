@@ -485,7 +485,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      */
     SQLOperations.Session createSessionOnNode(String nodeName) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, nodeName);
-        return sqlOperations.createSession(null, Option.NONE, DEFAULT_SOFT_LIMIT);
+        return sqlOperations.createSession(null, Option.NONE, DEFAULT_SOFT_LIMIT, "crate");
     }
 
     /**
@@ -501,5 +501,4 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
         return sqlOperations.createSession(defaultSchema, options, DEFAULT_SOFT_LIMIT);
     }
-
 }

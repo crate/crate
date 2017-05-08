@@ -22,6 +22,8 @@
 
 package io.crate.operation.user;
 
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
 
@@ -47,5 +49,12 @@ public interface UserManager {
      * @return a future which returns the number of rows when the User is dropped
      */
     CompletableFuture<Long> dropUser(DropUserAnalyzedStatement analysis);
+
+    /**
+     * checks if user is allowed to execute statement
+     * @param analysis          analysed statement
+     * @param sessionContext    current session context
+     */
+    void checkPermission(AnalyzedStatement analysis, SessionContext sessionContext);
 
 }
