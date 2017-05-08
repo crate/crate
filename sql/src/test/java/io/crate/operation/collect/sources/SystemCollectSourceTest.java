@@ -58,12 +58,12 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
 public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testOrderBySymbolsDoNotAppearTwiceInRows() throws Exception {
-        SystemCollectSource systemCollectSource = internalCluster().getInstance(SystemCollectSource.class);
+        SystemCollectSource systemCollectSource = internalCluster().getDataNodeInstance(SystemCollectSource.class);
 
         Reference shardId = new Reference(
             new ReferenceIdent(new TableIdent("sys", "shards"), "id"), RowGranularity.SHARD, DataTypes.INTEGER);
@@ -92,7 +92,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testReadIsolation() throws Exception {
-        SystemCollectSource systemCollectSource = internalCluster().getInstance(SystemCollectSource.class);
+        SystemCollectSource systemCollectSource = internalCluster().getDataNodeInstance(SystemCollectSource.class);
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             UUID.randomUUID(),
             1,

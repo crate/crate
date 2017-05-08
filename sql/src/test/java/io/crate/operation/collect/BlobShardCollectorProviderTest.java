@@ -45,7 +45,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
 
     private BlobShardCollectorProvider collectorProvider;
@@ -94,10 +94,10 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
         @Override
         public void run() {
             try {
-                ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+                ClusterService clusterService = internalCluster().getDataNodeInstance(ClusterService.class);
                 MetaData metaData = clusterService.state().getMetaData();
                 String indexUUID = metaData.index(".blob_b1").getIndexUUID();
-                BlobIndicesService blobIndicesService = internalCluster().getInstance(BlobIndicesService.class);
+                BlobIndicesService blobIndicesService = internalCluster().getDataNodeInstance(BlobIndicesService.class);
                 BlobShard blobShard = blobIndicesService.blobShard(new ShardId(".blob_b1", indexUUID, 0));
                 assertNotNull(blobShard);
                 collectorProvider = new BlobShardCollectorProvider(blobShard, null, null,
