@@ -526,6 +526,7 @@ The following settings can be used to adjust these timeouts:
   CrateDB will log a debug message if it takes more than the configured timespan
   to collect the *Old Gen* / *Tenured Gen* (heap).
 
+.. _es_api_setting:
 
 Elasticsearch HTTP REST API
 ---------------------------
