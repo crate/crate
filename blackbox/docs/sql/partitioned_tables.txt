@@ -438,6 +438,20 @@ done by using the ``ONLY`` keywword.
     cr> ALTER TABLE ONLY parted_table SET (number_of_replicas = 1);
     ALTER OK, -1 rows affected (... sec)
 
+Closing and Opening a Partition
+-------------------------------
+
+A single partition within a partitioned table can be opened and closed in the
+same way a normal table can.
+
+::
+
+    cr> ALTER TABLE parted_table PARTITION (day=1396915200000) CLOSE;
+    ALTER OK, -1 rows affected (... sec)
+
+This will all operations beside ``ALTER TABLE ... OPEN`` to fail on this partition.
+The partition will also not be included in any query on the partitioned table.
+
 Limitations
 ===========
 
