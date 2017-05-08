@@ -90,7 +90,10 @@ public class NodeSettingsTest extends RandomizedTest {
             .put("node.name", "node-test")
             .put("node.data", true)
             .put("path.home", createConfigPath())
-            .put();
+            // Avoid connecting to other test nodes
+            .put("network.publish_host", "127.0.0.111")
+            .put("discovery.type", "local")
+            .put("transport.type", "local");
 
         Terminal terminal = Terminal.DEFAULT;
         Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal, Collections.emptyMap());
