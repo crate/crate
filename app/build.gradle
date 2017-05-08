@@ -369,6 +369,9 @@ jar {
 
     doFirst {
         manifest.attributes 'Implementation-Version': project(':core').getVersion.version
+        // Needed by ES which validates those manifest attributes in Build class
+        manifest.attributes 'Build-Date': project(':core').getVersion.buildDate
+        manifest.attributes 'Change': project(':core').getVersion.buildShortHash
         project.version = project(':core').getVersion.version
         def serviceDir = file("$buildDir/META-INF/services")
         serviceDir.deleteDir()
