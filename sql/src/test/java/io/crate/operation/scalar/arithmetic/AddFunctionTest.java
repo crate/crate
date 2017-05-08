@@ -31,6 +31,6 @@ public class AddFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testTimestampTypeValidation() throws Exception {
-        functions.getBuiltin(AddFunction.NAME, Arrays.asList(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP));
+        functions.getBuiltin(ArithmeticFunctions.Names.ADD, Arrays.asList(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP));
     }
 }

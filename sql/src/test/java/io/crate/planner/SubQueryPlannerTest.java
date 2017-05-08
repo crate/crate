@@ -23,7 +23,7 @@
 package io.crate.planner;
 
 import io.crate.analyze.symbol.Function;
-import io.crate.operation.scalar.arithmetic.AddFunction;
+import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.PlanWithFetchDescription;
 import io.crate.planner.node.dql.QueryThenFetch;
@@ -166,6 +166,6 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         GroupProjection projection = (GroupProjection) projections.get(2);
         Function function = (Function) projection.keys().get(0);
 
-        assertEquals(AddFunction.NAME, function.info().ident().name());
+        assertEquals(ArithmeticFunctions.Names.ADD, function.info().ident().name());
     }
 }

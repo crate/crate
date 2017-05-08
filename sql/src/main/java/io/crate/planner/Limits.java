@@ -24,8 +24,9 @@ package io.crate.planner;
 
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.FunctionInfo;
 import io.crate.operation.projectors.TopN;
-import io.crate.operation.scalar.arithmetic.AddFunction;
+import io.crate.operation.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.operation.scalar.conditional.LeastFunction;
 
 import java.util.Arrays;
@@ -66,7 +67,12 @@ public class Limits {
     public static Optional<Symbol> mergeAdd(Optional<Symbol> s1, Optional<Symbol> s2) {
         if (s1.isPresent()) {
             if (s2.isPresent()) {
-                return Optional.of(AddFunction.of(s1.get(), s2.get()));
+                return Optional.of(ArithmeticFunctions.of(
+                    ArithmeticFunctions.Names.ADD,
+                    s1.get(),
+                    s2.get(),
+                    FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT
+                ));
             }
             return s1;
         }
