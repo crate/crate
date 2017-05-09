@@ -99,10 +99,6 @@ public class CrateSettings implements ClusterStateListener {
             UDCService.UDC_INITIAL_DELAY_SETTING,
             UDCService.UDC_INTERVAL_SETTING,
 
-            // PSQL
-            PostgresNetty.PSQL_ENABLED_SETTING,
-            PostgresNetty.PSQL_PORT_SETTING,
-
             // ENTERPRISE
             SharedSettings.ENTERPRISE_LICENSE_SETTING,
             SharedSettings.LICENSE_IDENT_SETTING

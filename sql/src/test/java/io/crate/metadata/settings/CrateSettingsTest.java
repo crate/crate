@@ -25,6 +25,7 @@ package io.crate.metadata.settings;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.collect.stats.JobsLogService;
 import io.crate.operation.reference.NestedObjectExpression;
+import io.crate.planner.TableStatsService;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.settings.CrateSetting;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -63,9 +64,10 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSettingsByNamePrefix() {
-        assertThat(CrateSettings.settingNamesByPrefix("psql"), containsInAnyOrder(
-            PostgresNetty.PSQL_ENABLED_SETTING.getKey(),
-            PostgresNetty.PSQL_PORT_SETTING.getKey()));
+        assertThat(CrateSettings.settingNamesByPrefix("stats.jobs_log"), containsInAnyOrder(
+            JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(),
+            JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey()
+            ));
     }
 
     @Test

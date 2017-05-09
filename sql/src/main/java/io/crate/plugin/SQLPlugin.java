@@ -98,12 +98,16 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
     @Override
     public List<Setting<?>> getSettings() {
-        // add our dynamic cluster settings
-        List<org.elasticsearch.common.settings.Setting<?>> settings = new ArrayList<>();
+        List<Setting<?>> settings = new ArrayList<>();
         settings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTING_GROUP);
         settings.add(SQLOperations.NODE_READ_ONLY_SETTING);
         settings.add(MonitorModule.NODE_INFO_EXTENDED_TYPE_SETTING);
 
+        // Postgres settings are node settings
+        settings.add(PostgresNetty.PSQL_ENABLED_SETTING.setting());
+        settings.add(PostgresNetty.PSQL_PORT_SETTING.setting());
+
+        // also add CrateSettings
         for (CrateSetting crateSetting : CrateSettings.CRATE_CLUSTER_SETTINGS) {
             settings.add(crateSetting.setting());
         }
