@@ -35,6 +35,7 @@ import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchGenerationException;
@@ -121,7 +122,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                              ShardUpsertRequest request,
                                                              AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
-        DocTableInfo tableInfo = schemas.getWritableTable(TableIdent.fromIndexName(request.index()));
+        DocTableInfo tableInfo = schemas.getTableInfo(
+            TableIdent.fromIndexName(request.index()), Operation.INSERT);
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.getShard(shardId.id());
 

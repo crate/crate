@@ -32,10 +32,10 @@ import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.udf.UserDefinedFunctionMetaData;
-import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.operation.udf.UserDefinedFunctionsMetaData;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -81,34 +81,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         this.defaultTemplateService = new DefaultTemplateService(settings, clusterService);
     }
 
-    public DocTableInfo getDroppableTable(TableIdent tableIdent) {
-        TableInfo tableInfo = getTableInfo(tableIdent);
-        if (!(tableInfo instanceof DocTableInfo)) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "The table %s is not dropable.", tableInfo.ident()));
-        }
-        DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
-        if (docTableInfo.isAlias() && !docTableInfo.isPartitioned() && !isOrphanedAlias(docTableInfo)) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "%s is an alias and hence not dropable.", tableInfo.ident()));
-        }
-        return docTableInfo;
-    }
-
-    public DocTableInfo getWritableTable(TableIdent tableIdent) {
-        TableInfo tableInfo = getTableInfo(tableIdent);
-        if (!(tableInfo instanceof DocTableInfo)) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "The table %s is read-only. Write, Drop or Alter operations are not supported", tableInfo.ident()));
-        }
-        DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
-        if (docTableInfo.isAlias() && !docTableInfo.isPartitioned()) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "%s is an alias. Write, Drop or Alter operations are not supported", tableInfo.ident()));
-        }
-        return docTableInfo;
-    }
-
     /**
      * @param ident the table ident to get a TableInfo for
      * @return an instance of TableInfo for the given ident, guaranteed to be not null
@@ -117,14 +89,30 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * @throws io.crate.exceptions.TableUnknownException  if table given in <code>ident</code> does
      *                                                    not exist in the given schema
      */
-    public TableInfo getTableInfo(TableIdent ident) {
+    public <T extends TableInfo> T getTableInfo(TableIdent ident) {
         SchemaInfo schemaInfo = getSchemaInfo(ident);
         TableInfo info;
         info = schemaInfo.getTableInfo(ident.name());
         if (info == null) {
             throw new TableUnknownException(ident);
         }
-        return info;
+        return (T) info;
+    }
+
+    /**
+     * @param ident the table ident to get a TableInfo for
+     * @param operation The opreation planned to be performed on the table
+     * @return an instance of TableInfo for the given ident, guaranteed to be not null and to support the operation
+     * required on it.
+     * @throws io.crate.exceptions.SchemaUnknownException if schema given in <code>ident</code>
+     *                                                    does not exist
+     * @throws io.crate.exceptions.TableUnknownException  if table given in <code>ident</code> does
+     *                                                    not exist in the given schema
+     */
+    public <T extends TableInfo> T getTableInfo(TableIdent ident, Operation operation) {
+        TableInfo tableInfo = getTableInfo(ident);
+        Operation.blockedRaiseException(tableInfo, operation);
+        return (T) tableInfo;
     }
 
     private SchemaInfo getSchemaInfo(TableIdent ident) {

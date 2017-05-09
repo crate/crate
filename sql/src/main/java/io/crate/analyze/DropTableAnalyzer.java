@@ -43,16 +43,13 @@ class DropTableAnalyzer {
         DocTableInfo tableInfo = null;
         boolean isNoop = false;
         try {
-            tableInfo = schemas.getDroppableTable(tableIdent);
+            tableInfo = schemas.getTableInfo(tableIdent, Operation.DROP);
         } catch (ResourceUnknownException e) {
             if (node.dropIfExists()) {
                 isNoop = true;
             } else {
                 throw e;
             }
-        }
-        if (!isNoop) {
-            Operation.blockedRaiseException(tableInfo, Operation.DROP);
         }
         return new DropTableAnalyzedStatement(tableInfo, isNoop, node.dropIfExists());
     }

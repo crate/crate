@@ -273,7 +273,8 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInsertIntoAliasTable() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("alias is an alias. Write, Drop or Alter operations are not supported");
+        expectedException.expectMessage("The relation \"doc.alias\" doesn't support or allow INSERT " +
+                                        "operations, as it is read-only.");
         e.analyze("insert into alias (bla) values ('blubb')");
     }
 

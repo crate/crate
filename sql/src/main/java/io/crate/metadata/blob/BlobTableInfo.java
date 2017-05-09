@@ -203,7 +203,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     @Override
     public Set<Operation> supportedOperations() {
-        return Operation.READ_ONLY;
+        return Operation.BLOB_OPERATIONS;
     }
 
     public String concreteIndex() {
