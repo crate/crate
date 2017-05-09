@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - Removed ``psql.enabled`` and ``psql.port`` settings from ``sys.cluster``
+   because they where wrongly exposed in this table.
+
  - Fixed `copy from` to be able to copy data into a partitioned table with a 
    generated column as both the primary key and the partitioned column.
 
