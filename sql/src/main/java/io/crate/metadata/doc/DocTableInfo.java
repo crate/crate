@@ -22,7 +22,6 @@
 package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Version;
 import io.crate.analyze.PartitionedTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
@@ -44,7 +43,6 @@ import org.elasticsearch.index.IndexNotFoundException;
 
 import javax.annotation.Nullable;
 import java.util.*;
-import java.util.stream.Stream;
 
 
 /**
@@ -195,9 +193,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     private GroupShardsIterator getShardIterators(WhereClause whereClause,
                                                   @Nullable String preference) throws IndexNotFoundException {
-        String[] routingIndices = Stream.of(concreteIndices).toArray(String[]::new);
+        String[] routingIndices;
         if (whereClause.partitions().size() > 0) {
             routingIndices = whereClause.partitions().toArray(new String[whereClause.partitions().size()]);
+        } else {
+            routingIndices = concreteIndices;
         }
         ClusterState state = clusterService.state();
 
@@ -216,13 +216,13 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     @Override
     public Routing getRouting(final WhereClause whereClause, @Nullable final String preference) {
-        final Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         GroupShardsIterator shardIterators;
         try {
             shardIterators = getShardIterators(whereClause, preference);
         } catch (IndexNotFoundException e) {
-            return new Routing(locations);
+            return new Routing(Collections.emptyMap());
         }
+        final Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         fillLocationsFromShardIterators(locations, shardIterators);
         return new Routing(locations);
     }
