@@ -75,3 +75,26 @@ A table can be reopened again by using ``ALTER TABLE`` with the ``OPEN`` clause:
     This setting is *not* the same as the :ref:`Blocks Settings <ref-configuration-blocks>`.
     Closing and opening a table will preserve these settings if they are already
     set.
+
+Renaming Tables
+---------------
+
+.. Hidden: CREATE TABLE::
+
+    cr> create table table_a (
+    ... id long
+    ... );
+    CREATE OK, 1 row affected (... sec)
+
+A table can be renamed by using ``ALTER TABLE`` with the ``RENAME TO`` clause::
+
+     cr> alter table table_a rename to table_b;
+     ALTER OK, -1 rows affected (... sec)
+
+During the rename operation the table will be closed, and all operations on the
+table will fail until the rename operation is completed.
+
+.. Hidden: DROP TABLE::
+
+    cr> drop table if exists table_b;
+    DROP OK, 1 row affected (... sec)
