@@ -19,6 +19,7 @@ Synopsis
         | ADD [ COLUMN ] column_name data_type [ column_constraint [ ... ] ]
         | OPEN
         | CLOSE
+        | RENAME TO table_ident
       }
 
 where ``column_constraint`` is::
@@ -47,6 +48,10 @@ Closing a table prevents all operations, except ``ALTER TABLE ... OPEN``, to
 fail. Operations on closed partitions will not produce an exception, but will have
 no effect. Similarly, like ``SELECT`` and ``INSERT`` on partitioned will exclude
 closed partitions and continue working.
+
+``RENAME TO`` can be used to rename a table, while maintaining its schema and data.
+During this operation the table will be closed, and all operations upon the table
+will fail until the rename operation is completed.
 
 Use the ``BLOB`` keyword in order to alter a blob table (see
 :ref:`blob_support`). Blob tables cannot have custom columns which means that
