@@ -205,7 +205,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 node.getOrderBy(),
                 expressionAnalyzer,
                 expressionAnalysisContext,
-                expressionAnalysisContext.hasAggregates || groupBy != null, isDistinct))
+                expressionAnalysisContext.hasAggregates || groupBy != null, node.getSelect().isDistinct()))
             .having(analyzeHaving(
                 node.getHaving(),
                 groupBy,

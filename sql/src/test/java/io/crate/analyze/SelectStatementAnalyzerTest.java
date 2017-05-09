@@ -573,6 +573,14 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testSelectDistinctWrongOrderBy() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("ORDER BY expression 'add(id, 10)' must appear in the " +
+                                        "select clause when SELECT DISTINCT is used");
+        analyze("select distinct id from users order by id + 10");
+    }
+
+    @Test
     public void testSelectGlobalDistinctAggregate() {
         SelectAnalyzedStatement distinctAnalysis = analyze("select distinct count(*) from users");
         assertFalse(distinctAnalysis.relation().querySpec().groupBy().isPresent());
