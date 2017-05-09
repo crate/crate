@@ -37,6 +37,7 @@ To gather good statistics about CrateDB usage, UDC collects this information:
     Java Version      The Java version crate is currently running with.
     Hardware Address  MAC address to uniquely identify instances behind firewalls.
     Enterprise        Identifies whether the Enterprise Edition is used.
+    License Ident     License Ident of the CrateDB Enterprise Edition.
     ================  =============================================================================
 
 After startup, UDC waits for 10 minutes before sending the first ping. It does

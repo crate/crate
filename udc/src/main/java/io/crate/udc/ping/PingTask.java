@@ -31,6 +31,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -59,6 +60,7 @@ public class PingTask extends TimerTask {
     private final ExtendedNodeInfo extendedNodeInfo;
     private final String pingUrl;
     private final Settings settings;
+    private String licenseIdent;
 
     private AtomicLong successCounter = new AtomicLong(0);
     private AtomicLong failCounter = new AtomicLong(0);
@@ -67,12 +69,15 @@ public class PingTask extends TimerTask {
                     ClusterIdService clusterIdService,
                     ExtendedNodeInfo extendedNodeInfo,
                     String pingUrl,
+                    ClusterSettings clusterSettings,
                     Settings settings) {
         this.clusterService = clusterService;
         this.clusterIdService = clusterIdService;
         this.extendedNodeInfo = extendedNodeInfo;
         this.pingUrl = pingUrl;
         this.settings = settings;
+        this.licenseIdent = SharedSettings.LICENSE_IDENT_SETTING.setting().get(settings);
+        clusterSettings.addSettingsUpdateConsumer(SharedSettings.LICENSE_IDENT_SETTING.setting(), this::setLicenseIdent);
     }
 
     @SuppressWarnings("unchecked")
@@ -100,6 +105,15 @@ public class PingTask extends TimerTask {
     @VisibleForTesting
     String isEnterprise() {
         return SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().getRaw(settings);
+    }
+
+    @VisibleForTesting
+    String getLicenseIdent() {
+        return licenseIdent;
+    }
+
+    private void setLicenseIdent(String licenseIdent) {
+        this.licenseIdent = licenseIdent;
     }
 
     private Map<String, Object> getCounters() {
@@ -137,6 +151,7 @@ public class PingTask extends TimerTask {
         queryMap.put("hardware_address", getHardwareAddress());
         queryMap.put("crate_version", getCrateVersion());
         queryMap.put("java_version", getJavaVersion());
+        queryMap.put("license_ident", getLicenseIdent());
 
         if (logger.isDebugEnabled()) {
             logger.debug("Sending data: {}", queryMap);
