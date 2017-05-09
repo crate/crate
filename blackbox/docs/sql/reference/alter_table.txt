@@ -17,8 +17,12 @@ Synopsis
       { SET ( parameter = value [ , ... ] )
         | RESET ( parameter [ , ... ] )
         | ADD [ COLUMN ] column_name data_type [ column_constraint [ ... ] ]
+<<<<<<< HEAD
         | OPEN
         | CLOSE
+=======
+        | RENAME TO table_ident
+>>>>>>> 05daa13... Added documentation for RENAME TO
       }
 
 where ``column_constraint`` is::
@@ -42,11 +46,17 @@ ALTER TABLE can be used to alter an existing table.
 While columns can be added at any time, adding a new
 :ref:`generated column <ref-generated-columns>` is only possible if the table is empty.
 
+<<<<<<< HEAD
 ``OPEN`` and ``CLOSE`` can be used to open or close the table, respectively.
 Closing a table prevents all operations, other than ``ALTER TABLE ... OPEN`` to
 fail. Closing a single partition within a partitioned table will also prevent all
 operations upon it. The partition will also not be included in any query on the
 partitioned table.
+=======
+``RENAME TO`` can be used to rename a table, while maintaining its schema and data.
+During this operation the table will be closed, and all operations upon the table
+will fail until the rename operation is completed.
+>>>>>>> 05daa13... Added documentation for RENAME TO
 
 Use the ``BLOB`` keyword in order to alter a blob table (see
 :ref:`blob_support`). Blob tables cannot have custom columns which means that
