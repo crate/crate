@@ -1,0 +1,74 @@
+.. _version_1.1.3:
+
+=============
+Version 1.1.3
+=============
+
+Released on 2017/05/09.
+
+.. NOTE::
+
+   If you are upgrading a cluster, you must be running CrateDB
+   :ref:`version_0.57.0` or higher before you upgrade to 1.1.3.
+
+   If you want to perform a :ref:`cluster_upgrade`, your current CrateDB
+   version number must be at least :ref:`version_1.1.1`. Any upgrade from a
+   version prior to this will require a full cluster restart.
+
+.. WARNING::
+
+   Before upgrading, you should `back up your data`_.
+
+.. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
+
+Fixes
+=====
+
+ - Admin UI improvements.
+
+ - Improved the accuracy of results if arithmetic operators +,-,*,/ are used
+   in expressions that contain only float-type values.
+
+ - Fixed ``COPY FROM`` to be able to copy data into a partitioned table with a
+   generated column as both the primary key and the partitioned column.
+
+ - Fixed a ``NullPointerException`` which occured when selecting
+   ``routing_hash_function`` or ``version`` columns from ``sys.shards`` for
+   blob tables.
+
+ - Fixed error thrown when applying filtering, ordering or limit on joins with
+   more than 2 tables.
+
+ - Fixed issue which lead to an object's column policy being changed to the
+   default ``DYNAMIC`` when adding a nested object column using the
+   ``ALTER TABLE`` statement.
+
+ - Fixed an issue with ``regexp_replace``: In some cases it used the third
+   argument as flags parameter instead of the fourth argument.
+
+ - Improved error message when trying to update an element of an array.
+
+ - Fixed a regression that lead to ``ArrayIndexOutOfBoundsException`` if a
+   ``JOIN`` query was made with a WHERE clause on partitioned columns.
+
+ - Fixed a ``NullPointerException`` which could occur if an attempt was made to
+   use ``match`` on two different relations within an explicit join condition.
+   This now raises a proper error stating that it's not supported.
+
+ - Wrong results were returned from queries with more than one level of nested
+   subselects.
+
+ - ``ORDER BY`` on joins caused incorrect order of values when having multiple
+   non-distinct values on the left part of the join. Now ``ORDER BY`` is
+   correctly applied.
+
+ - The usage of ``DISTINCT`` in a query with a ``GROUP BY`` was producing wrong
+   results and was changed to throw ``UnsupportedOperationException``. 
+   E.g.:
+
+       SELECT DISTINCT col1 FROM t1 GROUP BY col2, col1
+
+ - An error was thrown when using ``ORDER BY COUNT(*)`` on ``JOINS``. 
+   E.g.::
+
+       SELECT count(*) FROM t1, t2 ORDER BY 1

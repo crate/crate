@@ -31,23 +31,11 @@ Changes
 Fixes
 =====
 
- - Improved the accuracy of results if arithmetic operators +,-,*,/ are used
-   in expressions that contain only float-type values.
-
  - Removed ``psql.enabled`` and ``psql.port`` settings from ``sys.cluster``
    because they where wrongly exposed in this table.
 
- - Fixed `copy from` to be able to copy data into a partitioned table with a 
-   generated column as both the primary key and the partitioned column.
-
- - NullPointerException thrown when selecting ``routing_hash_function``
-   or ``version`` columns from sys.shards for blob tables.
-
  - Fixed an issue which caused failing `sys.snapshot` queries if the
    `data.path` of an existing fs repository was not configured anymore
-
- - Fixed error thrown when applying filtering, ordering or limit on
-   joins with more than 2 tables.
 
  - Use the region of the EC2 instance for EC2 discovery when neither
    ``cloud.aws.ec2.endpoint`` nor ``cloud.aws.region`` are specified or do not
@@ -55,36 +43,13 @@ Fixes
 
  - Use crate favicon instead of elasticsearch.
 
- - Fixed issue which lead to an object's column policy being changed to
-   the default DYNAMIC when adding a nested object column using the
-   `alter table` statement.
-
  - Fix: `sys.snapshot` queries hung instead of throwing an error if something
    went wrong.
-
- - Fixed an issue with `regexp_replace`: In some cases it used the third
-   argument as flags parameter instead of the fourth argument.
 
  - Fixed an issue which lead to brief unavailability of already registered
    functions after a function was created or dropped in the same schema.
 
- - Improved error message when trying to update an element of an array.
-
- - Fixed a regression that lead to `ArrayIndexOutOfBoundsException` if a JOIN
-   query was made with a WHERE clause on partitioned columns.
-
- - Fixed a NullPointerException which could occur if an attempt was made to use
-   `match` on two different relations within an explicit join condition.
-   This now raises a proper error stating that it's not supported.
-
- - Wrong results were returned from queries with more than one level
-   of nested subselects.
-
  - Fix: Appearance of NPE during startup of crate
-
- - ``ORDER BY`` on joins caused incorrect order of values when having multiple
-   non-distinct values on the left part of the join. Now ``ORDER BY`` is
-   correctly applied.
 
  - Fix: Log4j would yield a "No log4j2 configuration file found" error when
    shutting down crate ungracefully (via kill signal)
