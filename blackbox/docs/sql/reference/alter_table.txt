@@ -17,6 +17,7 @@ Synopsis
       { SET ( parameter = value [ , ... ] )
         | RESET ( parameter [ , ... ] )
         | ADD [ COLUMN ] column_name data_type [ column_constraint [ ... ] ]
+        | RENAME TO table_ident
       }
 
 where ``column_constraint`` is::
@@ -39,6 +40,10 @@ ALTER TABLE can be used to alter an existing table.
 
 While columns can be added at any time, adding a new
 :ref:`generated column <ref-generated-columns>` is only possible if the table is empty.
+
+``RENAME TO`` can be used to rename a table, while maintaining its schema and data.
+During this operation the table will be closed, and all operations upon the table
+will fail until the rename operation is completed.
 
 Use the ``BLOB`` keyword in order to alter a blob table (see
 :ref:`blob_support`). Blob tables cannot have custom columns which means that

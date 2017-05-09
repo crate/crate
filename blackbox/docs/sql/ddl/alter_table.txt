@@ -54,3 +54,14 @@ And now a nested column named ``name`` is added to the ``obj_column``::
     | obj_column['name'] | string    |
     +--------------------+-----------+
     SELECT 3 rows in set (... sec)
+
+Renaming Tables
+---------------
+
+A table can be renamed by using ``ALTER TABLE`` with the ``RENAME TO`` clause::
+
+     cr> alter table my_table1 rename to my_table2;
+     ALTER OK, -1 rows affected (... sec)
+
+During the rename operation the table will be closed, and all operations on the
+table will fail until the rename operation is completed.
