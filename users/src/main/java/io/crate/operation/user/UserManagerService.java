@@ -63,7 +63,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     @Override
     public CompletableFuture<Long> dropUser(DropUserAnalyzedStatement analysis) {
-        FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> 1L);
+        FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(WriteUserResponse::affectedRows);
         transportDropUserAction.execute(new DropUserRequest(analysis.userName(), analysis.ifExists()), listener);
         return listener;
     }
