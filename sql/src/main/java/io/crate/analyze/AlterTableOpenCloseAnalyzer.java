@@ -28,6 +28,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterTableOpenClose;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Table;
@@ -45,7 +46,8 @@ class AlterTableOpenCloseAnalyzer {
 
     public AlterTableOpenCloseAnalyzedStatement analyze(AlterTableOpenClose node, String defaultSchema) {
         Table table = node.table();
-        DocTableInfo tableInfo = schemas.getOpenableOrClosableTable(TableIdent.of(table, defaultSchema));
+        DocTableInfo tableInfo = schemas.getTableInfo(TableIdent.of(table, defaultSchema),
+            Operation.ALTER_OPEN_CLOSE);
         PartitionName partitionName = null;
         if (tableInfo.isPartitioned()) {
             partitionName = AlterTableAnalyzer.getPartitionName(table.partitionProperties(), tableInfo, null);

@@ -125,7 +125,7 @@ public class DocIndexMetaData {
         IndexMetaData.State state = isClosed(metaData, mappingMap, !partitionedByList.isEmpty()) ?
             IndexMetaData.State.CLOSE : IndexMetaData.State.OPEN;
         if (isAlias && partitionedByList.isEmpty()) {
-            supportedOperations = Operation.READ_ONLY;
+            supportedOperations = Operation.SYS_READ_ONLY;
         } else {
             supportedOperations = Operation.buildFromIndexSettingsAndState(metaData.getSettings(), state);
         }

@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Table;
 
 import javax.annotation.Nullable;
@@ -38,10 +38,8 @@ class ShowCreateTableAnalyzer {
     }
 
     public ShowCreateTableAnalyzedStatement analyze(Table table, String defaultSchema) {
-        TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(table, defaultSchema));
-        if (!(tableInfo instanceof DocTableInfo)) {
-            throw new UnsupportedOperationException("Table must be a doc table");
-        }
-        return new ShowCreateTableAnalyzedStatement((DocTableInfo) tableInfo);
+        DocTableInfo tableInfo = schemas.getTableInfo(
+            TableIdent.of(table, defaultSchema), Operation.SHOW_CREATE);
+        return new ShowCreateTableAnalyzedStatement(tableInfo);
     }
 }

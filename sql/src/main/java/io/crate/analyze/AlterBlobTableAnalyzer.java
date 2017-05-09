@@ -41,7 +41,7 @@ class AlterBlobTableAnalyzer {
     public AlterBlobTableAnalyzedStatement analyze(AlterBlobTable node, Row parameters) {
         TableIdent tableIdent = tableToIdent(node.table());
         assert BlobSchemaInfo.NAME.equals(tableIdent.schema()) : "schema name must be 'blob'";
-        BlobTableInfo tableInfo = (BlobTableInfo) schemas.getTableInfo(tableIdent);
+        BlobTableInfo tableInfo = schemas.getTableInfo(tableIdent);
 
         TableParameter tableParameter = new TableParameter();
         if (node.genericProperties().isPresent()) {

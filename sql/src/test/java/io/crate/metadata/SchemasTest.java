@@ -78,25 +78,25 @@ public class SchemasTest {
     @Test
     public void testSystemSchemaIsNotWritable() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("The table foo.bar is read-only. " +
-                                        "Only READ operations are supported.");
+        expectedException.expectMessage("The relation \"foo.bar\" doesn't support or allow INSERT " +
+                                        "operations, as it is read-only.");
 
         TableIdent tableIdent = new TableIdent("foo", "bar");
         SchemaInfo schemaInfo = mock(SchemaInfo.class);
         TableInfo tableInfo = mock(TableInfo.class);
         when(tableInfo.ident()).thenReturn(tableIdent);
-        when(tableInfo.supportedOperations()).thenReturn(Operation.READ_ONLY);
+        when(tableInfo.supportedOperations()).thenReturn(Operation.SYS_READ_ONLY);
         when(schemaInfo.getTableInfo(tableIdent.name())).thenReturn(tableInfo);
         when(schemaInfo.name()).thenReturn(tableIdent.schema());
 
         Schemas schemas = getReferenceInfos(schemaInfo);
-        schemas.getWritableTable(tableIdent);
+        schemas.getTableInfo(tableIdent, Operation.INSERT);
     }
 
     @Test
     public void testTableAliasIsNotWritable() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("foo.bar is an alias. Only READ operations are supported.");
+        expectedException.expectMessage("The relation \"foo.bar\" doesn't support or allow INSERT operations.");
 
         TableIdent tableIdent = new TableIdent("foo", "bar");
         SchemaInfo schemaInfo = mock(SchemaInfo.class);
@@ -108,7 +108,7 @@ public class SchemasTest {
 
 
         Schemas schemas = getReferenceInfos(schemaInfo);
-        schemas.getWritableTable(tableIdent);
+        schemas.getTableInfo(tableIdent, Operation.INSERT);
     }
 
     @Test

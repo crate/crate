@@ -80,10 +80,9 @@ class CopyAnalyzer {
     }
 
     CopyFromAnalyzedStatement convertCopyFrom(CopyFrom node, Analysis analysis) {
-        DocTableInfo tableInfo = schemas.getWritableTable(
-            TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()));
+        DocTableInfo tableInfo = schemas.getTableInfo(
+            TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()), Operation.INSERT);
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
-        Operation.blockedRaiseException(tableInfo, Operation.INSERT);
 
         String partitionIdent = null;
         if (!node.table().partitionProperties().isEmpty()) {
@@ -153,11 +152,7 @@ class CopyAnalyzer {
         }
 
         TableInfo tableInfo = schemas.getTableInfo(
-            TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()));
-        if (!(tableInfo instanceof DocTableInfo)) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "Cannot COPY %s TO. COPY TO only supports user tables", tableInfo.ident()));
-        }
+            TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()), Operation.COPY_TO);
         Operation.blockedRaiseException(tableInfo, Operation.READ);
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 

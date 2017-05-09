@@ -25,6 +25,7 @@ import io.crate.jobs.JobContextService;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.ArrayType;
@@ -141,7 +142,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         DocTableInfo tableInfo = mock(DocTableInfo.class);
         Schemas schemas = mock(Schemas.class);
         when(tableInfo.columns()).thenReturn(Collections.<Reference>emptyList());
-        when(schemas.getWritableTable(any(TableIdent.class))).thenReturn(tableInfo);
+        when(schemas.getTableInfo(any(TableIdent.class), eq(Operation.INSERT))).thenReturn(tableInfo);
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
             Settings.EMPTY,

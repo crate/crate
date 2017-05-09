@@ -65,14 +65,16 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropSystemTable() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("The relation \"sys.cluster\" doesn't support or allow DROP operations.");
+        expectedException.expectMessage("The relation \"sys.cluster\" doesn't support or allow DROP " +
+                                        "operations, as it is read-only.");
         e.analyze("drop table sys.cluster");
     }
 
     @Test
     public void testDropInformationSchemaTable() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("The relation \"information_schema.tables\" doesn't support or allow DROP operations.");
+        expectedException.expectMessage("The relation \"information_schema.tables\" doesn't support or allow " +
+                                        "DROP operations, as it is read-only.");
         e.analyze("drop table information_schema.tables");
     }
 
@@ -119,14 +121,16 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropAliasFails() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("doc.alias_table is an alias and hence not dropable.");
+        expectedException.expectMessage("The relation \"doc.alias_table\" doesn't support or allow DROP " +
+                                        "operations, as it is read-only.");
         e.analyze("drop table alias_table");
     }
 
     @Test
     public void testDropAliasIfExists() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("doc.alias_table is an alias and hence not dropable.");
+        expectedException.expectMessage("The relation \"doc.alias_table\" doesn't support or allow DROP " +
+                                        "operations, as it is read-only.");
         e.analyze("drop table if exists alias_table");
     }
 }
