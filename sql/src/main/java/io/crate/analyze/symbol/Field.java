@@ -28,6 +28,7 @@ import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class Field extends Symbol implements Path {
 
@@ -83,7 +84,7 @@ public class Field extends Symbol implements Path {
 
         Field that = (Field) o;
 
-        if (relation != that.relation) return false;
+        if (!relation.equals(that.relation)) return false;
         if (!path.equals(that.path)) return false;
         if (!valueType.equals(that.valueType)) return false;
 
@@ -92,7 +93,7 @@ public class Field extends Symbol implements Path {
 
     @Override
     public int hashCode() {
-        int result = relation.hashCode();
+        int result = Objects.hashCode(relation.getQualifiedName());
         result = 31 * result + path.hashCode();
         result = 31 * result + valueType.hashCode();
         return result;
