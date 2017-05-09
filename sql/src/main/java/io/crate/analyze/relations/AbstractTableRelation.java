@@ -194,13 +194,16 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         AbstractTableRelation that = (AbstractTableRelation) o;
 
         if (!tableInfo.equals(that.tableInfo)) return false;
+        if (!qualifiedName.equals(that.qualifiedName)) return false;
 
         return true;
     }
 
     @Override
     public int hashCode() {
-        return tableInfo.hashCode();
+        int result = tableInfo.hashCode();
+        result = 31 * result + qualifiedName.hashCode();
+        return result;
     }
 
     @Override

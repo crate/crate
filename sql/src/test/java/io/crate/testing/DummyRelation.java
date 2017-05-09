@@ -42,6 +42,7 @@ import java.util.Set;
 public class DummyRelation implements AnalyzedRelation {
 
     private final Set<ColumnIdent> columnReferences = new HashSet<>();
+    private QualifiedName name = new QualifiedName("dummy");
 
     public DummyRelation(String... referenceNames) {
         for (String referenceName : referenceNames) {
@@ -69,11 +70,11 @@ public class DummyRelation implements AnalyzedRelation {
 
     @Override
     public QualifiedName getQualifiedName() {
-        throw new UnsupportedOperationException("method not supported");
+        return name;
     }
 
     @Override
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
-        throw new UnsupportedOperationException("method not supported");
+        this.name = qualifiedName;
     }
 }

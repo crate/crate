@@ -92,7 +92,7 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         DeleteAnalyzedStatement expectedStatement = e.analyze("delete from users where name='Trillian'");
         DeleteAnalyzedStatement actualStatement = e.analyze("delete from users as u where u.name='Trillian'");
 
-        assertThat(actualStatement.analyzedRelation, equalTo(expectedStatement.analyzedRelation()));
+        assertThat(actualStatement.analyzedRelation.tableInfo(), equalTo(expectedStatement.analyzedRelation().tableInfo()));
         assertThat(actualStatement.whereClauses().get(0), equalTo(expectedStatement.whereClauses().get(0)));
     }
 
