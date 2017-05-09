@@ -21,6 +21,9 @@ Breaking Changes
 Changes
 =======
 
+ - Added full support for ``DISTINCT`` on queries where ``GROUP BY``
+   is present.
+
  - UDC pings will send ``licence.ident`` if defined from now on.
 
  - Added support for host based authentication (HBA) via the Postgres Wire

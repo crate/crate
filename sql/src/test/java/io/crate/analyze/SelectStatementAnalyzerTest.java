@@ -25,6 +25,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.AmbiguousColumnAliasException;
@@ -573,13 +575,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testSelectDistinctWithGroupBy() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot use DISTINCT when GROUP BY is used");
-        analyze("select distinct name from users group by id, name");
-    }
-
-    @Test
     public void testSelectDistinctWithGroupBySameFieldsSameOrder() {
         SelectAnalyzedStatement distinctAnalysis = analyze("select distinct id, name from users group by id, name");
         SelectAnalyzedStatement groupByAnalysis = analyze("select id, name from users group by id, name");
@@ -602,6 +597,66 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("ORDER BY expression 'add(id, 10)' must appear in the " +
                                         "select clause when SELECT DISTINCT is used");
         analyze("select distinct id from users order by id + 10");
+    }
+
+    @Test
+    public void testSelectDistinctWithGroupBy() {
+        SelectAnalyzedStatement analysis = analyze("select distinct max(id) from users group by name order by 1");
+        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
+        assertThat(analysis.relation().querySpec(),
+                   isSQL("SELECT doc.users.max(id) GROUP BY doc.users.max(id) ORDER BY doc.users.max(id)"));
+        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
+        assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
+        assertThat(outerRelation.subRelation().querySpec(),
+                   isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name ORDER BY max(doc.users.id)"));
+    }
+
+    @Test
+    public void testSelectDistinctWithGroupByOnJoin() {
+        SelectAnalyzedStatement analysis =
+            analyze("select DISTINCT max(users.id) from users " +
+                    "  inner join users_multi_pk on users.id = users_multi_pk.id " +
+                    "group by users.name order by 1 limit 10");
+        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
+        assertThat(analysis.relation().querySpec(),
+                   isSQL("SELECT io.crate.analyze.MultiSourceSelect.max(id) " +
+                         "GROUP BY io.crate.analyze.MultiSourceSelect.max(id) " +
+                         "ORDER BY io.crate.analyze.MultiSourceSelect.max(id)"));
+        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
+        assertThat(outerRelation.subRelation(), instanceOf(MultiSourceSelect.class));
+        assertThat(outerRelation.subRelation().querySpec(),
+                   isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name ORDER BY max(doc.users.id) LIMIT 10"));
+    }
+
+    @Test
+    public void testSelectDistinctWithGroupByOnSubSelectOuter() {
+        SelectAnalyzedStatement analysis = analyze("select distinct max(id) from (" +
+                                                   "  select * from users order by name limit 10" +
+                                                   ") t group by name order by 1");
+        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
+        assertThat(analysis.relation().querySpec(),
+                   isSQL("SELECT io.crate.analyze.QueriedSelectRelation.max(id) " +
+                         "GROUP BY io.crate.analyze.QueriedSelectRelation.max(id) " +
+                         "ORDER BY io.crate.analyze.QueriedSelectRelation.max(id)"));
+        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
+        assertThat(outerRelation.subRelation(), instanceOf(QueriedSelectRelation.class));
+        assertThat(outerRelation.subRelation().querySpec(),
+                   isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name ORDER BY max(doc.users.id)"));
+    }
+
+    @Test
+    public void testSelectDistinctWithGroupByOnSubSelectInner() {
+        SelectAnalyzedStatement analysis =
+            analyze("select * from (" +
+                    "  select distinct id from users group by id, name order by 1 limit 5" +
+                    ") t order by 1 desc");
+        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
+        assertThat(analysis.relation().querySpec(),
+                   isSQL("SELECT doc.users.id GROUP BY doc.users.id ORDER BY doc.users.id DESC"));
+        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
+        assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
+        assertThat(outerRelation.subRelation().querySpec(),
+                   isSQL("SELECT doc.users.id GROUP BY doc.users.id, doc.users.name ORDER BY doc.users.id LIMIT 5"));
     }
 
     @Test

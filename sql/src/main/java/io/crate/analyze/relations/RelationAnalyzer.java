@@ -31,10 +31,8 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
-import io.crate.analyze.symbol.Aggregations;
-import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
@@ -188,10 +186,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates) {
             ensureNonAggregatesInGroupBy(selectAnalysis.outputSymbols(), selectAnalysis.outputNames(), groupBy);
         }
+
+        boolean distinctProcessed = false;
+        boolean isDistinct = node.getSelect().isDistinct();
         if (node.getSelect().isDistinct()) {
             List<Symbol> newGroupBy = rewriteGlobalDistinct(selectAnalysis.outputSymbols());
-            if (!groupBy.isEmpty() && !Sets.newHashSet(newGroupBy).equals(Sets.newHashSet(groupBy))) {
-                throw new UnsupportedOperationException("Cannot use DISTINCT when GROUP BY is used");
+            if (groupBy.isEmpty() || Sets.newHashSet(newGroupBy).equals(Sets.newHashSet(groupBy))) {
+                distinctProcessed = true;
             }
             if (groupBy.isEmpty()) {
                 groupBy = newGroupBy;
@@ -206,7 +207,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 node.getOrderBy(),
                 expressionAnalyzer,
                 expressionAnalysisContext,
-                expressionAnalysisContext.hasAggregates || groupBy != null, node.getSelect().isDistinct()))
+                expressionAnalysisContext.hasAggregates || groupBy != null, isDistinct))
             .having(analyzeHaving(
                 node.getHaving(),
                 groupBy,
@@ -239,7 +240,42 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             );
         }
 
+        relation = processDistinct(distinctProcessed, isDistinct, querySpec, relation);
         statementContext.endRelation();
+        return relation;
+    }
+
+
+    /**
+     * If DISTINCT is not processed "wrap" the relation with an external QueriedSelectRelation
+     * which transforms the distinct select symbols into GROUP BY symbols.
+     */
+    private static QueriedRelation processDistinct(boolean distinctProcessed,
+                                                   boolean isDistinct,
+                                                   QuerySpec querySpec,
+                                                   QueriedRelation relation) {
+        if (!isDistinct || distinctProcessed) {
+            return relation;
+        }
+
+        // Rewrite ORDER BY so it can be applied to the "wrapper" QueriedSelectRelation
+        // Since ORDER BY symbols must be subset of the select SYMBOLS we use the index
+        // of the ORDER BY symbol in the list of select symbols and we use this index to
+        // rewrite the symbol as the corresponding field of the relation
+        OrderBy newOrderBy = null;
+        if (relation.querySpec().orderBy().isPresent()) {
+            OrderBy oldOrderBy = relation.querySpec().orderBy().get();
+            List<Symbol> orderBySymbols = new ArrayList<>();
+            for (Symbol symbol : oldOrderBy.orderBySymbols()) {
+                int idx = querySpec.outputs().indexOf(symbol);
+                orderBySymbols.add(relation.fields().get(idx));
+
+            }
+            newOrderBy = new OrderBy(orderBySymbols, oldOrderBy.reverseFlags(), oldOrderBy.nullsFirst());
+        }
+        List<Symbol> newQspecSymbols = new ArrayList<>(relation.fields());
+        QuerySpec newQuerySpec = new QuerySpec().outputs(newQspecSymbols).groupBy(newQspecSymbols).orderBy(newOrderBy);
+        relation = new QueriedSelectRelation(relation, relation.fields(), newQuerySpec);
         return relation;
     }
 

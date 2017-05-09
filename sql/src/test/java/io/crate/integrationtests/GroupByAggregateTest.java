@@ -1159,4 +1159,33 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         assertEquals(2L, response.rowCount());
     }
 
+    @Test
+    public void testDistinctWithGroupBy() throws Exception {
+        execute("select DISTINCT max(col1), min(col1) from unnest([1,1,1,2,2,2,2,3,3],[1,2,3,1,2,3,4,1,2]) " +
+                "group by col2 order by 2, 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2| 1\n" +
+                                                                    "3| 1\n" +
+                                                                    "2| 2\n"));
+    }
+
+    @Test
+    public void testDistinctOnJoinWithGroupBy() throws Exception {
+        execute("select DISTINCT max(t1.col1), min(t2.col2) from " +
+                "unnest([1,1,1,2,2,2,2,3,3],[1,2,3,1,2,3,4,1,2]) as t1, " +
+                "unnest([1,1,1,2,2,2,2,3,3],[1,2,3,1,2,3,4,1,2]) as t2 " +
+                "where t1.col1=t2.col2 " +
+                "group by t1.col2 order by 2, 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2| 1\n" +
+                                                                    "3| 1\n" +
+                                                                    "2| 2\n"));
+    }
+
+    @Test
+    public void testDistinctOnSubselectWithGroupBy() throws Exception {
+        execute("select * from (" +
+                " select distinct max(col1), min(col1) from unnest([1,1,1,2,2,2,2,3,3],[1,2,3,1,2,3,4,1,2]) " +
+                " group by col2 order by 2, 1 limit 2" +
+                ") t order by 1 desc limit 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("3| 1\n"));
+    }
 }
