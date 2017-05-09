@@ -67,18 +67,19 @@ public class OrderByWithAggregationValidator {
         public Void visitFunction(Function symbol, ValidatorContext context) {
             if (context.outputSymbols.contains(symbol)) {
                 return null;
-            } else {
-                if (symbol.info().type() == FunctionInfo.Type.SCALAR) {
-                    for (Symbol arg : symbol.arguments()) {
-                        process(arg, context);
-                    }
-                } else {
-                    throw new UnsupportedOperationException(
-                        SymbolFormatter.format("ORDER BY function '%s' is not allowed. " +
-                                               "Only scalar functions can be used", symbol));
-                }
-                return null;
+            } else if (context.isDistinct) {
+                throw new UnsupportedOperationException(SymbolFormatter.format(INVALID_FIELD_IN_DISTINCT_TEMPLATE, symbol));
             }
+            if (symbol.info().type() == FunctionInfo.Type.SCALAR) {
+                for (Symbol arg : symbol.arguments()) {
+                    process(arg, context);
+                }
+            } else {
+                throw new UnsupportedOperationException(
+                    SymbolFormatter.format("ORDER BY function '%s' is not allowed. " +
+                                           "Only scalar functions can be used", symbol));
+            }
+            return null;
         }
 
         @Override
