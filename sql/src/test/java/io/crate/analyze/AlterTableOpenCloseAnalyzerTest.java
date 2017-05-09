@@ -38,7 +38,8 @@ public class AlterTableOpenCloseAnalyzerTest extends CrateDummyClusterServiceUni
     @Test
     public void testCloseSystemTableIsNotAllowed() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("The table sys.shards is read-only. Write, Drop or Alter operations are not supported");
+        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow " +
+                                        "ALTER OPEN/CLOSE operations, as it is read-only.");
         e.analyze("alter table sys.shards close");
     }
 

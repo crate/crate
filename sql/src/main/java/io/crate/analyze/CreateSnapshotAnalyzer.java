@@ -92,9 +92,10 @@ class CreateSnapshotAnalyzer {
             List<Table> tableList = node.tableList().get();
             Set<String> snapshotIndices = new HashSet<>(tableList.size());
             for (Table table : tableList) {
-                TableInfo tableInfo;
+                DocTableInfo docTableInfo;
                 try {
-                    tableInfo = schemas.getTableInfo(TableIdent.of(table, analysis.sessionContext().defaultSchema()));
+                    docTableInfo = schemas.getTableInfo(
+                        TableIdent.of(table, analysis.sessionContext().defaultSchema()), Operation.CREATE_SNAPSHOT);
                 } catch (ResourceUnknownException e) {
                     if (ignoreUnavailable) {
                         LOGGER.info("ignoring: {}", e.getMessage());
@@ -103,12 +104,6 @@ class CreateSnapshotAnalyzer {
                         throw e;
                     }
                 }
-                if (!(tableInfo instanceof DocTableInfo)) {
-                    throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Cannot create snapshot of tables in schema '%s'", tableInfo.ident().schema()));
-                }
-                Operation.blockedRaiseException(tableInfo, Operation.READ);
-                DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
                 if (table.partitionProperties().isEmpty()) {
                     Stream.of(docTableInfo.concreteIndices()).forEach(snapshotIndices::add);
                 } else {
@@ -119,7 +114,7 @@ class CreateSnapshotAnalyzer {
                     );
                     if (!docTableInfo.partitions().contains(partitionName)) {
                         if (!ignoreUnavailable) {
-                            throw new PartitionUnknownException(tableInfo.ident().fqn(), partitionName.ident());
+                            throw new PartitionUnknownException(docTableInfo.ident().fqn(), partitionName.ident());
                         } else {
                             LOGGER.info("ignoring unknown partition of table '{}' with ident '{}'", partitionName.tableIdent(), partitionName.ident());
                         }

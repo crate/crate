@@ -47,13 +47,11 @@ class AlterTableAddColumnAnalyzer {
     }
 
     public AddColumnAnalyzedStatement analyze(AlterTableAddColumn node, Analysis analysis) {
-        TableIdent tableIdent = TableIdent.of(node.table(), analysis.sessionContext().defaultSchema());
-        DocTableInfo tableInfo = schemas.getWritableTable(tableIdent);
         if (!node.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
         }
-        Operation.blockedRaiseException(tableInfo, Operation.ALTER);
-
+        TableIdent tableIdent = TableIdent.of(node.table(), analysis.sessionContext().defaultSchema());
+        DocTableInfo tableInfo = schemas.getTableInfo(tableIdent, Operation.ALTER);
         AnalyzedTableElements tableElements = TableElementsAnalyzer.analyze(
             node.tableElement(),
             analysis.parameterContext().parameters(),

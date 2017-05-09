@@ -133,7 +133,7 @@ public class DocIndexMetaData {
         partitionedByList = getNested(metaMap, "partitioned_by", ImmutableList.<List<String>>of());
         generatedColumns = getNested(metaMap, "generated_columns", ImmutableMap.<String, String>of());
         if (isAlias && partitionedByList.isEmpty()) {
-            supportedOperations = Operation.READ_ONLY;
+            supportedOperations = Operation.SYS_READ_ONLY;
         } else {
             supportedOperations = Operation.buildFromIndexSettingsAndState(metaData.getSettings(), metaData.getState());
         }

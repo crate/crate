@@ -161,8 +161,9 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testCreateSnapshotSnapshotSysTable() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot create snapshot of tables in schema 'sys'");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow " +
+                                        "CREATE SNAPSHOT operations, as it is read-only.");
         analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE sys.shards");
     }
 

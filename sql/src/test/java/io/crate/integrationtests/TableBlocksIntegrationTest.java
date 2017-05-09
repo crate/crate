@@ -168,7 +168,7 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t1 (id integer) with (number_of_replicas = 0, \"blocks.read\" = true)");
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow READ operations.");
+        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow COPY TO operations.");
         execute("copy t1 to DIRECTORY '/tmp/'");
     }
 
@@ -190,7 +190,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
             new Object[]{TEMPORARY_FOLDER.newFolder().getAbsolutePath()});
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow READ operations.");
+        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow CREATE SNAPSHOT " +
+                                        "operations.");
         execute("CREATE SNAPSHOT repo.snap TABLE t1 WITH (wait_for_completion=true)");
     }
 
@@ -217,8 +218,8 @@ public class TableBlocksIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Boolean) response.rows()[0][0], Is.is(true));
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("The table doc.t1 is read-only. " +
-                                        "Only READ operations are supported.");
+        expectedException.expectMessage("The relation \"doc.t1\" doesn't support or allow INSERT operations, " +
+                                        "as it is read-only.");
         execute("insert into t1 (id, name, date) values (?, ?, ?)",
             new Object[]{1, "Ford", 13959981214861L});
     }

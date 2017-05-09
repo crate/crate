@@ -45,17 +45,19 @@ public class OperationTest extends CrateUnitTest {
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetaData.SETTING_BLOCKS_READ, true).build(), IndexMetaData.State.OPEN),
-            containsInAnyOrder(Operation.INSERT, Operation.UPDATE, Operation.DELETE, Operation.ALTER, Operation.DROP,
-                Operation.ALTER_OPEN_CLOSE));
+            containsInAnyOrder(Operation.UPDATE, Operation.INSERT, Operation.DELETE, Operation.DROP, Operation.ALTER,
+                Operation.ALTER_OPEN_CLOSE, Operation.ALTER_BLOCKS, Operation.REFRESH, Operation.OPTIMIZE));
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetaData.SETTING_BLOCKS_WRITE, true).build(), IndexMetaData.State.OPEN),
-            containsInAnyOrder(Operation.READ, Operation.ALTER, Operation.ALTER_OPEN_CLOSE));
+            containsInAnyOrder(Operation.READ, Operation.ALTER, Operation.ALTER_OPEN_CLOSE, Operation.ALTER_BLOCKS,
+                Operation.SHOW_CREATE, Operation.REFRESH, Operation.OPTIMIZE, Operation.COPY_TO,
+                Operation.CREATE_SNAPSHOT));
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetaData.SETTING_BLOCKS_METADATA, true).build(), IndexMetaData.State.OPEN),
-            containsInAnyOrder(Operation.READ, Operation.INSERT, Operation.UPDATE, Operation.DELETE,
-                Operation.ALTER_OPEN_CLOSE));
+            containsInAnyOrder(Operation.READ, Operation.UPDATE, Operation.INSERT, Operation.DELETE, Operation.ALTER_BLOCKS,
+                Operation.ALTER_OPEN_CLOSE, Operation.REFRESH, Operation.SHOW_CREATE, Operation.OPTIMIZE));
     }
 
     @Test
@@ -63,16 +65,19 @@ public class OperationTest extends CrateUnitTest {
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetaData.SETTING_BLOCKS_READ, true)
                 .put(IndexMetaData.SETTING_BLOCKS_WRITE, true).build(), IndexMetaData.State.OPEN),
-            containsInAnyOrder(Operation.ALTER, Operation.ALTER_OPEN_CLOSE));
+            containsInAnyOrder(Operation.ALTER, Operation.ALTER_OPEN_CLOSE, Operation.ALTER_BLOCKS, Operation.REFRESH,
+                Operation.OPTIMIZE));
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetaData.SETTING_BLOCKS_WRITE, true)
                 .put(IndexMetaData.SETTING_BLOCKS_METADATA, true).build(), IndexMetaData.State.OPEN),
-            containsInAnyOrder(Operation.READ, Operation.ALTER_OPEN_CLOSE));
+            containsInAnyOrder(Operation.READ, Operation.ALTER_OPEN_CLOSE, Operation.ALTER_BLOCKS, Operation.REFRESH,
+                Operation.SHOW_CREATE, Operation.OPTIMIZE));
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetaData.SETTING_BLOCKS_READ, true)
                 .put(IndexMetaData.SETTING_BLOCKS_METADATA, true).build(), IndexMetaData.State.OPEN),
-            containsInAnyOrder(Operation.INSERT, Operation.UPDATE, Operation.DELETE, Operation.ALTER_OPEN_CLOSE));
+            containsInAnyOrder(Operation.INSERT, Operation.UPDATE, Operation.DELETE, Operation.ALTER_OPEN_CLOSE,
+                Operation.ALTER_BLOCKS, Operation.REFRESH, Operation.OPTIMIZE));
     }
 }

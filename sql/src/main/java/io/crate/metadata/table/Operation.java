@@ -33,28 +33,50 @@ import java.util.Map;
 import java.util.Set;
 
 public enum Operation {
-    READ,
-    UPDATE,
-    INSERT,
-    DELETE,
-    DROP,
-    ALTER,
-    ALTER_OPEN_CLOSE;
+    READ("READ"),
+    UPDATE("UPDATE"),
+    INSERT("INSERT"),
+    DELETE("DELETE"),
+    DROP("DROP"),
+    ALTER("ALTER"),
+    ALTER_BLOCKS("ALTER"),
+    ALTER_OPEN_CLOSE("ALTER OPEN/CLOSE"),
+    REFRESH("REFRESH"),
+    SHOW_CREATE("SHOW CREATE"),
+    OPTIMIZE("OPTIMIZE"),
+    COPY_TO("COPY TO"),
+    RESTORE_SNAPSHOT("RESTORE SNAPSHOT"),
+    CREATE_SNAPSHOT("CREATE SNAPSHOT");
 
     public static final EnumSet<Operation> ALL = EnumSet.allOf(Operation.class);
-    public static final EnumSet<Operation> READ_ONLY = EnumSet.of(Operation.READ);
+    public static final EnumSet<Operation> SYS_READ_ONLY = EnumSet.of(READ);
+    public static final EnumSet<Operation> READ_ONLY = EnumSet.of(READ, ALTER_BLOCKS);
+    public static final EnumSet<Operation> OPEN_CLOSE_ONLY = EnumSet.of(ALTER_OPEN_CLOSE);
+    public static final EnumSet<Operation> BLOB_OPERATIONS = EnumSet.of(READ, OPTIMIZE);
+    public static final EnumSet<Operation> READ_DISABLED_OPERATIONS = EnumSet.of(UPDATE, INSERT, DELETE, DROP, ALTER,
+        ALTER_OPEN_CLOSE, ALTER_BLOCKS, REFRESH, OPTIMIZE);
+    public static final EnumSet<Operation> WRITE_DISABLED_OPERATIONS = EnumSet.of(READ, ALTER, ALTER_OPEN_CLOSE,
+        ALTER_BLOCKS, SHOW_CREATE, REFRESH, OPTIMIZE, COPY_TO, CREATE_SNAPSHOT);
+    public static final EnumSet<Operation> METADATA_DISABLED_OPERATIONS = EnumSet.of(READ, UPDATE, INSERT, DELETE,
+    ALTER_BLOCKS, ALTER_OPEN_CLOSE, REFRESH, SHOW_CREATE, OPTIMIZE);
+
+    private final String representation;
+
+    Operation (String representation) {
+        this.representation = representation;
+    }
 
     private static final Map<String, EnumSet<Operation>> BLOCK_SETTING_TO_OPERATIONS_MAP =
         MapBuilder.<String, EnumSet<Operation>>newMapBuilder()
             .put(IndexMetaData.SETTING_READ_ONLY, READ_ONLY)
-            .put(IndexMetaData.SETTING_BLOCKS_READ, EnumSet.of(UPDATE, INSERT, DELETE, DROP, ALTER, ALTER_OPEN_CLOSE))
-            .put(IndexMetaData.SETTING_BLOCKS_WRITE, EnumSet.of(READ, ALTER, ALTER_OPEN_CLOSE))
-            .put(IndexMetaData.SETTING_BLOCKS_METADATA, EnumSet.of(READ, INSERT, UPDATE, DELETE, ALTER_OPEN_CLOSE))
+            .put(IndexMetaData.SETTING_BLOCKS_READ, READ_DISABLED_OPERATIONS)
+            .put(IndexMetaData.SETTING_BLOCKS_WRITE, WRITE_DISABLED_OPERATIONS)
+            .put(IndexMetaData.SETTING_BLOCKS_METADATA, METADATA_DISABLED_OPERATIONS)
             .map();
 
     public static EnumSet<Operation> buildFromIndexSettingsAndState(Settings settings, IndexMetaData.State state) {
         if (state == IndexMetaData.State.CLOSE) {
-            return EnumSet.of(ALTER_OPEN_CLOSE);
+            return OPEN_CLOSE_ONLY;
         }
         Set<Operation> operations = ALL;
         for (Map.Entry<String, EnumSet<Operation>> entry : BLOCK_SETTING_TO_OPERATIONS_MAP.entrySet()) {
@@ -70,9 +92,14 @@ public enum Operation {
         if (!tableInfo.supportedOperations().contains(operation)) {
             String exceptionMessage;
             // If the only supported operation is open/close, then the table must be closed.
-            if (tableInfo.supportedOperations().equals(EnumSet.of(Operation.ALTER_OPEN_CLOSE))) {
-                exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations, as it is currently closed.";
-            } else {
+            if (tableInfo.supportedOperations().equals(OPEN_CLOSE_ONLY)) {
+                exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations, as it is currently " +
+                                   "closed.";
+            } else if (tableInfo.supportedOperations().equals(SYS_READ_ONLY) ||
+                       tableInfo.supportedOperations().equals(READ_ONLY)) {
+                exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations, as it is read-only.";
+            }
+            else {
                 exceptionMessage = "The relation \"%s\" doesn't support or allow %s operations.";
             }
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
@@ -80,7 +107,8 @@ public enum Operation {
         }
     }
 
-    public static boolean isReadOnly(TableInfo tableInfo) {
-        return tableInfo.supportedOperations().equals(READ_ONLY);
+    @Override
+    public String toString() {
+        return representation;
     }
 }
