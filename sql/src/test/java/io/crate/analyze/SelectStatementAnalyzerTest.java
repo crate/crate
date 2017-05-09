@@ -573,6 +573,23 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testSelectDistinctWithGroupBySameFieldsSameOrder() {
+        SelectAnalyzedStatement distinctAnalysis = analyze("select distinct id, name from users group by id, name");
+        SelectAnalyzedStatement groupByAnalysis = analyze("select id, name from users group by id, name");
+        assertThat(distinctAnalysis.relation().querySpec().groupBy(),
+                   equalTo(groupByAnalysis.relation().querySpec().groupBy()));
+        assertThat(distinctAnalysis.relation().querySpec().outputs(),
+                   equalTo(groupByAnalysis.relation().querySpec().outputs()));
+    }
+
+    @Test
+    public void testSelectDistinctWithGroupBySameFieldsDifferentOrder() {
+        SelectAnalyzedStatement distinctAnalysis = analyze("select distinct name, id from users group by id, name");
+        assertThat(distinctAnalysis.relation().querySpec(),
+                   isSQL("SELECT doc.users.name, doc.users.id GROUP BY doc.users.id, doc.users.name"));
+    }
+
+    @Test
     public void testSelectDistinctWrongOrderBy() {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("ORDER BY expression 'add(id, 10)' must appear in the " +

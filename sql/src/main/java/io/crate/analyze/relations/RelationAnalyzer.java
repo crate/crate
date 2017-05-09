@@ -24,6 +24,7 @@ package io.crate.analyze.relations;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import com.google.common.collect.Sets;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -187,13 +188,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates) {
             ensureNonAggregatesInGroupBy(selectAnalysis.outputSymbols(), selectAnalysis.outputNames(), groupBy);
         }
-        boolean isDistinct = false;
         if (node.getSelect().isDistinct()) {
-            if (groupBy.isEmpty()) {
-                groupBy = rewriteGlobalDistinct(selectAnalysis.outputSymbols());
-                isDistinct = true;
-            } else if (Collections.indexOfSubList(selectAnalysis.outputSymbols(), groupBy) < 0) {
+            List<Symbol> newGroupBy = rewriteGlobalDistinct(selectAnalysis.outputSymbols());
+            if (!groupBy.isEmpty() && !Sets.newHashSet(newGroupBy).equals(Sets.newHashSet(groupBy))) {
                 throw new UnsupportedOperationException("Cannot use DISTINCT when GROUP BY is used");
+            }
+            if (groupBy.isEmpty()) {
+                groupBy = newGroupBy;
             }
         }
         if (groupBy != null && groupBy.isEmpty()) {
