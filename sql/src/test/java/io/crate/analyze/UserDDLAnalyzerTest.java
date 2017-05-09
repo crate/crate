@@ -47,4 +47,11 @@ public class UserDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         analysis = e.analyze("DROP USER \"ROOT\"");
         assertThat(analysis.userName(), is("ROOT"));
     }
+
+    @Test
+    public void testDropUserIfExists() {
+        DropUserAnalyzedStatement analysis = e.analyze("DROP USER IF EXISTS ROOT");
+        assertThat(analysis.userName(), is("root"));
+        assertThat(analysis.ifExists(), is(true));
+    }
 }

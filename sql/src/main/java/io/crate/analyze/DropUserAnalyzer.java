@@ -28,7 +28,8 @@ public class DropUserAnalyzer {
 
     public DropUserAnalyzedStatement analyze(DropUser node) {
         return new DropUserAnalyzedStatement(
-            node.name()
+            node.name(),
+            node.ifExists()
         );
     }
 }
