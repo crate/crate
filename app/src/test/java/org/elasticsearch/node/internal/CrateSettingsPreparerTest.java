@@ -30,7 +30,7 @@ import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpTransportSettings;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.transport.Netty3Plugin;
+import org.elasticsearch.transport.Netty4Plugin;
 import org.elasticsearch.transport.TransportSettings;
 import org.junit.Rule;
 import org.junit.Test;
@@ -83,7 +83,7 @@ public class CrateSettingsPreparerTest {
         InternalSettingsPreparer.finalizeSettings(builder, Terminal.DEFAULT);
         CrateSettingsPreparer.applyCrateDefaults(builder);
 
-        assertThat(builder.get(NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY), is(Netty3Plugin.NETTY_TRANSPORT_NAME));
+        assertThat(builder.get(NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY), is(Netty4Plugin.NETTY_TRANSPORT_NAME));
         assertThat(builder.get(HttpTransportSettings.SETTING_HTTP_PORT.getKey()), is(Constants.HTTP_PORT_RANGE));
         assertThat(builder.get(TransportSettings.PORT.getKey()), is(Constants.TRANSPORT_PORT_RANGE));
         assertThat(builder.get(NetworkService.GLOBAL_NETWORK_HOST_SETTING.getKey()), is(NetworkService.DEFAULT_NETWORK_HOST));

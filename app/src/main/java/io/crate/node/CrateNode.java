@@ -39,7 +39,7 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.plugin.discovery.ec2.Ec2DiscoveryPlugin;
 import org.elasticsearch.plugin.repository.s3.S3RepositoryPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.transport.Netty3Plugin;
+import org.elasticsearch.transport.Netty4Plugin;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -54,7 +54,7 @@ public class CrateNode extends Node {
         UDCPlugin.class,
         S3RepositoryPlugin.class,
         Ec2DiscoveryPlugin.class,
-        Netty3Plugin.class);
+        Netty4Plugin.class);
 
     protected CrateNode(Environment environment) {
         super(environment, CLASSPATH_PLUGINS);

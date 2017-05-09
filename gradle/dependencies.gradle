@@ -62,7 +62,13 @@ allprojects {
             force "org.apache.httpcomponents:httpcore-nio:${versions.httpcore}"
             force "org.apache.httpcomponents:httpclient:${versions.httpclient}"
             force "log4j:log4j:${versions.log4j}"
-            force "io.netty:netty:${versions.netty}"
+            force "io.netty:netty-buffer:${versions.netty}"
+            force "io.netty:netty-codec:${versions.netty}"
+            force "io.netty:netty-codec-http:${versions.netty}"
+            force "io.netty:netty-common:${versions.netty}"
+            force "io.netty:netty-handler:${versions.netty}"
+            force "io.netty:netty-resolver:${versions.netty}"
+            force "io.netty:netty-transport:${versions.netty}"
             force 'net.sf.jopt-simple:jopt-simple:5.0.2'
 
             // ensure to check following dependencies and their versions against those of HDFS plugin libs

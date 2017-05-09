@@ -35,6 +35,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -49,7 +50,7 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
-@UseJdbc
+@UseJdbc(1)
 public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -157,6 +158,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @TestLogging("io.crate.action.sql:TRACE,io.crate.protocols.postgres:TRACE")
     public void testSelectStar() throws Exception {
         execute("create table test (\"firstName\" string, \"lastName\" string)");
         ensureYellow();

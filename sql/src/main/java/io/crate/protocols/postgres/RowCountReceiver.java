@@ -25,7 +25,7 @@ package io.crate.protocols.postgres;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
-import org.jboss.netty.channel.Channel;
+import io.netty.channel.Channel;
 
 import javax.annotation.Nonnull;
 

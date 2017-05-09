@@ -24,18 +24,19 @@ package io.crate.http.netty;
 
 import io.crate.blob.BlobService;
 import io.crate.blob.v2.BlobIndicesService;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelPipeline;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.http.netty3.Netty3HttpServerTransport;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.handler.stream.ChunkedWriteHandler;
 
 
-public class CrateNettyHttpServerTransport extends Netty3HttpServerTransport {
+public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
 
     private final BlobService blobService;
     private final BlobIndicesService blobIndicesService;
@@ -53,36 +54,35 @@ public class CrateNettyHttpServerTransport extends Netty3HttpServerTransport {
     }
 
     @Override
-    public ChannelPipelineFactory configureServerChannelPipelineFactory() {
-        return new CrateHttpChannelPipelineFactory(this, false, detailedErrorsEnabled, threadPool);
+    public ChannelHandler configureServerChannelHandler() {
+        return new CrateHttpChannelHandler(this, false, detailedErrorsEnabled, threadPool);
     }
 
-    protected static class CrateHttpChannelPipelineFactory extends HttpChannelPipelineFactory {
+    protected static class CrateHttpChannelHandler extends HttpChannelHandler {
 
         private final CrateNettyHttpServerTransport transport;
         private final boolean sslEnabled;
 
-        public CrateHttpChannelPipelineFactory(CrateNettyHttpServerTransport transport,
-                                               boolean sslEnabled,
-                                               boolean detailedErrorsEnabled,
-                                               ThreadPool threadPool) {
+        public CrateHttpChannelHandler(CrateNettyHttpServerTransport transport,
+                                       boolean sslEnabled,
+                                       boolean detailedErrorsEnabled,
+                                       ThreadPool threadPool) {
             super(transport, detailedErrorsEnabled, threadPool.getThreadContext());
             this.transport = transport;
             this.sslEnabled = sslEnabled;
         }
 
         @Override
-        public ChannelPipeline getPipeline() throws Exception {
-            ChannelPipeline pipeline = super.getPipeline();
-
+        protected void initChannel(Channel ch) throws Exception {
+            super.initChannel(ch);
             HttpBlobHandler blobHandler = new HttpBlobHandler(transport.blobService, transport.blobIndicesService, sslEnabled);
+            ChannelPipeline pipeline = ch.pipeline();
             pipeline.addBefore("aggregator", "blob_handler", blobHandler);
 
             if (sslEnabled) {
                 // required for blob support with ssl enabled (zero copy doesn't work with https)
                 pipeline.addBefore("blob_handler", "chunkedWriter", new ChunkedWriteHandler());
             }
-            return pipeline;
         }
     }
 }

@@ -23,11 +23,11 @@
 package io.crate.protocols.postgres.types;
 
 import com.google.common.base.Throwables;
+import io.netty.buffer.ByteBuf;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;
@@ -46,7 +46,7 @@ class JsonType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         byte[] bytes = encodeAsUTF8Text(value);
         buffer.writeInt(bytes.length);
         buffer.writeBytes(bytes);
@@ -75,7 +75,7 @@ class JsonType extends PGType {
     }
 
     @Override
-    public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
+    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
         byte[] bytes = new byte[valueLength];
         buffer.readBytes(bytes);
         return decodeUTF8Text(bytes);

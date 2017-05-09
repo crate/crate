@@ -23,7 +23,7 @@
 package io.crate.protocols.postgres.types;
 
 import com.google.common.collect.ImmutableSet;
-import org.jboss.netty.buffer.ChannelBuffer;
+import io.netty.buffer.ByteBuf;
 
 import javax.annotation.Nonnull;
 import java.nio.ByteBuffer;
@@ -53,7 +53,7 @@ class BooleanType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         byte byteValue = (byte) ((boolean) value ? 1 : 0);
         buffer.writeInt(TYPE_LEN);
         buffer.writeByte(byteValue);
@@ -69,7 +69,7 @@ class BooleanType extends PGType {
     }
 
     @Override
-    public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
+    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
         assert valueLength == TYPE_LEN : "length should be " + TYPE_LEN +
                                          " because boolean is just a byte. Actual length: " + valueLength;
         byte value = buffer.readByte();

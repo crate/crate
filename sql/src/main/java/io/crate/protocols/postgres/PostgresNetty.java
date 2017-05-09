@@ -28,6 +28,13 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -44,11 +51,7 @@ import org.elasticsearch.common.transport.PortsRange;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.BindHttpException;
 import org.elasticsearch.transport.BindTransportException;
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.Channels;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import org.elasticsearch.transport.netty4.Netty4Transport;
 
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -58,7 +61,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
@@ -109,18 +112,23 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         if (!enabled) {
             return;
         }
-        bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(
-            Executors.newCachedThreadPool(daemonThreadFactory(settings, "postgres-netty-boss")),
-            Executors.newCachedThreadPool(daemonThreadFactory(settings, "postgres-netty-worker"))
-        ));
-        bootstrap.setOption("child.tcpNoDelay", settings.getAsBoolean("tcp_no_delay", true));
-        bootstrap.setOption("child.keepAlive", settings.getAsBoolean("tcp_keep_alive", true));
-        bootstrap.setPipelineFactory(() -> {
-            ChannelPipeline pipeline = Channels.pipeline();
-            ConnectionContext connectionContext = new ConnectionContext(sqlOperations);
-            pipeline.addLast("frame-decoder", connectionContext.decoder);
-            pipeline.addLast("handler", connectionContext.handler);
-            return pipeline;
+        bootstrap = new ServerBootstrap();
+        NioEventLoopGroup boss = new NioEventLoopGroup(
+            Netty4Transport.NETTY_BOSS_COUNT.get(settings), daemonThreadFactory(settings, "postgres-netty-boss"));
+        NioEventLoopGroup worker = new NioEventLoopGroup(
+            Netty4Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, "postgres-netty-worker"));
+        bootstrap.channel(NioServerSocketChannel.class);
+        bootstrap.group(boss, worker);
+        bootstrap.childOption(ChannelOption.TCP_NODELAY, Netty4Transport.TCP_NO_DELAY.get(settings));
+        bootstrap.childOption(ChannelOption.SO_KEEPALIVE, Netty4Transport.TCP_KEEP_ALIVE.get(settings));
+        bootstrap.childHandler(new ChannelInitializer<Channel>() {
+            @Override
+            protected void initChannel(Channel ch) throws Exception {
+                ChannelPipeline pipeline = ch.pipeline();
+                ConnectionContext connectionContext = new ConnectionContext(sqlOperations);
+                pipeline.addLast("frame-decoder", connectionContext.decoder);
+                pipeline.addLast("handler", connectionContext.handler);
+            }
         });
 
         boolean success = false;
@@ -189,9 +197,9 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             public boolean onPortNumber(int portNumber) {
                 try {
                     synchronized (serverChannels) {
-                        Channel channel = bootstrap.bind(new InetSocketAddress(hostAddress, portNumber));
+                        Channel channel = bootstrap.bind(new InetSocketAddress(hostAddress, portNumber)).sync().channel();
                         serverChannels.add(channel);
-                        boundSocket.set((InetSocketAddress) channel.getLocalAddress());
+                        boundSocket.set((InetSocketAddress) channel.localAddress());
                     }
                 } catch (Exception e) {
                     lastException.set(e);
@@ -221,7 +229,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             }
         }
         if (bootstrap != null) {
-            bootstrap.releaseExternalResources();
+            bootstrap.config().group().shutdownGracefully(0, 5, TimeUnit.SECONDS).awaitUninterruptibly();
+            bootstrap.config().childGroup().shutdownGracefully(0, 5, TimeUnit.SECONDS).awaitUninterruptibly();
             bootstrap = null;
         }
     }

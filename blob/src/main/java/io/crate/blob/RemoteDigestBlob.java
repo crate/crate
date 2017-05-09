@@ -22,11 +22,11 @@
 package io.crate.blob;
 
 import io.crate.common.Hex;
+import io.netty.buffer.ByteBuf;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.logging.Loggers;
-import org.jboss.netty.buffer.ChannelBuffer;
+import org.elasticsearch.transport.netty4.Netty4Utils;
 
 import java.util.UUID;
 
@@ -105,13 +105,13 @@ public class RemoteDigestBlob {
         return client.execute(DeleteBlobAction.INSTANCE, request).actionGet().deleted;
     }
 
-    private Status start(ChannelBuffer buffer, boolean last) {
+    private Status start(ByteBuf buffer, boolean last) {
         logger.trace("start blob upload");
         assert transferId == null : "transferId should be null";
         StartBlobRequest request = new StartBlobRequest(
             index,
             Hex.decodeHex(digest),
-            new BytesArray(buffer.array()),
+            Netty4Utils.toBytesReference(buffer),
             last
         );
         transferId = request.transferId();
@@ -122,13 +122,13 @@ public class RemoteDigestBlob {
         return status;
     }
 
-    private Status chunk(ChannelBuffer buffer, boolean last) {
+    private Status chunk(ByteBuf buffer, boolean last) {
         assert transferId != null : "transferId should not be null";
         PutChunkRequest request = new PutChunkRequest(
             index,
             Hex.decodeHex(digest),
             transferId,
-            new BytesArray(buffer.array()),
+            Netty4Utils.toBytesReference(buffer),
             size,
             last
         );
@@ -137,7 +137,7 @@ public class RemoteDigestBlob {
         return putChunkResponse.status();
     }
 
-    public Status addContent(ChannelBuffer buffer, boolean last) {
+    public Status addContent(ByteBuf buffer, boolean last) {
         if (startResponse == null) {
             // this is the first call to addContent
             return start(buffer, last);
