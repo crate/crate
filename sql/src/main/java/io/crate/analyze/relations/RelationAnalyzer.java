@@ -54,6 +54,7 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.*;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.util.set.Sets;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -187,13 +188,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates) {
             ensureNonAggregatesInGroupBy(selectAnalysis.outputSymbols(), selectAnalysis.outputNames(), groupBy);
         }
-        boolean isDistinct = false;
         if (node.getSelect().isDistinct()) {
-            if (groupBy.isEmpty()) {
-                groupBy = rewriteGlobalDistinct(selectAnalysis.outputSymbols());
-                isDistinct = true;
-            } else if (Collections.indexOfSubList(selectAnalysis.outputSymbols(), groupBy) < 0) {
+            List<Symbol> newGroupBy = rewriteGlobalDistinct(selectAnalysis.outputSymbols());
+            if (!groupBy.isEmpty() && !Sets.newHashSet(newGroupBy).equals(Sets.newHashSet(groupBy))) {
                 throw new UnsupportedOperationException("Cannot use DISTINCT when GROUP BY is used");
+            }
+            if (groupBy.isEmpty()) {
+                groupBy = newGroupBy;
             }
         }
         if (groupBy != null && groupBy.isEmpty()) {
