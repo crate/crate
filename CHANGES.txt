@@ -31,6 +31,9 @@ Changes
 Fixes
 =====
 
+ - Added validation that ``ORDER BY`` symbols are included in the ``SELECT``
+   list when ``DISTINCT`` is used.
+
  - Removed ``psql.enabled`` and ``psql.port`` settings from ``sys.cluster``
    because they where wrongly exposed in this table.
 
