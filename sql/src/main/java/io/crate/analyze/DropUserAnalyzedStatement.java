@@ -25,9 +25,11 @@ package io.crate.analyze;
 public class DropUserAnalyzedStatement implements DDLStatement {
 
     private final String userName;
+    private final boolean ifExists;
 
-    public DropUserAnalyzedStatement(String userName) {
+    public DropUserAnalyzedStatement(String userName, boolean ifExists) {
         this.userName = userName;
+        this.ifExists = ifExists;
     }
 
     @Override
@@ -37,5 +39,9 @@ public class DropUserAnalyzedStatement implements DDLStatement {
 
     public String userName() {
         return userName;
+    }
+
+    public boolean ifExists() {
+        return ifExists;
     }
 }

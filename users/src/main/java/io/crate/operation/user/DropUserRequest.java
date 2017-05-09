@@ -29,16 +29,22 @@ import java.io.IOException;
 public class DropUserRequest extends MasterNodeRequest<DropUserRequest> {
 
     private String userName;
+    private boolean ifExists;
 
     public DropUserRequest() {
     }
 
-    public DropUserRequest(String userName) {
+    public DropUserRequest(String userName, boolean ifExists) {
         this.userName = userName;
+        this.ifExists = ifExists;
     }
 
     public String userName() {
         return userName;
+    }
+
+    public boolean ifExists() {
+        return ifExists;
     }
 
     @Override
@@ -53,11 +59,13 @@ public class DropUserRequest extends MasterNodeRequest<DropUserRequest> {
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         userName = in.readString();
+        ifExists = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeString(userName);
+        out.writeBoolean(ifExists);
     }
 }

@@ -68,7 +68,8 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
                     MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
                     UsersMetaData users = dropUser(
                         currentMetaData.custom(UsersMetaData.TYPE),
-                        request.userName()
+                        request.userName(),
+                        request.ifExists()
                     );
                     mdBuilder.putCustom(UsersMetaData.TYPE, users);
                     return ClusterState.builder(currentState).metaData(mdBuilder).build();
@@ -98,14 +99,16 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
 
     @VisibleForTesting
     static UsersMetaData dropUser(@Nullable UsersMetaData oldMetaData,
-                                  String name) {
-        if (oldMetaData == null || !oldMetaData.contains(name)) {
+                                  String name,
+                                  boolean ifExists) {
+        if (!ifExists && (oldMetaData == null || !oldMetaData.contains(name))) {
             throw new ResourceNotFoundException("User does not exist");
+        } else if (oldMetaData == null) {
+            return UsersMetaData.of();
         }
         // create a new instance of the metadata, to guarantee the cluster changed action.
         UsersMetaData newMetaData = UsersMetaData.newInstance(oldMetaData);
         newMetaData.remove(name);
-        assert !newMetaData.equals(oldMetaData) : "must not be equal to guarantee the cluster change action";
         return newMetaData;
     }
 }

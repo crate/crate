@@ -68,7 +68,7 @@ statement
     | DROP SNAPSHOT qname                                                            #dropSnapshot
     | DROP FUNCTION (IF EXISTS)? name=qname
         '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
-    | DROP USER name=ident                                                           #dropUser
+    | DROP USER (IF EXISTS)? name=ident                                              #dropUser
     | createStmt                                                                     #create
     ;
 

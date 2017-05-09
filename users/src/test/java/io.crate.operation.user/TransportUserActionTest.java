@@ -55,7 +55,13 @@ public class TransportUserActionTest extends CrateUnitTest {
     public void testDropUserNoUsersAtAll() throws Exception {
         expectedException.expect(ResourceNotFoundException.class);
         expectedException.expectMessage("User does not exist");
-        TransportDropUserAction.dropUser(null, "root");
+        TransportDropUserAction.dropUser(null, "root", false);
+    }
+
+    @Test
+    public void testDropUsersIfExistsNoUsersAtAll() throws Exception {
+        UsersMetaData newMetaData = TransportDropUserAction.dropUser(null, "arthur", true);
+        assertThat(newMetaData.users().size(), is(0));
     }
 
     @Test
@@ -64,14 +70,25 @@ public class TransportUserActionTest extends CrateUnitTest {
         expectedException.expectMessage("User does not exist");
         TransportDropUserAction.dropUser(
             UsersMetaData.of("arthur"),
-            "trillian"
+            "trillian",
+            false
         );
+    }
+
+    @Test
+    public void testDropIfExistsNonExistingUser() throws Exception {
+        UsersMetaData newMetaData = TransportDropUserAction.dropUser(
+            UsersMetaData.of("arthur"),
+            "trillian",
+            true
+        );
+        assertThat(newMetaData.users(), contains("arthur"));
     }
 
     @Test
     public void testDropUser() throws Exception {
         UsersMetaData oldMetaData = UsersMetaData.of("ford", "arthur");
-        UsersMetaData newMetaData = TransportDropUserAction.dropUser(oldMetaData, "arthur");
+        UsersMetaData newMetaData = TransportDropUserAction.dropUser(oldMetaData, "arthur", false);
         assertThat(newMetaData.users(), contains("ford"));
     }
 }

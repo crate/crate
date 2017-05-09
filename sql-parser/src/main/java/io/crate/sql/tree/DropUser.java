@@ -29,18 +29,24 @@ import java.util.Objects;
 public class DropUser extends Statement {
 
     private final String name;
+    private final boolean ifExists;
 
-    public DropUser(String name) {
+    public DropUser(String name, boolean ifExists) {
         this.name = name;
+        this.ifExists = ifExists;
     }
 
     public String name() {
         return name;
     }
 
+    public boolean ifExists() {
+        return ifExists;
+    }
+
     @Override
     public int hashCode() {
-        return Objects.hashCode(name);
+        return Objects.hash(name, ifExists);
     }
 
     @Override
@@ -50,6 +56,7 @@ public class DropUser extends Statement {
 
         DropUser that = (DropUser)obj;
         if (!name.equals(that.name)) return false;
+        if (ifExists != that.ifExists) return false;
         return true;
     }
 
@@ -57,6 +64,7 @@ public class DropUser extends Statement {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("name", name)
+            .add("ifExists", ifExists)
             .toString();
     }
 
