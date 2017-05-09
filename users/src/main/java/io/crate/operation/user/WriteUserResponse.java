@@ -26,22 +26,36 @@ import java.io.IOException;
 
 public class WriteUserResponse extends AcknowledgedResponse {
 
+    private long affectedRows;
+
     WriteUserResponse() {
+        affectedRows = 1L;
     }
 
     WriteUserResponse(boolean acknowledged) {
+        this(acknowledged, 1L);
+    }
+
+    WriteUserResponse(boolean acknowledged, long affectedRows) {
         super(acknowledged);
+        this.affectedRows = affectedRows;
+    }
+
+    long affectedRows() {
+        return affectedRows;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         readAcknowledged(in);
+        affectedRows = in.readLong();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         writeAcknowledged(out);
+        out.writeLong(affectedRows);
     }
 }
