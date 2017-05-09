@@ -46,13 +46,12 @@ class AlterTableAnalyzer {
 
     public AlterTableAnalyzedStatement analyze(AlterTable node, Row parameters, String defaultSchema) {
         Table table = node.table();
-        DocTableInfo tableInfo = schemas.getAlterableTable(TableIdent.of(table, defaultSchema));
-        PartitionName partitionName = getPartitionName(table.partitionProperties(), tableInfo, parameters);
-
-        TableParameterInfo tableParameterInfo = getTableParameterInfo(table, tableInfo, partitionName);
+        DocTableInfo docTableInfo = schemas.getTableInfo(TableIdent.of(table, defaultSchema), Operation.ALTER_BLOCKS);
+        PartitionName partitionName = getPartitionName(table.partitionProperties(), docTableInfo, parameters);
+        TableParameterInfo tableParameterInfo = getTableParameterInfo(table, docTableInfo, partitionName);
         TableParameter tableParameter = getTableParameter(node, parameters, tableParameterInfo);
-        maybeRaiseBlockedException(tableInfo, tableParameter.settings());
-        return new AlterTableAnalyzedStatement(tableInfo, partitionName, tableParameter, table.excludePartitions());
+        maybeRaiseBlockedException(docTableInfo, tableParameter.settings());
+        return new AlterTableAnalyzedStatement(docTableInfo, partitionName, tableParameter, table.excludePartitions());
     }
 
     private static TableParameterInfo getTableParameterInfo(Table table,

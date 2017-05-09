@@ -29,6 +29,7 @@ import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.metadata.settings.SettingsAppliers;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.OptimizeStatement;
@@ -79,17 +80,13 @@ class OptimizeTableAnalyzer {
                                              String defaultSchema) {
         Set<String> indexNames = new HashSet<>(tables.size());
         for (Table nodeTable : tables) {
-            TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(nodeTable, defaultSchema));
-
-            if (tableInfo instanceof DocTableInfo) {
+            TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(nodeTable, defaultSchema), Operation.OPTIMIZE);
+            if (tableInfo instanceof BlobTableInfo) {
+                indexNames.add(((BlobTableInfo) tableInfo).concreteIndex());
+            } else {
                 indexNames.addAll(TableAnalyzer.filteredIndices(
                     parameterContext,
                     nodeTable.partitionProperties(), (DocTableInfo) tableInfo));
-            } else if (tableInfo instanceof BlobTableInfo) {
-                indexNames.add(((BlobTableInfo) tableInfo).concreteIndex());
-            } else {
-                throw new IllegalArgumentException(
-                    "operation cannot be performed on system tables: table '" + tableInfo.ident().fqn() + "'");
             }
         }
         return indexNames;

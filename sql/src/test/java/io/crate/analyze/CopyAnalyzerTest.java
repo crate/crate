@@ -126,7 +126,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCopySysTableTo() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot COPY sys.nodes TO. COPY TO only supports user tables");
+        expectedException.expectMessage("The relation \"sys.nodes\" doesn't support or allow COPY TO " +
+                                        "operations, as it is read-only.");
         e.analyze("copy sys.nodes to directory '/foo'");
     }
 

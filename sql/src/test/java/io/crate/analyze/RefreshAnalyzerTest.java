@@ -50,13 +50,17 @@ public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRefreshSystemTable() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow REFRESH " +
+                                        "operations, as it is read-only.");
         e.analyze("refresh table sys.shards");
     }
 
     @Test
     public void testRefreshBlobTable() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("The relation \"blob.blobs\" doesn't support or allow REFRESH " +
+                                        "operations.");
         e.analyze("refresh table blob.blobs");
     }
 
@@ -89,13 +93,17 @@ public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRefreshSysPartitioned() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow REFRESH" +
+                                        " operations, as it is read-only.");
         e.analyze("refresh table sys.shards partition (id='n')");
     }
 
     @Test
     public void testRefreshBlobPartitioned() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("The relation \"blob.blobs\" doesn't support or allow REFRESH " +
+                                        "operations.");
         e.analyze("refresh table blob.blobs partition (n='n')");
     }
 

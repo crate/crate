@@ -21,11 +21,10 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Preconditions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.Table;
 
@@ -57,13 +56,11 @@ class RefreshTableAnalyzer {
                                              String defaultSchema) {
         Set<String> indexNames = new HashSet<>(tables.size());
         for (Table nodeTable : tables) {
-            TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(nodeTable, defaultSchema));
-            Preconditions.checkArgument(tableInfo instanceof DocTableInfo,
-                "operation cannot be performed on system and blob tables: table '%s'",
-                tableInfo.ident().fqn());
+            DocTableInfo tableInfo = schemas.getTableInfo(
+                TableIdent.of(nodeTable, defaultSchema), Operation.REFRESH);
             indexNames.addAll(TableAnalyzer.filteredIndices(
                     parameterContext,
-                    nodeTable.partitionProperties(), (DocTableInfo) tableInfo));
+                    nodeTable.partitionProperties(), tableInfo));
         }
         return indexNames;
     }

@@ -34,6 +34,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.metadata.settings.SettingsAppliers;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
@@ -85,12 +86,8 @@ class RestoreSnapshotAnalyzer {
                         throw new TableAlreadyExistsException(tableIdent);
                     }
 
-                    TableInfo tableInfo = schemas.getTableInfo(tableIdent);
-                    if (!(tableInfo instanceof DocTableInfo)) {
-                        throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH, "Cannot restore snapshot of tables in schema '%s'", tableInfo.ident().schema()));
-                    }
-                    DocTableInfo docTableInfo = ((DocTableInfo) tableInfo);
+                    DocTableInfo docTableInfo = schemas.getTableInfo(
+                        tableIdent, Operation.RESTORE_SNAPSHOT);
                     PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
                         tableIdent,
                         docTableInfo,

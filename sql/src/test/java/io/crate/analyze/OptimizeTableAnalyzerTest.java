@@ -48,8 +48,9 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testOptimizeSystemTable() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("operation cannot be performed on system tables: table 'sys.shards'");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE " +
+                                        "operations, as it is read-only.");
         e.analyze("OPTIMIZE TABLE sys.shards");
     }
 
@@ -152,8 +153,9 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testOptimizeSysPartitioned() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("operation cannot be performed on system tables: table 'sys.shards'");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE " +
+                                        "operations, as it is read-only.");
         e.analyze("OPTIMIZE TABLE sys.shards PARTITION (id='n')");
     }
 }

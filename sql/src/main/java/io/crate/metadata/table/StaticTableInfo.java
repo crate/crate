@@ -92,6 +92,6 @@ public abstract class StaticTableInfo implements TableInfo {
 
     @Override
     public Set<Operation> supportedOperations() {
-        return Operation.READ_ONLY;
+        return Operation.SYS_READ_ONLY;
     }
 }

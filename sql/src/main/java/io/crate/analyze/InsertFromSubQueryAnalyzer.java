@@ -83,9 +83,8 @@ class InsertFromSubQueryAnalyzer {
 
 
     public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {
-        DocTableInfo tableInfo = schemas.getWritableTable(
-            TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()));
-        Operation.blockedRaiseException(tableInfo, Operation.INSERT);
+        DocTableInfo tableInfo = schemas.getTableInfo(
+            TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()), Operation.INSERT);
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);

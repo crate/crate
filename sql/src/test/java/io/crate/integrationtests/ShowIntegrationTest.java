@@ -37,14 +37,16 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testShowCrateSystemTable() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Table must be a doc table");
+        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow SHOW CREATE " +
+                                        "operations, as it is read-only.");
         execute("show create table sys.shards");
     }
 
     @Test
     public void testShowCreateBlobTable() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Table must be a doc table");
+        expectedException.expectMessage("The relation \"blob.table_blob\" doesn't support or allow " +
+                                        "SHOW CREATE operations.");
         execute("create blob table table_blob");
         execute("show create table blob.table_blob");
     }
