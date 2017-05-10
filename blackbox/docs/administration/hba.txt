@@ -20,14 +20,11 @@ specify HBA entries in the ``auth.host_based.config`` group setting.
 
 See: :ref:`applying-cluster-settings`.
 
-Allowing Authentication to CrateDB
-==================================
+Authentication against CrateDB
+==============================
 
-.. NOTE::
-
-   This feature only concerns connections over :ref:`postgres_wire_protocol`.
-
-Client access and authentication is configured by the ``auth.host_based.config``
+Client access and authentication over HTTP and Postgres Wire Protocol (see
+:doc:`protocols/index`) is configured via the ``auth.host_based.config``
 setting in the ``crate.yml`` file.
 
 The general format of the ``auth.host_based.config`` setting is a map of remote client
@@ -70,6 +67,11 @@ For example, a host based configuration can look like this:
           y:
             user: eleven
             protocol: pg
+          e:
+            user: dustin
+            address: 172.16.0.0
+            method: trust
+            protocol: http
           z:
             method: trust
 
@@ -100,8 +102,13 @@ Since no authentication method is specified, the ``trust`` method will be used b
 The entry: ``{user: eleven, protocol: pg}`` means that the user ``eleven`` can authenticate
 to CrateDB over the Postgres Wire Protocol from any IP address, using the ``trust`` method.
 
+``{user: dustin, address: 172.16.0.0, protocol: http, method: trust}`` means that
+the user ``dustin`` can authenticate to CrateDB over HTTP protocol from the
+``172.16.0.0`` IP Address using the ``trust`` method.
+
 And finally the entry ``{method: trust}`` means that any existing user (or superuser)
 can authenticate to CrateDB from any IP address using the ``trust`` method.
+
 
 Authenticating as a Superuser
 =============================
@@ -112,8 +119,8 @@ Authenticating as a Superuser
 When CrateDB is started, the cluster contains one predefined superuser. This user
 is called ``crate``.
 
-To authenticate as the superuser from a specific IP address, ``crate`` should be
-specified in the the ``auth.host_based`` setting, like this:
+To enable trust auhentication for the superuser, ``crate`` must be specified
+in the the ``auth.host_based`` setting, like this:
 
 .. code-block:: yaml
 
@@ -123,7 +130,25 @@ specified in the the ``auth.host_based`` setting, like this:
         config:
           0:
             user: crate
-            address: 172.16.0.0
-            method: trust
-            protocol: pg
 
+
+Default user for HTTP Host Based Authentication
+===============================================
+
+Host Based Authentication over HTTP requires clients to specify the username
+in the ``X-USER`` header of the HTTP request. If this header is missing, the value
+of the ``auth.host_based.http_default_user`` setting will be used instead.
+
+``auth.host_based.http_default_user`` can be configured like this:
+
+.. code-block:: yaml
+
+    auth:
+      host_based:
+        http_default_user: dustin
+
+.. note::
+
+   Clients that do not send this header, such as the Admin UI for example, will
+   always authenticate as ``auth.host_based.http_default_user``, or the default
+   value of this setting, which is ``crate``.
