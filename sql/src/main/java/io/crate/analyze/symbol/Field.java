@@ -21,6 +21,7 @@
 
 package io.crate.analyze.symbol;
 
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.Path;
 import io.crate.types.DataType;
@@ -29,6 +30,32 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.Objects;
 
+/**
+ * A Field is a expression which refers to a column of a (virtual) table.
+ *
+ * <pre>
+ *     Example:
+ *                   TableRelation[t1]
+ *                   |
+ *     select x from t1
+ *     |      |
+ *     |      Field         <---- this is inside {@link QuerySpec#outputs()}
+ *     |        path: x
+ *     |        relation: TableRelation[t1]
+ *     |
+ *     |
+ *     QueriedTableRelation[t1]
+ *      fields(): [
+ *          Field
+ *            path: x
+ *            relation: QueriedTableRelation
+ *      ]
+ * </pre>
+ *
+ * Note:
+ *  Since the relation of a Field can be a virtual table,
+ *  a Field can also represent the computation of a scalar or aggregation
+ */
 public class Field extends Symbol implements Path {
 
     private AnalyzedRelation relation;
