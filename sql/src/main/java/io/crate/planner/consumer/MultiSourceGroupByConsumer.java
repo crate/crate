@@ -22,15 +22,16 @@
 
 package io.crate.planner.consumer;
 
-import io.crate.analyze.*;
+import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.QuerySpec;
+import io.crate.analyze.RelationSource;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPairs;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
-import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.planner.Plan;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
@@ -44,7 +45,6 @@ import java.util.Optional;
 public class MultiSourceGroupByConsumer implements Consumer {
 
     private final Visitor visitor;
-    private static final ReplacingSymbolVisitor<Void> DEEP_COPY = new ReplacingSymbolVisitor<>(ReplaceMode.COPY);
 
     MultiSourceGroupByConsumer(ProjectionBuilder projectionBuilder) {
         visitor = new Visitor(projectionBuilder);
@@ -75,7 +75,7 @@ public class MultiSourceGroupByConsumer implements Consumer {
             List<Symbol> outputs = querySpec.outputs();
 
             // Planning the multiSourceSelect as subRelation mutates the querySpec.
-            querySpec = querySpec.copyAndReplace(s -> DEEP_COPY.process(s, null));
+            querySpec = querySpec.copyAndReplace(Symbols.DEEP_COPY);
 
             SplitPoints splitPoints = SplitPoints.create(querySpec);
             querySpec.hasAggregates(false);

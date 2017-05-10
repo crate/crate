@@ -35,14 +35,16 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 public class Symbols {
 
-    public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof Field || s instanceof Reference;
-
     private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
+    private static final ReplacingSymbolVisitor<Void> DEEP_COPY_VISITOR = new ReplacingSymbolVisitor<>(ReplaceMode.COPY);
 
+    public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof Field || s instanceof Reference;
     public static final Predicate<Symbol> IS_GENERATED_COLUMN = input -> input instanceof GeneratedReference;
+    public static final UnaryOperator<Symbol> DEEP_COPY = s -> DEEP_COPY_VISITOR.process(s, null);
 
     public static List<DataType> extractTypes(List<? extends Symbol> symbols) {
         return Lists.transform(symbols, Symbol::valueType);
