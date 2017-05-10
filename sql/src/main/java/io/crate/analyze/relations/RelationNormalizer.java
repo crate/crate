@@ -28,9 +28,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.QualifiedName;
-
-import java.util.Iterator;
 
 /**
  * The RelationNormalizer tries to merge the tree of relations in a QueriedSelectRelation into a single QueriedRelation.
@@ -99,21 +96,7 @@ final class RelationNormalizer {
             querySpec.normalize(normalizer, context);
             // must create a new MultiSourceSelect because paths and query spec changed
             mss = MultiSourceSelect.createWithPushDown(mss, querySpec);
-            if (mss.sources().size() == 2) {
-                Iterator<RelationSource> it = mss.sources().values().iterator();
-                RelationSource leftSource = it.next();
-                RelationSource rightSource = it.next();
-                QualifiedName left = leftSource.relation().getQualifiedName();
-                QualifiedName right = rightSource.relation().getQualifiedName();
-                Rewriter.tryRewriteOuterToInnerJoin(
-                    normalizer,
-                    JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs(), false),
-                    mss.querySpec(),
-                    left,
-                    right,
-                    leftSource.querySpec(),
-                    rightSource.querySpec());
-            }
+            Rewriter.tryRewriteOuterToInnerJoin(normalizer, mss);
             return mss;
         }
     }
