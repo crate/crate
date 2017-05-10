@@ -30,6 +30,7 @@ import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSn
 import org.elasticsearch.action.admin.cluster.snapshots.delete.TransportDeleteSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.get.TransportGetSnapshotsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshotAction;
+import org.elasticsearch.action.admin.indices.alias.TransportIndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.close.TransportCloseIndexAction;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -59,6 +60,7 @@ public class TransportActionProvider {
     private final Provider<TransportRenameTableAction> transportRenameTableActionProvider;
     private final Provider<TransportCloseIndexAction> transportCloseIndexActionProvider;
     private final Provider<TransportOpenIndexAction> transportOpenIndexActionProvider;
+    private final Provider<TransportIndicesAliasesAction> transportIndicesAliasesActionProvider;
 
     private final Provider<TransportGetAction> transportGetActionProvider;
     private final Provider<TransportMultiGetAction> transportMultiGetActionProvider;
@@ -88,6 +90,7 @@ public class TransportActionProvider {
                                    Provider<TransportRenameTableAction> transportRenameTableActionProvider,
                                    Provider<TransportCloseIndexAction> transportCloseIndexActionProvider,
                                    Provider<TransportOpenIndexAction> transportOpenIndexActionProvider,
+                                   Provider<TransportIndicesAliasesAction> transportIndicesAliasesActionProvider,
                                    Provider<TransportGetAction> transportGetActionProvider,
                                    Provider<TransportMultiGetAction> transportMultiGetActionProvider,
                                    Provider<TransportShardUpsertAction> transportShardUpsertActionProvider,
@@ -111,6 +114,7 @@ public class TransportActionProvider {
         this.transportRenameTableActionProvider = transportRenameTableActionProvider;
         this.transportCloseIndexActionProvider = transportCloseIndexActionProvider;
         this.transportOpenIndexActionProvider = transportOpenIndexActionProvider;
+        this.transportIndicesAliasesActionProvider = transportIndicesAliasesActionProvider;
         this.transportGetActionProvider = transportGetActionProvider;
         this.transportMultiGetActionProvider = transportMultiGetActionProvider;
         this.transportShardUpsertActionProvider = transportShardUpsertActionProvider;
@@ -165,6 +169,10 @@ public class TransportActionProvider {
 
     TransportOpenIndexAction transportOpenIndexAction() {
         return transportOpenIndexActionProvider.get();
+    }
+
+    TransportIndicesAliasesAction transportIndicesAliasesAction() {
+        return transportIndicesAliasesActionProvider.get();
     }
 
     public TransportGetAction transportGetAction() {

@@ -22,7 +22,6 @@
 
 package io.crate.executor.transport.ddl;
 
-import io.crate.metadata.PartitionName;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.logging.log4j.util.Supplier;
 import org.elasticsearch.action.ActionListener;
@@ -81,23 +80,9 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
     protected void masterOperation(RenameTableRequest request,
                                    ClusterState state,
                                    ActionListener<RenameTableResponse> listener) throws Exception {
-        // validate the target table name. done here, so we can test that the source table will be re-opened
-        // also after rename failures
-        request.targetIdent().validate();
-
         final Index[] concreteIndices = indexNameExpressionResolver.concreteIndices(state, INDICES_OPTIONS,
-            request.sourceIdent().indexName());
-        String[] targetIndexNames = new String[concreteIndices.length];
-        if (PartitionName.isPartition(concreteIndices[0].getName())) {
-            for (int i = 0; i < concreteIndices.length; i++) {
-                PartitionName partitionName = PartitionName.fromIndexOrTemplate(concreteIndices[i].getName());
-                targetIndexNames[i] = PartitionName.indexName(request.targetIdent(), partitionName.ident());
-            }
-        } else {
-            assert
-                concreteIndices.length == 1 : "Table must result in one concrete index or must be a partitioned table";
-            targetIndexNames[0] = request.targetIdent().indexName();
-        }
+            request.sourceIndices());
+        String[] targetIndexNames = request.targetIndices();
 
         updateClusterState(concreteIndices, targetIndexNames, request, new ActionListener<ClusterStateUpdateResponse>() {
 
@@ -149,6 +134,6 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
     @Override
     protected ClusterBlockException checkBlock(RenameTableRequest request, ClusterState state) {
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE,
-            indexNameExpressionResolver.concreteIndexNames(state, INDICES_OPTIONS, request.sourceIdent().indexName()));
+            indexNameExpressionResolver.concreteIndexNames(state, INDICES_OPTIONS, request.sourceIndices()));
     }
 }
