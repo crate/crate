@@ -1931,6 +1931,14 @@ nodes may have different authentication settings.
   Setting to enable or disable Host Based Authentication (HBA). It is disabled
   by default.
 
+**auth.host_based.http_default_user**
+  | *Runtime:* ``no``
+  | *Default:* ``crate``
+
+  The default user that should be used for authentication when clients connect
+  to CrateDB via HTTP protocol and they do not specify a user via the
+  ``X-USER`` request header.
+
 HBA Entries
 ~~~~~~~~~~~
 
