@@ -36,9 +36,9 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-class TransportCreateUserAction extends TransportMasterNodeAction<CreateUserRequest, WriteUserResponse> {
+public class TransportCreateUserAction extends TransportMasterNodeAction<CreateUserRequest, WriteUserResponse> {
 
-    TransportCreateUserAction(Settings settings,
+    public TransportCreateUserAction(Settings settings,
                               TransportService transportService,
                               ClusterService clusterService,
                               ThreadPool threadPool,

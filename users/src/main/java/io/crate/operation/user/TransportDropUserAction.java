@@ -38,7 +38,7 @@ import org.elasticsearch.transport.TransportService;
 
 public class TransportDropUserAction extends TransportMasterNodeAction<DropUserRequest, WriteUserResponse> {
 
-    TransportDropUserAction(Settings settings,
+    public TransportDropUserAction(Settings settings,
                             TransportService transportService,
                             ClusterService clusterService,
                             ThreadPool threadPool,
