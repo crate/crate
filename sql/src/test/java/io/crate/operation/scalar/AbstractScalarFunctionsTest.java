@@ -23,16 +23,15 @@ package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.*;
+import io.crate.data.Input;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.data.Input;
 import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
@@ -42,6 +41,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;
@@ -169,7 +169,13 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
                 arguments[i] = new AssertingInput(INPUT_APPLIER.process(arg, inputApplierContext));
             }
         }
-        assertThat(scalar.compile(function.arguments()).evaluate((Input[] )arguments), is(expectedValue));
+        if (expectedValue instanceof BytesRef) {
+            // readable output for the AssertionError
+            Object actualValue = scalar.compile(function.arguments()).evaluate((Input[]) arguments);
+            assertThat(BytesRefs.toString(actualValue), is(BytesRefs.toString(expectedValue)));
+        } else {
+            assertThat(scalar.compile(function.arguments()).evaluate((Input[]) arguments), is(expectedValue));
+        }
         for (AssertingInput argument : arguments) {
             argument.calls = 0;
         }
