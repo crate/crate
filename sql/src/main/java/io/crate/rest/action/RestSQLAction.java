@@ -22,23 +22,20 @@
 
 package io.crate.rest.action;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.*;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.SQLParseException;
+import io.crate.operation.auth.AuthenticationProvider;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.*;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -114,10 +111,19 @@ public class RestSQLAction extends BaseRestHandler {
         return Option.NONE;
     }
 
+    @VisibleForTesting
+    String userFromRequest(RestRequest request) {
+        String user = request.header(AuthenticationProvider.HTTP_HEADER_USER);
+        if (user == null) {
+            user = AuthenticationProvider.AUTH_HOST_BASED_HTTP_DEFAULT_USER_SETTING.setting().get(settings);
+        }
+        return user;
+    }
+
     private RestChannelConsumer executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request) {
         SQLOperations.Session session = sqlOperations.createSession(
             request.header(REQUEST_HEADER_SCHEMA),
-            null,
+            userFromRequest(request),
             toOptions(request),
             DEFAULT_SOFT_LIMIT);
         try {
@@ -156,7 +162,7 @@ public class RestSQLAction extends BaseRestHandler {
     private RestChannelConsumer executeBulkRequest(SQLXContentSourceContext context, final RestRequest request) {
         SQLOperations.Session session = sqlOperations.createSession(
             request.header(REQUEST_HEADER_SCHEMA),
-            null,
+            userFromRequest(request),
             toOptions(request),
             DEFAULT_SOFT_LIMIT);
         try {
