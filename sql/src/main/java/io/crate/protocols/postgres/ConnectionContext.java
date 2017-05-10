@@ -28,6 +28,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.HbaProtocol;
@@ -36,7 +37,6 @@ import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.network.InetAddresses;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.*;
@@ -45,7 +45,6 @@ import org.jboss.netty.handler.codec.frame.FrameDecoder;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -363,7 +362,7 @@ class ConnectionContext {
 
     private void authenticate(Channel channel, Properties properties) {
         String userName = properties.getProperty("user");
-        InetAddress address = getRemoteAddress(channel);
+        InetAddress address = CrateNettyHttpServerTransport.getRemoteAddress(channel);
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(userName,
             address,
             HbaProtocol.POSTGRES);
@@ -390,17 +389,6 @@ class ConnectionContext {
                     }
                 });
         }
-    }
-
-    private static InetAddress getRemoteAddress(Channel channel) {
-        if (channel.getRemoteAddress() instanceof InetSocketAddress) {
-            return ((InetSocketAddress) channel.getRemoteAddress()).getAddress();
-        }
-        // In certain cases the channel is an EmbeddedChannel (e.g. in tests)
-        // and this type of channel has an EmbeddedSocketAddress instance as remoteAddress
-        // which does not have an address.
-        // An embedded socket address is handled like a local connection via loopback.
-        return InetAddresses.forString("127.0.0.1");
     }
 
     private void sendReadyForQuery(Channel channel) {

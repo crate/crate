@@ -51,4 +51,6 @@ public interface AuthenticationMethod {
      * @return name of the authentication method
      */
     String name();
+
+    CompletableFuture<User> httpAuthentication(String userName);
 }

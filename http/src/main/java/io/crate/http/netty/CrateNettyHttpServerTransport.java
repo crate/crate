@@ -24,14 +24,18 @@ package io.crate.http.netty;
 
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.http.netty3.Netty3HttpServerTransport;
+import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jboss.netty.channel.*;
 
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.util.*;
 import java.util.function.Supplier;
 
 
@@ -59,8 +63,7 @@ public class CrateNettyHttpServerTransport extends Netty3HttpServerTransport {
         }
     }
 
-    private CopyOnWriteArrayList<ChannelPipelineItem> addBeforeList = new CopyOnWriteArrayList<>();
-    private CopyOnWriteArrayList<ChannelPipelineItem> addAfterList = new CopyOnWriteArrayList<>();
+    private final List<ChannelPipelineItem> addBeforeList = new ArrayList<>();
 
     @Inject
     public CrateNettyHttpServerTransport(Settings settings,
@@ -76,11 +79,73 @@ public class CrateNettyHttpServerTransport extends Netty3HttpServerTransport {
     }
 
     public void addBefore(ChannelPipelineItem item) {
-        addBeforeList.add(item);
+        synchronized (addBeforeList) {
+            addSorted(addBeforeList, item);
+        }
     }
 
-    public void addAfter(ChannelPipelineItem item) {
-        addAfterList.add(item);
+    List<ChannelPipelineItem> addBefore() {
+        return addBeforeList;
+    }
+
+    /**
+     * Add a new {@link ChannelPipelineItem} to an existing list.
+     * An item has base on which it depends on and after which it must be added to the pipeline.
+     * Since items may be added at different times and from different places the dependencies of items may not be present
+     * when they are added.
+     * The sorting works as follows:
+     *   * first, add new item to existing list
+     *   * create a copy on which we can iterate because we may need to modify the order of items of the existing list
+     *   * iterate over items and check if an item already exists which depends on the iterated item - add new item after
+     *   * iterate over items and check if an item already exists on which the iterated item depends on - add new item before
+     *   * if non of the previous predicates apply, add the iterated item at the end of the list
+     *
+     * @param pipelineItems   list to add newItem to
+     * @param newItem         new pipeline item to be added
+     */
+    private void addSorted(List<ChannelPipelineItem> pipelineItems, ChannelPipelineItem newItem) {
+        pipelineItems.add(newItem);
+
+        if (pipelineItems.size() < 2) {
+            return;
+        }
+
+        ArrayList<ChannelPipelineItem> copy = new ArrayList<>(pipelineItems.size());
+        copy.addAll(pipelineItems);
+
+        for (ChannelPipelineItem item : copy) {
+            pipelineItems.remove(item);
+
+            boolean prev = false;
+            int prevIdx = 0;
+            for (ChannelPipelineItem o : pipelineItems) {
+                if (o.name.equals(item.base)) {
+                    prev = true;
+                    break;
+                }
+                prevIdx++;
+            }
+            if (prev) {
+                pipelineItems.add(prevIdx + 1, item);
+                continue;
+            }
+
+            boolean next = false;
+            int nextIdx = 0;
+            for (ChannelPipelineItem o : pipelineItems) {
+                if (o.base.equals(item.name)) {
+                    next = true;
+                    break;
+                }
+                nextIdx++;
+            }
+            if (next) {
+                pipelineItems.add(nextIdx, item);
+                continue;
+            }
+
+            pipelineItems.add(item);
+        }
     }
 
     protected class CrateHttpChannelPipelineFactory extends HttpChannelPipelineFactory {
@@ -94,13 +159,23 @@ public class CrateNettyHttpServerTransport extends Netty3HttpServerTransport {
         @Override
         public ChannelPipeline getPipeline() throws Exception {
             ChannelPipeline pipeline = super.getPipeline();
-            for (ChannelPipelineItem item : addBeforeList) {
-                pipeline.addBefore(item.base, item.name, item.handlerFactory.get());
-            }
-            for (ChannelPipelineItem item : addAfterList) {
-                pipeline.addAfter(item.base, item.name, item.handlerFactory.get());
+            synchronized (addBeforeList) {
+                for (ChannelPipelineItem item : addBeforeList) {
+                    pipeline.addBefore(item.base, item.name, item.handlerFactory.get());
+                }
             }
             return pipeline;
         }
+    }
+
+    public static InetAddress getRemoteAddress(Channel channel) {
+        if (channel.getRemoteAddress() instanceof InetSocketAddress) {
+            return ((InetSocketAddress) channel.getRemoteAddress()).getAddress();
+        }
+        // In certain cases the channel is an EmbeddedChannel (e.g. in tests)
+        // and this type of channel has an EmbeddedSocketAddress instance as remoteAddress
+        // which does not have an address.
+        // An embedded socket address is handled like a local connection via loopback.
+        return InetAddresses.forString("127.0.0.1");
     }
 }

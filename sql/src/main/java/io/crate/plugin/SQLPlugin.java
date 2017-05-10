@@ -111,6 +111,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         // Authentication settings are node settings
         settings.add(AuthenticationProvider.AUTH_HOST_BASED_ENABLED_SETTING.setting());
         settings.add(AuthenticationProvider.AUTH_HOST_BASED_CONFIG_SETTING.setting());
+        settings.add(AuthenticationProvider.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting());
 
         // also add CrateSettings
         for (CrateSetting crateSetting : CrateSettings.CRATE_CLUSTER_SETTINGS) {

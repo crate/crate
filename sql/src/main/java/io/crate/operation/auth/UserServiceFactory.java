@@ -27,6 +27,7 @@ import io.crate.operation.user.UserManager;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
+import io.crate.http.netty.CrateNettyHttpServerTransport;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -55,4 +56,7 @@ public interface UserServiceFactory {
                                  IndexNameExpressionResolver indexNameExpressionResolver,
                                  SysTableRegistry sysTableRegistry);
 
+    void registerHttpAuthHandler(Settings settings,
+                                 CrateNettyHttpServerTransport httpTransport,
+                                 Authentication authService);
 }

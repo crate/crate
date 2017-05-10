@@ -160,6 +160,11 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
                 public String name() {
                     return "test-auth";
                 }
+
+                @Override
+                public CompletableFuture<User> httpAuthentication(String userName) {
+                    return future;
+                }
             };
         }
     }

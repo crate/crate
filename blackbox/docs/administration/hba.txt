@@ -20,14 +20,10 @@ specify HBA entries in the ``auth.host_based.config`` group setting.
 
 See: :ref:`applying-cluster-settings`.
 
-Allowing Authentication to CrateDB
-==================================
+Authentication against CrateDB
+==============================
 
-.. NOTE::
-
-   This feature only concerns connections over :ref:`postgres_wire_protocol`.
-
-Client access and authentication is configured by the ``auth.host_based.config``
+Client access and authentication is configured via the ``auth.host_based.config``
 setting in the ``crate.yml`` file.
 
 The general format of the ``auth.host_based.config`` setting is a map of remote client
@@ -41,6 +37,9 @@ When a client sends an authentication request, CrateDB matches the provided
 username, IP address and protocol against these entries to determine which
 authentication method is required. If no entry matches, the client authentication
 request will be denied.
+
+For HTTP connections the ``X-REAL-IP`` request header has priority over the
+actual client IP address in order to allow proxied clients to authenticate.
 
 If ``auth.host_based`` is not set, the host based authentication is disabled.
 If the setting ``auth.host_based`` is present and the configurations list
@@ -70,6 +69,11 @@ For example, a host based configuration can look like this:
           y:
             user: eleven
             protocol: pg
+          e:
+            user: dustin
+            address: 172.16.0.0
+            method: trust
+            protocol: http
           z:
             method: trust
 
@@ -100,8 +104,13 @@ Since no authentication method is specified, the ``trust`` method will be used b
 The entry: ``{user: eleven, protocol: pg}`` means that the user ``eleven`` can authenticate
 to CrateDB over the Postgres Wire Protocol from any IP address, using the ``trust`` method.
 
+``{user: dustin, address: 172.16.0.0, protocol: http, method: trust}`` means that
+the user ``dustin`` can authenticate to CrateDB over HTTP protocol from the
+``172.16.0.0`` IP Address using the ``trust`` method.
+
 And finally the entry ``{method: trust}`` means that any existing user (or superuser)
 can authenticate to CrateDB from any IP address using the ``trust`` method.
+
 
 Authenticating as a Superuser
 =============================
@@ -112,8 +121,8 @@ Authenticating as a Superuser
 When CrateDB is started, the cluster contains one predefined superuser. This user
 is called ``crate``.
 
-To authenticate as the superuser from a specific IP address, ``crate`` should be
-specified in the the ``auth.host_based`` setting, like this:
+To enable trust auhentication for the superuser, ``crate`` must be specified
+in the the ``auth.host_based`` setting, like this:
 
 .. code-block:: yaml
 
@@ -123,7 +132,4 @@ specified in the the ``auth.host_based`` setting, like this:
         config:
           0:
             user: crate
-            address: 172.16.0.0
-            method: trust
-            protocol: pg
 

@@ -25,6 +25,7 @@ package io.crate.operation.auth;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManagerProvider;
+import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.protocols.postgres.Messages;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
@@ -37,6 +38,7 @@ import org.jboss.netty.channel.Channel;
 
 import java.net.InetAddress;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 
 @Singleton
@@ -50,6 +52,13 @@ public class AuthenticationProvider implements Provider<Authentication> {
     public static final CrateSetting<Settings> AUTH_HOST_BASED_CONFIG_SETTING = CrateSetting.of(Setting.groupSetting(
         "auth.host_based.config.", Setting.Property.NodeScope),
         DataTypes.OBJECT);
+
+    public static final CrateSetting<String> AUTH_TRUST_HTTP_DEFAULT_HEADER = CrateSetting.of(new Setting<>(
+        "auth.trust.http_default_user", "crate", Function.identity(), Setting.Property.NodeScope),
+        DataTypes.STRING);
+
+    public static final String HTTP_HEADER_USER = "X-User";
+    public static final String HTTP_HEADER_REAL_IP = "X-Real-Ip";
 
     private Authentication authService;
 
@@ -69,6 +78,11 @@ public class AuthenticationProvider implements Provider<Authentication> {
             public String name() {
                 return "alwaysOk";
             }
+
+            @Override
+            public CompletableFuture<User> httpAuthentication(String userName) {
+                return CompletableFuture.completedFuture(null);
+            }
         };
 
         @Override
@@ -83,10 +97,16 @@ public class AuthenticationProvider implements Provider<Authentication> {
     };
 
     @Inject
-    public AuthenticationProvider(Settings settings, UserManagerProvider userManagerProvider) {
-        UserServiceFactory userServiceFactory = UserServiceFactoryLoader.load(settings);
-        authService = userServiceFactory == null ? NOOP_AUTH :
-            userServiceFactory.authService(settings, userManagerProvider.get());
+    public AuthenticationProvider(Settings settings, UserManagerProvider userManagerProvider, CrateNettyHttpServerTransport httpTransport) {
+            UserServiceFactory serviceFactory = UserServiceFactoryLoader.load(settings);
+            if (serviceFactory != null) {
+                authService = serviceFactory.authService(settings, userManagerProvider.get());
+                if (authService.enabled()) {
+                    serviceFactory.registerHttpAuthHandler(settings, httpTransport, authService);
+                }
+            } else {
+                authService = NOOP_AUTH;
+            }
     }
 
     public Authentication get() {

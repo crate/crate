@@ -22,12 +22,17 @@
 
 package io.crate.rest.action;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.*;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.SQLParseException;
+import io.crate.operation.auth.AuthenticationProvider;
+import io.crate.operation.user.User;
+import io.crate.operation.user.UserManager;
+import io.crate.operation.user.UserManagerProvider;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -48,11 +53,13 @@ public class RestSQLAction extends BaseRestHandler {
     private static final int DEFAULT_SOFT_LIMIT = 10_000;
 
     private final SQLOperations sqlOperations;
+    private final UserManager userManager;
 
     @Inject
-    public RestSQLAction(Settings settings, RestController controller, SQLOperations sqlOperations) {
+    public RestSQLAction(Settings settings, RestController controller, SQLOperations sqlOperations, UserManagerProvider userManagerProvider) {
         super(settings);
         this.sqlOperations = sqlOperations;
+        this.userManager = userManagerProvider.get();
 
         controller.registerHandler(RestRequest.Method.POST, "/_sql", this);
     }
@@ -109,10 +116,19 @@ public class RestSQLAction extends BaseRestHandler {
         return Option.NONE;
     }
 
+    @VisibleForTesting
+    User userFromRequest(RestRequest request) {
+        String user = request.header(AuthenticationProvider.HTTP_HEADER_USER);
+        if (user == null) {
+            user = AuthenticationProvider.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
+        }
+        return userManager.findUser(user);
+    }
+
     private RestChannelConsumer executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request) {
         SQLOperations.Session session = sqlOperations.createSession(
             request.header(REQUEST_HEADER_SCHEMA),
-            null,
+            userFromRequest(request),
             toOptions(request),
             DEFAULT_SOFT_LIMIT);
         try {
@@ -151,7 +167,7 @@ public class RestSQLAction extends BaseRestHandler {
     private RestChannelConsumer executeBulkRequest(SQLXContentSourceContext context, final RestRequest request) {
         SQLOperations.Session session = sqlOperations.createSession(
             request.header(REQUEST_HEADER_SCHEMA),
-            null,
+            userFromRequest(request),
             toOptions(request),
             DEFAULT_SOFT_LIMIT);
         try {

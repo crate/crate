@@ -21,6 +21,9 @@ Breaking Changes
 Changes
 =======
 
+ - Added support for host based authentication (HBA).
+   Please see :ref:`Host Based Authentication <administration_hba>`.
+
  - Added support for renaming tables using the `ALTER ... RENAME TO ...`
    statement.
 
@@ -36,10 +39,6 @@ Changes
    is present.
 
  - UDC pings will send ``licence.ident`` if defined from now on.
-
- - Added support for host based authentication (HBA) via the Postgres Wire
-   Protocol.
-   Please see :ref:`Host Based Authentication <administration_hba>`.
 
  - Added support for ``GROUP BY`` in combination with subselect. E.g.::
 

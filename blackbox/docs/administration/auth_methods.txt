@@ -1,4 +1,3 @@
-
 .. _auth_methods:
 
 ======================
@@ -14,3 +13,30 @@ When the ``trust`` authentication method is used, the server just takes the
 username provided by the client as is without further validation. This is useful
 for any setup where access is controlled by other means, like network
 restrictions as implemented by :ref:`administration_hba`.
+
+Trust Authentication over Postgres Protocol
+-------------------------------------------
+
+The Postgres Protocol requires a user for every connection which is sent by
+all client implementations.
+
+Trust Authentication over HTTP
+------------------------------
+
+The HTTP implementation takes the value of the ``X-USER`` request header
+as the username.
+
+Since a user is always required for trust authentication, it is possible to
+specify a default user in case that the ``X-USER`` header is not set. This is
+useful to allow clients which do not provide the possibility to set any
+headers, for example a web browser connecting to the Admin UI.
+
+The default user can be specified via the ``auth.trust.http_default_user``
+setting like this:
+
+.. code-block:: yaml
+
+    auth:
+      host_based:
+        http_default_user: dustin
+

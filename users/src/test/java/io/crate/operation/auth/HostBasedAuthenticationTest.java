@@ -141,6 +141,11 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
             public String name() {
                 return "trust";
             }
+
+            @Override
+            public CompletableFuture<User> httpAuthentication(String userName) {
+                return null;
+            }
         };
         authService.registerAuthMethod(noopAuthMethod.name(), () -> noopAuthMethod);
         authService.updateHbaConfig(createHbaConf(HBA_1));

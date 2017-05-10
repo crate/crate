@@ -27,6 +27,8 @@ import io.crate.operation.user.*;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
+import io.crate.http.netty.CrateNettyHttpServerTransport;
+import io.crate.http.netty.HttpAuthUpstreamHandler;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -61,5 +63,15 @@ public class UserServiceFactoryImpl implements UserServiceFactory {
             () -> CompletableFuture.completedFuture(userManager.users()),
             SysUsersTableInfo.sysUsersExpressions());
         return userManager;
+    }
+
+    @Override
+    public void registerHttpAuthHandler(Settings settings, CrateNettyHttpServerTransport httpTransport, Authentication authService) {
+        CrateNettyHttpServerTransport.ChannelPipelineItem pipelineItem = new CrateNettyHttpServerTransport.ChannelPipelineItem(
+            "blob_handler",
+            "auth_handler",
+            () -> new HttpAuthUpstreamHandler(settings, authService)
+        );
+        httpTransport.addBefore(pipelineItem);
     }
 }

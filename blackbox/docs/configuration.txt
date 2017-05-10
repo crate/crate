@@ -1925,6 +1925,17 @@ Authentication
 
 .. _host_based_auth:
 
+Trust Authentication
+--------------------
+
+**auth.trust.http_default_user**
+  | *Runtime:* ``no``
+  | *Default:* ``crate``
+
+  The default user that should be used for authentication when clients connect
+  to CrateDB via HTTP protocol and they do not specify a user via the
+  ``X-USER`` request header.
+
 Host Based Authentication
 -------------------------
 
