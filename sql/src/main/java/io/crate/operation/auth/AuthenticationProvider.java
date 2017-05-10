@@ -39,6 +39,7 @@ import java.util.Iterator;
 import java.util.ServiceConfigurationError;
 import java.util.ServiceLoader;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 
 @Singleton
@@ -52,6 +53,12 @@ public class AuthenticationProvider {
     public static final CrateSetting<Settings> AUTH_HOST_BASED_CONFIG_SETTING = CrateSetting.of(Setting.groupSetting(
         "auth.host_based.config.", Setting.Property.NodeScope),
         DataTypes.OBJECT);
+
+    public static final CrateSetting<String> AUTH_HOST_BASED_HTTP_DEFAULT_USER_SETTING = CrateSetting.of(new Setting<>(
+        "auth.host_based.http_default_user", "crate", Function.identity(), Setting.Property.NodeScope),
+        DataTypes.STRING);
+
+    public static final String HTTP_HEADER_USER = "X-User";
 
     private Authentication authService;
 
