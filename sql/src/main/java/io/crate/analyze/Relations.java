@@ -20,49 +20,19 @@
  * agreement.
  */
 
-package io.crate.metadata;
+package io.crate.analyze;
 
-import com.google.common.base.MoreObjects;
+import com.google.common.collect.Lists;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
+import io.crate.metadata.Path;
 
-import java.util.Objects;
+import java.util.Collection;
+import java.util.List;
 
-/**
- * This Path implementation references columns by their position.
- */
-public class ColumnIndex implements Path {
+class Relations {
 
-    private final int index;
-
-    public ColumnIndex(int index) {
-        this.index = index;
-    }
-
-    @Override
-    public String outputName() {
-        return Integer.toString(index, Character.MAX_RADIX);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ColumnIndex that = (ColumnIndex) o;
-        return Objects.equals(index, that.index);
-    }
-
-    @Override
-    public int hashCode() {
-        return index;
-    }
-
-    @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("index", index)
-            .toString();
-    }
-
-    public int index() {
-        return index;
+    static Collection<? extends Path> namesFromOutputs(List<Symbol> outputs) {
+        return Lists.transform(outputs, Symbols::pathFromSymbol);
     }
 }

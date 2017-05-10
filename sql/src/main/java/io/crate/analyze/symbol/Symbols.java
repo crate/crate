@@ -23,9 +23,8 @@ package io.crate.analyze.symbol;
 
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
+import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.metadata.*;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -100,6 +99,15 @@ public class Symbols {
 
     public static Symbol fromStream(StreamInput in) throws IOException {
         return SymbolType.VALUES.get(in.readVInt()).newInstance(in);
+    }
+
+    public static Path pathFromSymbol(Symbol symbol) {
+        if (symbol instanceof Field) {
+            return ((Field) symbol).path();
+        } else if (symbol instanceof Reference) {
+            return ((Reference) symbol).ident().columnIdent();
+        }
+        return new OutputName(SymbolPrinter.INSTANCE.printSimple(symbol));
     }
 
     private static class HasColumnVisitor extends SymbolVisitor<ColumnIdent, Boolean> {

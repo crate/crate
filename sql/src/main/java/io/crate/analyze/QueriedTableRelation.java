@@ -41,7 +41,7 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
     private final QuerySpec querySpec;
     private final Fields fields;
 
-    public QueriedTableRelation(TR tableRelation, Collection<? extends Path> outputNames, QuerySpec querySpec) {
+    protected QueriedTableRelation(TR tableRelation, Collection<? extends Path> outputNames, QuerySpec querySpec) {
         this.tableRelation = tableRelation;
         this.querySpec = querySpec;
         this.fields = new Fields(outputNames.size());
@@ -51,14 +51,8 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
         }
     }
 
-    public QueriedTableRelation(TR tableRelation, QuerySpec querySpec) {
-        this.tableRelation = tableRelation;
-        this.querySpec = querySpec;
-        this.fields = new Fields(querySpec.outputs().size());
-        for (int i = 0; i < querySpec.outputs().size(); i++) {
-            ColumnIndex columnIndex = new ColumnIndex(i);
-            fields.add(columnIndex, new Field(this, columnIndex, querySpec.outputs().get(i).valueType()));
-        }
+    protected QueriedTableRelation(TR tableRelation, QuerySpec querySpec) {
+        this(tableRelation, Relations.namesFromOutputs(querySpec.outputs()), querySpec);
     }
 
     public QuerySpec querySpec() {
@@ -102,5 +96,20 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
     @Override
     public String toString() {
         return "QueriedTable{" + tableRelation + '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        QueriedTableRelation<?> that = (QueriedTableRelation<?>) o;
+
+        return tableRelation.equals(that.tableRelation);
+    }
+
+    @Override
+    public int hashCode() {
+        return tableRelation.hashCode();
     }
 }

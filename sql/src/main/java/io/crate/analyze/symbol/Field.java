@@ -22,7 +22,6 @@
 package io.crate.analyze.symbol;
 
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -106,13 +105,7 @@ public class Field extends Symbol implements Path {
      * @return the position of the field in its relation
      */
     public int index() {
-        int idx;
-        // TODO: consider adding an indexOf method to relations or another way to efficiently get the index
-        if (path instanceof ColumnIndex) {
-            idx = ((ColumnIndex) path).index();
-        } else {
-            idx = relation.fields().indexOf(this);
-        }
+        int idx = relation.fields().indexOf(this);
         assert idx >= 0 : "idx must be >= 0";
         return idx;
     }
