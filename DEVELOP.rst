@@ -88,7 +88,7 @@ Some other common build tasks::
 Use ``@TestLogging(["<packageName1>:<logLevel1>", ...])`` on your test class or
 test method to enable more detailed logging. For example::
 
-    @TestLogging("io.crate:DEBUG","io.crate.planner.consumer.NestedLoopConsumer:TRACE")
+    @TestLogging("io.crate:DEBUG,io.crate.planner.consumer.NestedLoopConsumer:TRACE")
 
 Alternatively, you can set this configuration via the command line::
 
