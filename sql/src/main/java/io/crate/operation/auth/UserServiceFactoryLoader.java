@@ -20,24 +20,31 @@
  * agreement.
  */
 
-package io.crate.operation.user;
+package io.crate.operation.auth;
 
-import io.crate.operation.collect.sources.SysTableRegistry;
-import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.service.ClusterService;
+import io.crate.settings.SharedSettings;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
 
-public interface UserManagerFactory {
+import java.util.Iterator;
+import java.util.ServiceConfigurationError;
+import java.util.ServiceLoader;
 
+public final class UserServiceFactoryLoader {
 
-    UserManager create(Settings settings,
-                       TransportService transportService,
-                       ClusterService clusterService,
-                       ThreadPool threadPool,
-                       ActionFilters actionFilters,
-                       IndexNameExpressionResolver indexNameExpressionResolver,
-                       SysTableRegistry sysTableRegistry);
+    @Nullable
+    public static UserServiceFactory load(Settings settings) {
+        if (!SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
+            return null;
+        }
+        Iterator<UserServiceFactory> authIterator = ServiceLoader.load(UserServiceFactory.class).iterator();
+        UserServiceFactory factory = null;
+        while (authIterator.hasNext()) {
+            if (factory != null) {
+                throw new ServiceConfigurationError("UserManagerFactory found twice");
+            }
+            factory = authIterator.next();
+        }
+        return factory;
+    }
 }

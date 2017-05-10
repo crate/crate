@@ -22,7 +22,14 @@
 
 package io.crate.operation.auth;
 
+import io.crate.operation.collect.sources.SysTableRegistry;
+import io.crate.operation.user.UserManager;
+import org.elasticsearch.action.support.ActionFilters;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
 
 /**
  * This is a marker interface for a factory implementation that lives in the "user" module
@@ -36,5 +43,16 @@ public interface UserServiceFactory {
      * Return implementation of {@link Authentication} interface.
      */
     Authentication authService(Settings settings);
+
+    /**
+     * Return implementation of {@link UserManager} interface.
+     */
+    UserManager setupUserManager(Settings settings,
+                                 TransportService transportService,
+                                 ClusterService clusterService,
+                                 ThreadPool threadPool,
+                                 ActionFilters actionFilters,
+                                 IndexNameExpressionResolver indexNameExpressionResolver,
+                                 SysTableRegistry sysTableRegistry);
 
 }

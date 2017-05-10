@@ -26,6 +26,8 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.operation.auth.UserServiceFactory;
+import io.crate.operation.auth.UserServiceFactoryLoader;
 import io.crate.operation.collect.sources.SysTableRegistry;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -37,9 +39,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.Iterator;
-import java.util.ServiceConfigurationError;
-import java.util.ServiceLoader;
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
@@ -55,18 +54,11 @@ public class UserManagerProvider implements Provider<UserManager> {
                                ActionFilters actionFilters,
                                IndexNameExpressionResolver indexNameExpressionResolver,
                                SysTableRegistry sysTableRegistry) {
-        Iterator<UserManagerFactory> userManagerIterator = ServiceLoader.load(UserManagerFactory.class).iterator();
-        UserManagerFactory userManagerFactory = null;
-        while (userManagerIterator.hasNext()) {
-            if (userManagerFactory != null) {
-                throw new ServiceConfigurationError("UserManagerFactory found twice");
-            }
-            userManagerFactory = userManagerIterator.next();
-        }
-        if (userManagerFactory == null) {
+        UserServiceFactory userServiceFactory = UserServiceFactoryLoader.load(settings);
+        if (userServiceFactory == null) {
             this.userManager = new UnsupportedUserManager();
         } else {
-            this.userManager = userManagerFactory.create(settings, transportService, clusterService, threadPool,
+            this.userManager = userServiceFactory.setupUserManager(settings, transportService, clusterService, threadPool,
                 actionFilters, indexNameExpressionResolver, sysTableRegistry);
         }
     }

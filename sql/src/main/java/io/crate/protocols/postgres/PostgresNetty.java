@@ -116,7 +116,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         if (!enabled) {
             return;
         }
-        Authentication authService = authProvider.authService();
+        Authentication authService = authProvider.get();
         bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(
             Executors.newCachedThreadPool(daemonThreadFactory(settings, "postgres-netty-boss")),
             Executors.newCachedThreadPool(daemonThreadFactory(settings, "postgres-netty-worker"))

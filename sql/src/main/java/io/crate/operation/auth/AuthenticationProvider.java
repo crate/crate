@@ -24,25 +24,23 @@ package io.crate.operation.auth;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.operation.user.User;
+import io.crate.operation.user.UserManagerProvider;
 import io.crate.protocols.postgres.Messages;
 import io.crate.settings.CrateSetting;
-import io.crate.settings.SharedSettings;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.jboss.netty.channel.Channel;
 
 import java.net.InetAddress;
-import java.util.Iterator;
-import java.util.ServiceConfigurationError;
-import java.util.ServiceLoader;
 import java.util.concurrent.CompletableFuture;
 
 
 @Singleton
-public class AuthenticationProvider {
+public class AuthenticationProvider implements Provider<Authentication> {
 
     public static final CrateSetting<Boolean> AUTH_HOST_BASED_ENABLED_SETTING = CrateSetting.of(Setting.boolSetting(
         "auth.host_based.enabled",
@@ -86,27 +84,12 @@ public class AuthenticationProvider {
 
     @Inject
     public AuthenticationProvider(Settings settings) {
-        if (!SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
-            authService = NOOP_AUTH;
-        } else {
-            UserServiceFactory serviceFactory = getUserServiceFactory();
-            authService = serviceFactory == null ? NOOP_AUTH : serviceFactory.authService(settings);
-        }
+        UserServiceFactory userServiceFactory = UserServiceFactoryLoader.load(settings);
+        authService = userServiceFactory == null ? NOOP_AUTH :
+            userServiceFactory.authService(settings);
     }
 
-    private static UserServiceFactory getUserServiceFactory() {
-        Iterator<UserServiceFactory> authIterator = ServiceLoader.load(UserServiceFactory.class).iterator();
-        UserServiceFactory factory = null;
-        while (authIterator.hasNext()) {
-            if (factory != null) {
-                throw new ServiceConfigurationError("UserManagerFactory found twice");
-            }
-            factory = authIterator.next();
-        }
-        return factory;
-    }
-
-    public Authentication authService() {
+    public Authentication get() {
         // fallback to NOOP_AUTH which responds always OK
         // if the found authentication service is not enabled
         return authService.enabled() ? authService : NOOP_AUTH;

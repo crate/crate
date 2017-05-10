@@ -40,7 +40,7 @@ import java.util.Collections;
 
 public class TransportCreateUserAction extends TransportMasterNodeAction<CreateUserRequest, WriteUserResponse> {
 
-    TransportCreateUserAction(Settings settings,
+    public TransportCreateUserAction(Settings settings,
                               TransportService transportService,
                               ClusterService clusterService,
                               ThreadPool threadPool,

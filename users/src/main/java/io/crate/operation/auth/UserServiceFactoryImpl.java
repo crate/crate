@@ -22,7 +22,16 @@
 
 package io.crate.operation.auth;
 
+import io.crate.operation.collect.sources.SysTableRegistry;
+import io.crate.operation.user.*;
+import org.elasticsearch.action.support.ActionFilters;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
+
+import java.util.concurrent.CompletableFuture;
 
 
 public class UserServiceFactoryImpl implements UserServiceFactory {
@@ -30,5 +39,29 @@ public class UserServiceFactoryImpl implements UserServiceFactory {
     @Override
     public Authentication authService(Settings settings) {
         return new HostBasedAuthentication(settings);
+    }
+
+    /**
+     *  This mus only be called once as TransportActions are registered here.
+     */
+    @Override
+    public UserManager setupUserManager(Settings settings,
+                                        TransportService transportService,
+                                        ClusterService clusterService,
+                                        ThreadPool threadPool,
+                                        ActionFilters actionFilters,
+                                        IndexNameExpressionResolver indexNameExpressionResolver,
+                                        SysTableRegistry sysTableRegistry) {
+        TransportCreateUserAction transportCreateAction = new TransportCreateUserAction(
+            settings, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver);
+        TransportDropUserAction transportDropUserAction = new TransportDropUserAction(
+            settings, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver);
+        UserManagerService userManagerService = new UserManagerService(transportCreateAction, transportDropUserAction,
+            clusterService);
+
+        sysTableRegistry.registerSysTable(new SysUsersTableInfo(clusterService),
+            () -> CompletableFuture.completedFuture(userManagerService.users()),
+            SysUsersTableInfo.sysUsersExpressions());
+        return userManagerService;
     }
 }

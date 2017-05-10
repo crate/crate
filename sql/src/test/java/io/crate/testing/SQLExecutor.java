@@ -165,7 +165,8 @@ public class SQLExecutor {
                     new ModulesBuilder().add(new RepositorySettingsModule())
                         .createInjector()
                         .getInstance(RepositoryParamValidator.class),
-                    new UserManagerProvider(null,
+                    new UserManagerProvider(
+                        Settings.EMPTY,
                         null,
                         clusterService,
                         null,

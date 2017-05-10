@@ -64,7 +64,7 @@ public class SysUsersTableInfo extends StaticTableInfo {
         return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().getId());
     }
 
-    static Map<ColumnIdent, RowCollectExpressionFactory> sysUsersExpressions() {
+    public static Map<ColumnIdent, RowCollectExpressionFactory> sysUsersExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
             .put(SysUsersTableInfo.Columns.NAME, () -> new RowContextCollectorExpression<User, BytesRef>() {
                 @Override
