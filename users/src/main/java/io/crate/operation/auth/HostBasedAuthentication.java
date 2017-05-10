@@ -39,6 +39,7 @@ public class HostBasedAuthentication implements Authentication {
     private static final String KEY_USER = "user";
     private static final String KEY_ADDRESS = "address";
     private static final String KEY_METHOD = "method";
+    private static final String KEY_PROTOCOL = "protocol";
 
     /*
      * The cluster state contains the hbaConf from the setting in this format:
@@ -47,6 +48,7 @@ public class HostBasedAuthentication implements Authentication {
          "address": "<cidr>",
          "method": "auth",
          "user": "<username>"
+         "protocol": "pg"
        },
        ...
      }
@@ -89,9 +91,9 @@ public class HostBasedAuthentication implements Authentication {
 
     @Override
     @Nullable
-    public AuthenticationMethod resolveAuthenticationType(String user, InetAddress address) {
+    public AuthenticationMethod resolveAuthenticationType(String user, InetAddress address, HbaProtocol protocol) {
         assert hbaConf != null : "hba configuration is missing";
-        Optional<Map.Entry<String, Map<String, String>>> entry = getEntry(user, address);
+        Optional<Map.Entry<String, Map<String, String>>> entry = getEntry(user, address, protocol);
         if (entry.isPresent()) {
             String methodName = entry.get()
                 .getValue()
@@ -110,13 +112,14 @@ public class HostBasedAuthentication implements Authentication {
     }
 
     @VisibleForTesting
-    Optional<Map.Entry<String, Map<String, String>>> getEntry(String user, InetAddress address) {
-        if (user == null || address == null) {
+    Optional<Map.Entry<String, Map<String, String>>> getEntry(String user, InetAddress address, HbaProtocol protocol) {
+        if (user == null || address == null || protocol == null) {
             return Optional.empty();
         }
         return hbaConf.entrySet().stream()
             .filter(e -> Matchers.isValidUser(e, user))
             .filter(e -> Matchers.isValidAddress(e, address))
+            .filter(e -> Matchers.isValidProtocol(e.getValue().get(KEY_PROTOCOL), protocol))
             .findFirst();
     }
 
@@ -144,5 +147,8 @@ public class HostBasedAuthentication implements Authentication {
             return false;
         }
 
+        static boolean isValidProtocol(String hbaProtocol, HbaProtocol protocol) {
+            return hbaProtocol == null || hbaProtocol.equals(protocol.toString());
+        }
     }
 }

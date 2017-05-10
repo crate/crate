@@ -30,6 +30,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
+import io.crate.operation.auth.HbaProtocol;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
@@ -39,15 +40,12 @@ import org.elasticsearch.common.network.InetAddresses;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.*;
-import org.jboss.netty.channel.socket.SocketChannel;
-import org.jboss.netty.channel.socket.nio.NioSocketChannel;
 import org.jboss.netty.handler.codec.frame.FrameDecoder;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -366,7 +364,9 @@ class ConnectionContext {
 
     private void authenticate(Channel channel) {
         InetAddress address = getRemoteAddress(channel);
-        AuthenticationMethod authMethod = authService.resolveAuthenticationType(sessionContext.userName(), address);
+        AuthenticationMethod authMethod = authService.resolveAuthenticationType(sessionContext.userName(),
+            address,
+            HbaProtocol.POSTGRES);
         if (authMethod == null) {
             String errorMessage = String.format(
                 Locale.ENGLISH,

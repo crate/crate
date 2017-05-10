@@ -37,6 +37,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidAddress;
+import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidProtocol;
 import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidUser;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -49,17 +50,20 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         .put("user", "crate")
         .put("address", "127.0.0.1")
         .put("method", "trust")
+        .put("protocol", "pg")
         .build();
 
     private static final ImmutableMap<String, String> HBA_2 = ImmutableMap.<String, String>builder()
         .put("user", "crate")
         .put("address", "0.0.0.0/0")
         .put("method", "fake")
+        .put("protocol", "pg")
         .build();
 
     private static final ImmutableMap<String, String> HBA_3 = ImmutableMap.<String, String>builder()
         .put("address", "127.0.0.1")
         .put("method", "md5")
+        .put("protocol", "pg")
         .build();
 
     private static final InetAddress LOCALHOST = InetAddresses.forString("127.0.0.1");
@@ -114,16 +118,16 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
     public void testMissingUserOrAddress() throws Exception {
         authService.updateHbaConfig(Collections.emptyMap());
         AuthenticationMethod method;
-        method = authService.resolveAuthenticationType(null, LOCALHOST);
+        method = authService.resolveAuthenticationType(null, LOCALHOST, HbaProtocol.POSTGRES);
         assertNull(method);
-        method = authService.resolveAuthenticationType("crate", null);
+        method = authService.resolveAuthenticationType("crate", null, HbaProtocol.POSTGRES);
         assertNull(method);
     }
 
     @Test
     public void testEmptyHbaConf() throws Exception {
         authService.updateHbaConfig(Collections.emptyMap());
-        AuthenticationMethod method = authService.resolveAuthenticationType("crate", LOCALHOST);
+        AuthenticationMethod method = authService.resolveAuthenticationType("crate", LOCALHOST, HbaProtocol.POSTGRES);
         assertNull(method);
     }
 
@@ -142,7 +146,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         };
         authService.registerAuthMethod(noopAuthMethod.name(), () -> noopAuthMethod);
         authService.updateHbaConfig(createHbaConf(HBA_1));
-        AuthenticationMethod method = authService.resolveAuthenticationType("crate", LOCALHOST);
+        AuthenticationMethod method = authService.resolveAuthenticationType("crate", LOCALHOST, HbaProtocol.POSTGRES);
         assertThat(method, is(noopAuthMethod));
     }
 
@@ -151,13 +155,13 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         authService.updateHbaConfig(createHbaConf(HBA_1));
         Optional entry;
 
-        entry = authService.getEntry("crate", LOCALHOST);
+        entry = authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES);
         assertThat(entry.isPresent(), is(true));
 
-        entry = authService.getEntry("cr8", LOCALHOST);
+        entry = authService.getEntry("cr8", LOCALHOST, HbaProtocol.POSTGRES);
         assertThat(entry.isPresent(), is(false));
 
-        entry = authService.getEntry("crate", InetAddresses.forString("10.0.0.1"));
+        entry = authService.getEntry("crate", InetAddresses.forString("10.0.0.1"), HbaProtocol.POSTGRES);
         assertThat(entry.isPresent(), is(false));
     }
 
@@ -166,15 +170,15 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         authService.updateHbaConfig(createHbaConf(HBA_2, HBA_3));
         Optional<Map.Entry<String, Map<String, String>>> entry;
 
-        entry = authService.getEntry("crate", InetAddresses.forString("123.45.67.89"));
+        entry = authService.getEntry("crate", InetAddresses.forString("123.45.67.89"), HbaProtocol.POSTGRES);
         assertTrue(entry.isPresent());
         assertThat(entry.get().getValue().get("method"), is("fake"));
 
-        entry = authService.getEntry("cr8", InetAddresses.forString("127.0.0.1"));
+        entry = authService.getEntry("cr8", InetAddresses.forString("127.0.0.1"), HbaProtocol.POSTGRES);
         assertTrue(entry.isPresent());
         assertThat(entry.get().getValue().get("method"), is("md5"));
 
-        entry = authService.getEntry("cr8", InetAddresses.forString("123.45.67.89"));
+        entry = authService.getEntry("cr8", InetAddresses.forString("123.45.67.89"), HbaProtocol.POSTGRES);
         assertThat(entry.isPresent(), is(false));
     }
 
@@ -192,6 +196,13 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
             "0", Collections.emptyMap() // key "user" not present in map
         );
         assertTrue(isValidUser(entry, RandomStringUtils.random(8)));
+    }
+
+    @Test
+    public void testMatchProtocol() throws Exception {
+        assertTrue(isValidProtocol("pg", HbaProtocol.POSTGRES));
+        assertFalse(isValidProtocol("http", HbaProtocol.POSTGRES));
+        assertTrue(isValidProtocol(null, HbaProtocol.POSTGRES));
     }
 
     @Test
@@ -227,9 +238,9 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         Settings settings = Settings.builder()
             .put("auth.host_based.enabled", true)
             .put("auth.host_based.config",
-                "0", new String[]{"user", "address", "method"}, new String[]{"crate", "127.0.0.1", "trust"})
+                "0", new String[]{"user", "address", "method", "protocol"}, new String[]{"crate", "127.0.0.1", "trust", "pg"})
             .put("auth.host_based.config",
-                "1", new String[]{"user", "address", "method"}, new String[]{"crate", "0.0.0.0/0", "fake"})
+                "1", new String[]{"user", "address", "method", "protocol"}, new String[]{"crate", "0.0.0.0/0", "fake", "pg"})
             .put("auth.host_based.config",
                 "2", new String[]{}, new String[]{}) // ignored because empty
             .build();

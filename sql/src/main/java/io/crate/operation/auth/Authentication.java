@@ -30,6 +30,8 @@ public interface Authentication {
     boolean enabled();
 
     @Nullable
-    AuthenticationMethod resolveAuthenticationType(String user, InetAddress address);
+    AuthenticationMethod resolveAuthenticationType(String user,
+                                                   InetAddress address,
+                                                   HbaProtocol protocol);
 
 }
