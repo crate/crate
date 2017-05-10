@@ -37,6 +37,9 @@ public class Field extends Symbol implements Path {
     private DataType valueType;
 
     public Field(AnalyzedRelation relation, Path path, DataType valueType) {
+        assert path != null : "path must not be null";
+        assert relation != null : "relation must not be null";
+
         this.relation = relation;
         this.path = path;
         this.valueType = valueType;
@@ -104,8 +107,6 @@ public class Field extends Symbol implements Path {
      */
     public int index() {
         int idx;
-        assert path != null : "path must not be null";
-        assert relation != null : "relation must not be null";
         // TODO: consider adding an indexOf method to relations or another way to efficiently get the index
         if (path instanceof ColumnIndex) {
             idx = ((ColumnIndex) path).index();

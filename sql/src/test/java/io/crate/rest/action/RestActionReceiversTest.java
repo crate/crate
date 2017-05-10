@@ -29,6 +29,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.DummyRelation;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -49,9 +50,9 @@ public class RestActionReceiversTest extends CrateUnitTest {
         new RowN(new Object[]{"foobar", 3, null})
     );
     private final List<Field> fields = ImmutableList.of(
-        new Field(null, ColumnIdent.fromPath("doc.col_a"), DataTypes.STRING),
-        new Field(null, ColumnIdent.fromPath("doc.col_b"), DataTypes.INTEGER),
-        new Field(null, ColumnIdent.fromPath("doc.col_c"), DataTypes.BOOLEAN)
+        new Field(new DummyRelation(), ColumnIdent.fromPath("doc.col_a"), DataTypes.STRING),
+        new Field(new DummyRelation(), ColumnIdent.fromPath("doc.col_b"), DataTypes.INTEGER),
+        new Field(new DummyRelation(), ColumnIdent.fromPath("doc.col_c"), DataTypes.BOOLEAN)
     );
     private final Row row = new Row1(1L);
 
