@@ -22,7 +22,6 @@
 
 package io.crate.executor.transport.ddl;
 
-import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -34,29 +33,29 @@ import static org.elasticsearch.action.ValidateActions.addValidationError;
 
 public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> {
 
-    private TableIdent sourceIdent;
-    private TableIdent targetIdent;
+    private String[] sourceIndices;
+    private String[] targetIndices;
 
-    public RenameTableRequest() {
+    RenameTableRequest() {
     }
 
-    public RenameTableRequest(TableIdent sourceIdent, TableIdent targetIdent) {
-        this.sourceIdent = sourceIdent;
-        this.targetIdent = targetIdent;
+    public RenameTableRequest(String[] sourceIndices, String[] targetIndices) {
+        this.sourceIndices = sourceIndices;
+        this.targetIndices = targetIndices;
     }
 
-    public TableIdent sourceIdent() {
-        return sourceIdent;
+    String[] sourceIndices() {
+        return sourceIndices;
     }
 
-    public TableIdent targetIdent() {
-        return targetIdent;
+    String[] targetIndices() {
+        return targetIndices;
     }
 
     @Override
     public ActionRequestValidationException validate() {
         ActionRequestValidationException validationException = null;
-        if (sourceIdent == null || targetIdent == null) {
+        if (sourceIndices == null || targetIndices == null) {
             validationException = addValidationError("source or target table name must not be null", null);
         }
         return validationException;
@@ -65,16 +64,16 @@ public class RenameTableRequest extends AcknowledgedRequest<RenameTableRequest> 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        sourceIdent = new TableIdent(in);
-        targetIdent = new TableIdent(in);
+        sourceIndices = in.readStringArray();
+        targetIndices = in.readStringArray();
         readTimeout(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        sourceIdent.writeTo(out);
-        targetIdent.writeTo(out);
+        out.writeStringArray(sourceIndices);
+        out.writeStringArray(targetIndices);
         writeTimeout(out);
     }
 }

@@ -22,7 +22,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
@@ -37,7 +36,7 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("alter table t1 rename to t2");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount(), is(-1L));
         ensureYellow();
 
         execute("select * from t2 order by id");
@@ -52,30 +51,23 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testRenameTableFailsButOldTableRemainOpen() {
-        execute("create table t1 (id int) with (number_of_replicas = 0)");
-        execute("insert into t1 (id) values (1), (2)");
-        refresh();
-
-        try {
-            // will fail due to invalid target table name
-            execute("alter table t1 rename to _t2");
-        } catch (SQLActionException e) {
-            ensureYellow();
-            execute("select * from t1 order by id");
-            assertThat(TestingHelpers.printedTable(response.rows()), is("1\n" +
-                                                                        "2\n"));
-        }
-    }
-
-    @Test
     public void testRenamePartitionedTable() {
-        execute("create table tp1 (id int) partitioned by (id) with (number_of_replicas = 0)");
-        execute("insert into tp1 (id) values (1), (2)");
+        execute("create table tp1 (id int, id2 integer) partitioned by (id) with (number_of_replicas = 0)");
+        execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");
         refresh();
 
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Renaming a partitioned table is not yet supported");
         execute("alter table tp1 rename to tp2");
+        assertThat(response.rowCount(), is(-1L));
+        ensureYellow();
+
+        execute("select id from tp2 order by id2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1\n" +
+                                                                    "2\n"));
+
+        execute("select * from information_schema.tables where table_name = 'tp2'");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("select * from information_schema.tables where table_name = 'tp1'");
+        assertThat(response.rowCount(), is(0L));
     }
 }

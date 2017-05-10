@@ -55,13 +55,9 @@ class AlterTableAnalyzer {
         return new AlterTableAnalyzedStatement(docTableInfo, partitionName, tableParameter, table.excludePartitions());
     }
 
-    public AlterTableRenameAnalyzedStatement analyzeRename(AlterTableRename node, String defaultSchema) {
+    AlterTableRenameAnalyzedStatement analyzeRename(AlterTableRename node, String defaultSchema) {
         TableIdent tableIdent = TableIdent.of(node.table(), defaultSchema);
         DocTableInfo tableInfo = schemas.getTableInfo(tableIdent);
-        // FIXME: remove if renaming a partitioned table is supported
-        if (tableInfo.isPartitioned()) {
-            throw new UnsupportedOperationException("Renaming a partitioned table is not yet supported");
-        }
         if (!node.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Renaming a single partition is not supported");
         }
