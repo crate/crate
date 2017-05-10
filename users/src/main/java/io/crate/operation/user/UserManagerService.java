@@ -49,7 +49,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     private final PermissionVisitor permissionVisitor = new PermissionVisitor();
     private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
 
-    UserManagerService(TransportCreateUserAction transportCreateUserAction,
+    public UserManagerService(TransportCreateUserAction transportCreateUserAction,
                        TransportDropUserAction transportDropUserAction,
                        ClusterService clusterService) {
         this.transportCreateUserAction = transportCreateUserAction;
