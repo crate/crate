@@ -22,8 +22,10 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.crate.analyze.relations.JoinPair;
+import io.crate.analyze.relations.JoinPairs;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.analyze.symbol.*;
 import io.crate.operation.operator.AndOperator;
@@ -66,69 +68,95 @@ public class Rewriter {
      *          t2.x > 10   # if t2.x is NULL this is always FALSE
      * </pre>
      */
-    public static void tryRewriteOuterToInnerJoin(EvaluatingNormalizer normalizer,
-                                                  JoinPair joinPair,
-                                                  QuerySpec multiSourceQuerySpec,
-                                                  QualifiedName left,
-                                                  QualifiedName right,
-                                                  QuerySpec leftQuerySpec,
-                                                  QuerySpec rightQuerySpec) {
-        assert left.equals(joinPair.left()) : "This JoinPair has a different left Qualified name: " + joinPair.left();
-        assert right.equals(joinPair.right()) :
-            "This JoinPair has a different left Qualified name: " + joinPair.right();
+    public static void tryRewriteOuterToInnerJoin(EvaluatingNormalizer normalizer, MultiSourceSelect mss) {
+        if (mss.sources().size() > 2) {
+            return;
+        }
+        WhereClause where = mss.querySpec().where();
+        if (!where.hasQuery()) {
+            return;
+        }
+        Iterator<Map.Entry<QualifiedName, RelationSource>> it = mss.sources().entrySet().iterator();
+        Map.Entry<QualifiedName, RelationSource> left = it.next();
+        Map.Entry<QualifiedName, RelationSource> right = it.next();
+        QualifiedName leftName = left.getKey();
+        QualifiedName rightName = right.getKey();
+        JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(
+            leftName,
+            rightName,
+            mss.joinPairs(),
+            false
+        );
+        assert leftName.equals(joinPair.left()) : "This JoinPair has a different left Qualified name: " + joinPair.left();
+        assert rightName.equals(joinPair.right()) : "This JoinPair has a different left Qualified name: " + joinPair.right();
 
         JoinType joinType = joinPair.joinType();
         if (!joinType.isOuter()) {
             return;
         }
-        WhereClause where = multiSourceQuerySpec.where();
-        if (!where.hasQuery()) {
-            return;
-        }
-        final Map<QualifiedName, QuerySpec> outerRelations = new HashMap<>(2);
-        switch (joinType) {
-            case LEFT:
-                outerRelations.put(right, rightQuerySpec);
-                break;
-            case RIGHT:
-                outerRelations.put(left, leftQuerySpec);
-                break;
-            case FULL:
-                outerRelations.put(left, leftQuerySpec);
-                outerRelations.put(right, rightQuerySpec);
-                break;
-        }
+        tryRewrite(normalizer, mss, where, left, right, joinPair, joinType);
+    }
 
+    private static void tryRewrite(EvaluatingNormalizer normalizer,
+                                   MultiSourceSelect mss,
+                                   WhereClause where,
+                                   Map.Entry<QualifiedName, RelationSource> left,
+                                   Map.Entry<QualifiedName, RelationSource> right,
+                                   JoinPair joinPair,
+                                   JoinType joinType) {
+        final Map<QualifiedName, QuerySpec> outerRelations = groupOuterRelationQSByName(left, right, joinType);
         Map<Set<QualifiedName>, Symbol> splitQueries = QuerySplitter.split(where.query());
         for (QualifiedName outerRelation : outerRelations.keySet()) {
             Symbol outerRelationQuery = splitQueries.remove(Sets.newHashSet(outerRelation));
-            if (outerRelationQuery != null) {
+            if (outerRelationQuery == null) {
+                continue;
+            }
+            if (couldMatchWithNullValues(normalizer, outerRelationQuery, outerRelation)) {
+                splitQueries.put(Sets.newHashSet(outerRelation), outerRelationQuery);
+            } else {
                 QuerySpec outerSpec = outerRelations.get(outerRelation);
-
-                Symbol symbol = FieldReplacer.replaceFields(
-                    outerRelationQuery,
-                    field -> {
-                        if (field.relation().getQualifiedName().equals(outerRelation)) {
-                            return Literal.NULL;
-                        }
-                        return field;
-                    }
+                applyOuterJoinRewrite(
+                    joinPair,
+                    mss.querySpec(),
+                    outerSpec,
+                    outerRelation,
+                    splitQueries,
+                    outerRelationQuery
                 );
-                Symbol normalized = normalizer.normalize(symbol, null);
-                if (WhereClause.canMatch(normalized)) {
-                    splitQueries.put(Sets.newHashSet(outerRelation), outerRelationQuery);
-                } else {
-                    applyOuterJoinRewrite(
-                        joinPair,
-                        multiSourceQuerySpec,
-                        outerSpec,
-                        outerRelation,
-                        splitQueries,
-                        outerRelationQuery
-                    );
-                }
             }
         }
+    }
+
+    private static boolean couldMatchWithNullValues(EvaluatingNormalizer normalizer, Symbol query, QualifiedName relationName) {
+        Symbol symbol = FieldReplacer.replaceFields(query, fieldToNullLiteralIfRelationMatches(relationName));
+        Symbol normalized = normalizer.normalize(symbol, null);
+        return WhereClause.canMatch(normalized);
+    }
+
+    private static Function<Field, Symbol> fieldToNullLiteralIfRelationMatches(QualifiedName relationName) {
+        return field -> {
+            if (field.relation().getQualifiedName().equals(relationName)) {
+                return Literal.NULL;
+            }
+            return field;
+        };
+    }
+
+    private static Map<QualifiedName, QuerySpec> groupOuterRelationQSByName(Map.Entry<QualifiedName, RelationSource> left,
+                                                                            Map.Entry<QualifiedName, RelationSource> right,
+                                                                            JoinType joinType) {
+        switch (joinType) {
+            case LEFT:
+                return Collections.singletonMap(right.getKey(), right.getValue().querySpec());
+            case RIGHT:
+                return Collections.singletonMap(left.getKey(), left.getValue().querySpec());
+            case FULL:
+                return ImmutableMap.of(
+                    left.getKey(), left.getValue().querySpec(),
+                    right.getKey(), right.getValue().querySpec()
+                );
+        }
+        throw new AssertionError("Invalid joinType for outer-join -> inner-join rewrite: " + joinType);
     }
 
     private static void applyOuterJoinRewrite(JoinPair joinPair,
@@ -137,11 +165,11 @@ public class Rewriter {
                                               QualifiedName outerRelation,
                                               Map<Set<QualifiedName>, Symbol> splitQueries,
                                               Symbol outerRelationQuery) {
-        RemoveFieldsNotToCollectFunction removeFieldsNotToCollectFunction =
-            new RemoveFieldsNotToCollectFunction(outerRelation, multiSourceQuerySpec.outputs(), joinPair.condition());
+        CollectFieldsToRemoveFromOutputs collectFieldsToRemoveFromOutputs =
+            new CollectFieldsToRemoveFromOutputs(outerRelation, multiSourceQuerySpec.outputs(), joinPair.condition());
         outerSpec.where(outerSpec.where().add(FieldReplacer.replaceFields(
             outerRelationQuery,
-            removeFieldsNotToCollectFunction)));
+            collectFieldsToRemoveFromOutputs)));
         if (splitQueries.isEmpty()) { // All queries where successfully pushed down
             joinPair.joinType(JoinType.INNER);
             multiSourceQuerySpec.where(WhereClause.MATCH_ALL);
@@ -153,23 +181,22 @@ public class Rewriter {
             }
             multiSourceQuerySpec.where(new WhereClause(AndOperator.join(splitQueries.values())));
         }
-        for (Field fieldToRemove : removeFieldsNotToCollectFunction.fieldsToNotCollect()) {
+        for (Field fieldToRemove : collectFieldsToRemoveFromOutputs.fieldsToNotCollect()) {
             outerSpec.outputs().remove(fieldToRemove);
             multiSourceQuerySpec.outputs().remove(fieldToRemove);
         }
     }
 
     /**
-     * Remove fields which are being replaced and no longer
-     * required to be collected and add them in {@link #fieldsToNotCollect()}
+     * Collect fields which are being pushed down and otherwise not required.
      */
-    private static class RemoveFieldsNotToCollectFunction implements Function<Field, Symbol> {
+    private static class CollectFieldsToRemoveFromOutputs implements Function<Field, Symbol> {
         private final QualifiedName outerRelation;
         private final List<Symbol> mssOutputSymbols;
         private final Symbol joinCondition;
         private final Set<Field> fieldsToNotCollect;
 
-        RemoveFieldsNotToCollectFunction(QualifiedName outerRelation,
+        CollectFieldsToRemoveFromOutputs(QualifiedName outerRelation,
                                          List<Symbol> mssOutputSymbols,
                                          Symbol joinCondition) {
             this.outerRelation = outerRelation;
