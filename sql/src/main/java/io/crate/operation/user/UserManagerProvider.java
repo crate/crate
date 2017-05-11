@@ -90,5 +90,10 @@ public class UserManagerProvider extends UserServiceFactoryLoader implements Pro
         public void checkPermission(AnalyzedStatement analysis, SessionContext sessionContext) {
 
         }
+
+        @Override
+        public boolean userExists(String userName) {
+            return false;
+        }
     }
 }

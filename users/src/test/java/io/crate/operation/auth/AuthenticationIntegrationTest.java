@@ -22,11 +22,16 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.After;
 import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Properties;
+
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 @UseJdbc(value = 1)
 public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
@@ -43,6 +48,8 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
                 "b", new String[]{"user", "method", "address"}, new String[]{"cr8", "trust", "0.0.0.0/0"})
             .put("auth.host_based.config",
                 "c", new String[]{"user", "method", "address"}, new String[]{"foo", "fake", "127.0.0.1/32"})
+            .put("auth.host_based.config",
+                "d", new String[]{"user", "method", "address"}, new String[]{"arthur", "trust", "127.0.0.1"})
             .build();
     }
 
@@ -81,4 +88,27 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
         DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties);
     }
 
+    @Test
+    public void testAuthenticationWithCreatedUser() throws Exception {
+        // create a user with the crate user
+        Properties properties = new Properties();
+        properties.setProperty("user", "crate");
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
+            conn.createStatement().execute("CREATE USER arthur");
+        }
+        // connection with user arthur is possible
+        properties.setProperty("user", "arthur");
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
+            assertThat(conn, is(notNullValue()));
+        };
+    }
+
+    @After
+    public void dropUsers() throws SQLException {
+        Properties properties = new Properties();
+        properties.setProperty("user", "crate");
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
+            conn.createStatement().execute("DROP USER IF EXISTS arthur");
+        }
+    }
 }

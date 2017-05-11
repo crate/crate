@@ -37,10 +37,9 @@ import java.util.concurrent.CompletableFuture;
 public class UserServiceFactoryImpl implements UserServiceFactory {
 
     @Override
-    public Authentication authService(Settings settings) {
-        return new HostBasedAuthentication(settings);
+    public Authentication authService(Settings settings, UserManager userManager) {
+        return new HostBasedAuthentication(settings, userManager);
     }
-
 
     @Override
     public UserManager userManager(Settings settings,
@@ -54,12 +53,10 @@ public class UserServiceFactoryImpl implements UserServiceFactory {
             settings, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver);
         TransportDropUserAction transportDropUserAction = new TransportDropUserAction(
             settings, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver);
-        UserManagerService userManagerService = new UserManagerService(transportCreateAction, transportDropUserAction,
-            clusterService);
-
+        UserManagerService userManager = new UserManagerService(transportCreateAction, transportDropUserAction, clusterService);
         sysTableRegistry.registerSysTable(new SysUsersTableInfo(clusterService),
-            () -> CompletableFuture.completedFuture(userManagerService.userGetter()),
+            () -> CompletableFuture.completedFuture(userManager.userGetter()),
             User.sysUsersExpressions());
-        return userManagerService;
+        return userManager;
     }
 }

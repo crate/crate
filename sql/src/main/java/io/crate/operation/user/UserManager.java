@@ -57,4 +57,10 @@ public interface UserManager {
      */
     void checkPermission(AnalyzedStatement analysis, SessionContext sessionContext);
 
+    /**
+     * checks if a user with a specific name exists
+     * @return true if the user exists
+     */
+    boolean userExists(String userName);
+
 }
