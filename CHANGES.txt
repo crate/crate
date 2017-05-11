@@ -21,6 +21,8 @@ Breaking Changes
 Changes
 =======
 
+ - Added support for `CREATE USER` and `DROP USER`
+
  - Added support for opening and closing a table or single partition.
 
  - Information on the state of tables/partitions is now exposed
