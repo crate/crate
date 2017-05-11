@@ -22,65 +22,83 @@
 
 package io.crate.http.netty;
 
-import io.crate.blob.BlobService;
-import io.crate.blob.v2.BlobIndicesService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.http.netty3.Netty3HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.handler.stream.ChunkedWriteHandler;
+import org.jboss.netty.channel.*;
+
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Supplier;
 
 
+@Singleton
 public class CrateNettyHttpServerTransport extends Netty3HttpServerTransport {
 
-    private final BlobService blobService;
-    private final BlobIndicesService blobIndicesService;
+    /**
+     * A data structure for items that can be added to the channel pipeline of the HTTP transport.
+     */
+    public static class ChannelPipelineItem {
+
+        final String base;
+        final String name;
+        final Supplier<ChannelUpstreamHandler> handlerFactory;
+
+        /**
+         * @param base              the name of the existing handler in the pipeline before/after which the new handler should be added
+         * @param name              the name of the new handler that should be added to the pipeline
+         * @param handlerFactory    a supplier that provides a new instance of the handler
+         */
+        public ChannelPipelineItem(String base, String name, Supplier<ChannelUpstreamHandler> handlerFactory) {
+            this.base = base;
+            this.name = name;
+            this.handlerFactory = handlerFactory;
+        }
+    }
+
+    private CopyOnWriteArrayList<ChannelPipelineItem> addBeforeList = new CopyOnWriteArrayList<>();
+    private CopyOnWriteArrayList<ChannelPipelineItem> addAfterList = new CopyOnWriteArrayList<>();
 
     @Inject
     public CrateNettyHttpServerTransport(Settings settings,
                                          NetworkService networkService,
                                          BigArrays bigArrays,
-                                         ThreadPool threadPool,
-                                         BlobService blobService,
-                                         BlobIndicesService blobIndicesService) {
+                                         ThreadPool threadPool) {
         super(settings, networkService, bigArrays, threadPool);
-        this.blobService = blobService;
-        this.blobIndicesService = blobIndicesService;
     }
 
     @Override
     public ChannelPipelineFactory configureServerChannelPipelineFactory() {
-        return new CrateHttpChannelPipelineFactory(this, false, detailedErrorsEnabled, threadPool);
+        return new CrateHttpChannelPipelineFactory(this, detailedErrorsEnabled, threadPool);
     }
 
-    protected static class CrateHttpChannelPipelineFactory extends HttpChannelPipelineFactory {
+    public void addBefore(ChannelPipelineItem item) {
+        addBeforeList.add(item);
+    }
 
-        private final CrateNettyHttpServerTransport transport;
-        private final boolean sslEnabled;
+    public void addAfter(ChannelPipelineItem item) {
+        addAfterList.add(item);
+    }
 
-        public CrateHttpChannelPipelineFactory(CrateNettyHttpServerTransport transport,
-                                               boolean sslEnabled,
+    protected class CrateHttpChannelPipelineFactory extends HttpChannelPipelineFactory {
+
+        CrateHttpChannelPipelineFactory(CrateNettyHttpServerTransport transport,
                                                boolean detailedErrorsEnabled,
                                                ThreadPool threadPool) {
             super(transport, detailedErrorsEnabled, threadPool.getThreadContext());
-            this.transport = transport;
-            this.sslEnabled = sslEnabled;
         }
 
         @Override
         public ChannelPipeline getPipeline() throws Exception {
             ChannelPipeline pipeline = super.getPipeline();
-
-            HttpBlobHandler blobHandler = new HttpBlobHandler(transport.blobService, transport.blobIndicesService, sslEnabled);
-            pipeline.addBefore("aggregator", "blob_handler", blobHandler);
-
-            if (sslEnabled) {
-                // required for blob support with ssl enabled (zero copy doesn't work with https)
-                pipeline.addBefore("blob_handler", "chunkedWriter", new ChunkedWriteHandler());
+            for (ChannelPipelineItem item : addBeforeList) {
+                pipeline.addBefore(item.base, item.name, item.handlerFactory.get());
+            }
+            for (ChannelPipelineItem item : addAfterList) {
+                pipeline.addAfter(item.base, item.name, item.handlerFactory.get());
             }
             return pipeline;
         }

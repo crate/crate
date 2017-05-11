@@ -26,8 +26,11 @@ import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
 import io.crate.blob.recovery.BlobRecoveryHandler;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.http.netty.CrateNettyHttpServerTransport;
+import io.crate.http.netty.HttpBlobHandler;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.ShardIterator;
@@ -38,7 +41,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.recovery.*;
 import org.elasticsearch.transport.TransportService;
@@ -48,35 +50,45 @@ import java.util.function.Supplier;
 
 public class BlobService extends AbstractLifecycleComponent {
 
+    private final BlobIndicesService blobIndicesService;
     private final Injector injector;
     private final BlobHeadRequestHandler blobHeadRequestHandler;
     private final PeerRecoverySourceService peerRecoverySourceService;
     private final ClusterService clusterService;
+    private final CrateNettyHttpServerTransport nettyTransport;
+    private Client client;
 
     @Inject
     public BlobService(Settings settings,
                        ClusterService clusterService,
+                       BlobIndicesService blobIndicesService,
                        Injector injector,
                        BlobHeadRequestHandler blobHeadRequestHandler,
-                       PeerRecoverySourceService peerRecoverySourceService) {
+                       PeerRecoverySourceService peerRecoverySourceService,
+                       CrateNettyHttpServerTransport nettyTransport) {
         super(settings);
         this.clusterService = clusterService;
+        this.blobIndicesService = blobIndicesService;
         this.injector = injector;
         this.blobHeadRequestHandler = blobHeadRequestHandler;
         this.peerRecoverySourceService = peerRecoverySourceService;
+        this.nettyTransport = nettyTransport;
     }
 
     public RemoteDigestBlob newBlob(String index, String digest) {
-        return new RemoteDigestBlob(this, index, digest);
-    }
-
-    public Injector getInjector() {
-        return injector;
+        if (client == null) {
+            client = injector.getInstance(Client.class);
+        }
+        assert client != null : "client for remote digest blob must not be null";
+        return new RemoteDigestBlob(client, index, digest);
     }
 
     @Override
     protected void doStart() throws ElasticsearchException {
-        logger.info("BlobService.doStart() {}", this);
+        nettyTransport.addBefore(
+            new CrateNettyHttpServerTransport.ChannelPipelineItem(
+                "aggregator", "blob_handler", () -> new HttpBlobHandler(this, blobIndicesService))
+        );
 
         blobHeadRequestHandler.registerHandler();
         peerRecoverySourceService.registerRecoverySourceHandlerProvider(new RecoverySourceHandlerProvider() {
@@ -105,31 +117,14 @@ public class BlobService extends AbstractLifecycleComponent {
                 );
             }
         });
-
-        // by default the http server is started after the discovery service.
-        // For the BlobService this is too late.
-
-        // The HttpServer has to be started before so that the boundAddress
-        // can be added to DiscoveryNodes - this is required for the redirect logic.
-        if (settings.getAsBoolean("http.enabled", true)) {
-            injector.getInstance(HttpServer.class).start();
-        } else {
-            logger.warn("Http server should be enabled for blob support");
-        }
     }
 
     @Override
     protected void doStop() throws ElasticsearchException {
-        if (settings.getAsBoolean("http.enabled", true)) {
-            injector.getInstance(HttpServer.class).stop();
-        }
     }
 
     @Override
     protected void doClose() throws ElasticsearchException {
-        if (settings.getAsBoolean("http.enabled", true)) {
-            injector.getInstance(HttpServer.class).close();
-        }
     }
 
     /**
@@ -141,7 +136,7 @@ public class BlobService extends AbstractLifecycleComponent {
         ShardIterator shards = clusterService.operationRouting().getShards(
             clusterService.state(), index, null, digest, "_local");
 
-        String localNodeId = clusterService.state().nodes().getLocalNodeId();
+        String localNodeId = clusterService.localNode().getId();
         DiscoveryNodes nodes = clusterService.state().getNodes();
         ShardRouting shard;
         while ((shard = shards.nextOrNull()) != null) {

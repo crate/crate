@@ -40,7 +40,6 @@ import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.*;
 import org.jboss.netty.handler.codec.http.*;
 import org.jboss.netty.handler.codec.http.HttpResponseStatus;
-import org.jboss.netty.handler.stream.ChunkedFile;
 import org.jboss.netty.util.CharsetUtil;
 
 import java.io.IOException;
@@ -58,6 +57,7 @@ import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements LifeCycleAwareChannelHandler {
 
+    private static final String SCHEME = "http://";
     private static final String CACHE_CONTROL_VALUE = "max-age=315360000";
     private static final String EXPIRES_VALUE = "Thu, 31 Dec 2037 23:59:59 GMT";
     private static final String BLOBS_ENDPOINT = "/_blobs";
@@ -72,20 +72,15 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements Lif
     private final Matcher blobsMatcher = BLOBS_PATTERN.matcher("");
     private final BlobService blobService;
     private final BlobIndicesService blobIndicesService;
-    private final boolean sslEnabled;
-    private final String scheme;
     private HttpMessage currentMessage;
     private ChannelHandlerContext ctx;
 
     private RemoteDigestBlob digestBlob;
 
-    public HttpBlobHandler(BlobService blobService, BlobIndicesService blobIndicesService, boolean sslEnabled) {
+    public HttpBlobHandler(BlobService blobService, BlobIndicesService blobIndicesService) {
         this.blobService = blobService;
         this.blobIndicesService = blobIndicesService;
-        this.sslEnabled = sslEnabled;
-        this.scheme = sslEnabled ? "https://" : "http://";
     }
-
 
     private boolean possibleRedirect(HttpRequest request, String index, String digest) {
         HttpMethod method = request.getMethod();
@@ -103,7 +98,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements Lif
 
             if (redirectAddress != null) {
                 LOGGER.trace("redirectAddress: {}", redirectAddress);
-                sendRedirect(scheme + redirectAddress);
+                sendRedirect(SCHEME + redirectAddress);
                 return true;
             }
         }
@@ -359,12 +354,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements Lif
             Channel channel = ctx.getChannel();
             channel.write(response);
             ChannelFuture writeFuture;
-            if (sslEnabled) {
-                // Cannot use zero-copy with HTTPS.
-                writeFuture = channel.write(new ChunkedFile(raf, 0, raf.length(), 8192));
-            } else {
-                writeFuture = transferFile(digest, raf, 0, raf.length());
-            }
+            writeFuture = transferFile(digest, raf, 0, raf.length());
             if (!HttpHeaders.isKeepAlive(request)) {
                 writeFuture.addListener(ChannelFutureListener.CLOSE);
             }

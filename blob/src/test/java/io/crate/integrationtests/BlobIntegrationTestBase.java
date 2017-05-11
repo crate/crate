@@ -28,6 +28,7 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.plugin.BlobPlugin;
 import io.crate.plugin.CrateCorePlugin;
+import io.crate.plugin.HttpTransportPlugin;
 import io.crate.rest.CrateRestFilter;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
@@ -77,7 +78,7 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
     @SuppressWarnings("unchecked")
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(Netty3Plugin.class, BlobPlugin.class, CrateCorePlugin.class);
+        return Arrays.asList(Netty3Plugin.class, BlobPlugin.class, CrateCorePlugin.class, HttpTransportPlugin.class);
     }
 
     @After

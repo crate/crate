@@ -191,7 +191,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         return executeAndDefaultAssertions(httpDelete);
     }
 
-    public List<String> getRedirectLocations(CloseableHttpClient client, String uri, InetSocketAddress address) throws IOException {
+    public static List<String> getRedirectLocations(CloseableHttpClient client, String uri, InetSocketAddress address) throws IOException {
         CloseableHttpResponse response = null;
         try {
             HttpClientContext context = HttpClientContext.create();

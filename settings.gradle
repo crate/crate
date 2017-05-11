@@ -22,5 +22,5 @@ include 'es',
         'blackbox',
         'jmx-monitoring',
         'lang-js',
-        'users'
-
+        'users',
+        'http'

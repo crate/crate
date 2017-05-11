@@ -83,9 +83,9 @@ public class RemoteDigestBlob {
     private UUID transferId;
 
 
-    public RemoteDigestBlob(BlobService blobService, String index, String digest) {
+    RemoteDigestBlob(Client client, String index, String digest) {
         this.digest = digest;
-        this.client = blobService.getInjector().getInstance(Client.class);
+        this.client = client;
         this.size = 0;
         this.index = index;
     }

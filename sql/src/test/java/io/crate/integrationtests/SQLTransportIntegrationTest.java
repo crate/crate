@@ -48,6 +48,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.plugin.BlobPlugin;
 import io.crate.plugin.CrateCorePlugin;
+import io.crate.plugin.HttpTransportPlugin;
 import io.crate.plugin.SQLPlugin;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.sql.parser.SqlParser;
@@ -120,7 +121,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(SQLPlugin.class, BlobPlugin.class, CrateCorePlugin.class);
+        return Arrays.asList(SQLPlugin.class, BlobPlugin.class, CrateCorePlugin.class, HttpTransportPlugin.class);
     }
 
     protected SQLResponse response;

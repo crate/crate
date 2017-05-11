@@ -25,10 +25,7 @@ package io.crate.node;
 import com.google.common.collect.ImmutableList;
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.plugin.BlobPlugin;
-import io.crate.plugin.CrateCorePlugin;
-import io.crate.plugin.PluginLoaderPlugin;
-import io.crate.plugin.SrvPlugin;
+import io.crate.plugin.*;
 import io.crate.udc.plugin.UDCPlugin;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Constants;
@@ -49,6 +46,7 @@ public class CrateNode extends Node {
     private static final Collection<Class<? extends Plugin>> CLASSPATH_PLUGINS = ImmutableList.of(
         PluginLoaderPlugin.class,
         CrateCorePlugin.class,
+        HttpTransportPlugin.class,
         BlobPlugin.class,
         SrvPlugin.class,
         UDCPlugin.class,
