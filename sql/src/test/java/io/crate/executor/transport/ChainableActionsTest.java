@@ -22,8 +22,13 @@
 
 package io.crate.executor.transport;
 
+import io.crate.concurrent.CompletableFutures;
+import io.crate.exceptions.MultiException;
+import io.crate.exceptions.SQLExceptions;
 import org.junit.Test;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -107,20 +112,69 @@ public class ChainableActionsTest {
 
         // create last one which will throw an error, undo() on all previous actions must be called in reverse order
         CompletableFuture<Integer> failingFuture = new CompletableFuture<>();
-        TrackedChainableAction failingAction = new TrackedChainableAction(
+        actions.add(new TrackedChainableAction(
             numActions - 1,
             doCalls,
             undoCalls,
-            () -> failingFuture,
-            () -> CompletableFuture.completedFuture(0));
-        actions.add(failingAction);
+            () -> CompletableFutures.failedFuture(new RuntimeException("do operation failed")),
+            () -> CompletableFuture.completedFuture(0)));
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
-        failingFuture.completeExceptionally(new RuntimeException("future failed"));
 
         assertThat(result.isCompletedExceptionally(), is(true));
 
         assertThat(doCalls, contains(0, 1, 2));
         assertThat(undoCalls, contains(1, 0));
+    }
+
+    @Test
+    public void testRollbackErrorsAreChainedToRootCause() {
+        int numActions = 3;
+        List<TrackedChainableAction> actions = new ArrayList<>(numActions);
+        List<Integer> doCalls = new ArrayList<>(numActions);
+        List<Integer> undoCalls = new ArrayList<>(numActions);
+
+        actions.add(new TrackedChainableAction(
+            0,
+            doCalls,
+            undoCalls,
+            () -> CompletableFuture.completedFuture(0),
+            () -> CompletableFuture.completedFuture(0)));
+
+        // 2nd one will throw an error on rollback
+        actions.add(new TrackedChainableAction(
+            1,
+            doCalls,
+            undoCalls,
+            () -> CompletableFuture.completedFuture(0),
+            () -> CompletableFutures.failedFuture(new RuntimeException("undo operation failed"))));
+
+        // last one which will throw an error, undo() on all previous actions must be called in reverse order
+        actions.add(new TrackedChainableAction(
+            numActions - 1,
+            doCalls,
+            undoCalls,
+            () -> CompletableFutures.failedFuture(new RuntimeException("do operation failed")),
+            () -> CompletableFuture.completedFuture(0)));
+
+        CompletableFuture<Integer> result = ChainableActions.run(actions);
+
+        assertThat(result.isCompletedExceptionally(), is(true));
+        assertThat(doCalls, contains(0, 1, 2));
+        // undo was only called on action 1. as it failed, no other action was rolled back
+        assertThat(undoCalls, contains(1));
+
+        try {
+            result.get();
+        } catch (Throwable t) {
+            t = SQLExceptions.unwrap(t);
+            assertThat(t, instanceOf(MultiException.class));
+
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            t.printStackTrace(new PrintStream(out));
+            assertThat(new String(out.toByteArray()), allOf(
+                containsString("do operation failed"),
+                containsString("undo operation failed")));
+        }
     }
 }
