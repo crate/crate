@@ -57,6 +57,7 @@ public class ShardRequestAccumulator<TReq extends ShardRequest<TReq, TItem>, TIt
     private static final Logger logger = Loggers.getLogger(ShardRequestAccumulator.class);
 
     private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
+    public static final int DEFAULT_BULK_SIZE = 10_000;
 
     private final int batchSize;
     private final ScheduledExecutorService scheduler;

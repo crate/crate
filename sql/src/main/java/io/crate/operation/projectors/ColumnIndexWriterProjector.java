@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.MoreObjects;
 import io.crate.analyze.symbol.Assignments;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.*;
@@ -47,7 +48,7 @@ import java.util.function.Supplier;
 
 public class ColumnIndexWriterProjector implements Projector {
 
-    private final ShardingUpsertExecutor iteratorConsumer;
+    private final ShardingUpsertExecutor shardingUpsertExecutor;
 
     ColumnIndexWriterProjector(ClusterService clusterService,
                                NodeJobsCounter nodeJobsCounter,
@@ -94,12 +95,11 @@ public class ColumnIndexWriterProjector implements Projector {
         Function<String, ShardUpsertRequest.Item> itemFactory = id -> new ShardUpsertRequest.Item(
             id, assignments, insertValues.materialize(), null);
 
-        iteratorConsumer = new ShardingUpsertExecutor<>(
+        shardingUpsertExecutor = new ShardingUpsertExecutor<>(
             clusterService,
             nodeJobsCounter,
             scheduler,
-            10_000,
-            100,
+            MoreObjects.firstNonNull(bulkActions, 100),
             jobId,
             rowShardResolver,
             itemFactory,
@@ -114,7 +114,7 @@ public class ColumnIndexWriterProjector implements Projector {
 
     @Override
     public BatchIterator apply(BatchIterator batchIterator) {
-        return CollectingBatchIterator.newInstance(batchIterator, iteratorConsumer, 1);
+        return CollectingBatchIterator.newInstance(batchIterator, shardingUpsertExecutor, 1);
     }
 
     @Override

@@ -78,6 +78,8 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         "bulk.request_timeout", new TimeValue(1, TimeUnit.MINUTES),
         Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING);
 
+    private static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
+
     private static final Logger logger = Loggers.getLogger(ShardingUpsertExecutor.class);
     private static final BackoffPolicy BACK_OFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
 
@@ -106,7 +108,6 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
                                   NodeJobsCounter nodeJobsCounter,
                                   ScheduledExecutorService scheduler,
                                   int batchSize,
-                                  int createIndicesBulkSize,
                                   UUID jobId,
                                   RowShardResolver rowShardResolver,
                                   Function<String, TItem> itemFactory,
@@ -120,7 +121,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         this.nodeJobsCounter = nodeJobsCounter;
         this.scheduler = scheduler;
         this.batchSize = batchSize;
-        this.createIndicesBulkSize = createIndicesBulkSize;
+        this.createIndicesBulkSize = Math.min(batchSize, MAX_CREATE_INDICES_BULK_SIZE);;
         this.jobId = jobId;
         this.rowShardResolver = rowShardResolver;
         this.itemFactory = itemFactory;
