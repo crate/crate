@@ -132,14 +132,16 @@ public class DocIndexMetaData {
         indicesMap = getNested(metaMap, "indices", ImmutableMap.<String, Object>of());
         partitionedByList = getNested(metaMap, "partitioned_by", ImmutableList.<List<String>>of());
         generatedColumns = getNested(metaMap, "generated_columns", ImmutableMap.<String, String>of());
+        IndexMetaData.State state = isClosed(metaData, mappingMap, !partitionedByList.isEmpty()) ?
+            IndexMetaData.State.CLOSE : IndexMetaData.State.OPEN;
         if (isAlias && partitionedByList.isEmpty()) {
             supportedOperations = Operation.SYS_READ_ONLY;
         } else {
-            supportedOperations = Operation.buildFromIndexSettingsAndState(metaData.getSettings(), metaData.getState());
+            supportedOperations = Operation.buildFromIndexSettingsAndState(metaData.getSettings(), state);
         }
         versionCreated = getVersionCreated(mappingMap);
         versionUpgraded = getVersionUpgraded(mappingMap);
-        closed = metaData.getState() == IndexMetaData.State.CLOSE;
+        closed = state == IndexMetaData.State.CLOSE;
     }
 
     private static Map<String, Object> getMappingMap(IndexMetaData metaData) throws IOException {
@@ -183,7 +185,11 @@ public class DocIndexMetaData {
         versionMap.put(key.toString(), Version.toMap(version));
     }
 
-    public static boolean isClosed(IndexMetaData indexMetaData) {
+    public static boolean isClosed(IndexMetaData indexMetaData, Map<String, Object> mappingMap, boolean isPartitioned) {
+        // First, we must check that if the table is partitioned, whether the metadata flag is there.
+        if (isPartitioned) {
+            return getNested(getNested(mappingMap, "_meta", null), SETTING_CLOSED, false);
+        }
         return indexMetaData.getState() == IndexMetaData.State.CLOSE;
     }
 
@@ -761,7 +767,7 @@ public class DocIndexMetaData {
     }
 
     public boolean isClosed() {
-        return isClosed(metaData);
+        return closed;
     }
 
     /**

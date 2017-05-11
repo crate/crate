@@ -72,7 +72,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
                         DocIndexMetaData.getRoutingHashFunction(mappingMap),
                         DocIndexMetaData.getVersionCreated(mappingMap),
                         DocIndexMetaData.getVersionUpgraded(mappingMap),
-                        DocIndexMetaData.isClosed(input.value),
+                        DocIndexMetaData.isClosed(input.value, mappingMap, false),
                         valuesMap,
                         TableParameterInfo.tableParametersFromIndexMetaData(input.value));
                 } catch (Exception e) {
