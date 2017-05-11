@@ -78,6 +78,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 clusteredBy,
                 false, false,
                 new String[0],
+                new String[0],
                 mock(ClusterService.class),
                 new IndexNameExpressionResolver(Settings.EMPTY),
                 numberOfShards,
