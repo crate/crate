@@ -7,4 +7,4 @@ install:
 build_script:
 - cmd: gradlew.bat compileJava
 test_script:
-- ps: ./gradlew :sql:test -i "-Dtest.single=SysCheckerIntegrationTest"
+- ps: ./gradlew :sql:test -i
