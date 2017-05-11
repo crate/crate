@@ -22,6 +22,7 @@
 package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
@@ -278,5 +279,24 @@ public class RelationSplitterTest extends CrateUnitTest {
         assertThat(querySpec, isSQL("SELECT true WHERE (doc.t2.y < 10)"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y, doc.t2.b"));
+    }
+
+    @Test
+    public void testGroupByOnlySymbolsAreAddedToOutputs() throws Exception {
+        QuerySpec qs = new QuerySpec()
+            .outputs(Collections.singletonList(asSymbol("max(t1.a)")))
+            .groupBy(Collections.singletonList(asSymbol("t1.x")));
+        RelationSplitter splitter = split(qs);
+
+        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x, doc.t1.a"));
+    }
+
+    @Test
+    public void testHavingOnlyFieldsAreAddedToOutputs() throws Exception {
+        QuerySpec qs = new QuerySpec()
+            .outputs(Collections.singletonList(asSymbol("max(t1.a)")))
+            .having(new HavingClause(asSymbol("t1.x = 10")));
+        RelationSplitter splitter = split(qs);
+        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x, doc.t1.a"));
     }
 }

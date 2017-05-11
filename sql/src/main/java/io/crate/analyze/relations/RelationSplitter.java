@@ -23,6 +23,7 @@
 package io.crate.analyze.relations;
 
 import com.google.common.collect.*;
+import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
@@ -108,6 +109,18 @@ public final class RelationSplitter {
                 fieldsByRelation.put(f.relation(), f);
                 requiredForQuery.add(f);
             });
+        }
+
+        Optional<List<Symbol>> groupBy = querySpec.groupBy();
+        if (groupBy.isPresent()) {
+            FieldsVisitor.visitFields(groupBy.get(), addFieldToMap);
+        }
+        Optional<HavingClause> having = querySpec.having();
+        if (having.isPresent()) {
+            HavingClause havingClause = having.get();
+            if (havingClause.hasQuery()) {
+                FieldsVisitor.visitFields(havingClause.query(), addFieldToMap);
+            }
         }
 
         if (querySpec.where().hasQuery()) {

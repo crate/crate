@@ -27,19 +27,14 @@ import io.crate.analyze.QuerySpec;
 import io.crate.analyze.RelationSource;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPairs;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
 import io.crate.planner.Plan;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
-import io.crate.sql.tree.QualifiedName;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class MultiSourceGroupByConsumer implements Consumer {
@@ -81,11 +76,6 @@ public class MultiSourceGroupByConsumer implements Consumer {
             querySpec.hasAggregates(false);
 
             querySpec.outputs(splitPoints.toCollect());
-
-            // splitPoints.toCollect can contain new fields (if only used in having for example)
-            // need to update the outputs of the source relations to include them.
-            updateSourceOutputs(multiSourceSelect.sources(), splitPoints.toCollect());
-
             removePostGroupingActionsFromQuerySpec(multiSourceSelect, splitPoints);
 
             context.setFetchMode(FetchMode.NEVER);
@@ -138,22 +128,6 @@ public class MultiSourceGroupByConsumer implements Consumer {
             if (querySpec.groupBy().isPresent()) {
                 querySpec.groupBy(null);
             }
-        }
-    }
-
-    /**
-     * Update the source outputs with potential additional fields.
-     */
-    private static void updateSourceOutputs(Map<QualifiedName, RelationSource> sources, ArrayList<Symbol> newOutputs) {
-        java.util.function.Consumer<Field> updateConsumer = field -> {
-            RelationSource relationSource = sources.get(field.relation().getQualifiedName());
-            List<Symbol> currentOutputs = relationSource.querySpec().outputs();
-            if (!currentOutputs.contains(field)) {
-                currentOutputs.add(field);
-            }
-        };
-        for (Symbol newOutput : newOutputs) {
-            FieldsVisitor.visitFields(newOutput, updateConsumer);
         }
     }
 }
