@@ -272,9 +272,23 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
             }
             newOrderBy = new OrderBy(orderBySymbols, oldOrderBy.reverseFlags(), oldOrderBy.nullsFirst());
+            relation.querySpec().orderBy(null);
         }
+
+        // LIMIT & OFFSET from the inner query must be applied after
+        // the outer GROUP BY which implements the DISTINCT
+        Optional<Symbol> limit = querySpec.limit();
+        querySpec.limit(Optional.empty());
+        Optional<Symbol> offset = querySpec.offset();
+        querySpec.offset(Optional.empty());
+
         List<Symbol> newQspecSymbols = new ArrayList<>(relation.fields());
-        QuerySpec newQuerySpec = new QuerySpec().outputs(newQspecSymbols).groupBy(newQspecSymbols).orderBy(newOrderBy);
+        QuerySpec newQuerySpec = new QuerySpec()
+            .outputs(newQspecSymbols)
+            .groupBy(newQspecSymbols)
+            .orderBy(newOrderBy)
+            .limit(limit)
+            .offset(offset);
         relation = new QueriedSelectRelation(relation, relation.fields(), newQuerySpec);
         return relation;
     }

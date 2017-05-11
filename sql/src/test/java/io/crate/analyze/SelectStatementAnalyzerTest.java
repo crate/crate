@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
@@ -608,7 +607,21 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
         assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
         assertThat(outerRelation.subRelation().querySpec(),
-                   isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name ORDER BY max(doc.users.id)"));
+                   isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
+    }
+
+    @Test
+    public void testSelectDistinctWithGroupByLimitAndOffset() {
+        SelectAnalyzedStatement analysis =
+            analyze("select distinct max(id) from users group by name order by 1 limit 5 offset 10");
+        assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
+        assertThat(analysis.relation().querySpec(),
+                   isSQL("SELECT doc.users.max(id) GROUP BY doc.users.max(id) " +
+                         "ORDER BY doc.users.max(id) LIMIT 5 OFFSET 10"));
+        QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
+        assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
+        assertThat(outerRelation.subRelation().querySpec(),
+                   isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
     }
 
     @Test
@@ -616,7 +629,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         SelectAnalyzedStatement analysis =
             analyze("select DISTINCT max(users.id) from users " +
                     "  inner join users_multi_pk on users.id = users_multi_pk.id " +
-                    "group by users.name order by 1 limit 10");
+                    "group by users.name order by 1");
         assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
         assertThat(analysis.relation().querySpec(),
                    isSQL("SELECT io.crate.analyze.MultiSourceSelect.max(id) " +
@@ -625,7 +638,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
         assertThat(outerRelation.subRelation(), instanceOf(MultiSourceSelect.class));
         assertThat(outerRelation.subRelation().querySpec(),
-                   isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name ORDER BY max(doc.users.id) LIMIT 10"));
+                   isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
     }
 
     @Test
@@ -641,14 +654,14 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
         assertThat(outerRelation.subRelation(), instanceOf(QueriedSelectRelation.class));
         assertThat(outerRelation.subRelation().querySpec(),
-                   isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name ORDER BY max(doc.users.id)"));
+                   isSQL("SELECT max(doc.users.id) GROUP BY doc.users.name"));
     }
 
     @Test
     public void testSelectDistinctWithGroupByOnSubSelectInner() {
         SelectAnalyzedStatement analysis =
             analyze("select * from (" +
-                    "  select distinct id from users group by id, name order by 1 limit 5" +
+                    "  select distinct id from users group by id, name order by 1" +
                     ") t order by 1 desc");
         assertThat(analysis.relation(), instanceOf(QueriedSelectRelation.class));
         assertThat(analysis.relation().querySpec(),
@@ -656,7 +669,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) analysis.relation();
         assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
         assertThat(outerRelation.subRelation().querySpec(),
-                   isSQL("SELECT doc.users.id GROUP BY doc.users.id, doc.users.name ORDER BY doc.users.id LIMIT 5"));
+                   isSQL("SELECT doc.users.id GROUP BY doc.users.id, doc.users.name"));
     }
 
     @Test

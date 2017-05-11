@@ -1169,6 +1169,15 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testDistinctWithGroupByLimitAndOffset() throws Exception {
+        execute("select DISTINCT max(col2), min(col2) from " +
+                "unnest([1,1,2,2,3,3,4,4,5,5,6,6],[1,2,2,1,2,1,3,4,4,3,5,6]) " +
+                "group by col1 order by 1 desc, 2 limit 2 offset 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("4| 3\n" +
+                                                                   "2| 1\n"));
+    }
+
+    @Test
     public void testDistinctOnJoinWithGroupBy() throws Exception {
         execute("select DISTINCT max(t1.col1), min(t2.col2) from " +
                 "unnest([1,1,1,2,2,2,2,3,3],[1,2,3,1,2,3,4,1,2]) as t1, " +
