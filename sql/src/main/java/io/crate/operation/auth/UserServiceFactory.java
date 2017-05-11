@@ -42,7 +42,7 @@ public interface UserServiceFactory {
     /**
      * Return implementation of {@link Authentication} interface.
      */
-    Authentication authService(Settings settings);
+    Authentication authService(Settings settings, UserManager userManager);
 
     /**
      * Return implementation of {@link UserManager} interface.

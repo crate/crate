@@ -27,7 +27,7 @@ import io.crate.exceptions.UnauthorizedException;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.internal.Nullable;
+import org.elasticsearch.common.Nullable;
 
 import java.util.EnumSet;
 import java.util.Locale;
@@ -51,8 +51,8 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
 
     public UserManagerService(TransportCreateUserAction transportCreateUserAction,
-                       TransportDropUserAction transportDropUserAction,
-                       ClusterService clusterService) {
+                              TransportDropUserAction transportDropUserAction,
+                              ClusterService clusterService) {
         this.transportCreateUserAction = transportCreateUserAction;
         this.transportDropUserAction = transportDropUserAction;
         clusterService.add(this);
@@ -98,6 +98,20 @@ public class UserManagerService implements UserManager, ClusterStateListener {
             return;
         }
         users = getUsers(event.state().metaData().custom(UsersMetaData.TYPE));
+    }
+
+
+    @Nullable
+    public User findUser(@Nullable String userName) {
+        if (userName == null) {
+            return null;
+        }
+        for (User user: users()) {
+            if (userName.equals(user.name())) {
+                return user;
+            }
+        }
+        return null;
     }
 
     private class PermissionVisitor extends AnalyzedStatementVisitor<SessionContext, Boolean> {

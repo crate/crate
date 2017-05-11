@@ -72,7 +72,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         Settings settings = Settings.builder()
             .put(AuthenticationProvider.AUTH_HOST_BASED_ENABLED_SETTING.getKey(), true)
             .build();
-        authService = new HostBasedAuthentication(settings);
+        authService = new HostBasedAuthentication(settings, null);
     }
 
     private static ClusterService createClusterService(Settings settings){
@@ -102,13 +102,13 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
 
     @Test
     public void testEnableAuthentication() throws Exception {
-        Authentication authService = new HostBasedAuthentication(Settings.EMPTY);
+        Authentication authService = new HostBasedAuthentication(Settings.EMPTY, null);
         assertFalse(authService.enabled());
 
         Settings settings = Settings.builder()
             .put(AuthenticationProvider.AUTH_HOST_BASED_ENABLED_SETTING.getKey(), true)
             .build();
-        authService = new HostBasedAuthentication(settings);
+        authService = new HostBasedAuthentication(settings, null);
         assertTrue(authService.enabled());
     }
 
@@ -243,7 +243,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
                 "2", new String[]{}, new String[]{}) // ignored because empty
             .build();
 
-        HostBasedAuthentication authService = new HostBasedAuthentication(settings);
+        HostBasedAuthentication authService = new HostBasedAuthentication(settings, null);
         assertThat(authService.hbaConf(), is(createHbaConf(HBA_1, HBA_2)));
     }
 }

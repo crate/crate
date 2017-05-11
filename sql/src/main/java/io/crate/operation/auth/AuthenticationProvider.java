@@ -83,10 +83,10 @@ public class AuthenticationProvider implements Provider<Authentication> {
     };
 
     @Inject
-    public AuthenticationProvider(Settings settings) {
+    public AuthenticationProvider(Settings settings, UserManagerProvider userManagerProvider) {
         UserServiceFactory userServiceFactory = UserServiceFactoryLoader.load(settings);
         authService = userServiceFactory == null ? NOOP_AUTH :
-            userServiceFactory.authService(settings);
+            userServiceFactory.authService(settings, userManagerProvider.get());
     }
 
     public Authentication get() {

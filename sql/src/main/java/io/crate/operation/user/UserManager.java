@@ -26,6 +26,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.exceptions.UnauthorizedException;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -55,5 +56,13 @@ public interface UserManager {
      * @throws UnauthorizedException if the user is not authorized to perform the statement
      */
     void ensureAuthorized(AnalyzedStatement analysis, SessionContext sessionContext);
+
+    /**
+     * finds a user by username
+     * @param userName
+     * @return
+     */
+    @Nullable
+    User findUser(String userName);
 
 }

@@ -39,6 +39,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
@@ -88,6 +89,12 @@ public class UserManagerProvider implements Provider<UserManager> {
         @Override
         public void ensureAuthorized(AnalyzedStatement analysis, SessionContext sessionContext) {
 
+        }
+
+        @Nullable
+        @Override
+        public User findUser(String userName) {
+            return null;
         }
     }
 }

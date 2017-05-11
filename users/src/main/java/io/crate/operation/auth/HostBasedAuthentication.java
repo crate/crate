@@ -20,6 +20,9 @@ package io.crate.operation.auth;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
+import io.crate.operation.user.UserManager;
+import io.crate.operation.user.UserManagerService;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.jboss.netty.handler.ipfilter.CIDR4;
 
@@ -58,10 +61,10 @@ public class HostBasedAuthentication implements Authentication {
 
     private final Map<String, Supplier<AuthenticationMethod>> authMethodRegistry = new HashMap<>();
 
-    HostBasedAuthentication(Settings settings) {
+    HostBasedAuthentication(Settings settings, UserManager userManager) {
         enabled = AuthenticationProvider.AUTH_HOST_BASED_ENABLED_SETTING.setting().get(settings);
         hbaConf = convertHbaSettingsToHbaConf(AuthenticationProvider.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings));
-        registerAuthMethod(TrustAuthentication.NAME, TrustAuthentication::new);
+        registerAuthMethod(TrustAuthentication.NAME, () -> new TrustAuthentication(userManager));
     }
 
     void updateHbaConfig(Map<String, Map<String, String>> hbaMap) {
