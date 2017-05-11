@@ -25,13 +25,22 @@
 #       invoking this script from.
 #       E.g.: ../crate>./devtools/create_tag.sh
 
+function checkBuild() {
+    if [ $? != 0 ]
+    then
+        echo "$1 build failed."
+        echo "Aborting. "
+        exit 1
+    fi
+}
+
 # check if everything is committed
 CLEAN=`git status -s`
 if [ ! -z "$CLEAN" ]
 then
-   echo "Working directory not clean. Please commit all changes before tagging"
+   echo "Working directory not clean. Please commit all changes before tagging."
    echo "Aborting."
-   exit -1
+   exit 1
 fi
 
 echo "Fetching origin..."
@@ -47,13 +56,21 @@ ORIGIN_COMMIT=`git show --format="%H" origin/$BRANCH`
 
 if [ "$LOCAL_COMMIT" != "$ORIGIN_COMMIT" ]
 then
-   echo "Local $BRANCH is not up to date. "
+   echo "Local $BRANCH is not up to date."
    echo "Aborting."
-   exit -1
+   exit 1
 fi
 
 # install locally so we can get the version
 ./gradlew clean installDist
+checkBuild "Java"
+
+# check for broken docs
+./gradlew itest
+checkBuild "Docs"
+blackbox/bin/sphinx
+checkBuild "Docs"
+
 # get the version
 VERSION=`./app/build/install/crate/bin/crate -v | cut -d " " -f 2 | tr -d ','`
 
@@ -64,7 +81,7 @@ if [ "$VERSION" == "$EXISTS" ]
 then
    echo "Revision $VERSION already tagged."
    echo "Aborting."
-   exit -1
+   exit 1
 fi
 
 # check if VERSION is in head of CHANGES.txt
@@ -73,7 +90,7 @@ if [ -z "$REV_NOTE" ]
 then
     echo "No notes for revision $VERSION found in CHANGES.txt"
     echo "Aborting."
-    exit -1
+    exit 1
 fi
 
 echo "Creating tag $VERSION..."
