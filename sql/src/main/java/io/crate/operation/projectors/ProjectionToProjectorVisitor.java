@@ -362,7 +362,7 @@ public class ProjectionToProjectorVisitor
             context.jobId
         );
         ShardRequestAccumulator<ShardUpsertRequest, ShardUpsertRequest.Item> shardRequestAccumulator = new ShardRequestAccumulator<>(
-            10_000,
+            ShardRequestAccumulator.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
             resolveUidCollectExpression(projection.uidSymbol()),
             clusterService,
@@ -384,7 +384,7 @@ public class ProjectionToProjectorVisitor
         );
 
         ShardRequestAccumulator<ShardDeleteRequest, ShardDeleteRequest.Item> shardRequestAccumulator = new ShardRequestAccumulator<>(
-            10_000,
+            ShardRequestAccumulator.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
             resolveUidCollectExpression(projection.uidSymbol()),
             clusterService,
