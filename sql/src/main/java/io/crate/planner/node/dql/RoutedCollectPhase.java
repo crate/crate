@@ -27,7 +27,9 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.TableFunctionRelation;
+import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitors;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
 import io.crate.metadata.Routing;
@@ -84,6 +86,11 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                               WhereClause whereClause,
                               DistributionInfo distributionInfo) {
         super(jobId, executionNodeId, name, projections);
+        assert toCollect.stream().noneMatch(st -> SymbolVisitors.any(s -> s instanceof Field, st))
+            : "toCollect must not contain any fields: " + toCollect;
+        assert !whereClause.hasQuery() || !SymbolVisitors.any(s -> s instanceof Field, whereClause.query())
+            : "whereClause must not contain any fields: " + whereClause;
+
         this.whereClause = whereClause;
         this.routing = routing;
         this.maxRowGranularity = maxRowGranularity;
@@ -194,6 +201,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     }
 
     public void orderBy(@Nullable OrderBy orderBy) {
+        assert orderBy == null || orderBy.orderBySymbols().stream().noneMatch(st -> SymbolVisitors.any(s -> s instanceof Field, st))
+            : "orderBy must not contain any fields: " + orderBy.orderBySymbols();
         this.orderBy = orderBy;
     }
 
