@@ -23,7 +23,9 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.MultiException;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -45,14 +47,15 @@ public class ChainableActions {
         ChainableAction<R> lastAction = actions.get(0);
         CompletableFuture<R> future = lastAction.doIt();
 
+        Result<R> result = new Result<>(null, null);
         for (int i = 1; i < actions.size(); i++) {
             ChainableAction<R> action = actions.get(i);
             previousActions.add(lastAction);
             lastAction = action;
-            future = future.handle(Result::new)
+            future = future.handle(result::addResultAndError)
                 .thenCompose(r -> runOrRollbackOnErrors(r, action, ImmutableList.copyOf(previousActions)));
         }
-        return future.handle(Result::new)
+        return future.handle(result::addResultAndError)
             .thenCompose(r -> rollbackOnErrors(r, previousActions));
     }
 
@@ -72,9 +75,23 @@ public class ChainableActions {
             CompletableFuture<R> previousActionUndo = previousActions.get(previousActionsSize - 1).undo();
             for (int i = previousActionsSize - 2; i >= 0; i--) {
                 ChainableAction<R> previousAction = previousActions.get(i);
-                previousActionUndo = previousActionUndo.thenCompose(r -> previousAction.undo());
+                previousActionUndo = previousActionUndo
+                    .handle(result::addResultAndError)
+                    .thenCompose(r -> {
+                        if (r.errorOnUndo) {
+                            // last undo also throws an exception. throw it, will stop execution
+                            // (no further undo actions are executed)
+                            Exceptions.rethrowUnchecked(r.error);
+                        }
+                        return previousAction.undo();
+                    });
             }
-            return previousActionUndo.whenComplete((r, f) -> Exceptions.rethrowUnchecked(result.error));
+            return previousActionUndo
+                .handle(result::addResultAndError)
+                .thenCompose(r -> {
+                    Exceptions.rethrowUnchecked(result.error);
+                    return CompletableFutures.failedFuture(result.error);
+                });
         }
         return CompletableFuture.completedFuture(result.result);
     }
@@ -82,13 +99,30 @@ public class ChainableActions {
     private static class Result<R> {
 
         @Nullable
-        private final R result;
+        private R result;
         @Nullable
-        private final Throwable error;
+        private Throwable error;
+        private boolean errorOnUndo = false;
 
         public Result(@Nullable R result, @Nullable Throwable error) {
             this.result = result;
             this.error = error;
+        }
+
+        Result<R> addResultAndError(@Nullable R result, @Nullable Throwable t) {
+            if (result != null) {
+                this.result = result;
+            }
+            if (t != null) {
+                if (error != null) {
+                    error = new MultiException(ImmutableList.of(error, t));
+                    // if an error was already set, current error must resulted due to on undo operation
+                    errorOnUndo = true;
+                } else {
+                    error = t;
+                }
+            }
+            return this;
         }
     }
 }
