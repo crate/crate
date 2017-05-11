@@ -112,8 +112,6 @@ public class AlterTableOperation {
         List<CompletableFuture<Long>> results = new ArrayList<>(2);
         DocTableInfo table = analysis.tableInfo();
 
-        // TODO: check whether isClosed is true and the operation is to close the table. 
-
         String[] concreteIndices;
         Optional<PartitionName> partitionName = analysis.partitionName();
         if (partitionName.isPresent()) {
@@ -132,6 +130,9 @@ public class AlterTableOperation {
                     //Otherwise, add the mapping to the template.
                     results.add(updateTemplate(metaMap, Settings.EMPTY, table.ident()));
                 }
+                // If the table is unpartitioned, and the request would have no effect on the table, just return.
+            } else if (!table.isClosed() == analysis.openTable()) {
+                    return CompletableFuture.completedFuture(-1L);
             }
         }
 
