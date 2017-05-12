@@ -109,6 +109,12 @@ public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationT
             currentBranch = root;
         }
 
+        void addContextPhase(@Nullable ExecutionPhase executionPhase) {
+            if (executionPhase != null) {
+                nodeOperations.add(NodeOperation.withoutDownstream(executionPhase));
+            }
+        }
+
         /**
          * adds a Phase to the "NodeOperation execution tree"
          * should be called in the reverse order of how data flows.
@@ -117,16 +123,6 @@ public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationT
          * it should be called first for MergePhase and then for CollectPhase
          */
         void addPhase(@Nullable ExecutionPhase executionPhase) {
-            addPhase(executionPhase, nodeOperations, true);
-        }
-
-        void addContextPhase(@Nullable ExecutionPhase executionPhase) {
-            addPhase(executionPhase, nodeOperations, false);
-        }
-
-        private void addPhase(@Nullable ExecutionPhase executionPhase,
-                              List<NodeOperation> nodeOperations,
-                              boolean setDownstreamNodes) {
             if (executionPhase == null) {
                 return;
             }
@@ -145,15 +141,11 @@ public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationT
                 // same branch, so use the default input id
                 inputId = 0;
             }
-            if (setDownstreamNodes) {
-                assert saneConfiguration(executionPhase, previousPhase.nodeIds()) : String.format(Locale.ENGLISH,
-                    "NodeOperation with %s and %s as downstreams cannot work",
-                    ExecutionPhases.debugPrint(executionPhase), previousPhase.nodeIds());
+            assert saneConfiguration(executionPhase, previousPhase.nodeIds()) : String.format(Locale.ENGLISH,
+                "NodeOperation with %s and %s as downstreams cannot work",
+                ExecutionPhases.debugPrint(executionPhase), previousPhase.nodeIds());
 
-                nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, inputId, localNodeId));
-            } else {
-                nodeOperations.add(NodeOperation.withoutDownstream(executionPhase));
-            }
+            nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, inputId, localNodeId));
             currentBranch.phases.add(executionPhase);
         }
 
