@@ -77,9 +77,6 @@ class NestedLoopConsumer implements Consumer {
 
             QueriedRelation left = statement.left();
             QueriedRelation right = statement.right();
-            if (left instanceof QueriedSelectRelation || right instanceof QueriedSelectRelation) {
-                throw new UnsupportedOperationException("JOIN on complex virtual tables is not supported");
-            }
             List<Symbol> nlOutputs = Lists2.concat(left.fields(), right.fields());
 
             // for nested loops we are fine to remove pushed down orders
@@ -153,6 +150,7 @@ class NestedLoopConsumer implements Consumer {
                 leftPlan.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
                 nlExecutionNodes = leftResultDesc.nodeIds();
             } else {
+                leftPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
                 if (isMergePhaseNeeded(nlExecutionNodes, leftResultDesc.nodeIds(), false)) {
                     leftMerge = new MergePhase(
                         context.plannerContext().jobId(),

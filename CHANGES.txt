@@ -18,6 +18,8 @@ Breaking Changes
 Changes
 =======
 
+ - Added support for joins on virtual tables.
+
 Fixes
 =====
 
