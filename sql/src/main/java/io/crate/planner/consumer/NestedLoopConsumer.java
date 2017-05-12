@@ -30,7 +30,6 @@ import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.collections.Lists2;
-import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.*;
@@ -53,8 +52,8 @@ class NestedLoopConsumer implements Consumer {
     private final static Logger LOGGER = Loggers.getLogger(NestedLoopConsumer.class);
     private final Visitor visitor;
 
-    NestedLoopConsumer(ClusterService clusterService, Functions functions, TableStats tableStats) {
-        visitor = new Visitor(clusterService, functions, tableStats);
+    NestedLoopConsumer(ClusterService clusterService, TableStats tableStats) {
+        visitor = new Visitor(clusterService, tableStats);
     }
 
     @Override
@@ -65,12 +64,10 @@ class NestedLoopConsumer implements Consumer {
     private static class Visitor extends RelationPlanningVisitor {
 
         private final ClusterService clusterService;
-        private final Functions functions;
         private final TableStats tableStats;
 
-        public Visitor(ClusterService clusterService, Functions functions, TableStats tableStats) {
+        public Visitor(ClusterService clusterService, TableStats tableStats) {
             this.clusterService = clusterService;
-            this.functions = functions;
             this.tableStats = tableStats;
         }
 
@@ -81,7 +78,7 @@ class NestedLoopConsumer implements Consumer {
             QueriedRelation left = statement.left();
             QueriedRelation right = statement.right();
             if (left instanceof QueriedSelectRelation || right instanceof QueriedSelectRelation) {
-                throw new UnsupportedOperationException("JOIN with sub queries is not supported");
+                throw new UnsupportedOperationException("JOIN on complex virtual tables is not supported");
             }
             List<Symbol> nlOutputs = Lists2.concat(left.fields(), right.fields());
 
