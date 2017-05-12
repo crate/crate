@@ -34,7 +34,7 @@ import io.crate.metadata.table.Operation;
  * The merge occurs from the top level to the deepest one. For each level, it verifies if the query is mergeable with
  * the next relation and proceed with the merge if positive. When it is not, the partially merged tree is returned.
  */
-final class RelationNormalizer {
+public final class RelationNormalizer {
 
     private final NormalizerVisitor visitor;
 
@@ -46,7 +46,7 @@ final class RelationNormalizer {
         return visitor.process(relation, transactionContext);
     }
 
-    private static class NormalizerVisitor extends AnalyzedRelationVisitor<TransactionContext, AnalyzedRelation> {
+    private class NormalizerVisitor extends AnalyzedRelationVisitor<TransactionContext, AnalyzedRelation> {
 
         private final Functions functions;
         private final EvaluatingNormalizer normalizer;
@@ -95,7 +95,7 @@ final class RelationNormalizer {
             QuerySpec querySpec = mss.querySpec();
             querySpec.normalize(normalizer, context);
             // must create a new MultiSourceSelect because paths and query spec changed
-            mss = MultiSourceSelect.createWithPushDown(functions, context, mss, querySpec);
+            mss = MultiSourceSelect.createWithPushDown(RelationNormalizer.this, functions, context, mss, querySpec);
             Rewriter.tryRewriteOuterToInnerJoin(normalizer, mss);
             return mss;
         }

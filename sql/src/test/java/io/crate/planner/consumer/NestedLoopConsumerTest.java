@@ -90,7 +90,7 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
             new TransactionContext(SessionContext.SYSTEM_SESSION),
             0,
             0);
-        consumer = new NestedLoopConsumer(clusterService, functions, tableStats);
+        consumer = new NestedLoopConsumer(clusterService, tableStats);
     }
 
     private TableStats getTableStats() {

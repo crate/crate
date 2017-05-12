@@ -711,4 +711,33 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         // which leads to using RowsBatchIterator.empty() which always had a columnSize of 0
         execute("select * from t as t1 inner join t as t2 on t1.id = t2.id where t2.p = 2");
     }
+
+    @Test
+    public void testJoinOnSimpleVirtualTables() throws Exception {
+        execute("select * from " +
+                "   (select col1 as x from unnest([1, 2, 3])) t1, " +
+                "   (select max(col1) as y from unnest([4])) t2 " +
+                "order by t1.x");
+        assertThat(printedTable(response.rows()),
+            is("1| 4\n" +
+               "2| 4\n" +
+               "3| 4\n"));
+    }
+
+    @Test
+    public void testJoinOnComplexVirtualTable() throws Exception {
+        execute("create table t1 (x int)");
+        execute("insert into t1 (x) values (1), (2), (3), (4)");
+        execute("refresh table t1");
+
+        expectedException.expectMessage("JOIN on complex virtual tables is not supported");
+        execute("select * from " +
+                "   (select x from " +
+                "       (select x from t1 order by x asc limit 4) tt1 " +
+                "   order by tt1.x desc limit 2 " +
+                "   ) ttt1, " +
+                "   (select max(y) as y from " +
+                "       (select min(col1) as y from unnest([10])) tt2 " +
+                "   ) ttt2 ");
+    }
 }

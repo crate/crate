@@ -50,7 +50,8 @@ class Relations {
      *
      * If the result is a QueriedTable it is also normalized.
      */
-    static QueriedRelation applyQSToRelation(Functions functions,
+    static QueriedRelation applyQSToRelation(RelationNormalizer normalizer,
+                                             Functions functions,
                                              TransactionContext transactionContext,
                                              AnalyzedRelation relation,
                                              QuerySpec querySpec) {
@@ -66,6 +67,8 @@ class Relations {
         } else {
             newRelation = new QueriedSelectRelation(
                 ((QueriedRelation) relation), namesFromOutputs(querySpec.outputs()), querySpec);
+            newRelation = (QueriedRelation) normalizer.normalize(
+                SubselectRewriter.rewrite(newRelation), transactionContext);
         }
         newRelation.setQualifiedName(relation.getQualifiedName());
         return newRelation;

@@ -22,12 +22,11 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLActionException;
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.junit.Before;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
 @UseJdbc
@@ -52,7 +51,7 @@ public class SubSelectGroupByIntegrationTest extends SQLTransportIntegrationTest
             "select count(x) from (select x from t1 limit 1) as tt " +
             "group by x"
         );
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1\n"));
+        assertThat(printedTable(response.rows()), is("1\n"));
     }
 
     @Test
@@ -62,7 +61,7 @@ public class SubSelectGroupByIntegrationTest extends SQLTransportIntegrationTest
             "where x = 2 " +
             "group by x"
         );
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1\n"));
+        assertThat(printedTable(response.rows()), is("1\n"));
     }
 
     @Test
@@ -72,7 +71,7 @@ public class SubSelectGroupByIntegrationTest extends SQLTransportIntegrationTest
             "group by x " +
             "limit 1"
         );
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1\n"));
+        assertThat(printedTable(response.rows()), is("1\n"));
     }
 
     @Test
@@ -82,7 +81,7 @@ public class SubSelectGroupByIntegrationTest extends SQLTransportIntegrationTest
             "group by country " +
             "order by 2"
         );
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1| 3\n"));
+        assertThat(printedTable(response.rows()), is("1| 3\n"));
     }
 
     @Test
@@ -93,17 +92,18 @@ public class SubSelectGroupByIntegrationTest extends SQLTransportIntegrationTest
             "order by 1 " +
             "limit 100 "
         );
-        assertThat(TestingHelpers.printedTable(response.rows()), is("5| 1\n"));
+        assertThat(printedTable(response.rows()), is("5| 1\n"));
     }
 
     @Test
     public void testJoinWithSubqueries() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("JOIN with sub queries is not supported");
         execute(
             "select x from (select x from t1 limit 3) as tt1, " +
             "(select z from t2 limit 1) as tt2 " +
-            "group by x"
+            "group by x order by x"
         );
+        assertThat(printedTable(response.rows()),
+            is("1\n" +
+               "2\n"));
     }
 }
