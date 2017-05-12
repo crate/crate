@@ -175,9 +175,6 @@ the inner ``SELECT`` statement.
 :select_stmt: A :ref:`SELECT <sql_reference_select>` statement.
 :alias: An :ref:`alias <sql_reference_table_alias>` for the sub select.
 
-.. note::
-
-  ``sub_select`` relations cannot be used in joined relations.
 
 WHERE Clause
 ------------

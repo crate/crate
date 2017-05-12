@@ -727,10 +727,20 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testJoinOnComplexVirtualTable() throws Exception {
         execute("create table t1 (x int)");
+        ensureYellow();
         execute("insert into t1 (x) values (1), (2), (3), (4)");
         execute("refresh table t1");
 
-        expectedException.expectMessage("JOIN on complex virtual tables is not supported");
+        execute("select * from " +
+                "   (select x from " +
+                "       (select x from t1 order by x asc limit 4) tt1 " +
+                "   order by tt1.x desc limit 2 " +
+                "   ) ttt1, " +
+                "   (select col1 as y from unnest([10])) tt2 ");
+        assertThat(printedTable(response.rows()),
+            is("4| 10\n" +
+               "3| 10\n"));
+
         execute("select * from " +
                 "   (select x from " +
                 "       (select x from t1 order by x asc limit 4) tt1 " +
@@ -739,5 +749,8 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                 "   (select max(y) as y from " +
                 "       (select min(col1) as y from unnest([10])) tt2 " +
                 "   ) ttt2 ");
+        assertThat(printedTable(response.rows()),
+            is("4| 10\n" +
+               "3| 10\n"));
     }
 }
