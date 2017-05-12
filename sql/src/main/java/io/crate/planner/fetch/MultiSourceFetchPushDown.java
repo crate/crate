@@ -111,7 +111,7 @@ class MultiSourceFetchPushDown {
 
                 ArrayList<Symbol> qtOutputs = new ArrayList<>(
                     relation.querySpec().outputs().size() - canBeFetched.size() + 1);
-                qtOutputs.add(fetchIdColumn);
+                qtOutputs.add(rel.resolveField(fetchIdColumn));
 
                 for (int i = 0; i < relation.querySpec().outputs().size(); i++) {
                     Symbol output = relation.querySpec().outputs().get(i);

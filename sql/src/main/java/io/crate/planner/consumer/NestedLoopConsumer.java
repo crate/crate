@@ -123,16 +123,6 @@ class NestedLoopConsumer implements Consumer {
                 context.requiredPageSize(limits.limitAndOffset());
             }
 
-            // Fields on QueriedTableRelation are normalized to References in the relationNormalizer,
-            // but we currently add fields later on (e.g _fetchid) and they need to be normalized as
-            // well before the subRelations can be planned
-            if (left instanceof QueriedTableRelation) {
-                ((QueriedTableRelation) left).normalize(functions, context.plannerContext().transactionContext());
-            }
-            if (right instanceof QueriedTableRelation) {
-                ((QueriedTableRelation) right).normalize(functions, context.plannerContext().transactionContext());
-            }
-
             context.setFetchMode(FetchMode.NEVER);
             Plan leftPlan = context.plannerContext().planSubRelation(left, context);
             Plan rightPlan = context.plannerContext().planSubRelation(right, context);
