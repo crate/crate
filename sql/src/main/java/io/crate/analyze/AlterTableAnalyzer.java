@@ -61,7 +61,6 @@ class AlterTableAnalyzer {
         if (!node.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Renaming a single partition is not supported");
         }
-        Operation.blockedRaiseException(tableInfo, Operation.ALTER);
 
         List<String> newIdentParts = node.newName().getParts();
         if (newIdentParts.size() > 1) {

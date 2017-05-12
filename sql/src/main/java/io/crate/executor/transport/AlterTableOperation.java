@@ -56,6 +56,7 @@ import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateReque
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -125,20 +126,10 @@ public class AlterTableOperation {
         } else {
             concreteIndices = analysis.tableInfo().concreteIndices();
             if (table.isPartitioned()) {
-                HashMap<String, Object> metaMap = new HashMap<>();
-                HashMap<String, Object> innerMap = new HashMap<>();
-                innerMap.put("closed", true);
-                metaMap.put("_meta", innerMap);
-                if (analysis.openTable()) {
-                    //Remove the mapping from the template.
-                    results.add(updateTemplate(Collections.emptyMap(), metaMap, Settings.EMPTY, table.ident()));
-                } else {
-                    //Otherwise, add the mapping to the template.
-                    results.add(updateTemplate(metaMap, Settings.EMPTY, table.ident()));
-                }
-                // If the table is unpartitioned, and the request would have no effect on the table, just return.
+                results.add(updateOpenCloseOnPartitionTemplate(analysis.openTable(), table.ident()));
             } else if (!table.isClosed() == analysis.openTable()) {
-                    return CompletableFuture.completedFuture(-1L);
+                // If the table is not partitioned, and the request would have no effect on the table, just return.
+                return CompletableFuture.completedFuture(-1L);
             }
         }
 
@@ -216,9 +207,6 @@ public class AlterTableOperation {
         TableIdent sourceTableIdent = sourceTableInfo.ident();
         TableIdent targetTableIdent = statement.targetTableIdent();
 
-        // FIXME: Check if a table was already closed. If so, leave out closeTable call, and don't open it after the rename
-        // FIXME: This must be done once the isClosed() information is available at the TableInfo
-
         if (sourceTableInfo.isPartitioned()) {
             return renamePartitionedTable(sourceTableInfo, targetTableIdent);
         }
@@ -227,37 +215,62 @@ public class AlterTableOperation {
         String[] targetIndices = new String[]{targetTableIdent.indexName()};
 
         List<ChainableAction<Long>> actions = new ArrayList<>(3);
-        actions.add(new ChainableAction<>(
-            () -> closeTable(sourceIndices),
-            () -> openTable(sourceIndices)
-        ));
+
+        if (sourceTableInfo.isClosed() == false) {
+            actions.add(new ChainableAction<>(
+                () -> closeTable(sourceIndices),
+                () -> openTable(sourceIndices)
+            ));
+        }
         actions.add(new ChainableAction<>(
             () -> renameTable(sourceIndices, targetIndices),
             () -> renameTable(targetIndices, sourceIndices)
         ));
-        actions.add(new ChainableAction<>(
-            () -> openTable(targetIndices),
-            () -> CompletableFuture.completedFuture(-1L)
-        ));
+        if (sourceTableInfo.isClosed() == false) {
+            actions.add(new ChainableAction<>(
+                () -> openTable(targetIndices),
+                () -> CompletableFuture.completedFuture(-1L)
+            ));
+        }
         return ChainableActions.run(actions);
     }
 
     private CompletableFuture<Long> renamePartitionedTable(DocTableInfo sourceTableInfo, TableIdent targetTableIdent) {
-        // FIXME: track closed partitions, don't open them after rename procedure completed
-
+        boolean completeTableIsClosed = sourceTableInfo.isClosed();
         TableIdent sourceTableIdent = sourceTableInfo.ident();
         String[] sourceIndices = sourceTableInfo.concreteIndices();
         String[] targetIndices = new String[sourceIndices.length];
+        // only close/open open partitions
+        List<String> sourceIndicesToClose = new ArrayList<>(sourceIndices.length);
+        List<String> targetIndicesToOpen = new ArrayList<>(sourceIndices.length);
+
+        MetaData metaData = clusterService.state().metaData();
         for (int i = 0; i < sourceIndices.length; i++) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(sourceIndices[i]);
-            targetIndices[i] = PartitionName.indexName(targetTableIdent, partitionName.ident());
+            String sourceIndexName = partitionName.asIndexName();
+            String targetIndexName = PartitionName.indexName(targetTableIdent, partitionName.ident());
+            targetIndices[i] = targetIndexName;
+            if (metaData.index(sourceIndexName).getState() == IndexMetaData.State.OPEN) {
+                sourceIndicesToClose.add(sourceIndexName);
+                targetIndicesToOpen.add(targetIndexName);
+            }
+        }
+        String[] sourceIndicesToCloseArray = sourceIndicesToClose.toArray(new String[0]);
+        String[] targetIndicesToOpenArray = targetIndicesToOpen.toArray(new String[0]);
+
+        List<ChainableAction<Long>> actions = new ArrayList<>(7);
+
+        if (completeTableIsClosed == false) {
+            actions.add(new ChainableAction<>(
+                () -> updateOpenCloseOnPartitionTemplate(false, sourceTableIdent),
+                () -> updateOpenCloseOnPartitionTemplate(true, sourceTableIdent)
+            ));
+            actions.add(new ChainableAction<>(
+                () -> closeTable(sourceIndicesToCloseArray),
+                () -> openTable(sourceIndicesToCloseArray)
+            ));
         }
 
-        List<ChainableAction<Long>> actions = new ArrayList<>(5);
-        actions.add(new ChainableAction<>(
-            () -> closeTable(sourceIndices),
-            () -> openTable(sourceIndices)
-        ));
         actions.add(new ChainableAction<>(
             () -> changeAliases(sourceIndices, sourceTableIdent.indexName(), targetTableIdent.indexName()),
             () -> changeAliases(targetIndices, targetTableIdent.indexName(), sourceTableIdent.indexName())
@@ -270,10 +283,17 @@ public class AlterTableOperation {
             () -> renameTemplate(sourceTableIdent, targetTableIdent),
             () -> renameTemplate(targetTableIdent, sourceTableIdent)
         ));
-        actions.add(new ChainableAction<>(
-            () -> openTable(targetIndices),
-            () -> CompletableFuture.completedFuture(-1L)
-        ));
+
+        if (completeTableIsClosed == false) {
+            actions.add(new ChainableAction<>(
+                () -> updateOpenCloseOnPartitionTemplate(true, targetTableIdent),
+                () -> updateOpenCloseOnPartitionTemplate(false, targetTableIdent)
+            ));
+            actions.add(new ChainableAction<>(
+                () -> openTable(targetIndicesToOpenArray),
+                () -> CompletableFuture.completedFuture(-1L)
+            ));
+        }
 
         return ChainableActions.run(actions);
     }
@@ -330,6 +350,20 @@ public class AlterTableOperation {
         final CompletableFuture<Long> result = new CompletableFuture<>();
         applyMultiFutureCallback(result, results);
         return result;
+    }
+
+    private CompletableFuture<Long> updateOpenCloseOnPartitionTemplate(boolean openTable, TableIdent tableIdent) {
+        HashMap<String, Object> metaMap = new HashMap<>();
+        HashMap<String, Object> innerMap = new HashMap<>();
+        innerMap.put("closed", true);
+        metaMap.put("_meta", innerMap);
+        if (openTable) {
+            //Remove the mapping from the template.
+            return updateTemplate(Collections.emptyMap(), metaMap, Settings.EMPTY, tableIdent);
+        } else {
+            //Otherwise, add the mapping to the template.
+            return updateTemplate(metaMap, Settings.EMPTY, tableIdent);
+        }
     }
 
     private CompletableFuture<Long> updateTemplate(TableParameter tableParameter, TableIdent tableIdent) {

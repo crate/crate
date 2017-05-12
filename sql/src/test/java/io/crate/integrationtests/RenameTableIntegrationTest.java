@@ -66,6 +66,22 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testRenameClosedTable() {
+        execute("create table t1 (id int) with (number_of_replicas = 0)");
+        execute("insert into t1 (id) values (1), (2)");
+        refresh();
+
+        execute("alter table t1 close");
+
+        execute("alter table t1 rename to t2");
+        assertThat(response.rowCount(), is(-1L));
+        ensureYellow();
+
+        execute("select closed from information_schema.tables where table_name = 't2'");
+        assertThat(response.rows()[0][0], is(true));
+    }
+
+    @Test
     public void testRenamePartitionedTable() {
         execute("create table tp1 (id int, id2 integer) partitioned by (id) with (number_of_replicas = 0)");
         execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");
@@ -99,5 +115,20 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         // also inserting must work (no old blocks traces)
         execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");
+    }
+
+    @Test
+    public void testRenamePartitionedTablePartitionStayClosed() {
+        execute("create table tp1 (id int, id2 integer) partitioned by (id) with (number_of_replicas = 0)");
+        execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");
+        refresh();
+
+        execute("alter table tp1 partition (id=1) close");
+
+        execute("alter table tp1 rename to tp2");
+        ensureYellow();
+
+        execute("select closed from information_schema.table_partitions where partition_ident = '04132'");
+        assertThat(response.rows()[0][0], is(true));
     }
 }
