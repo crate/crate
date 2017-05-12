@@ -34,19 +34,10 @@ import java.util.Set;
 
 public class CountPhase implements UpstreamPhase {
 
-    public static final ExecutionPhaseFactory<CountPhase> FACTORY = new ExecutionPhaseFactory<CountPhase>() {
-        @Override
-        public CountPhase create() {
-            return new CountPhase();
-        }
-    };
-    private int executionPhaseId;
-    private Routing routing;
-    private WhereClause whereClause;
+    private final int executionPhaseId;
+    private final Routing routing;
+    private final WhereClause whereClause;
     private DistributionInfo distributionInfo;
-
-    CountPhase() {
-    }
 
     public CountPhase(int executionPhaseId,
                       Routing routing,
@@ -101,8 +92,7 @@ public class CountPhase implements UpstreamPhase {
         return visitor.visitCountPhase(this, context);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public CountPhase(StreamInput in) throws IOException {
         executionPhaseId = in.readVInt();
         routing = Routing.fromStream(in);
         whereClause = new WhereClause(in);

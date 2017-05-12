@@ -26,7 +26,6 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
@@ -82,13 +81,7 @@ public class StubPhases {
         }
 
         @Override
-        public void readFrom(StreamInput in) throws IOException {
-
-        }
-
-        @Override
         public void writeTo(StreamOutput out) throws IOException {
-
         }
     }
 

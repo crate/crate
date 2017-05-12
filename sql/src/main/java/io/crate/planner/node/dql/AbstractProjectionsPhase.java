@@ -33,7 +33,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -41,17 +40,13 @@ import java.util.List;
 import java.util.UUID;
 import java.util.function.Function;
 
-public abstract class AbstractProjectionsPhase implements Streamable, ExecutionPhase {
+public abstract class AbstractProjectionsPhase implements ExecutionPhase {
 
     private UUID jobId;
     private int executionPhaseId;
     private String name;
     protected List<Projection> projections = ImmutableList.of();
     protected List<DataType> outputTypes = ImmutableList.of();
-
-    public AbstractProjectionsPhase() {
-
-    }
 
     protected AbstractProjectionsPhase(UUID jobId, int executionPhaseId, String name, List<Projection> projections) {
         this.jobId = jobId;
@@ -115,8 +110,7 @@ public abstract class AbstractProjectionsPhase implements Streamable, ExecutionP
         return outputTypes;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    protected AbstractProjectionsPhase(StreamInput in) throws IOException {
         name = in.readString();
         jobId = new UUID(in.readLong(), in.readLong());
         executionPhaseId = in.readVInt();
@@ -136,7 +130,6 @@ public abstract class AbstractProjectionsPhase implements Streamable, ExecutionP
                 projections.add(Projection.fromStream(in));
             }
         }
-
     }
 
     @Override

@@ -81,13 +81,12 @@ public class DistributingDownstreamFactoryTest extends CrateDummyClusterServiceU
             2,
             "merge",
             1,
-            Collections.emptyList(),
+            downstreamExecutionNodes,
             ImmutableList.<DataType>of(LongType.INSTANCE),
             ImmutableList.of(),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );
-        mergePhase.executionNodes(downstreamExecutionNodes);
         NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase, (byte) 0);
         return rowDownstreamFactory.create(nodeOperation, collectPhase.distributionInfo(), jobId, Paging.PAGE_SIZE);
     }

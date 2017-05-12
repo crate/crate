@@ -39,18 +39,12 @@ import java.util.UUID;
 
 public class FileUriCollectPhase extends AbstractProjectionsPhase implements CollectPhase {
 
-    public static final ExecutionPhaseFactory<FileUriCollectPhase> FACTORY = FileUriCollectPhase::new;
-
-    private Collection<String> executionNodes;
-    private Symbol targetUri;
-    private List<Symbol> toCollect;
-    private String compression;
-    private Boolean sharedStorage;
+    private final Collection<String> executionNodes;
+    private final Symbol targetUri;
+    private final List<Symbol> toCollect;
+    private final String compression;
+    private final Boolean sharedStorage;
     private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
-
-    private FileUriCollectPhase() {
-        super();
-    }
 
     public FileUriCollectPhase(UUID jobId,
                                int phaseId,
@@ -98,9 +92,8 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         return compression;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public FileUriCollectPhase(StreamInput in) throws IOException {
+        super(in);
         compression = in.readOptionalString();
         sharedStorage = in.readOptionalBoolean();
         targetUri = Symbols.fromStream(in);

@@ -44,21 +44,17 @@ import java.util.UUID;
 
 public class NestedLoopPhase extends AbstractProjectionsPhase implements UpstreamPhase {
 
-    public static final ExecutionPhaseFactory<NestedLoopPhase> FACTORY = NestedLoopPhase::new;
-
-    private Collection<String> executionNodes;
-    private MergePhase leftMergePhase;
-    private MergePhase rightMergePhase;
-    private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
-    private JoinType joinType;
+    private final Collection<String> executionNodes;
+    private final MergePhase leftMergePhase;
+    private final MergePhase rightMergePhase;
+    private final JoinType joinType;
 
     @Nullable
-    private Symbol joinCondition;
-    private int numLeftOutputs;
-    private int numRightOutputs;
+    private final Symbol joinCondition;
+    private final int numLeftOutputs;
+    private final int numRightOutputs;
 
-    public NestedLoopPhase() {
-    }
+    private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
 
     public NestedLoopPhase(UUID jobId,
                            int executionNodeId,
@@ -131,9 +127,8 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
     }
 
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public NestedLoopPhase(StreamInput in) throws IOException {
+        super(in);
 
         distributionInfo = DistributionInfo.fromStream(in);
 
@@ -143,17 +138,15 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
             for (int i = 0; i < numExecutionNodes; i++) {
                 executionNodes.add(in.readString());
             }
+        } else {
+            executionNodes = null;
         }
-        if (in.readBoolean()) {
-            leftMergePhase = MergePhase.FACTORY.create();
-            leftMergePhase.readFrom(in);
-        }
-        if (in.readBoolean()) {
-            rightMergePhase = MergePhase.FACTORY.create();
-            rightMergePhase.readFrom(in);
-        }
+        leftMergePhase = in.readOptionalWriteable(MergePhase::new);
+        rightMergePhase = in.readOptionalWriteable(MergePhase::new);
         if (in.readBoolean()) {
             joinCondition = Symbols.fromStream(in);
+        } else {
+            joinCondition = null;
         }
         joinType = JoinType.values()[in.readVInt()];
         numLeftOutputs = in.readVInt();
@@ -175,18 +168,8 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
             }
         }
 
-        if (leftMergePhase == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            leftMergePhase.writeTo(out);
-        }
-        if (rightMergePhase == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            rightMergePhase.writeTo(out);
-        }
+        out.writeOptionalWriteable(leftMergePhase);
+        out.writeOptionalWriteable(rightMergePhase);
 
         if (joinCondition == null) {
             out.writeBoolean(false);

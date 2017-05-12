@@ -55,8 +55,7 @@ public class CountPhaseTest extends CrateUnitTest {
 
         StreamInput in = out.bytes().streamInput();
 
-        CountPhase streamedNode = CountPhase.FACTORY.create();
-        streamedNode.readFrom(in);
+        CountPhase streamedNode = new CountPhase(in);
 
         assertThat(streamedNode.phaseId(), is(1));
         assertThat(streamedNode.nodeIds(), containsInAnyOrder("n1", "n2"));

@@ -35,22 +35,12 @@ import java.util.*;
 
 public class FetchPhase implements ExecutionPhase {
 
-    public final static ExecutionPhaseFactory<FetchPhase> FACTORY = new ExecutionPhaseFactory<FetchPhase>() {
-        @Override
-        public FetchPhase create() {
-            return new FetchPhase();
-        }
-    };
+    private final TreeMap<String, Integer> bases;
+    private final Multimap<TableIdent, String> tableIndices;
+    private final Collection<Reference> fetchRefs;
 
-    private TreeMap<String, Integer> bases;
-    private Multimap<TableIdent, String> tableIndices;
-    private Collection<Reference> fetchRefs;
-
-    private int executionPhaseId;
-    private Set<String> executionNodes;
-
-    private FetchPhase() {
-    }
+    private final int executionPhaseId;
+    private final Set<String> executionNodes;
 
     public FetchPhase(int executionPhaseId,
                       Set<String> executionNodes,
@@ -93,8 +83,7 @@ public class FetchPhase implements ExecutionPhase {
         return visitor.visitFetchPhase(this, context);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public FetchPhase(StreamInput in) throws IOException {
         executionPhaseId = in.readVInt();
 
         int n = in.readVInt();

@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTableRelation;
@@ -56,25 +55,18 @@ import java.util.function.Function;
  */
 public class RoutedCollectPhase extends AbstractProjectionsPhase implements CollectPhase {
 
-    public static final ExecutionPhaseFactory<RoutedCollectPhase> FACTORY = RoutedCollectPhase::new;
+    private final Routing routing;
+    private final List<Symbol> toCollect;
+    private final RowGranularity maxRowGranularity;
 
-    private Routing routing;
-    private List<Symbol> toCollect;
+    private WhereClause whereClause;
     private DistributionInfo distributionInfo;
-    private WhereClause whereClause = WhereClause.MATCH_ALL;
-    private RowGranularity maxRowGranularity = RowGranularity.CLUSTER;
-
-    private boolean isPartitioned = false;
 
     @Nullable
     private Integer nodePageSizeHint = null;
 
     @Nullable
     private OrderBy orderBy = null;
-
-    protected RoutedCollectPhase() {
-        super();
-    }
 
     public RoutedCollectPhase(UUID jobId,
                               int executionNodeId,
@@ -90,6 +82,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
             : "toCollect must not contain any fields: " + toCollect;
         assert !whereClause.hasQuery() || !SymbolVisitors.any(s -> s instanceof Field, whereClause.query())
             : "whereClause must not contain any fields: " + whereClause;
+        assert routing != null : "routing must not be null";
 
         this.whereClause = whereClause;
         this.routing = routing;
@@ -125,9 +118,6 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
      */
     @Override
     public Set<String> nodeIds() {
-        if (routing == null) {
-            return ImmutableSet.of();
-        }
         return routing.nodes();
     }
 
@@ -148,9 +138,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
      * E.g. in a query like <pre>select * from t limit 1000</pre> in a 2 node cluster each node probably only has to return 500 rows.
      * </p>
      */
-    public
     @Nullable
-    Integer nodePageSizeHint() {
+    public Integer nodePageSizeHint() {
         return nodePageSizeHint;
     }
 
@@ -231,29 +220,22 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         return visitor.visitRoutedCollectPhase(this, context);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-
+    public RoutedCollectPhase(StreamInput in) throws IOException {
+        super(in);
         distributionInfo = DistributionInfo.fromStream(in);
 
         toCollect = Symbols.listFromStream(in);
         maxRowGranularity = RowGranularity.fromStream(in);
 
-        if (in.readBoolean()) {
-            routing = Routing.fromStream(in);
-        }
+        routing = Routing.fromStream(in);
 
         whereClause = new WhereClause(in);
 
-        if (in.readBoolean()) {
-            nodePageSizeHint = in.readVInt();
-        }
+        nodePageSizeHint = in.readOptionalVInt();
 
         if (in.readBoolean()) {
             orderBy = OrderBy.fromStream(in);
         }
-        isPartitioned = in.readBoolean();
     }
 
     @Override
@@ -265,27 +247,16 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         Symbols.toStream(toCollect, out);
         RowGranularity.toStream(maxRowGranularity, out);
 
-        if (routing != null) {
-            out.writeBoolean(true);
-            routing.writeTo(out);
-        } else {
-            out.writeBoolean(false);
-        }
+        routing.writeTo(out);
         whereClause.writeTo(out);
 
-        if (nodePageSizeHint != null) {
-            out.writeBoolean(true);
-            out.writeVInt(nodePageSizeHint);
-        } else {
-            out.writeBoolean(false);
-        }
+        out.writeOptionalVInt(nodePageSizeHint);
         if (orderBy != null) {
             out.writeBoolean(true);
             OrderBy.toStream(orderBy, out);
         } else {
             out.writeBoolean(false);
         }
-        out.writeBoolean(isPartitioned);
     }
 
     /**

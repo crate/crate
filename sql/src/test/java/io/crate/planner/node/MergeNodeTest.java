@@ -74,21 +74,19 @@ public class MergeNodeTest extends CrateUnitTest {
             0,
             "merge",
             2,
-            Collections.emptyList(),
+            Sets.newHashSet("node1", "node2"),
             Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING),
             projections,
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );
-        node.executionNodes(Sets.newHashSet("node1", "node2"));
 
         BytesStreamOutput output = new BytesStreamOutput();
         node.writeTo(output);
 
 
         StreamInput input = output.bytes().streamInput();
-        MergePhase node2 = MergePhase.FACTORY.create();
-        node2.readFrom(input);
+        MergePhase node2 = new MergePhase(input);
 
         assertThat(node.numUpstreams(), is(node2.numUpstreams()));
         assertThat(node.nodeIds(), is(node2.nodeIds()));

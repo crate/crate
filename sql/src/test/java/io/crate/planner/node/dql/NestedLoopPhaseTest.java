@@ -89,8 +89,7 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
         node.writeTo(output);
 
         StreamInput input = output.bytes().streamInput();
-        NestedLoopPhase node2 = new NestedLoopPhase();
-        node2.readFrom(input);
+        NestedLoopPhase node2 = new NestedLoopPhase(input);
 
         assertThat(node.nodeIds(), Is.is(node2.nodeIds()));
         assertThat(node.jobId(), Is.is(node2.jobId()));

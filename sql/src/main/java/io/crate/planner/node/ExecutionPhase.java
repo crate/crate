@@ -21,46 +21,50 @@
 
 package io.crate.planner.node;
 
+
+import com.google.common.collect.ImmutableList;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public interface ExecutionPhase extends Streamable {
+public interface ExecutionPhase extends Writeable {
 
     String DIRECT_RESPONSE = "_response";
     List<String> DIRECT_RESPONSE_LIST = Collections.singletonList("_response");
 
     int NO_EXECUTION_PHASE = Integer.MAX_VALUE;
 
-    interface ExecutionPhaseFactory<T extends ExecutionPhase> {
-        T create();
-    }
 
     enum Type {
-        COLLECT(RoutedCollectPhase.FACTORY),
-        COUNT(CountPhase.FACTORY),
-        FILE_URI_COLLECT(FileUriCollectPhase.FACTORY),
-        MERGE(MergePhase.FACTORY),
-        FETCH(FetchPhase.FACTORY),
-        NESTED_LOOP(NestedLoopPhase.FACTORY),
-        TABLE_FUNCTION_COLLECT(null); // no streaming implemented
+        COLLECT(RoutedCollectPhase::new),
+        COUNT(CountPhase::new),
+        FILE_URI_COLLECT(FileUriCollectPhase::new),
+        MERGE(MergePhase::new),
+        FETCH(FetchPhase::new),
+        NESTED_LOOP(NestedLoopPhase::new),
+        TABLE_FUNCTION_COLLECT(in -> {
+            throw new UnsupportedOperationException("TableFunctionCollectPhase is not streamable"); });
 
-        private final ExecutionPhaseFactory factory;
+        public static final List<Type> VALUES = ImmutableList.copyOf(values());
 
-        Type(ExecutionPhaseFactory factory) {
-            this.factory = factory;
+        private final Writeable.Reader<ExecutionPhase> reader;
+
+        Type(Writeable.Reader<ExecutionPhase> reader) {
+            this.reader = reader;
         }
 
-        public ExecutionPhaseFactory factory() {
-            return factory;
+        public ExecutionPhase fromStream(StreamInput in) throws IOException {
+            return reader.read(in);
         }
     }
 

@@ -48,10 +48,7 @@ public class ExecutionPhases {
     }
 
     public static ExecutionPhase fromStream(StreamInput in) throws IOException {
-        ExecutionPhase.Type type = ExecutionPhase.Type.values()[in.readVInt()];
-        ExecutionPhase node = type.factory().create();
-        node.readFrom(in);
-        return node;
+        return ExecutionPhase.Type.VALUES.get(in.readVInt()).fromStream(in);
     }
 
     public static void toStream(StreamOutput out, ExecutionPhase node) throws IOException {

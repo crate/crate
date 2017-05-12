@@ -30,7 +30,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.projection.Projection;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
@@ -72,12 +71,6 @@ public class TableFunctionCollectPhase extends RoutedCollectPhase implements Col
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitTableFunctionCollect(this, context);
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        // current table functions can be executed on the handler - no streaming required
-        throw new UnsupportedOperationException("NYI");
     }
 
     @Override
