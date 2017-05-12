@@ -180,7 +180,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         String[] indices = client().admin().indices().getIndex(new GetIndexRequest()).actionGet().getIndices();
         client().admin().indices().close(new CloseIndexRequest(indices[0])).actionGet();
-        execute("insert into t (n) values (100)");
+        execute("insert into t (n) values (1)");
         ensureYellow();
 
         execute("select count(*) from t");
