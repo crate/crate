@@ -39,7 +39,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Function;
 
-final class SubselectRewriter {
+public final class SubselectRewriter {
 
     private final static Visitor INSTANCE = new Visitor();
 

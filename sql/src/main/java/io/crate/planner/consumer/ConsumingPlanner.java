@@ -52,7 +52,7 @@ public class ConsumingPlanner {
         consumers.add(new MultiSourceAggregationConsumer(projectionBuilder));
         consumers.add(new MultiSourceGroupByConsumer(projectionBuilder));
         consumers.add(new ManyTableConsumer());
-        consumers.add(new NestedLoopConsumer(clusterService, functions, tableStats));
+        consumers.add(new NestedLoopConsumer(clusterService, tableStats));
         consumers.add(new GroupingSubselectConsumer(projectionBuilder));
     }
 

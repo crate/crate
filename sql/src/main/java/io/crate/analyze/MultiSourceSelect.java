@@ -61,7 +61,8 @@ public class MultiSourceSelect implements QueriedRelation {
      *          (select y from t2)
      * </pre>
      */
-    public static MultiSourceSelect createWithPushDown(Functions functions,
+    public static MultiSourceSelect createWithPushDown(RelationNormalizer relationNormalizer,
+                                                       Functions functions,
                                                        TransactionContext transactionContext,
                                                        MultiSourceSelect mss,
                                                        QuerySpec querySpec) {
@@ -76,7 +77,7 @@ public class MultiSourceSelect implements QueriedRelation {
         for (Map.Entry<QualifiedName, AnalyzedRelation> entry : mss.sources.entrySet()) {
             AnalyzedRelation relation = entry.getValue();
             QuerySpec spec = splitter.getSpec(relation);
-            QueriedRelation queriedRelation = Relations.applyQSToRelation(functions, transactionContext, relation, spec);
+            QueriedRelation queriedRelation = Relations.applyQSToRelation(relationNormalizer, functions, transactionContext, relation, spec);
             Function<Field, Field> convertField = f -> mapFieldToNewRelation(f, relation, queriedRelation);
             querySpec = querySpec.copyAndReplace(FieldReplacer.bind(convertField));
             entry.setValue(queriedRelation);
