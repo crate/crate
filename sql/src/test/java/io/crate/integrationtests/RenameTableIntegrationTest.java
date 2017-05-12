@@ -51,6 +51,21 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testRenameTableEnsureOldTableNameCanBeUsed() {
+        execute("create table t1 (id int) with (number_of_replicas = 0)");
+        execute("insert into t1 (id) values (1), (2)");
+        refresh();
+        execute("alter table t1 rename to t2");
+        ensureYellow();
+
+        // creating a new table using the old name must succeed
+        execute("create table t1 (id int) with (number_of_replicas = 0)");
+        ensureYellow();
+        // also inserting must work (no old blocks traces)
+        execute("insert into t1 (id) values (1), (2)");
+    }
+
+    @Test
     public void testRenamePartitionedTable() {
         execute("create table tp1 (id int, id2 integer) partitioned by (id) with (number_of_replicas = 0)");
         execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");
@@ -69,5 +84,20 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select * from information_schema.tables where table_name = 'tp1'");
         assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void testRenamePartitionedTableEnsureOldTableNameCanBeUsed() {
+        execute("create table tp1 (id int, id2 integer) partitioned by (id) with (number_of_replicas = 0)");
+        execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");
+        refresh();
+        execute("alter table tp1 rename to tp2");
+        ensureYellow();
+
+        // creating a new table using the old name must succeed
+        execute("create table tp1 (id int, id2 integer) partitioned by (id) with (number_of_replicas = 0)");
+        ensureYellow();
+        // also inserting must work (no old blocks traces)
+        execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");
     }
 }

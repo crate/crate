@@ -120,10 +120,14 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
                         .blocks(currentState.blocks());
 
                     for (int i = 0; i < concreteIndices.length; i++) {
-                        IndexMetaData indexMetaData = currentState.metaData().getIndexSafe(concreteIndices[i]);
-                        mdBuilder.remove(concreteIndices[i].getName());
-                        IndexMetaData.Builder builder = IndexMetaData.builder(indexMetaData).index(targetIndexNames[i]);
-                        mdBuilder.put(builder);
+                        Index index = concreteIndices[i];
+                        IndexMetaData indexMetaData = currentState.metaData().getIndexSafe(index);
+                        IndexMetaData targetIndexMetadata = IndexMetaData.builder(indexMetaData)
+                            .index(targetIndexNames[i]).build();
+                        mdBuilder.remove(index.getName());
+                        mdBuilder.put(targetIndexMetadata, true);
+                        blocksBuilder.removeIndexBlocks(index.getName());
+                        blocksBuilder.addBlocks(targetIndexMetadata);
                     }
 
                     return ClusterState.builder(currentState).metaData(mdBuilder).blocks(blocksBuilder).build();
