@@ -22,8 +22,6 @@
 package io.crate.plugin;
 
 import io.crate.http.netty.CrateNettyHttpServerTransport;
-import io.crate.http.netty.HttpTransportModule;
-import io.crate.http.netty.HttpTransportService;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -54,7 +52,7 @@ public class HttpTransportPlugin extends Plugin implements ActionPlugin {
 
     @Override
     public Collection<Module> createGuiceModules() {
-        return Collections.singletonList(new HttpTransportModule());
+        return Collections.emptyList();
     }
 
     @Override
@@ -72,7 +70,7 @@ public class HttpTransportPlugin extends Plugin implements ActionPlugin {
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        return Collections.singletonList(HttpTransportService.class);
+        return Collections.emptyList();
     }
 
     public void onModule(NetworkModule networkModule) {
