@@ -38,7 +38,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
@@ -51,10 +50,11 @@ import java.util.function.Supplier;
 public class BlobService extends AbstractLifecycleComponent {
 
     private final BlobIndicesService blobIndicesService;
-    private final Injector injector;
     private final BlobHeadRequestHandler blobHeadRequestHandler;
     private final PeerRecoverySourceService peerRecoverySourceService;
     private final ClusterService clusterService;
+    private final TransportService transportService;
+    private final BlobTransferTarget blobTransferTarget;
     private final CrateNettyHttpServerTransport nettyTransport;
     private Client client;
 
@@ -62,23 +62,24 @@ public class BlobService extends AbstractLifecycleComponent {
     public BlobService(Settings settings,
                        ClusterService clusterService,
                        BlobIndicesService blobIndicesService,
-                       Injector injector,
                        BlobHeadRequestHandler blobHeadRequestHandler,
                        PeerRecoverySourceService peerRecoverySourceService,
+                       TransportService transportService,
+                       BlobTransferTarget blobTransferTarget,
+                       Client client,
                        CrateNettyHttpServerTransport nettyTransport) {
         super(settings);
         this.clusterService = clusterService;
         this.blobIndicesService = blobIndicesService;
-        this.injector = injector;
         this.blobHeadRequestHandler = blobHeadRequestHandler;
         this.peerRecoverySourceService = peerRecoverySourceService;
+        this.transportService = transportService;
+        this.blobTransferTarget = blobTransferTarget;
+        this.client = client;
         this.nettyTransport = nettyTransport;
     }
 
     public RemoteDigestBlob newBlob(String index, String digest) {
-        if (client == null) {
-            client = injector.getInstance(Client.class);
-        }
         assert client != null : "client for remote digest blob must not be null";
         return new RemoteDigestBlob(client, index, digest);
     }
@@ -111,9 +112,9 @@ public class BlobService extends AbstractLifecycleComponent {
                     delayNewRecoveries,
                     fileChunkSizeInBytes,
                     logger,
-                    injector.getInstance(TransportService.class),
-                    injector.getInstance(BlobTransferTarget.class),
-                    injector.getInstance(BlobIndicesService.class)
+                    transportService,
+                    blobTransferTarget,
+                    blobIndicesService
                 );
             }
         });
