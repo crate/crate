@@ -53,7 +53,7 @@ Breaking it down, that command:
 - Creates and runs a container called ``crate01`` in detached mode
 - Puts the container into the ``crate`` network and maps port ``4201`` on your
   host machine to port ``4200`` on the container
-- Runs the command ``crate`` command inside the container
+- Runs the command ``crate`` daemon inside the container
 
 Check the node is up with ``docker ps`` and you should see something like
 this:
@@ -104,8 +104,8 @@ You can now add subsequent nodes, like so::
 .. NOTE::
 
    This is only an quick start example and you will notice some failing checks
-   in the admin UI. For a cluster that you intend to use seriously, you should
-   at the very least configure the :ref:`metadata_gateway` and
+   in the admin UI. For a cluster that you intend to use seriously, you should,
+   at the very least, configure the :ref:`metadata_gateway` and
    :ref:`conf_discovery` mechanisms.
 
 CrateDB Shell
@@ -115,7 +115,7 @@ The CrateDB Shell, ``crash``, is bundled with the Docker image.
 
 If you wanted to run ``crash`` inside a user-defined network called ``crate``
 and connect to three hosts named ``crate01``, ``crate02``, and ``crate03``
-(i.e. the example covered in the `Creating a Cluster`_ section) you would run::
+(i.e. the example covered in the `Creating a Cluster`_ section) you could run::
 
     $ docker run --rm -ti \
         --net=crate crate \
@@ -203,7 +203,7 @@ everything at once like so::
     $ docker run -d \
         --cpus 1.5 \
         --memory 2g \
-        --env JAVA_OPTIONS='-Xmx2g' \
+        --env JAVA_OPTIONS='-Xmx1g' \
         --env CRATE_HEAP_SIZE=1g \
         crate crate
 
