@@ -2,16 +2,16 @@
 .. _crate_ami:
 
 =============================================
-Launching EC2 Instances with the Crate AMI
+Launching EC2 Instances with the CrateDB AMI
 =============================================
 
-Crate provides custom public `AMI`_ s that can be launched by every EC2 user
+CrateDB provides custom public `AMI`_ s that can be launched by every EC2 user
 by using the AWS Management Console or `AWS CLI`_. The naming convention
 is as follows::
 
     crate-<VERSION>-<REVISION>-<AMI_REVISION>-<BASE_AMI>
 
-``<VERSION>-<REVISION>`` is the Crate version and its revision in the format
+``<VERSION>-<REVISION>`` is the CrateDB version and its revision in the format
 ``w.x.y-z``, ``<AMI_REVISION>`` is the AMI build revision and ``<BASE_AMI>`` is
 the full name of the  `Amazon Linux`_ base image.
 
@@ -19,26 +19,27 @@ Example::
 
     crate-0.51.1-1-1-amzn-ami-hvm-2015.03.0.x86_64
 
-The Crate AMI is based on comes with Java 8 and Crate pre-installed.
+The CrateDB AMI is based on comes with Java 8 and CrateDB pre-installed.
 
-Finding the Crate AMI
-=====================
+Finding the CrateDB AMI
+=======================
 
-To launch an EC2 instance based on the Crate AMI, use the search panel to
+To launch an EC2 instance based on the CrateDB AMI, use the search panel to
 find the image in the public AMI repository. After choosing the desired AMI
-by its Crate version, it can be launched as an EC2 instance running on your
+by its CrateDB version, it can be launched as an EC2 instance running on your
 account.
 
 
 .. image:: ../_static/crate-ami-search.png
-   :alt: Search for public Crate AMI on AWS Management Console
+   :alt: Search for public CrateDB AMI on AWS Management Console
    :width: 100%
 
 
-If you are using the `AWS CLI`_ you can find the public Crate AMI by using the
-``describe-images`` command. The easiest way to search for it is by using its
-``AMI Name``. AMIs are listed in JSON-format and sorted by their creation date.
-The following command lists every available Crate AMI on the AWS platform.
+If you are using the `AWS CLI`_ you can find the public CrateDB AMI by using
+the ``describe-images`` command. The easiest way to search for it is by using
+its ``AMI Name``. AMIs are listed in JSON-format and sorted by their creation
+date. The following command lists every available CrateDB AMI on the AWS
+platform.
 
 ::
 
@@ -48,7 +49,7 @@ The following command lists every available Crate AMI on the AWS platform.
 Launch the AMI
 ==============
 
-You can launch one or more instances with the Crate AMI using the
+You can launch one or more instances with the CrateDB AMI using the
 ``run-instances`` command utilizing the ``--image-id`` command line option.
 You can use the parameters of the command to configure its start-up behavior
 and hardware configuration. A valid key-pair is necessary to connect to the
@@ -63,7 +64,7 @@ instances later.
 Cloud-Init
 ----------
 
-The AMI creates a basic crate configuration at first launch (using
+The AMI creates a basic CrateDB configuration at first launch (using
 Cloud-Init). During startup the `Cloud-Init`_ process checks if ephemeral
 devices are attached to the instance. If the device contains no filesystem
 it will be formatted with the *ext4* file system. Otherwise the filesystem
@@ -72,7 +73,7 @@ defined as ``/mnt/<DEV-NAME>`` where ``<DEV-NAME>`` is the name of the
 device as listed in ``/dev``. The configuration settings (defined in
 ``/etc/crate/crate.yml`` are listed below and include:
 
-  * Mount ephemeral devices and set the crate data path on their mount points
+  * Mount ephemeral devices and set the CrateDB data path on their mount points
     (:ref:`attached_devices`)
   * Enable *EC2 discovery*
   * Set node name to instance hostname
@@ -94,17 +95,17 @@ use `IAM roles`_ instead of providing your AWS credentials manually on your
 instances (see :ref:`ec2_authentication`).
 
 .. note::
-    *EC2 discovery* is only available on Crate version 0.51.0 or higher.
+    *EC2 discovery* is only available on CrateDB version 0.51.0 or higher.
 
 
-Adapt Crate Configuration
--------------------------
+Adapt CrateDB Configuration
+---------------------------
 
-The Crate configuration file ``/etc/crate/crate.yml`` can be adapted on startup
-by using the *User-Data* script (see :ref:`cloud_init`). The following example
-shows how to set the ``minimum_master_nodes`` and gateway configuration setting
-which are essential for a `multi node setup`_. This
-configuration is used when a cluster with 3 or more nodes is set up.
+The CrateDB configuration file ``/etc/crate/crate.yml`` can be adapted on
+startup by using the *User-Data* script (see :ref:`cloud_init`). The following
+example shows how to set the ``minimum_master_nodes`` and gateway configuration
+setting which are essential for a `multi node setup`_. This configuration is
+used when a cluster with 3 or more nodes is set up.
 
 ::
 
@@ -127,7 +128,7 @@ Launch AMI by using the AWS CLI
 Instances which have the IAM role ``crate-ec2`` assigned will securely fetch
 their credentials which are then used for authentication in the discovery
 mechanism. The following example shows how to run a single instance of type
-``m3.medium``. The adapted Crate configuration is passed via ``user-data.sh``
+``m3.medium``. The adapted CrateDB configuration is passed via ``user-data.sh``
 file.
 
 ::
@@ -145,12 +146,12 @@ Instance Types
 ==============
 
 The instance type specifies the combination of CPU, memory, storage and
-networking capacity. To receive better performance for running queries
-select an instance type which gives the possibility to attach ephemeral
-storage. On newer AWS instance types this storage is covered by
-`Solid-State-Drives`_ (short *SSD*). By choosing one of those instance types
-Crate will automatically mount and store its data on those devices if they are
-attached to the instance as a block device mapping (see also :ref:`attached_devices`).
+networking capacity. To receive better performance for running queries select
+an instance type which gives the possibility to attach ephemeral storage. On
+newer AWS instance types this storage is covered by `Solid-State-Drives`_
+(short *SSD*). By choosing one of those instance types CrateDB will
+automatically mount and store its data on those devices if they are attached to
+the instance as a block device mapping (see also :ref:`attached_devices`).
 Instance Types with additional instance store volumes (SSD or HDD) are
 currently all instances of type ``m3``, ``g2``, ``r3``, ``d2`` and ``i2``.
 
@@ -174,7 +175,7 @@ device name ``/dev/sdc``. For additional info see
     persists during the lifetime of an instance.
 
 If no block device mapping is configured on the EC2 instance, the default data
-directory of Crate is set to ``/var/lib/crate``. The data paths are set in
+directory of CrateDB is set to ``/var/lib/crate``. The data paths are set in
 ``/etc/crate/crate.yml``.
 
 .. _AMI: https://en.wikipedia.org/wiki/Amazon_Machine_Image

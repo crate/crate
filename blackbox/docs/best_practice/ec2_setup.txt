@@ -1,15 +1,15 @@
 .. highlight:: yaml
 .. _ec2_setup:
 
-=========================
-Crate Setup on Amazon EC2
-=========================
+===========================
+CrateDB Setup on Amazon EC2
+===========================
 
-When running Crate in a cloud environment such as `Amazon EC2`_ (Elastic Cloud
-Compute) you usually face the problem that Crate's default discovery mechanism
-does not work out of the box.
+When running CrateDB in a cloud environment such as `Amazon EC2`_ (Elastic
+Cloud Compute) you usually face the problem that CrateDB's default discovery
+mechanism does not work out of the box.
 
-Luckily, Crate has several built-in mechanisms for unicast host discovery,
+Luckily, CrateDB has several built-in mechanisms for unicast host discovery,
 also one for EC2. EC2 discovery uses the `EC2 API`_ to look up other EC2 hosts
 that are then used as unicast hosts for node discovery (see
 :ref:`conf_host_discovery`).
@@ -25,29 +25,29 @@ Basic Configuration
 
 The most important step for EC2 discovery is that you have the launch your EC2
 instances within the same security group. The rules of that security group must
-at least allow traffic on Crate's transport port (default ``4300``). This will
-allow Crate to accept and respond to pings from other Crate instances with the
-same cluster name and form a cluster.
+at least allow traffic on CrateDB's transport port (default ``4300``). This
+will allow CrateDB to accept and respond to pings from other CrateDB instances
+with the same cluster name and form a cluster.
 
-Once you have your instances running and Crate installed, you can enable the
+Once you have your instances running and CrateDB installed, you can enable the
 EC2 discovery by setting the discovery type to ``ec2``::
 
   discovery.type: ec2
 
-To be able to use the EC2 API, Crate must `sign the requests`_ by using
+To be able to use the EC2 API, CrateDB must `sign the requests`_ by using
 AWS credentials consisting of an access key and a secret key. Therefore
 AWS provides `IAM roles`_ to avoid any distribution of your AWS credentials
 to the instances.
 
-Crate binds to the loopback interface by default. To get EC2 discovery working,
-you need to update the :ref:`conf_hosts` setting to bind to and publish the
-site-local address::
+CrateDB binds to the loopback interface by default. To get EC2 discovery
+working, you need to update the :ref:`conf_hosts` setting to bind to and
+publish the site-local address::
 
     network.host: _site_
 
 .. NOTE::
 
-   The requirement to explicitly configure Crate to bind to and publish the
+   The requirement to explicitly configure CrateDB to bind to and publish the
    site-local address is new in :ref:`version_1.2.0`.
 
 
@@ -96,11 +96,11 @@ You could also provide them as system properties or as settings in the
 .. note::
 
   Note that the env variables need to be provided for the user that runs the
-  Crate process, which is usually the user ``crate`` in production.
+  CrateDB process, which is usually the user ``crate`` in production.
 
-Now you are ready to start your Crate instances and they will discovery each
+Now you are ready to start your CrateDB instances and they will discovery each
 other automatically. Use the `AWS CLI`_ or the `AWS Console`_ to run instances
-and assign them with an IAM role. Note that all Crate instances of the same
+and assign them with an IAM role. Note that all CrateDB instances of the same
 region will join the cluster as long as their cluster name is equal and they are
 able to communicate to each other over the transport port.
 
@@ -117,11 +117,11 @@ to a different port) only from within the group.
     :alt: Assign security group on instance launch
     :width: 100%
 
-Since the instances that belong to the same Crate cluster have the same security
-group then, you can easly filter instances by that group.
+Since the instances that belong to the same CrateDB cluster have the same
+security group then, you can easly filter instances by that group.
 
 For example when you launch your instances with the security group
-``sg-crate-demo``, your Crate setting would be::
+``sg-crate-demo``, your CrateDB setting would be::
 
   discovery.ec2.groups: sg-crate-demo
 
@@ -165,8 +165,8 @@ setting ``discovery.ec2.tag.type: database``.
 This way, any number of tags can be used for filtering, using the
 ``discovery.ec2.tag.`` prefix for the setting name.
 
-Filtering by tags can help when you want to launch several Crate clusters within
-the same security group, e.g::
+Filtering by tags can help when you want to launch several CrateDB clusters
+within the same security group, e.g::
 
   discovery.ec2:
       groups: sg-crate-demo

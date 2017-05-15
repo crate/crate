@@ -18,7 +18,7 @@ In order to export the data invoke the mongoexport tool:
 
     mongoexport --db <dbname> --collection <data> --out out.json
 
-To import the data into crate the additional type information must be stripped away. In order to do so download the conversion script from the `crate-utils repo on github`_:
+To import the data into CrateDB the additional type information must be stripped away. In order to do so download the conversion script from the `crate-utils repo on github`_:
 
 .. code-block:: sh
 
@@ -34,10 +34,11 @@ Once the script is downloaded convert the data:
 
  - `MongoDB Manual - Extended JSON <http://docs.mongodb.org/manual/reference/mongodb-extended-json/>`_
 
-Importing Data into Crate
-=========================
+Importing Data into CrateDB
+===========================
 
-Before the converted file can be imported into Crate a table has to be created.
+Before the converted file can be imported into CrateDB a table has to be
+created.
 
 A basic CREATE TABLE statement looks as follows::
 
@@ -47,8 +48,8 @@ A basic CREATE TABLE statement looks as follows::
     ... ) clustered into 5 shards with (number_of_replicas = 0);
     CREATE OK, 1 row affected (... sec)
 
-In Crate each field is indexed by default. So it is not necessary to create any
-additional indices.
+In CrateDB each field is indexed by default. So it is not necessary to create
+any additional indices.
 
 However, if some fields are never used for filtering, indexing can be turned
 off::
@@ -64,7 +65,7 @@ For fields that contain text consider using a full-text analyzer. This will
 enable great full-text search capabilities. See :ref:`indices_and_fulltext` for
 more information.
 
-Crate is able to dynamically extend the schema, so it is not necessary to
+CrateDB is able to dynamically extend the schema, so it is not necessary to
 define all columns up-front.
 
 Given the table above, it is possible to insert new columns at the top level of
