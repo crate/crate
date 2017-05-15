@@ -32,7 +32,6 @@ import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageBucketReceiver;
 import io.crate.operation.PageResultListener;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -70,7 +69,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
         transportService.registerRequestHandler(DISTRIBUTED_RESULT_ACTION,
             DistributedResultRequest::new,
             ThreadPool.Names.GENERIC,
-            new NodeActionRequestHandler<DistributedResultRequest, DistributedResultResponse>(this) {});
+            new NodeActionRequestHandler<>(this));
     }
 
     public void pushResult(String node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {

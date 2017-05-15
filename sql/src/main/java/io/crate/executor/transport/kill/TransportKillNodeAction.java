@@ -68,7 +68,7 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> extends
             name,
             requestSupplier,
             ThreadPool.Names.GENERIC,
-            new NodeActionRequestHandler<Request, KillResponse>(this) {});
+            new NodeActionRequestHandler<>(this));
     }
 
     protected abstract CompletableFuture<Integer> doKill(Request request);

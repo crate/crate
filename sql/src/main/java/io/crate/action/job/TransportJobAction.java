@@ -64,7 +64,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
             ACTION_NAME,
             JobRequest::new,
             EXECUTOR,
-            new NodeActionRequestHandler<JobRequest, JobResponse>(this) {});
+            new NodeActionRequestHandler<>(this));
     }
 
     public void execute(String node, final JobRequest request, final ActionListener<JobResponse> listener) {

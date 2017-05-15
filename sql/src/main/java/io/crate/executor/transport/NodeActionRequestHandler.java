@@ -31,7 +31,7 @@ import org.elasticsearch.transport.TransportResponse;
 
 import java.io.IOException;
 
-public abstract class NodeActionRequestHandler<TRequest extends TransportRequest, TResponse extends TransportResponse>
+public final class NodeActionRequestHandler<TRequest extends TransportRequest, TResponse extends TransportResponse>
     implements TransportRequestHandler<TRequest> {
 
     private final NodeAction<TRequest, TResponse> nodeAction;

@@ -63,7 +63,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
             // If the threadPool is overloaded the query phase would fail first.
             true,
             false,
-            new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) {}
+            new NodeActionRequestHandler<>(this)
         );
     }
 

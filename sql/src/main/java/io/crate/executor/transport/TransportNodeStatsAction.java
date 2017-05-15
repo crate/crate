@@ -53,8 +53,7 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
         transportService.registerRequestHandler(ACTION_NAME,
             NodeStatsRequest::new,
             EXECUTOR,
-            new NodeActionRequestHandler<NodeStatsRequest, NodeStatsResponse>(this) {
-            }
+            new NodeActionRequestHandler<>(this)
         );
     }
 
