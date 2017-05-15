@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _efficient_data_import:
 
-==================================
-Importing Huge Datasets into Crate
-==================================
+====================================
+Importing Huge Datasets into CrateDB
+====================================
 
 Usually projects do not start from scratch, most of the time there is
 pre-existing data that needs to be imported and sometimes
@@ -11,8 +11,8 @@ the amount of data is significant.
 
 Assuming that you have an existing application that generates a few hundred
 thousand records a day and you are about to migrate to a new stack
-with Crate as the database backend. You'll need a way to import the
-existing millions of records into Crate as quickly as possible.
+with CrateDB as the database backend. You'll need a way to import the
+existing millions of records into CrateDB as quickly as possible.
 
 This best practice example will guide you through the process and shows
 tips and tricks on how to import your data quickly and safely.
@@ -199,7 +199,7 @@ in-depth documentation on ``COPY FROM`` see :ref:`copy_from`.
 JSON Import Format
 ..................
 
-Crate has native support for ``JSON`` formatted data, where each line is a
+CrateDB has native support for ``JSON`` formatted data, where each line is a
 ``JSON`` string and represents a single record. Empty lines are skipped.
 The keys of the ``JSON`` objects are mapped to columns when imported -
 nonexistent columns will be created if necessary.
@@ -241,7 +241,7 @@ found the command will return successfully, reporting
 
 .. note::
 
-  When importing data using ``COPY FROM`` Crate does not check if the types
+  When importing data using ``COPY FROM`` CrateDB does not check if the types
   from the columns and the types from the import file match. It does not cast
   the types to their target but will always import the data as in the source
   file(s).
@@ -285,7 +285,7 @@ If you do not have your data locally to the nodes, but somewhere on the network,
 e.g. a NAS or on ``S3``, it's recommended to use ``gzip`` compressed files
 to reduce network traffic.
 
-Crate does not automatically detect compression, so you'll need to specify
+CrateDB does not automatically detect compression, so you'll need to specify
 ``gzip`` compression in the ``WITH`` clause.
 
 For example::
@@ -355,7 +355,7 @@ statement using the ``PARTITION`` clause::
   ... FROM '/tmp/best_practice_data/users_1408312800.json';
   COPY OK, 23 rows affected (... sec)
 
-This way, Crate does not need to resolve the partition for each row
+This way, CrateDB does not need to resolve the partition for each row
 that is imported but can store it directly into the correct place
 resulting in a much faster import.
 
@@ -399,7 +399,7 @@ difficult if a few things are kept in mind. These are:
 And last but not least:
 
 - Import speed significantly increases with increasing disk I/O. Using
-  SSDs for Crate is recommended anyway, but having one more disk (by
+  SSDs for CrateDB is recommended anyway, but having one more disk (by
   adding another node) in the cluster, can make quite a difference.
 
 Further Reading

@@ -5,8 +5,8 @@
 Migrating from MySQL
 ====================
 
-There are various ways to migrate your existing data from MySQL_ to Crate_.
-However, these methods may differ in performance. A fast and reliable way to migrate is to use Crate's existing export and import tools.
+There are various ways to migrate your existing data from MySQL_ to CrateDB_.
+However, these methods may differ in performance. A fast and reliable way to migrate is to use CrateDB's existing export and import tools.
 
 This best practice example shows how to migrate your data without any hassle.
 
@@ -43,7 +43,7 @@ Example::
 
 Make sure fields are seperated by a comma (``,``), that values are quoted with a pair of ``"`` and that lines are terminated by the newline character ``\n``.
 
-Note that we specify ``utf8`` as encoding for writing into the outfile. This is important because Crate requires ``utf8`` encoding.
+Note that we specify ``utf8`` as encoding for writing into the outfile. This is important because CrateDB requires ``utf8`` encoding.
 
 You may need to set the character encoding of the client and ``mysqld`` in the ``my.cnf``, too:
 
@@ -61,10 +61,10 @@ Date/Time Types
 ---------------
 
 The standard output for `date/time types in MySQL <http://dev.mysql.com/doc/refman/5.0/en/date-and-time-types.html>`_
-is a string, However, Crate uses a ``long`` type to store timestamps (millisecond precision).
+is a string, However, CrateDB uses a ``long`` type to store timestamps (millisecond precision).
 To prevent problems with dates that have timezone information, use MySQL's builtin ``UNIX_TIMESTAMP`` function to convert ``date``, ``time``, ``datetime``, ``timestamp`` and ``year`` types into UNIX timestamps directly in the ``SELECT`` statement.
 
-The output of this function must be multiplied by ``1000`` (converting ``s`` to ``ms``) to obtain the correct ``long`` value that can be used for importing into Crate.
+The output of this function must be multiplied by ``1000`` (converting ``s`` to ``ms``) to obtain the correct ``long`` value that can be used for importing into CrateDB.
 
 ::
 
@@ -82,8 +82,8 @@ Final export query::
 Converting CSV to JSON
 ======================
 
-Use the Python script (`csv2json.py`_) to convert the exported CSV file
-into a Crate compatible JSON file. The source file needs to be ``utf8`` encoded.
+Use the Python script (`csv2json.py`_) to convert the exported CSV file into a
+CrateDB compatible JSON file. The source file needs to be ``utf8`` encoded.
 
 The script requires ``csv`` input from ``stdin`` and prints the converted lines
 to ``stdout``. Each line is a separate JSON string.
@@ -124,8 +124,8 @@ For help use the ``-h`` option:
   sh$ python mysql2crate.py -h
 
 
-Importing Data into Crate
-=========================
+Importing Data into CrateDB
+===========================
 
 The column names need to match the names specified by the ``--columns`` argument.
 
@@ -138,7 +138,7 @@ The column names need to match the names specified by the ``--columns`` argument
   ...  fruits array(string)
   ... );
 
-Finally use the ``COPY FROM`` statement to import your newly generated json file into Crate.
+Finally use the ``COPY FROM`` statement to import your newly generated json file into CrateDB.
 
 ::
 
@@ -147,14 +147,14 @@ Finally use the ``COPY FROM`` statement to import your newly generated json file
 
 .. note::
 
-  Read :ref:`efficient_data_import` for more information how to import huge datasets into Crate.
+  Read :ref:`efficient_data_import` for more information how to import huge datasets into CrateDB.
 
 
 3rd Party Tool: csvkit
 ======================
 
 The tools provided by `csvkit`_ allow you to directly insert CSV data
-into Crate via SQLAlchemy, using Crate’s native driver to create the table,
+into CrateDB via SQLAlchemy, using CrateDB’s native driver to create the table,
 guess the corresponding data types, and insert any data found in the CSV file.
 
 The simplest way to do so is like this:
@@ -165,13 +165,13 @@ The simplest way to do so is like this:
 
 .. note::
 
-  See also the documentation of `csvsql`_. To use the SQLAlchemy driver of Crate,
-  the latest version of the `Crate Python package`_ is required.
+  See also the documentation of `csvsql`_. To use the SQLAlchemy driver of
+  CrateDB, the latest version of the `CrateDB Python package`_ is required.
 
 
 .. _`MySQL`: http://mysql.com
-.. _`Crate`: https://crate.io
+.. _`CrateDB`: https://crate.io
 .. _`csv2json.py`: https://github.com/crate/crate-utils/tree/master/migrations/mysql
 .. _`csvkit`: https://csvkit.readthedocs.io/en/540/index.html
 .. _`csvsql`: https://csvkit.readthedocs.io/en/540/scripts/csvsql.html
-.. _`Crate Python package`: https://pypi.python.org/pypi/crate
+.. _`CrateDB Python package`: https://pypi.python.org/pypi/crate

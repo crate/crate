@@ -5,7 +5,7 @@
 Troubleshooting with sys-Tables
 ===============================
 
-Crate maintains a set of diagnostic tables in the **sys** schema. It
+CrateDB maintains a set of diagnostic tables in the **sys** schema. It
 consists currently of ten tables that provide an overview of the
 cluster state. If something is going wrong and you initially don’t
 know why, they help you to analyze, identify the problem and start
@@ -60,7 +60,7 @@ Once you identified the dedicated job UUID, you can kill that job with
 the **KILL** command. A single job is split into several operations which
 run, depending on the query, on distributed nodes of your cluster.
 The table has also a system column **_node** indicating on which node
-Crate actually executes the operation::
+CrateDB actually executes the operation::
 
     cr> SELECT _node['name'], _node['hostname'], * FROM sys.operations;
     +---------------+------------------...+----+---------------...+---------+---------------+------------+
@@ -94,7 +94,7 @@ available data, run::
     SHOW 104 rows in set (... sec)
 
 While **sys.cluster** contains information about the cluster as a whole,
-**sys.nodes** maintains more detailed information about each Crate
+**sys.nodes** maintains more detailed information about each CrateDB
 instance. This can be useful to track down misbehaving data nodes since
 its CPU is overloaded or it has an outdated Java version::
 
@@ -133,10 +133,10 @@ section.
 Step 4: Insights about Partitions, Shards, and Replication
 ==========================================================
 
-Crate divides the rows of each table into shards that are distinctively
+CrateDB divides the rows of each table into shards that are distinctively
 distributed to all nodes in your cluster. Replication uses the same
 mechanism to add redundancy and thus resilience to your data. While most
-of the time Crate takes transparently care of distributing and
+of the time CrateDB takes transparently care of distributing and
 replicating the shards, it’s useful during troubleshooting to actually
 find out some more about these data structures. The **sys.shards** table
 provides access to the status and size of shards, its names and IDs::
@@ -180,11 +180,11 @@ The cluster state is somewhat delicate when nodes join or leave, since
 in those situations shards have to be rearranged to ensure that each of
 them is replicated to different nodes. As long as the **state**
 attribute is ‘STARTED’ for all shards, the cluster is in a stable state,
-otherwise Crate is occupied with some background activity. The cluster
+otherwise CrateDB is occupied with some background activity. The cluster
 state indicators on the admin UI evaluate these values as well.
 
 The **sys.shards** table contains even more information about the
-rebalancing activities. Sometimes Crate needs to transfer one shard to
+rebalancing activities. Sometimes CrateDB needs to transfer one shard to
 another node, since that may be necessary to ensure there are enough
 replicas of it distributed in the cluster. You can estimate the
 progress of that operation with the **recovery** object. To monitor the
@@ -232,7 +232,7 @@ Finally, if your repair efforts did not succeed, your application or
 users accidently deleted some data, recover one of the previous taken
 snapshot of your cluster. The tables **sys.snapshots** and
 **sys.repositories** assist you in managing your backups. Remember, one
-or more backups are stored in repositories outside the Crate cluster
+or more backups are stored in repositories outside the CrateDB cluster
 initialized with the **CREATE REPOSITORY** request. An actual copy of a
 current database state is made with the **CREATE SNAPSHOT** command. If
 you forgot where you store your snapshots::
