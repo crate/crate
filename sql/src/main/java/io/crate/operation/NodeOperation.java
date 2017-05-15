@@ -22,7 +22,6 @@
 package io.crate.operation;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import org.apache.logging.log4j.Logger;
@@ -69,33 +68,46 @@ public class NodeOperation implements Streamable {
             (byte) 0);
     }
 
-    public static NodeOperation withDownstream(ExecutionPhase executionPhase,
-                                               ExecutionPhase downstreamExecutionPhase,
-                                               byte inputId,
-                                               String localNodeId) {
-        if (downstreamExecutionPhase.nodeIds().isEmpty()) {
-            List<String> downstreamNodes;
-            if (executionPhase instanceof UpstreamPhase && executionPhase.nodeIds().size() == 1
-                && executionPhase.nodeIds().contains(localNodeId)) {
-                LOGGER.trace("Phase uses SAME_NODE downstream, reason: ON HANDLER, executionNodes: {}, phase: {}",
-                    executionPhase.nodeIds(), executionPhase);
-
-                downstreamNodes = Collections.emptyList();
-            } else {
-                downstreamNodes = Collections.singletonList(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE);
-            }
-            return new NodeOperation(
-                executionPhase,
-                downstreamNodes,
-                downstreamExecutionPhase.phaseId(),
-                inputId);
+    /**
+     * Create a NodeOperation for upstreamPhase with downstreamPhase as the target/downstream.
+     * The downstreamPhase will receive the data from upstreamPhase via directResponse unless
+     * a SAME_NODE execution is possible
+     */
+    public static NodeOperation withDirectResponse(ExecutionPhase upstreamPhase,
+                                                   ExecutionPhase downstreamPhase,
+                                                   byte inputId,
+                                                   String localNodeId) {
+        Collection<String> downstreamNodes;
+        Collection<String> upstreamNodeIds = upstreamPhase.nodeIds();
+        if (upstreamNodeIds.size() == 1 && downstreamPhase.nodeIds().size() == 1 &&
+            downstreamPhase.nodeIds().contains(localNodeId) &&
+            upstreamNodeIds.contains(localNodeId)) {
+            LOGGER.trace("Phase uses SAME_NODE downstream, reason: ON HANDLER, executionNodes: {}, phase: {}",
+                upstreamPhase.nodeIds(), upstreamPhase);
+            downstreamNodes = Collections.emptyList();
         } else {
-            return new NodeOperation(
-                executionPhase,
-                downstreamExecutionPhase.nodeIds(),
-                downstreamExecutionPhase.phaseId(),
-                inputId);
+            downstreamNodes = ExecutionPhase.DIRECT_RESPONSE_LIST;
         }
+        return new NodeOperation(
+            upstreamPhase,
+            downstreamNodes,
+            downstreamPhase.phaseId(),
+            inputId
+        );
+    }
+
+    /**
+     * Create a NodeOperation for upstreamPhase with downstreamPhase as the target/downstream.
+     * This will result in a push-based execution.
+     *
+     * See also: {@link #withDirectResponse(ExecutionPhase, ExecutionPhase, byte, String)}
+     */
+    public static NodeOperation withDownstream(ExecutionPhase upstreamPhase, ExecutionPhase downstreamPhase, byte inputId) {
+        return new NodeOperation(
+            upstreamPhase,
+            downstreamPhase.nodeIds(),
+            downstreamPhase.phaseId(),
+            inputId);
     }
 
     public ExecutionPhase executionPhase() {

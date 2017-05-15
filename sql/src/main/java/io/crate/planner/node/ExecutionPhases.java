@@ -61,7 +61,7 @@ public class ExecutionPhases {
 
     public static boolean hasDirectResponseDownstream(Collection<String> downstreamNodes) {
         for (String nodeId : downstreamNodes) {
-            if (nodeId.equals(ExecutionPhase.DIRECT_RETURN_DOWNSTREAM_NODE)) {
+            if (nodeId.equals(ExecutionPhase.DIRECT_RESPONSE)) {
                 return true;
             }
         }

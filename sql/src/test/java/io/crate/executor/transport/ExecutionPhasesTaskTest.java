@@ -92,9 +92,9 @@ public class ExecutionPhasesTaskTest {
 
 
         String localNodeId = "node1";
-        NodeOperation n1 = NodeOperation.withDownstream(c1, m1, (byte) 0, localNodeId);
-        NodeOperation n2 = NodeOperation.withDownstream(m1, m2, (byte) 0, localNodeId);
-        NodeOperation n3 = NodeOperation.withDownstream(m2, mock(ExecutionPhase.class), (byte) 0, localNodeId);
+        NodeOperation n1 = NodeOperation.withDownstream(c1, m1, (byte) 0);
+        NodeOperation n2 = NodeOperation.withDownstream(m1, m2, (byte) 0);
+        NodeOperation n3 = NodeOperation.withDownstream(m2, mock(ExecutionPhase.class), (byte) 0);
 
         Map<String, Collection<NodeOperation>> groupByServer = NodeOperationGrouper.groupByServer(ImmutableList.of(n1, n2, n3));
 

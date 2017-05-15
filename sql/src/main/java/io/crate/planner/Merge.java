@@ -26,7 +26,6 @@ import io.crate.operation.Paging;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
-import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
@@ -73,7 +72,8 @@ public class Merge implements Plan, ResultDescription {
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
             return addProjections(subPlan, projections, resultDescription, topN);
         }
-        Collection<String> handlerNodeIds = getHandlerNodeIds(subPlan, plannerContext, resultDescription);
+        maybeUpdatePageSizeHint(subPlan, resultDescription.maxRowsPerNode());
+        Collection<String> handlerNodeIds = Collections.singletonList(plannerContext.handlerNode());
 
         MergePhase mergePhase = new MergePhase(
             plannerContext.jobId(),
@@ -97,30 +97,10 @@ public class Merge implements Plan, ResultDescription {
         );
     }
 
-    private static Collection<String> getHandlerNodeIds(Plan subPlan, Planner.Context plannerContext, ResultDescription resultDescription) {
-        /*
-         * ideally we would use something different as an indicator for direct-result or push/paging
-         *
-         *
-         * The instanceof Collect check is done because direct-result currently only works between two phases.
-         * E.g.
-         *      # supports direct result
-         *      CollectPhase -> MergePhase
-         *
-         *
-         *      # no direct result support
-         *      CollectPhase -> MergePhase -> MergePhase
-         *
-         * This is a limitation of the ExecutionPhasesTask/ContextPreparer
-         */
-        if (subPlan instanceof Collect && !Paging.shouldPage(resultDescription.maxRowsPerNode())) {
-            // use direct result
-            return Collections.emptyList();
+    private static void maybeUpdatePageSizeHint(Plan subPlan, int maxRowsPerNode) {
+        if (Paging.shouldPage(maxRowsPerNode)) {
+            Paging.updateNodePageSizeHint(subPlan, maxRowsPerNode);
         }
-
-        // use push based result
-        Paging.updateNodePageSizeHint(subPlan, resultDescription.maxRowsPerNode());
-        return Collections.singletonList(plannerContext.handlerNode());
     }
 
     private static Plan addProjections(Plan subPlan, List<Projection> projections, ResultDescription resultDescription, Projection topN) {

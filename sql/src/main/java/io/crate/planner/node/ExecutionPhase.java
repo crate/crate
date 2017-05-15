@@ -21,16 +21,22 @@
 
 package io.crate.planner.node;
 
-import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.CountPhase;
+import io.crate.planner.node.dql.FileUriCollectPhase;
+import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 public interface ExecutionPhase extends Streamable {
 
-    String DIRECT_RETURN_DOWNSTREAM_NODE = "_response";
+    String DIRECT_RESPONSE = "_response";
+    List<String> DIRECT_RESPONSE_LIST = Collections.singletonList("_response");
 
     int NO_EXECUTION_PHASE = Integer.MAX_VALUE;
 

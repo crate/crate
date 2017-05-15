@@ -88,7 +88,7 @@ public class DistributingDownstreamFactoryTest extends CrateDummyClusterServiceU
             null
         );
         mergePhase.executionNodes(downstreamExecutionNodes);
-        NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase, (byte) 0, "nodeName");
+        NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase, (byte) 0);
         return rowDownstreamFactory.create(nodeOperation, collectPhase.distributionInfo(), jobId, Paging.PAGE_SIZE);
     }
 

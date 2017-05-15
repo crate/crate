@@ -41,9 +41,9 @@ import io.crate.operation.NodeOperationTree;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.NodeOperationGrouper;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.indices.IndicesService;
 
@@ -206,6 +206,7 @@ public class ExecutionPhasesTask extends JobTask {
          * Seed: CC456FF5004F35D3 - testFailureOfJoinDownstream
          */
         if (!localNodeOperations.isEmpty() && !directResponseFutures.isEmpty()) {
+            assert directResponseFutures.size() == pageBucketReceivers.size() : "directResponses size must match pageBucketReceivers";
             CompletableFutures.allAsList(directResponseFutures)
                 .whenComplete(new SetBucketCallback(pageBucketReceivers, bucketIdx, initializationTracker));
             bucketIdx++;

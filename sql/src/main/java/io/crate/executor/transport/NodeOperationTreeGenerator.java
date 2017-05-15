@@ -24,6 +24,7 @@ package io.crate.executor.transport;
 
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
+import io.crate.operation.Paging;
 import io.crate.planner.Merge;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.Plan;
@@ -115,6 +116,10 @@ public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationT
             }
         }
 
+        void addPhase(@Nullable ExecutionPhase executionPhase) {
+            addPhase(executionPhase, false);
+        }
+
         /**
          * adds a Phase to the "NodeOperation execution tree"
          * should be called in the reverse order of how data flows.
@@ -122,7 +127,7 @@ public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationT
          * E.g. in a plan where data flows from CollectPhase to MergePhase
          * it should be called first for MergePhase and then for CollectPhase
          */
-        void addPhase(@Nullable ExecutionPhase executionPhase) {
+        void addPhase(@Nullable ExecutionPhase executionPhase, boolean directResponse) {
             if (executionPhase == null) {
                 return;
             }
@@ -145,7 +150,13 @@ public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationT
                 "NodeOperation with %s and %s as downstreams cannot work",
                 ExecutionPhases.debugPrint(executionPhase), previousPhase.nodeIds());
 
-            nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, inputId, localNodeId));
+            NodeOperation nodeOperation;
+            if (directResponse) {
+                nodeOperation = NodeOperation.withDirectResponse(executionPhase, previousPhase, inputId, localNodeId);
+            } else {
+                nodeOperation = NodeOperation.withDownstream(executionPhase, previousPhase, inputId);
+            }
+            nodeOperations.add(nodeOperation);
             currentBranch.phases.add(executionPhase);
         }
 
@@ -170,6 +181,10 @@ public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationT
         Collection<NodeOperation> nodeOperations() {
             return nodeOperations;
         }
+
+        boolean noPreviousPhases() {
+            return branches.isEmpty() && currentBranch.phases.isEmpty();
+        }
     }
 
     public static NodeOperationTree fromPlan(Plan plan, String localNodeId) {
@@ -181,8 +196,9 @@ public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationT
 
     @Override
     public Void visitCountPlan(CountPlan plan, NodeOperationTreeContext context) {
+        boolean useDirectResponse = context.noPreviousPhases();
         context.addPhase(plan.mergePhase());
-        context.addPhase(plan.countPhase());
+        context.addPhase(plan.countPhase(), useDirectResponse);
         return null;
     }
 
@@ -194,8 +210,17 @@ public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationT
 
     @Override
     public Void visitMerge(Merge merge, NodeOperationTreeContext context) {
+        Plan subPlan = merge.subPlan();
+
+        boolean useDirectResponse = context.noPreviousPhases() &&
+                                    subPlan instanceof Collect &&
+                                    !Paging.shouldPage(subPlan.resultDescription().maxRowsPerNode());
         context.addPhase(merge.mergePhase());
-        process(merge.subPlan(), context);
+        if (useDirectResponse) {
+            context.addPhase(((Collect) subPlan).collectPhase(), true);
+        } else {
+            process(subPlan, context);
+        }
         return null;
     }
 

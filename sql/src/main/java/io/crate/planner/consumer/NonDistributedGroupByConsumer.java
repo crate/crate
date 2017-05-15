@@ -175,7 +175,7 @@ class NonDistributedGroupByConsumer implements Consumer {
                 plannerContext.nextExecutionPhaseId(),
                 "mergeOnHandler",
                 collect.resultDescription().nodeIds().size(),
-                Collections.emptyList(),
+                Collections.singletonList(plannerContext.handlerNode()),
                 collect.resultDescription().streamOutputs(),
                 mergeProjections,
                 DistributionInfo.DEFAULT_SAME_NODE,

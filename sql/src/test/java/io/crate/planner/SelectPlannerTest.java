@@ -31,9 +31,13 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
+import io.crate.executor.transport.NodeOperationTreeGenerator;
 import io.crate.metadata.*;
+import io.crate.operation.NodeOperation;
+import io.crate.operation.NodeOperationTree;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.projectors.TopN;
+import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
@@ -592,9 +596,18 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         QueryThenFetch qtf = e.plan("select * from users limit 2147483647 ");
         Merge merge = (Merge) qtf.subPlan();
         assertThat(merge.mergePhase().nodeIds().size(), is(1));
+        String localNodeId = merge.mergePhase().nodeIds().iterator().next();
+        NodeOperationTree operationTree = NodeOperationTreeGenerator.fromPlan(qtf, localNodeId);
+        NodeOperation nodeOperation = operationTree.nodeOperations().iterator().next();
+        // paging -> must not use direct response
+        assertThat(nodeOperation.downstreamNodes(), not(contains(ExecutionPhase.DIRECT_RESPONSE)));
+
 
         qtf = e.plan("select * from users limit 2");
-        merge = (Merge) qtf.subPlan();
-        assertThat(merge.mergePhase().nodeIds().size(), is(0));
+        localNodeId = qtf.subPlan().resultDescription().nodeIds().iterator().next();
+        operationTree = NodeOperationTreeGenerator.fromPlan(qtf, localNodeId);
+        nodeOperation = operationTree.nodeOperations().iterator().next();
+        // no paging -> can use direct response
+        assertThat(nodeOperation.downstreamNodes(), contains(ExecutionPhase.DIRECT_RESPONSE));
     }
 }
