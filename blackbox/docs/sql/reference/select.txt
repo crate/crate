@@ -177,11 +177,6 @@ the inner ``SELECT`` statement.
 
 .. note::
 
-  GROUP BY clauses are not supported in the *outer* ``SELECT`` statement.
-  
-  
-.. note::
-
   ``sub_select`` relations cannot be used in joined relations.
 
 WHERE Clause
