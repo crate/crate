@@ -13,10 +13,11 @@ A collection of CrateDB best practices and tips for common scenarios.
    bootstrap_checks
    rolling_upgrade
    full_restart_upgrade
+   sharding
    docker
-   migrating_from_mysql
-   migrating_from_mongodb
    ec2_setup
    s3_setup
    crate_ami
+   migrating_from_mysql
+   migrating_from_mongodb
    systables
