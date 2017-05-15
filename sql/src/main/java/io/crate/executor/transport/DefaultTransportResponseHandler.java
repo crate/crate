@@ -21,35 +21,37 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.base.MoreObjects;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 
-public abstract class DefaultTransportResponseHandler<TResponse extends TransportResponse>
+import java.util.function.Supplier;
+
+public final class DefaultTransportResponseHandler<TResponse extends TransportResponse>
     implements TransportResponseHandler<TResponse> {
 
     private final ActionListener<TResponse> listener;
+    private final Supplier<? extends TResponse> responseSupplier;
     private final String executor;
 
     /**
      * Creates a ResponseHandler that passes the response or exception to the given listener.
-     * onResponse/onFailure will be executed using the SAME threadPool
+     * onResponse/onFailure will be executed using the given executor or SAME if the executor is null.
+     *
+     * If the operation run onResponse is cheap, use {@link org.elasticsearch.action.ActionListenerResponseHandler} instead.
      */
-    protected DefaultTransportResponseHandler(ActionListener<TResponse> listener) {
-        this(listener, null);
+    public DefaultTransportResponseHandler(ActionListener<TResponse> listener,
+                                           Supplier<? extends TResponse> responseSupplier,
+                                           String executor) {
+        this.listener = listener;
+        this.responseSupplier = responseSupplier;
+        this.executor = executor;
     }
 
-    /**
-     * Creates a ResponseHandler that passes the response or exception to the given listener.
-     * onResponse/onFailure will be executed using the given executor or SAME if the executor is null
-     */
-    protected DefaultTransportResponseHandler(ActionListener<TResponse> listener, @Nullable String executor) {
-        this.listener = listener;
-        this.executor = MoreObjects.firstNonNull(executor, ThreadPool.Names.SAME);
+    @Override
+    public TResponse newInstance() {
+        return responseSupplier.get();
     }
 
     @Override

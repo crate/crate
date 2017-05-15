@@ -74,12 +74,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
 
     public void pushResult(String node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
         transports.sendRequest(DISTRIBUTED_RESULT_ACTION, node, request, listener,
-            new DefaultTransportResponseHandler<DistributedResultResponse>(listener, EXECUTOR_NAME) {
-                @Override
-                public DistributedResultResponse newInstance() {
-                    return new DistributedResultResponse();
-                }
-            });
+            new DefaultTransportResponseHandler<>(listener, DistributedResultResponse::new, EXECUTOR_NAME));
     }
 
     @Override

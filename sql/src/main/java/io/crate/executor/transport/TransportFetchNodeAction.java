@@ -27,6 +27,7 @@ import io.crate.jobs.JobContextService;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.fetch.NodeFetchOperation;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -39,7 +40,6 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
 
     private static final String TRANSPORT_ACTION = "crate/sql/node/fetch";
     private static final String EXECUTOR_NAME = ThreadPool.Names.SEARCH;
-    private static final String RESPONSE_EXECUTOR = ThreadPool.Names.SAME;
 
     private final Transports transports;
     private final NodeFetchOperation nodeFetchOperation;
@@ -72,12 +72,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                         final NodeFetchRequest request,
                         ActionListener<NodeFetchResponse> listener) {
         transports.sendRequest(TRANSPORT_ACTION, targetNode, request, listener,
-            new DefaultTransportResponseHandler<NodeFetchResponse>(listener, RESPONSE_EXECUTOR) {
-                @Override
-                public NodeFetchResponse newInstance() {
-                    return NodeFetchResponse.forReceiveing(streamers);
-                }
-            });
+            new ActionListenerResponseHandler<>(listener, () -> NodeFetchResponse.forReceiveing(streamers)));
     }
 
     @Override

@@ -23,17 +23,18 @@
 package io.crate.executor.transport.kill;
 
 import io.crate.executor.MultiActionListener;
-import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.jobs.JobContextService;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.Collection;
@@ -90,14 +91,8 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> extends
         Collection<DiscoveryNode> filteredNodes = nodes.filter(node -> !excludedNodeIds.contains(node.getId())).collect(Collectors.toList());
 
         listener = new MultiActionListener<>(filteredNodes.size(), KillResponse.MERGE_FUNCTION, listener);
-        DefaultTransportResponseHandler<KillResponse> responseHandler =
-            new DefaultTransportResponseHandler<KillResponse>(listener) {
-
-                @Override
-                public KillResponse newInstance() {
-                    return new KillResponse(0);
-                }
-            };
+        TransportResponseHandler<KillResponse> responseHandler =
+            new ActionListenerResponseHandler<>(listener, () -> new KillResponse(0));
         for (DiscoveryNode node : filteredNodes) {
             transportService.sendRequest(node, name, request, responseHandler);
         }

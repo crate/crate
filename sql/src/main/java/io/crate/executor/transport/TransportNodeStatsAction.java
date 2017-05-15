@@ -26,6 +26,7 @@ import io.crate.concurrent.CompletableFutures;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.operation.reference.sys.node.NodeStatsContextFieldResolver;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.unit.TimeValue;
@@ -65,13 +66,14 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
             .withTimeout(timeout)
             .build();
 
-        transports.sendRequest(ACTION_NAME, nodeName, request, listener,
-            new DefaultTransportResponseHandler<NodeStatsResponse>(listener) {
-                @Override
-                public NodeStatsResponse newInstance() {
-                    return new NodeStatsResponse();
-                }
-            }, options);
+        transports.sendRequest(
+            ACTION_NAME,
+            nodeName,
+            request,
+            listener,
+            new ActionListenerResponseHandler<>(listener, NodeStatsResponse::new),
+            options
+        );
     }
 
     @Override

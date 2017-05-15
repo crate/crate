@@ -23,13 +23,13 @@ package io.crate.action.job;
 
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.Bucket;
-import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.executor.transport.Transports;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.indices.IndicesService;
@@ -68,13 +68,8 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
     }
 
     public void execute(String node, final JobRequest request, final ActionListener<JobResponse> listener) {
-        transports.sendRequest(ACTION_NAME, node, request, listener,
-            new DefaultTransportResponseHandler<JobResponse>(listener) {
-                @Override
-                public JobResponse newInstance() {
-                    return new JobResponse();
-                }
-            });
+        transports.sendRequest(
+            ACTION_NAME, node, request, listener, new ActionListenerResponseHandler<>(listener, JobResponse::new));
     }
 
     @Override
