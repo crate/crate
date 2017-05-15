@@ -956,6 +956,8 @@ those queries.
 Discovery
 ---------
 
+.. _discovery.zen.minimum_master_nodes:
+
 **discovery.zen.minimum_master_nodes**
   | *Default:*   ``1``
   | *Runtime:*  ``yes``
@@ -1616,7 +1618,7 @@ Metadata Gateway
   changes. This data is stored persistently across full cluster restarts and
   recovered after nodes are started again.
 
-.. _gateway_expected_nodes:
+.. _gateway.expected_nodes:
 
 **gateway.expected_nodes**
   | *Default:*   ``-1``
