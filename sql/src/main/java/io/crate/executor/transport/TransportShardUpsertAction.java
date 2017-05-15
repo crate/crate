@@ -123,7 +123,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                              AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
         DocTableInfo tableInfo = schemas.getTableInfo(
-            TableIdent.fromIndexName(request.index()), Operation.INSERT);
+            TableIdent.fromIndexName(request.index()), Operation.INSERT, null);
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
         IndexShard indexShard = indexService.getShard(shardId.id());
 

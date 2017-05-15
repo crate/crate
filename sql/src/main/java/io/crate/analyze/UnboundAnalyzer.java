@@ -95,7 +95,7 @@ class UnboundAnalyzer {
 
         @Override
         public AnalyzedRelation visitShowCreateTable(ShowCreateTable node, Analysis context) {
-            return showCreateTableAnalyzer.analyze(node.table(), context.sessionContext().defaultSchema());
+            return showCreateTableAnalyzer.analyze(node.table(), context.sessionContext());
         }
 
         @Override

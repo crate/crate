@@ -83,7 +83,10 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     public AnalyzedStatement analyze(InsertFromValues node, Analysis analysis) {
         DocTableInfo tableInfo = schemas.getTableInfo(
-            TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()), Operation.INSERT);
+            TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()),
+            Operation.INSERT,
+            analysis.sessionContext().user()
+        );
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
@@ -117,7 +120,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         ReferenceToLiteralConverter refToLiteral = new ReferenceToLiteralConverter(
             statement.columns(), allReferencedReferences);
 
-        ValueNormalizer valuesNormalizer = new ValueNormalizer(schemas);
+        ValueNormalizer valuesNormalizer = new ValueNormalizer();
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
@@ -273,7 +276,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             final ColumnIdent columnIdent = column.ident().columnIdent();
             Object value;
             try {
-                valuesSymbol = valueNormalizer.normalizeInputForReference(valuesSymbol, column);
+                valuesSymbol = valueNormalizer.normalizeInputForReference(valuesSymbol, column, tableRelation.tableInfo());
                 value = ((Input) valuesSymbol).value();
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
                 throw new ColumnValidationException(columnIdent.sqlFqn(), e);
@@ -331,7 +334,8 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 Symbol valueSymbol = normalizer.normalize(
                     valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
                     transactionContext);
-                Symbol assignmentExpression = valueNormalizer.normalizeInputForReference(valueSymbol, columnName);
+                Symbol assignmentExpression = valueNormalizer.normalizeInputForReference(valueSymbol, columnName,
+                    tableRelation.tableInfo());
                 onDupKeyAssignments[i] = assignmentExpression;
 
                 if (valuesResolver.assignmentColumns.size() == i) {

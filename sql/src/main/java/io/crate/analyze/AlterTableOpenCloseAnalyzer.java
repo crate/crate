@@ -23,6 +23,7 @@
 package io.crate.analyze;
 
 
+import io.crate.action.sql.SessionContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -39,9 +40,10 @@ class AlterTableOpenCloseAnalyzer {
         this.schemas = schemas;
     }
 
-    public AlterTableOpenCloseAnalyzedStatement analyze(AlterTableOpenClose node, String defaultSchema) {
+    public AlterTableOpenCloseAnalyzedStatement analyze(AlterTableOpenClose node, SessionContext sessionContext) {
         Table table = node.table();
-        DocTableInfo tableInfo = schemas.getTableInfo(TableIdent.of(table, defaultSchema), Operation.ALTER_OPEN_CLOSE);
+        DocTableInfo tableInfo = schemas.getTableInfo(TableIdent.of(table, sessionContext.defaultSchema()),
+            Operation.ALTER_OPEN_CLOSE, sessionContext.user());
         PartitionName partitionName = null;
         if (tableInfo.isPartitioned()) {
             partitionName = AlterTableAnalyzer.createPartitionName(table.partitionProperties(), tableInfo, null);

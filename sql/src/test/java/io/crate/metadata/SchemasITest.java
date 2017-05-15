@@ -56,7 +56,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
                 ") clustered into 10 shards with (number_of_replicas=1)");
         ensureYellow();
 
-        DocTableInfo ti = (DocTableInfo) schemas.getTableInfo(new TableIdent(null, "t1"));
+        DocTableInfo ti = (DocTableInfo) schemas.getTableInfo(new TableIdent(null, "t1"), null);
         assertThat(ti.ident().name(), is("t1"));
 
         assertThat(ti.columns().size(), is(3));
@@ -90,8 +90,8 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         client().admin().indices().aliases(request).actionGet();
         ensureYellow();
 
-        DocTableInfo terminatorTable = (DocTableInfo) schemas.getTableInfo(new TableIdent(null, "terminator"));
-        DocTableInfo entsafterTable = (DocTableInfo) schemas.getTableInfo(new TableIdent(null, "entsafter"));
+        DocTableInfo terminatorTable = (DocTableInfo) schemas.getTableInfo(new TableIdent(null, "terminator"), null);
+        DocTableInfo entsafterTable = (DocTableInfo) schemas.getTableInfo(new TableIdent(null, "entsafter"), null);
 
         assertNotNull(terminatorTable);
         assertFalse(terminatorTable.isAlias());
@@ -112,7 +112,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         client().admin().indices().aliases(request).actionGet();
         ensureYellow();
 
-        DocTableInfo entsafterTable = (DocTableInfo) schemas.getTableInfo(new TableIdent(null, "entsafter"));
+        DocTableInfo entsafterTable = (DocTableInfo) schemas.getTableInfo(new TableIdent(null, "entsafter"), null);
 
         assertNotNull(entsafterTable);
         assertThat(entsafterTable.concreteIndices().length, is(2));
@@ -122,7 +122,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testNodesTable() throws Exception {
-        TableInfo ti = schemas.getTableInfo(new TableIdent("sys", "nodes"));
+        TableInfo ti = schemas.getTableInfo(new TableIdent("sys", "nodes"), null);
         Routing routing = ti.getRouting(null, null);
         assertTrue(routing.hasLocations());
         assertEquals(1, routing.nodes().size());
@@ -137,7 +137,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         execute("create table t3 (id int primary key) clustered into 8 shards with(number_of_replicas=0)");
         ensureYellow();
 
-        TableInfo ti = schemas.getTableInfo(new TableIdent("sys", "shards"));
+        TableInfo ti = schemas.getTableInfo(new TableIdent("sys", "shards"), null);
         Routing routing = ti.getRouting(null, null);
 
         Set<String> tables = new HashSet<>();
@@ -155,7 +155,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testClusterTable() throws Exception {
-        TableInfo ti = schemas.getTableInfo(new TableIdent("sys", "cluster"));
+        TableInfo ti = schemas.getTableInfo(new TableIdent("sys", "cluster"), null);
         assertThat(ti.getRouting(null, null).locations().size(), is(1));
     }
 }

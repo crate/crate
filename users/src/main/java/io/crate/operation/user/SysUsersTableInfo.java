@@ -20,6 +20,7 @@ package io.crate.operation.user;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
@@ -32,6 +33,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
 import java.util.Map;
+import java.util.Set;
 
 public class SysUsersTableInfo extends StaticTableInfo {
 
@@ -62,6 +64,11 @@ public class SysUsersTableInfo extends StaticTableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().getId());
+    }
+
+    @Override
+    public Set<User.Role> requiredUserRoles() {
+        return ImmutableSet.of(User.Role.SUPERUSER);
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory> sysUsersExpressions() {

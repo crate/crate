@@ -89,7 +89,7 @@ public class ShardReferenceResolver {
         }
         TableIdent tableIdent = partitionName.tableIdent();
         try {
-            DocTableInfo info = schemas.getTableInfo(tableIdent);
+            DocTableInfo info = schemas.getTableInfo(tableIdent, null);
             if (!schemas.isOrphanedAlias(info)) {
                 assert info.isPartitioned() : "table must be partitioned";
                 int i = 0;

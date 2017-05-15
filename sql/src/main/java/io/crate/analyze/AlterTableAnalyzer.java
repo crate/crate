@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.data.Row;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
@@ -44,9 +45,10 @@ class AlterTableAnalyzer {
         this.schemas = schemas;
     }
 
-    public AlterTableAnalyzedStatement analyze(AlterTable node, Row parameters, String defaultSchema) {
+    public AlterTableAnalyzedStatement analyze(AlterTable node, Row parameters, SessionContext sessionContext) {
         Table table = node.table();
-        DocTableInfo docTableInfo = schemas.getTableInfo(TableIdent.of(table, defaultSchema), Operation.ALTER_BLOCKS);
+        DocTableInfo docTableInfo = schemas.getTableInfo(TableIdent.of(table, sessionContext.defaultSchema()),
+            Operation.ALTER_BLOCKS, sessionContext.user());
         PartitionName partitionName = createPartitionName(table.partitionProperties(), docTableInfo, parameters);
         TableParameterInfo tableParameterInfo = getTableParameterInfo(table, docTableInfo, partitionName);
         TableParameter tableParameter = getTableParameter(node, parameters, tableParameterInfo);

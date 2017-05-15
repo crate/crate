@@ -22,18 +22,26 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.WhereClause;
+import io.crate.exceptions.UnauthorizedException;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.udf.UserDefinedFunctionMetaData;
 import io.crate.operation.udf.UserDefinedFunctionsMetaData;
+import io.crate.operation.user.User;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
@@ -43,11 +51,15 @@ import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -65,6 +77,13 @@ public class SchemasTest {
     @Mock
     public MetaData metaData;
 
+    private Schemas schemasWithSysTables;
+
+    private TableIdent authorized = new TableIdent("sys", "authorized");
+
+    private TableIdent unauthorized = new TableIdent("sys", "checks");
+
+    private User arthur = new User("arthur", ImmutableSet.of());
 
     @Before
     public void setUp() throws Exception {
@@ -73,6 +92,30 @@ public class SchemasTest {
         when(clusterState.metaData()).thenReturn(metaData);
         when(metaData.getConcreteAllOpenIndices()).thenReturn(new String[0]);
         when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+        SysSchemaInfo sysSchemaInfo = new SysSchemaInfo(clusterService);
+
+        // register table which requires permission
+        sysSchemaInfo.registerSysTable(new StaticTableInfo(authorized,
+            ImmutableMap.of(), null, ImmutableList.of()) {
+
+            @Override
+            public RowGranularity rowGranularity() {
+                return RowGranularity.DOC;
+            }
+
+            @Override
+            public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
+                return null;
+            }
+
+            @Override
+            public Set<User.Role> requiredUserRoles() {
+                return ImmutableSet.of(User.Role.SUPERUSER);
+            }
+        });
+        schemasWithSysTables = new Schemas(Settings.EMPTY, ImmutableMap.of(
+            "sys", sysSchemaInfo
+        ), null, null);
     }
 
     @Test
@@ -90,7 +133,7 @@ public class SchemasTest {
         when(schemaInfo.name()).thenReturn(tableIdent.schema());
 
         Schemas schemas = getReferenceInfos(schemaInfo);
-        schemas.getTableInfo(tableIdent, Operation.INSERT);
+        schemas.getTableInfo(tableIdent, Operation.INSERT, null);
     }
 
     @Test
@@ -108,7 +151,42 @@ public class SchemasTest {
 
 
         Schemas schemas = getReferenceInfos(schemaInfo);
-        schemas.getTableInfo(tableIdent, Operation.INSERT);
+        schemas.getTableInfo(tableIdent, Operation.INSERT, null);
+    }
+
+    @Test
+    public void testAuthorizationRequiredMissingRoles() throws Exception {
+        expectedException.expect(UnauthorizedException.class);
+        expectedException.expectMessage(
+            "User \"arthur\" is not authorized to access table \"sys.authorized\"");
+        schemasWithSysTables.getTableInfo(authorized, arthur);
+    }
+
+    @Test
+    public void testAuthorizationRequiredNullUser() throws Exception {
+        expectedException.expect(UnauthorizedException.class);
+        expectedException.expectMessage(
+            "User \"null\" is not authorized to access table \"sys.authorized\"");
+        schemasWithSysTables.getTableInfo(authorized, null);
+    }
+
+    @Test
+    public void testNoAuthorizationRequiredNormalUser() throws Exception {
+        TableInfo info = schemasWithSysTables.getTableInfo(unauthorized, arthur);
+        assertThat(info, is(notNullValue()));
+    }
+
+    @Test
+    public void testAuthorizationRequiredAuthorizedUser() throws Exception {
+        TableInfo info = schemasWithSysTables.getTableInfo(authorized,
+            new User("superuser", EnumSet.of(User.Role.SUPERUSER)));
+        assertThat(info, is(notNullValue()));
+    }
+
+    @Test
+    public void testNoAuthorizationRequiredNullUser() throws Exception {
+        TableInfo info = schemasWithSysTables.getTableInfo(unauthorized, null);
+        assertThat(info, is(notNullValue()));
     }
 
     @Test

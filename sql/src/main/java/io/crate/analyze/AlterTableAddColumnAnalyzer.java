@@ -51,7 +51,7 @@ class AlterTableAddColumnAnalyzer {
             throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
         }
         TableIdent tableIdent = TableIdent.of(node.table(), analysis.sessionContext().defaultSchema());
-        DocTableInfo tableInfo = schemas.getTableInfo(tableIdent, Operation.ALTER);
+        DocTableInfo tableInfo = schemas.getTableInfo(tableIdent, Operation.ALTER, analysis.sessionContext().user());
         AnalyzedTableElements tableElements = TableElementsAnalyzer.analyze(
             node.tableElement(),
             analysis.parameterContext().parameters(),

@@ -135,7 +135,8 @@ public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectUsersUnAuthorized() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("User \"null\" is not authorized to execute statement");
+        expectedException.expectMessage(
+            "UnauthorizedException: User \"null\" is not authorized to access table \"sys.users\"");
         execute("select * from sys.users");
     }
 

@@ -142,7 +142,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         DocTableInfo tableInfo = mock(DocTableInfo.class);
         Schemas schemas = mock(Schemas.class);
         when(tableInfo.columns()).thenReturn(Collections.<Reference>emptyList());
-        when(schemas.getTableInfo(any(TableIdent.class), eq(Operation.INSERT))).thenReturn(tableInfo);
+        when(schemas.getTableInfo(any(TableIdent.class), eq(Operation.INSERT), anyObject())).thenReturn(tableInfo);
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
             Settings.EMPTY,

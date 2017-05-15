@@ -94,4 +94,5 @@ public abstract class StaticTableInfo implements TableInfo {
     public Set<Operation> supportedOperations() {
         return Operation.SYS_READ_ONLY;
     }
+
 }

@@ -22,7 +22,10 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.action.FutureActionListener;
 import org.elasticsearch.cluster.metadata.MetaData;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.*;
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.analyze.CreateUserAnalyzedStatement;
+import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.exceptions.UnauthorizedException;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -41,13 +44,14 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER));
 
+    private static final PermissionVisitor PERMISSION_VISITOR = new PermissionVisitor();
+
     static {
         MetaData.registerPrototype(TYPE, PROTO);
     }
 
     private final TransportCreateUserAction transportCreateUserAction;
     private final TransportDropUserAction transportDropUserAction;
-    private final PermissionVisitor permissionVisitor = new PermissionVisitor();
     private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
 
     public UserManagerService(TransportCreateUserAction transportCreateUserAction,
@@ -89,7 +93,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     @Override
     public void ensureAuthorized(AnalyzedStatement analyzedStatement,
                                  SessionContext sessionContext) {
-        permissionVisitor.process(analyzedStatement, sessionContext);
+        PERMISSION_VISITOR.process(analyzedStatement, sessionContext);
     }
 
     @Override
@@ -102,10 +106,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
 
     @Nullable
-    public User findUser(@Nullable String userName) {
-        if (userName == null) {
-            return null;
-        }
+    public User findUser(String userName) {
         for (User user: users()) {
             if (userName.equals(user.name())) {
                 return user;
@@ -114,10 +115,16 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         return null;
     }
 
-    private class PermissionVisitor extends AnalyzedStatementVisitor<SessionContext, Boolean> {
+    private static class PermissionVisitor extends AnalyzedStatementVisitor<SessionContext, Boolean> {
 
-        boolean isSuperUser(@Nullable User user){
+        boolean isSuperUser(@Nullable User user) {
             return user != null && user.roles().contains(User.Role.SUPERUSER);
+        }
+
+        private void throwUnauthorized(@Nullable User user, AnalyzedStatement stmt) {
+            String userName = user != null ? user.name() : null;
+            throw new UnauthorizedException(String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute statement \"%s\"",
+                userName, stmt));
         }
 
         @Override
@@ -127,27 +134,10 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         }
 
         @Override
-        protected Boolean visitSelectStatement(SelectAnalyzedStatement analysis,
-                                               SessionContext sessionContext) {
-
-            QueriedTable queriedTable = (QueriedTable) analysis.relation();
-            if (queriedTable.tableRelation().tableInfo().ident().name().equals("users") &&
-                queriedTable.tableRelation().tableInfo().ident().schema().equals("sys") &&
-                !isSuperUser(sessionContext.user()))
-                {
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "User \"%s\" is not authorized to execute statement \"%s\"",
-                    sessionContext.user() == null ? null: sessionContext.user().name(), analysis));
-            }
-            return true;
-        }
-
-        @Override
         protected Boolean visitCreateUserStatement(CreateUserAnalyzedStatement analysis,
                                                    SessionContext sessionContext) {
-            if (!isSuperUser(sessionContext.user())){
-                throw new UnauthorizedException(String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute statement \"%s\"",
-                    sessionContext.user() == null ? null : sessionContext.user().name(), analysis));
+            if (!isSuperUser(sessionContext.user())) {
+                throwUnauthorized(sessionContext.user(), analysis);
             }
             return true;
         }
@@ -155,9 +145,8 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         @Override
         protected Boolean visitDropUserStatement(DropUserAnalyzedStatement analysis,
                                                  SessionContext sessionContext) {
-            if (!isSuperUser(sessionContext.user())){
-                throw new UnauthorizedException(String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute statement \"%s\"",
-                    sessionContext.user() == null ? null: sessionContext.user().name(), analysis));
+            if (!isSuperUser(sessionContext.user())) {
+                throwUnauthorized(sessionContext.user(), analysis);
             }
             return true;
         }

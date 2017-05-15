@@ -87,7 +87,7 @@ class RestoreSnapshotAnalyzer {
                     }
 
                     DocTableInfo docTableInfo = schemas.getTableInfo(
-                        tableIdent, Operation.RESTORE_SNAPSHOT);
+                        tableIdent, Operation.RESTORE_SNAPSHOT, analysis.sessionContext().user());
                     PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
                         tableIdent,
                         docTableInfo,

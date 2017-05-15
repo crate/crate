@@ -146,7 +146,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testShardInfoLookup() throws Exception {
         Reference info = new Reference(SysShardsTableInfo.ReferenceIdents.ID, RowGranularity.SHARD, IntegerType.INSTANCE);
-        assertEquals(info, schemas.getTableInfo(SysShardsTableInfo.IDENT).getReference(SysShardsTableInfo.Columns.ID));
+        assertEquals(info, schemas.getTableInfo(SysShardsTableInfo.IDENT, null).getReference(SysShardsTableInfo.Columns.ID));
     }
 
     @Test

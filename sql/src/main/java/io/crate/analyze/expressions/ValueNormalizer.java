@@ -34,7 +34,6 @@ import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
@@ -48,12 +47,6 @@ import java.util.Map;
 
 public class ValueNormalizer {
 
-    private Schemas schemas;
-
-    public ValueNormalizer(Schemas schemas) {
-        this.schemas = schemas;
-    }
-
     /**
      * normalize and validate given value according to the corresponding {@link io.crate.metadata.Reference}
      *
@@ -62,7 +55,7 @@ public class ValueNormalizer {
      * @return the normalized Symbol, should be a literal
      * @throws io.crate.exceptions.ColumnValidationException
      */
-    public Symbol normalizeInputForReference(Symbol valueSymbol, Reference reference) {
+    public Symbol normalizeInputForReference(Symbol valueSymbol, Reference reference, TableInfo tableInfo) {
         assert valueSymbol != null : "valueSymbol must not be null";
 
         DataType<?> targetType = getTargetType(valueSymbol, reference);
@@ -85,9 +78,9 @@ public class ValueNormalizer {
         try {
             if (targetType == DataTypes.OBJECT) {
                 //noinspection unchecked
-                normalizeObjectValue((Map) value, reference);
+                normalizeObjectValue((Map) value, reference, tableInfo);
             } else if (isObjectArray(targetType)) {
-                normalizeObjectArrayValue((Object[]) value, reference);
+                normalizeObjectArrayValue((Object[]) value, reference, tableInfo);
             }
         } catch (ConversionException e) {
             throw new ColumnValidationException(
@@ -114,11 +107,10 @@ public class ValueNormalizer {
     }
 
     @SuppressWarnings("unchecked")
-    private void normalizeObjectValue(Map<String, Object> value, Reference info) {
+    private void normalizeObjectValue(Map<String, Object> value, Reference info, TableInfo tableInfo) {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
             AnalyzedColumnDefinition.validateName(entry.getKey());
             ColumnIdent nestedIdent = ColumnIdent.getChild(info.ident().columnIdent(), entry.getKey());
-            TableInfo tableInfo = schemas.getTableInfo(info.ident().tableIdent());
             Reference nestedInfo = tableInfo.getReference(nestedIdent);
             if (nestedInfo == null) {
                 if (info.columnPolicy() == ColumnPolicy.IGNORED) {
@@ -143,9 +135,9 @@ public class ValueNormalizer {
                 }
             }
             if (nestedInfo.valueType() == DataTypes.OBJECT && entry.getValue() instanceof Map) {
-                normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo);
+                normalizeObjectValue((Map<String, Object>) entry.getValue(), nestedInfo, tableInfo);
             } else if (isObjectArray(nestedInfo.valueType()) && entry.getValue() instanceof Object[]) {
-                normalizeObjectArrayValue((Object[]) entry.getValue(), nestedInfo);
+                normalizeObjectArrayValue((Object[]) entry.getValue(), nestedInfo, tableInfo);
             } else {
                 entry.setValue(normalizePrimitiveValue(entry.getValue(), nestedInfo));
             }
@@ -156,13 +148,13 @@ public class ValueNormalizer {
         return type.id() == ArrayType.ID && ((ArrayType) type).innerType().id() == ObjectType.ID;
     }
 
-    private void normalizeObjectArrayValue(Object[] value, Reference arrayInfo) {
+    private void normalizeObjectArrayValue(Object[] value, Reference arrayInfo, TableInfo tableInfo) {
         for (Object arrayItem : value) {
             Preconditions.checkArgument(arrayItem instanceof Map, "invalid value for object array type");
             // return value not used and replaced in value as arrayItem is a map that is mutated
 
             //noinspection unchecked
-            normalizeObjectValue((Map<String, Object>) arrayItem, arrayInfo);
+            normalizeObjectValue((Map<String, Object>) arrayItem, arrayInfo, tableInfo);
         }
     }
 

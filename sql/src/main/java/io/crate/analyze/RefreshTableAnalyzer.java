@@ -25,10 +25,10 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.operation.user.User;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.Table;
 
-import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -46,18 +46,20 @@ class RefreshTableAnalyzer {
             refreshStatement.tables(),
             schemas,
             analysis.parameterContext(),
-            analysis.sessionContext().defaultSchema()
+            analysis.sessionContext().defaultSchema(),
+            analysis.sessionContext().user()
         ));
     }
 
     private static Set<String> getIndexNames(List<Table> tables,
                                              Schemas schemas,
                                              ParameterContext parameterContext,
-                                             String defaultSchema) {
+                                             String defaultSchema,
+                                             User user) {
         Set<String> indexNames = new HashSet<>(tables.size());
         for (Table nodeTable : tables) {
             DocTableInfo tableInfo = schemas.getTableInfo(
-                TableIdent.of(nodeTable, defaultSchema), Operation.REFRESH);
+                TableIdent.of(nodeTable, defaultSchema), Operation.REFRESH, user);
             indexNames.addAll(TableAnalyzer.filteredIndices(
                     parameterContext,
                     nodeTable.partitionProperties(), tableInfo));

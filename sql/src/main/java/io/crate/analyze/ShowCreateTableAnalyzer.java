@@ -21,13 +21,12 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Table;
-
-import javax.annotation.Nullable;
 
 class ShowCreateTableAnalyzer {
 
@@ -37,9 +36,11 @@ class ShowCreateTableAnalyzer {
         this.schemas = schemas;
     }
 
-    public ShowCreateTableAnalyzedStatement analyze(Table table, String defaultSchema) {
+    public ShowCreateTableAnalyzedStatement analyze(Table table, SessionContext sessionContext) {
         DocTableInfo tableInfo = schemas.getTableInfo(
-            TableIdent.of(table, defaultSchema), Operation.SHOW_CREATE);
+            TableIdent.of(table, sessionContext.defaultSchema()),
+            Operation.SHOW_CREATE,
+            sessionContext.user());
         return new ShowCreateTableAnalyzedStatement(tableInfo);
     }
 }
