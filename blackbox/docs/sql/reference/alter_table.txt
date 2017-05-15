@@ -17,12 +17,9 @@ Synopsis
       { SET ( parameter = value [ , ... ] )
         | RESET ( parameter [ , ... ] )
         | ADD [ COLUMN ] column_name data_type [ column_constraint [ ... ] ]
-<<<<<<< HEAD
         | OPEN
         | CLOSE
-=======
         | RENAME TO table_ident
->>>>>>> 05daa13... Added documentation for RENAME TO
       }
 
 where ``column_constraint`` is::
