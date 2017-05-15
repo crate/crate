@@ -22,6 +22,8 @@
 
 package io.crate.operation.auth;
 
+import io.crate.http.netty.CrateNettyHttpServerTransport;
+import io.crate.http.netty.HttpAuthUpstreamHandler;
 import org.elasticsearch.common.settings.Settings;
 
 
@@ -30,5 +32,15 @@ public class UserServiceFactoryImpl implements UserServiceFactory {
     @Override
     public Authentication authService(Settings settings) {
         return new HostBasedAuthentication(settings);
+    }
+
+    @Override
+    public void registerHttpAuthHandler(Settings settings, CrateNettyHttpServerTransport httpTransport, Authentication authService) {
+        CrateNettyHttpServerTransport.ChannelPipelineItem pipelineItem = new CrateNettyHttpServerTransport.ChannelPipelineItem(
+            "blob_handler",
+            "auth_handler",
+            () -> new HttpAuthUpstreamHandler(settings, authService)
+        );
+        httpTransport.addBefore(pipelineItem);
     }
 }

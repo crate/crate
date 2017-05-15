@@ -24,13 +24,17 @@ package io.crate.http.netty;
 
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.http.netty3.Netty3HttpServerTransport;
+import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jboss.netty.channel.*;
 
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -162,5 +166,16 @@ public class CrateNettyHttpServerTransport extends Netty3HttpServerTransport {
             }
             return pipeline;
         }
+    }
+
+    public static InetAddress getRemoteAddress(Channel channel) {
+        if (channel.getRemoteAddress() instanceof InetSocketAddress) {
+            return ((InetSocketAddress) channel.getRemoteAddress()).getAddress();
+        }
+        // In certain cases the channel is an EmbeddedChannel (e.g. in tests)
+        // and this type of channel has an EmbeddedSocketAddress instance as remoteAddress
+        // which does not have an address.
+        // An embedded socket address is handled like a local connection via loopback.
+        return InetAddresses.forString("127.0.0.1");
     }
 }

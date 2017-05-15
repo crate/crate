@@ -22,6 +22,7 @@
 
 package io.crate.operation.auth;
 
+import io.crate.http.netty.CrateNettyHttpServerTransport;
 import org.elasticsearch.common.settings.Settings;
 
 /**
@@ -37,4 +38,5 @@ public interface UserServiceFactory {
      */
     Authentication authService(Settings settings);
 
+    void registerHttpAuthHandler(Settings settings, CrateNettyHttpServerTransport httpTransport, Authentication authService);
 }

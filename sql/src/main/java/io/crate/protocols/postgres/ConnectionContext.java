@@ -28,6 +28,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.HbaProtocol;
@@ -363,7 +364,7 @@ class ConnectionContext {
     }
 
     private void authenticate(Channel channel) {
-        InetAddress address = getRemoteAddress(channel);
+        InetAddress address = CrateNettyHttpServerTransport.getRemoteAddress(channel);
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(sessionContext.userName(),
             address,
             HbaProtocol.POSTGRES);
@@ -393,17 +394,6 @@ class ConnectionContext {
                     }
                 });
         }
-    }
-
-    private static InetAddress getRemoteAddress(Channel channel) {
-        if (channel.getRemoteAddress() instanceof InetSocketAddress) {
-            return ((InetSocketAddress) channel.getRemoteAddress()).getAddress();
-        }
-        // In certain cases the channel is an EmbeddedChannel (e.g. in tests)
-        // and this type of channel has an EmbeddedSocketAddress instance as remoteAddress
-        // which does not have an address.
-        // An embedded socket address is handled like a local connection via loopback.
-        return InetAddresses.forString("127.0.0.1");
     }
 
     private void sendReadyForQuery(Channel channel) {

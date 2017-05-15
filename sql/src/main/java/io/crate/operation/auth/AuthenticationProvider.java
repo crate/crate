@@ -24,6 +24,8 @@ package io.crate.operation.auth;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SessionContext;
+import io.crate.concurrent.CompletableFutures;
+import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.protocols.postgres.Messages;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
@@ -78,6 +80,11 @@ public class AuthenticationProvider {
             public String name() {
                 return "alwaysOk";
             }
+
+            @Override
+            public CompletableFuture<Boolean> httpAuthentication(String username) {
+                return CompletableFuture.completedFuture(true);
+            }
         };
 
         @Override
@@ -92,12 +99,17 @@ public class AuthenticationProvider {
     };
 
     @Inject
-    public AuthenticationProvider(Settings settings) {
+    public AuthenticationProvider(Settings settings, CrateNettyHttpServerTransport httpTransport) {
         if (!SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
             authService = NOOP_AUTH;
         } else {
             UserServiceFactory serviceFactory = getUserServiceFactory();
-            authService = serviceFactory == null ? NOOP_AUTH : serviceFactory.authService(settings);
+            if (serviceFactory != null) {
+                authService = serviceFactory.authService(settings);
+                serviceFactory.registerHttpAuthHandler(settings, httpTransport, authService);
+            } else {
+                authService = NOOP_AUTH;
+            }
         }
     }
 

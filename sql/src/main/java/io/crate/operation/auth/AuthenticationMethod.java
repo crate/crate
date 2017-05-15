@@ -23,7 +23,6 @@
 package io.crate.operation.auth;
 
 import io.crate.action.sql.SessionContext;
-import org.elasticsearch.common.settings.Settings;
 import org.jboss.netty.channel.Channel;
 
 import java.util.concurrent.CompletableFuture;
@@ -50,4 +49,6 @@ public interface AuthenticationMethod {
      * @return name of the authentication method
      */
     String name();
+
+    CompletableFuture<Boolean> httpAuthentication(String username);
 }

@@ -20,6 +20,7 @@ package io.crate.operation.auth;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
+import io.crate.concurrent.CompletableFutures;
 import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -142,6 +143,11 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
             @Override
             public String name() {
                 return "trust";
+            }
+
+            @Override
+            public CompletableFuture<Boolean> httpAuthentication(String username) {
+                return CompletableFuture.completedFuture(true);
             }
         };
         authService.registerAuthMethod(noopAuthMethod.name(), () -> noopAuthMethod);

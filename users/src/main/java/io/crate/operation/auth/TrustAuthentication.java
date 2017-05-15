@@ -19,6 +19,7 @@
 package io.crate.operation.auth;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.concurrent.CompletableFutures;
 import io.crate.protocols.postgres.Messages;
 import org.jboss.netty.channel.Channel;
 
@@ -29,7 +30,7 @@ import java.util.concurrent.CompletableFuture;
 public class TrustAuthentication implements AuthenticationMethod {
 
     static final String NAME = "trust";
-    private static final String SUPERUSER = "crate";
+    public static final String SUPERUSER = "crate";
 
     @Override
     public CompletableFuture<Boolean> pgAuthenticate(Channel channel, SessionContext session) {
@@ -51,4 +52,8 @@ public class TrustAuthentication implements AuthenticationMethod {
         return NAME;
     }
 
+    @Override
+    public CompletableFuture<Boolean> httpAuthentication(String username) {
+        return CompletableFuture.completedFuture(SUPERUSER.equals(username));
+    }
 }
