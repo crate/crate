@@ -53,7 +53,7 @@ Breaking it down, that command:
 - Creates and runs a container called ``crate01`` in detached mode
 - Puts the container into the ``crate`` network and maps port ``4201`` on your
   host machine to port ``4200`` on the container
-- Runs the command ``crate`` daemon inside the container
+- Runs the command ``crate`` process inside the container
 
 Check the node is up with ``docker ps`` and you should see something like
 this:
@@ -84,7 +84,7 @@ So, let's create a second node, called ``crate02``, and configure it to ping
 
     sh$ docker run -d --name=crate02 \
           --net=crate -p 4202:4200 \
-          crate -C discovery.zen.ping.unicast.hosts: crate01
+          crate -Cdiscovery.zen.ping.unicast.hosts=crate01
 
 Notice here how we also updated the port mapping, so that port ``4200`` on the
 container is mapped to ``4202`` on our host machine.
@@ -99,7 +99,7 @@ You can now add subsequent nodes, like so::
 
     sh$ docker run -d --name=crate03 \
           --net=crate -p 4203:4200 \
-          crate -C discovery.zen.ping.unicast.hosts: crate01 crate02
+          crate -Cdiscovery.zen.ping.unicast.hosts=crate01,crate02
 
 .. NOTE::
 
@@ -141,14 +141,15 @@ Persistent Data Directory
 
 Docker containers are ephemeral, meaning that containers are expected to come
 and go, and any data inside them is lost when the container goes away. For this
-reason, it is strongly recommended that you mount a persistent ``data``
-directory on your host machine to the ``/data`` directory inside the container,
-like so::
+reason, it is required that you mount a persistent ``data`` directory on your
+host machine to the ``/data`` directory inside the container, like so::
 
     $ docker run -d -v /srv/crate/data:/data crate crate
 
 Here, ``/srv/crate/data`` is an example path, and should be replaced with the
 path to your host machine ``data`` directory.
+
+See the `Docker volume`_ documentation for more help.
 
 Custom Configuration
 --------------------
@@ -181,8 +182,8 @@ use. This is dependant on your host system, and typically, you want to make
 this as high as possible.
 
 You must then calculate the appropriate heap size (typically half the container
-memory limit, see :ref:`crate-heap-size` for details) and pass this to CrateDB
-*and* the JVM running inside the container.
+memory limit, see :ref:`crate-heap-size` for details) and pass this to CrateDB,
+which in turn passes it to the JVM.
 
 Don't worry about configuring swap. CrateDB does not use swap.
 
@@ -203,12 +204,12 @@ everything at once like so::
     $ docker run -d \
         --cpus 1.5 \
         --memory 2g \
-        --env JAVA_OPTIONS='-Xmx1g' \
         --env CRATE_HEAP_SIZE=1g \
         crate crate
 
 .. _CrateDB Docker image: https://hub.docker.com/_/crate/
 .. _Docker Cloud: https://crate.io/docs/install/containers/docker-cloud/
+.. _Docker volume: https://docs.docker.com/engine/tutorials/dockervolumes/
 .. _Docker: https://www.docker.com/
 .. _running Docker locally: https://crate.io/docs/install/containers/docker/
 .. _set the maximum memory: https://docs.docker.com/engine/admin/resource_constraints/#memory
