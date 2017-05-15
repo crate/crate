@@ -22,8 +22,7 @@
 
 package io.crate.operation.auth;
 
-import io.crate.action.sql.SessionContext;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.operation.user.User;
 import org.jboss.netty.channel.Channel;
 
 import java.util.concurrent.CompletableFuture;
@@ -34,17 +33,19 @@ import java.util.concurrent.CompletableFuture;
  * An auth method must provide a unique name which is exposed via the {@link #name()} method.
  *
  * It is also responsible for authentication for the Postgres Wire Protocol,
- * {@link #pgAuthenticate(Channel channel, SessionContext session)},
+ * {@link #pgAuthenticate(Channel channel, String userName)},
  */
 public interface AuthenticationMethod {
     /**
      * Authenticates the Postgres Wire Protocol client,
      * sends AuthenticationOK if authentication is successful
-     * If authentication fails it send ErrorResponse
+     * If authentication fails a throwable is passed to the future
      * @param channel request channel
-     * @param session the sessionContext of the connection
+     * @param userName the userName sent with the startup message
+     * @return Future with authenticated user or null
+     *
      */
-    CompletableFuture<Boolean> pgAuthenticate(Channel channel, SessionContext session);
+    CompletableFuture<User> pgAuthenticate(Channel channel, String userName);
 
     /**
      * @return name of the authentication method

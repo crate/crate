@@ -24,6 +24,7 @@ package io.crate.action.sql;
 
 import com.google.common.base.MoreObjects;
 import io.crate.metadata.Schemas;
+import io.crate.operation.user.User;
 
 import javax.annotation.Nullable;
 import java.util.Properties;
@@ -36,16 +37,16 @@ public class SessionContext {
     private final int defaultLimit;
     private final Set<Option> options;
     private String defaultSchema;
-    private final String userName;
+    private final User user;
 
-    public SessionContext(Properties properties) {
-        this(0, Option.NONE, properties.getProperty("database"), properties.getProperty("user"));
+    public SessionContext(Properties properties, @Nullable User user) {
+        this(0, Option.NONE, properties.getProperty("database"), user);
     }
 
-    public SessionContext(int defaultLimit, Set<Option> options, @Nullable String defaultSchema, @Nullable String userName) {
+    public SessionContext(int defaultLimit, Set<Option> options, @Nullable String defaultSchema, @Nullable User user) {
         this.defaultLimit = defaultLimit;
         this.options = options;
-        this.userName = userName;
+        this.user = user;
         setDefaultSchema(defaultSchema);
     }
 
@@ -58,8 +59,8 @@ public class SessionContext {
     }
 
     @Nullable
-    public String userName() {
-        return userName;
+    public User user() {
+        return user;
     }
 
     public void setDefaultSchema(@Nullable String schema) {

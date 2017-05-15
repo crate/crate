@@ -18,10 +18,11 @@
 
 package io.crate.operation.auth;
 
-import io.crate.action.sql.SessionContext;
+import io.crate.operation.user.User;
 import io.crate.protocols.postgres.Messages;
 import org.jboss.netty.channel.Channel;
 
+import java.util.EnumSet;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
@@ -29,19 +30,18 @@ import java.util.concurrent.CompletableFuture;
 public class TrustAuthentication implements AuthenticationMethod {
 
     static final String NAME = "trust";
-    private static final String SUPERUSER = "crate";
+    private static final User SUPERUSER = new User("crate", EnumSet.of(User.Role.SUPERUSER));
 
     @Override
-    public CompletableFuture<Boolean> pgAuthenticate(Channel channel, SessionContext session) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-        if (SUPERUSER.equals(session.userName())) {
+    public CompletableFuture<User> pgAuthenticate(Channel channel, String userName) {
+        CompletableFuture<User> future = new CompletableFuture<>();
+        if (SUPERUSER.name().equals(userName)) {
             Messages.sendAuthenticationOK(channel)
-                .addListener(f -> future.complete(true));
+                .addListener(f -> future.complete(SUPERUSER));
         } else {
-            Messages.sendAuthenticationError(
-                channel,
-                String.format(Locale.ENGLISH, "trust authentication failed for user \"%s\"", session.userName())
-            ).addListener(f -> future.complete(false));
+            future.completeExceptionally(
+                new Throwable(String.format(Locale.ENGLISH, "trust authentication failed for user \"%s\"", userName))
+            );
         }
         return future;
     }

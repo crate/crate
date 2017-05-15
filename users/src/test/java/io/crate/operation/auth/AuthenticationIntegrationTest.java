@@ -56,7 +56,7 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidUser() throws Exception {
         expectedException.expect(PSQLException.class);
-        expectedException.expectMessage("FATAL: No valid auth.host_based entry found for host \"127.0.0.1\", user \"me\", schema \"doc\"");
+        expectedException.expectMessage("FATAL: No valid auth.host_based entry found for host \"127.0.0.1\", user \"me\"");
         Properties properties = new Properties();
         properties.setProperty("user", "me");
         Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties);
@@ -75,7 +75,7 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidAuthenticationMethod() throws Exception {
         expectedException.expect(PSQLException.class);
-        expectedException.expectMessage("FATAL: No valid auth.host_based entry found for host \"127.0.0.1\", user \"foo\", schema \"doc\"");
+        expectedException.expectMessage("FATAL: No valid auth.host_based entry found for host \"127.0.0.1\", user \"foo\"");
         Properties properties = new Properties();
         properties.setProperty("user", "foo");
         DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties);

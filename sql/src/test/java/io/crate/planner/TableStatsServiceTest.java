@@ -157,7 +157,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         when(clusterService.getClusterSettings()).thenReturn(this.clusterService.getClusterSettings());
         SQLOperations sqlOperations = mock(SQLOperations.class);
         SQLOperations.Session session = mock(SQLOperations.Session.class);
-        when(sqlOperations.createSession(anyString(), anyString(), any(), anyInt())).thenReturn(session);
+        when(sqlOperations.createSession(anyString(), anyObject(), any(), anyInt())).thenReturn(session);
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,

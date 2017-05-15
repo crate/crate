@@ -202,7 +202,7 @@ class ConnectionContext {
         return new String(bytes, 0, bytes.length - 1, StandardCharsets.UTF_8);
     }
 
-    private SessionContext readStartupMessage(ChannelBuffer buffer) {
+    private Properties readStartupMessage(ChannelBuffer buffer) {
         Properties properties = new Properties();
         ChannelBuffer channelBuffer = buffer.readBytes(msgLength);
         while (true) {
@@ -216,7 +216,7 @@ class ConnectionContext {
                 properties.setProperty(key, value);
             }
         }
-        return new SessionContext(properties);
+        return properties;
     }
 
     private static class ReadyForQueryCallback implements BiConsumer<Object, Throwable> {
@@ -357,37 +357,34 @@ class ConnectionContext {
     }
 
     private void handleStartupBody(ChannelBuffer buffer, Channel channel) {
-        sessionContext = readStartupMessage(buffer);
-        session = sqlOperations.createSession(sessionContext);
-        authenticate(channel);
+        Properties properties = readStartupMessage(buffer);
+        authenticate(channel, properties);
     }
 
-    private void authenticate(Channel channel) {
+    private void authenticate(Channel channel, Properties properties) {
+        String userName = properties.getProperty("user");
         InetAddress address = getRemoteAddress(channel);
-        AuthenticationMethod authMethod = authService.resolveAuthenticationType(sessionContext.userName(),
+        AuthenticationMethod authMethod = authService.resolveAuthenticationType(userName,
             address,
             HbaProtocol.POSTGRES);
         if (authMethod == null) {
             String errorMessage = String.format(
                 Locale.ENGLISH,
-                "No valid auth.host_based entry found for host \"%s\", user \"%s\", schema \"%s\"",
-                address.getHostAddress(), sessionContext.userName(), sessionContext.defaultSchema()
+                "No valid auth.host_based entry found for host \"%s\", user \"%s\"",
+                address.getHostAddress(), userName
             );
             Messages.sendAuthenticationError(channel, errorMessage);
         } else {
-            authMethod.pgAuthenticate(channel, sessionContext)
-                .whenComplete((success, throwable) -> {
+            authMethod.pgAuthenticate(channel, userName)
+                .whenComplete((user, throwable) -> {
                     if (throwable == null) {
-                        if (success) {
-                            if (LOGGER.isTraceEnabled()) {
-                                LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".",
-                                    sessionContext.userName(), authMethod.name());
-                            }
-                            sendReadyForQuery(channel);
-                        } else {
-                            LOGGER.warn("Authentication failed for user \"{}\" and method \"{}\".",
-                                sessionContext.userName(), authMethod.name());
+                        if (user != null && LOGGER.isTraceEnabled()) {
+                            LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".",
+                                    user.name(), authMethod.name());
                         }
+                        sessionContext = new SessionContext(properties, user);
+                        session = sqlOperations.createSession(sessionContext);
+                        sendReadyForQuery(channel);
                     } else {
                         Messages.sendAuthenticationError(channel, throwable.getMessage());
                     }

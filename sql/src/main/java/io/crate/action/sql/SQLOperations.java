@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.Executor;
 import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.operation.user.User;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.Portal;
@@ -93,8 +94,8 @@ public class SQLOperations {
         return new Session(executorProvider.get(), sessionContext);
     }
 
-    public Session createSession(@Nullable String defaultSchema, @Nullable String userName, Set<Option> options, int defaultLimit) {
-        return createSession(new SessionContext(defaultLimit, options, defaultSchema, userName));
+    public Session createSession(@Nullable String defaultSchema, @Nullable User user, Set<Option> options, int defaultLimit) {
+        return createSession(new SessionContext(defaultLimit, options, defaultSchema, user));
     }
 
     /**

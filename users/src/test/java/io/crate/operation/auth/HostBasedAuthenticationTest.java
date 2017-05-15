@@ -19,14 +19,14 @@
 package io.crate.operation.auth;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.SessionContext;
+import io.crate.operation.user.User;
 import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 import org.jboss.netty.channel.Channel;
 import org.junit.Before;
@@ -36,9 +36,7 @@ import java.net.InetAddress;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
-import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidAddress;
-import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidProtocol;
-import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidUser;
+import static io.crate.operation.auth.HostBasedAuthentication.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -135,7 +133,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
     public void testResolveAuthMethod() throws Exception {
         AuthenticationMethod noopAuthMethod = new AuthenticationMethod() {
             @Override
-            public CompletableFuture<Boolean> pgAuthenticate(Channel channel, SessionContext session) {
+            public CompletableFuture<User> pgAuthenticate(Channel channel, String userName) {
                 return null;
             }
 

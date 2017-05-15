@@ -23,7 +23,7 @@
 package io.crate.operation.auth;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.action.sql.SessionContext;
+import io.crate.operation.user.User;
 import io.crate.protocols.postgres.Messages;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
@@ -60,10 +60,10 @@ public class AuthenticationProvider {
 
         private final AuthenticationMethod alwaysOk = new AuthenticationMethod() {
             @Override
-            public CompletableFuture<Boolean> pgAuthenticate(Channel channel, SessionContext session) {
-                CompletableFuture<Boolean> future = new CompletableFuture<>();
+            public CompletableFuture<User> pgAuthenticate(Channel channel, String userName) {
+                CompletableFuture<User> future = new CompletableFuture<>();
                 Messages.sendAuthenticationOK(channel)
-                    .addListener(f -> future.complete(true));
+                    .addListener(f -> future.complete(null));
                 return future;
             }
 

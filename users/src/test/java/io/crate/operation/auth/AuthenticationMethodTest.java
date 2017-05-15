@@ -22,8 +22,6 @@
 
 package io.crate.operation.auth;
 
-import io.crate.action.sql.Option;
-import io.crate.action.sql.SessionContext;
 import io.crate.test.integration.CrateUnitTest;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.SucceededChannelFuture;
@@ -44,18 +42,15 @@ public class AuthenticationMethodTest extends CrateUnitTest {
         Channel ch = mock(Channel.class);
         when(ch.write(any())).thenReturn(new SucceededChannelFuture(ch));
 
-        SessionContext session = new SessionContext(0, Option.NONE, null, "crate");
-        trustAuth.pgAuthenticate(ch, session)
-            .whenComplete((success, throwable) -> {
-                assertTrue(success);
+        trustAuth.pgAuthenticate(ch, "crate")
+            .whenComplete((user, throwable) -> {
+                assertThat(user.name(), is("crate"));
                 assertNull(throwable);
             });
 
-        session = new SessionContext(0, Option.NONE, null, "cr8");
-        trustAuth.pgAuthenticate(ch, session)
+        trustAuth.pgAuthenticate(ch, "cr8")
             .whenComplete((success, throwable) -> {
-                assertFalse(success);
-                assertNull(throwable);
+                assertNotNull(throwable);
             });
 
     }
