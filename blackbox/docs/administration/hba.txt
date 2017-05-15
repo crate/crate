@@ -24,7 +24,7 @@ Authentication against CrateDB
 ==============================
 
 Client access and authentication over HTTP and Postgres Wire Protocol (see
-:doc:`protocols/index`) is configured via the ``auth.host_based.config``
+:doc:`/protocols/index`) is configured via the ``auth.host_based.config``
 setting in the ``crate.yml`` file.
 
 The general format of the ``auth.host_based.config`` setting is a map of remote client
