@@ -32,7 +32,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-public class RetryListener<TReq, TResp> implements ActionListener<TResp> {
+public class RetryListener<TResp> implements ActionListener<TResp> {
 
     private final ScheduledExecutorService scheduler;
     private final ActionListener<TResp> delegate;
@@ -42,10 +42,10 @@ public class RetryListener<TReq, TResp> implements ActionListener<TResp> {
     public RetryListener(ScheduledExecutorService scheduler,
                          Consumer<ActionListener<TResp>> command,
                          ActionListener<TResp> delegate,
-                         Iterable<TimeValue> backOffPolicy) {
+                         Iterator<TimeValue> delay) {
         this.scheduler = scheduler;
         this.delegate = delegate;
-        this.delay = backOffPolicy.iterator();
+        this.delay = delay;
         this.retryCommand = () -> command.accept(this);
     }
 

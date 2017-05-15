@@ -51,6 +51,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
@@ -67,7 +68,6 @@ import static java.util.Collections.singletonList;
 public class UpsertByIdTask extends JobTask {
 
     private static final Logger LOGGER = Loggers.getLogger(UpsertByIdTask.class);
-    private static final BackoffPolicy BACK_OFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
 
     private final ClusterService clusterService;
     private final AutoCreateIndex autoCreateIndex;
@@ -80,6 +80,7 @@ public class UpsertByIdTask extends JobTask {
     private final List<Integer> bulkIndices;
     private final boolean isUpdate;
     private final boolean isDebugEnabled;
+    private final Iterator<TimeValue> retriesDelayIterator;
 
     public UpsertByIdTask(UpsertById upsertById,
                           ClusterService clusterService,
@@ -110,6 +111,7 @@ public class UpsertByIdTask extends JobTask {
             upsertById.jobId(),
             false
         );
+        retriesDelayIterator = LimitedExponentialBackoff.limitedExponential(1000).iterator();
     }
 
     @Override
@@ -252,7 +254,7 @@ public class UpsertByIdTask extends JobTask {
                     scheduler,
                     actionListener -> upsertAction.execute(request, actionListener),
                     listener,
-                    BACK_OFF_POLICY
+                    retriesDelayIterator
                 )
             );
         }

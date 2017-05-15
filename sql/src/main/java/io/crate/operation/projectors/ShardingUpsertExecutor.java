@@ -84,8 +84,6 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
 
     private static final Logger logger = Loggers.getLogger(ShardingUpsertExecutor.class);
-    private static final BackoffPolicy BACK_OFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
-
     private final ClusterService clusterService;
     private final ScheduledExecutorService scheduler;
     private final int bulkSize;
@@ -112,7 +110,8 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private final CompletableFuture<List<Row>> result = new CompletableFuture<>();
 
     private int location = -1;
-    private final Iterator<TimeValue> consumeIteratorDelays;
+    private final Iterator<TimeValue> consumerDelaysIterator;
+    private final Iterator<TimeValue> retriesDelaysIterator;
 
     public ShardingUpsertExecutor(ClusterService clusterService,
                                   NodeJobsCounter nodeJobsCounter,
@@ -141,7 +140,9 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         this.autoCreateIndices = autoCreateIndices;
         this.requestExecutor = requestExecutor;
         this.createIndicesAction = createIndicesAction;
-        this.consumeIteratorDelays = BACK_OFF_POLICY.iterator();
+        BackoffPolicy backoffPolicy = LimitedExponentialBackoff.limitedExponential(1000);
+        this.consumerDelaysIterator = backoffPolicy.iterator();
+        this.retriesDelaysIterator = backoffPolicy.iterator();
     }
 
     @Override
@@ -219,7 +220,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
                 isScheduledCollectionRunning.set(false);
                 safeConsumeIterator(batchIterator);
             },
-            consumeIteratorDelays.next().getMillis(), TimeUnit.MILLISECONDS);
+            consumerDelaysIterator.next().getMillis(), TimeUnit.MILLISECONDS);
     }
 
     private boolean tryExecuteBulk(BatchIterator batchIterator, boolean isLastBatch) {
@@ -429,7 +430,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
                 scheduler,
                 l -> requestExecutor.execute(request, l),
                 listener,
-                BACK_OFF_POLICY
+                retriesDelaysIterator
             );
             requestExecutor.execute(request, listener);
         }

@@ -39,6 +39,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.unit.TimeValue;
 
 import javax.annotation.Nullable;
 import java.util.BitSet;
@@ -55,8 +56,6 @@ public class ShardRequestAccumulator<TReq extends ShardRequest<TReq, TItem>, TIt
     implements BatchAccumulator<Row, Iterator<? extends Row>> {
 
     private static final Logger logger = Loggers.getLogger(ShardRequestAccumulator.class);
-
-    private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
     public static final int DEFAULT_BULK_SIZE = 10_000;
 
     private final int batchSize;
@@ -68,6 +67,7 @@ public class ShardRequestAccumulator<TReq extends ShardRequest<TReq, TItem>, TIt
     private final BiConsumer<TReq, ActionListener<ShardResponse>> transportAction;
     private final ClusterService clusterService;
     private final NodeJobsCounter operationsTracker;
+    private final Iterator<TimeValue> retriesDelayIterator;
 
     private TReq currentRequest;
     private int numItems = -1;
@@ -90,6 +90,7 @@ public class ShardRequestAccumulator<TReq extends ShardRequest<TReq, TItem>, TIt
         this.transportAction = transportAction;
         currentRequest = requestFactory.get();
         responses = new BitSet();
+        retriesDelayIterator = LimitedExponentialBackoff.limitedExponential(1000).iterator();
     }
 
     @Override
@@ -123,7 +124,7 @@ public class ShardRequestAccumulator<TReq extends ShardRequest<TReq, TItem>, TIt
             new RetryListener<>(scheduler,
                 (actionListener) -> transportAction.accept(currentRequest, actionListener),
                 listener,
-                BACKOFF_POLICY
+                retriesDelayIterator
             )
         );
         return listener;
