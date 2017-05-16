@@ -45,6 +45,9 @@ Changes
  - Implemented hash sum scalar functions (MD5, SHA1).
    Please see :ref:`sha1 <sha1>`.
 
+ - Added content for the Enterprise Features page in the documentation and moved the 
+   JMX Monitoring page to its own section.
+
 Fixes
 =====
 
