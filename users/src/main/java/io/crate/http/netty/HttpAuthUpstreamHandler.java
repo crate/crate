@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.operation.auth.*;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 import org.jboss.netty.channel.*;
 import org.jboss.netty.handler.codec.http.*;
@@ -61,7 +62,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelUpstreamHandler {
 
     private void handleHttpRequest(ChannelHandlerContext ctx, MessageEvent e, HttpRequest request) {
         String username = userFromRequest(request);
-        InetAddress address = CrateNettyHttpServerTransport.getRemoteAddress(ctx.getChannel());
+        InetAddress address = addressFromRequestOrChannel(request, ctx.getChannel());
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, address, HbaProtocol.HTTP);
         if (authMethod == null) {
             String errorMessage = String.format(
@@ -126,5 +127,12 @@ public class HttpAuthUpstreamHandler extends SimpleChannelUpstreamHandler {
         }
     }
 
+    private InetAddress addressFromRequestOrChannel(HttpRequest request, Channel channel) {
+        if (request.headers().contains(AuthenticationProvider.HTTP_HEADER_REAL_IP)) {
+            return InetAddresses.forString(request.headers().get(AuthenticationProvider.HTTP_HEADER_REAL_IP));
+        } else {
+            return CrateNettyHttpServerTransport.getRemoteAddress(channel);
+        }
+    }
 }
 

@@ -194,6 +194,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
             public HttpHeaders headers() {
                 DefaultHttpHeaders headers = new DefaultHttpHeaders();
                 headers.add("X-User", "null");
+                headers.add("X-Real-Ip", "10.1.0.100");
                 return headers;
             }
         };
@@ -201,7 +202,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
 
         handler.messageReceived(ctx, e);
         assertFalse(handler.authorized());
-        assertUnauthorized(ch, "No valid auth.host_based.config entry found for host \"127.0.0.1\", user \"null\", protocol \"http\"\n");
+        assertUnauthorized(ch, "No valid auth.host_based.config entry found for host \"10.1.0.100\", user \"null\", protocol \"http\"\n");
 
     }
 

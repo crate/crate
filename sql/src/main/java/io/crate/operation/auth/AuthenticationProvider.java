@@ -61,6 +61,7 @@ public class AuthenticationProvider {
         DataTypes.STRING);
 
     public static final String HTTP_HEADER_USER = "X-User";
+    public static final String HTTP_HEADER_REAL_IP = "X-Real-Ip";
 
     private Authentication authService;
 
