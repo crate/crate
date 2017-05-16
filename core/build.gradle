@@ -31,11 +31,11 @@ task getVersion(dependsOn: 'classes') {
         ext.gitTag = "git describe".execute().in.text.trim()
         ext.version = stdout.toString().trim().split(" ")[1].replace(',', '').trim()
 
+        ext.buildDate = new Date().format('yyyyMMddHHmm')
+        ext.buildShortHash = "git rev-parse --short HEAD".execute().in.text.trim()
         if (gradle.taskGraph.hasTask(':app:release')) {
             assert gitTag == version, "Version mismatch gitTag: " + gitTag + " does not match crate version: " + version
         } else {
-            ext.buildDate = new Date().format('yyyyMMddHHmm')
-            ext.buildShortHash = "git rev-parse --short HEAD".execute().in.text.trim()
 
             if (gradle.taskGraph.hasTask(':app:nightly')) {
                 ext.version = version.replace('-SNAPSHOT', '') + "-" + ext.buildDate + "-" + ext.buildShortHash
@@ -44,7 +44,9 @@ task getVersion(dependsOn: 'classes') {
             }
         }
 
-        logger.quiet("gitTag: " + gitTag)
-        logger.quiet("version: " + version)
+        logger.quiet("gitTag:         " + gitTag)
+        logger.quiet("version:        " + version)
+        logger.quiet("buildDate:      " + buildDate)
+        logger.quiet("buildShortHash: " + buildShortHash)
     }
 }
