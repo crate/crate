@@ -1,8 +1,0 @@
-/build/
-/data/
-/logs/
-/plugins/
-/enterprise/
-/src/main/resources/crate-build.properties
-src/main/dist/bin/crate.bat
-src/main/dist/bin/crate.in.sh

@@ -1,23 +1,46 @@
+# OS files
 .DS_Store
-.classpath
-.project
-.settings
 .floo
 .flooignore
 *~
-.gradle
-*build/
-/out
-/sandbox
-/docs/eggs
-/docs/out
-/docs/clients/out
-/reports
-config/logging.yml
+
+# Java files
+.classpath
+.project
+.settings
+.gradle/
+build/
 
 # intellij files
 .idea/
+build-idea/
+test-output/
+reports/
 *.iml
 *.ipr
 *.iws
-build-idea/
+
+# Python files
+__pycache__/
+eggs/
+parts/
+develop-eggs/
+tmp/
+.installed.cfg
+.venv/
+*.pyc
+*.pyo
+
+# Docs
+out/
+
+# Single files and directories
+app/enterprise/
+app/plugins/
+app/src/main/dist/bin/crate.bat
+app/src/main/dist/bin/crate.in.sh
+app/src/main/resources/crate-build.properties
+blackbox/get-pip.py
+blackbox/sqllogic.log
+sql-parser/src/main/java/io/crate/sql/parser/antlr/
+sandbox/crate/data/
