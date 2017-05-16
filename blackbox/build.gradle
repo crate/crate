@@ -25,6 +25,7 @@ task unpackDistTar(dependsOn: [project(':app').distTar]) {
             into crateDist
         }
     }
+    outputs.dir crateDist
 }
 
 task lessLogging(dependsOn: unpackDistTar) {
@@ -95,4 +96,4 @@ task cleanDocs {
         }
     }
 }
-clean.dependsOn([cleanDocs, cleanBootstrap])
+clean.dependsOn([cleanDocs, cleanBootstrap, cleanUnpackDistTar])
