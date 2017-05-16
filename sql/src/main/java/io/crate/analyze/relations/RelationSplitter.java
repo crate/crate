@@ -174,7 +174,33 @@ public final class RelationSplitter {
         JoinConditionValidator.validate(context.query());
         querySpec.where(new WhereClause(context.query()));
         for (Map.Entry<QualifiedName, Collection<Symbol>> entry : context.queries().asMap().entrySet()) {
-            getSpec(entry.getKey()).where(new WhereClause(AndOperator.join(entry.getValue())));
+            QuerySpec qs = getSpec(entry.getKey());
+            Symbol mergedQuery = AndOperator.join(entry.getValue());
+            AnalyzedRelation relation = relations.get(entry.getKey());
+
+            // Case of subselect
+            if (!(relation instanceof AbstractTableRelation)) {
+                applyAsWhereOrHaving(qs, mergedQuery, (QueriedRelation) relation);
+            } else {
+                qs.where(qs.where().add(mergedQuery));
+            }
+        }
+    }
+
+    private static void applyAsWhereOrHaving(QuerySpec qs, Symbol mergedQuery, QueriedRelation relation) {
+        boolean[] hasAggregations = new boolean[] {false};
+        FieldsVisitor.visitFields(mergedQuery, f -> {
+            hasAggregations[0] |= Aggregations.containsAggregation(
+                relation.querySpec().outputs().get(f.index()));
+        });
+        if (hasAggregations[0]) {
+            if (qs.having().isPresent()) {
+                qs.having().get().add(mergedQuery);
+            } else {
+                qs.having(new HavingClause(mergedQuery));
+            }
+        } else {
+            qs.where(qs.where().add(mergedQuery));
         }
     }
 
