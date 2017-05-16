@@ -4,10 +4,12 @@
 Data Manipulation
 =================
 
+.. _inserting_data:
+
 Inserting Data
 ==============
 
-Inserting data to ``Crate`` is done by using the SQL ``INSERT`` statement.
+Inserting data to CrateDB is done by using the SQL ``INSERT`` statement.
 
 .. note::
 

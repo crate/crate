@@ -9,8 +9,9 @@ A collection of CrateDB best practices and tips for common scenarios.
 .. toctree::
    :maxdepth: 1
 
-   data_import
    bootstrap_checks
+   data_import
+   insert_performance
    rolling_upgrade
    full_restart_upgrade
    sharding
