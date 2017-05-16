@@ -513,4 +513,4 @@ sourceSets {
     }
 }
 
-clean.dependsOn('cleanDownloadPlugins')
+clean.dependsOn(['cleanDownloadPlugins', 'cleanCollectEnterpriseModules'])
