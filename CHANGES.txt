@@ -50,6 +50,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue which could result in queries being stuck if the thread pools
+   are exhausted.
+
  - Fixed validation so that ``SELECT DISTINCT`` can be used only if there
    is no ``GROUP BY`` present or if the set of ``GROUP BY`` expressions is
    the same as the set ``SELECT`` expressions.

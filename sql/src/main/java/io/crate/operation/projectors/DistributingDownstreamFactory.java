@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.data.BatchConsumer;
@@ -36,24 +37,32 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 
 @Singleton
 public class DistributingDownstreamFactory extends AbstractComponent {
 
+    @VisibleForTesting
+    public static final String RESPONSE_EXECUTOR_NAME = ThreadPool.Names.SEARCH;
+
     private final ClusterService clusterService;
+    private final Executor responseExecutor;
     private final TransportDistributedResultAction transportDistributedResultAction;
     private final Logger distributingDownstreamLogger;
 
     @Inject
     public DistributingDownstreamFactory(Settings settings,
                                          ClusterService clusterService,
+                                         ThreadPool threadPool,
                                          TransportDistributedResultAction transportDistributedResultAction) {
         super(settings);
         this.clusterService = clusterService;
+        this.responseExecutor = threadPool.executor(RESPONSE_EXECUTOR_NAME);
         this.transportDistributedResultAction = transportDistributedResultAction;
         distributingDownstreamLogger = Loggers.getLogger(DistributingConsumer.class, settings);
     }
@@ -91,6 +100,7 @@ public class DistributingDownstreamFactory extends AbstractComponent {
 
         return new DistributingConsumer(
             distributingDownstreamLogger,
+            responseExecutor,
             jobId,
             multiBucketBuilder,
             nodeOperation.downstreamExecutionPhaseId(),

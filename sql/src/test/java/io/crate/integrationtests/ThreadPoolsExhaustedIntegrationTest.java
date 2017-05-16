@@ -36,9 +36,10 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.is;
 
-@ESIntegTestCase.ClusterScope(maxNumDataNodes = 2)
+@ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, maxNumDataNodes = 2)
 @UseJdbc
 public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -57,10 +58,23 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
         ensureYellow();
         bulkInsert(10);
 
+        assertRejectedExecutionFailure("select * from t limit ?", new Object[]{1000});
+    }
+
+    @Test
+    public void testDistributedPushSelectWithFewAvailableThreadsShouldNeverGetStuck() throws Exception {
+        execute("create table t (x int) with (number_of_replicas = 0)");
+        ensureYellow();
+        bulkInsert(10);
+
+        // by setting a very high limit we force a push based collection instead of a direct response
+        assertRejectedExecutionFailure("select * from t limit ?", new Object[]{1_000_000});
+    }
+
+    private void assertRejectedExecutionFailure(String stmt, Object[] parameters) {
         List<ActionFuture<SQLResponse>> futures = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
-            ActionFuture<SQLResponse> future = sqlExecutor.execute(
-                "select * from t limit ?", new Object[]{10});
+            ActionFuture<SQLResponse> future = sqlExecutor.execute(stmt, parameters);
             futures.add(future);
         }
 
@@ -70,7 +84,9 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
             } catch (TimeoutException e) {
                 fail("query run into a timeout");
             } catch (Exception e) {
-                assertThat(e.getMessage(), Matchers.containsString("rejected execution"));
+                assertThat(e.getMessage(), anyOf(
+                    Matchers.containsString("rejected execution"),
+                    Matchers.containsString("job killed")));
             }
         }
     }

@@ -28,12 +28,14 @@ import io.crate.data.*;
 import io.crate.exceptions.SQLExceptions;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -48,6 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class DistributingConsumer implements BatchConsumer {
 
     private final Logger logger;
+    private final Executor responseExecutor;
     private final UUID jobId;
     private final int targetPhaseId;
     private final byte inputId;
@@ -65,6 +68,7 @@ public class DistributingConsumer implements BatchConsumer {
     private volatile Throwable failure;
 
     public DistributingConsumer(Logger logger,
+                                Executor responseExecutor,
                                 UUID jobId,
                                 MultiBucketBuilder multiBucketBuilder,
                                 int targetPhaseId,
@@ -76,6 +80,7 @@ public class DistributingConsumer implements BatchConsumer {
                                 int pageSize) {
         this.traceEnabled = logger.isTraceEnabled();
         this.logger = logger;
+        this.responseExecutor = responseExecutor;
         this.jobId = jobId;
         this.multiBucketBuilder = multiBucketBuilder;
         this.targetPhaseId = targetPhaseId;
@@ -176,7 +181,7 @@ public class DistributingConsumer implements BatchConsumer {
         for (int i = 0; i < downstreams.size(); i++) {
             Downstream downstream = downstreams.get(i);
             if (downstream.needsMoreData == false) {
-                countdownAndMaybeContinue(it, numActiveRequests);
+                countdownAndMaybeContinue(it, numActiveRequests, true);
                 continue;
             }
             if (traceEnabled) {
@@ -190,7 +195,7 @@ public class DistributingConsumer implements BatchConsumer {
                     @Override
                     public void onResponse(DistributedResultResponse response) {
                         downstream.needsMoreData = response.needMore();
-                        countdownAndMaybeContinue(it, numActiveRequests);
+                        countdownAndMaybeContinue(it, numActiveRequests, false);
                     }
 
                     @Override
@@ -198,18 +203,28 @@ public class DistributingConsumer implements BatchConsumer {
                         failure = e;
                         downstream.needsMoreData = false;
                         // continue because it's necessary to send something to downstreams still waiting for data
-                        countdownAndMaybeContinue(it, numActiveRequests);
+                        countdownAndMaybeContinue(it, numActiveRequests, false);
                     }
                 }
             );
         }
     }
 
-    private void countdownAndMaybeContinue(BatchIterator it, AtomicInteger numActiveRequests) {
+    private void countdownAndMaybeContinue(BatchIterator it, AtomicInteger numActiveRequests, boolean sameExecutor) {
         if (numActiveRequests.decrementAndGet() == 0) {
             if (downstreams.stream().anyMatch(Downstream::needsMoreData)) {
                 if (failure == null) {
-                    consumeIt(it);
+                    if (sameExecutor) {
+                        consumeIt(it);
+                    } else {
+                        // try to dispatch to different executor, if it fails, forward the error in the same thread
+                        try {
+                            responseExecutor.execute(() -> consumeIt(it));
+                        } catch (EsRejectedExecutionException e) {
+                            failure = e;
+                            forwardFailure(it, failure);
+                        }
+                    }
                 } else {
                     forwardFailure(it, failure);
                 }

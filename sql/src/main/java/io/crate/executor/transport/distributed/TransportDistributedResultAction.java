@@ -23,7 +23,6 @@ package io.crate.executor.transport.distributed;
 
 import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.ContextMissingException;
-import io.crate.executor.transport.DefaultTransportResponseHandler;
 import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.executor.transport.Transports;
@@ -33,27 +32,31 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageBucketReceiver;
 import io.crate.operation.PageResultListener;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 
 public class TransportDistributedResultAction extends AbstractComponent implements NodeAction<DistributedResultRequest, DistributedResultResponse> {
 
-    public static final String DISTRIBUTED_RESULT_ACTION = "crate/sql/node/merge/add_rows";
+    private static final String DISTRIBUTED_RESULT_ACTION = "crate/sql/node/merge/add_rows";
 
     private static final String EXECUTOR_NAME = ThreadPool.Names.SEARCH;
 
     private final Transports transports;
     private final JobContextService jobContextService;
     private final ScheduledExecutorService scheduler;
+    private final Executor executor;
 
     @Inject
     public TransportDistributedResultAction(Transports transports,
@@ -64,17 +67,18 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
         super(settings);
         this.transports = transports;
         this.jobContextService = jobContextService;
+        this.executor = threadPool.executor(EXECUTOR_NAME);
         scheduler = threadPool.scheduler();
 
         transportService.registerRequestHandler(DISTRIBUTED_RESULT_ACTION,
             DistributedResultRequest::new,
-            ThreadPool.Names.GENERIC,
+            ThreadPool.Names.SAME, // <- we will dispatch later at the nodeOperation on non failures
             new NodeActionRequestHandler<>(this));
     }
 
-    public void pushResult(String node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
+    void pushResult(String node, DistributedResultRequest request, ActionListener<DistributedResultResponse> listener) {
         transports.sendRequest(DISTRIBUTED_RESULT_ACTION, node, request, listener,
-            new DefaultTransportResponseHandler<>(listener, DistributedResultResponse::new, EXECUTOR_NAME));
+            new ActionListenerResponseHandler<>(listener, DistributedResultResponse::new));
     }
 
     @Override
@@ -109,12 +113,17 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
         if (throwable == null) {
             request.streamers(pageBucketReceiver.streamers());
             SendResponsePageResultListener pageResultListener = new SendResponsePageResultListener();
-            pageBucketReceiver.setBucket(
-                request.bucketIdx(),
-                request.rows(),
-                request.isLast(),
-                pageResultListener);
-            return pageResultListener.future;
+            try {
+                executor.execute(() -> pageBucketReceiver.setBucket(
+                    request.bucketIdx(),
+                    request.rows(),
+                    request.isLast(),
+                    pageResultListener));
+                return pageResultListener.future;
+            } catch (EsRejectedExecutionException e) {
+                pageBucketReceiver.failure(request.bucketIdx(), e);
+                return CompletableFuture.completedFuture(new DistributedResultResponse(false));
+            }
         } else {
             if (request.isKilled()) {
                 pageBucketReceiver.killed(request.bucketIdx(), throwable);

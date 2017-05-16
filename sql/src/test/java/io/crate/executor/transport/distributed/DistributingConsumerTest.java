@@ -22,6 +22,7 @@
 
 package io.crate.executor.transport.distributed;
 
+import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.CollectionBucket;
@@ -107,17 +108,18 @@ public class DistributingConsumerTest extends CrateUnitTest {
 
     private DistributingConsumer createDistributingConsumer(Streamer<?>[] streamers, TransportDistributedResultAction distributedResultAction) {
         return new DistributingConsumer(
-                logger,
-                UUID.randomUUID(),
-                new ModuloBucketBuilder(streamers, 1, 0),
-                1,
-                (byte) 0,
-                0,
-                Collections.singletonList("n1"),
-                distributedResultAction,
-                streamers,
-                2 // pageSize
-            );
+            logger,
+            MoreExecutors.directExecutor(),
+            UUID.randomUUID(),
+            new ModuloBucketBuilder(streamers, 1, 0),
+            1,
+            (byte) 0,
+            0,
+            Collections.singletonList("n1"),
+            distributedResultAction,
+            streamers,
+            2 // pageSize
+        );
     }
 
     private PageDownstreamContext createPageDownstreamContext(Streamer<?>[] streamers, TestingBatchConsumer collectingConsumer) {
