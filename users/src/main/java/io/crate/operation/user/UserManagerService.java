@@ -121,10 +121,10 @@ public class UserManagerService implements UserManager, ClusterStateListener {
             return user != null && user.roles().contains(User.Role.SUPERUSER);
         }
 
-        private void throwUnauthorized(@Nullable User user, AnalyzedStatement stmt) {
+        private void throwUnauthorized(@Nullable User user) {
             String userName = user != null ? user.name() : null;
-            throw new UnauthorizedException(String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute statement \"%s\"",
-                userName, stmt));
+            throw new UnauthorizedException(
+                String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute statement", userName));
         }
 
         @Override
@@ -137,7 +137,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         protected Boolean visitCreateUserStatement(CreateUserAnalyzedStatement analysis,
                                                    SessionContext sessionContext) {
             if (!isSuperUser(sessionContext.user())) {
-                throwUnauthorized(sessionContext.user(), analysis);
+                throwUnauthorized(sessionContext.user());
             }
             return true;
         }
@@ -146,7 +146,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         protected Boolean visitDropUserStatement(DropUserAnalyzedStatement analysis,
                                                  SessionContext sessionContext) {
             if (!isSuperUser(sessionContext.user())) {
-                throwUnauthorized(sessionContext.user(), analysis);
+                throwUnauthorized(sessionContext.user());
             }
             return true;
         }

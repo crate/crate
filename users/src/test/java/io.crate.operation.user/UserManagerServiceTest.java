@@ -32,6 +32,7 @@ import java.util.Set;
 
 import static io.crate.operation.user.UserManagerService.CRATE_USER;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 
 public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
@@ -55,7 +56,7 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCreateUserStatementCheckPermissionFalse() {
         expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage("User \"null\" is not authorized to execute statement");
+        expectedException.expectMessage(is("User \"null\" is not authorized to execute statement"));
         UserManagerService userManagerService = new UserManagerService(null, null, clusterService);
         userManagerService.ensureAuthorized(new CreateUserAnalyzedStatement(""),
             new SessionContext(0, Option.NONE, "my_schema", null));
@@ -71,7 +72,7 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropUserStatementCheckPermissionFalse() {
         expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage("User \"null\" is not authorized to execute statement");
+        expectedException.expectMessage(is("User \"null\" is not authorized to execute statement"));
         UserManagerService userManagerService = new UserManagerService(null, null, clusterService);
         userManagerService.ensureAuthorized(new DropUserAnalyzedStatement("", false),
             new SessionContext(0, Option.NONE, "my_schema", null));
