@@ -51,7 +51,7 @@ Changes
 
  - Added support for ``GROUP BY`` in combination with subselect. E.g.::
 
-     SELECT x, COUNT(*) FROM (SELECT x FROM t LIMIT 1) as tt GROUP BY x;
+     SELECT x, COUNT(*) FROM (SELECT x FROM t LIMIT 1) AS tt GROUP BY x;
 
  - Implemented hash sum scalar functions (MD5, SHA1). Please see
    :ref:`sha1 <sha1>`.
@@ -84,9 +84,10 @@ Fixes
  - Fixed an issue which lead to brief unavailability of already registered
    functions after a function was created or dropped in the same schema.
 
- - Fixed appearance of ``NullPointerException`` in log during startup of crate.
+ - Fixed appearance of ``NullPointerException`` in log during startup of
+   CrateDB.
 
  - Fixed that ``Log4j`` yields a "No log4j2 configuration file found" error
-   when shutting down crate ungracefully (via kill signal).
+   when shutting down CrateDB ungracefully (via kill signal).
 
  - Fixed that restoring empty partitioned tables wasn't possible.
