@@ -15,67 +15,9 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
- - Extended the subselect support. See :ref:`SELECT Reference
-   <sql_reference_subselect>` for details.
-
 Changes
 =======
-
- - Added support for `CREATE USER` and `DROP USER`
-
- - Added support for opening and closing a table or single partition.
-
- - Information on the state of tables/partitions is now exposed
-   by a new column `closed` on the `information_schema.tables`
-   and `information_schema.table_partitions` tables.
-
- - Added full support for ``DISTINCT`` on queries where ``GROUP BY``
-   is present.
-
- - UDC pings will send ``licence.ident`` if defined from now on.
-
- - Added support for host based authentication (HBA) via the Postgres Wire
-   Protocol.
-   Please see :ref:`Host Based Authentication <administration_hba>`.
-
- - Added support for ``GROUP BY`` in combination with subselect. E.g.::
-
-     select x, count(*) from (select x from t limit 1) as tt group by x;
-
- - Implemented hash sum scalar functions (MD5, SHA1).
-   Please see :ref:`sha1 <sha1>`.
 
 Fixes
 =====
 
- - Fixed validation so that ``SELECT DISTINCT`` can be used only if there
-   is no ``GROUP BY`` present or if the set of ``GROUP BY`` expressions is
-   the same as the set ``SELECT`` expressions.
-
- - Added validation that ``ORDER BY`` symbols are included in the ``SELECT``
-   list when ``DISTINCT`` is used.
-
- - Removed ``psql.enabled`` and ``psql.port`` settings from ``sys.cluster``
-   because they where wrongly exposed in this table.
-
- - Fixed an issue which caused failing `sys.snapshot` queries if the
-   `data.path` of an existing fs repository was not configured anymore
-
- - Use the region of the EC2 instance for EC2 discovery when neither
-   ``cloud.aws.ec2.endpoint`` nor ``cloud.aws.region`` are specified or do not
-   resolve in a valid service endpoint.
-
- - Use crate favicon instead of elasticsearch.
-
- - Fix: `sys.snapshot` queries hung instead of throwing an error if something
-   went wrong.
-
- - Fixed an issue which lead to brief unavailability of already registered
-   functions after a function was created or dropped in the same schema.
-
- - Fix: Appearance of NPE during startup of crate
-
- - Fix: Log4j would yield a "No log4j2 configuration file found" error when
-   shutting down crate ungracefully (via kill signal)
-
- - Fix: Restoring empty partitioned tables wasn't possible

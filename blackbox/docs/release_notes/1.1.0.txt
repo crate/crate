@@ -12,8 +12,8 @@ Released on 2017/03/21.
    partitioned tables to become unusable. The bug was fixed in
    :ref:`version_1.1.1`.
 
-   This version was removed from all release channels. This changelog is kept
-   for information purposes only.
+   This version was removed from all release channels. The 1.1.0 release notes
+   are kept for information purposes only.
 
 Breaking Changes
 ================
