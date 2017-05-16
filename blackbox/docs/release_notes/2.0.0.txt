@@ -27,14 +27,11 @@ Released on 2017/05/16.
 
 .. _back up your data: https://crate.io/a/backing-up-and-restoring-crate/
 
-Breaking Changes
-================
+Changes
+=======
 
  - Extended the subselect support. See :ref:`SELECT Reference
    <sql_reference_subselect>` for details.
-
-Changes
-=======
 
  - Added support for ``CREATE USER`` and ``DROP USER``.
 
