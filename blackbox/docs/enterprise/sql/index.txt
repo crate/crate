@@ -1,0 +1,15 @@
+.. _enterprise_sql:
+
+========================
+Enterprise SQL Reference
+========================
+
+.. NOTE::
+
+   This section documents features that are only available in the Enterprise
+   Edition of CrateDB.
+
+.. toctree::
+   :maxdepth: 2
+
+   administration/index

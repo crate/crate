@@ -1,23 +1,19 @@
 .. _enterprise_features:
 
-===================
-Enterprise Features
-===================
+==================
+Enterprise Edition
+==================
 
 CrateDB provides an `Enterprise Edition`_, which is activated by default.
 The source code remains open, but if you want to use one of the enterprise
 features in production you need to purchase a `enterprise license`_.
 
-**The current enterprise features are:**
+.. toctree::
+   :maxdepth: 2
 
-* `JMX Monitoring`_: Query stats exposed via JMX.
-* `Database Administration`_: Managing your Database with Authentication and 
-  more.
-* `Support for JavaScript in UDF`_: User Defined Functions can be written in
-  JavaScript.
+   sql/index
+   plugins/index
+   administration/index
 
-.. _`Support for JavaScript in UDF`: sql/administration/user_defined_functions.html#javascript
-.. _`database administration`: ../administration/
-.. _`jmx monitoring`: ../monitoring/
 .. _`enterprise edition`: https://crate.io/enterprise-edition/
 .. _`enterprise license`: https://crate.io/enterprise-edition/

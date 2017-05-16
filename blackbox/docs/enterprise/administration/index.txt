@@ -1,0 +1,17 @@
+.. _enterprise_dba:
+
+==================================
+Enterprise Database Administration
+==================================
+
+.. NOTE::
+
+   This section documents features that are only available in the Enterprise
+   Edition of CrateDB.
+
+.. toctree::
+    :maxdepth: 2
+
+    hba
+    auth_methods
+

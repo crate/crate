@@ -14,7 +14,6 @@ see :doc:`sql`. For general information about SQL please refer to
    ddl/index
    dml
    dql
-   administration/index
    joins
    data_types
    aggregation
