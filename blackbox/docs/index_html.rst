@@ -31,3 +31,4 @@ Contents
    protocols/index
    enterprise/index
    administration/index
+   monitoring/index
