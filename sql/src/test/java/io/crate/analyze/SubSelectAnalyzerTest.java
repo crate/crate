@@ -23,7 +23,9 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
@@ -31,6 +33,7 @@ import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.T3.T1_INFO;
+import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.is;
 
 public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -109,5 +112,38 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expect(AmbiguousColumnAliasException.class);
         expectedException.expectMessage("Column alias \"i\" is ambiguous");
         analyze("select aliased_sub.i, aliased_sub.b from (select t1.i, t2.i, t2.b from t1, t2) as aliased_sub");
+    }
+
+    @Test
+    public void testJoinOnSubSelects() throws Exception {
+        SelectAnalyzedStatement statement = analyze("select * from " +
+                                                    " (select a, i from t1) t1 " +
+                                                    "left join" +
+                                                    " (select b, i from t2 where b > 10) t2 " +
+                                                    "on t1.i = t2.i where t1.a > 50 and t2.b > 100");
+        MultiSourceSelect relation = (MultiSourceSelect) statement.relation();
+        assertThat(relation.querySpec(), isSQL("SELECT doc.t1.a, doc.t1.i, doc.t2.b, doc.t2.i"));
+        assertThat(relation.joinPairs().get(0).condition(), isSQL("(doc.t1.i = doc.t2.i)"));
+        assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t1"))).querySpec(),
+                   isSQL("SELECT doc.t1.i, doc.t1.a WHERE (doc.t1.a > '50')"));
+        assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t2"))).querySpec(),
+                   isSQL("SELECT doc.t2.b, doc.t2.i WHERE ((doc.t2.b > '10') AND (doc.t2.b > '100'))"));
+    }
+
+    @Test
+    public void testSubSelectWithOuterJoinAndAggregations() throws Exception {
+        SelectAnalyzedStatement statement = analyze("select * from " +
+                                                    " (select max(a) ma, i from t1 group by i) t1 " +
+                                                    "left join" +
+                                                    " (select max(b) mb, i from t2 group by i having i > 10) t2 " +
+                                                    "on t1.i = t2.i where t1.ma > 50 and t2.mb > 100");
+        MultiSourceSelect relation = (MultiSourceSelect) statement.relation();
+        assertThat(relation.querySpec(), isSQL("SELECT doc.t1.ma, doc.t1.i, doc.t2.mb, doc.t2.i"));
+        assertThat(relation.joinPairs().get(0).condition(), isSQL("(doc.t1.i = doc.t2.i)"));
+        assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t1"))).querySpec(),
+                   isSQL("SELECT doc.t1.i, max(doc.t1.a) GROUP BY doc.t1.i HAVING (max(doc.t1.a) > '50')"));
+        assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t2"))).querySpec(),
+                   isSQL("SELECT max(doc.t2.b), doc.t2.i GROUP BY doc.t2.i " +
+                         "HAVING ((doc.t2.i > 10) AND (max(doc.t2.b) > '100'))"));
     }
 }

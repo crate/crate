@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
+import io.crate.operation.operator.AndOperator;
 
 import javax.annotation.Nullable;
 
@@ -41,5 +42,10 @@ public class HavingClause extends QueryClause {
             return this;
         }
         return new HavingClause(normalizedQuery);
+    }
+
+    public HavingClause add(Symbol otherQuery) {
+        this.query = AndOperator.of(this.query, otherQuery);
+        return this;
     }
 }
