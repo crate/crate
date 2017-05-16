@@ -164,9 +164,17 @@ public class Rewriter {
         CollectFieldsToRemoveFromOutputs collectFieldsToRemoveFromOutputs =
             new CollectFieldsToRemoveFromOutputs(outerSubRelation, multiSourceQuerySpec.outputs(), joinPair.condition());
         QuerySpec qs = outerSubRelation.querySpec();
-        qs.where(qs.where().add(FieldReplacer.replaceFields(
-            outerRelationQuery,
-            collectFieldsToRemoveFromOutputs)));
+        Symbol query = FieldReplacer.replaceFields(outerRelationQuery, collectFieldsToRemoveFromOutputs);
+
+        if (Aggregations.containsAggregation(query)) {
+            if (qs.having().isPresent()) {
+                qs.having().get().add(query);
+            } else {
+                qs.having(new HavingClause(query));
+            }
+        } else {
+            qs.where(qs.where().add(query));
+        }
         if (splitQueries.isEmpty()) { // All queries where successfully pushed down
             joinPair.joinType(JoinType.INNER);
             multiSourceQuerySpec.where(WhereClause.MATCH_ALL);
