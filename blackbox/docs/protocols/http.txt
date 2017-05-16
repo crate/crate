@@ -1,8 +1,10 @@
 .. highlight:: sh
 
-=======================
-Crate SQL HTTP Endpoint
-=======================
+.. _sql_http_endpoint:
+
+=================
+SQL HTTP Endpoint
+=================
 
 Crate provides a HTTP Endpoint that can be used to submit SQL queries. The
 endpoint is accessible under ``<servername:port>/_sql``.

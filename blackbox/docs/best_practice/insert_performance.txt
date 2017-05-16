@@ -1,0 +1,40 @@
+.. _insert_performance:
+
+==================
+Insert Performance
+==================
+
+.. TIP::
+
+   If ingestion performance is an important metric for you, and you can do your
+   inserts in batches, you should switch from `Single Inserts`_ to `Bulk
+   Inserts`_.
+
+.. _single_inserts:
+
+Single Inserts
+==============
+
+Single inserts (see :ref:`inserting_data` ) are typically very fast with
+CrateDB. A small cluster can easily handle several thousand inserts per second
+done this way.
+
+However, single inserts generate a lot of internal network traffic, because
+every insert is applied to the primary shard, and then individually
+communicated in parallel to every configured replica shard. In addition,
+CrateDB will not return a response to an insert request until all replica
+shards have been updated.
+
+If you can batch up your inserts, switching to `Bulk Inserts`_ will
+dramatically improve ingestion performance.
+
+.. _bulk_inserts:
+
+Bulk Inserts
+============
+
+If you use the :ref:`sql_http_endpoint`, you can insert multiple records at
+once by making use of :ref:`bulk_operations`. Our benchmarking_ indicates that
+you can expect to see at least a twofold increase in ingestion performance.
+
+.. _benchmarking: https://crate.io/a/insert-boost-on-replicas/
