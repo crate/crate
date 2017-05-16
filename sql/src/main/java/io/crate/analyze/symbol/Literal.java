@@ -11,7 +11,6 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.io.IOException;
 import java.util.*;
@@ -159,7 +158,10 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         if (value.getClass().isArray()) {
             return '[' + Stream.of((Object[]) value).map(Literal::stringRepresentation).collect(Collectors.joining(", ")) + ']';
         }
-        return BytesRefs.toString(value);
+        if (value instanceof BytesRef) {
+            return "'" + ((BytesRef) value).utf8ToString() + "'";
+        }
+        return value.toString();
     }
 
     @Override
@@ -248,4 +250,8 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         }
     }
 
+    @Override
+    public String representation() {
+        return stringRepresentation(value);
+    }
 }

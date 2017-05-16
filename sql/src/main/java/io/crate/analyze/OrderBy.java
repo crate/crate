@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
 import io.crate.exceptions.AmbiguousOrderByException;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.ExplainLeaf;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -195,9 +196,17 @@ public class OrderBy implements Writeable {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("OrderBy{");
-        for (int i = 0; i < orderBySymbols.size(); i++) {
-            Symbol symbol = orderBySymbols.get(i);
-            sb.append(symbol);
+        explainRepresentation(sb, orderBySymbols, reverseFlags, nullsFirst);
+        return sb.toString();
+    }
+
+    public static StringBuilder explainRepresentation(StringBuilder sb,
+                                                      List<? extends ExplainLeaf> leaves,
+                                                      boolean[] reverseFlags,
+                                                      Boolean[] nullsFirst) {
+        for (int i = 0; i < leaves.size(); i++) {
+            ExplainLeaf leaf = leaves.get(i);
+            sb.append(leaf.representation());
             sb.append(" ");
             if (reverseFlags[i]) {
                 sb.append("ASC");
@@ -209,10 +218,10 @@ public class OrderBy implements Writeable {
                 sb.append(" ");
                 sb.append(nullFirst ? "NULLS FIRST" : "NULLS LAST");
             }
-            if (i + 1 < orderBySymbols.size()) {
+            if (i + 1 < leaves.size()) {
                 sb.append(" ");
             }
         }
-        return sb.toString();
+        return sb;
     }
 }

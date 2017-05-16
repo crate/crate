@@ -179,6 +179,11 @@ public class Reference extends Symbol {
     }
 
     @Override
+    public String representation() {
+        return "Ref{" + ident.tableIdent() + '.' + ident.columnIdent() + ", " + type + '}';
+    }
+
+    @Override
     public String toString() {
         MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
             .add("ident", ident)

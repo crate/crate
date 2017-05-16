@@ -20,29 +20,22 @@
  * agreement.
  */
 
-package io.crate.planner.projection;
+package io.crate.planner;
 
-import com.google.common.collect.Collections2;
-import io.crate.metadata.RowGranularity;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.util.Collection;
+import java.util.Map;
 
-public class Projections {
+/**
+ * A component of a Plan(or a Plan) that should be part of the output of the EXPLAIN statement.
+ */
+public interface ExplainNode {
 
-    public static Collection<? extends Projection> shardProjections(Collection<? extends Projection> projections) {
-        return Collections2.filter(projections, Projection.IS_SHARD_PROJECTION::test);
-    }
-
-    public static Collection<? extends Projection> nodeProjections(Collection<? extends Projection> projections) {
-        return Collections2.filter(projections, Projection.IS_NODE_PROJECTION::test);
-    }
-
-    public static boolean hasAnyShardProjections(Iterable<? extends Projection> projections) {
-        for (Projection projection : projections) {
-            if (projection.requiredGranularity() == RowGranularity.SHARD) {
-                return true;
-            }
-        }
-        return false;
-    }
+    /**
+     * @return Representation of the component as Map used for EXPLAIN
+     * <p>
+     * The result must be streamable using {@link io.crate.types.ObjectType#writeValueTo(StreamOutput, Object)}
+     * </p>
+     */
+    Map<String, Object> mapRepresentation();
 }

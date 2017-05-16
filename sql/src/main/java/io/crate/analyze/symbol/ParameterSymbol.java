@@ -67,10 +67,15 @@ public class ParameterSymbol extends Symbol {
 
     @Override
     public String toString() {
-        return "$" + Integer.toString(index + 1);
+        return representation();
     }
 
     public int index() {
         return index;
+    }
+
+    @Override
+    public String representation() {
+        return "$" + Integer.toString(index + 1);
     }
 }

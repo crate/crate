@@ -21,8 +21,6 @@
 
 package io.crate.planner;
 
-import com.google.common.base.Function;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
@@ -35,8 +33,6 @@ import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.ProjectionVisitor;
-import io.crate.planner.projection.TopNProjection;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -73,17 +69,14 @@ public class PlanPrinter {
             return INSTANCE.process(executionPhase, null);
         }
 
-        private static Iterable<Map<String, Object>> projections(Iterable<Projection> projections) {
-            return FluentIterable.from(projections).transform(new Function<Projection, Map<String, Object>>() {
-                @Nullable
-                @Override
-                public Map<String, Object> apply(@Nullable Projection projection) {
-                    assert projection != null : "projection must not be null";
-                    return Projection2MapVisitor.toBuilder(projection).build();
-                }
-            }).toList();
-            // need to use a List because this is part of a map which is streamed to the client.
+        private static List<Map<String, Object>> projections(Iterable<Projection> projections) {
+            // need to return a List because this is part of a map which is streamed to the client.
             // Map streaming uses StreamOutput#writeGenericValue which can't handle Iterable
+            ArrayList<Map<String, Object>> result = new ArrayList<>();
+            for (Projection projection : projections) {
+                result.add(projection.mapRepresentation());
+            }
+            return result;
         }
 
         private static ImmutableMap.Builder<String, Object> newBuilder() {
@@ -153,32 +146,6 @@ public class PlanPrinter {
         public ImmutableMap.Builder<String, Object> visitNestedLoopPhase(NestedLoopPhase phase, Void context) {
             ImmutableMap.Builder<String, Object> b = upstreamPhase(phase, visitExecutionPhase(phase, context));
             return dqlPlanNode(phase, b);
-        }
-    }
-
-
-    private static class Projection2MapVisitor extends ProjectionVisitor<Void, ImmutableMap.Builder<String, Object>> {
-
-        private static final Projection2MapVisitor INSTANCE = new Projection2MapVisitor();
-
-        private static ImmutableMap.Builder<String, Object> newBuilder() {
-            return ImmutableMap.builder();
-        }
-
-        static ImmutableMap.Builder<String, Object> toBuilder(Projection projection) {
-            assert projection != null : "projection must not be null";
-            return INSTANCE.process(projection, null);
-        }
-
-        @Override
-        protected ImmutableMap.Builder<String, Object> visitProjection(Projection projection, Void context) {
-            return newBuilder().put("type", projection.projectionType().toString());
-        }
-
-        @Override
-        public ImmutableMap.Builder<String, Object> visitTopNProjection(TopNProjection projection, Void context) {
-            return visitProjection(projection, context)
-                .put("rows", projection.offset() + "-" + projection.limit());
         }
     }
 

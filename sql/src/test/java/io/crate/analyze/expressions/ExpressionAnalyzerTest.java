@@ -142,7 +142,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
                 new LongLiteral("1")));
 
         Function function = (Function) expressionAnalyzer.convert(subscriptFunctionCall, expressionAnalysisContext);
-        assertEquals("subscript(_array(Literal{obj, type=string}),Literal{1, type=integer})", function.toString());
+        assertEquals("subscript(_array('obj'), 1)", function.toString());
     }
 
     @Test

@@ -21,12 +21,14 @@
 
 package io.crate.analyze.symbol;
 
+import io.crate.planner.ExplainLeaf;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class MatchPredicate extends Symbol {
 
@@ -80,5 +82,13 @@ public class MatchPredicate extends Symbol {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         throw new UnsupportedOperationException("Cannot stream MatchPredicate");
+    }
+
+    @Override
+    public String representation() {
+        return "MATCH{" + identBoostMap.keySet()
+            .stream()
+            .map(ExplainLeaf::representation)
+            .collect(Collectors.joining(", ")) + '}';
     }
 }

@@ -101,6 +101,11 @@ public class Field extends Symbol implements Path {
 
     @Override
     public String toString() {
+        return representation();
+    }
+
+    @Override
+    public String representation() {
         return "Field{" + relation + "." + path +
                ", type=" + valueType +
                '}';

@@ -264,6 +264,11 @@ class EqualityExtractor {
 
         @Override
         public String toString() {
+            return representation();
+        }
+
+        @Override
+        public String representation() {
             return "EqProxy{" + forDisplay() + "}";
         }
     }

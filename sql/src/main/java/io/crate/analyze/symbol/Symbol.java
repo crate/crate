@@ -21,10 +21,11 @@
 
 package io.crate.analyze.symbol;
 
+import io.crate.planner.ExplainLeaf;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.Writeable;
 
-public abstract class Symbol implements Writeable {
+public abstract class Symbol implements Writeable, ExplainLeaf {
 
     public static boolean isLiteral(Symbol symbol, DataType expectedType) {
         return symbol.symbolType() == SymbolType.LITERAL
@@ -36,4 +37,9 @@ public abstract class Symbol implements Writeable {
     public abstract <C, R> R accept(SymbolVisitor<C, R> visitor, C context);
 
     public abstract DataType valueType();
+
+    @Override
+    public String toString() {
+        return representation();
+    }
 }

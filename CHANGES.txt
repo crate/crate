@@ -18,6 +18,8 @@ Breaking Changes
 Changes
 =======
 
+ - Extended the output of the  ``EXPLAIN`` statement.
+
  - Added support for joins on virtual tables.
 
  - Changed the ``QueryStats`` JMX MBean to deliver node-based values instead of

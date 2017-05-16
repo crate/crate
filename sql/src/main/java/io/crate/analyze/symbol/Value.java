@@ -78,8 +78,11 @@ public class Value extends Symbol {
 
     @Override
     public String toString() {
-        return "Value{" +
-               "type=" + type +
-               '}';
+        return representation();
+    }
+
+    @Override
+    public String representation() {
+        return "Value{" + type + '}';
     }
 }

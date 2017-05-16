@@ -106,6 +106,11 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
 
     @Override
     public String toString() {
+        return representation();
+    }
+
+    @Override
+    public String representation() {
         return "IC{" + index + ", " + dataType + '}';
     }
 

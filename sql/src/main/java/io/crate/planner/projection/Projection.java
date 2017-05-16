@@ -21,27 +21,23 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
+import io.crate.planner.ExplainNode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
-public abstract class Projection {
+public abstract class Projection implements ExplainNode {
 
-    public static final Predicate<Projection> IS_SHARD_PROJECTION = new Predicate<Projection>() {
-        @Override
-        public boolean apply(@Nullable Projection projection) {
-            return projection != null && projection.requiredGranularity() == RowGranularity.SHARD;
-        }
-    };
-    public static final Predicate<Projection> IS_NODE_PROJECTION = Predicates.not(IS_SHARD_PROJECTION);
+    static final Predicate<Projection> IS_SHARD_PROJECTION = p -> p.requiredGranularity() == RowGranularity.SHARD;
+    static final Predicate<Projection> IS_NODE_PROJECTION = IS_SHARD_PROJECTION.negate();
 
     /**
      * The granularity required to run this projection
@@ -87,5 +83,9 @@ public abstract class Projection {
     @Override
     public int hashCode() {
         return projectionType().hashCode();
+    }
+
+    public Map<String, Object> mapRepresentation() {
+        return ImmutableMap.of("type", projectionType().toString());
     }
 }

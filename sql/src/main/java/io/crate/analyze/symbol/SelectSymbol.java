@@ -69,4 +69,9 @@ public class SelectSymbol extends Symbol {
     public String toString() {
         return "SelectSymbol{" + type.toString() + "}";
     }
+
+    @Override
+    public String representation() {
+        return "SubQuery{" + relation.getQualifiedName() + '}';
+    }
 }

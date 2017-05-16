@@ -20,29 +20,25 @@
  * agreement.
  */
 
-package io.crate.planner.projection;
+package io.crate.planner;
 
-import com.google.common.collect.Collections2;
-import io.crate.metadata.RowGranularity;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import java.util.Collection;
+/**
+ * A leaf of a {@link ExplainNode} - part of the output of a EXPLAIN statement.
+ */
+public interface ExplainLeaf {
 
-public class Projections {
+    /**
+     * @return Human readable representation of the component
+     */
+    String representation();
 
-    public static Collection<? extends Projection> shardProjections(Collection<? extends Projection> projections) {
-        return Collections2.filter(projections, Projection.IS_SHARD_PROJECTION::test);
-    }
 
-    public static Collection<? extends Projection> nodeProjections(Collection<? extends Projection> projections) {
-        return Collections2.filter(projections, Projection.IS_NODE_PROJECTION::test);
-    }
-
-    public static boolean hasAnyShardProjections(Iterable<? extends Projection> projections) {
-        for (Projection projection : projections) {
-            if (projection.requiredGranularity() == RowGranularity.SHARD) {
-                return true;
-            }
-        }
-        return false;
+    static String printList(List<? extends ExplainLeaf> leaves) {
+        return leaves.stream()
+            .map(ExplainLeaf::representation)
+            .collect(Collectors.joining(", "));
     }
 }

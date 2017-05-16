@@ -54,7 +54,6 @@ public class MergeCountProjection extends Projection {
         return this == o;
     }
 
-
     @Override
     public void writeTo(StreamOutput out) throws IOException {
     }

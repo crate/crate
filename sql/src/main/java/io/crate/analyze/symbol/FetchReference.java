@@ -73,9 +73,11 @@ public class FetchReference extends Symbol {
 
     @Override
     public String toString() {
-        return "FetchReference{" +
-               "fetchId=" + fetchId +
-               ", ref=" + ref +
-               '}';
+        return representation();
+    }
+
+    @Override
+    public String representation() {
+        return "Fetch{" + fetchId.representation() + ", " + ref.representation() + '}';
     }
 }

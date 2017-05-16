@@ -1,9 +1,9 @@
 package io.crate.analyze.symbol;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.FunctionInfo;
+import io.crate.planner.ExplainLeaf;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -69,8 +69,14 @@ public class Function extends Symbol implements Cloneable {
     }
 
     @Override
-    public String toString() {
-        return String.format(Locale.ENGLISH, "%s(%s)", info.ident().name(), Joiner.on(",").join(arguments()));
+    public String representation() {
+        String name = info.ident().name();
+        if (name.startsWith("op_") && arguments.size() == 2) {
+            return arguments.get(0).representation()
+                   + " " + name.substring(3).toUpperCase(Locale.ENGLISH)
+                   + " " + arguments.get(1).representation();
+        }
+        return name + '(' + ExplainLeaf.printList(arguments) + ')';
     }
 
     @Override

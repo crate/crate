@@ -24,6 +24,7 @@ package io.crate.analyze.symbol;
 import com.google.common.base.Preconditions;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
+import io.crate.planner.ExplainLeaf;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -31,7 +32,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class Aggregation extends Symbol {
 
@@ -88,7 +88,12 @@ public class Aggregation extends Symbol {
 
     @Override
     public String toString() {
+        return representation();
+    }
+
+    @Override
+    public String representation() {
         return "Aggregation{" + functionInfo.ident().name() +
-               ", args=[" + inputs.stream().map(Symbol::toString).collect(Collectors.joining(", ")) + "]}";
+               ", args=[" + ExplainLeaf.printList(inputs) + "]}";
     }
 }
