@@ -113,6 +113,9 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
 
     private int location = -1;
     private final Iterator<TimeValue> consumeIteratorDelays;
+    private BiConsumer<BitSet, Throwable> bulkExecutionCompleteListener;
+    private BiConsumer<Object, Throwable> loadNextBatchCompleteListener;
+    private Runnable scheduleConsumeIteratorJob;
 
     public ShardingUpsertExecutor(ClusterService clusterService,
                                   NodeJobsCounter nodeJobsCounter,
@@ -146,8 +149,48 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
 
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator batchIterator) {
+        bulkExecutionCompleteListener = createBulkExecutionCompleteListener(batchIterator);
+        loadNextBatchCompleteListener = createLoadNextBatchListener(batchIterator);
+        scheduleConsumeIteratorJob = createScheduleConsumeIteratorJob(batchIterator);
+
         safeConsumeIterator(batchIterator);
         return result;
+    }
+
+    private Runnable createScheduleConsumeIteratorJob(BatchIterator batchIterator) {
+        return () -> {
+            isScheduledCollectionRunning.set(false);
+            safeConsumeIterator(batchIterator);
+        };
+    }
+
+    private BiConsumer<Object, Throwable> createLoadNextBatchListener(BatchIterator batchIterator) {
+        return (r, t) -> {
+            if (t == null) {
+                unsafeConsumeIterator(batchIterator);
+            } else {
+                result.completeExceptionally(t);
+            }
+        };
+    }
+
+    private BiConsumer<BitSet, Throwable> createBulkExecutionCompleteListener(BatchIterator batchIterator) {
+        return (r, t) -> {
+            if (lastBulkScheduledToExecute &&
+                pendingItemsCount.get() == 0 &&
+                computeFinalResult.compareAndSet(false, true)) {
+
+                // all bulks are complete, close iterator and complete result
+                batchIterator.close();
+                if (t == null) {
+                    result.complete(Collections.singletonList(new Row1((long) responses.cardinality())));
+                } else {
+                    result.completeExceptionally(t);
+                }
+            } else {
+                safeConsumeIterator(batchIterator);
+            }
+        };
     }
 
     /**
@@ -198,15 +241,9 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
 
             if (batchIterator.allLoaded()) {
                 lastBulkScheduledToExecute = true;
-                execute(true).whenComplete(bulkExecutionCompleteListener(batchIterator));
+                execute(true).whenComplete(bulkExecutionCompleteListener);
             } else {
-                batchIterator.loadNextBatch().whenComplete((r, t) -> {
-                    if (t == null) {
-                        unsafeConsumeIterator(batchIterator);
-                    } else {
-                        result.completeExceptionally(t);
-                    }
-                });
+                batchIterator.loadNextBatch().whenComplete(loadNextBatchCompleteListener);
             }
         } catch (Throwable t) {
             batchIterator.close();
@@ -215,10 +252,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     }
 
     private void scheduleConsumeIterator(BatchIterator batchIterator) throws EsRejectedExecutionException {
-        scheduler.schedule(() -> {
-                isScheduledCollectionRunning.set(false);
-                safeConsumeIterator(batchIterator);
-            },
+        scheduler.schedule(scheduleConsumeIteratorJob,
             consumeIteratorDelays.next().getMillis(), TimeUnit.MILLISECONDS);
     }
 
@@ -226,29 +260,10 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         if (isExecutionPossibleOnAllNodes(requestsByShard)) {
             indexInBulk = 0;
             CompletableFuture<BitSet> bulkExecutionFuture = execute(isLastBatch);
-            bulkExecutionFuture.whenComplete(bulkExecutionCompleteListener(batchIterator));
+            bulkExecutionFuture.whenComplete(bulkExecutionCompleteListener);
             return true;
         }
         return false;
-    }
-
-    private BiConsumer<BitSet, Throwable> bulkExecutionCompleteListener(BatchIterator batchIterator) {
-        return (r, t) -> {
-            if (lastBulkScheduledToExecute &&
-                pendingItemsCount.get() == 0 &&
-                computeFinalResult.compareAndSet(false, true)) {
-
-                // all bulks are complete, close iterator and complete result
-                batchIterator.close();
-                if (t == null) {
-                    result.complete(Collections.singletonList(new Row1((long) responses.cardinality())));
-                } else {
-                    result.completeExceptionally(t);
-                }
-            } else {
-                safeConsumeIterator(batchIterator);
-            }
-        };
     }
 
     private boolean isExecutionPossibleOnAllNodes(Map<ShardLocation, TReq> bulkRequests) {
