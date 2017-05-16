@@ -36,32 +36,32 @@ settings like the ``number of shards`` or ``number of replicas``.
     +--------------------+-------------------+------------------+--------------------+
     | table_schema       | table_name        | number_of_shards | number_of_replicas |
     +--------------------+-------------------+------------------+--------------------+
-    | blob               | myblobs           |                3 |                  1 |
-    | doc                | documents         |                4 |                  1 |
-    | doc                | locations         |                2 |                  0 |
-    | doc                | partitioned_table |                4 |                  1 |
-    | doc                | quotes            |                2 |                  0 |
-    | information_schema | columns           |                1 |                  0 |
-    | information_schema | routines          |                1 |                  0 |
-    | information_schema | schemata          |                1 |                  0 |
-    | information_schema | sql_features      |                1 |                  0 |
-    | information_schema | table_constraints |                1 |                  0 |
-    | information_schema | table_partitions  |                1 |                  0 |
-    | information_schema | tables            |                1 |                  0 |
-    | pg_catalog         | pg_type           |                1 |                  0 |
-    | sys                | checks            |                1 |                  0 |
-    | sys                | cluster           |                1 |                  0 |
-    | sys                | jobs              |                1 |                  0 |
-    | sys                | jobs_log          |                1 |                  0 |
-    | sys                | node_checks       |                1 |                  0 |
-    | sys                | nodes             |                1 |                  0 |
-    | sys                | operations        |                1 |                  0 |
-    | sys                | operations_log    |                1 |                  0 |
-    | sys                | repositories      |                1 |                  0 |
-    | sys                | shards            |                1 |                  0 |
-    | sys                | snapshots         |                1 |                  0 |
-    | sys                | summits           |                1 |                  0 |
-    | sys                | users             |                1 |                  0 |
+    | blob               | myblobs           |                3 | 1                  |
+    | doc                | documents         |                4 | 1                  |
+    | doc                | locations         |                2 | 0                  |
+    | doc                | partitioned_table |                4 | 1                  |
+    | doc                | quotes            |                2 | 0                  |
+    | information_schema | columns           |                1 | 0                  |
+    | information_schema | routines          |                1 | 0                  |
+    | information_schema | schemata          |                1 | 0                  |
+    | information_schema | sql_features      |                1 | 0                  |
+    | information_schema | table_constraints |                1 | 0                  |
+    | information_schema | table_partitions  |                1 | 0                  |
+    | information_schema | tables            |                1 | 0                  |
+    | pg_catalog         | pg_type           |                1 | 0                  |
+    | sys                | checks            |                1 | 0                  |
+    | sys                | cluster           |                1 | 0                  |
+    | sys                | jobs              |                1 | 0                  |
+    | sys                | jobs_log          |                1 | 0                  |
+    | sys                | node_checks       |                1 | 0                  |
+    | sys                | nodes             |                1 | 0                  |
+    | sys                | operations        |                1 | 0                  |
+    | sys                | operations_log    |                1 | 0                  |
+    | sys                | repositories      |                1 | 0                  |
+    | sys                | shards            |                1 | 0                  |
+    | sys                | snapshots         |                1 | 0                  |
+    | sys                | summits           |                1 | 0                  |
+    | sys                | users             |                1 | 0                  |
     +--------------------+-------------------+------------------+--------------------+
     SELECT 26 rows in set (... sec)
 
