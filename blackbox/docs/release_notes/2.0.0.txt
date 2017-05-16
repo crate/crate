@@ -50,15 +50,14 @@ Changes
  - UDC pings will send ``licence.ident`` if defined from now on.
 
  - Added support for host based authentication (HBA) via the Postgres Wire
-   Protocol.
-   Please see :ref:`Host Based Authentication <administration_hba>`.
+   Protocol. Please see :ref:`Host Based Authentication <administration_hba>`.
 
  - Added support for ``GROUP BY`` in combination with subselect. E.g.::
 
      SELECT x, COUNT(*) FROM (SELECT x FROM t LIMIT 1) as tt GROUP BY x;
 
- - Implemented hash sum scalar functions (MD5, SHA1).
-   Please see :ref:`sha1 <sha1>`.
+ - Implemented hash sum scalar functions (MD5, SHA1). Please see
+   :ref:`sha1 <sha1>`.
 
 Fixes
 =====
