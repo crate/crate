@@ -35,6 +35,7 @@ import io.crate.data.Row;
 import io.crate.exceptions.AlterTableAliasException;
 import io.crate.executor.transport.ddl.RenameTableRequest;
 import io.crate.executor.transport.ddl.RenameTableResponse;
+import io.crate.executor.transport.ddl.TransportRenameTableAction;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
@@ -42,6 +43,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesResponse;
+import org.elasticsearch.action.admin.indices.alias.TransportIndicesAliasesAction;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
 import org.elasticsearch.action.admin.indices.close.CloseIndexResponse;
 import org.elasticsearch.action.admin.indices.close.TransportCloseIndexAction;
@@ -86,6 +88,8 @@ public class AlterTableOperation {
     private final TransportActionProvider transportActionProvider;
     private final Provider<TransportOpenIndexAction> transportOpenIndexActionProvider;
     private final Provider<TransportCloseIndexAction> transportCloseIndexActionProvider;
+    private final TransportRenameTableAction transportRenameTableAction;
+    private final TransportIndicesAliasesAction transportIndicesAliasesAction;
     private final SQLOperations sqlOperations;
 
     @Inject
@@ -93,11 +97,15 @@ public class AlterTableOperation {
                                TransportActionProvider transportActionProvider,
                                Provider<TransportOpenIndexAction> transportOpenIndexActionProvider,
                                Provider<TransportCloseIndexAction> transportCloseIndexActionProvider,
+                               TransportRenameTableAction transportRenameTableAction,
+                               TransportIndicesAliasesAction transportIndicesAliasesAction,
                                SQLOperations sqlOperations) {
         this.clusterService = clusterService;
         this.transportActionProvider = transportActionProvider;
         this.transportOpenIndexActionProvider = transportOpenIndexActionProvider;
         this.transportCloseIndexActionProvider = transportCloseIndexActionProvider;
+        this.transportRenameTableAction = transportRenameTableAction;
+        this.transportIndicesAliasesAction = transportIndicesAliasesAction;
         this.sqlOperations = sqlOperations;
     }
 
@@ -319,7 +327,7 @@ public class AlterTableOperation {
     private CompletableFuture<Long> renameTable(String[] sourceIndices, String[] targetIndices) {
         RenameTableRequest request = new RenameTableRequest(sourceIndices, targetIndices);
         FutureActionListener<RenameTableResponse, Long> listener = new FutureActionListener<>(r -> -1L);
-        transportActionProvider.transportRenameTableAction().execute(request, listener);
+        transportRenameTableAction.execute(request, listener);
         return listener;
     }
 
@@ -331,7 +339,7 @@ public class AlterTableOperation {
             .alias(newAlias).indices(partitions));
 
         FutureActionListener<IndicesAliasesResponse, Long> listener = new FutureActionListener<>(r -> -1L);
-        transportActionProvider.transportIndicesAliasesAction().execute(changeAliasRequest, listener);
+        transportIndicesAliasesAction.execute(changeAliasRequest, listener);
         return listener;
     }
 
