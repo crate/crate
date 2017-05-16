@@ -31,6 +31,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Aggregation extends Symbol {
 
@@ -83,5 +84,11 @@ public class Aggregation extends Symbol {
 
         DataTypes.toStream(valueType, out);
         Symbols.toStream(inputs, out);
+    }
+
+    @Override
+    public String toString() {
+        return "Aggregation{" + functionInfo.ident().name() +
+               ", args=[" + inputs.stream().map(Symbol::toString).collect(Collectors.joining(", ")) + "]}";
     }
 }
