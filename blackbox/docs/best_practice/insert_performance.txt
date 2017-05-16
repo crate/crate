@@ -37,4 +37,9 @@ If you use the :ref:`sql_http_endpoint`, you can insert multiple records at
 once by making use of :ref:`bulk_operations`. Our benchmarking_ indicates that
 you can expect to see at least a twofold increase in ingestion performance.
 
+Bulk inserts still generate internal network traffic, and CrateDB still waits
+until all replicas have been updated before returning a response. But because
+inserts are batched up, less internal communication and synchronisation is
+needed.
+
 .. _benchmarking: https://crate.io/a/insert-boost-on-replicas/
