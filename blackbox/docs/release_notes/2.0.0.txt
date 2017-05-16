@@ -6,6 +6,13 @@ Version 2.0.0
 
 Released on 2017/05/16.
 
+.. CAUTION::
+
+   :ref:`version_1.2.0` introduced a significant number of breaking changes. It
+   was decided after the fact to communicate this by incrementing the major
+   version number for the next release. Be sure to consult the 1.2.0 release
+   notes before upgrading to 2.0.0
+
 .. NOTE::
 
    If you are upgrading a cluster, you must be running CrateDB
@@ -43,14 +50,14 @@ Changes
  - UDC pings will send ``licence.ident`` if defined from now on.
 
  - Added support for host based authentication (HBA) via the Postgres Wire
-   Protocol. 
+   Protocol.
    Please see :ref:`Host Based Authentication <administration_hba>`.
 
  - Added support for ``GROUP BY`` in combination with subselect. E.g.::
 
      SELECT x, COUNT(*) FROM (SELECT x FROM t LIMIT 1) as tt GROUP BY x;
 
- - Implemented hash sum scalar functions (MD5, SHA1). 
+ - Implemented hash sum scalar functions (MD5, SHA1).
    Please see :ref:`sha1 <sha1>`.
 
 Fixes

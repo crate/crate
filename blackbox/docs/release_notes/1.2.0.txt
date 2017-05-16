@@ -6,6 +6,15 @@ Version 1.2.0
 
 Released on 2017/04/24.
 
+.. CAUTION::
+
+   This release introduced a significant number of breaking changes. It was
+   decided after the fact to communicate this by incrementing the major version
+   number for the next release.
+
+   We recommend that you consult the 1.2.0 release notes for informational
+   purposes only, and proceed directly to :ref:`version_2.0.0`.
+
 .. NOTE::
 
    If you are upgrading a cluster, you must be running CrateDB
