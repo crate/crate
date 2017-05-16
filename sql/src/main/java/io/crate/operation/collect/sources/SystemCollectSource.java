@@ -67,6 +67,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import static java.util.concurrent.CompletableFuture.completedFuture;
+
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
  * <p>
@@ -100,38 +102,38 @@ public class SystemCollectSource implements CollectSource {
         rowUpdaters = ImmutableMap.of(SysNodeChecksTableInfo.IDENT, sysNodeChecks);
         iterableGetters = new HashMap<>();
         iterableGetters.put(InformationSchemataTableInfo.IDENT.fqn(),
-            () -> synchronousIterableGetter(informationSchemaIterables.schemas()));
+            () -> completedFuture(informationSchemaIterables.schemas()));
         iterableGetters.put(InformationTablesTableInfo.IDENT.fqn(),
-            () -> synchronousIterableGetter(informationSchemaIterables.tables()));
+            () -> completedFuture(informationSchemaIterables.tables()));
         iterableGetters.put(InformationPartitionsTableInfo.IDENT.fqn(),
-           () -> synchronousIterableGetter(informationSchemaIterables.partitions()));
+           () -> completedFuture(informationSchemaIterables.partitions()));
         iterableGetters.put(InformationColumnsTableInfo.IDENT.fqn(),
-           () -> synchronousIterableGetter(informationSchemaIterables.columns()));
+           () -> completedFuture(informationSchemaIterables.columns()));
         iterableGetters.put(InformationTableConstraintsTableInfo.IDENT.fqn(),
-           () -> synchronousIterableGetter(informationSchemaIterables.constraints()));
+           () -> completedFuture(informationSchemaIterables.constraints()));
         iterableGetters.put(InformationRoutinesTableInfo.IDENT.fqn(),
-           () -> synchronousIterableGetter(informationSchemaIterables.routines()));
+           () -> completedFuture(informationSchemaIterables.routines()));
         iterableGetters.put(InformationSqlFeaturesTableInfo.IDENT.fqn(),
-           () -> synchronousIterableGetter(informationSchemaIterables.features()));
+           () -> completedFuture(informationSchemaIterables.features()));
         iterableGetters.put(SysJobsTableInfo.IDENT.fqn(),
-           () -> synchronousIterableGetter(jobsLogs.jobsGetter()));
+           () -> completedFuture(jobsLogs.jobsGetter()));
         iterableGetters.put(SysJobsLogTableInfo.IDENT.fqn(),
-           () -> synchronousIterableGetter(jobsLogs.jobsLogGetter()));
+           () -> completedFuture(jobsLogs.jobsLogGetter()));
         iterableGetters.put(SysOperationsTableInfo.IDENT.fqn(),
-           () -> synchronousIterableGetter(jobsLogs.operationsGetter()));
+           () -> completedFuture(jobsLogs.operationsGetter()));
         iterableGetters.put(SysOperationsLogTableInfo.IDENT.fqn(),
-           () -> synchronousIterableGetter(jobsLogs.operationsLogGetter()));
+           () -> completedFuture(jobsLogs.operationsLogGetter()));
         iterableGetters.put(SysChecksTableInfo.IDENT.fqn(),
            () -> new SysChecker<>(sysChecks).checksGetter());
         iterableGetters.put(SysNodeChecksTableInfo.IDENT.fqn(),
-           () -> synchronousIterableGetter(sysNodeChecks));
+           () -> completedFuture(sysNodeChecks));
         iterableGetters.put(SysRepositoriesTableInfo.IDENT.fqn(),
-           () -> synchronousIterableGetter(repositoriesService.getRepositoriesList()));
+           () -> completedFuture(repositoriesService.getRepositoriesList()));
         iterableGetters.put(SysSnapshotsTableInfo.IDENT.fqn(), snapshotSupplier(sysSnapshots));
         iterableGetters.put(SysSummitsTableInfo.IDENT.fqn(),
-           () -> synchronousIterableGetter(new SummitsIterable().summitsGetter()));
+           () -> completedFuture(new SummitsIterable().summitsGetter()));
         iterableGetters.put(PgTypeTable.IDENT.fqn(),
-           () -> synchronousIterableGetter(pgCatalogTables.typesGetter()));
+           () -> completedFuture(pgCatalogTables.typesGetter()));
     }
 
     @VisibleForTesting
@@ -145,10 +147,6 @@ public class SystemCollectSource implements CollectSource {
             }
             return f;
         };
-    }
-
-    private CompletableFuture<? extends Iterable<?>> synchronousIterableGetter(Iterable<?> iterable) {
-        return CompletableFuture.completedFuture(iterable);
     }
 
     Function<Iterable, Iterable<? extends Row>> toRowsIterableTransformation(RoutedCollectPhase collectPhase,
