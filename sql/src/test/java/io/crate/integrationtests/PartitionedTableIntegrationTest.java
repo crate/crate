@@ -33,8 +33,6 @@ import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.exists.AliasesExistResponse;
-import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
-import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.action.admin.indices.settings.get.GetSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
 import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
@@ -175,13 +173,14 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     @Test
     public void testInsertIntoClosedPartition() throws Exception {
         execute("create table t (n integer) partitioned by (n)");
-        ensureYellow();
         execute("insert into t (n) values (1)");
-
-        String[] indices = client().admin().indices().getIndex(new GetIndexRequest()).actionGet().getIndices();
-        client().admin().indices().close(new CloseIndexRequest(indices[0])).actionGet();
-        execute("insert into t (n) values (100)");
+        refresh();
         ensureYellow();
+
+        execute("alter table t partition (n = 1) close");
+        execute("insert into t (n) values (1)");
+        assertThat(response.rowCount(), is(0L));
+        refresh();
 
         execute("select count(*) from t");
         assertEquals(0L, response.rows()[0][0]);
@@ -194,9 +193,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into t (n) values (1)");
         ensureGreen();
 
-        String[] indices = client().admin().indices().getIndex(new GetIndexRequest()).actionGet().getIndices();
-        client().admin().indices().close(new CloseIndexRequest(indices[0])).actionGet();
-
+        execute("alter table t partition (n = 1) close");
         execute("select count(*) from t");
         assertEquals(0L, response.rows()[0][0]);
     }
