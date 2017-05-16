@@ -43,13 +43,16 @@ import org.elasticsearch.action.admin.indices.close.CloseIndexResponse;
 import org.elasticsearch.action.admin.indices.close.TransportCloseIndexAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
+import org.elasticsearch.action.admin.indices.mapping.put.TransportPutMappingAction;
 import org.elasticsearch.action.admin.indices.open.OpenIndexRequest;
 import org.elasticsearch.action.admin.indices.open.OpenIndexResponse;
 import org.elasticsearch.action.admin.indices.open.TransportOpenIndexAction;
+import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
+import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -57,7 +60,6 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -76,21 +78,27 @@ import java.util.stream.Stream;
 public class AlterTableOperation {
 
     private final ClusterService clusterService;
-    private final TransportActionProvider transportActionProvider;
-    private final Provider<TransportOpenIndexAction> transportOpenIndexActionProvider;
-    private final Provider<TransportCloseIndexAction> transportCloseIndexActionProvider;
+    private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
+    private final TransportPutMappingAction transportPutMappingAction;
+    private final TransportUpdateSettingsAction transportUpdateSettingsAction;
+    private final TransportOpenIndexAction transportOpenIndexAction;
+    private final TransportCloseIndexAction transportCloseIndexAction;
     private final SQLOperations sqlOperations;
 
     @Inject
     public AlterTableOperation(ClusterService clusterService,
-                               TransportActionProvider transportActionProvider,
-                               Provider<TransportOpenIndexAction> transportOpenIndexActionProvider,
-                               Provider<TransportCloseIndexAction> transportCloseIndexActionProvider,
+                               TransportPutIndexTemplateAction transportPutIndexTemplateAction,
+                               TransportPutMappingAction transportPutMappingAction,
+                               TransportUpdateSettingsAction transportUpdateSettingsAction,
+                               TransportOpenIndexAction transportOpenIndexAction,
+                               TransportCloseIndexAction transportCloseIndexAction,
                                SQLOperations sqlOperations) {
         this.clusterService = clusterService;
-        this.transportActionProvider = transportActionProvider;
-        this.transportOpenIndexActionProvider = transportOpenIndexActionProvider;
-        this.transportCloseIndexActionProvider = transportCloseIndexActionProvider;
+        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
+        this.transportPutMappingAction = transportPutMappingAction;
+        this.transportUpdateSettingsAction = transportUpdateSettingsAction;
+        this.transportOpenIndexAction = transportOpenIndexAction;
+        this.transportCloseIndexAction = transportCloseIndexAction;
         this.sqlOperations = sqlOperations;
     }
 
@@ -150,14 +158,14 @@ public class AlterTableOperation {
     private CompletableFuture<Long> openTable(String... indices) {
         FutureActionListener<OpenIndexResponse, Long> listener = new FutureActionListener<>(r -> 0L);
         OpenIndexRequest request = new OpenIndexRequest(indices);
-        transportOpenIndexActionProvider.get().execute(request, listener);
+        transportOpenIndexAction.execute(request, listener);
         return listener;
     }
 
     private CompletableFuture<Long> closeTable(String... indices) {
         FutureActionListener<CloseIndexResponse, Long> listener = new FutureActionListener<>(r -> 0L);
         CloseIndexRequest request = new CloseIndexRequest(indices);
-        transportCloseIndexActionProvider.get().execute(request, listener);
+        transportCloseIndexAction.execute(request, listener);
         return listener;
     }
 
@@ -302,7 +310,7 @@ public class AlterTableOperation {
         }
 
         FutureActionListener<PutIndexTemplateResponse, Long> listener = new FutureActionListener<>(r -> 0L);
-        transportActionProvider.transportPutIndexTemplateAction().execute(request, listener);
+        transportPutIndexTemplateAction.execute(request, listener);
         return listener;
     }
 
@@ -331,7 +339,7 @@ public class AlterTableOperation {
         request.source(mapping);
 
         FutureActionListener<PutMappingResponse, Long> listener = new FutureActionListener<>(r -> 0L);
-        transportActionProvider.transportPutMappingAction().execute(request, listener);
+        transportPutMappingAction.execute(request, listener);
         return listener;
     }
 
@@ -385,7 +393,7 @@ public class AlterTableOperation {
         request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
         FutureActionListener<UpdateSettingsResponse, Long> listener = new FutureActionListener<>(r -> 0L);
-        transportActionProvider.transportUpdateSettingsAction().execute(request, listener);
+        transportUpdateSettingsAction.execute(request, listener);
         return listener;
     }
 
