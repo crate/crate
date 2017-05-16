@@ -123,15 +123,19 @@ public class SystemCollectSource implements CollectSource {
            () -> completedFuture(jobsLogs.operationsGetter()));
         iterableGetters.put(SysOperationsLogTableInfo.IDENT.fqn(),
            () -> completedFuture(jobsLogs.operationsLogGetter()));
-        iterableGetters.put(SysChecksTableInfo.IDENT.fqn(),
-           () -> new SysChecker<>(sysChecks).checksGetter());
+
+        SysChecker<SysCheck> sysChecker = new SysChecker<>(sysChecks);
+        iterableGetters.put(SysChecksTableInfo.IDENT.fqn(), sysChecker::computeResultAndGet);
+
         iterableGetters.put(SysNodeChecksTableInfo.IDENT.fqn(),
            () -> completedFuture(sysNodeChecks));
         iterableGetters.put(SysRepositoriesTableInfo.IDENT.fqn(),
            () -> completedFuture(repositoriesService.getRepositoriesList()));
         iterableGetters.put(SysSnapshotsTableInfo.IDENT.fqn(), snapshotSupplier(sysSnapshots));
-        iterableGetters.put(SysSummitsTableInfo.IDENT.fqn(),
-           () -> completedFuture(new SummitsIterable().summitsGetter()));
+
+        SummitsIterable summits = new SummitsIterable();
+        iterableGetters.put(SysSummitsTableInfo.IDENT.fqn(), () -> completedFuture(summits));
+
         iterableGetters.put(PgTypeTable.IDENT.fqn(),
            () -> completedFuture(pgCatalogTables.typesGetter()));
     }

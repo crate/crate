@@ -42,10 +42,6 @@ public class SummitsIterable implements Iterable<SummitsContext> {
 
     private static final Splitter TAB_SPLITTER = Splitter.on("\t");
 
-    public Iterable<SummitsContext> summitsGetter() {
-        return summitsSupplierCache.get();
-    }
-
     private final Supplier<List<SummitsContext>> summitsSupplierCache = Suppliers.memoizeWithExpiration(
         this::fetchSummits, 4, TimeUnit.MINUTES
     );
@@ -82,6 +78,6 @@ public class SummitsIterable implements Iterable<SummitsContext> {
 
     @Override
     public Iterator<SummitsContext> iterator() {
-        return summitsGetter().iterator();
+        return summitsSupplierCache.get().iterator();
     }
 }

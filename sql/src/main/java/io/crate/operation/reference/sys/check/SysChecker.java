@@ -39,7 +39,7 @@ public class SysChecker<T extends SysCheck> {
         this.sysChecks = sysChecks;
     }
 
-    public CompletableFuture<Iterable<T>> checksGetter() {
+    public CompletableFuture<Iterable<T>> computeResultAndGet() {
         List<CompletableFuture<?>> futures = new ArrayList<>(sysChecks.size());
         for (SysCheck sysCheck : sysChecks) {
             futures.add(sysCheck.computeResult());
