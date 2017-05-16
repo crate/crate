@@ -233,9 +233,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
 
         nodePageSizeHint = in.readOptionalVInt();
 
-        if (in.readBoolean()) {
-            orderBy = OrderBy.fromStream(in);
-        }
+        orderBy = in.readOptionalWriteable(OrderBy::new);
     }
 
     @Override
@@ -251,12 +249,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         whereClause.writeTo(out);
 
         out.writeOptionalVInt(nodePageSizeHint);
-        if (orderBy != null) {
-            out.writeBoolean(true);
-            OrderBy.toStream(orderBy, out);
-        } else {
-            out.writeBoolean(false);
-        }
+        out.writeOptionalWriteable(orderBy);
     }
 
     /**

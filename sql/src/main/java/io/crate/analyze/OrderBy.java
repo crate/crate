@@ -29,7 +29,7 @@ import io.crate.exceptions.AmbiguousOrderByException;
 import io.crate.metadata.TransactionContext;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+import org.elasticsearch.common.io.stream.Writeable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -37,7 +37,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-public class OrderBy implements Streamable {
+public class OrderBy implements Writeable {
 
     private List<Symbol> orderBySymbols;
     private boolean[] reverseFlags;
@@ -51,9 +51,6 @@ public class OrderBy implements Streamable {
         this.orderBySymbols = orderBySymbols;
         this.reverseFlags = reverseFlags;
         this.nullsFirst = nullsFirst;
-    }
-
-    private OrderBy() {
     }
 
     public List<Symbol> orderBySymbols() {
@@ -106,18 +103,7 @@ public class OrderBy implements Streamable {
         return subset(subSet);
     }
 
-    public static void toStream(OrderBy orderBy, StreamOutput out) throws IOException {
-        orderBy.writeTo(out);
-    }
-
-    public static OrderBy fromStream(StreamInput in) throws IOException {
-        OrderBy orderBy = new OrderBy();
-        orderBy.readFrom(in);
-        return orderBy;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public OrderBy(StreamInput in) throws IOException {
         int numOrderBy = in.readVInt();
         reverseFlags = new boolean[numOrderBy];
 
