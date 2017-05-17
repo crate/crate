@@ -108,7 +108,9 @@ public class QueryAndFetchConsumer implements Consumer {
             Planner.Context plannerContext = context.plannerContext();
             QueriedRelation subRelation = relation.subRelation();
             FetchMode parentFetchMode = context.fetchMode();
-            context.setFetchMode(FetchMode.WITH_PROPAGATION);
+            if (parentFetchMode != FetchMode.NEVER) {
+                context.setFetchMode(FetchMode.WITH_PROPAGATION);
+            }
             Plan subPlan = plannerContext.planSubRelation(subRelation, context);
             context.setFetchMode(parentFetchMode);
 
