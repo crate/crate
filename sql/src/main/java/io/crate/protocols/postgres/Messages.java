@@ -59,6 +59,12 @@ public class Messages {
 
     private final static Logger LOGGER = Loggers.getLogger(Messages.class);
 
+    private static final byte[] SEVERITY_FATAL = "FATAL".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] SEVERITY_ERROR = "ERROR".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] ERROR_CODE_INVALID_AUTHORIZATION_SPECIFICATION = "28000".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] ERROR_CODE_FEATURE_NOT_SUPPORTED = "0A000".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] ERROR_CODE_INTERNAL_ERROR = "XX000".getBytes(StandardCharsets.UTF_8);
+    private static final byte[] METHOD_NAME_CLIENT_AUTH = "ClientAuthentication".getBytes(StandardCharsets.UTF_8);
 
     public static ChannelFuture sendAuthenticationOK(Channel channel) {
         ChannelBuffer buffer = ChannelBuffers.buffer(9);
@@ -192,16 +198,13 @@ public class Messages {
     static void sendAuthenticationError(Channel channel, String message) {
         LOGGER.warn(message);
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
-        byte[] severity = "FATAL".getBytes(StandardCharsets.UTF_8);
-        byte[] errorCode = "28000".getBytes(StandardCharsets.UTF_8);
-        byte[] method = "ClientAuthentication".getBytes(StandardCharsets.UTF_8);
-        sendErrorResponse(channel, message, msg, severity, null, null, method, errorCode);
+        sendErrorResponse(channel, message, msg, SEVERITY_FATAL, null, null,
+            METHOD_NAME_CLIENT_AUTH, ERROR_CODE_INVALID_AUTHORIZATION_SPECIFICATION);
     }
 
     static void sendErrorResponse(Channel channel, Throwable throwable) {
         final String message = SQLExceptions.messageOf(throwable);
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
-        byte[] severity = "ERROR".getBytes(StandardCharsets.UTF_8);
         byte[] lineNumber = null;
         byte[] fileName = null;
         byte[] methodName = null;
@@ -223,12 +226,12 @@ public class Messages {
         byte[] errorCode;
         if (throwable instanceof IllegalArgumentException || throwable instanceof UnsupportedOperationException) {
             // feature_not_supported
-            errorCode = "0A000".getBytes(StandardCharsets.UTF_8);
+            errorCode = ERROR_CODE_FEATURE_NOT_SUPPORTED;
         } else {
             // internal_error
-            errorCode = "XX000".getBytes(StandardCharsets.UTF_8);
+            errorCode = ERROR_CODE_INTERNAL_ERROR;
         }
-        sendErrorResponse(channel, message, msg, severity, lineNumber, fileName, methodName, errorCode);
+        sendErrorResponse(channel, message, msg, SEVERITY_ERROR, lineNumber, fileName, methodName, errorCode);
     }
 
     /**
