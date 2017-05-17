@@ -21,8 +21,8 @@
 
 package io.crate.node;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.Constants;
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.elasticsearch.cli.Terminal;
@@ -48,10 +48,9 @@ import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
 
 
-public class NodeSettingsTest extends RandomizedTest {
+public class NodeSettingsTest extends CrateUnitTest {
 
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
