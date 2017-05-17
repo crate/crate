@@ -189,13 +189,13 @@ public class Messages {
         }
     }
 
-    public static ChannelFuture sendAuthenticationError(Channel channel, String message) {
+    static void sendAuthenticationError(Channel channel, String message) {
         LOGGER.warn(message);
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
         byte[] severity = "FATAL".getBytes(StandardCharsets.UTF_8);
         byte[] errorCode = "28000".getBytes(StandardCharsets.UTF_8);
         byte[] method = "ClientAuthentication".getBytes(StandardCharsets.UTF_8);
-        return sendErrorResponse(channel, message, msg, severity, null, null, method, errorCode);
+        sendErrorResponse(channel, message, msg, severity, null, null, method, errorCode);
     }
 
     static void sendErrorResponse(Channel channel, Throwable throwable) {
@@ -239,7 +239,7 @@ public class Messages {
      * <p>
      * See https://www.postgresql.org/docs/9.2/static/protocol-error-fields.html for a list of error codes
      */
-    private static ChannelFuture sendErrorResponse(Channel channel, String message, byte[] msg, byte[] severity, byte[] lineNumber, byte[] fileName, byte[] methodName, byte[] errorCode) {
+    private static void sendErrorResponse(Channel channel, String message, byte[] msg, byte[] severity, byte[] lineNumber, byte[] fileName, byte[] methodName, byte[] errorCode) {
         int length = 4 +
             1 + (severity.length + 1) +
             1 + (msg.length + 1) +
@@ -279,7 +279,6 @@ public class Messages {
                 }
             });
         }
-        return channelFuture;
     }
 
     /**
