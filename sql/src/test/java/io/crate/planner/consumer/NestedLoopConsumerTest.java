@@ -365,4 +365,15 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
         OrderedTopNProjection projection = (OrderedTopNProjection) nestedLoop.nestedLoopPhase().projections().get(1);
         assertThat(projection.outputs().size(), is(2));
     }
+
+    @Test
+    public void testJoinOnVirtualTableDoesFetchAfterJoinIfPossible() throws Exception {
+        Plan plan = plan("select * from\n" +
+                         "  (select max(id) from (select * from users limit 3) u1) u1," +
+                         "  users u2");
+        assertThat(plan, instanceOf(QueryThenFetch.class));
+        // ideally we would also have an intermediate fetch, but join currently uses a up-front fetch-rewrite instead
+        // of fetch-propagation and mixing these two doesn't work
+        // because the reader-allocation would be done twice which isn't possible
+    }
 }

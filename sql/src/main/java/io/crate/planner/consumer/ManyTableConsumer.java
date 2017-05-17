@@ -375,15 +375,18 @@ public class ManyTableConsumer implements Consumer {
         public Plan visitMultiSourceSelect(MultiSourceSelect mss, ConsumerContext context) {
             if (isUnsupportedStatement(mss, context)) return null;
 
-            if (mss.canBeFetched().isEmpty() || context.fetchMode() == FetchMode.NEVER) {
+            if (mss.canBeFetched().isEmpty()) {
+                context.setFetchMode(FetchMode.NEVER);
+            }
+            if (context.fetchMode() == FetchMode.NEVER) {
                 return getPlan(mss, context);
             }
 
-            context.setFetchMode(FetchMode.NEVER);
             FetchPushDown.Builder<MultiSourceSelect> builder = FetchPushDown.pushDown(mss);
             if (builder == null) {
                 return getPlan(mss, context);
             }
+            context.setFetchMode(FetchMode.NEVER);
             Planner.Context plannerContext = context.plannerContext();
             Plan plan = Merge.ensureOnHandler(getPlan(builder.replacedRelation(), context), plannerContext);
 
