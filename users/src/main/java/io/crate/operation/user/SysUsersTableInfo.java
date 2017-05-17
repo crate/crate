@@ -71,8 +71,8 @@ public class SysUsersTableInfo extends StaticTableInfo {
         return ImmutableSet.of(User.Role.SUPERUSER);
     }
 
-    public static Map<ColumnIdent, RowCollectExpressionFactory> sysUsersExpressions() {
-        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
+    public static Map<ColumnIdent, RowCollectExpressionFactory<User>> sysUsersExpressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<User>>builder()
             .put(SysUsersTableInfo.Columns.NAME, () -> new RowContextCollectorExpression<User, BytesRef>() {
                 @Override
                 public BytesRef value() {
