@@ -27,6 +27,11 @@ FILE_WHITELIST = [re.compile(o) for o in [
     'random/groupby/slt_good_\d+.test',
 ]]
 
+log = logging.getLogger('crate.testing.layer')
+ch = logging.StreamHandler()
+ch.setLevel(logging.ERROR)
+log.addHandler(ch)
+
 
 class TestMaker(type):
 

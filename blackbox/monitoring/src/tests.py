@@ -26,6 +26,7 @@
 import os
 import unittest
 import time
+import logging
 from crate.client import connect
 from testutils.ports import GLOBAL_PORT_POOL
 from testutils.paths import crate_path
@@ -39,6 +40,11 @@ JMX_OPTS = '''
      -Dcom.sun.management.jmxremote.ssl=false
      -Dcom.sun.management.jmxremote.authenticate=false
 '''
+
+log = logging.getLogger('crate.testing.layer')
+ch = logging.StreamHandler()
+ch.setLevel(logging.ERROR)
+log.addHandler(ch)
 
 
 class JmxTermClient(object):

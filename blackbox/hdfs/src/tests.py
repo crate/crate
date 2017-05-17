@@ -28,6 +28,7 @@ import glob
 import shutil
 import time
 import tarfile
+import logging
 from testutils.ports import GLOBAL_PORT_POOL
 from testutils.paths import crate_path, project_root
 from crate.testing.layer import CrateLayer
@@ -52,6 +53,12 @@ hdfs_repo_libs_path = os.path.join(
     'es-repository-hdfs',
     'build',
     'extraLibs')
+
+log = logging.getLogger('crate.testing.layer')
+ch = logging.StreamHandler()
+ch.setLevel(logging.ERROR)
+log.addHandler(ch)
+
 
 def add_hadoop_libs(hdfs_repo_libs_path, path_to_dist):
     hdfs_plugin_location = os.path.join(path_to_dist, 'plugins', 'es-repository-hdfs')
