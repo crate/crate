@@ -81,7 +81,6 @@ public class HttpAuthUpstreamHandler extends SimpleChannelUpstreamHandler {
                         authorized = true;
                         ctx.sendUpstream(e);
                     } else {
-                        LOGGER.warn(throwable.getMessage());
                         sendUnauthorized(ctx.getChannel(), throwable.getMessage());
                     }
                 });
@@ -98,6 +97,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelUpstreamHandler {
 
     @VisibleForTesting
     static void sendUnauthorized(Channel channel, @Nullable String body) {
+        LOGGER.warn(body == null ? "unauthorized http chunk" : body);
         DefaultHttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED);
         if (body != null) {
             if (!body.endsWith("\n")) {

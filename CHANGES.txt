@@ -23,3 +23,5 @@ Changes
 Fixes
 =====
 
+ - Log failed authentication attempts at log level ``WARN``
+
