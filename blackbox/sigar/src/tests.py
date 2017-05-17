@@ -21,6 +21,7 @@
 
 import unittest
 import time
+import logging
 from crate.client import connect
 from crate.testing.layer import CrateLayer
 
@@ -29,6 +30,11 @@ from testutils.paths import crate_path
 
 CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
 CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
+
+log = logging.getLogger('crate.testing.layer')
+ch = logging.StreamHandler()
+ch.setLevel(logging.ERROR)
+log.addHandler(ch)
 
 
 class SigarIntegrationTest(unittest.TestCase):
