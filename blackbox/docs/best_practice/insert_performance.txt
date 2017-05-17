@@ -15,7 +15,7 @@ Insert Performance
 Single Inserts
 ==============
 
-Single inserts (see :ref:`inserting_data` ) are typically very fast with
+Single inserts (see :ref:`inserting_data`) are typically very fast with
 CrateDB. A small cluster can easily handle several thousand inserts per second
 done this way.
 
@@ -40,6 +40,7 @@ you can expect to see at least a twofold increase in ingestion performance.
 Bulk inserts still generate internal network traffic, and CrateDB still waits
 until all replicas have been updated before returning a response. But because
 inserts are batched up, less internal communication and synchronisation is
-needed.
+needed. In addition, the bulk query only needs to be parsed, planned, and
+executed once.
 
 .. _benchmarking: https://crate.io/a/insert-boost-on-replicas/
