@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport.task;
 
-import io.crate.Constants;
 import io.crate.action.FutureActionListener;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.BatchConsumer;
@@ -36,6 +35,7 @@ import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.jobs.*;
 import io.crate.metadata.PartitionName;
 import io.crate.planner.node.dml.UpsertById;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
@@ -46,6 +46,7 @@ import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.support.AutoCreateIndex;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
@@ -71,6 +72,8 @@ public class UpsertByIdTask extends JobTask {
     private BulkShardProcessorContext bulkShardProcessorContext;
 
     private JobExecutionContext jobExecutionContext;
+
+    private static final Logger LOGGER = Loggers.getLogger(UpsertById.class);
 
     public UpsertByIdTask(UpsertById upsertById,
                           ClusterService clusterService,
@@ -159,6 +162,7 @@ public class UpsertByIdTask extends JobTask {
             ).shardId();
         } catch (IndexNotFoundException e) {
             if (PartitionName.isPartition(item.index())) {
+                LOGGER.warn(String.format(Locale.ENGLISH, "Trying to insert value into unavailable partition: %s", item.index()));
                 return CompletableFuture.completedFuture(0L);
             } else {
                 return CompletableFutures.failedFuture(e);
