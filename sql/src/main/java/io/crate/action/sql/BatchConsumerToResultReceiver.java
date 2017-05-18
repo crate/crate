@@ -56,6 +56,7 @@ public class BatchConsumerToResultReceiver implements BatchConsumer {
 
     private void consumeIt(BatchIterator iterator) {
         Row row = RowBridging.toRow(iterator.rowData());
+        boolean allLoaded;
         try {
             while (iterator.moveNext()) {
                 rowCount++;
@@ -67,12 +68,13 @@ public class BatchConsumerToResultReceiver implements BatchConsumer {
                     return; // resumed via postgres protocol, close is done later
                 }
             }
+            allLoaded = iterator.allLoaded();
         } catch (Throwable t) {
             iterator.close();
             resultReceiver.fail(t);
             return;
         }
-        if (iterator.allLoaded()) {
+        if (allLoaded) {
             iterator.close();
             resultReceiver.allFinished(false);
         } else {
