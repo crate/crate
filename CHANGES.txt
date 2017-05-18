@@ -22,6 +22,9 @@ Changes
 Fixes
 =====
 
+ - Fixed a race condition that could lead to ``KILL (ALL)`` causing queries to
+   get stuck instead of interrupting them.
+
  - Fixed validation so that ``SELECT DISTINCT`` can be used only if there
    is no ``GROUP BY`` present or if the set of ``GROUP BY`` expressions is
    the same as the set ``SELECT`` expressions.

@@ -44,16 +44,18 @@ public class BatchRowVisitor {
                                                         CompletableFuture<R> resultFuture) {
         BiConsumer<A, Row> accumulator = collector.accumulator();
         Row row = RowBridging.toRow(it.rowData());
+        boolean allLoaded;
         try {
             while (it.moveNext()) {
                 accumulator.accept(state, row);
             }
+            allLoaded = it.allLoaded();
         } catch (Throwable t) {
             resultFuture.completeExceptionally(t);
             return resultFuture;
         }
 
-        if (it.allLoaded()) {
+        if (allLoaded) {
             resultFuture.complete(collector.finisher().apply(state));
         } else {
             it.loadNextBatch().whenComplete((r, t) -> {
