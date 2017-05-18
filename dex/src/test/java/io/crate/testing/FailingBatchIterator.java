@@ -24,12 +24,30 @@ package io.crate.testing;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.ForwardingBatchIterator;
+import io.crate.data.RowsBatchIterator;
+import io.crate.exceptions.Exceptions;
 
 public class FailingBatchIterator extends ForwardingBatchIterator {
 
     private final BatchIterator delegate;
     private final int failAfter;
     private int moveNextCalls = 0;
+
+    public static BatchIterator failOnAllLoaded() {
+        BatchIterator delegate = RowsBatchIterator.empty(1);
+        return new ForwardingBatchIterator() {
+            @Override
+            protected BatchIterator delegate() {
+                return delegate;
+            }
+
+            @Override
+            public boolean allLoaded() {
+                Exceptions.rethrowUnchecked(new InterruptedException("Job killed"));
+                return true;
+            }
+        };
+    }
 
     public FailingBatchIterator(BatchIterator delegate, int failAfter) {
         this.delegate = delegate;

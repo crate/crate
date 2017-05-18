@@ -107,6 +107,7 @@ public class DistributingConsumer implements BatchConsumer {
 
     private void consumeIt(BatchIterator it) {
         Row row = RowBridging.toRow(it.rowData());
+        boolean allLoaded;
         try {
             while (it.moveNext()) {
                 multiBucketBuilder.add(row);
@@ -115,11 +116,12 @@ public class DistributingConsumer implements BatchConsumer {
                     return;
                 }
             }
+            allLoaded = it.allLoaded();
         } catch (Throwable t) {
             forwardFailure(it, t);
             return;
         }
-        if (it.allLoaded()) {
+        if (allLoaded) {
             forwardResults(it, true);
         } else {
             it.loadNextBatch().whenComplete((r, t) -> {

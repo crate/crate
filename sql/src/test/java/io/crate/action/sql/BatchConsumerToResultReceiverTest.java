@@ -24,6 +24,7 @@ package io.crate.action.sql;
 
 import io.crate.data.Row;
 import io.crate.testing.BatchSimulatingIterator;
+import io.crate.testing.FailingBatchIterator;
 import io.crate.testing.TestingBatchIterators;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -67,5 +68,14 @@ public class BatchConsumerToResultReceiverTest {
 
         assertThat(collectedRows.size(), is(10));
         assertThat(collectedRows, Matchers.contains(expectedResult.toArray(new Object[0])));
+    }
+
+    @Test
+    public void testExceptionOnAllLoadedCallIsForwardedToResultReceiver() throws Exception {
+        BaseResultReceiver resultReceiver = new BaseResultReceiver();
+        BatchConsumerToResultReceiver consumer = new BatchConsumerToResultReceiver(resultReceiver, 0);
+
+        consumer.accept(FailingBatchIterator.failOnAllLoaded(), null);
+        assertThat(resultReceiver.completionFuture().isCompletedExceptionally(), is(true));
     }
 }

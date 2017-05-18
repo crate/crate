@@ -29,10 +29,7 @@ import io.crate.data.CollectionBucket;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.BatchSimulatingIterator;
-import io.crate.testing.TestingBatchConsumer;
-import io.crate.testing.TestingBatchIterators;
-import io.crate.testing.TestingHelpers;
+import io.crate.testing.*;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -103,6 +100,20 @@ public class DistributingConsumerTest extends CrateUnitTest {
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("foobar");
+        collectingConsumer.getResult();
+    }
+
+    @Test
+    public void testFailureOnAllLoadedIsForwarded() throws Exception {
+        Streamer<?>[] streamers = { DataTypes.INTEGER.streamer() };
+        TestingBatchConsumer collectingConsumer = new TestingBatchConsumer();
+        PageDownstreamContext pageDownstreamContext = createPageDownstreamContext(streamers, collectingConsumer);
+        TransportDistributedResultAction distributedResultAction = createFakeTransport(streamers, pageDownstreamContext);
+        DistributingConsumer distributingConsumer = createDistributingConsumer(streamers, distributedResultAction);
+
+        distributingConsumer.accept(FailingBatchIterator.failOnAllLoaded(), null);
+
+        expectedException.expect(InterruptedException.class);
         collectingConsumer.getResult();
     }
 
