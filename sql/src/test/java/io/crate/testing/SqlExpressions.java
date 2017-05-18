@@ -28,9 +28,9 @@ import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.relations.FullQualifedNameFieldProvider;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -61,24 +61,24 @@ public class SqlExpressions {
     private final EvaluatingNormalizer normalizer;
     private final Functions functions;
 
-    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources) {
+    public SqlExpressions(Map<QualifiedName, QueriedRelation> sources) {
         this(sources, null, null, SessionContext.SYSTEM_SESSION);
     }
 
-    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources, Object[] parameters) {
+    public SqlExpressions(Map<QualifiedName, QueriedRelation> sources, Object[] parameters) {
         this(sources, null, parameters, SessionContext.SYSTEM_SESSION);
     }
 
-    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
+    public SqlExpressions(Map<QualifiedName, QueriedRelation> sources,
                           @Nullable FieldResolver fieldResolver) {
         this(sources, fieldResolver, null, SessionContext.SYSTEM_SESSION);
     }
 
-    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
+    public SqlExpressions(Map<QualifiedName, QueriedRelation> sources,
                           SessionContext sessionContext) {
         this(sources, null, null, sessionContext);
     }
-    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
+    public SqlExpressions(Map<QualifiedName, QueriedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
                           @Nullable Object[] parameters,
                           SessionContext sessionContext) {

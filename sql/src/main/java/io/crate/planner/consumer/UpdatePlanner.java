@@ -24,7 +24,6 @@ package io.crate.planner.consumer;
 import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.VersionRewriter;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Assignments;
@@ -82,7 +81,7 @@ public final class UpdatePlanner {
         }
     }
 
-    private static class RelationVisitor extends AnalyzedRelationVisitor<Context, Plan> {
+    private static class RelationVisitor extends io.crate.analyze.relations.RelationVisitor<Context, Plan> {
 
         @Override
         public Plan visitDocTableRelation(DocTableRelation relation, Context context) {

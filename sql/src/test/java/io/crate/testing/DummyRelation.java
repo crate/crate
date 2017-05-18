@@ -22,8 +22,8 @@
 
 package io.crate.testing;
 
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.RelationVisitor;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Path;
@@ -39,7 +39,7 @@ import java.util.Set;
 /**
  * relation that will return a Reference with Doc granularity / String type for all columns
  */
-public class DummyRelation implements AnalyzedRelation {
+public class DummyRelation implements QueriedRelation {
 
     private final Set<ColumnIdent> columnReferences = new HashSet<>();
     private QualifiedName name = new QualifiedName("dummy");
@@ -51,7 +51,7 @@ public class DummyRelation implements AnalyzedRelation {
     }
 
     @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
         return null;
     }
 

@@ -51,7 +51,7 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDeleteWhere() throws Exception {
         DeleteAnalyzedStatement statement = e.analyze("delete from users where name='Trillian'");
-        DocTableRelation tableRelation = statement.analyzedRelation;
+        DocTableRelation tableRelation = statement.relation;
         TableInfo tableInfo = tableRelation.tableInfo();
         assertThat(USER_TABLE_IDENT, equalTo(tableInfo.ident()));
 
@@ -92,7 +92,7 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         DeleteAnalyzedStatement expectedStatement = e.analyze("delete from users where name='Trillian'");
         DeleteAnalyzedStatement actualStatement = e.analyze("delete from users as u where u.name='Trillian'");
 
-        assertThat(actualStatement.analyzedRelation.tableInfo(), equalTo(expectedStatement.analyzedRelation().tableInfo()));
+        assertThat(actualStatement.relation.tableInfo(), equalTo(expectedStatement.relation().tableInfo()));
         assertThat(actualStatement.whereClauses().get(0), equalTo(expectedStatement.whereClauses().get(0)));
     }
 

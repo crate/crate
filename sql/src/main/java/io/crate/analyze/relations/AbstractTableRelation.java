@@ -38,7 +38,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.function.Predicate;
 
-public abstract class AbstractTableRelation<T extends TableInfo> implements AnalyzedRelation, FieldResolver {
+public abstract class AbstractTableRelation<T extends TableInfo> implements QueriedRelation, FieldResolver {
 
     private static final Predicate<Reference> IS_OBJECT_ARRAY =
         input -> input != null

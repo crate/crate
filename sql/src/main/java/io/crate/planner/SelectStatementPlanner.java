@@ -26,9 +26,9 @@ import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.SelectAnalyzedStatement;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.planner.consumer.ConsumingPlanner;
@@ -48,7 +48,7 @@ class SelectStatementPlanner {
         return visitor.process(statement.relation(), context);
     }
 
-    private static class Visitor extends AnalyzedRelationVisitor<Planner.Context, Plan> {
+    private static class Visitor extends RelationVisitor<Planner.Context, Plan> {
 
         private final ConsumingPlanner consumingPlanner;
 
@@ -56,7 +56,7 @@ class SelectStatementPlanner {
             this.consumingPlanner = consumingPlanner;
         }
 
-        private Plan invokeConsumingPlanner(AnalyzedRelation relation, Planner.Context context) {
+        private Plan invokeConsumingPlanner(QueriedRelation relation, Planner.Context context) {
             Plan plan = consumingPlanner.plan(relation, context);
             if (plan == null) {
                 throw new UnsupportedOperationException("Cannot create plan for: " + relation);
@@ -65,7 +65,7 @@ class SelectStatementPlanner {
         }
 
         @Override
-        protected Plan visitAnalyzedRelation(AnalyzedRelation relation, Planner.Context context) {
+        protected Plan visitRelation(QueriedRelation relation, Planner.Context context) {
             return invokeConsumingPlanner(relation, context);
         }
 

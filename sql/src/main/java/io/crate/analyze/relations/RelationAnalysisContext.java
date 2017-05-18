@@ -37,7 +37,7 @@ public class RelationAnalysisContext {
     private final boolean aliasedRelation;
     // keep order of sources.
     //  e.g. something like:  select * from t1, t2 must not become select t2.*, t1.*
-    private final Map<QualifiedName, AnalyzedRelation> sources = new LinkedHashMap<>();
+    private final Map<QualifiedName, QueriedRelation> sources = new LinkedHashMap<>();
 
     @Nullable
     private List<JoinPair> joinPairs;
@@ -51,7 +51,7 @@ public class RelationAnalysisContext {
         return aliasedRelation;
     }
 
-    public Map<QualifiedName, AnalyzedRelation> sources() {
+    public Map<QualifiedName, QueriedRelation> sources() {
         return sources;
     }
 
@@ -88,7 +88,7 @@ public class RelationAnalysisContext {
         return joinPairs;
     }
 
-    private void addSourceRelation(QualifiedName qualifiedName, AnalyzedRelation relation) {
+    private void addSourceRelation(QualifiedName qualifiedName, QueriedRelation relation) {
         if (sources.put(qualifiedName, relation) != null) {
             String tableName = qualifiedName.toString();
             if (tableName.startsWith(".")) {
@@ -99,11 +99,11 @@ public class RelationAnalysisContext {
         }
     }
 
-    void addSourceRelation(String nameOrAlias, AnalyzedRelation relation) {
+    void addSourceRelation(String nameOrAlias, QueriedRelation relation) {
         addSourceRelation(new QualifiedName(nameOrAlias), relation);
     }
 
-    void addSourceRelation(String schemaName, String nameOrAlias, AnalyzedRelation relation) {
+    void addSourceRelation(String schemaName, String nameOrAlias, QueriedRelation relation) {
         addSourceRelation(new QualifiedName(Arrays.asList(schemaName, nameOrAlias)), relation);
     }
 

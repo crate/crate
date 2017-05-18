@@ -21,7 +21,6 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.repositories.RepositoryParamValidator;
@@ -129,7 +128,7 @@ public class Analyzer {
         return analysis;
     }
 
-    public AnalyzedRelation unboundAnalyze(Statement statement, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
+    public QueriedRelation unboundAnalyze(Statement statement, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
         return unboundAnalyzer.analyze(statement, sessionContext, paramTypeHints);
     }
 
@@ -143,9 +142,9 @@ public class Analyzer {
 
         @Override
         protected AnalyzedStatement visitQuery(Query node, Analysis analysis) {
-            AnalyzedRelation relation = relationAnalyzer.analyze(node.getQueryBody(), analysis);
+            QueriedRelation relation = relationAnalyzer.analyze(node.getQueryBody(), analysis);
             analysis.rootRelation(relation);
-            return new SelectAnalyzedStatement((QueriedRelation) relation);
+            return new SelectAnalyzedStatement(relation);
         }
 
         @Override

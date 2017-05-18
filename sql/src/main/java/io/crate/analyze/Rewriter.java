@@ -24,7 +24,10 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.JoinPair;
+import io.crate.analyze.relations.JoinPairs;
+import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.QuerySplitter;
 import io.crate.analyze.symbol.*;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.node.dql.join.JoinType;
@@ -74,9 +77,9 @@ public class Rewriter {
         if (!where.hasQuery()) {
             return;
         }
-        Iterator<Map.Entry<QualifiedName, AnalyzedRelation>> it = mss.sources().entrySet().iterator();
-        Map.Entry<QualifiedName, AnalyzedRelation> left = it.next();
-        Map.Entry<QualifiedName, AnalyzedRelation> right = it.next();
+        Iterator<Map.Entry<QualifiedName, QueriedRelation>> it = mss.sources().entrySet().iterator();
+        Map.Entry<QualifiedName, QueriedRelation> left = it.next();
+        Map.Entry<QualifiedName, QueriedRelation> right = it.next();
         QualifiedName leftName = left.getKey();
         QualifiedName rightName = right.getKey();
         JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(
@@ -98,8 +101,8 @@ public class Rewriter {
     private static void tryRewrite(EvaluatingNormalizer normalizer,
                                    MultiSourceSelect mss,
                                    WhereClause where,
-                                   Map.Entry<QualifiedName, AnalyzedRelation> left,
-                                   Map.Entry<QualifiedName, AnalyzedRelation> right,
+                                   Map.Entry<QualifiedName, QueriedRelation> left,
+                                   Map.Entry<QualifiedName, QueriedRelation> right,
                                    JoinPair joinPair,
                                    JoinType joinType) {
         final Map<QualifiedName, QueriedRelation> outerRelations = groupOuterRelationQSByName(left, right, joinType);
@@ -139,19 +142,16 @@ public class Rewriter {
         };
     }
 
-    private static Map<QualifiedName, QueriedRelation> groupOuterRelationQSByName(Map.Entry<QualifiedName, AnalyzedRelation> left,
-                                                                                  Map.Entry<QualifiedName, AnalyzedRelation> right,
+    private static Map<QualifiedName, QueriedRelation> groupOuterRelationQSByName(Map.Entry<QualifiedName, QueriedRelation> left,
+                                                                                  Map.Entry<QualifiedName, QueriedRelation> right,
                                                                                   JoinType joinType) {
         switch (joinType) {
             case LEFT:
-                return Collections.singletonMap(right.getKey(), (QueriedRelation) right.getValue());
+                return Collections.singletonMap(right.getKey(), right.getValue());
             case RIGHT:
-                return Collections.singletonMap(left.getKey(), (QueriedRelation) left.getValue());
+                return Collections.singletonMap(left.getKey(), left.getValue());
             case FULL:
-                return ImmutableMap.of(
-                    left.getKey(), (QueriedRelation) left.getValue(),
-                    right.getKey(), (QueriedRelation) right.getValue()
-                );
+                return ImmutableMap.of(left.getKey(), left.getValue(), right.getKey(), right.getValue());
         }
         throw new AssertionError("Invalid joinType for outer-join -> inner-join rewrite: " + joinType);
     }
@@ -181,7 +181,7 @@ public class Rewriter {
         }
         for (Field fieldToRemove : collectFieldsToRemoveFromOutputs.fieldsToNotCollect()) {
             multiSourceQuerySpec.outputs().remove(fieldToRemove);
-            QueriedRelation relation = (QueriedRelation) fieldToRemove.relation();
+            QueriedRelation relation = fieldToRemove.relation();
 
             int index = fieldToRemove.index();
             relation.querySpec().outputs().remove(index);

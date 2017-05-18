@@ -22,7 +22,7 @@
 package io.crate.analyze.symbol;
 
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.metadata.Path;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -58,11 +58,11 @@ import java.util.Objects;
  */
 public class Field extends Symbol implements Path {
 
-    private AnalyzedRelation relation;
+    private QueriedRelation relation;
     private Path path;
     private DataType valueType;
 
-    public Field(AnalyzedRelation relation, Path path, DataType valueType) {
+    public Field(QueriedRelation relation, Path path, DataType valueType) {
         assert path != null : "path must not be null";
         assert relation != null : "relation must not be null";
 
@@ -75,7 +75,7 @@ public class Field extends Symbol implements Path {
         return path;
     }
 
-    public AnalyzedRelation relation() {
+    public QueriedRelation relation() {
         return relation;
     }
 

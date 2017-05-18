@@ -22,7 +22,7 @@
 
 package io.crate.analyze.expressions;
 
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.sql.tree.Query;
@@ -37,7 +37,7 @@ public class SubqueryAnalyzer {
         this.statementAnalysisContext = statementAnalysisContext;
     }
 
-    public AnalyzedRelation analyze(Query query) {
+    public QueriedRelation analyze(Query query) {
         return relationAnalyzer.analyze(query, statementAnalysisContext);
     }
 }

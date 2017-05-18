@@ -24,7 +24,7 @@ package io.crate.planner;
 
 import com.google.common.base.Preconditions;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
@@ -159,7 +159,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
 
-        public Plan planSubRelation(AnalyzedRelation relation, ConsumerContext consumerContext) {
+        public Plan planSubRelation(QueriedRelation relation, ConsumerContext consumerContext) {
             assert consumingPlanner != null : "consumingPlanner needs to be present to plan sub relations";
             return consumingPlanner.plan(relation, consumerContext);
         }

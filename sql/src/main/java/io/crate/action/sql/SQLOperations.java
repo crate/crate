@@ -23,7 +23,7 @@
 package io.crate.action.sql;
 
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.Executor;
@@ -263,22 +263,22 @@ public class SQLOperations {
                     PreparedStmt preparedStmt = preparedStatements.get(portalOrStatement);
                     Statement statement = preparedStmt.statement();
 
-                    AnalyzedRelation analyzedRelation;
+                    QueriedRelation relation;
                     if (preparedStmt.isRelationInitialized()) {
-                        analyzedRelation = preparedStmt.relation();
+                        relation = preparedStmt.relation();
                     } else {
                         try {
-                            analyzedRelation = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
-                            preparedStmt.relation(analyzedRelation);
+                            relation = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
+                            preparedStmt.relation(relation);
                         } catch (Throwable t) {
                             throw SQLExceptions.createSQLActionException(t);
                         }
                     }
-                    if (analyzedRelation == null) {
+                    if (relation == null) {
                         // statement without result set -> return null for NoData msg
                         return null;
                     }
-                    return analyzedRelation.fields();
+                    return relation.fields();
             }
             throw new AssertionError("Unsupported type: " + type);
         }

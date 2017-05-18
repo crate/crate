@@ -42,11 +42,11 @@ public final class RelationNormalizer {
         visitor =  new NormalizerVisitor(functions);
     }
 
-    public AnalyzedRelation normalize(AnalyzedRelation relation, TransactionContext transactionContext) {
+    public QueriedRelation normalize(QueriedRelation relation, TransactionContext transactionContext) {
         return visitor.process(relation, transactionContext);
     }
 
-    private class NormalizerVisitor extends AnalyzedRelationVisitor<TransactionContext, AnalyzedRelation> {
+    private class NormalizerVisitor extends RelationVisitor<TransactionContext, QueriedRelation> {
 
         private final Functions functions;
         private final EvaluatingNormalizer normalizer;
@@ -57,14 +57,14 @@ public final class RelationNormalizer {
         }
 
         @Override
-        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, TransactionContext context) {
+        protected QueriedRelation visitRelation(QueriedRelation relation, TransactionContext context) {
             return relation;
         }
 
         @Override
-        public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, TransactionContext context) {
+        public QueriedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, TransactionContext context) {
             QueriedRelation subRelation = relation.subRelation();
-            QueriedRelation normalizedSubRelation = (QueriedRelation) process(relation.subRelation(), context);
+            QueriedRelation normalizedSubRelation = process(relation.subRelation(), context);
             relation.subRelation(normalizedSubRelation);
             if (subRelation != normalizedSubRelation) {
                 relation.querySpec().replace(FieldReplacer.bind(f -> {
@@ -78,20 +78,20 @@ public final class RelationNormalizer {
         }
 
         @Override
-        public AnalyzedRelation visitQueriedTable(QueriedTable table, TransactionContext context) {
+        public QueriedRelation visitQueriedTable(QueriedTable table, TransactionContext context) {
             table.normalize(functions, context);
             return table;
         }
 
         @Override
-        public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, TransactionContext context) {
+        public QueriedRelation visitQueriedDocTable(QueriedDocTable table, TransactionContext context) {
             table.normalize(functions, context);
             table.analyzeWhereClause(functions, context);
             return table;
         }
 
         @Override
-        public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, TransactionContext context) {
+        public QueriedRelation visitMultiSourceSelect(MultiSourceSelect mss, TransactionContext context) {
             QuerySpec querySpec = mss.querySpec();
             querySpec.normalize(normalizer, context);
             // must create a new MultiSourceSelect because paths and query spec changed

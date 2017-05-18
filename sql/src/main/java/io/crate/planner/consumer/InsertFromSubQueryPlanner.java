@@ -21,11 +21,9 @@
 
 package io.crate.planner.consumer;
 
-
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
@@ -89,7 +87,7 @@ public final class InsertFromSubQueryPlanner {
         return plan;
     }
 
-    private static class ToSourceLookupConverter extends AnalyzedRelationVisitor<Void, Void> {
+    private static class ToSourceLookupConverter extends RelationVisitor<Void, Void> {
 
         @Override
         public Void visitQueriedDocTable(QueriedDocTable table, Void context) {
@@ -106,7 +104,7 @@ public final class InsertFromSubQueryPlanner {
         }
 
         @Override
-        protected Void visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+        protected Void visitRelation(QueriedRelation relation, Void context) {
             return null;
         }
     }

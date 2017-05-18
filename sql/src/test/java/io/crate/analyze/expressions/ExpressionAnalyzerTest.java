@@ -21,14 +21,13 @@
 
 package io.crate.analyze.expressions;
 
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifedNameFieldProvider;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
@@ -63,7 +62,7 @@ import static org.mockito.Mockito.when;
  */
 public class ExpressionAnalyzerTest extends CrateUnitTest {
 
-    private ImmutableMap<QualifiedName, AnalyzedRelation> dummySources;
+    private ImmutableMap<QualifiedName, QueriedRelation> dummySources;
     private ExpressionAnalysisContext context;
     private ParamTypeHints paramTypeHints;
     private Functions functions;
@@ -154,7 +153,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         TableRelation tr1 = new TableRelation(tableInfo);
         TableRelation tr2 = new TableRelation(tableInfo);
 
-        Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.of(
+        Map<QualifiedName, QueriedRelation> sources = ImmutableMap.of(
             new QualifiedName("t1"), tr1,
             new QualifiedName("t2"), tr2
         );

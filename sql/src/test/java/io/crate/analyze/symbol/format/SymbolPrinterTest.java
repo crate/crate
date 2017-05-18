@@ -24,7 +24,7 @@ package io.crate.analyze.symbol.format;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
@@ -64,7 +64,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
             .add("idx", DataTypes.INTEGER)
             .add("s_arr", new ArrayType(DataTypes.STRING))
             .build();
-        Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>builder()
+        Map<QualifiedName, QueriedRelation> sources = ImmutableMap.<QualifiedName, QueriedRelation>builder()
             .put(QualifiedName.of(TABLE_NAME), new TableRelation(tableInfo))
             .build();
         sqlExpressions = new SqlExpressions(sources);

@@ -29,14 +29,14 @@ import java.util.List;
 public class DeleteAnalyzedStatement implements AnalyzedStatement {
 
     final List<WhereClause> whereClauses = new ArrayList<>();
-    final DocTableRelation analyzedRelation;
+    final DocTableRelation relation;
 
-    public DeleteAnalyzedStatement(DocTableRelation analyzedRelation) {
-        this.analyzedRelation = analyzedRelation;
+    public DeleteAnalyzedStatement(DocTableRelation relation) {
+        this.relation = relation;
     }
 
-    public DocTableRelation analyzedRelation() {
-        return analyzedRelation;
+    public DocTableRelation relation() {
+        return relation;
     }
 
     public List<WhereClause> whereClauses() {

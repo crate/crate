@@ -45,7 +45,7 @@ import static org.hamcrest.core.Is.is;
 
 public class RelationSplitterTest extends CrateUnitTest {
 
-    private static final Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+    private static final Map<QualifiedName, QueriedRelation> sources = ImmutableMap.<QualifiedName, QueriedRelation>of(
         new QualifiedName(T3.T1_INFO.ident().name()), T3.TR_1,
         new QualifiedName(T3.T2_INFO.ident().name()), T3.TR_2,
         new QualifiedName(T3.T3_INFO.ident().name()), T3.TR_3

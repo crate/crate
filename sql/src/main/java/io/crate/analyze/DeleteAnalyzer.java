@@ -64,10 +64,10 @@ class DeleteAnalyzer {
             Operation.DELETE,
             analysis.transactionContext());
         RelationAnalysisContext relationAnalysisContext = statementAnalysisContext.startRelation();
-        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);
+        QueriedRelation relation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);
 
-        assert analyzedRelation instanceof DocTableRelation : "analyzedRelation must be DocTableRelation";
-        DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
+        assert relation instanceof DocTableRelation : "QueriedRelation must be DocTableRelation";
+        DocTableRelation docTableRelation = (DocTableRelation) relation;
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
@@ -83,7 +83,7 @@ class DeleteAnalyzer {
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(
-            functions, deleteAnalyzedStatement.analyzedRelation());
+            functions, deleteAnalyzedStatement.relation());
 
         if (analysis.parameterContext().hasBulkParams()) {
             numNested = analysis.parameterContext().numBulkParams();

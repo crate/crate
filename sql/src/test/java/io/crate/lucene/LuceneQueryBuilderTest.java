@@ -24,7 +24,7 @@ package io.crate.lucene;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.Functions;
@@ -85,7 +85,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     private LuceneQueryBuilder builder;
     private IndexCache indexCache;
     private SqlExpressions expressions;
-    private Map<QualifiedName, AnalyzedRelation> sources;
+    private Map<QualifiedName, QueriedRelation> sources;
     private IndexFieldDataService indexFieldDataService;
     private MapperService mapperService;
 
@@ -206,7 +206,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                 .add("x", type)
                 .build();
             TableRelation tableRelation = new TableRelation(tableInfo);
-            Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.of(new QualifiedName(tableInfo.ident().name()), tableRelation);
+            Map<QualifiedName, QueriedRelation> tableSources = ImmutableMap.of(new QualifiedName(tableInfo.ident().name()), tableRelation);
             SqlExpressions sqlExpressions = new SqlExpressions(
                 tableSources, tableRelation, new Object[]{null}, SessionContext.SYSTEM_SESSION);
 

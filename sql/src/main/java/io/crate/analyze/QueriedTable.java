@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.Path;
 
@@ -38,7 +38,7 @@ public class QueriedTable extends QueriedTableRelation<TableRelation> {
     }
 
     @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
         return visitor.visitQueriedTable(this, context);
     }
 }

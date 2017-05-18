@@ -46,8 +46,8 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
     }
 
     public static class Context {
-        private AnalyzedRelation seenRelation;
-        private final Set<AnalyzedRelation> seenRelations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
+        private QueriedRelation seenRelation;
+        private final Set<QueriedRelation> seenRelations = Collections.newSetFromMap(new IdentityHashMap<QueriedRelation, Boolean>());
         private final Multimap<QualifiedName, Symbol> queries = HashMultimap.create();
         private final List<JoinPair> joinPairs;
         private boolean multiRelation = false;
@@ -102,14 +102,14 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
             Symbol left = process(function.arguments().get(0), context);
             function.arguments().set(0, left);
             boolean leftMultiRel = context.multiRelation;
-            AnalyzedRelation leftRelation = context.seenRelation;
+            QueriedRelation leftRelation = context.seenRelation;
 
             context.multiRelation = false;
             context.seenRelation = null;
             Symbol right = process(function.arguments().get(1), context);
             function.arguments().set(1, right);
             boolean rightMultiRel = context.multiRelation;
-            AnalyzedRelation rightRelation = context.seenRelation;
+            QueriedRelation rightRelation = context.seenRelation;
 
 
             if (leftMultiRel && rightMultiRel) {
@@ -171,7 +171,7 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
 
     @Override
     public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Context context) {
-        AnalyzedRelation relation = null;
+        QueriedRelation relation = null;
         for (Field field : matchPredicate.identBoostMap().keySet()) {
             if (relation == null) {
                 relation = field.relation();

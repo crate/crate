@@ -24,9 +24,9 @@ package io.crate.planner.consumer;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
@@ -57,7 +57,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
     }
 
     @Override
-    public Plan consume(AnalyzedRelation relation, ConsumerContext context) {
+    public Plan consume(QueriedRelation relation, ConsumerContext context) {
         return visitor.process(relation, context);
     }
 

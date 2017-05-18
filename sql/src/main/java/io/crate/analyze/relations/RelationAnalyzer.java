@@ -31,8 +31,10 @@ import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Aggregations;
+import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
@@ -58,7 +60,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
+public class RelationAnalyzer extends DefaultTraversalVisitor<QueriedRelation, StatementAnalysisContext> {
 
     private final ClusterService clusterService;
     private final Functions functions;
@@ -78,17 +80,17 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         this.schemas = schemas;
     }
 
-    public AnalyzedRelation analyze(Node node, StatementAnalysisContext statementContext) {
-        AnalyzedRelation relation = process(node, statementContext);
+    public QueriedRelation analyze(Node node, StatementAnalysisContext statementContext) {
+        QueriedRelation relation = process(node, statementContext);
         relation = SubselectRewriter.rewrite(relation);
         return relationNormalizer.normalize(relation, statementContext.transactionContext());
     }
 
-    public AnalyzedRelation analyzeUnbound(Query query, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
+    public QueriedRelation analyzeUnbound(Query query, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
         return process(query, new StatementAnalysisContext(sessionContext, paramTypeHints, Operation.READ, null));
     }
 
-    public AnalyzedRelation analyze(Node node, Analysis analysis) {
+    public QueriedRelation analyze(Node node, Analysis analysis) {
         return analyze(
             node,
             new StatementAnalysisContext(
@@ -100,27 +102,27 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
-    protected AnalyzedRelation visitQuery(Query node, StatementAnalysisContext context) {
+    protected QueriedRelation visitQuery(Query node, StatementAnalysisContext context) {
         return process(node.getQueryBody(), context);
     }
 
     @Override
-    protected AnalyzedRelation visitUnion(Union node, StatementAnalysisContext context) {
+    protected QueriedRelation visitUnion(Union node, StatementAnalysisContext context) {
         throw new UnsupportedFeatureException("UNION is not supported");
     }
 
     @Override
-    protected AnalyzedRelation visitIntersect(Intersect node, StatementAnalysisContext context) {
+    protected QueriedRelation visitIntersect(Intersect node, StatementAnalysisContext context) {
         throw new UnsupportedFeatureException("INTERSECT is not supported");
     }
 
     @Override
-    protected AnalyzedRelation visitExcept(Except node, StatementAnalysisContext context) {
+    protected QueriedRelation visitExcept(Except node, StatementAnalysisContext context) {
         throw new UnsupportedFeatureException("EXCEPT is not supported");
     }
 
     @Override
-    protected AnalyzedRelation visitJoin(Join node, StatementAnalysisContext statementContext) {
+    protected QueriedRelation visitJoin(Join node, StatementAnalysisContext statementContext) {
         process(node.getLeft(), statementContext);
         process(node.getRight(), statementContext);
 
@@ -154,7 +156,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
-    protected AnalyzedRelation visitQuerySpecification(QuerySpecification node, StatementAnalysisContext statementContext) {
+    protected QueriedRelation visitQuerySpecification(QuerySpecification node, StatementAnalysisContext statementContext) {
         List<Relation> from = node.getFrom() != null ? node.getFrom() : SYS_CLUSTER_SOURCE;
 
         statementContext.startRelation();
@@ -222,14 +224,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         QueriedRelation relation;
         if (context.sources().size() == 1) {
-            AnalyzedRelation source = Iterables.getOnlyElement(context.sources().values());
+            QueriedRelation source = Iterables.getOnlyElement(context.sources().values());
             if (source instanceof DocTableRelation) {
                 relation = new QueriedDocTable((DocTableRelation) source, selectAnalysis.outputNames(), querySpec);
             } else if (source instanceof TableRelation) {
                 relation = new QueriedTable((TableRelation) source, selectAnalysis.outputNames(), querySpec);
             } else {
-                assert source instanceof QueriedRelation : "expecting relation to be an instance of QueriedRelation";
-                relation = new QueriedSelectRelation((QueriedRelation) source, selectAnalysis.outputNames(), querySpec);
+                relation = new QueriedSelectRelation(source, selectAnalysis.outputNames(), querySpec);
             }
         } else {
             relation = new MultiSourceSelect(
@@ -473,9 +474,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
-    protected AnalyzedRelation visitAliasedRelation(AliasedRelation node, StatementAnalysisContext context) {
+    protected QueriedRelation visitAliasedRelation(AliasedRelation node, StatementAnalysisContext context) {
         context.startRelation(true);
-        AnalyzedRelation childRelation = process(node.getRelation(), context);
+        QueriedRelation childRelation = process(node.getRelation(), context);
         context.endRelation();
         childRelation.setQualifiedName(new QualifiedName(node.getAlias()));
         context.currentRelationContext().addSourceRelation(node.getAlias(), childRelation);
@@ -483,10 +484,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
-    protected AnalyzedRelation visitTable(Table node, StatementAnalysisContext context) {
+    protected QueriedRelation visitTable(Table node, StatementAnalysisContext context) {
         TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(node, context.sessionContext().defaultSchema()),
             context.currentOperation(), context.sessionContext().user());
-        AnalyzedRelation tableRelation;
+        QueriedRelation tableRelation;
         // Dispatching of doc relations is based on the returned class of the schema information.
         if (tableInfo instanceof DocTableInfo) {
             tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
@@ -499,7 +500,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
-    public AnalyzedRelation visitTableFunction(TableFunction node, StatementAnalysisContext statementContext) {
+    public QueriedRelation visitTableFunction(TableFunction node, StatementAnalysisContext statementContext) {
         RelationAnalysisContext context = statementContext.currentRelationContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
@@ -535,7 +536,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Override
-    protected AnalyzedRelation visitTableSubquery(TableSubquery node, StatementAnalysisContext context) {
+    protected QueriedRelation visitTableSubquery(TableSubquery node, StatementAnalysisContext context) {
         if (!context.currentRelationContext().isAliasedRelation()) {
             throw new UnsupportedOperationException("subquery in FROM must have an alias");
         }

@@ -24,7 +24,6 @@ package io.crate.planner;
 
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.SelectAnalyzedStatement;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
@@ -46,8 +45,7 @@ public class SubqueryPlanner {
     }
 
     private void planSubquery(SelectSymbol selectSymbol) {
-        AnalyzedRelation relation = selectSymbol.relation();
-        SelectAnalyzedStatement selectAnalyzedStatement = new SelectAnalyzedStatement(((QueriedRelation) relation));
+        SelectAnalyzedStatement selectAnalyzedStatement = new SelectAnalyzedStatement(selectSymbol.relation());
         Plan subPlan = plannerContext.planSingleRowSubselect(selectAnalyzedStatement);
         subQueries.put(subPlan, selectSymbol);
     }

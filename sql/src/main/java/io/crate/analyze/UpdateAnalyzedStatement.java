@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Reference;
 
@@ -33,14 +33,14 @@ import java.util.Map;
 public class UpdateAnalyzedStatement implements AnalyzedStatement {
 
     private final List<NestedAnalyzedStatement> nestedStatements;
-    private final AnalyzedRelation sourceRelation;
+    private final QueriedRelation sourceRelation;
 
-    public UpdateAnalyzedStatement(AnalyzedRelation sourceRelation, List<NestedAnalyzedStatement> nestedStatements) {
+    public UpdateAnalyzedStatement(QueriedRelation sourceRelation, List<NestedAnalyzedStatement> nestedStatements) {
         this.sourceRelation = sourceRelation;
         this.nestedStatements = nestedStatements;
     }
 
-    public AnalyzedRelation sourceRelation() {
+    public QueriedRelation sourceRelation() {
         return sourceRelation;
     }
 

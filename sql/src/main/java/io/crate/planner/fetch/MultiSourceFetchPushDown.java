@@ -24,7 +24,6 @@ package io.crate.planner.fetch;
 
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
@@ -92,8 +91,8 @@ class MultiSourceFetchPushDown {
         ArrayList<Symbol> mssOutputs = new ArrayList<>(
             statement.sources().size() + statement.requiredForQuery().size());
 
-        for (Map.Entry<QualifiedName, AnalyzedRelation> entry : statement.sources().entrySet()) {
-            QueriedRelation relation = (QueriedRelation) entry.getValue();
+        for (Map.Entry<QualifiedName, QueriedRelation> entry : statement.sources().entrySet()) {
+            QueriedRelation relation = entry.getValue();
             if (!(relation instanceof QueriedDocTable)) {
                 mssOutputs.addAll(relation.fields());
                 continue;
@@ -153,7 +152,7 @@ class MultiSourceFetchPushDown {
         }
     }
 
-    private static FetchFields filterByRelation(Set<Field> fields, AnalyzedRelation rel, DocTableRelation tableRelation) {
+    private static FetchFields filterByRelation(Set<Field> fields, QueriedRelation rel, DocTableRelation tableRelation) {
         FetchFields fetchFields = new FetchFields(tableRelation);
         for (Field field : fields) {
             if (field.relation().equals(rel)) {

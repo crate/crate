@@ -22,7 +22,7 @@
 
 package io.crate.analyze.symbol;
 
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -33,15 +33,15 @@ import java.io.IOException;
  */
 public class SelectSymbol extends Symbol {
 
-    private final AnalyzedRelation relation;
+    private final QueriedRelation relation;
     private final DataType type;
 
-    public SelectSymbol(AnalyzedRelation relation, DataType type) {
+    public SelectSymbol(QueriedRelation relation, DataType type) {
         this.relation = relation;
         this.type = type;
     }
 
-    public AnalyzedRelation relation() {
+    public QueriedRelation relation() {
         return relation;
     }
 

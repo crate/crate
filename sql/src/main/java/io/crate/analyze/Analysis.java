@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.metadata.TransactionContext;
 
 public class Analysis {
@@ -32,7 +32,7 @@ public class Analysis {
 
     private final ParamTypeHints paramTypeHints;
     private AnalyzedStatement analyzedStatement;
-    private AnalyzedRelation rootRelation;
+    private QueriedRelation rootRelation;
 
     public Analysis(SessionContext sessionContext, ParameterContext parameterContext, ParamTypeHints paramTypeHints) {
         this.paramTypeHints = paramTypeHints;
@@ -52,11 +52,11 @@ public class Analysis {
         return parameterContext;
     }
 
-    public void rootRelation(AnalyzedRelation rootRelation) {
+    public void rootRelation(QueriedRelation rootRelation) {
         this.rootRelation = rootRelation;
     }
 
-    public AnalyzedRelation rootRelation() {
+    public QueriedRelation rootRelation() {
         return rootRelation;
     }
 

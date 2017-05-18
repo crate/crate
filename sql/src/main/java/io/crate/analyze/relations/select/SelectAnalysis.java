@@ -26,7 +26,7 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Path;
 import io.crate.sql.tree.Expression;
@@ -38,7 +38,7 @@ import java.util.Map;
 
 public class SelectAnalysis {
 
-    private final Map<QualifiedName, AnalyzedRelation> sources;
+    private final Map<QualifiedName, QueriedRelation> sources;
     private final ExpressionAnalyzer expressionAnalyzer;
     private final ExpressionAnalysisContext expressionAnalysisContext;
     private final List<Path> outputNames;
@@ -46,7 +46,7 @@ public class SelectAnalysis {
     private final Multimap<String, Symbol> outputMultiMap;
 
     SelectAnalysis(int expectedItems,
-                   Map<QualifiedName, AnalyzedRelation> sources,
+                   Map<QualifiedName, QueriedRelation> sources,
                    ExpressionAnalyzer expressionAnalyzer,
                    ExpressionAnalysisContext expressionAnalysisContext) {
         this.sources = sources;
@@ -69,7 +69,7 @@ public class SelectAnalysis {
         return expressionAnalyzer.convert(expression, expressionAnalysisContext);
     }
 
-    public Map<QualifiedName, AnalyzedRelation> sources() {
+    public Map<QualifiedName, QueriedRelation> sources() {
         return sources;
     }
 

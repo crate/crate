@@ -23,8 +23,8 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.VersionInvalidException;
@@ -57,7 +57,7 @@ class GlobalAggregateConsumer implements Consumer {
     }
 
     @Override
-    public Plan consume(AnalyzedRelation rootRelation, ConsumerContext context) {
+    public Plan consume(QueriedRelation rootRelation, ConsumerContext context) {
         return visitor.process(rootRelation, context);
     }
 
