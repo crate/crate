@@ -3,7 +3,7 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 PATH=$DIR/.venv/bin:$PATH
 if test "$1" == "dev"; then
-    sphinx-autobuild $DIR/docs $DIR/docs/out/html
+    sphinx-autobuild -W $DIR/docs $DIR/docs/out/html
 else
     declare -i RESULT=0
     printf "\033[1mCleaning output folder ...\033[0m\n"
