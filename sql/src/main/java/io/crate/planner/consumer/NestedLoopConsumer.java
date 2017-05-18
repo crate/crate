@@ -45,7 +45,10 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 class NestedLoopConsumer implements Consumer {
 
@@ -105,13 +108,6 @@ class NestedLoopConsumer implements Consumer {
             boolean hasDocTables = left instanceof QueriedDocTable || right instanceof QueriedDocTable;
             boolean isDistributed = hasDocTables && filterNeeded && !joinType.isOuter();
             Limits limits = context.plannerContext().getLimits(querySpec);
-
-            if (filterNeeded || joinCondition != null || statement.remainingOrderBy().isPresent()) {
-                left.querySpec().limit(Optional.empty());
-                right.querySpec().limit(Optional.empty());
-                left.querySpec().offset(Optional.empty());
-                right.querySpec().offset(Optional.empty());
-            }
 
             if (!filterNeeded && joinCondition == null && querySpec.limit().isPresent()) {
                 context.requiredPageSize(limits.limitAndOffset());

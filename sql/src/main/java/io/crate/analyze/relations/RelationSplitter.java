@@ -45,6 +45,7 @@ public final class RelationSplitter {
     private final Map<QualifiedName, AnalyzedRelation> relations;
     private final List<JoinPair> joinPairs;
     private final List<Symbol> joinConditions;
+    private final Set<QualifiedName> relationPartOfJoinConditions;
     private Set<Field> canBeFetched;
     private RemainingOrderBy remainingOrderBy;
 
@@ -62,10 +63,13 @@ public final class RelationSplitter {
         }
         this.joinPairs = joinPairs;
         joinConditions = new ArrayList<>(joinPairs.size());
+        relationPartOfJoinConditions = new HashSet<>(joinPairs.size());
         for (JoinPair joinPair : joinPairs) {
             if (joinPair.condition() != null) {
                 JoinConditionValidator.validate(joinPair.condition());
                 joinConditions.add(joinPair.condition());
+                relationPartOfJoinConditions.add(joinPair.left());
+                relationPartOfJoinConditions.add(joinPair.right());
             }
         }
     }
@@ -130,13 +134,17 @@ public final class RelationSplitter {
         // collect all fields from all join conditions
         FieldsVisitor.visitFields(joinConditions, addFieldToMap);
 
-        // set the limit and offset where possible
+        // push down the limit and offset only if there is no filtering or ordering after the join
+        // and only if the relations are not part of a join condition
         Optional<Symbol> limit = querySpec.limit();
-        if (limit.isPresent()) {
+        boolean filterNeeded = querySpec.where().hasQuery() && !(querySpec.where().query() instanceof Literal);
+        if (limit.isPresent() && !filterNeeded && !remainingOrderBy().isPresent()) {
             Optional<Symbol> limitAndOffset = Limits.mergeAdd(limit, querySpec.offset());
             for (AnalyzedRelation rel : Sets.difference(specs.keySet(), fieldsByRelation.keySet())) {
-                QuerySpec spec = specs.get(rel);
-                spec.limit(limitAndOffset);
+                if (!relationPartOfJoinConditions.contains(rel.getQualifiedName())) {
+                    QuerySpec spec = specs.get(rel);
+                    spec.limit(limitAndOffset);
+                }
             }
         }
 
@@ -218,17 +226,13 @@ public final class RelationSplitter {
 
         Multimap<AnalyzedRelation, Integer> splits = extractOrderByForPushDown(orderBy, relations, relationsConsumer);
 
-        // Pushed down the orderBy to subquery specs and also set the limitAndOffset if present
-        Optional<Symbol> limitAndOffset = Limits.mergeAdd(querySpec.limit(), querySpec.offset());
+        // Pushed down the orderBy to subquery specs
         for (Map.Entry<AnalyzedRelation, Collection<Integer>> entry : splits.asMap().entrySet()) {
             AnalyzedRelation relation = entry.getKey();
             OrderBy newOrderBy = orderBy.subset(entry.getValue());
             QuerySpec spec = getSpec(relation);
             assert !spec.orderBy().isPresent() : "spec.orderBy() must not be present";
             spec.orderBy(newOrderBy);
-            if (limitAndOffset.isPresent()) {
-                spec.limit(limitAndOffset);
-            }
             requiredForQuery.addAll(newOrderBy.orderBySymbols());
         }
     }

@@ -179,9 +179,9 @@ public class RelationSplitterTest extends CrateUnitTest {
 
         assertThat(querySpec, isSQL("SELECT doc.t1.x, doc.t2.y ORDER BY doc.t1.x, doc.t2.y, doc.t3.z LIMIT 20"));
 
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x WHERE (doc.t1.x = 1) ORDER BY doc.t1.x LIMIT 20"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y WHERE (true AND (doc.t2.y = 2)) ORDER BY doc.t2.y LIMIT 20"));
-        assertThat(splitter.getSpec(T3.TR_3), isSQL("SELECT doc.t3.z WHERE (true AND (doc.t3.z = 3)) ORDER BY doc.t3.z LIMIT 20"));
+        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x WHERE (doc.t1.x = 1) ORDER BY doc.t1.x"));
+        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y WHERE (true AND (doc.t2.y = 2)) ORDER BY doc.t2.y"));
+        assertThat(splitter.getSpec(T3.TR_3), isSQL("SELECT doc.t3.z WHERE (true AND (doc.t3.z = 3)) ORDER BY doc.t3.z"));
     }
 
     @Test

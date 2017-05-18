@@ -756,33 +756,34 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testJoinOnVirtualTableWithQTF() throws Exception {
-        execute("create table customers (\n" +
-                "id long,\n" +
-                "name string,\n" +
-                "country string,\n" +
-                "company_id long\n" +
+        execute("create table customers (" +
+                "id long," +
+                "name string," +
+                "country string," +
+                "company_id long" +
                 ")");
         ensureYellow();
         execute("insert into customers (id, name, country, company_id) values(1, 'Marios', 'Greece', 1) ");
         execute("refresh table customers");
 
-        execute("create table orders (\n" +
-                "id long,\n" +
-                "customer_id long,\n" +
-                "price float\n" +
+        execute("create table orders (" +
+                "id long," +
+                "customer_id long," +
+                "price float" +
                 ")");
         ensureYellow();
-        execute("insert into orders(id, customer_id, price) values (1, 1, 10.0), (2,1,20.0)");
+        execute("insert into orders(id, customer_id, price) values (1,1,20.0), (2,1,10.0), (3,1,30.0), (4,1,40.0), (5,1,50.0)");
         execute("refresh table orders");
 
-        String stmt = "SELECT * FROM \n" +
-                      "     (SELECT * FROM (SELECT * from customers order by name limit 4) t ORDER BY country LiMit 3) t1,\n" +
-                      "     orders t2\n" +
+        String stmt = "SELECT * FROM" +
+                      "  customers t1, " +
+                      "  (SELECT * FROM (SELECT * from orders order by price desc limit 4) t ORDER BY price limit 3) t2 " +
                       "WHERE t2.customer_id = t1.id " +
-                      "order by price";
+                      "order by price limit 3 offset 1";
+
         execute(stmt);
         assertThat(printedTable(response.rows()),
-            is("1| Greece| 1| Marios| 1| 1| 10.0\n" +
-               "1| Greece| 1| Marios| 1| 2| 20.0\n"));
+            is("1| Greece| 1| Marios| 1| 3| 30.0\n" +
+               "1| Greece| 1| Marios| 1| 4| 40.0\n"));
     }
 }
