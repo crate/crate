@@ -41,6 +41,18 @@ import java.util.function.BooleanSupplier;
  * JobsLogs is responsible for adding jobs and operations of that node.
  * It also provides the functionality to expose that data for system tables,
  * such as sys.jobs, sys.jobs_log, sys.operations and sys.operations_log;
+ * <p>
+ * The data is exposed via the properties
+ *
+ *   - {@link #activeJobs()}
+ *   - {@link #jobsLog()} ()}
+ *   - {@link #activeOperations()} ()}
+ *   - {@link #operationsLog()} ()}
+ *
+ * Note that on configuration updates (E.g.: resizing of jobs-log size, etc.) the Iterable instances previously returned
+ * from the properties may become obsolete.
+ * So the Iterable instances shouldn't be hold onto.
+ * Instead the Iterable should be re-retrieved each time the data is processed.
  */
 @ThreadSafe
 public class JobsLogs {
@@ -138,19 +150,19 @@ public class JobsLogs {
         operationContextLogs.add(new OperationContextLog(operationContext, errorMessage));
     }
 
-    public Iterable<JobContext> jobsGetter() {
+    public Iterable<JobContext> activeJobs() {
         return jobsTable.values();
     }
 
-    public Iterable<?> jobsLogGetter() {
+    public Iterable<JobContextLog> jobsLog() {
         return jobsLog.get();
     }
 
-    public Iterable<OperationContext> operationsGetter() {
+    public Iterable<OperationContext> activeOperations() {
         return operationsTable.values();
     }
 
-    public Iterable<?> operationsLogGetter() {
+    public Iterable<OperationContextLog> operationsLog() {
         return operationsLog.get();
     }
 

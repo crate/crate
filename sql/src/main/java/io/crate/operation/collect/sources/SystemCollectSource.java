@@ -112,13 +112,13 @@ public class SystemCollectSource implements CollectSource {
             .put(InformationSqlFeaturesTableInfo.IDENT.fqn(),
                 () -> synchronousIterableGetter(informationSchemaIterables.features()))
             .put(SysJobsTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(jobsLogs.jobsGetter()))
+                () -> synchronousIterableGetter(jobsLogs.activeJobs()))
             .put(SysJobsLogTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(jobsLogs.jobsLogGetter()))
+                () -> synchronousIterableGetter(jobsLogs.jobsLog()))
             .put(SysOperationsTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(jobsLogs.operationsGetter()))
+                () -> synchronousIterableGetter(jobsLogs.activeOperations()))
             .put(SysOperationsLogTableInfo.IDENT.fqn(),
-                () -> synchronousIterableGetter(jobsLogs.operationsLogGetter()))
+                () -> synchronousIterableGetter(jobsLogs.operationsLog()))
             .put(SysChecksTableInfo.IDENT.fqn(),
                 () -> new SysChecker<>(sysChecks).checksGetter())
             .put(SysNodeChecksTableInfo.IDENT.fqn(),
