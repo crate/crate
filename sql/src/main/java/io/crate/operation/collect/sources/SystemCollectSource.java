@@ -116,13 +116,13 @@ public class SystemCollectSource implements CollectSource {
         iterableGetters.put(InformationSqlFeaturesTableInfo.IDENT.fqn(),
            () -> completedFuture(informationSchemaIterables.features()));
         iterableGetters.put(SysJobsTableInfo.IDENT.fqn(),
-           () -> completedFuture(jobsLogs.jobsGetter()));
+           () -> completedFuture(jobsLogs.activeJobs()));
         iterableGetters.put(SysJobsLogTableInfo.IDENT.fqn(),
-           () -> completedFuture(jobsLogs.jobsLogGetter()));
+           () -> completedFuture(jobsLogs.jobsLog()));
         iterableGetters.put(SysOperationsTableInfo.IDENT.fqn(),
-           () -> completedFuture(jobsLogs.operationsGetter()));
+           () -> completedFuture(jobsLogs.activeOperations()));
         iterableGetters.put(SysOperationsLogTableInfo.IDENT.fqn(),
-           () -> completedFuture(jobsLogs.operationsLogGetter()));
+           () -> completedFuture(jobsLogs.operationsLog()));
 
         SysChecker<SysCheck> sysChecker = new SysChecker<>(sysChecks);
         iterableGetters.put(SysChecksTableInfo.IDENT.fqn(), sysChecker::computeResultAndGet);
