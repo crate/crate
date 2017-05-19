@@ -18,8 +18,8 @@
 
 package io.crate.plugin;
 
-import io.crate.action.sql.SQLOperations;
 import io.crate.beans.QueryStats;
+import io.crate.operation.collect.stats.JobsLogs;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -31,13 +31,12 @@ import java.lang.management.ManagementFactory;
 public class CrateMonitor {
 
     private final ESLogger logger;
-
     private final MBeanServer mbeanServer = ManagementFactory.getPlatformMBeanServer();
 
     @Inject
-    public CrateMonitor(SQLOperations sqlOperations, Settings settings) {
+    public CrateMonitor(JobsLogs jobsLogs, Settings settings) {
         logger = Loggers.getLogger(CrateMonitor.class, settings);
-        registerMBean(QueryStats.NAME, new QueryStats(sqlOperations, settings));
+        registerMBean(QueryStats.NAME, new QueryStats(jobsLogs));
     }
 
     private void registerMBean(String name, Object bean) {

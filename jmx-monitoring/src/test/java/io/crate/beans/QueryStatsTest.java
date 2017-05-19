@@ -19,106 +19,58 @@
 package io.crate.beans;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.action.sql.BaseResultReceiver;
-import io.crate.action.sql.SQLOperations;
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import io.crate.types.DataType;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.BeforeClass;
+import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.operation.reference.sys.job.JobContext;
+import io.crate.operation.reference.sys.job.JobContextLog;
 import org.junit.Test;
 
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
-import static io.crate.action.sql.SQLOperations.Session.UNNAMED;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.core.Is.is;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyListOf;
-import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.eq;
 
 public class QueryStatsTest {
 
-    private static final List<Row> ROWS = ImmutableList.of(
-        new RowN(new Object[]{1.0, 1.1, new BytesRef("select")}),
-        new RowN(new Object[]{2.0, 2.1, new BytesRef("update")}),
-        new RowN(new Object[]{3.0, 3.1, new BytesRef("insert")}),
-        new RowN(new Object[]{4.0, 4.1, new BytesRef("delete")})
+    private final List<JobContextLog> log = ImmutableList.of(
+        new JobContextLog(new JobContext(UUID.randomUUID(), "select name", 100L), null, 150L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "select name", 300L), null, 320L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "update t1 set x = 10", 400L), null, 420L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "insert into t1 (x) values (20)", 111L), null, 130L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "delete from t1", 410L), null, 415L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "delete from t1", 110L), null, 120L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "create table t1 (x int)", 105L), null, 106L)
     );
 
-    private static QueryStats queryStats;
-    private static SQLOperations.Session session = mock(SQLOperations.Session.class);
+    @Test
+    public void testCreateMetricsMap() throws Exception {
+        Map<String, QueryStats.Metric> metricsByCommand = QueryStats.createMetricsMap(log, 2000, 0L);
+        assertThat(metricsByCommand.size(), is(6));
 
-    @BeforeClass
-    public static void beforeClass() {
-        SQLOperations sqlOperations = mock(SQLOperations.class);
+        assertThat(metricsByCommand.get(QueryStats.Commands.SELECT).avgDurationInMs(), is(35.0));
+        assertThat(metricsByCommand.get(QueryStats.Commands.SELECT).statementsPerSec(), is(1.0));
 
-        when(sqlOperations.createSession(anyString(), anyObject(), anyInt())).thenReturn(session);
-        doNothing().when(session).parse(anyString(), anyString(), anyListOf(DataType.class));
+        assertThat(metricsByCommand.get(QueryStats.Commands.INSERT).avgDurationInMs(), is(19.0));
+        assertThat(metricsByCommand.get(QueryStats.Commands.INSERT).statementsPerSec(), is(0.5));
 
-        queryStats = spy(new QueryStats(sqlOperations, Settings.EMPTY));
+        assertThat(metricsByCommand.get(QueryStats.Commands.UPDATE).avgDurationInMs(), is(20.0));
+        assertThat(metricsByCommand.get(QueryStats.Commands.UPDATE).statementsPerSec(), is(0.5));
+
+        assertThat(metricsByCommand.get(QueryStats.Commands.DELETE).avgDurationInMs(), is(7.0));
+        assertThat(metricsByCommand.get(QueryStats.Commands.DELETE).statementsPerSec(), is(1.0));
+
+        assertThat(metricsByCommand.get(QueryStats.Commands.UNCLASSIFIED).avgDurationInMs(), is(1.0));
+        assertThat(metricsByCommand.get(QueryStats.Commands.UNCLASSIFIED).statementsPerSec(), is(0.5));
+
+        assertThat(metricsByCommand.get(QueryStats.Commands.TOTAL).avgDurationInMs(), is(15.0));
+        assertThat(metricsByCommand.get(QueryStats.Commands.TOTAL).statementsPerSec(), is(4.0));
     }
 
     @Test
-    public void testUpdateAndGetLastQueryExecutionTimestamp() throws InterruptedException {
-        // If a query for a metric was executed for the first time, then the last executed ts will
-        // be updated with the current timestamp and this value will be returned.
-        long firstAvg = queryStats.updateAndGetLastExecutedTsFor("select" + QueryStats.MetricType.AVERAGE_DURATION);
-        long firstQps = queryStats.updateAndGetLastExecutedTsFor("select" + QueryStats.MetricType.FREQUENCY);
-
-        // The second call for the same metrics must return the last executed ts
-        // (assigned to firstQps, firstAvg) and update them with a current timestamp.
-        long lastAvg = queryStats.updateAndGetLastExecutedTsFor("select" + QueryStats.MetricType.AVERAGE_DURATION);
-        long lastQps = queryStats.updateAndGetLastExecutedTsFor("select" + QueryStats.MetricType.FREQUENCY);
-        assertThat(firstQps, is(lastQps));
-        assertThat(firstAvg, is(lastAvg));
-
-        // All the further invocation of the updateAndGetLastExecutedTsFor must return later ts.
-        assertThat(lastAvg,
-            lessThanOrEqualTo(queryStats.updateAndGetLastExecutedTsFor("select" + QueryStats.MetricType.AVERAGE_DURATION)));
-        assertThat(lastQps,
-            lessThanOrEqualTo(queryStats.updateAndGetLastExecutedTsFor("select" + QueryStats.MetricType.FREQUENCY)));
-    }
-
-    @Test
-    public void testFrequencyMetricExtractedCorrectlyFromResponse() {
-        assertThat(queryStats.getMetricValue(ROWS, "select", QueryStats.MetricType.FREQUENCY.ordinal()), is(1.0));
-        assertThat(queryStats.getMetricValue(ROWS, "update", QueryStats.MetricType.FREQUENCY.ordinal()), is(2.0));
-        assertThat(queryStats.getMetricValue(ROWS, "insert", QueryStats.MetricType.FREQUENCY.ordinal()), is(3.0));
-        assertThat(queryStats.getMetricValue(ROWS, "delete", QueryStats.MetricType.FREQUENCY.ordinal()), is(4.0));
-        assertThat(queryStats.getTotalMetricValue(ROWS, QueryStats.MetricType.FREQUENCY.ordinal()), is(10.0));
-    }
-
-    @Test
-    public void testAverageDurationMetricExtractedCorrectlyFromResponse() {
-        assertThat(queryStats.getMetricValue(ROWS, "select", QueryStats.MetricType.AVERAGE_DURATION.ordinal()), is(1.1));
-        assertThat(queryStats.getMetricValue(ROWS, "update", QueryStats.MetricType.AVERAGE_DURATION.ordinal()), is(2.1));
-        assertThat(queryStats.getMetricValue(ROWS, "insert", QueryStats.MetricType.AVERAGE_DURATION.ordinal()), is(3.1));
-        assertThat(queryStats.getMetricValue(ROWS, "delete", QueryStats.MetricType.AVERAGE_DURATION.ordinal()), is(4.1));
-        assertThat(queryStats.getTotalMetricValue(ROWS, QueryStats.MetricType.AVERAGE_DURATION.ordinal()), is(10.4));
-    }
-
-    @Test
-    public void testGetMetricResultInCorrectSessionCalls() {
-        queryStats.getDeleteQueryFrequency();
-        String queryUID = "delete" + QueryStats.MetricType.FREQUENCY;
-        verify(session, times(1)).bind(
-            eq(UNNAMED),
-            eq(QueryStats.NAME),
-            eq(Arrays.asList(
-                queryStats.lastQueried.get(queryUID), "^\\s*(delete).*",
-                queryStats.lastQueried.get(queryUID), "^\\s*(delete).*"
-            )),
-            eq(null)
-        );
-        verify(session, times(1)).execute(eq(""), eq(0), any(BaseResultReceiver.class));
-        verify(session, times(1)).sync();
+    public void testDefaultValue() throws Exception {
+        QueryStats queryStats = new QueryStats(new JobsLogs(() -> true));
+        assertThat(queryStats.getSelectQueryFrequency(), is(0.0));
+        assertThat(queryStats.getSelectQueryAverageDuration(), is(0.0));
     }
 }
