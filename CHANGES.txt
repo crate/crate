@@ -20,8 +20,19 @@ Changes
 
  - Added support for joins on virtual tables.
 
+ - Changed the ``QueryStats`` JMX MBean to deliver node-based values instead of
+   cluster-based values.
+   This makes it possible to spot performance discrepancies between nodes more
+   easily.
+
 Fixes
 =====
+
+ - Optimized the JMX ``QueryStats`` MBean to prevent it from putting too much
+   load on the cluster.
+
+ - Fixed the calculation of the ``OverallQueryAverageDuration`` ``QueryStats``
+   MBean.
 
  - The internal ``fetchSize`` now has an upper bound to prevent ``OutOfMemory``
    errors if a postgres client retrieves a large result set without setting a
