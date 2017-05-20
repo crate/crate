@@ -23,8 +23,8 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
@@ -52,7 +52,7 @@ public class CountConsumer implements Consumer {
     private static final Visitor VISITOR = new Visitor();
 
     @Override
-    public Plan consume(AnalyzedRelation rootRelation, ConsumerContext context) {
+    public Plan consume(QueriedRelation rootRelation, ConsumerContext context) {
         return VISITOR.process(rootRelation, context);
     }
 

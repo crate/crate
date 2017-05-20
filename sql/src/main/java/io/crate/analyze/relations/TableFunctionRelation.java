@@ -50,7 +50,7 @@ public class TableFunctionRelation extends TableRelation {
     }
 
     @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
         return visitor.visitTableFunctionRelation(this, context);
     }
 

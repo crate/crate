@@ -41,7 +41,7 @@ public class QueriedDocTable extends QueriedTableRelation<DocTableRelation> {
     }
 
     @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
         return visitor.visitQueriedDocTable(this, context);
     }
 

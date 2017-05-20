@@ -32,15 +32,15 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * Resolves QualifiedNames to Fields considering only one AnalyzedRelation
+ * Resolves QualifiedNames to Fields considering only one QueriedRelation
  * <p>
  * The QualifiedNames must not contain a schema or a table.
  */
 public class NameFieldProvider implements FieldProvider<Field> {
 
-    private AnalyzedRelation relation;
+    private QueriedRelation relation;
 
-    public NameFieldProvider(AnalyzedRelation relation) {
+    public NameFieldProvider(QueriedRelation relation) {
         this.relation = relation;
     }
 

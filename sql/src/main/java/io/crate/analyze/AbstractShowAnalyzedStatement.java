@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
@@ -30,7 +30,7 @@ import io.crate.metadata.table.Operation;
 import java.util.Collections;
 import java.util.List;
 
-public abstract class AbstractShowAnalyzedStatement implements AnalyzedStatement, AnalyzedRelation {
+public abstract class AbstractShowAnalyzedStatement implements AnalyzedStatement, QueriedRelation {
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {

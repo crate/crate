@@ -24,7 +24,6 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
@@ -219,7 +218,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(col1.info().ident().name(), is(AverageAggregation.NAME));
     }
 
-    private List<String> outputNames(AnalyzedRelation relation) {
+    private List<String> outputNames(QueriedRelation relation) {
         return Lists.transform(relation.fields(), new com.google.common.base.Function<Field, String>() {
             @Nullable
             @Override
@@ -896,7 +895,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // make sure that where clause was pushed down and didn't disappear somehow
         assertThat(relation.querySpec().where().query(), isSQL("null"));
         QueriedRelation users =
-            ((QueriedRelation) ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("doc", "users")));
+            ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("doc", "users"));
         assertThat(users.querySpec().where().query(), isSQL("(doc.users.name = 'Arthur')"));
     }
 
@@ -907,8 +906,8 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analysis.relation().querySpec().where(), is(WhereClause.MATCH_ALL));
         assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
 
-        QueriedRelation subRel1 = (QueriedRelation) ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("t1"));
-        QueriedRelation subRel2 = (QueriedRelation) ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("t2"));
+        QueriedRelation subRel1 = ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("t1"));
+        QueriedRelation subRel2 = ((MultiSourceSelect) analysis.relation()).sources().get(QualifiedName.of("t2"));
 
         assertThat(subRel1.querySpec().where().query(), isSQL("(doc.users.name = 'foo')"));
         assertThat(subRel2.querySpec().where().query(), isSQL("(doc.users.name = 'bar')"));

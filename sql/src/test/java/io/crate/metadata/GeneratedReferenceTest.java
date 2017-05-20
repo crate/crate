@@ -23,7 +23,7 @@
 package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
@@ -40,7 +40,7 @@ import static org.hamcrest.Matchers.is;
 public class GeneratedReferenceTest extends CrateUnitTest {
 
     private static final SqlExpressions SQL_EXPRESSIONS = new SqlExpressions(
-        MapBuilder.<QualifiedName, AnalyzedRelation>newMapBuilder()
+        MapBuilder.<QualifiedName, QueriedRelation>newMapBuilder()
             .put(new QualifiedName(T3.T1_INFO.ident().fqn()), T3.TR_1)
             .map(),
         T3.TR_1

@@ -54,7 +54,7 @@ import java.util.*;
 public final class DeleteStatementPlanner {
 
     public static Plan planDelete(DeleteAnalyzedStatement analyzedStatement, Planner.Context context) {
-        DocTableRelation tableRelation = analyzedStatement.analyzedRelation();
+        DocTableRelation tableRelation = analyzedStatement.relation();
         List<WhereClause> whereClauses = new ArrayList<>(analyzedStatement.whereClauses().size());
         List<DocKeys.DocKey> docKeys = new ArrayList<>(analyzedStatement.whereClauses().size());
 

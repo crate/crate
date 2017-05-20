@@ -23,7 +23,6 @@
 package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -128,11 +127,11 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                          "io.crate.analyze.QueriedSelectRelation.i, doc.t2.b, doc.t2.i LIMIT 10"));
         assertThat(relation.joinPairs().get(0).condition(),
                    isSQL("(io.crate.analyze.QueriedSelectRelation.i = doc.t2.i)"));
-        assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t1"))).querySpec(),
+        assertThat(relation.sources().get(new QualifiedName("t1")).querySpec(),
                    isSQL("SELECT doc.t1.i, doc.t1.a WHERE (doc.t1.a > '50')"));
         assertThat(((QueriedSelectRelation)relation.sources().get(new QualifiedName("t1"))).subRelation().querySpec(),
                    isSQL("SELECT doc.t1.a, doc.t1.i ORDER BY doc.t1.a LIMIT 5"));
-        assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t2"))).querySpec(),
+        assertThat(relation.sources().get(new QualifiedName("t2")).querySpec(),
                    isSQL("SELECT doc.t2.b, doc.t2.i WHERE ((doc.t2.b > '10') AND (doc.t2.b > '100'))"));
     }
 
@@ -146,9 +145,9 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         MultiSourceSelect relation = (MultiSourceSelect) statement.relation();
         assertThat(relation.querySpec(), isSQL("SELECT doc.t1.ma, doc.t1.i, doc.t2.mb, doc.t2.i"));
         assertThat(relation.joinPairs().get(0).condition(), isSQL("(doc.t1.i = doc.t2.i)"));
-        assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t1"))).querySpec(),
+        assertThat(relation.sources().get(new QualifiedName("t1")).querySpec(),
                    isSQL("SELECT doc.t1.i, max(doc.t1.a) GROUP BY doc.t1.i HAVING (max(doc.t1.a) > '50')"));
-        assertThat(((QueriedRelation)relation.sources().get(new QualifiedName("t2"))).querySpec(),
+        assertThat(relation.sources().get(new QualifiedName("t2")).querySpec(),
                    isSQL("SELECT max(doc.t2.b), doc.t2.i GROUP BY doc.t2.i " +
                          "HAVING ((doc.t2.i > 10) AND (max(doc.t2.b) > '100'))"));
     }

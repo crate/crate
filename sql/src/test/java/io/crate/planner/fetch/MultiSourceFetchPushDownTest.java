@@ -25,7 +25,6 @@ package io.crate.planner.fetch;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.SelectAnalyzedStatement;
-import io.crate.analyze.relations.QueriedRelation;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -57,7 +56,7 @@ public class MultiSourceFetchPushDownTest extends CrateDummyClusterServiceUnitTe
     }
 
     private QuerySpec srcSpec(String tableName) {
-        return ((QueriedRelation) mss.sources().get(QualifiedName.of("doc", tableName))).querySpec();
+        return mss.sources().get(QualifiedName.of("doc", tableName)).querySpec();
     }
 
     @Test

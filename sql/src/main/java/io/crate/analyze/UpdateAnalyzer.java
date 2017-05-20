@@ -74,16 +74,16 @@ public class UpdateAnalyzer {
             Operation.UPDATE,
             analysis.transactionContext());
         RelationAnalysisContext currentRelationContext = statementAnalysisContext.startRelation();
-        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), statementAnalysisContext);
+        QueriedRelation relation = relationAnalyzer.analyze(node.relation(), statementAnalysisContext);
 
-        FieldResolver fieldResolver = (FieldResolver) analyzedRelation;
+        FieldResolver fieldResolver = (FieldResolver) relation;
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
             ReplaceMode.MUTATE,
             null,
             fieldResolver);
-        FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);
+        FieldProvider columnFieldProvider = new NameFieldProvider(relation);
         ExpressionAnalyzer columnExpressionAnalyzer = new ExpressionAnalyzer(
             functions,
             analysis.sessionContext(),
@@ -92,8 +92,8 @@ public class UpdateAnalyzer {
             null);
         columnExpressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
 
-        assert Iterables.getOnlyElement(currentRelationContext.sources().values()) == analyzedRelation :
-            "currentRelationContext.sources().values() must have one element and equal to analyzedRelation";
+        assert Iterables.getOnlyElement(currentRelationContext.sources().values()) == relation :
+            "currentRelationContext.sources().values() must have one element and equal to QueriedRelation";
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             analysis.sessionContext(),
@@ -108,10 +108,10 @@ public class UpdateAnalyzer {
         }
 
         WhereClauseAnalyzer whereClauseAnalyzer = null;
-        if (analyzedRelation instanceof DocTableRelation) {
-            whereClauseAnalyzer = new WhereClauseAnalyzer(functions, ((DocTableRelation) analyzedRelation));
+        if (relation instanceof DocTableRelation) {
+            whereClauseAnalyzer = new WhereClauseAnalyzer(functions, ((DocTableRelation) relation));
         }
-        TableInfo tableInfo = ((AbstractTableRelation) analyzedRelation).tableInfo();
+        TableInfo tableInfo = ((AbstractTableRelation) relation).tableInfo();
 
         List<UpdateAnalyzedStatement.NestedAnalyzedStatement> nestedAnalyzedStatements = new ArrayList<>(numNested);
         for (int i = 0; i < numNested; i++) {
@@ -148,7 +148,7 @@ public class UpdateAnalyzer {
         }
 
         statementAnalysisContext.endRelation();
-        return new UpdateAnalyzedStatement(analyzedRelation, nestedAnalyzedStatements);
+        return new UpdateAnalyzedStatement(relation, nestedAnalyzedStatements);
     }
 
     private void analyzeAssignment(Assignment node,

@@ -25,7 +25,7 @@ package io.crate.analyze.relations;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.TwoTableJoin;
 
-public class RelationPrinter extends AnalyzedRelationVisitor<Void, String> {
+public class RelationPrinter extends RelationVisitor<Void, String> {
 
     public static final RelationPrinter INSTANCE = new RelationPrinter();
 
@@ -33,7 +33,7 @@ public class RelationPrinter extends AnalyzedRelationVisitor<Void, String> {
     }
 
     @Override
-    protected String visitAnalyzedRelation(AnalyzedRelation relation, Void context) {
+    protected String visitRelation(QueriedRelation relation, Void context) {
         return relation.getClass().getCanonicalName();
     }
 

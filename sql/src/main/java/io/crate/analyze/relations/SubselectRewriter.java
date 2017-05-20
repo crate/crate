@@ -46,19 +46,19 @@ public final class SubselectRewriter {
     private SubselectRewriter() {
     }
 
-    public static AnalyzedRelation rewrite(AnalyzedRelation relation) {
+    public static QueriedRelation rewrite(QueriedRelation relation) {
         return INSTANCE.process(relation, null);
     }
 
-    private final static class Visitor extends AnalyzedRelationVisitor<QueriedSelectRelation, AnalyzedRelation> {
+    private final static class Visitor extends RelationVisitor<QueriedSelectRelation, QueriedRelation> {
 
         @Override
-        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, QueriedSelectRelation parent) {
+        protected QueriedRelation visitRelation(QueriedRelation relation, QueriedSelectRelation parent) {
             return relation;
         }
 
         @Override
-        public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, QueriedSelectRelation parent) {
+        public QueriedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, QueriedSelectRelation parent) {
             boolean mergedWithParent = false;
             QuerySpec currentQS = relation.querySpec();
             if (parent != null) {
@@ -74,8 +74,8 @@ public final class SubselectRewriter {
                     mergedWithParent = true;
                 }
             }
-            AnalyzedRelation origSubRelation = relation.subRelation();
-            QueriedRelation subRelation = (QueriedRelation) process(origSubRelation, relation);
+            QueriedRelation origSubRelation = relation.subRelation();
+            QueriedRelation subRelation = process(origSubRelation, relation);
 
             if (origSubRelation == subRelation) {
                 return relation;
@@ -93,7 +93,7 @@ public final class SubselectRewriter {
         }
 
         @Override
-        public AnalyzedRelation visitQueriedTable(QueriedTable table, QueriedSelectRelation parent) {
+        public QueriedRelation visitQueriedTable(QueriedTable table, QueriedSelectRelation parent) {
             if (parent == null) {
                 return table;
             }
@@ -112,7 +112,7 @@ public final class SubselectRewriter {
         }
 
         @Override
-        public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, QueriedSelectRelation parent) {
+        public QueriedRelation visitQueriedDocTable(QueriedDocTable table, QueriedSelectRelation parent) {
             if (parent == null) {
                 return table;
             }
@@ -131,7 +131,7 @@ public final class SubselectRewriter {
         }
 
         @Override
-        public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, QueriedSelectRelation parent) {
+        public QueriedRelation visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, QueriedSelectRelation parent) {
             if (parent == null) {
                 return multiSourceSelect;
             }

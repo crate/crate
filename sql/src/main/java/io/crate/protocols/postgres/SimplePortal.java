@@ -29,7 +29,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.data.Row;
@@ -134,8 +134,8 @@ public class SimplePortal extends AbstractPortal {
             analysis = portalContext.getAnalyzer().boundAnalyze(
                 statement,
                 sessionContext,
-                new ParameterContext(this.rowParams, Collections.<Row>emptyList()));
-            AnalyzedRelation rootRelation = analysis.rootRelation();
+                new ParameterContext(this.rowParams, Collections.emptyList()));
+            QueriedRelation rootRelation = analysis.rootRelation();
             if (rootRelation != null) {
                 this.outputTypes = new ArrayList<>(Symbols.extractTypes(rootRelation.fields()));
             }

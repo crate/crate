@@ -30,8 +30,8 @@ import io.crate.analyze.DataTypeAnalyzer;
 import io.crate.analyze.NegativeLiteralVisitor;
 import io.crate.analyze.SubscriptContext;
 import io.crate.analyze.SubscriptValidator;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.format.SymbolFormatter;
@@ -763,7 +763,7 @@ public class ExpressionAnalyzer {
             /* note: This does not support analysis columns in the subquery which belong to the parent relation
              * this would require {@link StatementAnalysisContext#startRelation} to somehow inherit the parent context
              */
-            AnalyzedRelation relation = subQueryAnalyzer.analyze(node.getQuery());
+            QueriedRelation relation = subQueryAnalyzer.analyze(node.getQuery());
             List<Field> fields = relation.fields();
             if (fields.size() > 1) {
                 throw new UnsupportedOperationException("Subqueries with more than 1 column are not supported.");

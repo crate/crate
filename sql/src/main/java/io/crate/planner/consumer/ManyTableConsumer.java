@@ -55,7 +55,7 @@ public class ManyTableConsumer implements Consumer {
     }
 
     @Override
-    public Plan consume(AnalyzedRelation relation, ConsumerContext context) {
+    public Plan consume(QueriedRelation relation, ConsumerContext context) {
         return visitor.process(relation, context);
     }
 
@@ -200,7 +200,7 @@ public class ManyTableConsumer implements Consumer {
 
         QualifiedName leftName = it.next();
         QuerySpec rootQuerySpec = mss.querySpec();
-        QueriedRelation leftRelation = (QueriedRelation) mss.sources().get(leftName);
+        QueriedRelation leftRelation = mss.sources().get(leftName);
         QuerySpec leftQuerySpec = leftRelation.querySpec();
         Optional<RemainingOrderBy> remainingOrderBy = mss.remainingOrderBy();
         List<JoinPair> joinPairs = mss.joinPairs();
@@ -210,7 +210,7 @@ public class ManyTableConsumer implements Consumer {
         QueriedRelation rightRelation;
         while (it.hasNext()) {
             rightName = it.next();
-            rightRelation = (QueriedRelation) mss.sources().get(rightName);
+            rightRelation = mss.sources().get(rightName);
 
             // process where clause
             Set<QualifiedName> names = Sets.newHashSet(leftName, rightName);
@@ -257,8 +257,8 @@ public class ManyTableConsumer implements Consumer {
              *     twoTableJoin.outputs: [ [join.t1.t2].t1.x,  [join.t1.t2].t2.x, t3.x ]
              */
             if (it.hasNext()) { // The outer left join becomes the root {@link TwoTableJoin}
-                final AnalyzedRelation left = leftRelation;
-                final AnalyzedRelation right = rightRelation;
+                final QueriedRelation left = leftRelation;
+                final QueriedRelation right = rightRelation;
 
                 Function<? super Symbol, ? extends Symbol> replaceFunction = FieldReplacer.bind(f -> {
                     if (f.relation().equals(left) || f.relation().equals(right)) {
@@ -349,8 +349,8 @@ public class ManyTableConsumer implements Consumer {
         QualifiedName left = it.next();
         QualifiedName right = it.next();
         JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs(), true);
-        QueriedRelation leftRelation = (QueriedRelation) mss.sources().get(left);
-        QueriedRelation rightRelation = (QueriedRelation) mss.sources().get(right);
+        QueriedRelation leftRelation = mss.sources().get(left);
+        QueriedRelation rightRelation = mss.sources().get(right);
 
         JoinPairs.removeOrderByOnOuterRelation(left, right, leftRelation.querySpec(), rightRelation.querySpec(), joinPair);
 

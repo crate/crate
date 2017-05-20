@@ -24,7 +24,6 @@ package io.crate.planner.consumer;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
@@ -60,7 +59,7 @@ class NestedLoopConsumer implements Consumer {
     }
 
     @Override
-    public Plan consume(AnalyzedRelation rootRelation, ConsumerContext context) {
+    public Plan consume(QueriedRelation rootRelation, ConsumerContext context) {
         return visitor.process(rootRelation, context);
     }
 

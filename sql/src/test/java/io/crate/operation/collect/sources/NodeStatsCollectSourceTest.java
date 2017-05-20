@@ -25,7 +25,7 @@ package io.crate.operation.collect.sources;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -76,7 +76,7 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
 
 
         TableRelation tableRelation = new TableRelation(tableInfo);
-        Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+        Map<QualifiedName, QueriedRelation> tableSources = ImmutableMap.of(
             new QualifiedName("sys.nodes"), tableRelation);
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);
         WhereClause whereClause = new WhereClause(sqlExpressions.normalize(sqlExpressions.asSymbol(where)));
@@ -84,12 +84,7 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
         List<DiscoveryNode> nodes = Lists.newArrayList(NodeStatsCollectSource.nodeIds(whereClause,
             discoveryNodes,
             getFunctions()));
-        Collections.sort(nodes, new Comparator<DiscoveryNode>() {
-            @Override
-            public int compare(DiscoveryNode o1, DiscoveryNode o2) {
-                return o1.getId().compareTo(o2.getId());
-            }
-        });
+        Collections.sort(nodes, Comparator.comparing(DiscoveryNode::getId));
         return nodes;
     }
 

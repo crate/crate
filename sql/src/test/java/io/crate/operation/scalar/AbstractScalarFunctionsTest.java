@@ -24,8 +24,8 @@ package io.crate.operation.scalar;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.data.Input;
 import io.crate.metadata.*;
@@ -58,7 +58,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
 
     protected SqlExpressions sqlExpressions;
     protected Functions functions;
-    protected Map<QualifiedName, AnalyzedRelation> tableSources;
+    protected Map<QualifiedName, QueriedRelation> tableSources;
 
     @Before
     public void prepareFunctions() throws Exception {

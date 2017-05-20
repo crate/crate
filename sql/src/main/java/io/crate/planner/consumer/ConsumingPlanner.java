@@ -22,7 +22,6 @@
 package io.crate.planner.consumer;
 
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.exceptions.ValidationException;
@@ -33,7 +32,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -57,13 +55,13 @@ public class ConsumingPlanner {
     }
 
     @Nullable
-    public Plan plan(AnalyzedRelation rootRelation, Planner.Context plannerContext) {
+    public Plan plan(QueriedRelation rootRelation, Planner.Context plannerContext) {
         ConsumerContext consumerContext = new ConsumerContext(plannerContext);
         return plan(rootRelation, consumerContext);
     }
 
     @Nullable
-    public Plan plan(AnalyzedRelation relation, ConsumerContext consumerContext) {
+    public Plan plan(QueriedRelation relation, ConsumerContext consumerContext) {
         Map<Plan, SelectSymbol> subQueries = getSubQueries(relation, consumerContext);
         for (Consumer consumer : consumers) {
             Plan plan = consumer.consume(relation, consumerContext);
@@ -78,12 +76,9 @@ public class ConsumingPlanner {
         return null;
     }
 
-    private static Map<Plan, SelectSymbol> getSubQueries(AnalyzedRelation relation, ConsumerContext consumerContext) {
-        if (relation instanceof QueriedRelation) {
-            QuerySpec qs = ((QueriedRelation) relation).querySpec();
-            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(consumerContext.plannerContext());
-            return subqueryPlanner.planSubQueries(qs);
-        }
-        return Collections.emptyMap();
+    private static Map<Plan, SelectSymbol> getSubQueries(QueriedRelation relation, ConsumerContext consumerContext) {
+        QuerySpec qs = relation.querySpec();
+        SubqueryPlanner subqueryPlanner = new SubqueryPlanner(consumerContext.plannerContext());
+        return subqueryPlanner.planSubQueries(qs);
     }
 }

@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
@@ -104,7 +104,7 @@ public class TwoTableJoin implements QueriedRelation {
     }
 
     @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
         return visitor.visitTwoTableJoin(this, context);
     }
 

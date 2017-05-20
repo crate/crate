@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.RelationVisitor;
 import io.crate.analyze.symbol.Field;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -54,7 +54,7 @@ public class ShowCreateTableAnalyzedStatement extends AbstractShowAnalyzedStatem
     }
 
     @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
         return visitor.process(this, context);
     }
 

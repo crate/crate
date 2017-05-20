@@ -23,7 +23,7 @@
 package io.crate.action.sql;
 
 import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 
@@ -36,7 +36,7 @@ class PreparedStmt {
     private final String query;
     private final ParamTypeHints paramTypes;
 
-    private AnalyzedRelation relation;
+    private QueriedRelation relation;
     private boolean relationInitialized = false;
 
     PreparedStmt(Statement statement, String query, List<DataType> paramTypes) {
@@ -62,11 +62,11 @@ class PreparedStmt {
     }
 
     @Nullable
-    public AnalyzedRelation relation() {
+    public QueriedRelation relation() {
         return relation;
     }
 
-    public void relation(@Nullable AnalyzedRelation relation) {
+    public void relation(@Nullable QueriedRelation relation) {
         relationInitialized = true;
         this.relation = relation;
     }

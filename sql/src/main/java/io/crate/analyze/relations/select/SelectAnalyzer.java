@@ -24,7 +24,7 @@ package io.crate.analyze.relations.select;
 import io.crate.analyze.OutputNameFormatter;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.validator.SelectSymbolValidator;
@@ -40,7 +40,7 @@ public class SelectAnalyzer {
     private static final InnerVisitor INSTANCE = new InnerVisitor();
 
     public static SelectAnalysis analyzeSelect(Select select,
-                                               Map<QualifiedName, AnalyzedRelation> sources,
+                                               Map<QualifiedName, QueriedRelation> sources,
                                                ExpressionAnalyzer expressionAnalyzer,
                                                ExpressionAnalysisContext expressionAnalysisContext) {
         SelectAnalysis selectAnalysis = new SelectAnalysis(
@@ -69,7 +69,7 @@ public class SelectAnalyzer {
                 // prefix is either: <tableOrAlias>.* or <schema>.<table>
 
                 QualifiedName prefix = node.getPrefix().get();
-                AnalyzedRelation relation = context.sources().get(prefix);
+                QueriedRelation relation = context.sources().get(prefix);
                 if (relation != null) {
                     addAllFieldsFromRelation(context, relation);
                     return null;
@@ -80,7 +80,7 @@ public class SelectAnalyzer {
                     // e.g.  select mytable.* from foo.mytable; prefix is mytable, source is [foo, mytable]
                     // if prefix matches second part of qualified name this is okay
                     String prefixName = prefix.getParts().get(0);
-                    for (Map.Entry<QualifiedName, AnalyzedRelation> entry : context.sources().entrySet()) {
+                    for (Map.Entry<QualifiedName, QueriedRelation> entry : context.sources().entrySet()) {
                         List<String> parts = entry.getKey().getParts();
                         // schema.table
                         if (parts.size() == 2 && prefixName.equals(parts.get(1))) {
@@ -99,14 +99,14 @@ public class SelectAnalyzer {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH, "The referenced relation \"%s\" is ambiguous.", prefix));
                 }
             } else {
-                for (AnalyzedRelation relation : context.sources().values()) {
+                for (QueriedRelation relation : context.sources().values()) {
                     addAllFieldsFromRelation(context, relation);
                 }
             }
             return null;
         }
 
-        private static void addAllFieldsFromRelation(SelectAnalysis context, AnalyzedRelation relation) {
+        private static void addAllFieldsFromRelation(SelectAnalysis context, QueriedRelation relation) {
             for (Field field : relation.fields()) {
                 context.add(field.path(), field);
             }

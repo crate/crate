@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
@@ -48,7 +48,7 @@ public class SymbolToTrueVisitorTest extends CrateUnitTest {
             "table_name",
             "number_of_replicas",
             "schema_name");
-        ImmutableMap<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+        ImmutableMap<QualifiedName, QueriedRelation> sources = ImmutableMap.of(
             new QualifiedName("dummy"), dummyRelation);
         expressions = new SqlExpressions(sources);
     }
@@ -99,7 +99,7 @@ public class SymbolToTrueVisitorTest extends CrateUnitTest {
 
     @Test
     public void testNot_NullWithInput() throws Exception {
-        /**
+        /*
          * regression test
          */
         Symbol symbol = convertFromSQL("NOT 30 >= NULL");

@@ -25,7 +25,6 @@ package io.crate.planner.consumer;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPairs;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
@@ -51,7 +50,7 @@ class MultiSourceAggregationConsumer implements Consumer {
     }
 
     @Override
-    public Plan consume(AnalyzedRelation relation, ConsumerContext context) {
+    public Plan consume(QueriedRelation relation, ConsumerContext context) {
         return visitor.process(relation, context);
     }
 
@@ -94,8 +93,8 @@ class MultiSourceAggregationConsumer implements Consumer {
         // OrderBy can be ignored because it's also applied after aggregation but there is always only 1 row so it
         // wouldn't have any effect.
         removeLimitOffsetAndOrder(querySpec);
-        for (AnalyzedRelation relation : mss.sources().values()) {
-            removeLimitOffsetAndOrder(((QueriedRelation) relation).querySpec());
+        for (QueriedRelation relation : mss.sources().values()) {
+            removeLimitOffsetAndOrder(relation.querySpec());
         }
 
         // need to change the types on the fields of the MSS to match the new outputs

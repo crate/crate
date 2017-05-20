@@ -23,7 +23,6 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.*;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Function;
@@ -61,7 +60,7 @@ public class QueryAndFetchConsumer implements Consumer {
     }
 
     @Override
-    public Plan consume(AnalyzedRelation relation, ConsumerContext context) {
+    public Plan consume(QueriedRelation relation, ConsumerContext context) {
         return visitor.process(relation, context);
     }
 

@@ -24,8 +24,8 @@ package io.crate.testing;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
@@ -91,8 +91,8 @@ public class T3 {
     public static final QualifiedName T2 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t2"));
     public static final QualifiedName T3 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t3"));
 
-    public static final ImmutableList<AnalyzedRelation> RELATIONS = ImmutableList.<AnalyzedRelation>of(TR_1, TR_2, TR_3);
-    public static final Map<QualifiedName, AnalyzedRelation> SOURCES = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+    public static final ImmutableList<QueriedRelation> RELATIONS = ImmutableList.of(TR_1, TR_2, TR_3);
+    public static final Map<QualifiedName, QueriedRelation> SOURCES = ImmutableMap.of(
         T1, TR_1,
         T2, TR_2,
         T3, TR_3

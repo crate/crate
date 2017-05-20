@@ -35,16 +35,16 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Resolves QualifiedNames to Fields considering multiple AnalyzedRelations.
+ * Resolves QualifiedNames to Fields considering multiple QueriedRelations.
  * <p>
  * The Resolver also takes full qualified names so the name may contain table
  * and / or schema.
  */
 public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
 
-    private Map<QualifiedName, AnalyzedRelation> sources;
+    private Map<QualifiedName, QueriedRelation> sources;
 
-    public FullQualifedNameFieldProvider(Map<QualifiedName, AnalyzedRelation> sources) {
+    public FullQualifedNameFieldProvider(Map<QualifiedName, QueriedRelation> sources) {
         assert !sources.isEmpty() : "Must have at least one source";
         this.sources = sources;
     }
@@ -78,7 +78,7 @@ public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
         boolean tableNameMatched = false;
         Field lastField = null;
 
-        for (Map.Entry<QualifiedName, AnalyzedRelation> entry : sources.entrySet()) {
+        for (Map.Entry<QualifiedName, QueriedRelation> entry : sources.entrySet()) {
             List<String> sourceParts = entry.getKey().getParts();
             String sourceSchema = null;
             String sourceTableOrAlias;
@@ -92,7 +92,7 @@ public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                     "sources key (QualifiedName) must have 1 or 2 parts, not %d", sourceParts.size()));
             }
-            AnalyzedRelation sourceRelation = entry.getValue();
+            QueriedRelation sourceRelation = entry.getValue();
 
             if (columnSchema != null && sourceSchema != null && !columnSchema.equals(sourceSchema)) {
                 continue;

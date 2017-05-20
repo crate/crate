@@ -22,8 +22,8 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.RelationVisitor;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.OutputName;
@@ -36,7 +36,7 @@ import javax.annotation.Nonnull;
 import java.util.Collections;
 import java.util.List;
 
-public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRelation {
+public class ExplainAnalyzedStatement implements AnalyzedStatement, QueriedRelation {
 
     final AnalyzedStatement statement;
     private final List<Field> fields;
@@ -56,7 +56,7 @@ public class ExplainAnalyzedStatement implements AnalyzedStatement, AnalyzedRela
     }
 
     @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
+    public <C, R> R accept(RelationVisitor<C, R> visitor, C context) {
         return visitor.visitExplain(this, context);
     }
 

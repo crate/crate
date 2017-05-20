@@ -22,8 +22,28 @@
 package io.crate.analyze.relations;
 
 import io.crate.analyze.QuerySpec;
+import io.crate.analyze.symbol.Field;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
+import io.crate.sql.tree.QualifiedName;
 
-public interface QueriedRelation extends AnalyzedRelation {
+import javax.annotation.Nonnull;
+import java.util.List;
 
-    QuerySpec querySpec();
+public interface QueriedRelation {
+
+    <C, R> R accept(RelationVisitor<C, R> visitor, C context);
+
+    Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException;
+
+    List<Field> fields();
+
+    QualifiedName getQualifiedName();
+
+    void setQualifiedName(@Nonnull QualifiedName qualifiedName);
+
+    default QuerySpec querySpec() {
+        throw new UnsupportedOperationException("querySpec() not supported");
+    }
 }

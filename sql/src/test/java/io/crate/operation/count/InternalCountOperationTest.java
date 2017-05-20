@@ -23,7 +23,7 @@ package io.crate.operation.count;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.Schemas;
@@ -60,7 +60,7 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
         Schemas schemas = internalCluster().getInstance(Schemas.class);
         TableInfo tableInfo = schemas.getTableInfo(new TableIdent(null, "t"), null);
         TableRelation tableRelation = new TableRelation(tableInfo);
-        Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName(tableInfo.ident().name()), tableRelation);
+        Map<QualifiedName, QueriedRelation> tableSources = ImmutableMap.of(new QualifiedName(tableInfo.ident().name()), tableRelation);
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);
 
         WhereClause whereClause = new WhereClause(sqlExpressions.normalize(sqlExpressions.asSymbol("name = 'Marvin'")));
