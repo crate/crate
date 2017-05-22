@@ -241,7 +241,7 @@ F381	Extended schema manipulation	1	ALTER TABLE statement: ALTER COLUMN clause	N
 F381	Extended schema manipulation	2	ALTER TABLE statement: ADD CONSTRAINT clause	NO		
 F381	Extended schema manipulation	3	ALTER TABLE statement: DROP CONSTRAINT clause	NO		
 F382	Alter column data type			NO		
-F383	Set column not null clause			YES		
+F383	Set column not null clause			NO		
 F384	Drop identity property clause			NO		
 F385	Drop column generation expression clause			NO		
 F386	Set identity column generation clause			NO		
