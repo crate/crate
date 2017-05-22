@@ -25,6 +25,7 @@ import com.carrotsearch.hppc.IntSet;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.metadata.TableIdent;
+import io.crate.operation.Paging;
 import io.crate.planner.node.fetch.FetchSource;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -52,7 +53,7 @@ public class FetchProjection extends Projection {
                            TreeMap<Integer, String> readerIndices,
                            Map<String, TableIdent> indicesToIdents) {
         this.collectPhaseId = collectPhaseId;
-        this.fetchSize = fetchSize;
+        this.fetchSize = fetchSize == 0 ? Paging.PAGE_SIZE : Math.min(fetchSize, Paging.PAGE_SIZE);
         this.fetchSources = fetchSources;
         this.outputSymbols = outputSymbols;
         this.nodeReaders = nodeReaders;
