@@ -43,8 +43,8 @@ import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.management.ExplainPlan;
-import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
+import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.statement.CopyStatementPlanner;
 import io.crate.planner.statement.DeleteStatementPlanner;
 import io.crate.planner.statement.SetSessionPlan;
@@ -261,8 +261,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
-    protected Plan visitShowAnalyzedStatement(AbstractShowAnalyzedStatement statement, Context context) {
-        return new GenericShowPlan(context.jobId(), statement);
+    public Plan visitShowCreateTableAnalyzedStatement(ShowCreateTableAnalyzedStatement statement, Context context) {
+        return new ShowCreateTablePlan(context.jobId(), statement);
     }
 
     @Override

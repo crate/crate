@@ -24,7 +24,6 @@ package io.crate.executor.transport;
 
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DDLStatementDispatcher;
-import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.data.BatchConsumer;
@@ -55,8 +54,8 @@ import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
-import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
+import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.statement.SetSessionPlan;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -83,7 +82,6 @@ public class TransportExecutor implements Executor {
     private final Functions functions;
     private final TaskCollectingVisitor plan2TaskVisitor;
     private DDLStatementDispatcher ddlAnalysisDispatcherProvider;
-    private ShowStatementDispatcher showStatementDispatcherProvider;
 
     private final ClusterService clusterService;
     private final JobContextService jobContextService;
@@ -107,7 +105,6 @@ public class TransportExecutor implements Executor {
                              ThreadPool threadPool,
                              Functions functions,
                              DDLStatementDispatcher ddlAnalysisDispatcherProvider,
-                             ShowStatementDispatcher showStatementDispatcherProvider,
                              ClusterService clusterService,
                              IndicesService indicesService,
                              BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
@@ -118,7 +115,6 @@ public class TransportExecutor implements Executor {
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.functions = functions;
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
-        this.showStatementDispatcherProvider = showStatementDispatcherProvider;
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
@@ -217,8 +213,8 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitGenericShowPlan(GenericShowPlan genericShowPlan, Void context) {
-            return new GenericShowTask(genericShowPlan.jobId(), showStatementDispatcherProvider, genericShowPlan.statement());
+        public Task visitShowCreateTable(ShowCreateTablePlan showCreateTablePlan, Void context) {
+            return new ShowCreateTableTask(showCreateTablePlan.statement().tableInfo());
         }
 
         @Override
