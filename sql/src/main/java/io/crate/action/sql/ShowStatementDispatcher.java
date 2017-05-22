@@ -27,23 +27,24 @@ import io.crate.analyze.MetaDataToASTNodeResolver;
 import io.crate.analyze.ShowCreateTableAnalyzedStatement;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.CreateTable;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Locale;
 import java.util.UUID;
 
 @Singleton
-public class ShowStatementDispatcher extends AnalyzedStatementVisitor<UUID, String> {
+public class ShowStatementDispatcher extends AnalyzedStatementVisitor<UUID, BytesRef> {
 
     @Override
-    protected String visitAnalyzedStatement(AnalyzedStatement analysis, UUID job) {
+    protected BytesRef visitAnalyzedStatement(AnalyzedStatement analysis, UUID job) {
         throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analysis));
     }
 
     @Override
-    public String visitShowCreateTableAnalyzedStatement(ShowCreateTableAnalyzedStatement analysis, UUID job) {
+    public BytesRef visitShowCreateTableAnalyzedStatement(ShowCreateTableAnalyzedStatement analysis, UUID job) {
         CreateTable createTable = MetaDataToASTNodeResolver.resolveCreateTable(analysis.tableInfo());
-        return SqlFormatter.formatSql(createTable);
+        return new BytesRef(SqlFormatter.formatSql(createTable));
     }
 }
 

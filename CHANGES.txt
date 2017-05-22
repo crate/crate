@@ -19,6 +19,9 @@ Breaking Changes
 Changes
 =======
 
+ - Improved the resiliency of the retrieval of large results via HTTP. Queries
+   are now aborted and result in an error if they consume too much memory.
+
  - Changed the ``QueryStats`` JMX MBean to deliver node-based values instead of
    cluster-based values.
    This makes it possible to spot performance discrepancies between nodes more

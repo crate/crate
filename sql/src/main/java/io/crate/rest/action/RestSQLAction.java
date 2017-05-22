@@ -26,9 +26,14 @@ import io.crate.action.sql.*;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Symbols;
+import io.crate.breaker.CrateCircuitBreakerService;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RowAccounting;
 import io.crate.exceptions.SQLParseException;
 import io.crate.types.DataType;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -47,11 +52,17 @@ public class RestSQLAction extends BaseRestHandler {
     private static final int DEFAULT_SOFT_LIMIT = 10_000;
 
     private final SQLOperations sqlOperations;
+    private final CircuitBreaker circuitBreaker;
 
     @Inject
-    public RestSQLAction(Settings settings, Client client, RestController controller, SQLOperations sqlOperations) {
+    public RestSQLAction(Settings settings,
+                         Client client,
+                         RestController controller,
+                         SQLOperations sqlOperations,
+                         CrateCircuitBreakerService breakerService) {
         super(settings, controller, client);
         this.sqlOperations = sqlOperations;
+        this.circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
 
         controller.registerHandler(RestRequest.Method.POST, "/_sql", this);
     }
@@ -115,8 +126,13 @@ public class RestSQLAction extends BaseRestHandler {
                     = new RestRowCountReceiver(channel, startTime, request.paramAsBoolean("types", false));
                 session.execute(UNNAMED, 0, resultReceiver);
             } else {
-                ResultReceiver resultReceiver =
-                    new RestResultSetReceiver(channel, outputFields, startTime, request.paramAsBoolean("types", false));
+                ResultReceiver resultReceiver = new RestResultSetReceiver(
+                    channel,
+                    outputFields,
+                    startTime,
+                    new RowAccounting(Symbols.extractTypes(outputFields), new RamAccountingContext("http-result", circuitBreaker)),
+                    request.paramAsBoolean("types", false)
+                );
                 session.execute(UNNAMED, 0, resultReceiver);
             }
             session.sync();

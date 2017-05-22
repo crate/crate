@@ -24,12 +24,17 @@ package io.crate.rest.action;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Symbols;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.rest.RestChannel;
@@ -39,14 +44,15 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class RestActionReceiversTest extends CrateUnitTest {
 
     private final ImmutableList<RowN> rows = ImmutableList.of(
-        new RowN(new Object[]{"foo", 1, true}),
-        new RowN(new Object[]{"bar", 2, false}),
-        new RowN(new Object[]{"foobar", 3, null})
+        new RowN(new Object[]{new BytesRef("foo"), 1, true}),
+        new RowN(new Object[]{new BytesRef("bar"), 2, false}),
+        new RowN(new Object[]{new BytesRef("foobar"), 3, null})
     );
     private final List<Field> fields = ImmutableList.of(
         new Field(null, ColumnIdent.fromPath("doc.col_a"), DataTypes.STRING),
@@ -92,7 +98,13 @@ public class RestActionReceiversTest extends CrateUnitTest {
 
     @Test
     public void testRestResultSetReceiver() throws Exception {
-        RestResultSetReceiver receiver = new RestResultSetReceiver(newChannel(), fields, 0L, true);
+        RestResultSetReceiver receiver = new RestResultSetReceiver(
+            newChannel(),
+            fields,
+            0L,
+            new RowAccounting(Symbols.extractTypes(fields), new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"))),
+            true
+        );
         for (Row row : rows) {
             receiver.setNextRow(row);
         }

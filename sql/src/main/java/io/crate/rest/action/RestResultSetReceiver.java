@@ -24,6 +24,7 @@ package io.crate.rest.action;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.analyze.symbol.Field;
+import io.crate.breaker.RowAccounting;
 import io.crate.data.Row;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -46,15 +47,18 @@ class RestResultSetReceiver extends BaseResultReceiver {
     private final List<Field> outputFields;
     private final ResultToXContentBuilder builder;
     private long startTime;
+    private final RowAccounting rowAccounting;
     private long rowCount;
 
     RestResultSetReceiver(RestChannel channel,
                           List<Field> outputFields,
                           long startTime,
+                          RowAccounting rowAccounting,
                           boolean includeTypesOnResponse) {
         this.channel = channel;
         this.outputFields = outputFields;
         this.startTime = startTime;
+        this.rowAccounting = rowAccounting;
         ResultToXContentBuilder tmpBuilder;
         try {
             tmpBuilder = ResultToXContentBuilder.builder(channel);
@@ -74,6 +78,7 @@ class RestResultSetReceiver extends BaseResultReceiver {
     @Override
     public void setNextRow(Row row) {
         try {
+            rowAccounting.accountForAndMaybeBreak(row);
             builder.addRow(row, outputFields.size());
             rowCount++;
         } catch (IOException e) {
@@ -88,6 +93,8 @@ class RestResultSetReceiver extends BaseResultReceiver {
             super.allFinished(interrupted);
         } catch (Throwable e) {
             fail(e);
+        } finally {
+            rowAccounting.close();
         }
     }
 
@@ -98,6 +105,7 @@ class RestResultSetReceiver extends BaseResultReceiver {
         } catch (Throwable e) {
             LOGGER.error("failed to send failure response", e);
         } finally {
+            rowAccounting.close();
             super.fail(t);
         }
     }

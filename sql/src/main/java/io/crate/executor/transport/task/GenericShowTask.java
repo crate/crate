@@ -28,6 +28,10 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowsBatchIterator;
 import io.crate.executor.Task;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.tree.CreateTable;
+import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 import java.util.UUID;
