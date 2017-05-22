@@ -96,13 +96,13 @@ E081	Basic Privileges	8	WITH GRANT OPTION	NO
 E081	Basic Privileges	9	USAGE privilege	NO		
 E081	Basic Privileges	10	EXECUTE privilege	NO		
 E091	Set functions			NO		
-E091	Set functions	1	AVG	NO		
-E091	Set functions	2	COUNT	NO		
-E091	Set functions	3	MAX	NO		
-E091	Set functions	4	MIN	NO		
-E091	Set functions	5	SUM	NO		
+E091	Set functions	1	AVG	YES		
+E091	Set functions	2	COUNT	YES		
+E091	Set functions	3	MAX	YES		
+E091	Set functions	4	MIN	YES		
+E091	Set functions	5	SUM	YES		
 E091	Set functions	6	ALL quantifier	NO		
-E091	Set functions	7	DISTINCT quantifier	NO		
+E091	Set functions	7	DISTINCT quantifier	YES		
 E101	Basic data manipulation			YES		
 E101	Basic data manipulation	1	INSERT statement	YES		
 E101	Basic data manipulation	3	Searched UPDATE statement	YES		
@@ -120,7 +120,7 @@ E121	Basic cursor support	10	FETCH statement implicit NEXT	NO
 E121	Basic cursor support	17	WITH HOLD cursors	NO		
 E131	Null value support (nulls in lieu of values)			YES		
 E141	Basic integrity constraints			NO		
-E141	Basic integrity constraints	1	NOT NULL constraints	NO		
+E141	Basic integrity constraints	1	NOT NULL constraints	YES		
 E141	Basic integrity constraints	2	UNIQUE constraints of NOT NULL columns	NO		
 E141	Basic integrity constraints	3	PRIMARY KEY constraints	YES		
 E141	Basic integrity constraints	4	Basic FOREIGN KEY constraint with the NO ACTION default for both referential delete action and referential update action	NO		
@@ -241,7 +241,7 @@ F381	Extended schema manipulation	1	ALTER TABLE statement: ALTER COLUMN clause	N
 F381	Extended schema manipulation	2	ALTER TABLE statement: ADD CONSTRAINT clause	NO		
 F381	Extended schema manipulation	3	ALTER TABLE statement: DROP CONSTRAINT clause	NO		
 F382	Alter column data type			NO		
-F383	Set column not null clause			NO		
+F383	Set column not null clause			YES		
 F384	Drop identity property clause			NO		
 F385	Drop column generation expression clause			NO		
 F386	Set identity column generation clause			NO		
