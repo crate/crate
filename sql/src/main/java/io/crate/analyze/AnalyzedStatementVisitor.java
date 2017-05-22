@@ -141,12 +141,8 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analysis, context);
     }
 
-    protected R visitShowAnalyzedStatement(AbstractShowAnalyzedStatement analysis, C context) {
-        return visitAnalyzedStatement(analysis, context);
-    }
-
     public R visitShowCreateTableAnalyzedStatement(ShowCreateTableAnalyzedStatement analysis, C context) {
-        return visitShowAnalyzedStatement(analysis, context);
+        return visitAnalyzedStatement(analysis, context);
     }
 
     public R visitDropRepositoryAnalyzedStatement(DropRepositoryAnalyzedStatement analysis, C context) {

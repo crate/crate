@@ -19,32 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.analyze;
+package io.crate.planner.node.management;
 
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.symbol.Field;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.Path;
-import io.crate.metadata.table.Operation;
+import io.crate.analyze.ShowCreateTableAnalyzedStatement;
+import io.crate.planner.PlanVisitor;
+import io.crate.planner.UnnestablePlan;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.UUID;
 
-public abstract class AbstractShowAnalyzedStatement implements AnalyzedStatement, AnalyzedRelation {
+public class ShowCreateTablePlan extends UnnestablePlan {
 
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitShowAnalyzedStatement(this, context);
+    private final UUID id;
+    private final ShowCreateTableAnalyzedStatement statement;
+
+    public ShowCreateTablePlan(UUID jobId, ShowCreateTableAnalyzedStatement statement) {
+        id = jobId;
+        this.statement = statement;
     }
 
     @Override
-    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("getWritableField() is not supported on ShowCreateTableAnalyzedStatement");
+    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
+        return visitor.visitShowCreateTable(this, context);
     }
 
     @Override
-    public List<Field> fields() {
-        return Collections.emptyList();
+    public UUID jobId() {
+        return id;
     }
 
+    public ShowCreateTableAnalyzedStatement statement() {
+        return statement;
+    }
 }

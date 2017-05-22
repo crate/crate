@@ -31,7 +31,7 @@ import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
-import io.crate.planner.node.management.GenericShowPlan;
+import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.statement.SetSessionPlan;
 import org.elasticsearch.common.Nullable;
@@ -78,8 +78,8 @@ public class PlanVisitor<C, R> {
         return visitPlan(explainPlan, context);
     }
 
-    public R visitGenericShowPlan(GenericShowPlan genericShowPlan, C context) {
-        return visitPlan(genericShowPlan, context);
+    public R visitShowCreateTable(ShowCreateTablePlan showCreateTablePlan, C context) {
+        return visitPlan(showCreateTablePlan, context);
     }
 
     public R visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, C context) {

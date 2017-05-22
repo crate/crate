@@ -21,10 +21,14 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.symbol.Field;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.OutputName;
+import io.crate.metadata.Path;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 
@@ -33,7 +37,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-public class ShowCreateTableAnalyzedStatement extends AbstractShowAnalyzedStatement {
+public class ShowCreateTableAnalyzedStatement implements AnalyzedStatement, AnalyzedRelation {
 
     private final DocTableInfo tableInfo;
     private final List<Field> fields;
@@ -56,6 +60,11 @@ public class ShowCreateTableAnalyzedStatement extends AbstractShowAnalyzedStatem
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.process(this, context);
+    }
+
+    @Override
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        throw new UnsupportedOperationException("getWritableField() is not supported on ShowCreateTableAnalyzedStatement");
     }
 
     @Override

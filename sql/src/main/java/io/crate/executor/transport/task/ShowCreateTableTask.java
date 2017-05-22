@@ -21,35 +21,33 @@
 
 package io.crate.executor.transport.task;
 
-import io.crate.action.sql.ShowStatementDispatcher;
-import io.crate.analyze.AbstractShowAnalyzedStatement;
+import io.crate.analyze.MetaDataToASTNodeResolver;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowsBatchIterator;
 import io.crate.executor.Task;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.tree.CreateTable;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public class GenericShowTask implements Task {
+public class ShowCreateTableTask implements Task {
 
-    private final UUID jobId;
-    private final ShowStatementDispatcher showStatementDispatcher;
-    private final AbstractShowAnalyzedStatement statement;
+    private final DocTableInfo tableInfo;
 
-    public GenericShowTask(UUID jobId, ShowStatementDispatcher showStatementDispatcher, AbstractShowAnalyzedStatement statement) {
-        this.jobId = jobId;
-        this.showStatementDispatcher = showStatementDispatcher;
-        this.statement = statement;
+    public ShowCreateTableTask(DocTableInfo tableInfo) {
+        this.tableInfo = tableInfo;
     }
 
     @Override
     public void execute(BatchConsumer consumer, Row parameters) {
         Row1 row;
         try {
-            row = new Row1(showStatementDispatcher.process(statement, jobId));
+            CreateTable createTable = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
+            row = new Row1(SqlFormatter.formatSql(createTable));
         } catch (Throwable t) {
             consumer.accept(null, t);
             return;
