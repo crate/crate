@@ -23,6 +23,18 @@ package io.crate.breaker;
 
 import javax.annotation.Nullable;
 
+/**
+ * Component to estimate the memory-requirement for a value.
+ * This is mainly used for circuit-breaking.
+ * See
+ *  - {@link RamAccountingContext} and
+ *  - {@link org.elasticsearch.common.breaker.CircuitBreaker}
+ *
+ * This is best effort. the Actual size varies from JVM to JVM (32-bit vs 64-bit, compressed oop, etc.).
+ * To get accurate values we'd have to integrate something like http://openjdk.java.net/projects/code-tools/jol/
+ * but it's GPL licensed.
+ *
+ */
 public abstract class SizeEstimator<T> {
 
     public abstract long estimateSize(@Nullable T value);

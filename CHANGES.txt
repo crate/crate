@@ -18,6 +18,9 @@ Breaking Changes
 Changes
 =======
 
+ - Improved the resiliency of the retrieval of large results via HTTP. Queries
+   are now aborted and result in an error if they consume too much memory.
+
  - Extended the output of the  ``EXPLAIN`` statement.
 
  - Added support for joins on virtual tables.

@@ -21,10 +21,7 @@
 
 package io.crate.breaker;
 
-import io.crate.types.DataType;
-import io.crate.types.FixedWidthType;
-import io.crate.types.IpType;
-import io.crate.types.StringType;
+import io.crate.types.*;
 
 import java.util.Locale;
 
@@ -36,6 +33,13 @@ public class SizeEstimatorFactory {
             case StringType.ID:
             case IpType.ID:
                 return (SizeEstimator<T>) new BytesRefSizeEstimator();
+            case ObjectType.ID:
+                // no type info for inner types so we just use an arbitrary constant size for now
+                return (SizeEstimator<T>) new ConstSizeEstimator(60);
+            case ArrayType.ID:
+                return (SizeEstimator<T>) new ArraySizeEstimator(create(((ArrayType) type).innerType()));
+            case SetType.ID:
+                return (SizeEstimator<T>) new SetSizeEstimator(create(((SetType) type).innerType()));
             default:
                 if (type instanceof FixedWidthType) {
                     return (SizeEstimator<T>) new ConstSizeEstimator(((FixedWidthType) type).fixedSize());

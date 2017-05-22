@@ -25,6 +25,7 @@ package io.crate.rest.action;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
+import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
@@ -48,6 +49,7 @@ public class RestSQLActionTest extends CrateUnitTest {
 
     private final SQLOperations sqlOperations = mock(SQLOperations.class);
     private final RestController restController = mock(RestController.class);
+    private final CrateCircuitBreakerService circuitBreakerService = mock(CrateCircuitBreakerService.class);
     private UserManagerProvider userManagerProvider;
     private final UserManager userManager = new UserManager() {
         @Override
@@ -77,7 +79,13 @@ public class RestSQLActionTest extends CrateUnitTest {
 
     @Test
     public void testDefaultUserIfHttpHeaderNotPresent() throws Exception {
-        RestSQLAction restSQLAction = new RestSQLAction(Settings.EMPTY, restController, sqlOperations, userManagerProvider);
+        RestSQLAction restSQLAction = new RestSQLAction(
+            Settings.EMPTY,
+            restController,
+            sqlOperations,
+            userManagerProvider,
+            circuitBreakerService
+        );
         RestRequest request = new FakeRestRequest.Builder()
             .withHeaders(Collections.emptyMap())
             .build();
@@ -89,7 +97,13 @@ public class RestSQLActionTest extends CrateUnitTest {
         Settings settings = Settings.builder()
             .put(AuthenticationProvider.AUTH_TRUST_HTTP_DEFAULT_HEADER.getKey(), "trillian")
             .build();
-        RestSQLAction restSQLAction = new RestSQLAction(settings, restController, sqlOperations, userManagerProvider);
+        RestSQLAction restSQLAction = new RestSQLAction(
+            settings,
+            restController,
+            sqlOperations,
+            userManagerProvider,
+            circuitBreakerService
+        );
         RestRequest request = new FakeRestRequest.Builder()
             .withHeaders(Collections.emptyMap())
             .build();
@@ -98,7 +112,13 @@ public class RestSQLActionTest extends CrateUnitTest {
 
     @Test
     public void testUserIfHttpHeaderIsPresent() throws Exception {
-        RestSQLAction restSQLAction = new RestSQLAction(Settings.EMPTY, restController, sqlOperations, userManagerProvider);
+        RestSQLAction restSQLAction = new RestSQLAction(
+            Settings.EMPTY,
+            restController,
+            sqlOperations,
+            userManagerProvider,
+            circuitBreakerService
+        );
         RestRequest request = new FakeRestRequest.Builder()
             .withHeaders(Collections.singletonMap("X-User", "other"))
             .build();

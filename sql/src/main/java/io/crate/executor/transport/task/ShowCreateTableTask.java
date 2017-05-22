@@ -30,6 +30,7 @@ import io.crate.executor.Task;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.CreateTable;
+import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -47,7 +48,7 @@ public class ShowCreateTableTask implements Task {
         Row1 row;
         try {
             CreateTable createTable = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
-            row = new Row1(SqlFormatter.formatSql(createTable));
+            row = new Row1(new BytesRef(SqlFormatter.formatSql(createTable)));
         } catch (Throwable t) {
             consumer.accept(null, t);
             return;
