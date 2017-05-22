@@ -21,8 +21,11 @@ Changes
 Fixes
 =====
 
+ - The internal ``fetchSize`` now has an upper bound to prevent ``OutOfMemory``
+   errors if a postgres client retrieves a large result set without setting a
+   ``fetchSize``, or setting a ``fetchSize`` which is too large.
+
  - Fixed a race condition which could cause ``KILL (ALL)`` to terminate a node
    instead of interrupting a query.
 
  - Log failed authentication attempts at log level ``WARN``
-
