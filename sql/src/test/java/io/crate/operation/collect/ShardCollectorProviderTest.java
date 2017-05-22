@@ -24,6 +24,7 @@ package io.crate.operation.collect;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.collect.sources.ShardCollectSource;
 import org.elasticsearch.action.admin.indices.close.CloseIndexRequest;
@@ -69,5 +70,18 @@ public class ShardCollectorProviderTest extends SQLTransportIntegrationTest {
         execute("drop table tt");
         waitUntilShardOperationsFinished();
         assertNoShardEntriesLeftInShardCollectSource();
+    }
+
+    public void testQuerySysShardsWhileDropTable() throws Exception {
+        execute("create table t1 (x int)");
+        execute("create table t2 (x int)");
+        execute("insert into t1 values (1), (2), (3)");
+        execute("insert into t2 values (4), (5), (6)");
+        ensureYellow();
+        PlanForNode plan = plan("select * from sys.shards");
+        execute("drop table t1");
+
+        // shouldn't throw an exception:
+        execute(plan).getResult();
     }
 }

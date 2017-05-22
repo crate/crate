@@ -31,6 +31,7 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.data.*;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -461,7 +462,11 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
         for (Map.Entry<String, List<Integer>> indexShards : indexShardsMap.entrySet()) {
             String indexName = indexShards.getKey();
-            Index index = metaData.index(indexName).getIndex();
+            IndexMetaData indexMetaData = metaData.index(indexName);
+            if (indexMetaData == null) {
+                continue;
+            }
+            Index index = indexMetaData.getIndex();
             List<Integer> shards = indexShards.getValue();
             IndexService indexService = indicesService.indexService(index);
             if (indexService == null) {
