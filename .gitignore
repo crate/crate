@@ -31,6 +31,10 @@ tmp/
 *.pyc
 *.pyo
 
+# app files
+app/data/
+app/logs/
+
 # Docs
 out/
 
