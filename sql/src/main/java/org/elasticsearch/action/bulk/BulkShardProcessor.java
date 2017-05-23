@@ -42,6 +42,7 @@ import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.support.AutoCreateIndex;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
@@ -158,6 +159,15 @@ public class BulkShardProcessor<Request extends ShardRequest> {
         this.requestBuilder = requestBuilder;
     }
 
+    private boolean indexClosedAndPrintLog(String indexName) {
+        IndexMetaData indexMetaData = clusterService.state().getMetaData().index(indexName);
+        if (indexMetaData != null && indexMetaData.getState() == IndexMetaData.State.CLOSE) {
+            LOGGER.warn(String.format(Locale.ENGLISH, "Trying to insert value into closed index: %s", indexName));
+            return true;
+        }
+        return false;
+    }
+
     public boolean add(String indexName, Request.Item item, @Nullable String routing) {
         assert item != null : "request item must not be null";
         if (indicesDeleted.contains(indexName)) {
@@ -174,7 +184,12 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
         ShardId shardId = shardId(indexName, item.id(), routing);
         if (shardId == null) {
-            addRequestForNewIndex(indexName, item, routing);
+            if (indexClosedAndPrintLog(indexName) == false) {
+                addRequestForNewIndex(indexName, item, routing);
+            } else {
+                // index closed so decrement pending request
+                pending.decrementAndGet();
+            }
         } else {
             try {
                 // will only block if retries/writer are active
@@ -225,7 +240,6 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                 routing
             ).shardId();
         } catch (IndexNotFoundException e) {
-            LOGGER.warn(String.format(Locale.ENGLISH, "Trying to insert value into unavailable partition: %s", indexName));
             if (!autoCreateIndices) {
                 throw e;
             }
@@ -343,8 +357,12 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                         // add pending requests for created indices
                         ShardId shardId = shardId(pendingRequest.indexName, pendingRequest.item.id(), pendingRequest.routing);
                         if (shardId == null) {
-                            // seems like index is deleted meanwhile, mark item as failed and remove pending
-                            indicesDeleted.add(pendingRequest.indexName);
+                            // seems like index is deleted meanwhile
+                            // only mark item as failed if the index IS NOT closed
+                            if (indexClosedAndPrintLog(pendingRequest.indexName) == false) {
+                                indicesDeleted.add(pendingRequest.indexName);
+                            }
+                            // remove pending request
                             it.remove();
                             synchronized (responsesLock) {
                                 responses.set(globalCounter.getAndIncrement(), false);
