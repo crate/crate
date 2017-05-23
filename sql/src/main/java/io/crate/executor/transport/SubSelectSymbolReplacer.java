@@ -35,7 +35,6 @@ import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 
@@ -100,16 +99,6 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
         public Void visitMerge(Merge merge, SymbolReplacer replacer) {
             merge.mergePhase().replaceSymbols(replacer);
             process(merge.subPlan(), replacer);
-            return null;
-        }
-
-        @Override
-        public Void visitGetPlan(ESGet plan, SymbolReplacer replacer) {
-            Lists2.replaceItems(plan.outputs(), replacer);
-            Lists2.replaceItems(plan.sortSymbols(), replacer);
-            for (DocKeys.DocKey current : plan.docKeys()) {
-                Lists2.replaceItems(current.values(), replacer);
-            }
             return null;
         }
 

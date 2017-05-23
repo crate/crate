@@ -44,6 +44,7 @@ public interface ExecutionPhase extends Writeable {
 
     enum Type {
         COLLECT(RoutedCollectPhase::new),
+        PRIMARY_KEY_LOOKUP(PrimaryKeyLookupPhase::new),
         COUNT(CountPhase::new),
         FILE_URI_COLLECT(FileUriCollectPhase::new),
         MERGE(MergePhase::new),
@@ -51,7 +52,6 @@ public interface ExecutionPhase extends Writeable {
         NESTED_LOOP(NestedLoopPhase::new),
         TABLE_FUNCTION_COLLECT(in -> {
             throw new UnsupportedOperationException("TableFunctionCollectPhase is not streamable"); }),
-        PRIMARY_KEY_LOOKUP(PrimaryKeyLookupPhase::new)
         ;
 
         public static final List<Type> VALUES = ImmutableList.copyOf(values());
@@ -73,6 +73,9 @@ public interface ExecutionPhase extends Writeable {
 
     int phaseId();
 
+    /**
+     * Returns the set of node ids where this phase is executed.
+     */
     Collection<String> nodeIds();
 
     <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context);

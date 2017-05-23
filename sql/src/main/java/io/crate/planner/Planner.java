@@ -179,6 +179,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         public ReaderAllocations buildReaderAllocations() {
             return routingBuilder.buildReaderAllocations();
         }
+
+        public ClusterService getClusterService() {
+            return clusterService;
+        }
     }
 
 
@@ -187,7 +191,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         this.clusterService = clusterService;
         this.consumingPlanner = new ConsumingPlanner(clusterService, functions, tableStats);
         this.copyStatementPlanner = new CopyStatementPlanner(clusterService);
-        this.selectStatementPlanner = new SelectStatementPlanner(consumingPlanner, clusterService);
+        this.selectStatementPlanner = new SelectStatementPlanner(consumingPlanner);
         normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
     }
 

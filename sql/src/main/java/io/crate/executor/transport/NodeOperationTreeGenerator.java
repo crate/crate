@@ -35,7 +35,6 @@ import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
-import io.crate.planner.node.dql.PrimaryKeyLookupPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 
@@ -200,11 +199,6 @@ public final class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationT
         boolean useDirectResponse = context.noPreviousPhases();
         context.addPhase(plan.mergePhase());
         context.addPhase(plan.countPhase(), useDirectResponse);
-        return null;
-    }
-
-    public Void visitPrimaryKeyLookupPlan(PrimaryKeyLookupPlan plan, NodeOperationTreeContext context) {
-        context.addPhase(plan.primaryKeyLookupPhase());
         return null;
     }
 

@@ -38,6 +38,10 @@ import io.crate.metadata.doc.DocTableInfo;
 import java.util.*;
 import java.util.function.Function;
 
+/**
+ * Rewrites a query to retrieve the fetch ids of the document. The actual
+ * documents can be retrieved using a {@link io.crate.planner.projection.FetchProjection}.
+ */
 public final class FetchRewriter {
 
     /**

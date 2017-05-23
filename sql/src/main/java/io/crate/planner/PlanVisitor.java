@@ -87,10 +87,6 @@ public class PlanVisitor<C, R> {
         return visitPlan(plan, context);
     }
 
-    public R visitGetPlan(ESGet plan, C context) {
-        return visitPlan(plan, context);
-    }
-
     public R visitDropTablePlan(DropTablePlan plan, C context) {
         return visitPlan(plan, context);
     }
@@ -123,7 +119,4 @@ public class PlanVisitor<C, R> {
         return visitPlan(merge, context);
     }
 
-    public R visitPrimaryKeyLookupPlan(PrimaryKeyLookupPlan primaryKeyLookupPlan, C context) {
-        return visitPlan(primaryKeyLookupPlan, context);
-    }
 }

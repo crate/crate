@@ -23,13 +23,18 @@
 package io.crate.executor.transport;
 
 import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.planner.Merge;
 import io.crate.planner.MultiPhasePlan;
-import io.crate.planner.node.dql.ESGet;
+import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.PrimaryKeyLookupPhase;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Collections;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.contains;
@@ -40,18 +45,24 @@ public class SubSelectSymbolReplacerTest extends CrateDummyClusterServiceUnitTes
 
     @Before
     public void prepare() {
+
+        prepareRoutingForIndices(Collections.singletonList("users"));
+
         e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
     }
 
     @Test
     public void testSelectSymbolsAreReplacedInSelectListOfPrimaryKeyLookups() throws Exception {
-        MultiPhasePlan plan = e.plan("select (select 'foo' from sys.cluster) from users where id = 10");
-        ESGet esGet = (ESGet) plan.rootPlan();
-        SelectSymbol subSelect = (SelectSymbol) esGet.outputs().get(0);
+        Merge plan = e.plan("select (select 'foo' from sys.cluster) from users where id = 10");
+        MultiPhasePlan esGet = (MultiPhasePlan) plan.subPlan();
+        Collect plan1 = (Collect) esGet.rootPlan();
+        PrimaryKeyLookupPhase lookupPhase = (PrimaryKeyLookupPhase) plan1.collectPhase();
 
-        SubSelectSymbolReplacer replacer = new SubSelectSymbolReplacer(esGet, subSelect);
+        SelectSymbol subSelect = (SelectSymbol) lookupPhase.toCollect().get(0);
+
+        SubSelectSymbolReplacer replacer = new SubSelectSymbolReplacer(plan1, subSelect);
         replacer.onSuccess(new BytesRef("foo"));
 
-        assertThat(esGet.outputs(), contains(isLiteral("foo")));
+        assertThat(lookupPhase.toCollect(), contains(isLiteral("foo")));
     }
 }

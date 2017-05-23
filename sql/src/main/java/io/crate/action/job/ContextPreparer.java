@@ -28,6 +28,7 @@ import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.MoreObjects;
 import io.crate.Streamer;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.where.DocKeys;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchConsumer;
@@ -72,6 +73,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -80,6 +82,9 @@ import java.util.BitSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
+/**
+ * Central component which registers execution contexts for all execution phases.
+ */
 @Singleton
 public class ContextPreparer extends AbstractComponent {
 
@@ -506,34 +511,29 @@ public class ContextPreparer extends AbstractComponent {
         @Override
         public Boolean visitPrimaryKeyLookupPhase(final PrimaryKeyLookupPhase phase, final PreparerContext context) {
 
-            Map<String, Map<String, List<Integer>>> locations = phase.routing().locations();
             String localNodeId = clusterService.localNode().getId();
-            final Map<String, List<Integer>> indexShardMap;
-            if (locations.isEmpty()) {
-                indexShardMap = Collections.emptyMap();
-            } else {
-                indexShardMap = locations.get(localNodeId);
-                if (indexShardMap == null) {
-                    throw new IllegalArgumentException(
-                        "The routing of the primaryKeyLookupPhase doesn't contain the current nodeId. locations=" +
-                        locations + ", localNode=" + localNodeId);
-                }
-            }
+
+            Map<ShardId, List<DocKeys.DocKey>> shardIdMap =
+                phase.getDocKeysPerShardNode()
+                    .getOrDefault(localNodeId, Collections.emptyMap());
 
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
-            BatchConsumer lastConsumer = context.getBatchConsumer(phase, Paging.PAGE_SIZE);
 
-            BatchConsumer firstConsumer = ProjectingBatchConsumer.create(
-                lastConsumer, phase.projections(), phase.jobId(), ramAccountingContext, projectorFactory);
+            BatchConsumer consumer = context.getBatchConsumer(phase, Paging.PAGE_SIZE);
+            consumer = ProjectingBatchConsumer.create(
+                consumer,
+                phase.projections(),
+                phase.jobId(),
+                ramAccountingContext,
+                projectorFactory
+            );
 
             context.registerSubContext(new PrimaryKeyLookupContext(
                 phase.phaseId(),
                 primaryKeyLookupOperation,
-                firstConsumer,
-                indexShardMap,
-                phase.docKeys(),
-                phase.docKeysByShard(),
+                consumer,
                 phase.pkMapping(),
+                shardIdMap,
                 phase.toCollect()
             ));
             return true;

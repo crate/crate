@@ -29,6 +29,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.reference.ReferenceResolver;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
@@ -64,7 +65,7 @@ public class GetResponseRefResolver implements ReferenceResolver<CollectExpressi
                 return CollectExpression.of(GetResponse::getVersion);
 
             case DocSysColumns.Names.ID:
-                return CollectExpression.of(GetResponse::getId);
+                return CollectExpression.of(r -> new BytesRef(r.getId().getBytes()));
 
             case DocSysColumns.Names.RAW:
                 return CollectExpression.of(r -> r.getSourceAsBytesRef().toBytesRef());

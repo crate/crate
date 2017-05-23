@@ -26,14 +26,24 @@ import com.google.common.collect.ImmutableSet;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.NodeConnectionsService;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.IndexRoutingTable;
+import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
+import org.elasticsearch.cluster.routing.RecoverySource;
+import org.elasticsearch.cluster.routing.RoutingTable;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.elasticsearch.common.util.set.Sets;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -41,6 +51,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.mockito.Mockito;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -81,6 +92,67 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
         return EMPTY_CLUSTER_SETTINGS;
     }
 
+    /**
+     * Updates the routing state of the ClusterService to make the indices available.
+     * @param indices indices to create routings for
+     */
+    public void prepareRoutingForIndices(List<String> indices) {
+
+        final String node2 = "node2";
+
+        final RoutingTable.Builder routingTableBuilder = RoutingTable.builder();
+        final MetaData.Builder metadataBuilder = MetaData.builder();
+        for (String indexName : indices) {
+
+            String indexUUID = UUID.randomUUID().toString();
+            ShardId shardId1 = new ShardId(indexName, indexUUID, 0);
+            ShardId shardId2 = new ShardId(indexName, indexUUID, 1);
+
+            ShardRouting shardRouting1 = ShardRouting.newUnassigned(
+                shardId1,
+                true,
+                Mockito.mock(RecoverySource.class),
+                new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "bla"))
+                .initialize(node2, null, 1);
+
+            IndexShardRoutingTable shardRouting =
+                new IndexShardRoutingTable.Builder(shardId1)
+                    .addShard(shardRouting1)
+                    .build();
+
+            Index index = new Index(indexName, indexUUID);
+            IndexRoutingTable indexRoutingTable =
+                IndexRoutingTable
+                    .builder(index)
+                    .addIndexShard(shardRouting)
+                    .build();
+
+            Map<String, IndexRoutingTable> objectObjectHashMap = new HashMap<>();
+            objectObjectHashMap.put(indexName, indexRoutingTable);
+            routingTableBuilder.indicesRouting(objectObjectHashMap);
+
+            IndexMetaData indexMetaData = IndexMetaData
+                .builder(indexName)
+                .settings(Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT).build())
+                .numberOfShards(1)
+                .numberOfReplicas(5)
+                .creationDate(0)
+                .build();
+
+            metadataBuilder.put(indexMetaData, false);
+        }
+
+        // update cluster state for primary key lookup tests
+        ClusterServiceUtils.setState(
+            clusterService,
+            ClusterState
+                .builder(clusterService.state())
+                .routingTable(routingTableBuilder.build())
+                .metaData(metadataBuilder.build())
+                .build()
+        );
+    }
+
     private ClusterService createClusterService(Collection<Setting<?>> additionalClusterSettings) {
         Set<Setting<?>> clusterSettings = Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         clusterSettings.addAll(additionalClusterSettings);
@@ -112,7 +184,12 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
         clusterService.start();
         final DiscoveryNodes.Builder nodes = DiscoveryNodes.builder(clusterService.state().nodes());
         nodes.masterNodeId(clusterService.localNode().getId());
-        ClusterServiceUtils.setState(clusterService, ClusterState.builder(clusterService.state()).nodes(nodes));
+
+        ClusterServiceUtils.setState(
+            clusterService,
+            ClusterState
+                .builder(clusterService.state())
+                .nodes(nodes));
         return clusterService;
     }
 }

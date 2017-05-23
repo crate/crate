@@ -31,10 +31,7 @@ import io.crate.data.Row;
 import io.crate.executor.transport.task.elasticsearch.GetResponseRefResolver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.InputFactory;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectExpression;
@@ -46,17 +43,22 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.get.GetResult;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @Singleton
 public class PrimaryKeyLookupOperation {
@@ -65,28 +67,25 @@ public class PrimaryKeyLookupOperation {
     private final IndicesService indicesService;
     private final ClusterService clusterService;
     private final Functions functions;
-    private final Schemas schemas;
 
     @Inject
-    public PrimaryKeyLookupOperation(ClusterService clusterService,
-                                     Functions functions,
-                                     IndicesService indicesService,
-                                     Schemas schemas) {
+    public PrimaryKeyLookupOperation(
+            ClusterService clusterService,
+            Functions functions,
+            IndicesService indicesService) {
         this.clusterService = clusterService;
         this.indicesService = indicesService;
         this.functions = functions;
-        this.schemas = schemas;
     }
 
-    public CompletableFuture<Iterable<Row>> primaryKeyLookup(Map<String, ? extends Collection<Integer>> indexShardMap,
-                                                             final DocKeys docKeys,
-                                                             final Map<Integer, List<DocKeys.DocKey>> docKeysByShard,
-                                                             final Map<ColumnIdent, Integer> pkMapping,
-                                                             final List<Symbol> toCollect) throws IOException, InterruptedException {
+    public CompletableFuture<Iterable<Row>> primaryKeyLookup(
+            Map<ShardId, List<DocKeys.DocKey>> docKeysPerShard,
+            Map<ColumnIdent, Integer> pkMapping,
+            List<Symbol> toCollect) throws IOException, InterruptedException {
 
         MetaData metaData = clusterService.state().getMetaData();
         InputFactory inputFactory = new InputFactory(functions);
-        Map<String, DocKeys.DocKey> docKeysById = groupDocKeysById(docKeys);
+        Map<String, DocKeys.DocKey> docKeysById = groupDocKeysById(docKeysPerShard);
         List<ColumnIdent> columns = new ArrayList<>();
         GetResponseRefResolver refResolver = new GetResponseRefResolver(columns::add, pkMapping, docKeysById);
         InputFactory.Context<CollectExpression<GetResponse, ?>> ctx = inputFactory.ctxForRefs(refResolver);
@@ -95,39 +94,34 @@ public class PrimaryKeyLookupOperation {
         List<CollectExpression<GetResponse, ?>> expressions = ctx.expressions();
         List<GetResponse> responses = new ArrayList<>();
 
-        for (Map.Entry<String, ? extends Collection<Integer>> entry : indexShardMap.entrySet()) {
-            String indexName = entry.getKey();
-            IndexMetaData indexMetaData = metaData.index(indexName);
-            if (indexMetaData == null) {
-                if (PartitionName.isPartition(indexName)) {
-                    continue;
-                }
-                throw new IndexNotFoundException(indexName);
-            }
-            final Index index = indexMetaData.getIndex();
-            IndexService indexService = indicesService.indexServiceSafe(index);
-            for (final Integer shardId : entry.getValue()) {
-                IndexShard shard = indexService.getShard(shardId);
-                List<DocKeys.DocKey> docKeysForShard = docKeysByShard.get(shardId);
-                if (docKeysForShard == null) {
-                    continue;
-                }
-                for (DocKeys.DocKey docKey : docKeysForShard) {
-                    Long version = docKey.version().orElse(Versions.MATCH_ANY);
-                    GetResult result = shard.getService().get(
-                        Constants.DEFAULT_MAPPING_TYPE,
-                        docKey.id(),
-                        null,
-                        true,
-                        version,
-                        VersionType.INTERNAL,
-                        getFetchSourceContext(columns)
-                    );
+        for (Map.Entry<ShardId, List<DocKeys.DocKey>> docKeysAtShard : docKeysPerShard.entrySet()) {
+            ShardId shardId = docKeysAtShard.getKey();
 
-                    responses.add(new GetResponse(result));
-                }
+            IndexMetaData indexMetaData = metaData.index(shardId.getIndex());
+            Index index2 = indexMetaData.getIndex();
+            IndexService indexService = indicesService.indexServiceSafe(index2);
+            IndexShard shard = indexService.getShard(shardId.id());
+
+            for (DocKeys.DocKey docKey : docKeysAtShard.getValue()) {
+                Long version = docKey.version().orElse(Versions.MATCH_ANY);
+                GetResult result = shard.getService().get(
+                    Constants.DEFAULT_MAPPING_TYPE,
+                    docKey.id(),
+                    null,
+                    // configure realtime access (= looks through the translog)
+                    true,
+                    version,
+                    VersionType.INTERNAL,
+                    getFetchSourceContext(columns)
+                );
+
+                responses.add(new GetResponse(result));
             }
         }
+
+        responses = responses.stream()
+            .filter(GetResponse::isExists)
+            .collect(Collectors.toList());
 
         InputRow inputRow = new InputRow(ctx.topLevelInputs());
         List<Row> rows = Lists.transform(responses, r -> {
@@ -140,10 +134,14 @@ public class PrimaryKeyLookupOperation {
         return CompletableFuture.completedFuture(rows);
     }
 
-    private static Map<String, DocKeys.DocKey> groupDocKeysById(DocKeys docKeys) {
-        Map<String, DocKeys.DocKey> keysById = new HashMap<>(docKeys.size());
-        for (DocKeys.DocKey key : docKeys) {
-            keysById.put(key.id(), key);
+    private static Map<String, DocKeys.DocKey> groupDocKeysById(
+            Map<ShardId, List<DocKeys.DocKey>> docKeysPerShard)
+    {
+        Map<String, DocKeys.DocKey> keysById = new HashMap<>();
+        for (List<DocKeys.DocKey> docKeyList : docKeysPerShard.values()) {
+            for (DocKeys.DocKey key : docKeyList) {
+                keysById.put(key.id(), key);
+            }
         }
         return keysById;
     }
@@ -161,4 +159,6 @@ public class PrimaryKeyLookupOperation {
         }
         return new FetchSourceContext(false);
     }
+
+
 }

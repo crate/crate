@@ -30,6 +30,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
@@ -38,6 +39,7 @@ import io.crate.planner.*;
 import io.crate.planner.fetch.FetchRewriter;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.PlanWithFetchDescription;
+import io.crate.planner.node.dql.PrimaryKeyLookupPhase;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.fetch.FetchPhase;
@@ -72,6 +74,13 @@ public class QueryAndFetchConsumer implements Consumer {
             QuerySpec qs = table.querySpec();
             if (!isSimpleSelect(qs, context)) {
                 return null;
+            }
+            if (qs.where().docKeys().isPresent()
+                    && !table.tableRelation().tableInfo().isAlias()) {
+                return realtimeSelect(table, context, qs.where().docKeys().get());
+            }
+            if (qs.where().hasVersions()) {
+                throw new VersionInvalidException();
             }
             FetchMode fetchMode = context.fetchMode();
             if (fetchMode == FetchMode.NEVER || !FetchRewriter.isFetchFeasible(qs)) {
@@ -313,22 +322,61 @@ public class QueryAndFetchConsumer implements Consumer {
         table.tableRelation().validateOrderBy(optOrderBy);
 
         Limits limits = plannerContext.getLimits(querySpec);
-        RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
-            plannerContext,
-            table,
-            toCollect,
-            topNOrEmptyProjections(toCollect, limits)
+
+        RoutedCollectPhase routedCollectPhase =
+            RoutedCollectPhase.forQueriedTable(
+                plannerContext,
+                table,
+                toCollect,
+                topNOrEmptyProjections(toCollect, limits)
         );
-        tryApplySizeHint(context.requiredPageSize(), limits, collectPhase);
-        collectPhase.orderBy(optOrderBy.orElse(null));
+        tryApplySizeHint(context.requiredPageSize(), limits, routedCollectPhase);
+        routedCollectPhase.orderBy(optOrderBy.orElse(null));
+
         return new Collect(
-            collectPhase,
+            routedCollectPhase,
             limits.finalLimit(),
             limits.offset(),
             qsOutputs.size(),
             limits.limitAndOffset(),
             PositionalOrderBy.of(optOrderBy.orElse(null), toCollect)
         );
+    }
+
+    private static Collect realtimeSelect(QueriedDocTable table, ConsumerContext context, DocKeys docKeys) {
+        QuerySpec querySpec = table.querySpec();
+        Planner.Context plannerContext = context.plannerContext();
+        Optional<OrderBy> optOrderBy = querySpec.orderBy();
+        List<Symbol> qsOutputs = querySpec.outputs();
+        List<Symbol> toCollect = getToCollectSymbols(qsOutputs, optOrderBy);
+        table.tableRelation().validateOrderBy(optOrderBy);
+
+        Limits limits = plannerContext.getLimits(querySpec);
+
+        List<Projection> projections = Collections.singletonList(
+            ProjectionBuilder.topNOrEval(
+                toCollect,
+                optOrderBy.orElse(null),
+                limits.offset(),
+                limits.limitAndOffset(),
+                // We need all outputs (including order by symbols) for the Merge phase.
+                // It is _not_ correct to use qsOutputs here.
+                toCollect));
+
+        PrimaryKeyLookupPhase pkLookupPhase = PrimaryKeyLookupPhase.forQueriedTable(
+            plannerContext,
+            table,
+            toCollect,
+            projections,
+            docKeys);
+
+        return new Collect(
+            pkLookupPhase,
+            limits.finalLimit(),
+            limits.offset(),
+            qsOutputs.size(),
+            limits.limitAndOffset(),
+            PositionalOrderBy.of(optOrderBy.orElse(null), toCollect));
     }
 
     private static void tryApplySizeHint(@Nullable Integer requiredPageSize, Limits limits, RoutedCollectPhase collectPhase) {

@@ -215,7 +215,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         assertEquals(26L, response.rowCount());
         List<String> tableNames = Arrays.asList("blobs", "characters", "quotes");
         for (Object[] row : response.rows()) {
-            assertThat(tableNames.contains(row[0]), is(true));
+            assertThat(tableNames.contains((String) row[0]), is(true));
             assertThat(row[1], is(Version.LATEST.toString()));
         }
     }

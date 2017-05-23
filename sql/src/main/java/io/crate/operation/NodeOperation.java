@@ -63,7 +63,7 @@ public class NodeOperation implements Streamable {
 
     public static NodeOperation withoutDownstream(ExecutionPhase executionPhase) {
         return new NodeOperation(executionPhase,
-            ImmutableList.<String>of(),
+            ImmutableList.of(),
             ExecutionPhase.NO_EXECUTION_PHASE,
             (byte) 0);
     }

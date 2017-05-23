@@ -32,6 +32,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.operation.primarykey.PrimaryKeyLookupOperation;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -40,33 +41,31 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+/**
+ * Context which holds the state for the execution of the primary key lookup operation.
+ */
 public class PrimaryKeyLookupContext extends AbstractExecutionSubContext {
 
     private static final Logger LOGGER = Loggers.getLogger(CountContext.class);
 
     private final PrimaryKeyLookupOperation primaryKeyLookupOperation;
     private final BatchConsumer consumer;
-    private final Map<String, List<Integer>> indexShardMap;
-    private final DocKeys docKeys;
-    private final Map<Integer, List<DocKeys.DocKey>> docKeysByShard;
+    private final Map<ShardId, List<DocKeys.DocKey>> localDocKeysPerShard;
     private final Map<ColumnIdent, Integer> pkMapping;
     private final List<Symbol> toCollect;
     private CompletableFuture<Iterable<Row>> primaryKeyLookupFuture;
 
-    public PrimaryKeyLookupContext(int id,
-                                   PrimaryKeyLookupOperation primaryKeyLookupOperation,
-                                   BatchConsumer consumer,
-                                   Map<String, List<Integer>> indexShardMap,
-                                   DocKeys docKeys,
-                                   Map<Integer, List<DocKeys.DocKey>> docKeysByShard,
-                                   Map<ColumnIdent, Integer> pkMapping,
-                                   List<Symbol> toCollect) {
+    public PrimaryKeyLookupContext(
+            int id,
+            PrimaryKeyLookupOperation primaryKeyLookupOperation,
+            BatchConsumer consumer,
+            Map<ColumnIdent, Integer> pkMapping,
+            Map<ShardId, List<DocKeys.DocKey>> localDocKeysPerShard,
+            List<Symbol> toCollect) {
         super(id, LOGGER);
         this.primaryKeyLookupOperation = primaryKeyLookupOperation;
         this.consumer = consumer;
-        this.indexShardMap = indexShardMap;
-        this.docKeys = docKeys;
-        this.docKeysByShard = docKeysByShard;
+        this.localDocKeysPerShard = localDocKeysPerShard;
         this.pkMapping = pkMapping;
         this.toCollect = toCollect;
     }
@@ -75,14 +74,12 @@ public class PrimaryKeyLookupContext extends AbstractExecutionSubContext {
     public synchronized void innerStart() {
         try {
             primaryKeyLookupFuture = primaryKeyLookupOperation.primaryKeyLookup(
-                indexShardMap,
-                docKeys,
-                docKeysByShard,
+                localDocKeysPerShard,
                 pkMapping,
                 toCollect
             );
         } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("PrimaryKeyLookUp failed", e);
         }
 
         primaryKeyLookupFuture.whenComplete((result, ex) -> {
