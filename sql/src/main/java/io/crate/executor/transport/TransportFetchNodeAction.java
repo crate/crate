@@ -51,7 +51,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                                     JobsLogs jobsLogs,
                                     JobContextService jobContextService) {
         this.transports = transports;
-        this.nodeFetchOperation = new NodeFetchOperation(threadPool, jobsLogs, jobContextService);
+        this.nodeFetchOperation = new NodeFetchOperation(threadPool.executor(ThreadPool.Names.SEARCH), jobsLogs, jobContextService);
 
         transportService.registerRequestHandler(
             TRANSPORT_ACTION,
