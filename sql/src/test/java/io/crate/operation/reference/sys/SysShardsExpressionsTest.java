@@ -31,6 +31,8 @@ import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.sys.shard.ShardPathExpression;
+import io.crate.operation.reference.sys.shard.ShardRecoveryExpression;
+import io.crate.operation.reference.sys.shard.ShardRecoveryStateExpression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.types.DataTypes;
@@ -326,5 +328,18 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         }};
         assertEquals(expectedBytes, recovery.get("size"));
 
+    }
+
+    @Test
+    public void testShardRecoveryStateExpressionNullRecoveryState(){
+        when(indexShard.recoveryState()).thenReturn(null);
+        ShardRecoveryStateExpression shardRecoveryStateExpression = new ShardRecoveryStateExpression<Long>(indexShard) {
+            @Override
+            public Long innerValue(RecoveryState recoveryState) {
+                return recoveryState.getTimer().time();
+            }
+        };
+
+        assertNull(shardRecoveryStateExpression.value());
     }
 }
