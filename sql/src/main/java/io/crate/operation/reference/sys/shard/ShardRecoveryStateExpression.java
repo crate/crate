@@ -30,15 +30,15 @@ public abstract class ShardRecoveryStateExpression<T> implements ReferenceImplem
 
     private final IndexShard indexShard;
 
-    ShardRecoveryStateExpression(IndexShard indexShard) {
+    public ShardRecoveryStateExpression(IndexShard indexShard) {
         this.indexShard = indexShard;
     }
 
     @Override
     public T value() {
-        // the recoveryState is only null when the shard is in the initialization process where
-        // this expression must not be called
-        assert indexShard.recoveryState() != null : "recoveryState must not be null upon value call";
+        if (indexShard.recoveryState() == null){
+            return null;
+        }
         return innerValue(indexShard.recoveryState());
     }
 
