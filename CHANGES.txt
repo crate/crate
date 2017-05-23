@@ -33,6 +33,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that could cause ``sys.operations`` entries to remain even
+   after the operation has finished.
+
  - Fixed a NPE when querying ``sys.shards`` table
 
  - Optimized the JMX ``QueryStats`` MBean to prevent it from putting too much

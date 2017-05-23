@@ -38,7 +38,6 @@ import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -85,8 +84,8 @@ public class NodeFetchOperation {
         }
     }
 
-    public NodeFetchOperation(ThreadPool threadPool, JobsLogs jobsLogs, JobContextService jobContextService) {
-        executor = threadPool.executor(ThreadPool.Names.SEARCH);
+    public NodeFetchOperation(Executor executor, JobsLogs jobsLogs, JobContextService jobContextService) {
+        this.executor = executor;
         this.jobsLogs = jobsLogs;
         this.jobContextService = jobContextService;
     }
@@ -102,7 +101,8 @@ public class NodeFetchOperation {
             if (closeContextOnFinish) {
                 tryCloseContext(jobId, phaseId);
             }
-            return CompletableFuture.completedFuture(new IntObjectHashMap<>(0));
+            resultFuture.complete(new IntObjectHashMap<>(0));
+            return resultFuture;
         }
 
         JobExecutionContext context = jobContextService.getContext(jobId);
