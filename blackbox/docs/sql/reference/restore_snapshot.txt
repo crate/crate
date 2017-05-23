@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _ref-restore-snapshot:
 
-================
-RESTORE SNAPSHOT
-================
+====================
+``RESTORE SNAPSHOT``
+====================
 
 Restore a snapshot into the cluster.
 
@@ -46,8 +46,8 @@ Parameters
 
 :partition_column: Column name by which the table is partitioned
 
-WITH Clause
-===========
+``WITH`` Clause
+===============
 
 ::
 

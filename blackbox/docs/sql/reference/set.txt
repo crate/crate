@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _ref-set:
 
-===========
-SET / RESET
-===========
+=====================
+``SET`` and ``RESET``
+=====================
 
 Change and restore settings at runtime. To get an overview of available Crate
 settings, see :ref:`configuration`. Only settings documented with

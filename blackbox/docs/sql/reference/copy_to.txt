@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _copy_to:
 
-=======
-COPY TO
-=======
+===========
+``COPY TO``
+===========
 
 Export table contents to files on Crate node machines.
 
@@ -49,8 +49,8 @@ Parameters
     Declaring columns changes the output to JSON list format, which is
     currently not supported by the COPY FROM statement.
 
-WHERE Clause
-------------
+``WHERE`` Clause
+----------------
 
 `WHERE` clauses use the same syntax as `SELECT` statements, allowing
 partial exports. (see :ref:`sql_dql_where_clause` for more information).
@@ -87,8 +87,8 @@ will be used.
   connections are using the HTTPS protocol. Please make sure you update your
   firewall rules to allow outgoing connections on port ``443``.
 
-PARTITION Clause
-================
+``PARTITION`` Clause
+====================
 
 If the table is partitioned this clause can be used to only export data from a
 specific partition.
@@ -115,8 +115,8 @@ not part of the partitioned tables.
     exported files. If a partition column is a generated column, it
     will not be included even if the ``PARTITION`` clause is missing.
 
-WITH Clause
-===========
+``WITH`` Clause
+===============
 
 The optional WITH clause can specify parameters for the copy statement.
 
@@ -129,8 +129,8 @@ Possible copy_parameters are:
 .. _compression:
 ..
 
-compression
------------
+``compression``
+---------------
 
 Define if and how the exported data should be compressed.
 By default the output is not compressed.
@@ -141,8 +141,8 @@ Possible values for the ``compression`` setting are:
 
 .. _format:
 
-format
-------
+``format``
+----------
 
 Optional parameter to override default output behavior.
 

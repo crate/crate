@@ -1,8 +1,8 @@
 .. _plugins:
 
-=========
- Plugins
-=========
+=======
+Plugins
+=======
 
 CrateDB implements a plugin loading infrastructure making it possible to
 develop plugins for crate.
@@ -135,8 +135,8 @@ Again, checkout the `example crate plugin`_ to see this in action.
 
 .. _plugins_abstract_plugin:
 
-AbstractPlugin Class
-====================
+``AbstractPlugin`` Class
+========================
 
 A good start for developing an own plugin is to extend the implementation
 from ``io.crate.plugin.AbstractPlugin``, which already implements all

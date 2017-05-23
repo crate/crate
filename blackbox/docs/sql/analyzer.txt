@@ -1,7 +1,7 @@
 .. _sql-analyzer:
 
 ==========================================
-Builtin Tools for fulltext search in Crate
+Builtin Tools for Fulltext Search in Crate
 ==========================================
 
 .. _analyzer-overview:
@@ -46,8 +46,8 @@ Builtin Analyzer
 
 .. _standard-analyzer:
 
-standard
---------
+``standard``
+------------
 
 ``type='standard'``
 
@@ -85,8 +85,8 @@ max_token_length
 
 .. _default-analyzer:
 
-default
--------
+``default``
+-----------
 
 ``type='default'``
 
@@ -95,8 +95,8 @@ This is the same as the `standard-analyzer`_ analyzer.
 
 .. _simple-analyzer:
 
-simple
-------
+``simple``
+----------
 
 ``type='simple'``
 
@@ -105,8 +105,8 @@ Uses the :ref:`lowercase-tokenizer` tokenizer.
 
 .. _whitespace-analyzer:
 
-whitespace
-----------
+``whitespace``
+--------------
 
 ``type='whitespace'``
 
@@ -115,8 +115,8 @@ Uses a :ref:`whitespace-tokenizer` tokenizer
 
 .. _stop-analyzer:
 
-stop
-----
+``stop``
+--------
 
 ``type='stop'``
 
@@ -135,8 +135,8 @@ stopwords_path
 
 .. _keyword-analyzer:
 
-keyword
--------
+``keyword``
+-----------
 
 ``type=keyword``
 
@@ -145,8 +145,8 @@ Creates one single token from the field-contents.
 
 .. _pattern-analyzer:
 
-pattern
--------
+``pattern``
+-----------
 
 ``type='pattern'``
 
@@ -174,8 +174,8 @@ more details about flags options.
 
 .. _language-analyzer:
 
-language
---------
+``language``
+------------
 
 ``type='<language-name>'``
 
@@ -208,8 +208,8 @@ The following analyzers support setting custom ``stem_exclusion`` list:
 
 .. _snowball-analyzer:
 
-snowball
---------
+``snowball``
+------------
 
 ``type='snowball'``
 
@@ -228,8 +228,8 @@ language
 
 .. _fingerprint-analyzer:
 
-fingerprint
------------
+``fingerprint``
+---------------
 
 ``type='fingerprint'``
 
@@ -266,8 +266,8 @@ Builtin Tokenizer
 
 .. _standard-tokenizer:
 
-standard
---------
+``standard``
+------------
 
 ``type='standard'``
 
@@ -285,8 +285,8 @@ max_token_length
 
 .. _classic-tokenizer:
 
-classic
--------
+``classic``
+-----------
 
 ``type='classic'``
 
@@ -304,8 +304,8 @@ max_token_length
 
 .. _edgengram-tokenizer:
 
-edge ngram
-----------
+``edge_ngram``
+--------------
 
 ``type='edge_ngram'``
 
@@ -329,8 +329,8 @@ token_chars
 
 .. _keyword-tokenizer:
 
-keyword
--------
+``keyword``
+-----------
 
 ``type='keyword'``
 
@@ -344,8 +344,8 @@ buffer_size
 
 .. _letter-tokenizer:
 
-letter
-------
+``letter``
+----------
 
 ``type='letter'``
 
@@ -354,8 +354,8 @@ Divides text at non-letters.
 
 .. _lowercase-tokenizer:
 
-lowercase
----------
+``lowercase``
+-------------
 
 ``type='lowercase'``
 
@@ -365,8 +365,8 @@ It divides text at non-letters and converts them to lower case.
 
 .. _ngram-tokenizer:
 
-ngram
------
+``ngram``
+---------
 
 ``type='ngram'``
 
@@ -388,8 +388,8 @@ token_chars
 
 .. _whitespace-tokenizer:
 
-whitespace
-----------
+``whitespace``
+--------------
 
 ``type='whitespace'``
 
@@ -398,8 +398,8 @@ Divides text at whitespace.
 
 .. _pattern-tokenizer:
 
-pattern
--------
+``pattern``
+-----------
 
 ``type='pattern'``
 
@@ -427,8 +427,8 @@ more details about flags options.
 
 .. _thai-tokenizer:
 
-thai
-----
+``thai``
+--------
 
 ``type='thai'``
 
@@ -437,8 +437,8 @@ Splits Thai text correctly, treats all other languages like the `standard-tokeni
 
 .. _uaxemailurl-tokenizer:
 
-uax email url
--------------
+``uax_url_email``
+-----------------
 
 ``type='uax_url_email'``
 
@@ -454,8 +454,8 @@ max_token_length
 
 .. _pathhierarchy-tokenizer:
 
-path hierarchy
---------------
+``path_hierarchy``
+------------------
 
 ``type='path_hierarchy'``
 
@@ -495,8 +495,8 @@ Builtin Token Filter
 
 .. _standard-tokenfilter:
 
-standard
---------
+``standard``
+------------
 
 ``type='standard'``
 
@@ -505,8 +505,8 @@ Normalizes tokens extracted with the :ref:`standard-tokenizer` Tokenizer.
 
 .. _classic-tokenfilter:
 
-classic
--------
+``classic``
+-----------
 
 ``type='classic'``
 
@@ -517,8 +517,8 @@ removes dots from acronyms.
 
 .. _apostrophe-tokenfilter:
 
-apostrophe
-----------
+``apostrophe``
+--------------
 
 ``type='apostrophe'``
 
@@ -527,8 +527,8 @@ Strips all characters after an apostrophe, and the apostrophe itself.
 
 .. _asciifolding-tokenfilter:
 
-ascii folding
--------------
+``asciifolding``
+----------------
 
 ``type='asciifolding'``
 
@@ -538,8 +538,8 @@ which are not in the first 127 ASCII characters
 
 .. _length-tokenfilter:
 
-length
-------
+``length``
+----------
 
 ``type='length'``
 
@@ -557,8 +557,8 @@ max
 
 .. _lowercase-tokenfilter:
 
-lowercase
----------
+``lowercase``
+-------------
 
 ``type='lowercase'``
 
@@ -573,8 +573,8 @@ language
 
 .. _ngram-tokenfilter:
 
-ngram
------
+``ngram``
+---------
 
 ``type='ngram'``
 
@@ -590,8 +590,8 @@ max_gram
 
 .. _edgengram-tokenfilter:
 
-edge ngram
-----------
+``edge_ngram``
+--------------
 
 ``type='edge_ngram'``
 
@@ -610,8 +610,8 @@ side
 
 .. _porterstem-tokenfilter:
 
-porter stem
------------
+``porter_stem``
+---------------
 
 ``type='porter_stem'``
 
@@ -627,8 +627,8 @@ Transforms the token stream as per the Porter stemming algorithm.
 
 .. _shingle-tokenfilter:
 
-shingle
--------
+``shingle``
+-----------
 
 ``type='shingle'``
 
@@ -658,8 +658,8 @@ token_separator
 
 .. _stop-tokenfilter:
 
-stop
-----
+``stop``
+--------
 
 ``type='stop'``
 
@@ -686,8 +686,8 @@ remove_trailing
 
 .. _worddelimiter-tokenfilter:
 
-word delimiter
---------------
+``word_delimiter``
+------------------
 
 ``type='word_delimiter'``
 
@@ -742,8 +742,8 @@ type_table
 
 .. _stemmer-tokenfilter:
 
-stemmer
--------
+``stemmer``
+-----------
 
 ``type='stemmer'``
 
@@ -763,8 +763,8 @@ language/name
 
 .. _keywordmarker-tokenfilter:
 
-keyword marker
---------------
+``keyword_marker``
+------------------
 
 ``type='keyword_marker'``
 
@@ -785,8 +785,8 @@ ignore_case
 
 .. _kstem-tokenfilter:
 
-kstem
------
+``kstem``
+---------
 
 ``type='kstem'``
 
@@ -797,8 +797,8 @@ to work correctly.
 
 .. _snowball-tokenfilter:
 
-snowball
---------
+``snowball``
+------------
 
 ``type='snowball'``
 
@@ -815,8 +815,8 @@ language
 
 .. _synonym-tokenfilter:
 
-synonym
--------
+``synonym``
+-----------
 
 ``type='synonym'``
 
@@ -838,8 +838,8 @@ expand
 
 .. _compoundword-tokenfilter:
 
-compound word
--------------
+``*_decompounder``
+------------------
 
 ``type='dictionary_decompounder'`` or ``type='hyphenation_decompounder'``
 
@@ -869,8 +869,8 @@ only_longest_match
 
 .. _reverse-tokenfilter:
 
-reverse
--------
+``reverse``
+-----------
 
 ``type='reverse'``
 
@@ -879,8 +879,8 @@ Reverses each token.
 
 .. _elision-tokenfilter:
 
-elision
--------
+``elision``
+-----------
 
 ``type='elision'``
 
@@ -895,8 +895,8 @@ articles
 
 .. _truncate-tokenfilter:
 
-truncate
---------
+``truncate``
+------------
 
 ``type='truncate'``
 
@@ -911,8 +911,8 @@ length
 
 .. _unique-tokenfilter:
 
-unique
-------
+``unique``
+----------
 
 ``type='unique'``
 
@@ -928,8 +928,8 @@ only_on_same_position
 
 .. _patterncapture-tokenfilter:
 
-pattern capture
----------------
+``pattern_capture``
+-------------------
 
 ``type='pattern_capture'``
 
@@ -943,8 +943,8 @@ preserve_original
 
 .. _patternreplace-tokenfilter:
 
-pattern replace
----------------
+``pattern_replace``
+-------------------
 
 ``type='pattern_replace'``
 
@@ -963,8 +963,8 @@ replacement
 
 .. _trim-tokenfilter:
 
-trim
-----
+``trim``
+--------
 
 ``type='trim'``
 
@@ -973,8 +973,8 @@ Trims the whitespace surrounding a token.
 
 .. _limittokencount-tokenfilter:
 
-limit token count
------------------
+``limit``
+---------
 
 ``type='limit'``
 
@@ -992,8 +992,8 @@ consume_all_tokens
 
 .. _hunspell-tokenfilter:
 
-hunspell
---------
+``hunspell``
+------------
 
 ``type='hunspell'``
 
@@ -1029,8 +1029,8 @@ recursion_level
 
 .. _commongrams-tokenfilter:
 
-common grams
-------------
+``common_grams``
+----------------
 
 ``type='common_grams'``
 
@@ -1063,8 +1063,8 @@ query_mode
 
 .. _normalization-tokenfilter:
 
-normalization
--------------
+``*_normalization``
+-------------------
 
 ``type='<language>_normalization'``
 
@@ -1084,8 +1084,8 @@ Available languages:
 
 .. _scandinavian-folding-tokenfilter:
 
-scandinavian folding
---------------------
+``scandinavian_folding``
+------------------------
 
 ``type='scandinavian_folding'``
 
@@ -1095,8 +1095,8 @@ it is easier to match different scandinavian languages using this folding algori
 
 .. _delimited_payload-tokenfilter:
 
-delimited payload
------------------
+``delimited_payload_filter``
+----------------------------
 
 ``type='delimited_payload_filter'``
 
@@ -1117,8 +1117,8 @@ delimiter
 
 .. _keep-tokenfilter:
 
-keep
-----
+``keep``
+--------
 
 ``type='keep'``
 
@@ -1138,8 +1138,8 @@ keep_words_path
 
 .. _stemmer_override-tokenfilter:
 
-stemmer override
-----------------
+``stemmer_override``
+--------------------
 
 ``type='stemmer_override'``
 
@@ -1158,8 +1158,8 @@ rules_path
 
 .. _cjk_bigram-tokenfilter:
 
-cjk bigram
-----------
+``cjk_bigram``
+--------------
 
 ``type='cjk_bigram'``
 
@@ -1179,8 +1179,8 @@ ignored_scripts
 
 .. cjk_width-tokenfilter:
 
-cjk width
----------
+``cjk_width``
+-------------
 
 ``type='cjk_width'``
 
@@ -1189,8 +1189,8 @@ A filter that normalizes CJK.
 
 .. language_stem-tokenfilter:
 
-language stem
--------------
+``*_stem``
+----------
 
 | ``type='arabic_stem'`` or
 | ``type='brazilian_stem'`` or
@@ -1205,8 +1205,8 @@ To prevent terms from being stemmed put a `keywordmarker-tokenfilter`_ before th
 filter into the ``token_filter`` chain.
 
 
-decimal_digit
--------------
+``decimal_digit``
+-----------------
 
 A token filter that folds unicode digits to `0-9`
 
@@ -1218,8 +1218,8 @@ Builtin Char Filter
 
 .. _mapping-charfilter:
 
-mapping
--------
+``mapping``
+-----------
 
 ``type='mapping'``
 
@@ -1235,8 +1235,8 @@ mappings_path
 
 .. _htmlstrip-charfilter:
 
-html strip
-----------
+``html_strip``
+--------------
 
 ``type='html_strip'``
 
@@ -1245,8 +1245,8 @@ Strips out HTML elements from an analyzed text.
 
 .. _patternreplace-charfilter:
 
-pattern replace
----------------
+``pattern_replace``
+-------------------
 
 ``type='pattern_replace'``
 
@@ -1265,8 +1265,8 @@ replacement
 
 .. _keeptypes-tokenfilter:
 
-keep types
-----------
+``keep_types``
+--------------
 
 ``type='keep_types'``
 
@@ -1281,8 +1281,8 @@ types
 
 .. _minhash-tokenfilter:
 
-min hash
---------
+``min_hash``
+------------
 
 ``type='min_hash'``
 
@@ -1309,8 +1309,8 @@ with_rotation
 
 .. _fingerprint-tokenfilter:
 
-fingerprint
------------
+``fingerprint``
+---------------
 
 ``type='fingerprint'``
 

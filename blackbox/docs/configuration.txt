@@ -250,7 +250,7 @@ to differentiate nodes upon startup:
   transport and discovery. *Used primarily for testing purposes.*
 
 Examples
-~~~~~~~~
+........
 
 A node by default is eligible as *master* and contains *data*.
 
@@ -995,7 +995,7 @@ Discovery
 .. _conf_host_discovery:
 
 Unicast Host Discovery
-~~~~~~~~~~~~~~~~~~~~~~
+......................
 
 CrateDB has built-in support for several different mechanisms of node
 discovery. The simplest mechanism is to specify a list of hosts in the
@@ -1025,7 +1025,7 @@ See also: :ref:`shared_nothing_discovery`.
 .. _conf_dns_discovery:
 
 Discovery via DNS
-*****************
+`````````````````
 
 Crate has built-in support for discovery via DNS. To enable DNS discovery
 the ``discovery.type`` setting needs to be set to ``srv``.
@@ -1060,7 +1060,7 @@ would result in a list of discovery nodes ordered like::
 .. _conf_ec2_discovery:
 
 Discovery on Amazon EC2
-***********************
+```````````````````````
 
 CrateDB has built-in support for discovery via the EC2 API. To enable EC2
 discovery the ``discovery.type`` setting needs to be set to ``ec2``.
@@ -1132,7 +1132,7 @@ Following settings control the discovery:
 .. _conf_azure_discovery:
 
 Discovery on Microsoft Azure
-****************************
+````````````````````````````
 
 CrateDB has built-in support for discovery via the Azure Virtual Machine API.
 To enable Azure discovery set the ``discovery.type`` setting to ``azure``.
@@ -1250,7 +1250,7 @@ Routing Allocation
 .. _conf-routing-allocation-awareness:
 
 Awareness
-~~~~~~~~~
+.........
 
 Cluster allocation awareness allows to configure shard and replicas
 allocation across generic attributes associated with nodes.
@@ -1290,7 +1290,7 @@ allocation across generic attributes associated with nodes.
   ``node.zone`` set to ``zone2`` the replicas will be allocated.
 
 Balanced Shards
-~~~~~~~~~~~~~~~
+...............
 All these values are relative to one another. The first three are used
 to compose a three separate weighting functions into one. The cluster
 is balanced when no allowed action can bring the weights of each node
@@ -1328,7 +1328,7 @@ allowed, for instance, due to forced awareness or allocation filtering.
   to be less aggressive about optimising the shard balance.
 
 Cluster-Wide Allocation Filtering
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.................................
 Allow to control the allocation of all shards based on include/exclude
 filters.
 E.g. this could be used to allocate all the new shards on the nodes
@@ -1362,7 +1362,7 @@ with specific IP addresses or custom attributes.
   which will include a node if ANY rule matches.
 
 Disk-based Shard Allocation
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+...........................
 .. _cluster.routing.allocation.disk.threshold_enabled:
 
 **cluster.routing.allocation.disk.threshold_enabled**
@@ -1575,7 +1575,7 @@ managed within a node. There are several pools, but the important ones include:
   ``cache`` will spawn a thread if there are pending requests (unbounded).
 
 Fixed Threadpool Settings
-~~~~~~~~~~~~~~~~~~~~~~~~~
+.........................
 If the type of a threadpool is set to ``fixed`` there are a few
 optional settings.
 
@@ -1615,7 +1615,7 @@ Metadata
 .. _metadata_gateway:
 
 Metadata Gateway
-~~~~~~~~~~~~~~~~
+................
 
   The gateway persists cluster meta data on disk every time the meta data
   changes. This data is stored persistently across full cluster restarts and
@@ -1764,8 +1764,8 @@ Environment Variables
 
 .. _env-crate-home:
 
-CRATE_HOME
-----------
+``CRATE_HOME``
+--------------
 
 Specifies the home directory of the installation, it is used to find
 default file paths like e.g. ``config/crate.yml`` or the default data
@@ -1778,8 +1778,8 @@ parent directory of the directory containing the ``bin/crate`` executable.
              All configured relative paths will use this directory as
              a parent.
 
-CRATE_JAVA_OPTS
----------------
+``CRATE_JAVA_OPTS``
+-------------------
 
 This variable allows you to set `Java options`_ for CrateDB, such as as the thread
 stack size.
@@ -1792,8 +1792,8 @@ exceptions::
 
 .. _crate-heap-size:
 
-CRATE_HEAP_SIZE
----------------
+``CRATE_HEAP_SIZE``
+-------------------
 
 This variable specifies the amount of memory that can be used by the
 JVM.
@@ -1811,7 +1811,7 @@ So it's important to choose a value high enough for the intended use-case.
 But there are two limitations:
 
 Use max. 50% of available RAM
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.............................
 
 Be aware that there is also another user of memory besides CrateDB's
 HEAP: our underlying storage engine `Lucene`_. It leverages the
@@ -1830,7 +1830,7 @@ cause serious performance impacts.
    unused, `Lucene`_ will use whatever is left-over.
 
 Never use more than 30.5 Gigabyte
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.................................
 
 In order to save on precious memory on x64 systems the Hotspot Java Virtual Machine
 uses a technique called `Compressed Ordinary object pointers (oops) <Compressed Oops>`_.
@@ -1854,7 +1854,7 @@ This boundary should be considered an upper bound for the heap size of any JVM a
 
 
 Running CrateDB on machines with huge RAM
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.........................................
 
 If hardware with much more RAM is available, it is suggested to run more than one CrateDB instance
 on that machine with each one having a heap size of around 30.5 GB (``30500m``).
@@ -1953,7 +1953,7 @@ nodes may have different authentication settings.
   by default.
 
 HBA Entries
-~~~~~~~~~~~
+...........
 
 The ``auth.host_based.config.`` setting is a group setting that can have zero,
 one or multiple groups that are defined by their group key (``${order}``) and

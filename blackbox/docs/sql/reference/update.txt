@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _ref-update:
 
-======
-UPDATE
-======
+==========
+``UPDATE``
+==========
 
 Update rows of a table.
 

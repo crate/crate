@@ -9,7 +9,7 @@ CrateDB includes support to store `binary large objects`_. By utilizing
 CrateDB's cluster features the files can be replicated and sharded just
 like regular data.
 
-Creating a table for blobs
+Creating a Table for Blobs
 ==========================
 
 Before adding blobs a ``blob table`` must be created. Lets use the
@@ -21,7 +21,7 @@ crate shell ``crash`` to issue the SQL statement::
 Now crate is configured to allow blobs to be management under the
 ``/_blobs/myblobs`` endpoint.
 
-Custom location for storing blob data
+Custom Location for Storing Blob Data
 =====================================
 
 It is possible to define a custom directory path for storing blob
@@ -38,7 +38,7 @@ Blob data will be stored under this path with the following layout::
 
   /<blobs.path>/nodes/<NODE_NO>/indices/.blob_<INDEX_NAME>/<SHARD_ID>/blobs
 
-Global by config
+Global by Config
 ----------------
 
 Just uncomment or add following entry at the crate config in order to
@@ -48,7 +48,7 @@ define a custom path globally for all blob tables::
 
 Also see :ref:`configuration`.
 
-Per blob table setting
+Per Blob Table Setting
 ----------------------
 
 It is also possible to define a custom blob data path per table
@@ -62,7 +62,7 @@ Creating a blob table with a custom blob data path::
     CREATE OK, 1 row affected (... sec)
 
 
-Altering a blob table
+Altering a Blob Table
 =====================
 
 The number of replicas a blob table has can be changed using the ``ALTER BLOB
@@ -166,7 +166,7 @@ If the blob doesn't exist a 404 Not Found error is returned::
     Content-Length: 0
 
 
-Deleting a blob table
+Deleting a Blob Table
 =====================
 
 Blob tables can be deleted similar to normal tables (again using the crate shell here)::

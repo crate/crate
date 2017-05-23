@@ -204,8 +204,8 @@ This table can be queried for one, multiple or all nodes within a cluster.
 The table schema is as follows:
 
 
-id
----
+``id``
+------
 
 +-------------+---------------------------------------------+-------------+
 | Column Name |                 Description                 | Return Type |
@@ -214,8 +214,8 @@ id
 |             | the system.                                 |             |
 +-------------+---------------------------------------------+-------------+
 
-name
-----
+``name``
+--------
 
 +-------------+-------------------------------------------------+-------------+
 | Column Name |                   Description                   | Return Type |
@@ -225,8 +225,8 @@ name
 |             | name via your own custom `configuration`_.      |             |
 +-------------+-------------------------------------------------+-------------+
 
-hostname
---------
+``hostname``
+------------
 
 +--------------+-------------------------------------------------+-------------+
 | Column Name  |                   Description                   | Return Type |
@@ -235,8 +235,8 @@ hostname
 |              | is running on.                                  |             |
 +--------------+-------------------------------------------------+-------------+
 
-rest_url
---------
+``rest_url``
+------------
 
 +--------------+-----------------------------------------------------+-------------+
 | Column Name  |                   Description                       | Return Type |
@@ -246,8 +246,8 @@ rest_url
 |              | and port.                                           |             |
 +--------------+-----------------------------------------------------+-------------+
 
-port
-----
+``port``
+--------
 
 +-----------------------+-------------------------------------------------+-------------+
 |      Column Name      |                   Description                   | Return Type |
@@ -263,8 +263,8 @@ port
 | ``port['psql']``      | The PostgreSQL wire protocol port.              | ``Integer`` |
 +-----------------------+-------------------------------------------------+-------------+
 
-load
-----
+``load``
+--------
 
 +-----------------------------+------------------------------------------+-------------+
 |  Column Name                |              Description                 | Return Type |
@@ -282,8 +282,8 @@ load
 +-----------------------------+------------------------------------------+-------------+
 
 
-mem
----
+``mem``
+-------
 
 +----------------------------+-------------------------------------------------+-------------+
 |       Column Name          |                   Description                   | Return Type |
@@ -302,8 +302,8 @@ mem
 |                            | of the memory probe.                            |             |
 +----------------------------+-------------------------------------------------+-------------+
 
-heap
-----
+``heap``
+--------
 
 +-----------------------------+------------------------------------------------+-------------+
 |   Column Name               |                  Description                   | Return Type |
@@ -324,8 +324,8 @@ heap
 
 .. _sys-versions:
 
-version
--------
+``version``
+-----------
 
 +-------------------------------+---------------------------------------------------+-------------+
 |   Column Name                 |                  Description                      | Return Type |
@@ -340,8 +340,8 @@ version
 | ``version['build_snapshot']`` | Indicates whether this build is a snapshot build. | ``Boolean`` |
 +-------------------------------+---------------------------------------------------+-------------+
 
-fs
----
+``fs``
+------
 
 +----------------------------------+------------------------------------------------+-------------+
 |           Column Name            |                  Description                   | Return Type |
@@ -391,8 +391,8 @@ fs
 | ``fs['data']['path']``           | File path where the data of the node resides.  | ``String``  |
 +----------------------------------+------------------------------------------------+-------------+
 
-thread_pools
-------------
+``thread_pools``
+----------------
 
 +-------------------------------+------------------------------------------------+-------------+
 |          Column Name          |                  Description                   | Return Type |
@@ -418,8 +418,8 @@ thread_pools
 | ``thread_pools['queue']``     | Number of thread currently in the queue.       | ``Integer`` |
 +-------------------------------+------------------------------------------------+-------------+
 
-os
----
+``os``
+------
 
 +---------------------------+----------------------------------------------+-------------+
 |       Column Name         |                 Description                  | Return Type |
@@ -452,8 +452,8 @@ values at query time. Use the probe timestamp to get the time of collection.
 When analyzing the cpu usage over time, always use ``os['probe_timestamp']`` to
 calculate the time difference between 2 probes.
 
-os_info
--------
+``os_info``
+-----------
 
 +-------------------------------------+----------------------------------------------+-------------+
 |       Column Name                   |                 Description                  | Return Type |
@@ -485,8 +485,8 @@ os_info
 | ``os_info['jvm']['vm_version']``    | The version of the JVM                       | ``String``  |
 +-------------------------------------+----------------------------------------------+-------------+
 
-network
--------
+``network``
+-----------
 
 +--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
 |                      Column Name                       |                                        Description                                         | Return Type |
@@ -525,8 +525,8 @@ network
 |                                                        | See `tools.ietf.org <https://tools.ietf.org/html/rfc2525#page-50>`_.                       |             |
 +--------------------------------------------------------+--------------------------------------------------------------------------------------------+-------------+
 
-process
--------
+``process``
+-----------
 
 +------------------------------------------+------------------------------------------------+--------------+
 | Column Name                              | Description                                    | Return Type  |
@@ -616,7 +616,7 @@ Example query::
 
 .. _sys-node-checks-ack:
 
-Acknowledge failed checks
+Acknowledge Failed Checks
 -------------------------
 
 It is possible to acknowledge every check by updating the
@@ -644,10 +644,10 @@ it's ``acknowledged`` flag::
     after the affected node is restarted.
 
 
-Description of checked node settings
+Description of Checked Node Settings
 ------------------------------------
 
-Recovery expected nodes
+Recovery Expected Nodes
 .......................
 
 The check for the :ref:`gateway.expected_nodes
@@ -655,7 +655,7 @@ The check for the :ref:`gateway.expected_nodes
 should be waited for the immediate cluster state recovery, must be
 equal to the maximum number of data and master nodes in the cluster.
 
-Recovery after nodes
+Recovery After Nodes
 ....................
 
 The check for the :ref:`gateway.recover_after_nodes
@@ -670,21 +670,21 @@ expected number of nodes and equal/less than number of nodes in the cluster.
 where ``R`` is the number of recovery nodes, ``E`` is the number of expected
 nodes.
 
-Recovery after time
+Recovery After Time
 ...................
 
 The check for the :ref:`gateway.recover_after_time
 <gateway.recover_after_time>` settings verifies that the time before
 recovery starts must not be less than default value of ``5m``.
 
-Java 7 deprecation warning
+Java 7 Deprecation Warning
 ..........................
 
 Starting with Crate 0.55.0 using Java 7 runtime environment is
 deprecated. Please update to Java 8 (>= update 20). See also `here
 <https://crate.io/docs/reference/en/latest/installation.html#java-jvm-version>`_.
 
-Routing allocation disk watermark high
+Routing Allocation Disk Watermark High
 ......................................
 
 The check for the :ref:`cluster.routing.allocation.disk.watermark.high
@@ -693,7 +693,7 @@ the high watermark is not exceeded on the current node. The usage of each disk
 for configured Crate data paths is verified against the threshold setting.
 If one or more verification fails the check is marked as not passed.
 
-Routing allocation disk watermark low
+Routing Allocation Disk Watermark Low
 .....................................
 
 The check for the :ref:`cluster.routing.allocation.disk.watermark.low
@@ -713,8 +713,8 @@ shards of all (non-system) tables.
 
 The table schema is as follows:
 
-id
---
+``id``
+------
 
 +----------------------+----------------------------------+-------------+
 |     Column Name      |           Description            | Return Type |
@@ -727,8 +727,8 @@ id
 |                      | shards is 5).                    |             |
 +----------------------+----------------------------------+-------------+
 
-schema_name
------------
+``schema_name``
+---------------
 
 +----------------------+----------------------------------+-------------+
 |     Column Name      |           Description            | Return Type |
@@ -739,8 +739,8 @@ schema_name
 |                      | for shards of common tables.     |             |
 +----------------------+----------------------------------+-------------+
 
-table_name
-----------
+``table_name``
+--------------
 
 +----------------------+----------------------------------+-------------+
 |     Column Name      |           Description            | Return Type |
@@ -748,8 +748,8 @@ table_name
 | ``table_name``       | The table name.                  | ``String``  |
 +----------------------+----------------------------------+-------------+
 
-partition_ident
----------------
+``partition_ident``
+-------------------
 
 +----------------------+----------------------------------+-------------+
 |     Column Name      |           Description            | Return Type |
@@ -760,8 +760,8 @@ partition_ident
 |                      | tables.                          |             |
 +----------------------+----------------------------------+-------------+
 
-num_docs
---------
+``num_docs``
+------------
 
 +----------------------+----------------------------------+-------------+
 |     Column Name      |           Description            | Return Type |
@@ -770,8 +770,8 @@ num_docs
 |                      | within a shard.                  |             |
 +----------------------+----------------------------------+-------------+
 
-min_lucene_version
-------------------
+``min_lucene_version``
+----------------------
 
 +------------------------+----------------------------------+-------------+
 |     Column Name        |           Description            | Return Type |
@@ -780,8 +780,8 @@ min_lucene_version
 |                        | version used in this shard.      |             |
 +------------------------+----------------------------------+-------------+
 
-primary
--------
+``primary``
+-----------
 
 +----------------------+----------------------------------+-------------+
 |     Column Name      |           Description            | Return Type |
@@ -790,8 +790,8 @@ primary
 |                      | primary shard.                   |             |
 +----------------------+----------------------------------+-------------+
 
-relocating_node
----------------
+``relocating_node``
+-------------------
 
 +----------------------+----------------------------------+-------------+
 |     Column Name      |           Description            | Return Type |
@@ -800,8 +800,8 @@ relocating_node
 |                      | getting relocated to at the time |             |
 +----------------------+----------------------------------+-------------+
 
-size
-----
+``size``
+--------
 
 +----------------------+----------------------------------+-------------+
 |     Column Name      |           Description            | Return Type |
@@ -812,8 +812,8 @@ size
 |                      | access.                          |             |
 +----------------------+----------------------------------+-------------+
 
-state
------
+``state``
+---------
 
 +----------------------+----------------------------------+-------------+
 |     Column Name      |           Description            | Return Type |
@@ -830,8 +830,8 @@ state
 |                      | UNASSIGNED                       |             |
 +----------------------+----------------------------------+-------------+
 
-routing_state
--------------
+``routing_state``
+-----------------
 
 +----------------------+----------------------------------+-------------+
 |     Column Name      |           Description            | Return Type |
@@ -846,8 +846,8 @@ routing_state
 |                      | RELOCATING                       |             |
 +----------------------+----------------------------------+-------------+
 
-orphan_partition
-----------------
+``orphan_partition``
+--------------------
 
 +----------------------+----------------------------------+-------------+
 |     Column Name      |           Description            | Return Type |
@@ -860,8 +860,8 @@ orphan_partition
 |                      | tables.                          |             |
 +----------------------+----------------------------------+-------------+
 
-path
-----
+``path``
+--------
 
 +----------------------+----------------------------------+-------------+
 |     Column Name      |           Description            | Return Type |
@@ -873,8 +873,8 @@ path
 +----------------------+----------------------------------+-------------+
 
 
-blob_path
----------
+``blob_path``
+-------------
 
 +----------------------+----------------------------------+-------------+
 |     Column Name      |           Description            | Return Type |
@@ -886,8 +886,8 @@ blob_path
 +----------------------+----------------------------------+-------------+
 
 
-_node
------
+``_node``
+---------
 
 +----------------------+----------------------------------+-------------+
 |     Column Name      |           Description            | Return Type |
@@ -899,8 +899,8 @@ _node
 |                      | table.                           |             |
 +----------------------+----------------------------------+-------------+
 
-recovery
---------
+``recovery``
+------------
 
 Recovery is the process of moving a table shard to a different node or loading it
 from disk, e.g. during node startup (local gateway recovery), replication,
@@ -981,8 +981,8 @@ For example, you can query shards like this::
 
 .. _jobs_operations_logs:
 
-Jobs, Operations and Logs
-=========================
+Jobs, Operations, and Logs
+==========================
 
 To see current activities in the cluster, crate provides the
 ``sys.jobs`` and ``sys.operations`` tables and their corresponding "logs",

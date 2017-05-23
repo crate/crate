@@ -1,5 +1,6 @@
 .. _sql_administration_udf:
 
+======================
 User Defined Functions
 ======================
 
@@ -14,8 +15,8 @@ User Defined Functions
 
 
 
-CREATE OR REPLACE
------------------
+``CREATE OR REPLACE``
+=====================
 
 CrateDB supports user-defined functions. See :ref:`ref-create-function`
 for a full syntax description.
@@ -101,7 +102,7 @@ You can explicitly assign a schema like this::
     snapshots contain table data only.
 
 Supported Types
----------------
+===============
 
 The argument types, and the return type of the function can be any of the
 CrateDB supported :ref:`sql_ddl_datatypes`. Data types of values passed into a
@@ -114,8 +115,8 @@ function must strictly correspond to its argument data types.
     if the cast is not successful.
 
 
-OVERLOADING
------------
+Overloading
+===========
 
 Within a specific schema, you can overload functions by defining two functions with the
 same name that have a different set of arguments::
@@ -145,20 +146,20 @@ This would overload our ``multiply`` function with more arguments::
 .. note::
 
     It is considered bad practice to create functions that have the same name
-    as the CrateDB built-in functions. 
-    
+    as the CrateDB built-in functions.
+
     If you call a function without a schema
     name, CrateDB will look it up in the built-in functions first and only then
     in the user-defined functions with the schema of the current session (see
-    :ref:`conf-session-settings`). 
-    
+    :ref:`conf-session-settings`).
+
     Therefore a built-in function with the same
     name as a user-defined function will hide the latter. However, such
     functions can still be called if the schema name is explicitly provided.
 
 
 Determinism
------------
+===========
 
 .. warning::
 
@@ -167,8 +168,8 @@ Determinism
     values, because CrateDB might cache the returned values and reuse the value
     if the function is called multiple times with the same arguments.
 
-DROP FUNCTION
--------------
+``DROP FUNCTION``
+=================
 
 Functions can be dropped like this::
 
@@ -191,14 +192,14 @@ Optionally, you can provide a schema::
      DROP OK, 1 row affected  (... sec)
 
 Supported Languages
--------------------
+===================
 
 CrateDB currently only supports the UDF language ``javascript``.
 
 .. _udf_lang_js:
 
 JavaScript
-..........
+----------
 
 The UDF language ``javascript`` supports the `ECMAScript 5.1`_ standard.
 
@@ -215,7 +216,7 @@ normally accessible with a web browser (e.g. ``window``, ``console`` and so on)
 are are not available.
 
 Supported Types
-^^^^^^^^^^^^^^^
+...............
 
 JavaScript functions can handle all CrateDB data types. However, for some
 return types the function output must correspond to the certain
@@ -274,7 +275,7 @@ the JavaScript function should return a ``GeoJson`` object or``WKT`` string::
 
 
 Working with ``NUMBERS``
-........................
+------------------------
 
 The JavaScript engine Nashorn_ interprets numbers as
 ``java.lang.Double``, ``java.lang.Long``, or ``java.lang.Integer``,

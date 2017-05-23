@@ -2,7 +2,7 @@
 .. _migrating_from_mysql:
 
 ====================
-Migrating from MySQL
+Migrating From MySQL
 ====================
 
 There are various ways to migrate your existing data from MySQL_ to CrateDB_.
@@ -26,7 +26,7 @@ Sampledata::
   ...   (2, 'bar', null, 'pear');
 
 
-Exporting Data from MySQL
+Exporting Data From MySQL
 =========================
 
 MySQL does not support ``JSON`` as an output format, but it is possible to
@@ -124,7 +124,7 @@ For help use the ``-h`` option:
   sh$ python mysql2crate.py -h
 
 
-Importing Data into CrateDB
+Importing Data Into CrateDB
 ===========================
 
 The column names need to match the names specified by the ``--columns`` argument.
@@ -150,8 +150,8 @@ Finally use the ``COPY FROM`` statement to import your newly generated json file
   Read :ref:`efficient_data_import` for more information how to import huge datasets into CrateDB.
 
 
-3rd Party Tool: csvkit
-======================
+Third Party Tool: csvkit
+========================
 
 The tools provided by `csvkit`_ allow you to directly insert CSV data
 into CrateDB via SQLAlchemy, using CrateDB’s native driver to create the table,

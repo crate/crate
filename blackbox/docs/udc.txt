@@ -46,7 +46,7 @@ UDC, and secondly, we want to keep pings from automatic tests to a minimum. By
 default, UDC is sending pings every 24 hours. The ping to the UDC servers is
 done with a HTTP GET.
 
-Admin UI tracking
+Admin UI Tracking
 =================
 Since Admin UI v0.16.0 we are tracking the user-id along with the cluster-id to
 know how many active users are currently using CrateDB.
@@ -58,7 +58,7 @@ configuration file or adding a system property setting. Refer to
 :ref:`conf_usage_data_collector` to see how these settings can be accessed and
 how they are configured.
 
-How to disable UDC
+How to Disable UDC
 ==================
 Below are two ways you can disable UDC. However we hope you support us offering
 the open source edition, and leave UDC on, so we learn how many people use
@@ -71,14 +71,14 @@ Crate.
 
 .. highlight:: yaml
 
-By configuration
+By Configuration
 ----------------
 Just add following to your ``crate.yml`` configuration file::
 
     udc.enabled:  false
 
-By system property
--------------------------
+By System Property
+------------------
 If you do not want to make any change to the jars or to the configuration,
 a system property setting like this will also make sure that UDC is never
 activated::

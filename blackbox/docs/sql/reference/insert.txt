@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _ref-insert:
 
-======
-INSERT
-======
+==========
+``INSERT``
+==========
 
 Create new rows in a table.
 
@@ -61,7 +61,7 @@ conflict occured.
 This function is especially useful in multiple-row inserts, because
 the values of the current row can be referenced.
 
-Insert from dynamic queries constraints
+Insert From Dynamic Queries Constraints
 ---------------------------------------
 
 In some cases ``SELECT`` statements produce invalid data. This opens a rare

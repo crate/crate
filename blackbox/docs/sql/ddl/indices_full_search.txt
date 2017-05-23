@@ -2,6 +2,7 @@
 
 .. _indices_and_fulltext:
 
+===========================
 Indices and Fulltext Search
 ===========================
 
@@ -14,7 +15,7 @@ create fulltext search queries a :ref:`fulltext index with an analyzer
 .. _sql_ddl_index_definition:
 
 Index Definition
-----------------
+================
 
 In Crate, every column's data is indexed using the ``plain`` index
 method by default.  Currently there are 3 choices related to index
@@ -35,7 +36,7 @@ definition:
 .. _sql_ddl_index_off:
 
 Disable indexing
-................
+================
 
 Indexing can be turned off by using the ``INDEX OFF`` column definition.
 Consider that a column without an index can only be used as a result column
@@ -74,7 +75,7 @@ When a not indexed column is queried the query will return an error.
 .. _sql_ddl_index_plain:
 
 Plain index (Default)
-.....................
+=====================
 
 An index of type ``plain`` is indexing the input data as-is without
 analyzing.  Using the ``plain`` index method is the default behaviour
@@ -95,8 +96,8 @@ This results in the same behaviour than without any index declaration::
 
 .. _sql_ddl_index_fulltext:
 
-Fulltext index with analyzer
-............................
+Fulltext Index With Analyzer
+----------------------------
 
 By defining an index on a column, it's analyzed data is indexed
 instead of the raw data.  Thus, depending on the used analyzer,
@@ -121,8 +122,8 @@ defining the analyzer as a parameter using the ``WITH`` statement::
     CREATE OK, 1 row affected (... sec)
 
 
-Defining a named index column definition
-........................................
+Defining a Named Index Column Definition
+----------------------------------------
 
 It's also possible to define an index column which treat the data of a
 given column as input.  This is especially useful if you want to
@@ -146,8 +147,8 @@ Of course defining a custom analyzer is possible here too::
 
 .. _sql-ddl-composite-index:
 
-Defining a composite index
-..........................
+Defining a Composite Index
+--------------------------
 
 Defining a composite (or combined) index is done using the same syntax
 as above despite multiple columns are given to the ``fulltext`` index
@@ -177,8 +178,8 @@ Composite indices can include nested columns within object columns as well::
 
 .. _create_custom_analyzer:
 
-Create custom analyzer
-----------------------
+Create a Custom Analyzer
+========================
 
 An analyzer consists of one tokenizer, zero or more token-filters, and
 zero or more char-filters.
@@ -275,8 +276,8 @@ Tokenizer and token-filters can be customized in the same way.
 
   :ref:`builtin-char-filter` for a list of built-in char-filter.
 
-Extending Bultin Analyzer
--------------------------
+Extending a Bultin Analyzer
+===========================
 
 Existing Analyzers can be used to create custom Analyzers by means of extending them.
 
@@ -306,7 +307,7 @@ This analyzer will use the char-filters and token-filters from
 ``myanalyzer`` and will override the tokenizer with ``mypattern``.
 
 Analyzer Reference
-------------------
+==================
 
 See the reference documentation of the :ref:`builtin-analyzer` to get detailed
 information on the available analyzers.

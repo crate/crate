@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _ref-drop-snapshot:
 
-=============
-DROP SNAPSHOT
-=============
+=================
+``DROP SNAPSHOT``
+=================
 
 Delete an existing snapshot and all files referenced only by this snapshot.
 

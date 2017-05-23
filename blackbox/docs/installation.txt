@@ -7,7 +7,7 @@ This section shows you how to install CrateDB on a single node.
 To set up a multi-node cluster, you will need to tell CrateDB how to find the
 other nodes. See the `Multi Node Setup`_ article for more information.
 
-Java (JVM) version
+Java (JVM) Version
 ==================
 
 CrateDB requires `Java 8`_. We recommend using `Oracle's Java`_ on OSX and
@@ -18,8 +18,8 @@ We recommend installing `Java 8`_ update 20 or later.
 
 .. _install_targz:
 
-Install via tar.gz
-==================
+Install Via Tarball
+===================
 
 .. highlight:: sh
 
@@ -60,7 +60,7 @@ your browser once Crate is started::
     and the response will be JSON.
 
 
-Install using Docker
+Install Using Docker
 ====================
 
 `Docker`_ is a lightweigt runtime to run distributed applications in a sandboxed container.

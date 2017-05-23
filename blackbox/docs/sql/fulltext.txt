@@ -13,8 +13,8 @@ see :ref:`fulltext-indices`.
 
 .. _predicates_match:
 
-MATCH Predicate
-===============
+``MATCH`` Predicate
+===================
 
 Synopsis
 --------
@@ -151,7 +151,7 @@ The default ``match_type`` for fulltext indices is ``best_fields``.
 
 
 Options
-~~~~~~~
+```````
 
 The match options further distinguish the way the matching process using a certain match type works.
 Not all options are applicable to all match types. See the options below for details.

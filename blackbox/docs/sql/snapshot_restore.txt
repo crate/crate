@@ -1,7 +1,7 @@
 .. highlight:: psql
 .. _snapshot-restore:
 
-Backup with Snapshot and Restore
+Backup With Snapshot and Restore
 ================================
 
 Snapshot
@@ -13,7 +13,7 @@ created. A *Snapshot* is always stored in a *Repository* which has to
 be created first.
 
 Creating a Repository
-~~~~~~~~~~~~~~~~~~~~~
+.....................
 
 Repositories are used to store, manage and restore snapshots.
 
@@ -44,7 +44,7 @@ Creating a repository with the same name will result in an error::
     SQLActionException[RepositoryAlreadyExistsException: Repository 'where_my_snapshots_go' already exists]
 
 Creating a Snapshot
-~~~~~~~~~~~~~~~~~~~
+...................
 
 Snapshots are created inside a repository and can contain any number
 of tables. The :ref:`ref-create-snapshot` statement is used to create
@@ -183,7 +183,7 @@ Cleanup
 -------
 
 Dropping Snapshots
-~~~~~~~~~~~~~~~~~~
+..................
 
 Dropping a snapshot deletes all files inside the repository that are
 only referenced by this snapshot. Due to its incremental nature this
@@ -195,7 +195,7 @@ are dropped using the :ref:`ref-drop-snapshot` command::
 
 
 Dropping Repositories
-~~~~~~~~~~~~~~~~~~~~~
+.....................
 
 .. Hidden: create repository
 
@@ -226,8 +226,8 @@ repository in the cluster state, so it's not accessible any more.
 
 .. _snapshot-restore_hfs-requirements:
 
-Requirements for using repositories of type 'hdfs'
---------------------------------------------------
+Requirements for Using HDFS Repositories
+----------------------------------------
 
 Crate supports repositories of type
 :ref:`ref-create-repository-types-hdfs` type by default, but required

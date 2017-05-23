@@ -45,8 +45,8 @@ Aliases can be used to change the output name of the columns::
 
 .. _sql_dql_from_clause:
 
-FROM Clause
------------
+``FROM`` Clause
+---------------
 
 The ``FROM`` clause is used to reference the relation this select query is
 based upon. Can be a single table, many tables, table :ref:`JOIN <sql_joins>`
@@ -107,8 +107,8 @@ Joins
 
 .. _sql_dql_distinct_clause:
 
-DISTINCT Clause
----------------
+``DISTINCT`` Clause
+-------------------
 
 If DISTINCT is specified, one unique row is kept. All other
 duplicate rows are removed from the result set::
@@ -126,8 +126,8 @@ duplicate rows are removed from the result set::
 
 .. _sql_dql_where_clause:
 
-WHERE Clause
-------------
+``WHERE`` Clause
+----------------
 
 A simple where clause example using an equality operator::
 
@@ -322,8 +322,8 @@ Examples::
 
 .. _sql_dql_like:
 
-LIKE
-----
+``LIKE``
+--------
 
 `Crate` supports the `LIKE` operator. This operator can be used to query for
 rows where only part of a columns value should match something. For example to
@@ -379,8 +379,8 @@ escape them using a backslash::
 
 .. _sql_dql_not:
 
-NOT
----
+``NOT``
+-------
 
 ``NOT`` negates a boolean expression::
 
@@ -407,8 +407,8 @@ The result type is boolean.
 
 .. _sql_dql_in:
 
-IN
---
+``IN``
+------
 
 `Crate` also supports the binary operator ``IN``, which allows you to verify the membership
 of left-hand operand in a right-hand set of expressions. Returns ``true`` if any evaluated expression
@@ -435,8 +435,8 @@ value from a right-hand set equals left-hand operand. Returns ``false`` otherwis
 
 .. _sql_dql_is_null:
 
-IS NULL
--------
+``IS NULL``
+-----------
 
 Returns ``TRUE`` if ``expr`` evaluates to ``NULL``.
 Given a column reference it returns ``TRUE`` if the field contains ``NULL``
@@ -480,8 +480,8 @@ does always return ``NULL`` when comparing ``NULL``.
 
 .. _sql_dql_is_not_null:
 
-IS NOT NULL
------------
+``IS NOT NULL``
+---------------
 
 Returns ``TRUE`` if ``expr`` does not evaluate to ``NULL``.
 Additionally, for column references it returns ``FALSE`` if the column does not exist.
@@ -515,8 +515,8 @@ does always return ``NULL`` when comparing ``NULL``.
 
 .. _sql_dql_any_array:
 
-ANY (array)
------------
+``ANY (array)``
+---------------
 
 The ANY (or SOME) operator allows to search for elements within arrays. This allows to
 query for rows where an element of an array is, for example, equal to or
@@ -591,8 +591,8 @@ result.
 
     - Objects as ``expressions``.
 
-Negating ANY
-............
+Negating ``ANY``
+................
 
 One important thing to notice when using ANY is that negating the ANY operator
 does not behave as negating normal comparison operators.
@@ -662,8 +662,8 @@ limit on SELECT statements.
 
 .. _sql_dql_objects:
 
-Inner/Nested Objects
---------------------
+Inner Objects and Nested Objects
+--------------------------------
 
 ``Crate`` supports an ``object`` data type, used for simple storing a whole object into a
 column and it's even possible to select and query for properties of such objects.
@@ -990,8 +990,8 @@ Some Examples::
 
 .. _sql_dql_group_by:
 
-GROUP BY
---------
+``GROUP BY``
+------------
 
 Crate supports the `group by` clause. This clause can be used to group the
 resulting rows by the value(s) of one or more columns. That means that rows
@@ -1030,8 +1030,8 @@ This is useful if used in conjunction with aggregation functions::
 
 .. _sql_dql_having:
 
-HAVING
-......
+``HAVING``
+..........
 
 The having clause is the equivalent to the where clause for the
 resulting rows of a group by clause.
@@ -1075,7 +1075,7 @@ like in the result columns::
 
 
 Comparison Operators
-~~~~~~~~~~~~~~~~~~~~
+````````````````````
 
 The having clause supports the same operators as the :ref:`sql_dql_where_clause`:
 

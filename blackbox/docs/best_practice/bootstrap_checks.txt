@@ -49,7 +49,7 @@ your operating system and setup. And for this to take effect, you may also have
 to set these limits for the superuser.
 
 Linux
-+++++
+.....
 
 If you're running Linux, you can perform the necessary configuration by
 following these instructions.

@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _ref-create-blob-table:
 
-=================
-CREATE BLOB TABLE
-=================
+=====================
+``CREATE BLOB TABLE``
+=====================
 
 Define a new table for storing binary large objects.
 
@@ -31,8 +31,8 @@ following parameters are supported here:
 
 .. _ref-blobs-path:
 
-blobs_path
-~~~~~~~~~~
+``blobs_path``
+--------------
 
 Specifies a custom path for storing blob data of a blob table.
 

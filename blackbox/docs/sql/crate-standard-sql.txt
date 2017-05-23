@@ -50,8 +50,8 @@ Alter Table
 ``ALTER COLUMN`` and ``DROP COLUMN`` actions are not currently supported
 (see :ref:`ref-alter-table`).
 
-Insert, Update, Delete
-======================
+Insert, Update, and Delete
+==========================
 
 The keyword :ref:`on_duplicate_key_update`, when used in insert statements to
 perform an upsert, is an alternative to ``ON CONFLICT`` in standard
@@ -72,8 +72,8 @@ Standard SQL defines a binary string type, called ``BLOB`` or
 ``BINARY LARGE OBJECT``. With Crate, Binary Data is instead stored in separate
 BLOB Tables (see :ref:`blob_support`) which can be sharded and replicated.
 
-Transactions (``BEGIN``, ``COMMIT``, ``ROLLBACK``)
-==================================================
+Transactions (``BEGIN``, ``COMMIT``, and ``ROLLBACK``)
+======================================================
 
 Crate is focussed on providing analytical capabilities over supporting
 traditional transactional use cases, and thus it does not provide transaction
@@ -84,8 +84,8 @@ the record is modified. This version number can be used to implement patterns
 like :ref:`sql_occ`, which can be used to solve many of the
 use cases that would otherwise require traditional transactions.
 
-Unsupported Features / Functions
-================================
+Unsupported Features and Functions
+==================================
 
 These **features** of standard SQL are not supported:
 

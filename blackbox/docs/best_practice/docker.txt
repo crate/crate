@@ -175,7 +175,7 @@ they are running inside a container, and as a result, `the detected limits are
 wrong`_.
 
 Memory
-++++++
+......
 
 You must calculate and explicitly `set the maximum memory`_ the container can
 use. This is dependant on your host system, and typically, you want to make
@@ -188,14 +188,14 @@ which in turn passes it to the JVM.
 Don't worry about configuring swap. CrateDB does not use swap.
 
 CPU
-+++
+...
 
 You must calculate and explicitly `set the maximum number of CPUs`_ the
 container can use. This is dependant on your host system, and typically, you
 want to make this as high as possible.
 
 Combined Configuration
-++++++++++++++++++++++
+......................
 
 If the container should use a maximum of 1.5 CPUs and a maximum of 2 GB
 memory, and if the appropriate heap size should be 1 GB, you could configure

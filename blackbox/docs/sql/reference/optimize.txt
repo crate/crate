@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _sql_ref_optimize:
 
-========
-OPTIMIZE
-========
+============
+``OPTIMIZE``
+============
 
 Optimize one or more tables explicitly.
 
@@ -49,8 +49,8 @@ Parameters
 :partition_column: Column name by which the table is partitioned.
 
 
-PARTITION Clause
-================
+``PARTITION`` Clause
+====================
 
 ::
 
@@ -65,8 +65,8 @@ PARTITION Clause
 :value: The columns value.
 
 
-WITH Clause
-===========
+``WITH`` Clause
+===============
 
 The optional WITH clause can specify parameters for the optimization request.
 

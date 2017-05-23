@@ -1,5 +1,6 @@
 .. _column_policy:
 
+=============
 Column Policy
 =============
 
@@ -7,8 +8,8 @@ The Column Policy defines if a table enforces its defined schema or if it's
 allowed to store additional columns which are a not defined in the table schema.
 If the column policy is not defined within the ``with`` clause, ``dynamic`` will be used.
 
-strict
-------
+``strict``
+==========
 
 The column policy can be configured to be ``strict``, rejecting any column on
 insert/update/copy_to which is not defined in the schema.
@@ -26,8 +27,8 @@ Example::
     cr> drop table my_table11;
     DROP OK, 1 row affected (... sec)
 
-dynamic
--------
+``dynamic``
+===========
 
 The other option is ``dynamic`` which is the default policy.
 ``dynamic`` means that new columns can be added using ``insert``, ``update`` or ``copy from``.

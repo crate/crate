@@ -2,7 +2,7 @@
 .. _table_constraints:
 
 =================
-TABLE CONSTRAINTS
+Table Constraints
 =================
 
 Table constraints are constraints that are applied to more than one column or
@@ -16,8 +16,8 @@ The supported table constraints currently are:
 
 .. _primary_key_constraint:
 
-PRIMARY KEY Constraint
-======================
+``PRIMARY KEY`` Constraint
+==========================
 
 The PRIMARY KEY constraint specifies that a column or columns of a
 table can contain only unique (non-duplicate), non-null values.
@@ -41,8 +41,8 @@ Adding a PRIMARY KEY column is only possible if the table is empty.
 
 .. _index-constraint:
 
-INDEX Constraint
-================
+``INDEX`` Constraint
+====================
 
 The INDEX constraint specifies a specific index method on one or more
 columns.
@@ -56,8 +56,7 @@ For further details about the meaning of the options see
 
 .. _column_constraints:
 
-==================
-COLUMN CONSTRAINTS
+Column Constraints
 ==================
 
 Column constraints are constraints that are applied on each column of the table separately.
@@ -69,8 +68,8 @@ The supported column constraints are:
 
 .. _not_null_constraint:
 
-NOT NULL Constraint
-===================
+``NOT NULL`` Constraint
+-----------------------
 
 The NOT NULL constraint specifies that a column of a table can contain only non-null values.
 The columns that are part of the primary key of a table are NOT NULL by default.

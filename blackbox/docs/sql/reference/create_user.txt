@@ -1,8 +1,8 @@
 .. _ref-create-user:
 
-===========
-CREATE USER
-===========
+===============
+``CREATE USER``
+===============
 
 Create a new database user.
 

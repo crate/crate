@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _sql_kill:
 
-====
-KILL
-====
+========
+``KILL``
+========
 
 
 Kills active jobs in the crate cluster.

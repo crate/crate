@@ -122,7 +122,7 @@ used when a cluster with 3 or more nodes is set up.
     " >> /etc/crate/crate.yml
 
 
-Launch AMI by using the AWS CLI
+Launch AMI by Using the AWS CLI
 -------------------------------
 
 Instances which have the IAM role ``crate-ec2`` assigned will securely fetch

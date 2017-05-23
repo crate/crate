@@ -78,8 +78,8 @@ See the CREATE TABLE :ref:`with_clause` for a list of available parameters.
 
 .. _ref-alter-table-partition-clause:
 
-PARTITION Clause
-================
+``PARTITION`` Clause
+====================
 
 If the table is partitioned this clause can be used to alter only a single partition.
 
