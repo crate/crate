@@ -1,8 +1,8 @@
 .. _ref-show-schemas:
 
-============
-SHOW SCHEMAS
-============
+================
+``SHOW SCHEMAS``
+================
 
 Lists the table schemas of the database.
 
@@ -21,14 +21,14 @@ alphabetical order.
 The same list can be fetched by querying the the schema names from the
 ``information_schema.schemata`` table.
 
-LIKE Clause
-===========
+``LIKE`` Clause
+===============
 
 The optional ``LIKE`` clause indicates which schema names to match. It takes a
 string pattern as a filter and has an equivalent behavior to
 :ref:`sql_dql_like`.
 
-WHERE Clause
-============
+``WHERE`` Clause
+================
 
 The optional WHERE clause defines the condition to be met for a row to be returned.

@@ -7,8 +7,8 @@ Table Functions
 Table functions are functions that produce a set of rows. They are used like a
 table or subquery in the FROM clause of a query.
 
-unnest( array [ array , ] )
-===========================
+``unnest( array [ array , ] )``
+===============================
 
 unnest takes any number of array parameters and produces a table where each
 provided array argument results in a column.

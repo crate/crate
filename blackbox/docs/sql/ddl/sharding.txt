@@ -1,5 +1,6 @@
 .. _sql_ddl_sharding:
 
+========
 Sharding
 ========
 
@@ -14,7 +15,7 @@ Shards are transparent at the table-level. You do not need to know about or thin
 Read requests are broken down and executed in parallel across multiple shards on multiple nodes, massively improving read performance.
 
 Number of Shards
-----------------
+================
 
 The number of shards can be defined by using the ``CLUSTERED INTO <number>
 SHARDS`` statement upon the table creation.
@@ -36,7 +37,7 @@ is applied, (see :ref:`ref_clustered_clause`).
 .. _routing:
 
 Routing
--------
+=======
 
 The column used for routing can be freely defined using the ``CLUSTERED BY (<column>)``
 statement and is used to route a row to a particular shard. Example::

@@ -15,14 +15,14 @@ If you're not using `GROUP BY`, an aggregation function will collapse your query
 
 For a tabulated summary of aggregation functions, see :ref:`sql_dql_aggregation`.
 
-count
-=====
+``count``
+=========
 
 
 .. _aggregation-count-star:
 
-count(*)
---------
+``count(*)``
+------------
 
 This aggregation function simply returns the number of rows that match the query.
 
@@ -51,8 +51,8 @@ The return value is always of type ``long``.
     +----------+-------------+
     SELECT 3 rows in set (... sec)
 
-count(columnName)
------------------
+``count(columnName)``
+---------------------
 
 In contrast to the :ref:`aggregation-count-star` function
 the ``count`` function used with a column name as parameter will return the
@@ -71,8 +71,8 @@ Example::
     +-------------+----------+---------------+
     SELECT 3 rows in set (... sec)
 
-count(distinct columnName)
---------------------------
+``count(distinct columnName)``
+------------------------------
 
 The `count` aggregation function also supports the `distinct` keyword. This
 keyword changes the behaviour of the function so that it will only count the number
@@ -100,8 +100,8 @@ of distinct values in this column that are not ``NULL``::
     +----------------------+
     SELECT 1 row in set (... sec)
 
-min
-===
+``min``
+=======
 
 The ``min`` aggregation function returns the smallest value in a column that is not ``NULL``.
 Its single argument is a column name and its return value is always of the type of that column.
@@ -146,8 +146,8 @@ will return the lexicographically smallest.::
     SELECT 3 rows in set (... sec)
 
 
-max
-===
+``max``
+=======
 
 It behaves exactly like ``min`` but returns the biggest value in a column that is not ``NULL``.
 Some Examples::
@@ -187,8 +187,8 @@ Some Examples::
     SELECT 3 rows in set (... sec)
 
 
-sum
-===
+``sum``
+=======
 
 The ``sum`` aggregation function returns the sum of all the values in a column that are not ``NULL``
 as a double value. Its single argument is the column name of a primitive numeric column.
@@ -222,10 +222,10 @@ as a double value. Its single argument is the column name of a primitive numeric
     cr> select sum(name), kind from locations group by kind order by sum(name) desc;
     SQLActionException[UnsupportedFeatureException: unknown function: sum(string)]
 
-avg / mean
-==========
+``avg`` and ``mean``
+====================
 
-The ``avg`` or ``mean`` aggregation function returns the arithmetic mean, the *average*,
+The ``avg`` and ``mean`` aggregation function returns the arithmetic mean, the *average*,
 of all values in a column that are not ``NULL`` as a double value. It accepts all numeric columns
 and timestamp columns as single argument. Using ``avg`` on other column types is not allowed.
 
@@ -242,8 +242,8 @@ Example::
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
 
-avg(distinct columnName)
-------------------------
+``avg(distinct columnName)``
+----------------------------
 
 The `avg` aggregation function also supports the `distinct` keyword. This keyword
 changes the behaviour of the function so that it will only average the number
@@ -271,8 +271,8 @@ of distinct values in this column that are not ``NULL``::
     +------------------------+
     SELECT 1 row in set (... sec)
 
-geometric_mean
-==============
+``geometric_mean``
+==================
 
 The ``geometric_mean`` aggregation function computes the geometric mean,
 a mean for positive numbers. For details see: `Geometric Mean`_.
@@ -301,8 +301,8 @@ Example::
     SELECT 3 rows in set (... sec)
 
 
-variance
-========
+``variance``
+============
 
 The ``variance`` aggregation function computes the `Variance`_ of the set of non-null
 values in a column. It is a measure about how far a set of numbers is spread.
@@ -330,8 +330,8 @@ Example::
     Due to java double precision arithmetic it is possible that any two executions
     of the aggregation function on the same data produce slightly differing results.
 
-stddev
-======
+``stddev``
+==========
 
 The ``stddev`` aggregation function computes the `Standard Deviation`_ of the set
 of non-null values in a column. It is a measure of the variation of data values.
@@ -359,8 +359,8 @@ Example::
     Due to java double precision arithmetic it is possible that any two executions
     of the aggregation function on the same data produce slightly differing results.
 
-percentile
-==========
+``percentile``
+==============
 
 The ``percentile`` aggregation function computes a `Percentile`_ over numeric
 non-null values in a column.
@@ -415,8 +415,8 @@ in this implementation:
       depends on your data distribution and volume of data being aggregated
 
 
-arbitrary
-=========
+``arbitrary``
+=============
 
 The ``arbitrary`` aggregation function returns a single value of a column.
 Which value it returns is not defined.

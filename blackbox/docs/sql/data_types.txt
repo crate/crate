@@ -19,7 +19,7 @@ Classification
 
 .. _sql_ddl_datatypes_primitives:
 
-Primitive types
+Primitive Types
 ---------------
 
 Primitive types represent primitive values.
@@ -59,8 +59,8 @@ distinct parts like containers or collections:
 * `array`_
 
 
-boolean
-=======
+``boolean``
+===========
 
 A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
 
@@ -77,8 +77,8 @@ A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
 
 .. _data-type-string:
 
-string
-======
+``string``
+==========
 
 A text-based basic type containing one or more characters. All unicode characters are allowed. Example::
 
@@ -93,7 +93,7 @@ Columns of type string can also be analyzed. See :ref:`sql_ddl_index_fulltext`.
 
     Maximum indexed string length is restricted to 32766 bytes, when encoded with UTF-8 unless the string is analyzed using full text.
 
-numeric types
+Numeric Types
 =============
 
 Crate supports a set of numeric types: ``integer``, ``long``, ``short``,
@@ -122,8 +122,8 @@ as its within the corresponding range. Example::
     CREATE OK, 1 row affected (... sec)
 
 
-ip
-==
+``ip``
+======
 
 The ``ip`` type allows to store an IPv4 address by inserting its
 string representation. Internally it maps to a ``long`` allowing expected
@@ -149,8 +149,8 @@ Example::
     SQLActionException[ColumnValidationException: Validation failed for ip_addr: 'not.a.real.ip' cannot be cast to type ip]
 
 
-timestamp
-=========
+``timestamp``
+=============
 
 The timestamp type is a special type which maps to a formatted string.
 Internally it maps to the UTC milliseconds since 1970-01-01T00:00:00Z stored
@@ -214,8 +214,8 @@ Examples::
 
 .. _geo_point_data_type:
 
-geo_point
-=========
+``geo_point``
+=============
 
 The ``geo_point`` type is used to store latitude and longitude geo
 coordinates.
@@ -250,8 +250,8 @@ Create table example::
 
 .. _geo_shape_data_type:
 
-geo_shape
-=========
+``geo_shape``
+=============
 
 The ``geo_shape`` type is used to store geometric shapes defined as
 `GeoJSON geometry objects`_.
@@ -374,8 +374,8 @@ Alternatively a `WKT`_ string can be used to represent a geo_shape as well::
 
 .. _object_data_type:
 
-object
-======
+``object``
+==========
 
 The object type allows to define nested documents instead of old-n-busted flat tables.
 An ``object`` can contain other fields of any type, even further object columns.
@@ -411,8 +411,8 @@ Example::
     cr> drop table my_table11;
     DROP OK, 1 row affected (... sec)
 
-strict
-------
+``strict``
+----------
 
 The column policy can be configured to be ``strict``, rejecting any subcolumn that is not defined upfront
 in the schema. As you might have guessed, defining ``strict`` objects without subcolumns results
@@ -434,8 +434,8 @@ Example::
     cr> drop table my_table12;
     DROP OK, 1 row affected (... sec)
 
-dynamic
--------
+``dynamic``
+-----------
 
 Another option is ``dynamic``, which means that new subcolumns can be added in this object.
 
@@ -483,8 +483,8 @@ New columns added to ``dynamic`` objects are, once added,
 usable as usual subcolumns. One can retrieve them, sort by them
 and use them in where clauses.
 
-ignored
--------
+``ignored``
+-----------
 
 The third option is ``ignored`` which results in an object that allows inserting new subcolumns
 but this adding will not affect the schema, they are not mapped according to their type,
@@ -582,8 +582,8 @@ Combined::
 
 .. _data-type-array:
 
-array
-=====
+``array``
+=========
 
 Crate supports arrays. An array is a collection of other data types. These are:
 
@@ -656,8 +656,8 @@ square brackets (``[]``), for example::
 Type Conversion
 ===============
 
-CAST
-----
+``CAST``
+--------
 
 A type ``cast`` specifies a conversion from one data type to
 another. It will only succeed if the value of the expression is
@@ -710,8 +710,8 @@ types, e.g. converting an array of integer values to a boolean array.
    ``geoshape`` data type.
 
 
-TRY_CAST
---------
+``TRY_CAST``
+------------
 
 While ``cast`` throws an error for incompatible type casts,
 ``try_cast`` returns ``null`` in this case. Otherwise the result is the same as

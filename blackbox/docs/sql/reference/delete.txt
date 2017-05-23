@@ -1,8 +1,8 @@
 .. highlight:: psql
 
-======
-DELETE
-======
+==========
+``DELETE``
+==========
 
 Delete rows of a table
 

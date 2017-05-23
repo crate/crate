@@ -1,8 +1,8 @@
 .. _drop-table:
 
-==========
-DROP TABLE
-==========
+==============
+``DROP TABLE``
+==============
 
 Remove a table.
 

@@ -96,7 +96,7 @@ The same query using question marks as placeholders looks like this::
     With some queries the row count is not ascertainable. In this cases
     rowcount is ``-1``.
 
-Default schema
+Default Schema
 ==============
 
 It is possible to set a default schema while querying the Crate cluster via

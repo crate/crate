@@ -101,8 +101,8 @@ latest cluster state. However, only a single node in the cluster - the
 "Metadata Primary" - is allowed to change the state at runtime. This node is
 elected by all nodes in the cluster.
 
-Settings, Metadata, Routing
-...........................
+Settings, Metadata, and Routing
+................................
 
 The cluster state contains all necessary meta information to maintain the
 cluster and coordinate operations:

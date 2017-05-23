@@ -1,3 +1,4 @@
+============
 Table Basics
 ============
 
@@ -25,7 +26,7 @@ of an error if the specified table does not exist::
     DROP OK, 0 rows affected (... sec)
 
 Schemas
--------
+=======
 
 Tables can be created in different schemas. These are created implicitly on
 table creation and cannot be created explicitly. If a schema did not exist yet,
@@ -90,8 +91,8 @@ the ``doc`` schema::
 
 .. _sql_ddl_naming_restrictions:
 
-Naming restrictions
--------------------
+Naming Restrictions
+===================
 
 Table, schema and column identifiers cannot have the same names as reserved
 key words. Please refer to the :ref:`sql_lexical` section for

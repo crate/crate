@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _ref-create-repository:
 
-=================
-CREATE REPOSITORY
-=================
+=====================
+``CREATE REPOSITORY``
+=====================
 
 Register a new repository used to store, manage and restore snapshots.
 
@@ -37,8 +37,8 @@ Parameters
 :type: the type of the repository, see :ref:`ref-create-repository-types`.
 
 
-WITH Clause
-===========
+``WITH`` Clause
+===============
 
 ::
 
@@ -66,8 +66,8 @@ The supported types are the following. More types are supported via :ref:`plugin
 
 .. _ref-create-repository-types-fs:
 
-fs
---
+``fs``
+------
 
 A repository storing its snapshots to a shared filesystem that must be accessible
 by all master and data nodes in the cluster.
@@ -80,7 +80,7 @@ by all master and data nodes in the cluster.
     under ``path.repo`` as list of strings.
 
 Parameters
-~~~~~~~~~~
+..........
 
 .. _ref-create-repository-types-fs-location:
 
@@ -115,13 +115,13 @@ Parameters
 
 .. _ref-create-repository-types-hdfs:
 
-hdfs
-----
+``hdfs``
+--------
 
 A repository that stores its snapshot inside an HDFS file-system.
 
 Parameters
-~~~~~~~~~~
+..........
 
 **uri**
   | *Type:*    ``string``
@@ -179,13 +179,13 @@ Parameters
 
 .. _ref-create-repository-types-s3:
 
-s3
---
+``s3``
+------
 
 A repository that stores its snapshot on the Amazon S3 service.
 
 Parameters
-~~~~~~~~~~
+..........
 
 **bucket**
   | *Type:*    ``string``
@@ -292,8 +292,8 @@ Parameters
 
 .. _ref-create-repository-types-url:
 
-url
----
+``url``
+-------
 
 A read-only repository that points to the location of
 a :ref:`ref-create-repository-types-fs` repository via ``http``, ``https``,
@@ -301,7 +301,7 @@ a :ref:`ref-create-repository-types-fs` repository via ``http``, ``https``,
 :ref:`ref-restore-snapshot` operations.
 
 Parameters
-~~~~~~~~~~
+..........
 
 **read_only**
   | *Type:*    ``string``

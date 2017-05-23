@@ -1,8 +1,8 @@
 .. highlight:: psql
 
-=======
-EXPLAIN
-=======
+===========
+``EXPLAIN``
+===========
 
 Explain the plan for a given statement.
 

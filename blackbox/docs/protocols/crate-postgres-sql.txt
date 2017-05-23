@@ -22,8 +22,8 @@ and dialect between Crate and PostgreSQL.
 A detailed comparison between Crate’s SQL dialect and standard SQL is defined in
 :ref:`crate_standard_sql`.
 
-COPY
-====
+``COPY``
+========
 
 Crate does not support the distinct sub-protocol that is used to serve ``COPY``
 operations and provides another implementation for transferring bulk data using
@@ -70,7 +70,7 @@ Fetching arbitrary rectangular slices of an array using
 ``lower-bound:upper-bound`` expression (see `Arrays`_) in the array subscript is
 not supported.
 
-Text search functions and operators
+Text Search Functions and Operators
 ===================================
 
 The functions and operators provided by PostgreSQL for full-text search

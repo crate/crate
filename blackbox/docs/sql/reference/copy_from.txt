@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _copy_from:
 
-=========
-COPY FROM
-=========
+=============
+``COPY FROM``
+=============
 
 Copy data from files into a table.
 
@@ -90,8 +90,8 @@ Is converted to:
 Supported Schemes
 -----------------
 
-file
-^^^^
+``file``
+........
 
 The provided (absolute) path should point to files available
 *on at least one node* with read access to the Crate process
@@ -103,8 +103,8 @@ points to a shared folder (where other Crate nodes also have access) the
 
 .. _copy_from_s3:
 
-s3
-^^
+``s3``
+......
 
 Can be used to access buckets on the Amazon AWS S3 Service:
 
@@ -136,8 +136,8 @@ Using the 's3://' URI scheme sets the ``shared`` option implicitly.
   firewall rules to allow outgoing connections on port ``443``.
 
 
-http, https, and jar (Java URL protocols)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+``http``, ``https``, and ``jar`` (Java URL protocols)
+.....................................................
 
 In addition to the schemes above, Crate supports all protocols supported by the
 `URL`_ implementation of its JVM (typically ``http``, ``https``, ``ftp``,
@@ -156,8 +156,8 @@ Parameters
       supported schemes are listed above. The last part of the path may also
       contain ``*`` wildcards to match multiple files.
 
-PARTITION Clause
-================
+``PARTITION`` Clause
+====================
 
 For partitioned tables this clause can be used to import data into the
 specified partition. This clause takes one or more partition columns and for
@@ -182,8 +182,8 @@ each column a value.
    regardless of the value provided for the partition columns.
 
 
-WITH Clause
-===========
+``WITH`` Clause
+===============
 
 The optional ``WITH`` clause can specify options for the COPY FROM statement.
 
@@ -194,15 +194,15 @@ The optional ``WITH`` clause can specify options for the COPY FROM statement.
 Options
 -------
 
-bulk_size
-^^^^^^^^^
+``bulk_size``
+.............
 
 Crate will process the lines it reads from the ``path`` in bulks. This option
 specifies the size of one batch. The provided value must be greater than 0, the
 default value is 10000.
 
-shared
-^^^^^^
+``shared``
+..........
 
 This option should be set to true if the URI's location is accessible by
  more than one Crate node to prevent them from importing the same file.
@@ -213,8 +213,8 @@ If an array of URIs is passed to ``COPY FROM`` this option will overwrite the
 default for *all* URIs.
 
 
-node_filters
-^^^^^^^^^^^^
+``node_filters``
+................
 
 A filter expression to select the nodes to run the *read* operation.
 
@@ -238,8 +238,8 @@ with access to the data leading to a partial import.
 To verify which nodes match the filter, run the statement with
 :doc:`EXPLAIN <explain>`.
 
-num_readers
-^^^^^^^^^^^
+``num_readers``
+...............
 
 The number of nodes that will read the resources specified in the URI. Defaults
 to the number of nodes available in the cluster. If the option is set to a
@@ -251,13 +251,13 @@ If ``shared`` is set to false this option has to be used with caution. It might
 exclude the wrong nodes, causing COPY FROM to read no files or only a subset of
 the files.
 
-compression
-^^^^^^^^^^^
+``compression``
+...............
 
 The default value is ``null``, set to ``gzip`` to read gzipped files.
 
-overwrite_duplicates
-^^^^^^^^^^^^^^^^^^^^
+``overwrite_duplicates``
+........................
 
 Default: false
 

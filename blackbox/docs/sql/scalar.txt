@@ -10,11 +10,13 @@ Scalar functions return a single value (not a table).
 String Functions
 ================
 
-concat('first_arg', second_arg, [ parameter , ... ]) returns string
--------------------------------------------------------------------
+``concat('first_arg', second_arg, [ parameter , ... ])``
+--------------------------------------------------------
 
 Concatenates a variable number of arguments into a single string. It ignores
 ``NULL`` values.
+
+Returns: ``string``
 
 ::
 
@@ -38,11 +40,13 @@ You can also use the ``||`` operator::
     SELECT 1 row in set (... sec)
 
 
-format('format_string', parameter, [ parameter , ... ]) returns string
-----------------------------------------------------------------------
+``format('format_string', parameter, [ parameter , ... ])``
+-----------------------------------------------------------
 
 Formats a string similar to the C function ``printf``. For details about the
 format string syntax, see `formatter`_
+
+Returns: ``string``
 
 ::
 
@@ -70,11 +74,13 @@ format string syntax, see `formatter`_
     SELECT 2 rows in set (... sec)
 
 
-substr('string', from, [ count ]) returns string
-------------------------------------------------
+``substr('string', from, [ count ])``
+-------------------------------------
 
 Extracts a part of a string. ``from`` specifies where to start and ``count``
 the length of the part.
+
+Returns: ``string``
 
 ::
 
@@ -90,10 +96,12 @@ the length of the part.
 
 .. _scalar_char_length:
 
-char_length('string') returns integer
--------------------------------------
+``char_length('string')``
+-------------------------
 
 Counts the number of characters in a string.
+
+Returns: ``integer``
 
 ::
 
@@ -120,10 +128,12 @@ Each character counts only once, regardless of its byte size.
 
 .. _scalar_bit_length:
 
-bit_length('string') returns integer
-------------------------------------
+``bit_length('string')``
+------------------------
 
 Counts the number of bits in a string.
+
+Returns: ``integer``
 
 .. note::
 
@@ -153,10 +163,12 @@ Counts the number of bits in a string.
 
 .. _scalar_octet_length:
 
-octet_length('string') returns integer
---------------------------------------
+``octet_length('string')``
+--------------------------
 
 Counts the number of bytes (octets) in a string.
+
+Returns: ``integer``
 
 ::
 
@@ -179,11 +191,13 @@ Counts the number of bytes (octets) in a string.
     SELECT 1 row in set (... sec)
 
 
-lower('string') returns string
-------------------------------
+``lower('string')``
+-------------------
 
 Converts all characters to lowercase. ``lower`` does not perform
 locale-sensitive or context-sensitive mappings.
+
+Returns: ``string``
 
 ::
 
@@ -197,11 +211,13 @@ locale-sensitive or context-sensitive mappings.
     SELECT 1 row in set (... sec)
 
 
-upper('string') returns string
-------------------------------
+``upper('string')``
+-------------------
 
 Converts all characters to uppercase. ``upper`` does not perform
 locale-sensitive or context-sensitive mappings.
+
+Returns: ``string``
 
 ::
 
@@ -216,8 +232,10 @@ locale-sensitive or context-sensitive mappings.
 
 .. _sha1:
 
-sha1('string') returns string
------------------------------
+``sha1('string')``
+------------------
+
+Returns: ``string``
 
 Computes the SHA1 checksum of the given string.
 
@@ -231,20 +249,24 @@ Computes the SHA1 checksum of the given string.
     +------------------------------------------+
     SELECT 1 row in set (... sec)
 
-md5('string') returns string
-----------------------------
+``md5('string')``
+-----------------
+
+Returns: ``string``
 
 Computes the MD5 checksum of the given string.
 See :ref:`sha1 <sha1>` for an example.
 
 
-Date/Time Functions
-===================
+Date and Time Functions
+=======================
 
 .. _scalar-date-trunc:
 
-date_trunc('interval', ['timezone',] timestamp) returns timestamp
------------------------------------------------------------------
+``date_trunc('interval', ['timezone',] timestamp)``
+---------------------------------------------------
+
+Returns: ``timestamp``
 
 Limits a timestamps precision to a given interval.
 
@@ -304,15 +326,15 @@ If you don't specify a time zone, ``truncate`` uses UTC time::
     +---------------+---------------+
     SELECT 3 rows in set (... sec)
 
-extract(field from source)
---------------------------
+``extract(field from source)``
+------------------------------
 
 ``extract`` is a special expression that translates to a function which
 retrieves subfields such as day, hour or minute from a timestamp.
 
 The return type depends on the used ``field``.
 
-synopsis
+Synopsis
 ........
 
 ::
@@ -411,8 +433,8 @@ The following fields are supported:
 .. _`Joda-Time`: http://www.joda.org/joda-time/
 
 
-CURRENT_TIMESTAMP
------------------
+``CURRENT_TIMESTAMP``
+---------------------
 
 The ``CURRENT_TIMESTAMP`` expression returns the timestamp in milliseconds
 since epoch at the time the SQL statement was handled. Therefore, the same
@@ -439,13 +461,15 @@ timestamp will have second precision, no fractional seconds (milliseconds) are g
    operating system.
 
 
-date_format([format_string, [timezone,]] timestamp) returns string
-------------------------------------------------------------------
+``date_format([format_string, [timezone,]] timestamp)``
+-------------------------------------------------------
 
 The ``date_format`` function formats a timestamp as string according to the
 (optional) format string.
 
-synopsis
+Returns: ``string``
+
+Synopsis
 ........
 
 ::
@@ -545,8 +569,10 @@ Geo Functions
 
 .. _scalar_distance:
 
-distance(geo_point1, geo_point2) returns double
------------------------------------------------
+``distance(geo_point1, geo_point2)``
+------------------------------------
+
+Returns: ``double``
 
 The ``distance`` function can be used to calculate the distance between two
 points on earth. It uses the `Haversine formula`_ which gives great-circle
@@ -583,8 +609,10 @@ the other argument must be a column reference.
 
 .. _scalar_within:
 
-within(shape1, shape2) returns boolean
---------------------------------------
+``within(shape1, shape2)``
+--------------------------
+
+Returns: ``boolean``
 
 The ``within`` function returns true if ``shape1`` is within ``shape2``. If
 that is not the case false is returned.
@@ -610,8 +638,10 @@ This function can always be used within the ``WHERE`` clause.
 
 .. _scalar_intersects:
 
-intersects(geo_shape, geo_shape) returns boolean
-------------------------------------------------
+``intersects(geo_shape, geo_shape)``
+------------------------------------
+
+Returns: ``boolean``
 
 The ``intersects`` function returns true if both argument shapes
 share some points or area, they *overlap*. This also includes two shapes
@@ -646,8 +676,10 @@ Due to a limitation on the :ref:`geo_shape_data_type` datatype
 this function cannot be used in the :ref:`sql_reference_order_by`.
 
 
-latitude/longitude(geo_point) returns double
---------------------------------------------
+``latitude(geo_point)`` and ``longitude(geo_point)``
+----------------------------------------------------
+
+Returns: ``double``
 
 The ``latitude`` and ``longitude`` function return the coordinates of latitude
 or longitude of a point, or ``NULL`` if not available. The input must be a
@@ -678,8 +710,10 @@ implicit type casting from strings to geo point::
     SELECT 1 row in set (... sec)
 
 
-geohash(geo_point) returns string
----------------------------------
+``geohash(geo_point)``
+----------------------
+
+Returns: ``string``
 
 Returns a `GeoHash <http://en.wikipedia.org/wiki/Geohash>`_ representation based
 on full precision (12 characters) of the input point, or ``NULL`` if not
@@ -707,8 +741,8 @@ Mathematical Functions
 All mathematical functions can be used within ``WHERE`` and
 ``ORDER BY`` clauses.
 
-abs(number)
------------
+``abs(number)``
+---------------
 
 Returns the absolute value of the given number in the datatype of the given number::
 
@@ -723,10 +757,12 @@ Returns the absolute value of the given number in the datatype of the given numb
 
 .. _scalar-ceil:
 
-ceil(number) returns long or integer
-------------------------------------
+``ceil(number)``
+----------------
 
 Returns the smallest integer or long value that is not less than the argument.
+
+Returns: ``long`` or ``integer``
 
 Return value will be of type integer if the input value is an integer or float.
 If the input value is of type long or double the return value will be of type
@@ -743,10 +779,12 @@ long::
 
 .. _scalar-floor:
 
-floor(number) returns long or integer
--------------------------------------
+``floor(number)``
+-----------------
 
 Returns the largest integer or long value that is not greater than the argument.
+
+Returns: ``long`` or ``integer``
 
 Return value will be an integer if the input value is an integer or a float.
 If the input value is of type long or double the return value will be of type long.
@@ -762,10 +800,12 @@ See below for an example::
     SELECT 1 row in set (... sec)
 
 
-ln(number) returns double
--------------------------
+``ln(number)``
+--------------
 
 Returns the natural logarithm of given ``number``.
+
+Returns: ``double``
 
 See below for an example::
 
@@ -784,10 +824,12 @@ See below for an example::
     error is returned.
 
 
-log(x : number, b : number) returns double
-------------------------------------------
+``log(x : number, b : number)``
+-------------------------------
 
 Returns the logarithm of given ``x`` to base ``b``.
+
+Returns: ``double``
 
 See below for an example, which essentially is the same as above::
 
@@ -818,10 +860,12 @@ The second argument (``b``) is optional. If not present, base 10 is used::
     The same is true for arguments which lead to a ``division by zero``, as
     e.g. log(10, 1) does.
 
-power(a: number, b: number) returns double
-------------------------------------------
+``power(a: number, b: number)``
+-------------------------------
 
 Returns the given argument ``a`` raised to the power of argument ``b``.
+
+Returns: ``double``
 
 The return type of the power function is always double, even when both the
 inputs are integral types, in order to be consistent across positive and
@@ -837,10 +881,12 @@ See below for an example::
     +-------------+
     SELECT 1 row in set (... sec)
 
-random() returns double
------------------------
+``random()``
+------------
 
 The ``random`` function returns a random value in the range 0.0 <= X < 1.0.
+
+Returns: ``double``
 
 .. note::
 
@@ -849,14 +895,16 @@ The ``random`` function returns a random value in the range 0.0 <= X < 1.0.
 
 .. _scalar-round:
 
-round(number) returns long or integer
--------------------------------------
+``round(number)``
+-----------------
 
 If the input is of type double or long the result is the closest long to the
 argument, with ties rounding up.
 
 If the input is of type float or integer the result is the closest integer to
 the argument, with ties rounding up.
+
+Returns: ``long`` or ``integer``
 
 See below for an example::
 
@@ -869,10 +917,12 @@ See below for an example::
     SELECT 1 row in set (... sec)
 
 
-sqrt(number) returns double
----------------------------
+``sqrt(number)``
+----------------
 
 Returns the square root of the argument.
+
+Returns: ``double``
 
 See below for an example::
 
@@ -885,10 +935,12 @@ See below for an example::
     SELECT 1 row in set (... sec)
 
 
-sin(number) returns double
---------------------------
+``sin(number)``
+---------------
 
 Returns the sine of the argument.
+
+Returns: ``double``
 
 See below for an example::
 
@@ -901,10 +953,12 @@ See below for an example::
     SELECT 1 row in set (... sec)
 
 
-asin(number) returns double
----------------------------
+``asin(number)``
+----------------
 
 Returns the arcsine of the argument.
+
+Returns: ``double``
 
 See below for an example::
 
@@ -917,10 +971,12 @@ See below for an example::
     SELECT 1 row in set (... sec)
 
 
-cos(number) returns double
---------------------------
+``cos(number)``
+---------------
 
 Returns the cosine of the argument.
+
+Returns: ``double``
 
 See below for an example::
 
@@ -933,10 +989,12 @@ See below for an example::
     SELECT 1 row in set (... sec)
 
 
-acos(number) returns double
----------------------------
+``acos(number)``
+----------------
 
 Returns the arccosine of the argument.
+
+Returns: ``double``
 
 See below for an example::
 
@@ -949,10 +1007,12 @@ See below for an example::
     SELECT 1 row in set (... sec)
 
 
-tan(number) returns double
---------------------------
+``tan(number)``
+---------------
 
 Returns the tangent of the argument.
+
+Returns: ``double``
 
 See below for an example::
 
@@ -965,10 +1025,12 @@ See below for an example::
     SELECT 1 row in set (... sec)
 
 
-atan(number) returns double
----------------------------
+``atan(number)``
+----------------
 
 Returns the arctangent of the argument.
+
+Returns: ``double``
 
 See below for an example::
 
@@ -999,11 +1061,13 @@ See the api documentation for more details.
 
 .. _scalar-regexp-matches:
 
-regexp_matches(source, pattern [, flags]) returns string_array
---------------------------------------------------------------
+``regexp_matches(source, pattern [, flags])``
+---------------------------------------------
 
 This function uses the regular expression pattern in ``pattern``
 to match against the ``source`` string.
+
+Returns: ``string_array``
 
 If ``source`` matches, an array of the matched regular expression
 groups is returned.
@@ -1111,13 +1175,15 @@ Examples
     +-------------+
     SELECT 1 row in set (... sec)
 
-regexp_replace(source, pattern, replacement [, flags]) returns string
----------------------------------------------------------------------
+``regexp_replace(source, pattern, replacement [, flags])``
+----------------------------------------------------------
 
 ``regexp_replace`` can be used to replace every (or only the first) occurence of
 a subsequence matching ``pattern`` in the ``source`` string with the ``replacement``
 string. If no subsequence in ``source`` matches the regular expression ``pattern``,
 ``source`` is returned unchanged.
+
+Returns: ``string``
 
 ``pattern`` is a java regular expression. For details on the regexp syntax,
 see `Java Regular Expressions`_.
@@ -1192,10 +1258,12 @@ Examples
 Array Functions
 ===============
 
-array_cat(first_array, second_array) returns array
--------------------------------------------------------------------------
+``array_cat(first_array, second_array)``
+----------------------------------------
 
 The ``array_cat`` function concatenates two arrays into one array
+
+Returns: ``array``
 
 ::
 
@@ -1268,10 +1336,12 @@ You can also use the concat operator ``||`` with arrays
     SELECT 1 row in set (... sec)
 
 
-array_unique(first_array, [ second_array]) returns array
--------------------------------------------------------------------
+``array_unique(first_array, [ second_array])``
+----------------------------------------------
 
 The ``array_unique`` function merges two arrays into one array with unique elements
+
+Returns: ``array``
 
 ::
 
@@ -1296,10 +1366,12 @@ type of the first array with a defined type::
     SELECT 1 row in set (... sec)
 
 
-array_difference(first_array, second_array) returns array
--------------------------------------------------------------------
+``array_difference(first_array, second_array)``
+-----------------------------------------------
 
 The ``array_difference`` function removes elements from the first array that are contained in the second array.
+
+Returns: ``array``
 
 ::
 
@@ -1352,8 +1424,8 @@ It can be used to remove elements from array fields.
 Conditional Functions and Expressions
 =====================================
 
-case when ... then ... end
---------------------------
+``CASE WHEN ... THEN ... END``
+------------------------------
 
 The ``case`` expression is a generic conditional expression similar to
 if/else statements in other programming languages and can be used
@@ -1445,8 +1517,8 @@ Example:
     cr> drop table case_example;
     DROP OK, 1 row affected (... sec)
 
-if(condition, result [, default])
----------------------------------
+``if(condition, result [, default])``
+-------------------------------------
 
 The ``if`` function is a conditional function comparing to *if*
 statements of most other programming languages. If the given
@@ -1484,12 +1556,14 @@ returned. If the *default* argument is omitted, NULL will be returned instead.
     cr> drop table if_example;
     DROP OK, 1 row affected (... sec)
 
-coalesce('first_arg', second_arg [, ... ]) returns same type as arguments
--------------------------------------------------------------------------
+``coalesce('first_arg', second_arg [, ... ])``
+----------------------------------------------
 
 The ``coalesce`` function takes one or more arguments of the same type and
 returns the first non-null value of these. The result will be NULL only if all
 the arguments evaluate to NULL.
+
+Returns: same type as arguments
 
 ::
 
@@ -1504,13 +1578,15 @@ the arguments evaluate to NULL.
     SELECT 1 row in set (... sec)
 
 
-greatest('first_arg', second_arg[ , ... ]) returns same type as arguments
--------------------------------------------------------------------------
+``greatest('first_arg', second_arg[ , ... ])``
+----------------------------------------------
 
 The ``greatest`` function takes one or more arguments of the same type
 and will return the largest value of these. NULL values in the arguments
 list are ignored. The result will be NULL only if all the arguments
 evaluate to NULL.
+
+Returns: same type as arguments
 
 ::
 
@@ -1524,13 +1600,15 @@ evaluate to NULL.
     SELECT 1 row in set (... sec)
 
 
-least('first_arg', second_arg[ , ... ]) returns same type as arguments
-----------------------------------------------------------------------
+``least('first_arg', second_arg[ , ... ])``
+-------------------------------------------
 
 The ``least`` function takes one or more arguments of the same type
 and will return the smallest value of these. NULL values in the arguments
 list are ignored. The result will be NULL only if all the arguments
 evaluate to NULL.
+
+Returns: same type as arguments
 
 ::
 
@@ -1544,11 +1622,13 @@ evaluate to NULL.
     SELECT 1 row in set (... sec)
 
 
-nullif('first_arg', second_arg) returns same type as arguments
---------------------------------------------------------------
+``nullif('first_arg', second_arg)``
+-----------------------------------
 
 The ``nullif`` function compares two arguments of the same type and, if they
 have the same value, returns NULL; otherwise returns the first argument.
+
+Returns: same type as arguments
 
 ::
 
@@ -1566,12 +1646,14 @@ have the same value, returns NULL; otherwise returns the first argument.
 System Information Functions
 ============================
 
-CURRENT_SCHEMA returns STRING
------------------------------
+``CURRENT_SCHEMA``
+------------------
 
 The ``CURRENT_SCHEMA`` system information function returns the name of the
 current schema of the session. If no current schema is set, this function will
 return the default schema, which is ``doc``.
+
+Returns: ``string``
 
 The default schema can be set when using the `JDBC <https://crate.io/docs/reference/jdbc/#jdbc-url-format>`_
 and `HTTP clients <https://crate.io/docs/reference/protocols/http.html#default-schema>`_

@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _sql_reference_select:
 
-======
-SELECT
-======
+==========
+``SELECT``
+==========
 
 Retrieve rows from a table.
 
@@ -56,8 +56,8 @@ is as follows:
 Parameters
 ==========
 
-SELECT List
------------
+``SELECT`` List
+---------------
 
 The SELECT list specifies expressions that form the output rows of the
 SELECT statement. The expressions can (and usually do) refer to
@@ -91,8 +91,8 @@ that table. In these cases it is not possible to specify new names
 with AS; the output column names will be the same as the table
 columns' names.
 
-FROM Clause
------------
+``FROM`` Clause
+---------------
 
 The FROM clause specifies the source relation for the SELECT::
 
@@ -176,8 +176,8 @@ the inner ``SELECT`` statement.
 :alias: An :ref:`alias <sql_reference_table_alias>` for the sub select.
 
 
-WHERE Clause
-------------
+``WHERE`` Clause
+----------------
 
 The optional WHERE clause defines the condition to be met for a row to
 be returned::
@@ -192,8 +192,8 @@ be returned::
 
 .. _sql_reference_group_by:
 
-GROUP BY Clause
----------------
+``GROUP BY`` Clause
+-------------------
 
 The optional GROUP BY clause will condense into a single row all
 selected rows that share the same values for the grouped expressions.
@@ -215,8 +215,8 @@ making up each group, producing a separate value for each group.
 
 .. _sql_reference_having:
 
-HAVING Clause
-.............
+``HAVING`` Clause
+.................
 
 The optional HAVING clause defines the condition to be met for
 values whitin a resulting row of a group by clause.
@@ -240,8 +240,8 @@ values whitin a resulting row of a group by clause.
 
 .. _sql_reference_order_by:
 
-ORDER BY Clause
----------------
+``ORDER BY`` Clause
+-------------------
 
 The ORDER BY clause causes the result rows to be sorted according to
 the specified expression(s).
@@ -281,8 +281,8 @@ Character-string data is sorted by its UTF-8 representation.
   Sorting on :ref:`geo_point_data_type`, :ref:`geo_shape_data_type`,
   :ref:`data-type-array`, and :ref:`object_data_type` is not supported.
 
-LIMIT Clause
-------------
+``LIMIT`` Clause
+----------------
 
 The optional LIMIT Clause allows to limit the number or retured result rows::
 
@@ -300,8 +300,8 @@ The optional LIMIT Clause allows to limit the number or retured result rows::
     return different subsets of the rows of a table, if there is not
     an ORDER BY to enforce selection of a deterministic subset.
 
-OFFSET Clause
--------------
+``OFFSET`` Clause
+-----------------
 
 The optional OFFSET Clause allows to skip result rows at the beginning::
 

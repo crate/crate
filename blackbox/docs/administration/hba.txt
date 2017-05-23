@@ -20,7 +20,7 @@ specify HBA entries in the ``auth.host_based.config`` group setting.
 
 See: :ref:`applying-cluster-settings`.
 
-Authentication against CrateDB
+Authentication Against CrateDB
 ==============================
 
 Client access and authentication is configured via the ``auth.host_based.config``
@@ -114,9 +114,6 @@ can authenticate to CrateDB from any IP address using the ``trust`` method.
 
 Authenticating as a Superuser
 =============================
-
-``crate`` Superuser
--------------------
 
 When CrateDB is started, the cluster contains one predefined superuser. This user
 is called ``crate``.

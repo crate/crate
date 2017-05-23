@@ -176,7 +176,7 @@ By default, only the ``graceful stop`` command considers the cluster settings
 described at :ref:`conf_graceful_stop`.
 
 Observing the Reallocation
-++++++++++++++++++++++++++
+..........................
 
 If you want to observe the reallocation process triggered by a ``full`` or
 ``primaries`` graceful-stop, you can issue the following sql queries regularly.

@@ -303,8 +303,8 @@ list of partitions that need to be accessed.
     DELETE OK, -1 rows affected (... sec)
 
 
-Generated Columns in PARTITIONED BY
------------------------------------
+Generated Columns in ``PARTITIONED BY``
+---------------------------------------
 
 Querying on tables partitioned by generated columns is also optimized to infer a minimum
 list of partitions from the ``PARTITIONED BY`` columns referenced in the ``WHERE`` clause:
@@ -426,8 +426,8 @@ the :ref:`ref-alter-table-partition-clause`.
 
 .. _partitioned_tables_alter_table_only:
 
-Alter Table ONLY
-----------------
+Alter Table ``ONLY``
+--------------------
 
 Sometimes one wants to alter a partitioned table, but the changes
 should only affect new partitions and not existing ones. This can be
@@ -460,7 +460,7 @@ Limitations
 * ``WHERE`` clauses cannot contain queries like ``partitioned_by_column='x' OR normal_column=x``
 
 
-Consistency notes related to concurrent DML statement
+Consistency Notes Related to Concurrent DML Statement
 =====================================================
 
 If a partition is deleted during an active insert or update bulk

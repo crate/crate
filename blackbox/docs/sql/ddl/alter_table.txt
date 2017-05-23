@@ -1,10 +1,11 @@
 .. _sql_ddl_alter_table:
 
+===========
 Alter Table
 ===========
 
 Updating Parameters
--------------------
+===================
 
 The parameters of a table can be modified using the `ALTER TABLE` clause::
 
@@ -20,7 +21,7 @@ Read :ref:`Alter Partitioned Tables <partitioned_tables_alter>` to see
 how to alter parameters of partitioned tables.
 
 Adding Columns
---------------
+==============
 
 In order to add a column to an existing table use ``ALTER TABLE`` with the
 ``ADD COLUMN`` clause::
@@ -56,7 +57,7 @@ And now a nested column named ``name`` is added to the ``obj_column``::
     SELECT 3 rows in set (... sec)
 
 Closing and Opening Tables
---------------------------
+==========================
 
 A table can be closed by using ``ALTER TABLE`` with the ``CLOSE`` clause::
 
@@ -77,7 +78,7 @@ A table can be reopened again by using ``ALTER TABLE`` with the ``OPEN`` clause:
     set.
 
 Renaming Tables
----------------
+===============
 
 .. Hidden: CREATE TABLE::
 

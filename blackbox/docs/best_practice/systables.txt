@@ -130,7 +130,7 @@ lists all available attributes. This object has the same structure as
 the **_node** system column of **sys.operations** from the previous
 section.
 
-Step 4: Insights about Partitions, Shards, and Replication
+Step 4: Insights About Partitions, Shards, and Replication
 ==========================================================
 
 CrateDB divides the rows of each table into shards that are distinctively

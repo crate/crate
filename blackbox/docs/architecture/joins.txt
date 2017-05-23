@@ -1,5 +1,5 @@
 =====
-JOINS
+Joins
 =====
 
 
@@ -13,8 +13,8 @@ the existing types of joins and algorithms provided. Then a description of
 how Crate implements them, and finally how Crate uses optimizations to work
 with huge datasets.
 
-Types of Joins
-==============
+Types of Join
+=============
 
 A join is a relational operation that merges two data sets based on certain
 properties. :ref:`joins_figure_1` (Inspired by `this article`_) shows which elements appear
@@ -90,14 +90,8 @@ concatenated and added into the new relation::
 
 *Listing 1. Nested loop join algorithm.*
 
-Other Algorithms
-................
-
-Sort-Merge Join and Hash Join are currently not implemented. More information
-can be found `here`_.
-
 Primitive Nested Loop
----------------------
+.....................
 
 For joins on some relations, the nested loop operation can be executed
 directly on the handler node. Specifically for queries involving a CROSS
@@ -108,7 +102,7 @@ results. Similarly, joins can be nested, so instead of collecting data
 from shards the rows can be the result of a previous join or `table function`_.
 
 Distributed Nested Loop
------------------------
+.......................
 
 Relations are usually distributed to different nodes which require the
 nested loop to acquire the data before being able to join. After finding
@@ -161,7 +155,7 @@ terminated earlier:
 Consequently, the number of rows is significantly reduced allowing
 the operation to complete much faster.
 
-Push-down Query Optimization
+Push-Down Query Optimization
 ............................
 
 Complex queries such as Listing 2 require the planner to decide when to
@@ -197,6 +191,11 @@ operation can run faster.
    Complex queries are broken down into subqueries that are run
    on their shards before joining.
 
+Other Algorithms
+----------------
+
+Sort-Merge Join and Hash Join are currently not implemented. More information
+can be found `here`_.
 
 .. _this article: http://www.codeproject.com/Articles/33052/Visual-Representation-of-SQL-Joins
 .. _table function: https://crate.io/docs/reference/en/latest/sql/table_functions.html

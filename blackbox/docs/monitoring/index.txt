@@ -104,7 +104,7 @@ JMX Beans
 ---------
 
 QueryStats MBean
-~~~~~~~~~~~~~~~~~
+................
 
 The ``QueryStats`` JMX MBean exposes query frequency and average duration in milliseconds for ``SELECT``, ``UPDATE``, ``DELETE``, and ``INSERT`` queries.
 

@@ -30,12 +30,12 @@ which is why clients should generally enable ``autocommit``.
     or rollback calls are ignored.
 
 
-Server Compatibility & Implementation Status
-============================================
+Server Compatibility and Implementation Status
+==============================================
 
 Crate emulates PostgreSQL server version ``9.5``
 
-Start-up
+Start-Up
 --------
 
 The connection handshake is implemented without authentication support. Crate
@@ -85,8 +85,8 @@ Operations can be cancelled using the ``KILL`` statement, hence the
 send a ``BackendKeyData`` message during connection initialization.
 
 
-pg_type
--------
+``pg_type``
+-----------
 
 Some clients require the `pg_catalog.pg_type` in order to be able to stream
 arrays or other non-primitive types.
@@ -146,7 +146,7 @@ JDBC
 `pgjdbc`_ JDBC drivers version ``9.4.1209`` and above are compatible.
 
 Limitations
-~~~~~~~~~~~
+...........
 
 - *reflection* methods like ``conn.getMetaData().getTables(...)`` won't work
   since the required tables are unavailable in Crate.
@@ -176,7 +176,7 @@ Limitations
 
 
 Connection Failover and Load Balancing
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+......................................
 
 Connection failover and load balancing is supported as described here:
 `PostgreSQL JDBC connection failover`_.

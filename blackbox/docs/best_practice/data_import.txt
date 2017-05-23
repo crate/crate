@@ -19,7 +19,7 @@ tips and tricks on how to import your data quickly and safely.
 
 
 Defining the Data Structure
----------------------------
+===========================
 
 Before starting the import you'll have to consider how your table
 structure will look. Decisions made at this point will influence
@@ -51,7 +51,7 @@ world application.
 
 
 Shards & Replicas
-.................
+-----------------
 
 If you do not set the number of shards and/or number of replicas,
 the default configuration will be used:
@@ -106,7 +106,7 @@ The ``CREATE TABLE`` statement now looks like::
 
 
 Refresh Interval
-................
+----------------
 
 Another simple, but very important tweak to speed up importing is
 to set the refresh interval of the table to 0.
@@ -155,7 +155,7 @@ a reasonable value (time in ms)::
   - :ref:`sql_ref_refresh_interval`
 
 Store Level Throttling
-.......................
+----------------------
 
 If you do not need to query your data during import, which is the case
 most of the time, you can lighten the merge throttling behaviour that
@@ -189,15 +189,15 @@ value to ``merge`` (default) or ``all``.
 
   - :ref:`indices.store.throttle`
 
-Importing Data Using COPY FROM
-------------------------------
+Importing Data Using ``COPY FROM``
+==================================
 
 Once the table is created it's time for the actual import. Use the
 ``COPY FROM`` command to import data into a table efficiently. For more
 in-depth documentation on ``COPY FROM`` see :ref:`copy_from`.
 
 JSON Import Format
-..................
+------------------
 
 CrateDB has native support for ``JSON`` formatted data, where each line is a
 ``JSON`` string and represents a single record. Empty lines are skipped.
@@ -212,8 +212,8 @@ For example: ``users.json``
    {"id": 1, "name": "foo", "day_joined": 1408312800, "bio": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.", "address": {"city": "Dornbirn", "country": "Austria"}}
    {"id": 2, "name": "bar", "day_joined": 1408312800, "bio": "Lorem ipsum dolor sit amet, consectetuer adipiscing elit.", "address": {"city": "Berlin", "country": "Germany"}}
 
-COPY FROM Command
-.................
+``COPY FROM``
+-------------
 
 Upon execution, each node will check the provided path *locally* if the
 file exists and import the data it contains. Consequently this command will check
@@ -248,7 +248,7 @@ found the command will return successfully, reporting
 
 
 Bulk Size
-^^^^^^^^^
+.........
 
 The bulk size defines the amount of lines that are read at once and imported
 into the table. You can specify it in the ``WITH`` clause of the statement
@@ -279,7 +279,7 @@ increase the overhead per request.
 
 
 Compression
-^^^^^^^^^^^
+...........
 
 If you do not have your data locally to the nodes, but somewhere on the network,
 e.g. a NAS or on ``S3``, it's recommended to use ``gzip`` compressed files
@@ -300,7 +300,7 @@ For example::
   REFRESH OK, 1 row affected (... sec)
 
 Partitioned Tables
-------------------
+==================
 
 Sometimes you want to split your table into partitions
 to be able to handle large datasets more efficiently (e.g. for queries to
@@ -382,7 +382,7 @@ a new partition.
 
 
 Summary
--------
+=======
 
 To sum up the points described above, importing huge datasets is not
 difficult if a few things are kept in mind. These are:
@@ -403,7 +403,7 @@ And last but not least:
   adding another node) in the cluster, can make quite a difference.
 
 Further Reading
----------------
+===============
 
 .. seealso::
 

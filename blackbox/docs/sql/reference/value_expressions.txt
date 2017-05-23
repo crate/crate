@@ -71,7 +71,7 @@ multiple alias or table definitions::
     - :doc:`/sql/reference/lexical_structure`
 
 
-Parameter reference
+Parameter Reference
 ===================
 
 A parameter reference is a placeholder for a value.
@@ -84,7 +84,7 @@ Parameter references can either be unnumbered or numbered:
 - ``$n`` as numbered placeholder: ``select * from t where x = $1 or x = $2``
 
 
-Operator invocation
+Operator Invocation
 ===================
 
 There are two different types of operators in Crate:
@@ -100,13 +100,13 @@ There are two different types of operators in Crate:
 
 .. _sql_expressions_subscript:
 
-Subscript expression
+Subscript Expression
 ====================
 
 A subscript expression is an expression which contains a subscript operator
 (``[ ]``). It can be used to access a sub value of a composite type value.
 
-array subscript
+Array Subscript
 ---------------
 
 The subscript operator can be used on array expressions to retrieve a single
@@ -121,7 +121,7 @@ the array which should be retrieved.
 
     - :ref:`sql_dql_object_arrays_select`
 
-object subscript
+Object Subscript
 ----------------
 
 On object expressions the subscript operator can be used to access an inner
@@ -136,7 +136,7 @@ should be retrieved.
 
     - :ref:`sql_dql_objects`
 
-Function call
+Function Call
 =============
 
 A function is declared by its name followed by its arguments enclosed in
@@ -149,7 +149,7 @@ parentheses::
     - :doc:`/sql/scalar`
     - :doc:`/sql/aggregation`
 
-Type cast
+Type Cast
 =========
 
 A type cast specifies the conversion from one type to another. The syntax is::
@@ -161,7 +161,7 @@ A type cast specifies the conversion from one type to another. The syntax is::
     - :doc:`/sql/data_types`
 
 
-Object constructor
+Object Constructor
 ==================
 
 A object constructor is an expression which builds an object using its arguments.
@@ -174,7 +174,7 @@ enclosed in curly brackets::
 
     - :ref:`data-type-object-literals`
 
-Array constructor
+Array Constructor
 =================
 
 
@@ -189,7 +189,7 @@ optionally prefixed with ``ARRAY``::
     - :ref:`data-type-array-literals`
 
 
-Scalar subquery
+Scalar Subquery
 ===============
 
 A scalar subquery is a regular SELECT statement in parentheses that returns

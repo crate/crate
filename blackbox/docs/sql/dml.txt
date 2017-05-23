@@ -183,8 +183,8 @@ Resulting partitions of the last insert by query::
    ``limit``, ``offset`` and ``order by`` are not supported inside the
    query statement.
 
-On Duplicate Key Update
------------------------
+``ON DUPLICATE KEY UPDATE``
+---------------------------
 
 The ``ON DUPLICATE KEY UPDATE`` clause is used to update the existing
 row if inserting is not possible because of a duplicate-key conflict
@@ -377,8 +377,8 @@ Deleting rows in Crate is done using the SQL ``DELETE`` statement::
 
 .. _importing_data:
 
-Import/Export
-=============
+Import and Export
+=================
 
 Importing Data
 --------------
@@ -407,8 +407,8 @@ Example JSON data::
 In order to import data into :ref:`partitioned_tables` take a look at the
 :ref:`copy_from` reference.
 
-Import From File URI
-....................
+Import From a File URI
+......................
 
 .. highlight:: psql
 

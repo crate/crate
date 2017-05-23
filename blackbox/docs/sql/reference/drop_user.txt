@@ -1,8 +1,8 @@
 .. _ref-drop-user:
 
-=========
-DROP USER
-=========
+=============
+``DROP USER``
+=============
 
 Drop an existing database user.
 
