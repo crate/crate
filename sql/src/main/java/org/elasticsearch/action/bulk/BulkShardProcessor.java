@@ -225,6 +225,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                 routing
             ).shardId();
         } catch (IndexNotFoundException e) {
+            LOGGER.warn(String.format(Locale.ENGLISH, "Trying to insert value into unavailable partition: %s", indexName));
             if (!autoCreateIndices) {
                 throw e;
             }
