@@ -26,6 +26,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import io.crate.Streamer;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -50,11 +51,15 @@ public class StreamBucket implements Bucket, Streamable {
 
 
         private static final int INITIAL_PAGE_SIZE = 1024;
+        private final RamAccountingContext ramAccountingContext;
+
         private int size = 0;
         private final Streamer<?>[] streamers;
         private BytesStreamOutput out;
+        private int prevOutSize = 0;
 
-        public Builder(Streamer<?>[] streamers) {
+        public Builder(Streamer<?>[] streamers, RamAccountingContext ramAccountingContext) {
+            this.ramAccountingContext = ramAccountingContext;
             assert validStreamers(streamers) : "streamers must not be null and they shouldn't be of undefinedType";
             this.streamers = streamers;
             out = new BytesStreamOutput(INITIAL_PAGE_SIZE);
@@ -66,6 +71,10 @@ public class StreamBucket implements Bucket, Streamable {
             size++;
             for (int i = 0; i < row.numColumns(); i++) {
                 streamers[i].writeValueTo(out, row.get(i));
+            }
+            if (ramAccountingContext != null) {
+                ramAccountingContext.addBytes(out.size() - prevOutSize);
+                prevOutSize = out.size();
             }
         }
 
@@ -118,7 +127,7 @@ public class StreamBucket implements Bucket, Streamable {
             ((Streamable) bucket).writeTo(out);
         } else {
             assert streamers != null : "Need streamers for non-streamable bucket implementation";
-            StreamBucket.Builder builder = new StreamBucket.Builder(streamers);
+            StreamBucket.Builder builder = new StreamBucket.Builder(streamers, null);
             for (Row row : bucket) {
                 builder.add(row);
             }

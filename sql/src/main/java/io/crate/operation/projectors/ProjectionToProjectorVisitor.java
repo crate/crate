@@ -436,7 +436,8 @@ public class ProjectionToProjectorVisitor
                 transportActionProvider.transportFetchNodeAction(),
                 projectorContext.nodeIdsToStreamers(),
                 context.jobId,
-                projection.collectPhaseId()
+                projection.collectPhaseId(),
+                context.ramAccountingContext
             ),
             functions,
             projection.outputSymbols(),

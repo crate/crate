@@ -25,6 +25,7 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import io.crate.Streamer;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.data.Bucket;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -36,22 +37,26 @@ import java.io.IOException;
 public class NodeFetchResponse extends TransportResponse {
 
     private final IntObjectMap<Streamer[]> streamers;
+    private final RamAccountingContext ramAccountingContext;
 
     @Nullable
     private IntObjectMap<StreamBucket> fetched;
 
     public static NodeFetchResponse forSending(IntObjectMap<StreamBucket> fetched) {
-        return new NodeFetchResponse(null, fetched);
+        return new NodeFetchResponse(null, fetched, null);
     }
 
-    public static NodeFetchResponse forReceiveing(@Nullable IntObjectMap<Streamer[]> streamers) {
-        return new NodeFetchResponse(streamers, null);
+    public static NodeFetchResponse forReceiveing(@Nullable IntObjectMap<Streamer[]> streamers,
+                                                  RamAccountingContext ramAccountingContext) {
+        return new NodeFetchResponse(streamers, null, ramAccountingContext);
     }
 
     private NodeFetchResponse(@Nullable IntObjectMap<Streamer[]> streamers,
-                              @Nullable IntObjectMap<StreamBucket> fetched) {
+                              @Nullable IntObjectMap<StreamBucket> fetched,
+                              @Nullable RamAccountingContext ramAccountingContext) {
         this.streamers = streamers;
         this.fetched = fetched;
+        this.ramAccountingContext = ramAccountingContext;
     }
 
     @Nullable
@@ -61,6 +66,9 @@ public class NodeFetchResponse extends TransportResponse {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
+        assert ramAccountingContext != null : "RamAccountingContext must be present to receive a NodeFetchResponse";
+        ramAccountingContext.addBytes(in.available());
+
         super.readFrom(in);
         int numReaders = in.readVInt();
         if (numReaders > 0) {
