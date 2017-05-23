@@ -50,7 +50,7 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
         this.distributedByColumnIdx = distributedByColumnIdx;
         this.bucketBuilders = new ArrayList<>(numBuckets);
         for (int i = 0; i < numBuckets; i++) {
-            bucketBuilders.add(new StreamBucket.Builder(streamers));
+            bucketBuilders.add(new StreamBucket.Builder(streamers, null));
         }
     }
 

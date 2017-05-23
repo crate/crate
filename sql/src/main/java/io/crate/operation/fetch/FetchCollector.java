@@ -25,6 +25,7 @@ package io.crate.operation.fetch;
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.Streamer;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.StreamBucket;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
@@ -46,16 +47,19 @@ class FetchCollector {
     private final InputRow row;
     private final Streamer<?>[] streamers;
     private final List<LeafReaderContext> readerContexts;
+    private final RamAccountingContext ramAccountingContext;
 
     FetchCollector(List<LuceneCollectorExpression<?>> collectorExpressions,
                    Streamer<?>[] streamers,
                    Engine.Searcher searcher,
                    IndexFieldDataService indexFieldDataService,
+                   RamAccountingContext ramAccountingContext,
                    int readerId) {
         // use toArray to avoid iterator allocations in docIds loop
         this.collectorExpressions = collectorExpressions.toArray(new LuceneCollectorExpression[0]);
         this.streamers = streamers;
         this.readerContexts = searcher.searcher().getIndexReader().leaves();
+        this.ramAccountingContext = ramAccountingContext;
         this.fieldsVisitor = new CollectorFieldsVisitor(this.collectorExpressions.length);
         CollectorContext collectorContext = new CollectorContext(indexFieldDataService, fieldsVisitor, readerId);
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
@@ -78,7 +82,7 @@ class FetchCollector {
     }
 
     public StreamBucket collect(IntContainer docIds) throws IOException {
-        StreamBucket.Builder builder = new StreamBucket.Builder(streamers);
+        StreamBucket.Builder builder = new StreamBucket.Builder(streamers, ramAccountingContext);
         for (IntCursor cursor : docIds) {
             int docId = cursor.value;
             int readerIndex = ReaderUtil.subIndex(docId, readerContexts);

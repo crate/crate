@@ -41,7 +41,7 @@ public class BroadcastingBucketBuilder implements MultiBucketBuilder {
 
     public BroadcastingBucketBuilder(Streamer<?>[] streamers, int numBuckets) {
         this.numBuckets = numBuckets;
-        this.bucketBuilder = new StreamBucket.Builder(streamers);
+        this.bucketBuilder = new StreamBucket.Builder(streamers, null);
     }
 
     @Override

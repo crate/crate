@@ -23,6 +23,8 @@ package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.IntObjectMap;
 import io.crate.Streamer;
+import io.crate.breaker.CrateCircuitBreakerService;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.JobContextService;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.fetch.NodeFetchOperation;
@@ -49,9 +51,15 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                                     Transports transports,
                                     ThreadPool threadPool,
                                     JobsLogs jobsLogs,
-                                    JobContextService jobContextService) {
+                                    JobContextService jobContextService,
+                                    CrateCircuitBreakerService circuitBreakerService) {
         this.transports = transports;
-        this.nodeFetchOperation = new NodeFetchOperation(threadPool.executor(ThreadPool.Names.SEARCH), jobsLogs, jobContextService);
+        this.nodeFetchOperation = new NodeFetchOperation(
+            threadPool.executor(ThreadPool.Names.SEARCH),
+            jobsLogs,
+            jobContextService,
+            circuitBreakerService.getBreaker(CrateCircuitBreakerService.QUERY)
+        );
 
         transportService.registerRequestHandler(
             TRANSPORT_ACTION,
@@ -70,9 +78,10 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
     public void execute(String targetNode,
                         final IntObjectMap<Streamer[]> streamers,
                         final NodeFetchRequest request,
+                        RamAccountingContext ramAccountingContext,
                         ActionListener<NodeFetchResponse> listener) {
         transports.sendRequest(TRANSPORT_ACTION, targetNode, request, listener,
-            new ActionListenerResponseHandler<>(listener, () -> NodeFetchResponse.forReceiveing(streamers)));
+            new ActionListenerResponseHandler<>(listener, () -> NodeFetchResponse.forReceiveing(streamers, ramAccountingContext)));
     }
 
     @Override
