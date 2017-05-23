@@ -66,7 +66,7 @@ import static java.util.Collections.singletonList;
 
 public class UpsertByIdTask extends JobTask {
 
-    private static final Logger LOGGER = Loggers.getLogger(UpsertByIdTask.class);
+    private static final Logger LOGGER = Loggers.getLogger(UpsertById.class);
     private static final BackoffPolicy BACK_OFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
 
     private final ClusterService clusterService;
@@ -80,8 +80,6 @@ public class UpsertByIdTask extends JobTask {
     private final List<Integer> bulkIndices;
     private final boolean isUpdate;
     private final boolean isDebugEnabled;
-
-    private static final Logger LOGGER = Loggers.getLogger(UpsertById.class);
 
     public UpsertByIdTask(UpsertById upsertById,
                           ClusterService clusterService,
