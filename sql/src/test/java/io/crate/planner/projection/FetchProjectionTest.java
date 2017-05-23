@@ -22,11 +22,7 @@
 
 package io.crate.planner.projection;
 
-import io.crate.operation.Paging;
 import org.junit.Test;
-
-import java.util.Collections;
-import java.util.TreeMap;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -34,22 +30,17 @@ import static org.junit.Assert.assertThat;
 public class FetchProjectionTest {
 
     @Test
-    public void testFetchSizeHasUpperBound() throws Exception {
-        assertThat(getFetchProjection(0).getFetchSize(), is(Paging.PAGE_SIZE));
-
-        assertThat(getFetchProjection(Integer.MAX_VALUE).getFetchSize(), is(Paging.PAGE_SIZE));
+    public void testMaxFetchSize() throws Exception {
+        assertThat(FetchProjection.maxFetchSize(56), is(2_000));
+        assertThat(FetchProjection.maxFetchSize(256), is(30_000));
+        assertThat(FetchProjection.maxFetchSize(512), is(65_840));
+        assertThat(FetchProjection.maxFetchSize(1024), is(137_520));
+        assertThat(FetchProjection.maxFetchSize(2048), is(280_880));
+        assertThat(FetchProjection.maxFetchSize(4096), is(500_000));
     }
 
-
-    private static FetchProjection getFetchProjection(int fetchSize) {
-        return new FetchProjection(
-                1,
-                fetchSize,
-                Collections.emptyMap(),
-                Collections.emptyList(),
-                Collections.emptyMap(),
-                new TreeMap<>(),
-                Collections.emptyMap()
-            );
+    @Test
+    public void testBoundedFetchSize() throws Exception {
+        assertThat(FetchProjection.boundedFetchSize(0, 65_840), is(65_840));
     }
 }

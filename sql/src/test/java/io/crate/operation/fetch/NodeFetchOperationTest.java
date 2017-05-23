@@ -27,6 +27,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.jobs.JobContextService;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
@@ -44,7 +45,9 @@ public class NodeFetchOperationTest extends CrateUnitTest {
         NodeFetchOperation fetchOperation = new NodeFetchOperation(
             MoreExecutors.directExecutor(),
             jobsLogs,
-            new JobContextService(Settings.EMPTY, new NoopClusterService(), jobsLogs));
+            new JobContextService(Settings.EMPTY, new NoopClusterService(), jobsLogs),
+            new NoopCircuitBreaker("dummy")
+            );
 
         fetchOperation.fetch(UUID.randomUUID(), 1, null, true).get(5, TimeUnit.SECONDS);
 

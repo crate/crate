@@ -48,7 +48,7 @@ public class StreamBucketCollector implements Collector<Row, StreamBucket.Builde
 
     @Override
     public Supplier<StreamBucket.Builder> supplier() {
-        return () -> new StreamBucket.Builder(streamers);
+        return () -> new StreamBucket.Builder(streamers, null);
     }
 
     @Override

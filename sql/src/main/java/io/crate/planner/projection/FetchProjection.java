@@ -22,6 +22,7 @@
 package io.crate.planner.projection;
 
 import com.carrotsearch.hppc.IntSet;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
@@ -31,11 +32,33 @@ import io.crate.planner.node.fetch.FetchSource;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.lang.management.PlatformManagedObject;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 public class FetchProjection extends Projection {
+
+    private static long configuredMaxMemory() {
+        try {
+            @SuppressWarnings("unchecked") Class<? extends PlatformManagedObject> clazz =
+                    (Class<? extends PlatformManagedObject>)Class.forName("com.sun.management.HotSpotDiagnosticMXBean");
+            Class<?> vmOptionClazz = Class.forName("com.sun.management.VMOption");
+            PlatformManagedObject hotSpotDiagnosticMXBean = ManagementFactory.getPlatformMXBean(clazz);
+            Method vmOptionMethod = clazz.getMethod("getVMOption", String.class);
+Method valueMethod = vmOptionClazz.getMethod("getValue");
+            Object maxHeapSizeVmOptionObject = vmOptionMethod.invoke(hotSpotDiagnosticMXBean, "MaxHeapSize");
+            return Long.parseLong((String) valueMethod.invoke(maxHeapSizeVmOptionObject));
+        } catch (Exception ignored) {
+            long max = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getMax();
+            return max < 0 ? 0 : max;
+        }
+    }
+
+    private static final int HEAP_IN_MB = (int) (configuredMaxMemory() / (1024 * 1024));
+    private static final int MAX_FETCH_SIZE = maxFetchSize(HEAP_IN_MB);
 
     private final int collectPhaseId;
     private final int fetchSize;
@@ -46,19 +69,47 @@ public class FetchProjection extends Projection {
     private final Map<String, TableIdent> indicesToIdents;
 
     public FetchProjection(int collectPhaseId,
-                           int fetchSize,
+                           int suppliedFetchSize,
                            Map<TableIdent, FetchSource> fetchSources,
                            List<Symbol> outputSymbols,
                            Map<String, IntSet> nodeReaders,
                            TreeMap<Integer, String> readerIndices,
                            Map<String, TableIdent> indicesToIdents) {
         this.collectPhaseId = collectPhaseId;
-        this.fetchSize = fetchSize == 0 ? Paging.PAGE_SIZE : Math.min(fetchSize, Paging.PAGE_SIZE);
         this.fetchSources = fetchSources;
         this.outputSymbols = outputSymbols;
         this.nodeReaders = nodeReaders;
         this.readerIndices = readerIndices;
         this.indicesToIdents = indicesToIdents;
+        this.fetchSize = boundedFetchSize(suppliedFetchSize, MAX_FETCH_SIZE);
+    }
+
+    @VisibleForTesting
+    static int maxFetchSize(int maxHeapInMb) {
+        /* These values were chosen after some manuel testing with a single node started with
+         * different heap configurations:  56mb, 256mb and 2048mb
+         *
+         * This should result in fetchSizes that err on the safe-side to prevent out of memory issues.
+         * And yet they get large quickly enough that  on a decently sized cluster it's on the maximum
+         * (4gb heap already has a fetchSize of 500000)
+         *
+         * The returned maxFetchSize may still be too large in case of very large result payloads,
+         * but there's still a circuit-breaker which should prevent OOM errors.
+         */
+        int x0 = 56;
+        int y0 = 2000;
+        int x1 = 256;
+        int y1 = 30000;
+        // linear interpolation formula.
+        return Math.min(y0 + (maxHeapInMb - x0) * ((y1 - y0) / (x1 - x0)), Paging.PAGE_SIZE);
+    }
+
+    @VisibleForTesting
+    static int boundedFetchSize(int suppliedFetchSize, int maxSize) {
+        if (suppliedFetchSize == 0) {
+            return maxSize;
+        }
+        return Math.min(suppliedFetchSize, maxSize);
     }
 
     public int collectPhaseId() {

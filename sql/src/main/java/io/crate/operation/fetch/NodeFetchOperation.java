@@ -25,12 +25,10 @@ import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
+import com.google.common.util.concurrent.*;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.breaker.RamAccountingContext;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.StreamBucket;
 import io.crate.jobs.JobContextService;
@@ -40,6 +38,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexService;
 
@@ -57,6 +56,7 @@ public class NodeFetchOperation {
     private final Executor executor;
     private final JobsLogs jobsLogs;
     private final JobContextService jobContextService;
+    private final CircuitBreaker circuitBreaker;
 
     private static class TableFetchInfo {
 
@@ -70,7 +70,7 @@ public class NodeFetchOperation {
             this.streamers = Symbols.streamerArray(refs);
         }
 
-        FetchCollector createCollector(int readerId) {
+        FetchCollector createCollector(int readerId, RamAccountingContext ramAccountingContext) {
             IndexService indexService = fetchContext.indexService(readerId);
             LuceneReferenceResolver resolver = new LuceneReferenceResolver(indexService.mapperService()::smartNameFieldType);
             ArrayList<LuceneCollectorExpression<?>> exprs = new ArrayList<>(refs.size());
@@ -82,15 +82,20 @@ public class NodeFetchOperation {
                 streamers,
                 fetchContext.searcher(readerId),
                 indexService.fieldData(),
+                ramAccountingContext,
                 readerId
             );
         }
     }
 
-    public NodeFetchOperation(Executor executor, JobsLogs jobsLogs, JobContextService jobContextService) {
+    public NodeFetchOperation(Executor executor,
+                              JobsLogs jobsLogs,
+                              JobContextService jobContextService,
+                              CircuitBreaker circuitBreaker) {
         this.executor = executor;
         this.jobsLogs = jobsLogs;
         this.jobContextService = jobContextService;
+        this.circuitBreaker = circuitBreaker;
     }
 
     public ListenableFuture<IntObjectMap<StreamBucket>> fetch(UUID jobId,
@@ -164,6 +169,11 @@ public class NodeFetchOperation {
         final AtomicReference<Throwable> lastThrowable = new AtomicReference<>(null);
         final AtomicInteger threadLatch = new AtomicInteger(toFetch.size());
 
+        // RamAccountingContext is per doFetch call instead of per FetchContext/fetchPhase
+        // To be able to free up the memory count when the operation is complete
+        RamAccountingContext ramAccountingContext = new RamAccountingContext("fetch-" + fetchContext.id(), circuitBreaker);
+        resultFuture.addListener(ramAccountingContext::close, MoreExecutors.directExecutor());
+
         for (IntObjectCursor<? extends IntContainer> toFetchCursor : toFetch) {
             final int readerId = toFetchCursor.key;
             final IntContainer docIds = toFetchCursor.value;
@@ -173,7 +183,7 @@ public class NodeFetchOperation {
             assert tfi != null : "tfi must not be null";
 
             CollectRunnable runnable = new CollectRunnable(
-                tfi.createCollector(readerId),
+                tfi.createCollector(readerId, ramAccountingContext),
                 docIds,
                 fetched,
                 readerId,

@@ -27,9 +27,11 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.concurrent.ThreadSafe;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 
+@ThreadSafe
 public class RamAccountingContext {
 
     // Flush every 2mb
