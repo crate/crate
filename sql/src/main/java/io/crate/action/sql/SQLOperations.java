@@ -298,7 +298,6 @@ public class SQLOperations {
         }
 
         public CompletableFuture<?> sync() {
-            LOGGER.debug("method=sync");
             switch (pendingExecutions.size()) {
                 case 0:
                     LOGGER.debug("method=sync pendingExecutions=0");

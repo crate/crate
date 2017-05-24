@@ -28,23 +28,27 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.HbaProtocol;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.ByteToMessageDecoder;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.*;
-import org.jboss.netty.handler.codec.frame.FrameDecoder;
+import org.elasticsearch.common.network.InetAddresses;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -192,7 +196,7 @@ class ConnectionContext {
         }
     }
 
-    private static String readCString(ChannelBuffer buffer) {
+    private static String readCString(ByteBuf buffer) {
         byte[] bytes = new byte[buffer.bytesBefore((byte) 0) + 1];
         if (bytes.length == 0) {
             return null;
@@ -201,9 +205,9 @@ class ConnectionContext {
         return new String(bytes, 0, bytes.length - 1, StandardCharsets.UTF_8);
     }
 
-    private Properties readStartupMessage(ChannelBuffer buffer) {
+    private Properties readStartupMessage(ByteBuf buffer) {
         Properties properties = new Properties();
-        ChannelBuffer channelBuffer = buffer.readBytes(msgLength);
+        ByteBuf channelBuffer = buffer.readBytes(msgLength);
         while (true) {
             String key = readCString(channelBuffer);
             if (key == null) {
@@ -246,18 +250,11 @@ class ConnectionContext {
         }
     }
 
-    private class MessageHandler extends SimpleChannelUpstreamHandler {
+    private class MessageHandler extends SimpleChannelInboundHandler<ByteBuf> {
 
         @Override
-        public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-            Object m = e.getMessage();
-            if (!(m instanceof ChannelBuffer)) {
-                ctx.sendUpstream(e);
-                return;
-            }
-
-            ChannelBuffer buffer = (ChannelBuffer) m;
-            final Channel channel = ctx.getChannel();
+        public void channelRead0(ChannelHandlerContext ctx, ByteBuf buffer) throws Exception {
+            final Channel channel = ctx.channel();
 
             try {
                 dispatchState(buffer, channel);
@@ -271,7 +268,7 @@ class ConnectionContext {
             }
         }
 
-        private void dispatchState(ChannelBuffer buffer, Channel channel) {
+        private void dispatchState(ByteBuf buffer, Channel channel) {
             switch (state) {
                 case SSL_NEG:
                     state = STARTUP_HEADER;
@@ -299,7 +296,7 @@ class ConnectionContext {
             throw new IllegalStateException("Illegal state: " + state);
         }
 
-        private void dispatchMessage(ChannelBuffer buffer, Channel channel) {
+        private void dispatchMessage(ByteBuf buffer, Channel channel) {
             switch (msgType) {
                 case 'Q': // Query (simple)
                     handleSimpleQuery(buffer, channel);
@@ -343,29 +340,33 @@ class ConnectionContext {
         }
 
         @Override
-        public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
-            LOGGER.error("Uncaught exception: ", e.getCause());
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+            LOGGER.error("Uncaught exception: ", cause);
         }
 
         @Override
-        public void channelDisconnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
+        public void channelUnregistered(ChannelHandlerContext ctx) throws Exception {
             LOGGER.trace("channelDisconnected");
             closeSession();
-            super.channelDisconnected(ctx, e);
+            super.channelUnregistered(ctx);
         }
     }
 
-    private void handleStartupBody(ChannelBuffer buffer, Channel channel) {
+    private void handleStartupBody(ByteBuf buffer, Channel channel) {
         Properties properties = readStartupMessage(buffer);
         authenticate(channel, properties);
     }
 
     private void authenticate(Channel channel, Properties properties) {
         String userName = properties.getProperty("user");
-        InetAddress address = CrateNettyHttpServerTransport.getRemoteAddress(channel);
-        AuthenticationMethod authMethod = authService.resolveAuthenticationType(userName,
-            address,
-            HbaProtocol.POSTGRES);
+        SocketAddress socketAddress = channel.remoteAddress();
+        InetAddress address;
+        if (socketAddress instanceof InetSocketAddress) {
+            address = ((InetSocketAddress) socketAddress).getAddress();
+        } else {
+            address = InetAddresses.forString("127.0.0.1");
+        }
+        AuthenticationMethod authMethod = authService.resolveAuthenticationType(userName, address, HbaProtocol.POSTGRES);
         if (authMethod == null) {
             String errorMessage = String.format(
                 Locale.ENGLISH,
@@ -399,11 +400,11 @@ class ConnectionContext {
         Messages.sendReadyForQuery(channel);
     }
 
-    private void handleStartupHeader(ChannelBuffer buffer, Channel channel) {
+    private void handleStartupHeader(ByteBuf buffer, Channel channel) {
         buffer.readInt(); // sslCode
-        ChannelBuffer channelBuffer = ChannelBuffers.buffer(1);
+        ByteBuf channelBuffer = channel.alloc().buffer(1);
         channelBuffer.writeByte('N');
-        ChannelFuture channelFuture = channel.write(channelBuffer);
+        ChannelFuture channelFuture = channel.writeAndFlush(channelBuffer);
         if (LOGGER.isTraceEnabled()) {
             channelFuture.addListener(future -> LOGGER.trace("sent SSL neg: N"));
         }
@@ -442,7 +443,7 @@ class ConnectionContext {
      * foreach param:
      * | int32 type_oid (zero = unspecified)
      */
-    private void handleParseMessage(ChannelBuffer buffer, final Channel channel) {
+    private void handleParseMessage(ByteBuf buffer, final Channel channel) {
         String statementName = readCString(buffer);
         final String query = readCString(buffer);
         short numParams = buffer.readShort();
@@ -480,7 +481,7 @@ class ConnectionContext {
      *      | int16 formatCode
      * </pre>
      */
-    private void handleBindMessage(ChannelBuffer buffer, Channel channel) {
+    private void handleBindMessage(ByteBuf buffer, Channel channel) {
         String portalName = readCString(buffer);
         String statementName = readCString(buffer);
 
@@ -533,7 +534,7 @@ class ConnectionContext {
      * | 'S' = prepared statement or 'P' = portal
      * | string nameOfPortalOrStatement
      */
-    private void handleDescribeMessage(ChannelBuffer buffer, Channel channel) {
+    private void handleDescribeMessage(ByteBuf buffer, Channel channel) {
         byte type = buffer.readByte();
         String portalOrStatement = readCString(buffer);
         Collection<Field> fields = session.describe((char) type, portalOrStatement);
@@ -553,7 +554,7 @@ class ConnectionContext {
      * | string portalName
      * | int32 maxRows (0 = unlimited)
      */
-    private void handleExecute(ChannelBuffer buffer, Channel channel) {
+    private void handleExecute(ByteBuf buffer, Channel channel) {
         String portalName = readCString(buffer);
         int maxRows = buffer.readInt();
         String query = session.getQuery(portalName);
@@ -595,7 +596,7 @@ class ConnectionContext {
     /**
      * | 'C' | int32 len | byte portalOrStatement | string portalOrStatementName |
      */
-    private void handleClose(ChannelBuffer buffer, Channel channel) {
+    private void handleClose(ByteBuf buffer, Channel channel) {
         byte b = buffer.readByte();
         String portalOrStatementName = readCString(buffer);
         session.close(b, portalOrStatementName);
@@ -603,7 +604,7 @@ class ConnectionContext {
     }
 
     @VisibleForTesting
-    void handleSimpleQuery(ChannelBuffer buffer, final Channel channel) {
+    void handleSimpleQuery(ByteBuf buffer, final Channel channel) {
         String query = readCString(buffer);
         assert query != null : "query must not be nulL";
 
@@ -637,10 +638,17 @@ class ConnectionContext {
     /**
      * FrameDecoder that makes sure that a full message is in the buffer before delegating work to the MessageHandler
      */
-    private class MessageDecoder extends FrameDecoder {
+    private class MessageDecoder extends ByteToMessageDecoder {
 
         @Override
-        protected Object decode(ChannelHandlerContext ctx, Channel channel, ChannelBuffer buffer) throws Exception {
+        protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
+            ByteBuf decode = decode(in);
+            if (decode != null) {
+                out.add(decode);
+            }
+        }
+
+        private ByteBuf decode(ByteBuf buffer) {
             switch (state) {
                 /*
                  * StartupMessage:
@@ -656,7 +664,7 @@ class ConnectionContext {
                         // SSL negotiation pkg
                         LOGGER.trace("Received SSL negotiation pkg");
                         state = State.SSL_NEG;
-                        return buffer;
+                        return buffer.readBytes(4);
                     }
                     LOGGER.trace("Header pkgLength: {}", msgLength);
                     int protocol = buffer.readInt();
@@ -686,13 +694,13 @@ class ConnectionContext {
          * <p>
          * If null is returned the decoder will be called again, otherwise the MessageHandler will be called next.
          */
-        private ChannelBuffer nullOrBuffer(ChannelBuffer buffer, State nextState) {
+        private ByteBuf nullOrBuffer(ByteBuf buffer, State nextState) {
             if (buffer.readableBytes() < msgLength) {
                 buffer.resetReaderIndex();
                 return null;
             }
             state = nextState;
-            return buffer;
+            return buffer.readBytes(msgLength);
         }
     }
 }

@@ -22,7 +22,7 @@ import io.crate.concurrent.CompletableFutures;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
 import io.crate.protocols.postgres.Messages;
-import org.jboss.netty.channel.Channel;
+import io.netty.channel.Channel;
 
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;

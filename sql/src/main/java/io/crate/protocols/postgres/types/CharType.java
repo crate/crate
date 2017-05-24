@@ -22,7 +22,8 @@
 
 package io.crate.protocols.postgres.types;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+
+import io.netty.buffer.ByteBuf;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
@@ -38,14 +39,14 @@ class CharType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         buffer.writeInt(1);
         buffer.writeByte(((byte) value));
         return 5;
     }
 
     @Override
-    public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
+    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
         assert valueLength == 1 : "char must have 1 byte";
         return buffer.readByte();
     }

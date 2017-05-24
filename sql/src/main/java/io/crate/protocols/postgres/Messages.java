@@ -28,13 +28,12 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelFutureListener;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
@@ -67,29 +66,23 @@ public class Messages {
     private static final byte[] METHOD_NAME_CLIENT_AUTH = "ClientAuthentication".getBytes(StandardCharsets.UTF_8);
 
     public static ChannelFuture sendAuthenticationOK(Channel channel) {
-        ChannelBuffer buffer = ChannelBuffers.buffer(9);
+        ByteBuf buffer = channel.alloc().buffer(9);
         buffer.writeByte('R');
         buffer.writeInt(8); // size excluding char
         buffer.writeInt(0);
-        ChannelFuture channelFuture = channel.write(buffer);
+        ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace("sentAuthenticationOK");
-                }
-            });
+            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentAuthenticationOK"));
         }
         return channelFuture;
     }
 
     /**
      * | 'C' | int32 len | str commandTag
-     *
      * @param query    :the query
      * @param rowCount : number of rows in the result set or number of rows affected by the DML statement
      */
-    static void sendCommandComplete(Channel channel, String query, long rowCount) {
+    static ChannelFuture sendCommandComplete(Channel channel, String query, long rowCount) {
         query = query.split(" ", 2)[0].toUpperCase(Locale.ENGLISH);
         String commandTag;
         /*
@@ -108,19 +101,15 @@ public class Messages {
 
         byte[] commandTagBytes = commandTag.getBytes(StandardCharsets.UTF_8);
         int length = 4 + commandTagBytes.length + 1;
-        ChannelBuffer buffer = ChannelBuffers.buffer(length + 1);
+        ByteBuf buffer = channel.alloc().buffer(length + 1);
         buffer.writeByte('C');
         buffer.writeInt(length);
         writeCString(buffer, commandTagBytes);
-        ChannelFuture channelFuture = channel.write(buffer);
+        ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace("sentCommandComplete");
-                }
-            });
+            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentCommandComplete"));
         }
+        return channelFuture;
     }
 
     /**
@@ -140,18 +129,13 @@ public class Messages {
      * rejected until block is ended).
      */
     static void sendReadyForQuery(Channel channel) {
-        ChannelBuffer buffer = ChannelBuffers.buffer(6);
+        ByteBuf buffer = channel.alloc().buffer(6);
         buffer.writeByte('Z');
         buffer.writeInt(5);
         buffer.writeByte('I');
-        ChannelFuture channelFuture = channel.write(buffer);
+        ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace("sentReadyForQuery");
-                }
-            });
+            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentReadyForQuery"));
         }
     }
 
@@ -179,19 +163,14 @@ public class Messages {
         byte[] valueBytes = value.getBytes(StandardCharsets.UTF_8);
 
         int length = 4 + nameBytes.length + 1 + valueBytes.length + 1;
-        ChannelBuffer buffer = ChannelBuffers.buffer(length + 1);
+        ByteBuf buffer = channel.alloc().buffer(length + 1);
         buffer.writeByte('S');
         buffer.writeInt(length);
         writeCString(buffer, nameBytes);
         writeCString(buffer, valueBytes);
         ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace("sentParameterStatus {}={}", name, value);
-                }
-            });
+            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentParameterStatus {}={}", name, value));
         }
     }
 
@@ -251,7 +230,7 @@ public class Messages {
             (lineNumber != null ? 1 + (lineNumber.length + 1) : 0) +
             (methodName != null ? 1 + (methodName.length + 1) : 0) +
             1;
-        ChannelBuffer buffer = ChannelBuffers.buffer(length + 1);
+        ByteBuf buffer = channel.alloc().buffer(length + 1);
         buffer.writeByte('E');
         buffer.writeInt(length);
         buffer.writeByte('S');
@@ -273,14 +252,9 @@ public class Messages {
             writeCString(buffer, methodName);
         }
         buffer.writeByte(0);
-        ChannelFuture channelFuture = channel.write(buffer);
+        ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace("sentErrorResponse msg={}", message);
-                }
-            });
+            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentErrorResponse msg={}", message));
         }
     }
 
@@ -308,7 +282,7 @@ public class Messages {
         assert columnTypes.size() == row.numColumns()
             : "Number of columns in the row must match number of columnTypes. Row: " + row + " types: " + columnTypes;
 
-        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+        ByteBuf buffer = channel.alloc().buffer();
         buffer.writeByte('D');
         buffer.writeInt(0); // will be set at the end
         buffer.writeShort(row.numColumns());
@@ -340,7 +314,7 @@ public class Messages {
         channel.write(buffer);
     }
 
-    static void writeCString(ChannelBuffer buffer, byte[] valBytes) {
+    static void writeCString(ByteBuf buffer, byte[] valBytes) {
         buffer.writeBytes(valBytes);
         buffer.writeByte(0);
     }
@@ -359,7 +333,7 @@ public class Messages {
     static void sendRowDescription(Channel channel, Collection<Field> columns, @Nullable FormatCodes.FormatCode[] formatCodes) {
         int length = 4 + 2;
         int columnSize = 4 + 2 + 4 + 2 + 4 + 2;
-        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer(
+        ByteBuf buffer = channel.alloc().buffer(
             length + (columns.size() * (10 + columnSize))); // use 10 as an estimate for columnName length
 
         buffer.writeByte('T');
@@ -386,14 +360,9 @@ public class Messages {
         }
 
         buffer.setInt(1, length);
-        ChannelFuture channelFuture = channel.write(buffer);
+        ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace("sentRowDescription");
-                }
-            });
+            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentRowDescription"));
         }
     }
 
@@ -433,18 +402,13 @@ public class Messages {
      * Send a message that just contains the msgType and the msg length
      */
     private static void sendShortMsg(Channel channel, char msgType, final String traceLogMsg) {
-        ChannelBuffer buffer = ChannelBuffers.buffer(5);
+        ByteBuf buffer = channel.alloc().buffer(5);
         buffer.writeByte(msgType);
         buffer.writeInt(4);
 
         ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace(traceLogMsg);
-                }
-            });
+            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace(traceLogMsg));
         }
     }
 
