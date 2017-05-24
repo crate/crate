@@ -26,7 +26,7 @@ import io.crate.action.sql.BaseResultReceiver;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.types.DataType;
-import org.jboss.netty.channel.Channel;
+import io.netty.channel.Channel;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -67,10 +67,11 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     @Override
     public void allFinished(boolean interrupted) {
-        if (!interrupted) {
-            Messages.sendCommandComplete(channel, query, rowCount);
+        if (interrupted) {
+            super.allFinished(true);
+        } else {
+            Messages.sendCommandComplete(channel, query, rowCount).addListener(f -> super.allFinished(false));
         }
-        super.allFinished(interrupted);
     }
 
     @Override

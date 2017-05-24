@@ -22,9 +22,9 @@
 
 package io.crate.protocols.postgres.types;
 
+import io.netty.buffer.ByteBuf;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
@@ -80,14 +80,14 @@ public abstract class PGType {
      *
      * @return the number of bytes written. (4 (int32)  + N)
      */
-    public int writeAsText(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsText(ByteBuf buffer, @Nonnull Object value) {
         byte[] bytes = encodeAsUTF8Text(value);
         buffer.writeInt(bytes.length);
         buffer.writeBytes(bytes);
         return INT32_BYTE_SIZE + bytes.length;
     }
 
-    public Object readTextValue(ChannelBuffer buffer, int valueLength) {
+    public Object readTextValue(ByteBuf buffer, int valueLength) {
         byte[] bytes = new byte[valueLength];
         buffer.readBytes(bytes);
         try {
@@ -111,9 +111,9 @@ public abstract class PGType {
      *
      * @return the number of bytes written. (4 (int32)  + N)
      */
-    public abstract int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value);
+    public abstract int writeAsBinary(ByteBuf buffer, @Nonnull Object value);
 
-    public abstract Object readBinaryValue(ChannelBuffer buffer, int valueLength);
+    public abstract Object readBinaryValue(ByteBuf buffer, int valueLength);
 
 
     /**

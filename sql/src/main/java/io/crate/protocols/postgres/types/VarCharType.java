@@ -22,8 +22,8 @@
 
 package io.crate.protocols.postgres.types;
 
+import io.netty.buffer.ByteBuf;
 import org.apache.lucene.util.BytesRef;
-import org.jboss.netty.buffer.ChannelBuffer;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
@@ -42,7 +42,7 @@ class VarCharType extends PGType {
     }
 
     @Override
-    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
         if (value instanceof String) {
             // we sometimes still get String instead of BytesRef, e.g. from the ESGetTask
             byte[] bytes = ((String) value).getBytes(StandardCharsets.UTF_8);
@@ -57,7 +57,7 @@ class VarCharType extends PGType {
     }
 
     @Override
-    public int writeAsText(ChannelBuffer buffer, @Nonnull Object value) {
+    public int writeAsText(ByteBuf buffer, @Nonnull Object value) {
         return writeAsBinary(buffer, value);
     }
 
@@ -74,7 +74,7 @@ class VarCharType extends PGType {
     }
 
     @Override
-    public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
+    public Object readBinaryValue(ByteBuf buffer, int valueLength) {
         BytesRef bytesRef = new BytesRef(valueLength);
         bytesRef.length = valueLength;
         buffer.readBytes(bytesRef.bytes);

@@ -23,18 +23,18 @@
 package io.crate.operation.auth;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManagerProvider;
-import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.protocols.postgres.Messages;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
+import io.netty.channel.Channel;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.jboss.netty.channel.Channel;
 
 import java.net.InetAddress;
 import java.util.concurrent.CompletableFuture;

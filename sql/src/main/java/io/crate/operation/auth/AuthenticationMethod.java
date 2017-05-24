@@ -23,7 +23,7 @@
 package io.crate.operation.auth;
 
 import io.crate.operation.user.User;
-import org.jboss.netty.channel.Channel;
+import io.netty.channel.Channel;
 
 import java.util.concurrent.CompletableFuture;
 
