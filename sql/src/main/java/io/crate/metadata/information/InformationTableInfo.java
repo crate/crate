@@ -38,6 +38,8 @@ public class InformationTableInfo extends StaticTableInfo {
     public static class Columns {
         public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
         public static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
+        public static final ColumnIdent TABLE_CATALOG = new ColumnIdent("table_catalog");
+        public static final ColumnIdent TABLE_TYPE = new ColumnIdent("table_type");
         public static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
         public static final ColumnIdent VALUES = new ColumnIdent("values");
         public static final ColumnIdent NUMBER_OF_SHARDS = new ColumnIdent("number_of_shards");
@@ -61,6 +63,8 @@ public class InformationTableInfo extends StaticTableInfo {
         public static final ColumnIdent TABLE_VERSION_UPGRADED_ES = new ColumnIdent("version",
             ImmutableList.of(Version.Property.UPGRADED.toString(), Version.ES_VERSION_KEY));
         public static final ColumnIdent CLOSED = new ColumnIdent("closed");
+        public static final ColumnIdent REFERENCE_GENERATION = new ColumnIdent("reference_generation");
+        public static final ColumnIdent SELF_REFERENCING_COLUMN_NAME = new ColumnIdent("self_referencing_column_name");
         public static final ColumnIdent TABLE_SETTINGS = new ColumnIdent("settings");
         public static final ColumnIdent TABLE_SETTINGS_BLOCKS = new ColumnIdent("settings",
             ImmutableList.of("blocks"));
