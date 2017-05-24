@@ -59,7 +59,6 @@ your browser once Crate is started::
     browsers (eg. wget) the request will be handled by the CrateDB Rest API,
     and the response will be JSON.
 
-
 Install Using Docker
 ====================
 
@@ -94,7 +93,6 @@ additional packages if we see enough interest.
 
  `Multi Node Setup`_ - To see how to install and run CrateDB in a Multi Node
  setup.
-
 
 .. _`Oracle's Java`: http://www.java.com/en/download/help/mac_install.xml
 .. _OpenJDK: http://openjdk.java.net/projects/jdk8/

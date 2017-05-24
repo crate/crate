@@ -17,7 +17,6 @@ The information schema contains a table called `tables`.
 This table can be queried to get a list of all available tables and their
 settings like the ``number of shards`` or ``number of replicas``.
 
-
 .. Hidden: CREATE TABLE::
 
     cr> create table partitioned_table (
@@ -85,7 +84,6 @@ columns::
     +-------------------+--------------+----------------+--------...-+
     SELECT 5 rows in set (... sec)
 
-
 Columns
 =======
 
@@ -122,7 +120,6 @@ definition like data type and ordinal position inside the table::
     +-------------------+--------------------------------+------+--------------+
     SELECT 20 rows in set (... sec)
 
-
 You can even query this tables' own columns (attention: this might lead to infinite recursion of your mind, beware!)::
 
     cr> select column_name, data_type, ordinal_position
@@ -148,7 +145,6 @@ You can even query this tables' own columns (attention: this might lead to infin
   Columns are always sorted alphabetically in ascending order regardless of the order
   they were defined on table creation. Thus the ``ordinal_position`` reflects the alphabetical
   position.
-
 
 Table Constraints
 =================
@@ -176,7 +172,6 @@ their type, name and which table they are defined in.
     | doc                | documents  | ["_id"]                        | PRIMARY_KEY |
     +--------------------+------------+--------------------------------+-------------+
     SELECT 3 rows in set (... sec)
-
 
 .. _is_table_partitions:
 
@@ -244,7 +239,6 @@ partitioned table, so they show ``5`` instead of ``4``::
     +---------------------+--------------------+------------------+--------------------+
     SELECT 2 rows in set (... sec)
 
-
 Table Settings
 ==============
 
@@ -275,7 +269,6 @@ The settings can be verified by querying ``information_schema.tables``::
     +--------------+------------------+
     SELECT 1 row in set (... sec)
 
-
 On existing tables this needs to be done with ``ALTER TABLE`` statement::
 
     cr> alter table parameterized_table
@@ -286,7 +279,6 @@ On existing tables this needs to be done with ``ALTER TABLE`` statement::
 
     cr> drop table parameterized_table;
     DROP OK, 1 row affected (... sec)
-
 
 Routines
 ========
@@ -372,7 +364,6 @@ Columns
 | specific_name      | String      |
 +--------------------+-------------+
 
-
 :routine_name:
     Name of the routine (might be duplicated in case of overloading)
 :routine_type:
@@ -397,7 +388,6 @@ Columns
     overloaded.  Currently the specific name contains the types of the function
     arguments. As the format might change in the future, it should be only used
     to compare it to other instances of ``specific_name``.
-
 
 Schemata
 ========

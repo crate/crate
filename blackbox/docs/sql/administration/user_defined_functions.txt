@@ -13,8 +13,6 @@ User Defined Functions
     and is therfore disabled by default. You can enable the
     :ref:`conf_lang_js_enabled` via the configuration file.
 
-
-
 ``CREATE OR REPLACE``
 =====================
 
@@ -114,7 +112,6 @@ function must strictly correspond to its argument data types.
     provided in the definition if required. An exception will be thrown
     if the cast is not successful.
 
-
 Overloading
 ===========
 
@@ -156,7 +153,6 @@ This would overload our ``multiply`` function with more arguments::
     Therefore a built-in function with the same
     name as a user-defined function will hide the latter. However, such
     functions can still be called if the schema name is explicitly provided.
-
 
 Determinism
 ===========
@@ -240,10 +236,8 @@ Here is an example of a JavaScript function returning a ``double array``::
     ...      }';
     CREATE OK, 1 row affected  (... sec)
 
-
 Below is an example of a JavaScript function returning a ``WKT`` string,
 which will be cast to ``geo_point``::
-
 
      cr> CREATE FUNCTION symmetric_point(point geo_point)
      ...  RETURNS geo_point
@@ -254,7 +248,6 @@ which will be cast to ``geo_point``::
      ...        return "POINT (\" + x + \", \" + y +\")";
      ...      }';
      CREATE OK, 1 row affected  (... sec)
-
 
 Similarly, if the function specifies the ``geo_shape`` return data type, then
 the JavaScript function should return a ``GeoJson`` object or``WKT`` string::
@@ -267,12 +260,10 @@ the JavaScript function should return a ``GeoJson`` object or``WKT`` string::
      ...      }';
      CREATE OK, 1 row affected  (... sec)
 
-
 .. NOTE::
 
     If the return value of the JavaScript function is ``undefined``, it is
     converted to ``NULL``.
-
 
 Working with ``NUMBERS``
 ------------------------
@@ -299,7 +290,6 @@ interpreted as UTC seconds and will result in a wrong value::
 
     cr> _wait_for_function('utc(1::long, 1::long, 1::long)')
 
-
 ::
 
     cr> SELECT date_format(utc(2016,04,6)) as epoque;
@@ -309,7 +299,6 @@ interpreted as UTC seconds and will result in a wrong value::
     | 48314-07-22T00:00:00.000000Z |
     +------------------------------+
     SELECT 1 row in set (... sec)
-
 
 .. hide:
 
@@ -366,7 +355,6 @@ it is returned::
 
     cr> DROP FUNCTION utc(long, long, long);
     DROP OK, 1 row affected  (... sec)
-
 
 .. _Nashorn: http://www.oracle.com/technetwork/articles/java/jf14-nashorn-2126515.html
 .. _ECMAScript 5.1: https://www.ecma-international.org/ecma-262/5.1/

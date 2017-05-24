@@ -96,7 +96,6 @@ But this has some limitations. For example timestamps in long format won't be
 recognised as timestamps. Due to this limitation it is recommended to specify
 fields up-front.
 
-
 .. seealso::
 
  - :ref:`sql_ddl`

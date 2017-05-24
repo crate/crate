@@ -13,7 +13,6 @@ The supported table constraints currently are:
  * :ref:`primary_key_constraint`
  * :ref:`index-constraint`
 
-
 .. _primary_key_constraint:
 
 ``PRIMARY KEY`` Constraint
@@ -24,7 +23,6 @@ table can contain only unique (non-duplicate), non-null values.
 
 Using columns of type ``object``, ``geo_point``, ``geo_shape`` or ``array`` as
 PRIMARY KEY is not supported.
-
 
 To use a whole ``object`` as PRIMARY KEY each column within the ``object`` can
 be declared as PRIMARY KEY instead.
@@ -53,7 +51,6 @@ column constraint or a table constraint.
 For further details about the meaning of the options see
 :ref:`indices_and_fulltext`.
 
-
 .. _column_constraints:
 
 Column Constraints
@@ -64,7 +61,6 @@ The supported column constraints are:
 
  * :ref:`not_null_constraint`
  * :ref:`primary_key_constraint`
-
 
 .. _not_null_constraint:
 

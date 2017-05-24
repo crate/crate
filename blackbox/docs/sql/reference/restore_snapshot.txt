@@ -16,7 +16,6 @@ Synopsis
     { TABLE ( table_ident [ PARTITION (partition_column = value [ , ... ])] [, ...] ) | ALL }
     [ WITH (restore_parameter [= value], [, ...]) ]
 
-
 Description
 ===========
 
@@ -28,11 +27,9 @@ It is possible to restore all tables contained in the snapshot using the ``ALL``
 keyword. Single tables and/or partitions can be selected for restoring by giving them
 as ``table_ident`` or partition reference given the ``partition_column`` values.
 
-
 Tables that are to be restored must not exist yet.
 
 To cancel a restore operation simply drop the tables that are being restored.
-
 
 Parameters
 ==========

@@ -29,9 +29,7 @@ To stop the process that is running in the background send the
 
   sh$ kill -TERM `cat ./crate.pid`
 
-
 The ``crate`` executable supports the following command line options:
-
 
 Command Line Options
 ====================
@@ -52,7 +50,6 @@ Command Line Options
 Example::
 
   sh$ ./bin/crate -d -p ./crate.pid
-
 
 .. _cli_signals:
 

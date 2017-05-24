@@ -34,7 +34,6 @@ where ``generated_column_definition`` is::
     AS [ ( ] generation_expression [ ) ]
     [ column_constraint [ ... ] ]
 
-
 where ``column_constraint`` is::
 
     { PRIMARY KEY |
@@ -42,7 +41,6 @@ where ``column_constraint`` is::
       INDEX { OFF | USING { PLAIN |
                             FULLTEXT [ WITH ( analyzer = analyzer_name ) ]  }
     }
-
 
 and ``table_constraint`` is::
 
@@ -202,7 +200,6 @@ Several restrictions apply to columns that can be used here:
 
 .. note:: Columns referenced in the PARTITIONED clause cannot be altered by an ``UPDATE`` statement.
 
-
 .. _with_clause:
 
 ``WITH`` Clause
@@ -214,11 +211,9 @@ The optional WITH clause can specify parameters for tables.
 
     [ WITH ( table_parameter [= value] [, ... ] ) ]
 
-
 :table_parameter: specifies an optional parameter for the table.
 
 Available parameters are:
-
 
 .. _number_of_replicas:
 
@@ -327,7 +322,6 @@ Sets period of no flushing after which force flush occurs.
 Sets frequency of flush necessity check.
 
 :value: frequency in milliseconds.
-
 
 ``translog.sync_interval``
 ..........................

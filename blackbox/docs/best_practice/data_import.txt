@@ -17,7 +17,6 @@ existing millions of records into CrateDB as quickly as possible.
 This best practice example will guide you through the process and shows
 tips and tricks on how to import your data quickly and safely.
 
-
 Defining the Data Structure
 ===========================
 
@@ -48,7 +47,6 @@ of various types::
 There's nothing wrong with this method and it does the job, but it's
 not very performant and therefore not what we want to use in a real
 world application.
-
 
 Shards & Replicas
 -----------------
@@ -103,7 +101,6 @@ The ``CREATE TABLE`` statement now looks like::
 .. seealso::
 
   - :ref:`replication`
-
 
 Refresh Interval
 ----------------
@@ -176,7 +173,6 @@ of ``20mb`` to something like 100-200mb/s for SSD disks::
   cr> SET GLOBAL TRANSIENT indices.store.throttle.max_bytes_per_sec = '150mb';
   SET OK, 1 row affected (... sec)
 
-
 After import don't forget to turn throttling on again by setting its
 value to ``merge`` (default) or ``all``.
 
@@ -227,7 +223,6 @@ found the command will return successfully, reporting
   cr> COPY user FROM '/tmp/best_practice_data/users.json';
   COPY OK, 150 rows affected (... sec)
 
-
 .. hide:
 
   cr> REFRESH TABLE user;
@@ -245,7 +240,6 @@ found the command will return successfully, reporting
   from the columns and the types from the import file match. It does not cast
   the types to their target but will always import the data as in the source
   file(s).
-
 
 Bulk Size
 .........
@@ -276,7 +270,6 @@ dataset with a lot of columns and large values, it makes sense to
 decrease the ``bulk_size``. Setting ``bulk_size`` too high
 might consume a lot of node resources while a low ``bulk_size`` can
 increase the overhead per request.
-
 
 Compression
 ...........
@@ -379,7 +372,6 @@ a new partition.
   - Detailed documentation of :ref:`partitioned_tables`
   - Table creation of :ref:`partitioned_by_clause`
   - :ref:`Alter a partitioned table <partitioned_tables_alter>`
-
 
 Summary
 =======

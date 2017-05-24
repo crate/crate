@@ -2,7 +2,6 @@
 Joins
 =====
 
-
 `JOINs`_ are essential operations in relational databases. They create a link
 between rows based on common values and allow the meaningful combination of
 these rows. Crate supports joins and due to its distributed nature allows you
@@ -176,7 +175,6 @@ operation can run faster.
       AND L.b > 100
       AND R.y < 10
     ORDER BY L.a
-
 
 *Listing 2. An INNER JOIN on ids (effectively an EQUI JOIN) which can be optimized.*
 

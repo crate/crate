@@ -51,7 +51,6 @@ already existing user-created doc tables in the cluster::
     +-----------------------------------------------------+
     SHOW 1 row in set (... sec)
 
-
 The table settings returned within the ``WITH`` clause of the result are all
 available table settings showing their respective values at the time of the
 execution of the ``SHOW`` statement.

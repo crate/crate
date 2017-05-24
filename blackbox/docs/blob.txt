@@ -61,7 +61,6 @@ Creating a blob table with a custom blob data path::
     sh$ crash -c "create blob table myblobs clustered into 3 shards with (blobs_path='/tmp/crate_blob_data')" # doctest: +SKIP
     CREATE OK, 1 row affected (... sec)
 
-
 Altering a Blob Table
 =====================
 
@@ -93,7 +92,6 @@ If a blob already exists with the given hash a 409 Conflict is returned::
     HTTP/1.1 409 Conflict
     Content-Length: 0
 
-
 List
 ====
 
@@ -107,12 +105,10 @@ To list all blobs inside a blob table a ``SELECT`` statement can be used::
     +------------------------------------------+---------------+
     SELECT 1 row in set (... sec)
 
-
 .. note::
 
     To query blob tables it is necessary to always specify the schema name
     ``blob``.
-
 
 Download
 ========
@@ -165,7 +161,6 @@ If the blob doesn't exist a 404 Not Found error is returned::
     HTTP/1.1 404 Not Found
     Content-Length: 0
 
-
 Deleting a Blob Table
 =====================
 
@@ -178,6 +173,5 @@ Blob tables can be deleted similar to normal tables (again using the crate shell
 
     sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=1)"
     CREATE OK, 1 row affected (... sec)
-
 
 .. _`binary large objects`: http://en.wikipedia.org/wiki/Binary_large_object

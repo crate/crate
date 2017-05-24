@@ -36,7 +36,6 @@ as a whole table can be deleted and no expensive query is involved.
    Altogether this must not exceed the 255 bytes length
    limitation. See :ref:`sql_ddl_naming_restrictions`.
 
-
 Creation
 ========
 
@@ -68,7 +67,6 @@ can be used to create a suitable partition value from the given values on databa
     ...   month timestamp GENERATED ALWAYS AS date_trunc('month', created_at)
     ... ) PARTITIONED BY (month);
     CREATE OK, 1 row affected (... sec)
-
 
 Information Schema
 ==================
@@ -174,7 +172,6 @@ no additional partition is created::
     +--------------------------+------------------------+------------------+
     SELECT 1 row in set (... sec)
 
-
 Update
 ======
 
@@ -236,7 +233,6 @@ matching document, which is a lot faster::
     | 0               |
     +-----------------+
     SELECT 1 row in set (... sec)
-
 
 .. _partitioned_tables_querying:
 
@@ -302,7 +298,6 @@ list of partitions that need to be accessed.
     cr> DELETE FROM parted_table;
     DELETE OK, -1 rows affected (... sec)
 
-
 Generated Columns in ``PARTITIONED BY``
 ---------------------------------------
 
@@ -348,7 +343,6 @@ both existing partitions and partitions that will be created in the future.
 
     cr> ALTER TABLE parted_table SET (number_of_replicas = '0-all')
     ALTER OK, -1 rows affected (... sec)
-
 
 Altering schema information (such as the column policy or adding
 columns) can only be done on the table (not on single partitions)
@@ -459,7 +453,6 @@ Limitations
 * ``PARTITIONED BY`` columns cannot be updated
 * ``WHERE`` clauses cannot contain queries like ``partitioned_by_column='x' OR normal_column=x``
 
-
 Consistency Notes Related to Concurrent DML Statement
 =====================================================
 
@@ -468,9 +461,6 @@ operation this partition won't be re-created.
 
 The number of affected rows will always reflect the real number of
 inserted/updated documents.
-
-
-
 
 .. Hidden: drop table::
 

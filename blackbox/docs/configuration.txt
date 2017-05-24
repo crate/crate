@@ -41,7 +41,6 @@ will overwrite the prior one:
  2. options from config file
  3. command-line properties
 
-
 .. _conf_table_settings:
 
 Table Settings
@@ -188,7 +187,6 @@ Column Policy
 
   Specifies the column policy of the table.
 
-
 Node Specific Settings
 ======================
 
@@ -241,7 +239,6 @@ to differentiate nodes upon startup:
 
   Shorthand for: ``node.data=false`` and ``node.master=false``.
 
-
 **node.local**
   | *Default:* ``false``
   | *Runtime:* ``no``
@@ -257,14 +254,12 @@ A node by default is eligible as *master* and contains *data*.
 Nodes that only contain *data* but cannot become *master* will mainly execute
 and respond to queries:
 
-
 .. code-block::
    yaml
 
    node:
      data: true
      master: false
-
 
 *Master-only*-nodes that do not contain *data* but are able to become *master* can be used to
 separate cluster-management loads from the query execution loads:
@@ -338,7 +333,6 @@ Hosts
     **_[networkInterface]_**    Addresses of a network interface, for example _en0_.
     =========================   =================================================================
 
-
 .. _conf_ports:
 
 Ports
@@ -394,7 +388,6 @@ Ports
   This defines the TCP port range to which the CrateDB Postgres service will be bound to.
   It defaults to ``5432-5532``. Always the first free port in this range is used. If this is set
   to an integer value it is considered as an explicit single port.
-
 
 .. _conf-node-attributes:
 
@@ -478,7 +471,6 @@ Memory
   it *never* swaps. If set to ``true``, CrateDB will use the ``mlockall`` system
   call on startup to ensure that the memory pages of the CrateDB process
   are locked into RAM.
-
 
 Garbage Collection
 ------------------
@@ -591,7 +583,6 @@ settings in CrateDB allow for configuring these.
 
   Add the ``Access-Control-Allow-Credentials`` header to responses.
 
-
 Blobs
 -----
 
@@ -641,7 +632,6 @@ Repositories are used to :ref:`backup <snapshot-restore>` a CrateDB cluster.
 
 See also the :ref:`path.repo <conf-path-repo>` Setting.
 
-
 .. _conf-cluster-settings:
 
 Cluster Wide Settings
@@ -651,7 +641,6 @@ All current applied cluster settings can be read by querying the
 :ref:`sys.cluster.settings <sys-cluster-settings>` column. Most
 cluster settings can be changed at runtime using the
 :ref:`SET/RESET<administration-set-reset>` statement. This is documented at each setting.
-
 
 .. _applying-cluster-settings:
 
@@ -667,11 +656,11 @@ specified in the configuration of each node in the cluster.
    be exactly the same on every node in the cluster for proper
    operation of the cluster.
 
-
 .. _conf_collecting_stats:
 
 Collecting Stats
 ----------------
+
 .. _stats.enabled:
 
 **stats.enabled**
@@ -934,7 +923,6 @@ nodes of the cluster:
   if it runs into the timeout which is specified with the
   `cluster.graceful_stop.timeout`_ setting.
 
-
 .. _conf_bulk_operations:
 
 Bulk Operations
@@ -1173,11 +1161,11 @@ To enable Azure discovery set the ``discovery.type`` setting to ``azure``.
   same virtual network (default), ``subnet`` will discover all VMs within the
   same subnet of the CrateDB instance.
 
-
 .. _conf_routing:
 
 Routing Allocation
 ------------------
+
 .. _cluster.routing.allocation.enable:
 
 **cluster.routing.allocation.enable**
@@ -1246,7 +1234,6 @@ Routing Allocation
   | *Runtime:*  ``yes``
     How many concurrent recoveries are allowed to happen on a node.
 
-
 .. _conf-routing-allocation-awareness:
 
 Awareness
@@ -1291,6 +1278,7 @@ allocation across generic attributes associated with nodes.
 
 Balanced Shards
 ...............
+
 All these values are relative to one another. The first three are used
 to compose a three separate weighting functions into one. The cluster
 is balanced when no allowed action can bring the weights of each node
@@ -1329,6 +1317,7 @@ allowed, for instance, due to forced awareness or allocation filtering.
 
 Cluster-Wide Allocation Filtering
 .................................
+
 Allow to control the allocation of all shards based on include/exclude
 filters.
 E.g. this could be used to allocate all the new shards on the nodes
@@ -1363,6 +1352,7 @@ with specific IP addresses or custom attributes.
 
 Disk-based Shard Allocation
 ...........................
+
 .. _cluster.routing.allocation.disk.threshold_enabled:
 
 **cluster.routing.allocation.disk.threshold_enabled**
@@ -1465,6 +1455,7 @@ Recovery
 
 Store Level Throttling
 ----------------------
+
 .. _indices.store.throttle.type:
 
 **indices.store.throttle.type**
@@ -1508,7 +1499,6 @@ query to ensure the cluster keeps working.
   A constant that all data estimations are multiplied with to
   determine a final estimation.
 
-
 Field Data Circuit Breaker
 --------------------------
 
@@ -1528,7 +1518,6 @@ is reached an exception is raised.
 
   A constant that all field data estimations are multiplied with to
   determine a final estimation.
-
 
 Request Circuit Breaker
 -----------------------
@@ -1550,9 +1539,9 @@ an exception is raised.
   A constant that all request estimations are multiplied with to
   determine a final estimation.
 
-
 Threadpools
 -----------
+
 Every node holds several thread pools to improve how threads are
 managed within a node. There are several pools, but the important ones include:
 
@@ -1576,6 +1565,7 @@ managed within a node. There are several pools, but the important ones include:
 
 Fixed Threadpool Settings
 .........................
+
 If the type of a threadpool is set to ``fixed`` there are a few
 optional settings.
 
@@ -1610,7 +1600,6 @@ Metadata
 
   Defines how often the cluster collect metadata information
   (e.g. disk usages etc.) if no concrete  event is triggered.
-
 
 .. _metadata_gateway:
 
@@ -1696,7 +1685,6 @@ Here is a small example of a working logging configuration.
     logger.action.name = org.crate.action.sql
     logger.action.level = debug
 
-
     appender.console.type = Console
     appender.console.name = console
     appender.console.layout.type = PatternLayout
@@ -1758,7 +1746,6 @@ It is also possible to inspect the current "logging overrides" in a cluster by
 querying the ``sys.cluster`` table
 (see :ref:`Cluster Settings<sys-cluster-settings>`).
 
-
 Environment Variables
 =====================
 
@@ -1788,7 +1775,6 @@ For example, to change the stack size in order to avoid stack overflow
 exceptions::
 
     CRATE_JAVA_OPTS=-Xss500k
-
 
 .. _crate-heap-size:
 
@@ -1851,7 +1837,6 @@ This boundary should be considered an upper bound for the heap size of any JVM a
    In order to ensure that `Compressed Oops`_ are used no matter what JVM CrateDB runs on,
    configuring the heap to a value less than or equal to *30.5 GB* (``30500m``) is suggested,
    as some JVMs only support `Compressed Oops`_ up to that value.
-
 
 Running CrateDB on machines with huge RAM
 .........................................
@@ -2014,7 +1999,6 @@ The meaning of the fields of the are as follows:
         address: 172.16.0.0/16
         method: trust
         protocol: pg
-
 
 .. _`same-origin policy`: https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy
 .. _`cross-origin resource sharing`: https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS

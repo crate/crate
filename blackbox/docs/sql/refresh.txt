@@ -26,7 +26,6 @@ of a table can be changed with the table parameter ``refresh_interval`` (see
 
  :doc:`Optimistic Concurrency Control <occ>`
 
-
 Multiple Table Refresh
 ======================
 
@@ -57,13 +56,11 @@ table is completed.
     cr> REFRESH TABLE locations, parted_table;
     REFRESH OK, 2 rows affected (... sec)
 
-
 .. note::
 
     If one or more tables or partitions do not exist, none of the given
     tables/partitions are refreshed and an error is returned. The error returns
     only the first non-existent table/partition.
-
 
 Partition Refresh
 =================
@@ -83,7 +80,6 @@ request on partitioned tables see the SQL syntax and its synopsis (see :ref:`sql
 
 In case the ``PARTITION`` clause is omitted all partitions will be refreshed. If a
 table has many partitions this should be avoided due to performance reasons.
-
 
 .. _`eventually consistent`: http://en.wikipedia.org/wiki/Eventual_consistency
 

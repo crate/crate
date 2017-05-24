@@ -11,7 +11,6 @@ supported by Crate.
     reference/lexical_structure
     reference/value_expressions
 
-
 .. toctree::
     :maxdepth: 1
 

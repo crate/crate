@@ -21,7 +21,6 @@ Example::
     ... ) with (number_of_replicas = 1);
     CREATE OK, 1 row affected (... sec)
 
-
 The `number_of_replicas` property also accepts an string as parameter that
 contains a `range`.
 

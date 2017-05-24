@@ -156,7 +156,6 @@ table the partition belongs to.
     ... WITH (wait_for_completion=true);
     RESTORE OK, 1 row affected (... sec)
 
-
 Or if no matching partition table exists, it will be implicitly
 created during restore.
 
@@ -178,7 +177,6 @@ created during restore.
     ... WITH (wait_for_completion=true);
     RESTORE OK, 1 row affected (... sec)
 
-
 Cleanup
 -------
 
@@ -192,7 +190,6 @@ are dropped using the :ref:`ref-drop-snapshot` command::
 
     cr> DROP SNAPSHOT where_my_snapshots_go.snapshot3;
     DROP OK, 1 row affected (... sec)
-
 
 Dropping Repositories
 .....................
@@ -211,7 +208,6 @@ If a repository is not needed anymore, it can be dropped using the
 This statement, like :ref:`ref-create-repository`, does not manipulate
 repository contents but only deletes stored configuration for this
 repository in the cluster state, so it's not accessible any more.
-
 
 .. Hidden: cleanup
 
@@ -283,7 +279,6 @@ other libraries will be ignored::
    Only `Hadoop` version **2.x** is supported and as of writing
    this documentation, the latest stable `Hadoop (YARN)` version
    is **2.7.1**. Required libraries may differ for other versions.
-
 
 .. _Hadoop: https://hadoop.apache.org/
 .. _Hadoop (YARN): https://hadoop.apache.org/docs/r2.7.1/hadoop-yarn/hadoop-yarn-site/YARN.html

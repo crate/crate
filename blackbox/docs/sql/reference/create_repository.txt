@@ -15,7 +15,6 @@ Synopsis
     CREATE REPOSITORY repository_name TYPE type
     [ WITH (repository_parameter [= value], [, ...]) ]
 
-
 Description
 ===========
 
@@ -35,7 +34,6 @@ Parameters
 :repository_name: the name of the repository as identifier
 
 :type: the type of the repository, see :ref:`ref-create-repository-types`.
-
 
 ``WITH`` Clause
 ===============
@@ -71,7 +69,6 @@ The supported types are the following. More types are supported via :ref:`plugin
 
 A repository storing its snapshots to a shared filesystem that must be accessible
 by all master and data nodes in the cluster.
-
 
 .. note::
 

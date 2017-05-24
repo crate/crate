@@ -27,11 +27,9 @@ See :ref:`sql_ref_optimize` for detailed description of parameters.
     cr> OPTIMIZE table locations;
     OPTIMIZE OK, 1 row affected (... sec)
 
-
 .. note::
 
     System tables cannot be optimized.
-
 
 Multiple Table Optimization
 ===========================
@@ -62,13 +60,11 @@ table is completed.
     cr> OPTIMIZE TABLE locations, parted_table;
     OPTIMIZE OK, 2 rows affected (... sec)
 
-
 .. note::
 
     If one or more tables or partitions do not exist, none of the given
     tables/partitions are optimized and an error is returned. The error returns
     only the first non-existent table/partition.
-
 
 Partition Optimization
 ======================

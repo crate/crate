@@ -62,7 +62,6 @@ for the table **only** and not for any possible existing partitions. So
 these changes will only be applied to new partitions. The ``ONLY``
 keyword cannot be used together with a `PARTITION Clause`_.
 
-
 Parameters
 ==========
 
@@ -91,7 +90,6 @@ columns with a value each to identify the partition to alter.
 ::
 
     [ PARTITION ( partition_column = value [ , ... ] ) ]
-
 
 :partition_column: The name of the column by which the table is partitioned.
                    All partition columns that were part of the

@@ -17,7 +17,6 @@ Synopsis
     { TABLE ( table_ident [ PARTITION (partition_column = value [ , ... ])] [, ...] ) | ALL }
     [ WITH (snapshot_parameter [= value], [, ...]) ]
 
-
 Description
 ===========
 
@@ -52,7 +51,6 @@ If ``ALL`` is used, every table in the cluster (except system tables, blob table
 and information_schema tables) as well as all persistent settings and the full cluster metadata
 is included in the snapshot.
 
-
 Parameters
 ==========
 
@@ -64,7 +62,6 @@ Parameters
               table that is to be included in the snapshot
 
 :partition_column: Column name by which the table is partitioned
-
 
 ``WITH`` Clause
 ===============

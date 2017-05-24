@@ -32,7 +32,6 @@ definition:
     Creating an index after a table was already created is currently not supported,
     so think carefully while designing your table definition.
 
-
 .. _sql_ddl_index_off:
 
 Disable indexing
@@ -93,7 +92,6 @@ This results in the same behaviour than without any index declaration::
     ... );
     CREATE OK, 1 row affected (... sec)
 
-
 .. _sql_ddl_index_fulltext:
 
 Fulltext Index With Analyzer
@@ -121,7 +119,6 @@ defining the analyzer as a parameter using the ``WITH`` statement::
     ... );
     CREATE OK, 1 row affected (... sec)
 
-
 Defining a Named Index Column Definition
 ----------------------------------------
 
@@ -143,7 +140,6 @@ Of course defining a custom analyzer is possible here too::
     ...     using fulltext(first_column) with (analyzer = 'english')
     ... );
     CREATE OK, 1 row affected (... sec)
-
 
 .. _sql-ddl-composite-index:
 
@@ -211,7 +207,6 @@ Here is a simple Example::
     ...   )
     ... );
     CREATE OK, 1 row affected (... sec)
-
 
 .. hide:
 

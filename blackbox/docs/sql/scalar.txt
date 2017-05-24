@@ -28,7 +28,6 @@ Returns: ``string``
     +----------------------------+
     SELECT 1 row in set (... sec)
 
-
 You can also use the ``||`` operator::
 
     cr> select 'foo' || 'bar' from sys.cluster;
@@ -38,7 +37,6 @@ You can also use the ``||`` operator::
     | foobar               |
     +----------------------+
     SELECT 1 row in set (... sec)
-
 
 ``format('format_string', parameter, [ parameter , ... ])``
 -----------------------------------------------------------
@@ -73,7 +71,6 @@ Returns: ``string``
     +---------------------+
     SELECT 2 rows in set (... sec)
 
-
 ``substr('string', from, [ count ])``
 -------------------------------------
 
@@ -92,7 +89,6 @@ Returns: ``string``
     | at                 |
     +--------------------+
     SELECT 1 row in set (... sec)
-
 
 .. _scalar_char_length:
 
@@ -124,7 +120,6 @@ Each character counts only once, regardless of its byte size.
     |                       8 |
     +-------------------------+
     SELECT 1 row in set (... sec)
-
 
 .. _scalar_bit_length:
 
@@ -160,7 +155,6 @@ Returns: ``integer``
     +------------------------+
     SELECT 1 row in set (... sec)
 
-
 .. _scalar_octet_length:
 
 ``octet_length('string')``
@@ -190,7 +184,6 @@ Returns: ``integer``
     +--------------------------+
     SELECT 1 row in set (... sec)
 
-
 ``lower('string')``
 -------------------
 
@@ -209,7 +202,6 @@ Returns: ``string``
     | transformme          |
     +----------------------+
     SELECT 1 row in set (... sec)
-
 
 ``upper('string')``
 -------------------
@@ -256,7 +248,6 @@ Returns: ``string``
 
 Computes the MD5 checksum of the given string.
 See :ref:`sha1 <sha1>` for an example.
-
 
 Date and Time Functions
 =======================
@@ -341,12 +332,10 @@ Synopsis
 
     EXTRACT( field FROM expression )
 
-
 :field: an identifier which identifies the part of the timestamp that should be
         extracted.
 :expression: an expression that resolves to a timestamp or is castable to
              timestamp.
-
 
 ::
 
@@ -358,14 +347,12 @@ Synopsis
     +----------------------------------+
     SELECT 1 row in set (... sec)
 
-
 ``source`` must be an expression that returns a timestamp. In case the
 expression has a different return type but is known to be castable to timestamp
 an implicit cast will be attempted.
 
 ``field`` is an identifier that selects which part of the timestamp to extract.
 The following fields are supported:
-
 
 **CENTURY**
   | *Return type:* ``integer``
@@ -429,9 +416,7 @@ The following fields are supported:
   | the second field
 
 .. _`available time zones`: http://www.joda.org/joda-time/timezones.html
-
 .. _`Joda-Time`: http://www.joda.org/joda-time/
-
 
 ``CURRENT_TIMESTAMP``
 ---------------------
@@ -459,7 +444,6 @@ timestamp will have second precision, no fractional seconds (milliseconds) are g
    The ``CURRENT_TIMESTAMP`` will be evaluated  using javas
    ``System.currentTimeMillis()``. So its actual result depends on the underlying
    operating system.
-
 
 ``date_format([format_string, [timezone,]] timestamp)``
 -------------------------------------------------------
@@ -675,7 +659,6 @@ Example::
 Due to a limitation on the :ref:`geo_shape_data_type` datatype
 this function cannot be used in the :ref:`sql_reference_order_by`.
 
-
 ``latitude(geo_point)`` and ``longitude(geo_point)``
 ----------------------------------------------------
 
@@ -709,7 +692,6 @@ implicit type casting from strings to geo point::
     +---------------------------+------------------------+
     SELECT 1 row in set (... sec)
 
-
 ``geohash(geo_point)``
 ----------------------
 
@@ -732,7 +714,6 @@ Example::
     +------------+--------+--------------+
     SELECT 1 row in set (... sec)
 
-
 .. _mathematical_functions:
 
 Mathematical Functions
@@ -754,7 +735,6 @@ Returns the absolute value of the given number in the datatype of the given numb
     +------------------+--------+---------------+
     SELECT 1 row in set (... sec)
 
-
 .. _scalar-ceil:
 
 ``ceil(number)``
@@ -775,7 +755,6 @@ long::
     |         30 |
     +------------+
     SELECT 1 row in set (... sec)
-
 
 .. _scalar-floor:
 
@@ -799,7 +778,6 @@ See below for an example::
     +-------------+
     SELECT 1 row in set (... sec)
 
-
 ``ln(number)``
 --------------
 
@@ -822,7 +800,6 @@ See below for an example::
     An error is returned for arguments which lead to undefined or illegal
     results. E.g. ln(0) results in ``minus infinity``, and therefore, an
     error is returned.
-
 
 ``log(x : number, b : number)``
 -------------------------------
@@ -892,7 +869,6 @@ Returns: ``double``
 
     Every call to ``random`` will yield a new random number.
 
-
 .. _scalar-round:
 
 ``round(number)``
@@ -916,7 +892,6 @@ See below for an example::
     +-------------+
     SELECT 1 row in set (... sec)
 
-
 ``sqrt(number)``
 ----------------
 
@@ -933,7 +908,6 @@ See below for an example::
     |        5.0 |
     +------------+
     SELECT 1 row in set (... sec)
-
 
 ``sin(number)``
 ---------------
@@ -952,7 +926,6 @@ See below for an example::
     +--------------------+
     SELECT 1 row in set (... sec)
 
-
 ``asin(number)``
 ----------------
 
@@ -969,7 +942,6 @@ See below for an example::
     | 1.5707963267948966 |
     +--------------------+
     SELECT 1 row in set (... sec)
-
 
 ``cos(number)``
 ---------------
@@ -988,7 +960,6 @@ See below for an example::
     +--------------------+
     SELECT 1 row in set (... sec)
 
-
 ``acos(number)``
 ----------------
 
@@ -1005,7 +976,6 @@ See below for an example::
     | 3.141592653589793 |
     +-------------------+
     SELECT 1 row in set (... sec)
-
 
 ``tan(number)``
 ---------------
@@ -1024,7 +994,6 @@ See below for an example::
     +--------------------+
     SELECT 1 row in set (... sec)
 
-
 ``atan(number)``
 ----------------
 
@@ -1041,7 +1010,6 @@ See below for an example::
     | 0.7853981633974483 |
     +--------------------+
     SELECT 1 row in set (... sec)
-
 
 .. _scalar-regexp:
 
@@ -1150,7 +1118,6 @@ Order does not matter.
 |       | and ``.``                                                           |
 +-------+---------------------------------------------------------------------+
 
-
 Examples
 ........
 
@@ -1254,7 +1221,6 @@ Examples
     +---------------------+--------------+
     SELECT 5 rows in set (... sec)
 
-
 Array Functions
 ===============
 
@@ -1274,7 +1240,6 @@ Returns: ``array``
     | [1, 2, 3, 3, 4, 5, 6]         |
     +-------------------------------+
     SELECT 1 row in set (... sec)
-
 
 It can be used to append elements to array fields
 
@@ -1313,7 +1278,6 @@ It can be used to append elements to array fields
     +--------------------+
     SELECT 1 row in set (... sec)
 
-
 .. note::
 
    Appending to arrays with array_cat in updates is handy,
@@ -1321,7 +1285,6 @@ It can be used to append elements to array fields
    to ensure that your update operation used the latest state of the row.
    But only 3 retry attempts are made by fetching the newest version again
    and if they all fail, the query fails.
-
 
 You can also use the concat operator ``||`` with arrays
 
@@ -1334,7 +1297,6 @@ You can also use the concat operator ``||`` with arrays
     | [1, 2, 3, 4, 5, 6, 7, 8, 9]               |
     +-------------------------------------------+
     SELECT 1 row in set (... sec)
-
 
 ``array_unique(first_array, [ second_array])``
 ----------------------------------------------
@@ -1353,7 +1315,6 @@ Returns: ``array``
     +--------------------------------+
     SELECT 1 row in set (... sec)
 
-
 If the arrays have different types all elements will be cast to the element
 type of the first array with a defined type::
 
@@ -1364,7 +1325,6 @@ type of the first array with a defined type::
     | [10, 20]                           |
     +------------------------------------+
     SELECT 1 row in set (... sec)
-
 
 ``array_difference(first_array, second_array)``
 -----------------------------------------------
@@ -1382,7 +1342,6 @@ Returns: ``array``
     | [1, 4, 5, 7, 8, 10]                                    |
     +--------------------------------------------------------+
     SELECT 1 row in set (... sec)
-
 
 It can be used to remove elements from array fields.
 
@@ -1448,7 +1407,6 @@ condition yields true, the value of the ``case`` expression is the
 result of the ``else`` clause. If the ``else`` clause is omitted and
 no condition is true, the result is null.
 
-
 .. Hidden: create table case_example
 
     cr> create table case_example (id long);
@@ -1457,7 +1415,6 @@ no condition is true, the result is null.
     INSERT OK, 4 rows affected (... sec)
     cr> refresh table case_example
     REFRESH OK, 1 row affected (... sec)
-
 
 Example:
 ::
@@ -1507,7 +1464,6 @@ Example:
     +----+-------------+
     SELECT 4 rows in set (... sec)
 
-
 .. note::
 
    All *result* expressions must result in the same data type.
@@ -1550,7 +1506,6 @@ returned. If the *default* argument is omitted, NULL will be returned instead.
     +----+-------------+
     SELECT 4 rows in set (... sec)
 
-
 .. Hidden: drop table if_example
 
     cr> drop table if_example;
@@ -1577,7 +1532,6 @@ Returns: same type as arguments
     +-----------------------------------+
     SELECT 1 row in set (... sec)
 
-
 ``greatest('first_arg', second_arg[ , ... ])``
 ----------------------------------------------
 
@@ -1598,7 +1552,6 @@ Returns: same type as arguments
     | 2              |
     +----------------+
     SELECT 1 row in set (... sec)
-
 
 ``least('first_arg', second_arg[ , ... ])``
 -------------------------------------------
@@ -1621,7 +1574,6 @@ Returns: same type as arguments
     +-------------+
     SELECT 1 row in set (... sec)
 
-
 ``nullif('first_arg', second_arg)``
 -----------------------------------
 
@@ -1641,7 +1593,6 @@ Returns: same type as arguments
     | NULL                        |
     +-----------------------------+
     SELECT 1 row in set (... sec)
-
 
 System Information Functions
 ============================
@@ -1676,7 +1627,6 @@ Example::
     |            doc |
     +----------------+
     SELECT 1 row in set (... sec)
-
 
 .. rubric:: Footnotes
 
