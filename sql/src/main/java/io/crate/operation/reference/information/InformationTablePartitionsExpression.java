@@ -30,6 +30,10 @@ import java.util.Map;
 abstract class InformationTablePartitionsExpression<T>
     extends RowContextCollectorExpression<PartitionInfo, T> {
 
+    public static final BytesRef TABLE_TYPE = new BytesRef("BASE TABLE");
+    public static final BytesRef SELF_REFERENCING_COLUMN_NAME = new BytesRef("_id");
+    public static final BytesRef REFERENCE_GENERATION = new BytesRef("SYSTEM GENERATED");
+
     public static class PartitionsTableNameExpression extends InformationTablePartitionsExpression<BytesRef> {
         @Override
         public BytesRef value() {
@@ -42,6 +46,22 @@ abstract class InformationTablePartitionsExpression<T>
         @Override
         public BytesRef value() {
             return new BytesRef(row.name().tableIdent().schema());
+        }
+    }
+
+    public static class PartitionsTableCatalogExpression extends InformationTablePartitionsExpression<BytesRef> {
+
+        @Override
+        public BytesRef value() {
+            return new BytesRef(row.name().tableIdent().schema());
+        }
+    }
+
+    public static class PartitionsTableTypeExpression extends InformationTablePartitionsExpression<BytesRef> {
+
+        @Override
+        public BytesRef value() {
+            return TABLE_TYPE;
         }
     }
 
@@ -86,6 +106,20 @@ abstract class InformationTablePartitionsExpression<T>
         @Override
         public Boolean value() {
             return row.isClosed();
+        }
+    }
+
+    public static class PartitionsSelfReferencingColumnNameExpression extends InformationTablePartitionsExpression<BytesRef> {
+        @Override
+        public BytesRef value() {
+            return SELF_REFERENCING_COLUMN_NAME;
+        }
+    }
+
+    public static class PartitionsReferenceGenerationExpression extends InformationTablePartitionsExpression<BytesRef> {
+        @Override
+        public BytesRef value() {
+            return REFERENCE_GENERATION;
         }
     }
 }

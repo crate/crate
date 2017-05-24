@@ -116,7 +116,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         for (Reference reference : tablesTableInfo.columns()) {
             toCollect.add(reference);
         }
-        Symbol tableNameRef = toCollect.get(9);
+        Symbol tableNameRef = toCollect.get(12);
 
         FunctionImplementation eqImpl
             = functions.getBuiltin(EqOperator.NAME, ImmutableList.of(DataTypes.STRING, DataTypes.STRING));
@@ -126,7 +126,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
         Bucket result = collect(collectNode);
         assertThat(TestingHelpers.printedTable(result),
-            is("NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| shards| sys| NULL\n"));
+            is("NULL| NULL| NULL| strict| 0| 1| NULL| SYSTEM GENERATED| NULL| _id| NULL| sys| shards| sys| BASE TABLE| NULL\n"));
     }
 
     @Test
@@ -142,10 +142,10 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC);
         Bucket result = collect(collectNode);
 
-        String expected = "id| string| NULL| false| true| 1| cluster| sys\n" +
-                          "master_node| string| NULL| false| true| 2| cluster| sys\n" +
-                          "name| string| NULL| false| true| 3| cluster| sys\n" +
-                          "settings| object| NULL| false| true| 4| cluster| sys\n";
+        String expected = "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| id| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 1| sys| cluster| sys| NULL| NULL| NULL\n" +
+                          "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| master_node| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 2| sys| cluster| sys| NULL| NULL| NULL\n" +
+                          "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 3| sys| cluster| sys| NULL| NULL| NULL\n" +
+                          "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| settings| object| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 4| sys| cluster| sys| NULL| NULL| NULL\n";
 
 
         assertThat(TestingHelpers.printedTable(result), Matchers.containsString(expected));

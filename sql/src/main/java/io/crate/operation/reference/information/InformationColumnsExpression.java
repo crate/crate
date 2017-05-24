@@ -22,11 +22,30 @@
 package io.crate.operation.reference.information;
 
 import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.collect.MapBuilder;
+
+import java.util.Map;
 
 
 public abstract class InformationColumnsExpression<T>
     extends RowContextCollectorExpression<ColumnContext, T> {
+
+    private final static Integer NUMERIC_PRECISION_RADIX = 2; // Binary
+    private final static Integer DATETIME_PRECISION = 3; // Milliseconds
+
+    /**
+     * For floating point numbers please refer to:
+     * https://en.wikipedia.org/wiki/IEEE_floating_point
+     */
+    private static final Map<Integer, Integer> PRECISION_BY_TYPE_ID = new MapBuilder<Integer, Integer>()
+        .put(ByteType.ID, 8)
+        .put(ShortType.ID, 16)
+        .put(FloatType.ID, 24)
+        .put(IntegerType.ID, 32)
+        .put(DoubleType.ID, 53)
+        .put(LongType.ID, 64).map();
 
     public static class ColumnsSchemaNameExpression extends InformationColumnsExpression<BytesRef> {
 
@@ -52,6 +71,14 @@ public abstract class InformationColumnsExpression<T>
         public BytesRef value() {
             assert row.info.ident().tableIdent().name() != null : "column name name can't be null";
             return new BytesRef(row.info.ident().columnIdent().sqlFqn());
+        }
+    }
+
+    public static class ColumnsNullExpression extends InformationColumnsExpression<BytesRef> {
+
+        @Override
+        public BytesRef value() {
+            return null;
         }
     }
 
@@ -82,6 +109,39 @@ public abstract class InformationColumnsExpression<T>
             } else {
                 return row.info.isNullable();
             }
+        }
+    }
+
+    public static class ColumnsNumericPrecisionExpression extends InformationColumnsExpression<Integer> {
+
+        @Override
+        public Integer value() {
+            assert row.info.valueType() != null : "columns must always have a type";
+            return PRECISION_BY_TYPE_ID.get(row.info.valueType().id());
+        }
+    }
+
+    public static class ColumnsNumericPrecisionRadixExpression extends InformationColumnsExpression<Integer> {
+
+        @Override
+        public Integer value() {
+            assert row.info.valueType() != null : "columns must always have a type";
+            if (DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(row.info.valueType())) {
+                return NUMERIC_PRECISION_RADIX;
+            }
+            return null;
+        }
+    }
+
+    public static class ColumnsDatetimePrecisionExpression extends InformationColumnsExpression<Integer> {
+
+        @Override
+        public Integer value() {
+            assert row.info.valueType() != null : "columns must always have a type";
+            if (row.info.valueType() == DataTypes.TIMESTAMP) {
+                return DATETIME_PRECISION;
+            }
+            return null;
         }
     }
 }

@@ -18,6 +18,9 @@ Breaking Changes
 Changes
 =======
 
+ - Expose fields for ``information_schema.columns`` and
+   ``information_schema.tables`` so that it conforms to SQL-99 standard.
+
  - Improved the resiliency of the retrieval of large results via HTTP. Queries
    are now aborted and result in an error if they consume too much memory.
 
