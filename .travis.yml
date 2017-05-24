@@ -22,7 +22,8 @@ notifications:
   email: false
 
 before_install:
-  - ulimit -u 65535
+  - ulimit -u 2048
+  - ulimit -n 65536
 
 script:
   - ./gradlew -s test
