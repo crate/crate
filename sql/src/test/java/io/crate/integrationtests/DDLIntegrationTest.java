@@ -460,7 +460,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             // column o exists already
             assertThat(e.getMessage(), containsString("The table doc.t already has a column named o"));
         }
-        execute("select * from information_schema.columns where " +
+        execute("select column_name from information_schema.columns where " +
                 "table_name = 't' and table_schema='doc'" +
                 "order by column_name asc");
         assertThat(response.rowCount(), is(3L));

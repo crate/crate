@@ -84,6 +84,46 @@ columns::
     +-------------------+--------------+----------------+--------...-+
     SELECT 5 rows in set (... sec)
 
+Tables Specification
+--------------------
+
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| Name                             | Description                                                                        | Data Type   |
++==================================+====================================================================================+=============+
+| ``blobs_path``                   | The data path of the blob table                                                    | ``String``  |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``closed``                       | The state of the table                                                             | ``Boolean`` |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``clustered_by``                 | The routing column used to cluster the table                                       | ``String``  |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``column_policy``                | Defines whether the table uses a ``STRICT`` or a ``DYNAMIC`` :ref:`column_policy`  | ``String``  |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``number_of_replicas``           | The number of replicas the table currently has                                     | ``Integer`` |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``number_of_shards``             | The number of shards the table is currently distributed across                     | ``Integer`` |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``partitioned_by``               | The column used to partition the table                                             | ``String``  |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``reference_generation``         | Specifies how values in the self-referencing column are generated                  | ``String``  |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``routing_hash_function``        | The hash function used for internal routing                                        | ``String``  |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``self_referencing_column_name`` | The name of the column that uniquely identifies each row (always ``_id``)          | ``String``  |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``settings``                     | :ref:`conf_table_settings`                                                         | ``Object``  |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``table_catalog``                | Refers to the ``table_schema``                                                     | ``String``  |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``table_name``                   | The name of the table                                                              | ``String``  |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``table_schema``                 | The name of the schema the table belongs to                                        | ``String``  |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``table_type``                   | The type of the table (always ``BASE TABLE``)                                      | ``String``  |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+| ``version``                      | A collection of version numbers relevent to the table                              | ``Object``  |
++----------------------------------+------------------------------------------------------------------------------------+-------------+
+
+
 Columns
 =======
 
@@ -127,25 +167,141 @@ infinite recursion of your mind, beware!)::
     ... from information_schema.columns
     ... where table_schema = 'information_schema'
     ... and table_name = 'columns' order by ordinal_position asc;
-    +-----------------------+-----------+------------------+
-    | column_name           | data_type | ordinal_position |
-    +-----------------------+-----------+------------------+
-    | column_name           | string    |                1 |
-    | data_type             | string    |                2 |
-    | generation_expression | string    |                3 |
-    | is_generated          | boolean   |                4 |
-    | is_nullable           | boolean   |                5 |
-    | ordinal_position      | short     |                6 |
-    | table_name            | string    |                7 |
-    | table_schema          | string    |                8 |
-    +-----------------------+-----------+------------------+
-    SELECT 8 rows in set (... sec)
+    +---------------------------+-----------+------------------+
+    | column_name               | data_type | ordinal_position |
+    +---------------------------+-----------+------------------+
+    | character_maximum_length  | integer   |                1 |
+    | character_octet_length    | integer   |                2 |
+    | character_set_catalog     | string    |                3 |
+    | character_set_name        | string    |                4 |
+    | character_set_schema      | string    |                5 |
+    | check_action              | integer   |                6 |
+    | check_references          | string    |                7 |
+    | collation_catalog         | string    |                8 |
+    | collation_name            | string    |                9 |
+    | collation_schema          | string    |               10 |
+    | column_default            | string    |               11 |
+    | column_name               | string    |               12 |
+    | data_type                 | string    |               13 |
+    | datetime_precision        | integer   |               14 |
+    | domain_catalog            | string    |               15 |
+    | domain_name               | string    |               16 |
+    | domain_schema             | string    |               17 |
+    | generation_expression     | string    |               18 |
+    | interval_precision        | integer   |               19 |
+    | interval_type             | string    |               20 |
+    | is_generated              | boolean   |               21 |
+    | is_nullable               | boolean   |               22 |
+    | numeric_precision         | integer   |               23 |
+    | numeric_precision_radix   | integer   |               24 |
+    | numeric_scale             | integer   |               25 |
+    | ordinal_position          | short     |               26 |
+    | table_catalog             | string    |               27 |
+    | table_name                | string    |               28 |
+    | table_schema              | string    |               29 |
+    | user_defined_type_catalog | string    |               30 |
+    | user_defined_type_name    | string    |               31 |
+    | user_defined_type_schema  | string    |               32 |
+    +---------------------------+-----------+------------------+
+    SELECT 32 rows in set (... sec)
 
 .. note::
 
   Columns are always sorted alphabetically in ascending order regardless of the
   order they were defined on table creation. Thus the ``ordinal_position``
   reflects the alphabetical position.
+
+
+Columns Specification
+---------------------
+
++-------------------------------+-----------------------------------------------+---------------+
+|            Name               |                Description                    |   Data Type   |
++===============================+===============================================+===============+
+| ``table_catalog``             | Refers to the ``table_schema``                | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``table_schema``              | Schema name containing the table              | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``table_name``                | Table Name                                    | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``column_name``               | Column Name                                   | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``ordinal_position``          | The position of the column within the         | ``Integer``   |
+|                               | table                                         |               |
++-------------------------------+-----------------------------------------------+---------------+
+| ``is_nullable``               | Whether the column is nullable                | ``Boolean``   |
++-------------------------------+-----------------------------------------------+---------------+
+| ``data_type``                 | The data type of the column                   | ``String``    |
+|                               |                                               |               |
+|                               | For further information see                   |               |
+|                               | :doc:`/sql/data_types`                        |               |
++-------------------------------+-----------------------------------------------+---------------+
+| ``column_default``            | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``character_maximum_length``  | Not implemented                               | ``Integer``   |
+|                               |                                               |               |
+|                               | Please refer to :ref:`data-type-string` type  |               |
++-------------------------------+-----------------------------------------------+---------------+
+| ``character_octet_length``    | Not implemented                               | ``Integer``   |
+|                               |                                               |               |
+|                               | Please refer to :ref:`data-type-string` type  |               |
++-------------------------------+-----------------------------------------------+---------------+
+| ``numeric_precision``         | Indicates the number of significant digits    | ``Integer``   |
+|                               | for a numeric ``data_type``. For all other    |               |
+|                               | data types this column is ``null``.           |               |
++-------------------------------+-----------------------------------------------+---------------+
+| ``numeric_precision_radix``   | Indicates in which base the value in the      | ``Integer``   |
+|                               | column ``numeric_precision`` for a numeric    |               |
+|                               | ``data_type`` is exposed. This can either be  |               |
+|                               | 2 (binary) or 10 (decimal). For all other     |               |
+|                               | data types this column is ``null``.           |               |
++-------------------------------+-----------------------------------------------+---------------+
+| ``numeric_scale``             | Not implemented                               | ``Integer``   |
++-------------------------------+-----------------------------------------------+---------------+
+| ``datetime_precision``        | Contains the fractional seconds precision for | ``Integer``   |
+|                               | a ``timestamp`` ``data_type``. For all other  |               |
+|                               | data types this column is ``null``.           |               |
++-------------------------------+-----------------------------------------------+---------------+
+| ``interval_type``             | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``interval_precision``        | Not implemented                               | ``Integer``   |
++-------------------------------+-----------------------------------------------+---------------+
+| ``character_set_catalog``     | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``character_set_schema``      | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``character_set_name``        | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``collation_catalog``         | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``collation_schema``          | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``collation_name``            | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``domain_catalog``            | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``domain_schema``             | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``domain_name``               | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``user_defined_type_catalog`` | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``user_defined_type_schema``  | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``user_defined_type_name``    | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``check_references``          | Not implemented                               | ``String``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``check_action``              | Not implemented                               | ``Integer``   |
++-------------------------------+-----------------------------------------------+---------------+
+| ``generation_expression``     | The expression used to generate ad column.    | ``String``    |
+|                               | If the column is not generated ``null`` is    |               |
+|                               | returned.                                     |               |
++-------------------------------+-----------------------------------------------+---------------+
+| ``is_generated``              | Returns ``true`` or ``false`` wether the      | ``Boolean``   |
+|                               | column is generated or not                    |               |
++-------------------------------+-----------------------------------------------+---------------+
+
 
 Table Constraints
 =================
