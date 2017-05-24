@@ -29,6 +29,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.lucene.FieldTypeLookup;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
@@ -183,13 +184,19 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
             Symbol order = orderBy.orderBySymbols().get(i);
             Object value = lastCollected.fields[i];
             if (order instanceof Reference) {
+                final ColumnIdent columnIdent = ((Reference) order).ident().columnIdent();
+                if (columnIdent.isSystemColumn()) {
+                    // We can't optimize the initial query because the BooleanQuery
+                    // must not contain system columns.
+                    return null;
+                }
                 boolean nullsFirst = orderBy.nullsFirst()[i] == null ? false : orderBy.nullsFirst()[i];
                 value = value == null || value.equals(missingValues[i]) ? null : value;
                 if (nullsFirst && value == null) {
                     // no filter needed
                     continue;
                 }
-                String columnName = ((Reference) order).ident().columnIdent().fqn();
+                String columnName = columnIdent.fqn();
                 MappedFieldType fieldType = requireNonNull(
                     fieldTypeLookup.get(columnName), "Column must exist: " + columnName);
 

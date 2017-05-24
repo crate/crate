@@ -50,3 +50,5 @@ Fixes
    ``fetchSize`` which is too large.
 
  - Log failed authentication attempts at log level ``WARN``
+
+ - Fix NPE when ordering by system columns
