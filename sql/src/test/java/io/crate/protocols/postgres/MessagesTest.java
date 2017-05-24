@@ -24,33 +24,28 @@ package io.crate.protocols.postgres;
 
 import io.crate.data.RowN;
 import io.crate.types.DataTypes;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.Channel;
+import io.netty.buffer.ByteBuf;
+import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.Test;
-import org.mockito.Answers;
-import org.mockito.ArgumentCaptor;
 
 import java.util.Arrays;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 public class MessagesTest {
 
     @Test
     public void testNullValuesAddToLength() throws Exception {
-        Channel channel = mock(Channel.class, Answers.RETURNS_MOCKS.get());
+        EmbeddedChannel channel = new EmbeddedChannel();
         Messages.sendDataRow(
             channel,
             new RowN($(10, null)),
             Arrays.asList(DataTypes.INTEGER, DataTypes.STRING), null
         );
-        ArgumentCaptor<Object> writeCaptor = ArgumentCaptor.forClass(Object.class);
-        verify(channel).write(writeCaptor.capture());
-        ChannelBuffer buffer = (ChannelBuffer) writeCaptor.getValue();
+        channel.flush();
+        ByteBuf buffer = channel.readOutbound();
 
         // message type
         assertThat((char) buffer.readByte(), is('D'));

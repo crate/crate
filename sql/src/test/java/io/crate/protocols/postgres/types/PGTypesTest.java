@@ -26,8 +26,8 @@ import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.*;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -112,16 +112,24 @@ public class PGTypesTest extends CrateUnitTest {
     }
 
     private Object writeAndReadBinary(Entry entry, PGType pgType) {
-        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
-        pgType.writeAsBinary(buffer, entry.value);
-        int length = buffer.readInt();
-        return pgType.readBinaryValue(buffer, length);
+        ByteBuf buffer = Unpooled.buffer();
+        try {
+            pgType.writeAsBinary(buffer, entry.value);
+            int length = buffer.readInt();
+            return pgType.readBinaryValue(buffer, length);
+        } finally {
+            buffer.release();
+        }
     }
 
     private Object writeAndReadAsText(Entry entry, PGType pgType) {
-        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
-        pgType.writeAsText(buffer, entry.value);
-        int length = buffer.readInt();
-        return pgType.readTextValue(buffer, length);
+        ByteBuf buffer = Unpooled.buffer();
+        try {
+            pgType.writeAsText(buffer, entry.value);
+            int length = buffer.readInt();
+            return pgType.readTextValue(buffer, length);
+        } finally {
+            buffer.release();
+        }
     }
 }

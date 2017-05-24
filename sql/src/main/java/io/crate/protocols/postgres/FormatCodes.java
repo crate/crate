@@ -22,7 +22,8 @@
 
 package io.crate.protocols.postgres;
 
-import org.jboss.netty.buffer.ChannelBuffer;
+
+import io.netty.buffer.ByteBuf;
 
 import javax.annotation.Nullable;
 
@@ -36,7 +37,7 @@ public class FormatCodes {
     private static final FormatCode[] EMPTY_FORMAT_CODES = new FormatCode[0];
 
     /**
-     * Read format codes from a ChannelBuffer.
+     * Read format codes from a ByteBuf.
      * <p>
      * Buffer must contain:
      * <pre>
@@ -45,7 +46,7 @@ public class FormatCodes {
      *      int16 formatCode
      * </pre>
      */
-    static FormatCode[] fromBuffer(ChannelBuffer buffer) {
+    static FormatCode[] fromBuffer(ByteBuf buffer) {
         short numFormatCodes = buffer.readShort();
         if (numFormatCodes == 0) {
             return EMPTY_FORMAT_CODES;

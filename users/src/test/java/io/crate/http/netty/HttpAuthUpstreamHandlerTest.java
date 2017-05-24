@@ -52,8 +52,9 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
     private static final InetSocketAddress IPv4_LOCALHOST = new InetSocketAddress(InetAddresses.forString("127.0.0.1"), 54321);
 
     private final AuthenticationMethod denyAll = new AuthenticationMethod() {
+
         @Override
-        public CompletableFuture<User> pgAuthenticate(Channel channel, String userName) {
+        public CompletableFuture<User> pgAuthenticate(io.netty.channel.Channel channel, String userName) {
             return CompletableFutures.failedFuture(new Throwable("denied"));
         }
 

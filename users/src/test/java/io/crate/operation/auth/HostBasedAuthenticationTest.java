@@ -22,13 +22,13 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.operation.user.User;
 import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateUnitTest;
+import io.netty.channel.Channel;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.jboss.netty.channel.Channel;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -132,6 +132,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
     @Test
     public void testResolveAuthMethod() throws Exception {
         AuthenticationMethod noopAuthMethod = new AuthenticationMethod() {
+
             @Override
             public CompletableFuture<User> pgAuthenticate(Channel channel, String userName) {
                 return null;
