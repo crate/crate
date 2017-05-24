@@ -51,3 +51,5 @@ Fixes
    instead of interrupting a query.
 
  - Log failed authentication attempts at log level ``WARN``
+
+ - Fix NPE when ordering by system columns
