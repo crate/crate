@@ -30,6 +30,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
 import io.crate.types.DataTypes;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -57,6 +58,7 @@ import java.util.Collections;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNull;
 
 public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
@@ -215,5 +217,28 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         assertThat(result, is(new Long[]{null, null, 2L, 1L}));
 
         reader.close();
+    }
+
+
+    @Test
+    public void testSearchAfterWithSystemColumn() throws Exception {
+        Reference sysColReference =
+            new Reference(
+                new ReferenceIdent(
+                    new TableIdent(null, "table"),
+                    DocSysColumns.SCORE),
+                RowGranularity.DOC, DataTypes.FLOAT);
+
+        OrderBy orderBy = new OrderBy(ImmutableList.of(sysColReference, REFERENCE),
+            new boolean[]{false, false},
+            new Boolean[]{false, false});
+
+        FieldDoc lastCollected = new FieldDoc(0, 0, new Object[]{2L});
+
+        Query nextPageQuery = LuceneOrderedDocCollector.nextPageQuery(
+            lastCollected, orderBy, new Object[]{}, name -> valueFieldType);
+
+        // returns null which leads to reuse of old query without paging optimization
+        assertNull(nextPageQuery);
     }
 }
