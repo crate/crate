@@ -417,19 +417,19 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
             it.remove();
 
             final ShardLocation shardLocation = entry.getKey();
-            nodeJobsCounter.increment(shardLocation.nodeId);
+            nodeJobsCounter.incJobsCount(shardLocation.nodeId);
             ActionListener<ShardResponse> listener = new ActionListener<ShardResponse>() {
 
                 @Override
                 public void onResponse(ShardResponse shardResponse) {
-                    nodeJobsCounter.decrement(shardLocation.nodeId);
+                    nodeJobsCounter.decJobsCount(shardLocation.nodeId);
                     processShardResponse(shardResponse);
                     countdown();
                 }
 
                 @Override
                 public void onFailure(Exception e) {
-                    nodeJobsCounter.decrement(shardLocation.nodeId);
+                    nodeJobsCounter.decJobsCount(shardLocation.nodeId);
                     countdown();
                 }
 

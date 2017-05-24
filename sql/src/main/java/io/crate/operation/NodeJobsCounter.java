@@ -37,54 +37,93 @@ import java.util.concurrent.ConcurrentHashMap;
 public class NodeJobsCounter {
 
     /**
-     * Represents the maximum number of concurrent operations that can be issued towards a node.
+     * Represents the maximum number of concurrent jobs that can be issued towards a node.
      */
-    public static final long MAX_NODE_CONCURRENT_OPERATIONS = 5;
+    public static final long MAX_NODE_CONCURRENT_JOBS = 5;
 
-    private long unknownNodeCount = 0L;
-    private final Map<String, long[]> operationsCountPerNode = new ConcurrentHashMap<>();
+    /**
+     * Represents the maximum number of parked retry operations that can be outstanding against a node.
+     */
+    public static final long MAX_NODE_PARKED_RETRIES = 1;
 
-    public void increment(@Nullable String nodeId) {
+    private long unknownNodeJobsCount = 0L;
+    private long unknownNodeRetriesCount = 0L;
+    private final Map<String, long[]> jobsCountPerNode = new ConcurrentHashMap<>();
+    private final Map<String, long[]> retriesCountPerNode = new ConcurrentHashMap<>();
+
+    public void incJobsCount(@Nullable String nodeId) {
         if (nodeId == null) {
-            unknownNodeCount++;
+            unknownNodeJobsCount++;
         } else {
-            operationsCountPerNode.compute(nodeId, (node, count) -> {
-                    if (count == null) {
-                        count = new long[1];
-                        count[0] = 1;
-                    } else {
-                        count[0]++;
-                    }
-                    return count;
-                }
-            );
+            increment(nodeId, jobsCountPerNode);
         }
     }
 
-    public void decrement(@Nullable String nodeId) {
+    public void incRetriesCount(@Nullable String nodeId) {
         if (nodeId == null) {
-            unknownNodeCount--;
+            unknownNodeRetriesCount++;
         } else {
-            operationsCountPerNode.compute(nodeId, (id, count) -> {
+            increment(nodeId, retriesCountPerNode);
+        }
+    }
+
+    private void increment(String nodeId, Map<String, long[]> nodeOperations) {
+
+        nodeOperations.compute(nodeId, (node, count) -> {
                 if (count == null) {
                     count = new long[1];
-                    count[0] = 0;
+                    count[0] = 1;
                 } else {
-                    count[0]--;
+                    count[0]++;
                 }
                 return count;
-            });
+            }
+        );
+    }
+
+    public void decJobsCount(@Nullable String nodeId) {
+        if (nodeId == null) {
+            unknownNodeJobsCount--;
+        } else {
+            decrement(nodeId, jobsCountPerNode);
         }
+    }
+
+    public void decRetriesCount(@Nullable String nodeId) {
+        if (nodeId == null) {
+            unknownNodeRetriesCount--;
+        } else {
+            decrement(nodeId, retriesCountPerNode);
+        }
+    }
+
+    private void decrement(String nodeId, Map<String, long[]> retriesCountPerNode) {
+        retriesCountPerNode.compute(nodeId, (id, count) -> {
+            if (count == null) {
+                count = new long[1];
+                count[0] = 0;
+            } else {
+                count[0]--;
+            }
+            return count;
+        });
     }
 
     public long getInProgressJobsForNode(@Nullable String nodeId) {
-        long count;
         if (nodeId == null) {
-            count = unknownNodeCount;
+            return unknownNodeJobsCount;
         } else {
-            long[] countPerNode = operationsCountPerNode.get(nodeId);
-            count = countPerNode == null ? 0L : countPerNode[0];
+            long[] countPerNode = jobsCountPerNode.get(nodeId);
+            return countPerNode == null ? 0L : countPerNode[0];
         }
-        return count;
+    }
+
+    public long getParkedRetriesForNode(@Nullable String nodeId) {
+        if (nodeId == null) {
+            return unknownNodeRetriesCount;
+        } else {
+            long[] countPerNode = retriesCountPerNode.get(nodeId);
+            return countPerNode == null ? 0L : countPerNode[0];
+        }
     }
 }

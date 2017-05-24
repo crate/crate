@@ -111,11 +111,11 @@ public class ShardRequestAccumulator<TReq extends ShardRequest<TReq, TItem>, TIt
         }
 
         final String nodeId = getLocalNodeId();
-        operationsTracker.increment(nodeId);
+        operationsTracker.incJobsCount(nodeId);
 
         FutureActionListener<ShardResponse, Iterator<? extends Row>> listener = new FutureActionListener<>(r -> {
             currentRequest = requestFactory.get();
-            operationsTracker.decrement(nodeId);
+            operationsTracker.incJobsCount(nodeId);
             return responseToRowIt(isLastBatch, r);
         });
         transportAction.accept(
