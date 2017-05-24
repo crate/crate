@@ -22,11 +22,34 @@
 package io.crate.operation.reference.information;
 
 import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.collect.MapBuilder;
+
+import java.util.Map;
 
 
 public abstract class InformationColumnsExpression<T>
     extends RowContextCollectorExpression<ColumnContext, T> {
+
+    private final static Integer NUMERIC_PRECISION_RADIX = 2; // Binary
+    private final static Integer DATETIME_PRECISION = 3; // Milliseconds
+
+    /**
+     * For fixed point numbers one bit is used for the sign.
+     * Thus the precision for a ByteType is 8-1 bit with a range
+     * from -128 to 127.
+     *
+     * For floating point numbers please refer to:
+     * https://en.wikipedia.org/wiki/IEEE_floating_point
+     */
+    private static final Map<Integer, Integer> NUMERIC_PRECISION = new MapBuilder<Integer, Integer>()
+        .put(ByteType.ID, 7)
+        .put(ShortType.ID, 15)
+        .put(FloatType.ID, 24)
+        .put(IntegerType.ID, 31)
+        .put(DoubleType.ID, 53)
+        .put(LongType.ID, 63).map();
 
     public static class ColumnsSchemaNameExpression extends InformationColumnsExpression<BytesRef> {
 
@@ -46,12 +69,29 @@ public abstract class InformationColumnsExpression<T>
         }
     }
 
+    public static class ColumnsTableCatalogExpression extends InformationColumnsExpression<BytesRef> {
+
+        @Override
+        public BytesRef value() {
+            assert row.info.ident().tableIdent().schema() != null : "table schema can't be null";
+            return new BytesRef(row.info.ident().tableIdent().name());
+        }
+    }
+
     public static class ColumnsColumnNameExpression extends InformationColumnsExpression<BytesRef> {
 
         @Override
         public BytesRef value() {
             assert row.info.ident().tableIdent().name() != null : "column name name can't be null";
             return new BytesRef(row.info.ident().columnIdent().sqlFqn());
+        }
+    }
+
+    public static class ColumnsNullExpression extends InformationColumnsExpression<BytesRef> {
+
+        @Override
+        public BytesRef value() {
+            return null;
         }
     }
 
@@ -82,6 +122,42 @@ public abstract class InformationColumnsExpression<T>
             } else {
                 return row.info.isNullable();
             }
+        }
+    }
+
+    public static class ColumnsNumericPrecisionExpression extends InformationColumnsExpression<Integer> {
+
+        @Override
+        public Integer value() {
+            assert row.info.valueType() != null && row.info.valueType().getName() !=
+                                                   null : "columns must always have a type and the type must have a name";
+            return NUMERIC_PRECISION.get(row.info.valueType().id());
+        }
+    }
+
+    public static class ColumnsNumericPrecisionRadixExpression extends InformationColumnsExpression<Integer> {
+
+        @Override
+        public Integer value() {
+            assert row.info.valueType() != null && row.info.valueType().getName() !=
+                                                   null : "columns must always have a type and the type must have a name";
+            if (DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(row.info.valueType())) {
+                return NUMERIC_PRECISION_RADIX;
+            }
+            return null;
+        }
+    }
+
+    public static class ColumnsDatetimePrecisionExpression extends InformationColumnsExpression<Integer> {
+
+        @Override
+        public Integer value() {
+            assert row.info.valueType() != null && row.info.valueType().getName() !=
+                                                   null : "columns must always have a type and the type must have a name";
+            if (row.info.valueType() == DataTypes.TIMESTAMP) {
+                return DATETIME_PRECISION;
+            }
+            return null;
         }
     }
 }

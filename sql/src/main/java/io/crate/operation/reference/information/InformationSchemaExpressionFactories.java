@@ -81,6 +81,10 @@ public class InformationSchemaExpressionFactories {
                 InformationTablePartitionsExpression.PartitionsTableNameExpression::new)
             .put(InformationPartitionsTableInfo.PartitionsTableColumns.SCHEMA_NAME,
                 InformationTablePartitionsExpression.PartitionsSchemaNameExpression::new)
+            .put(InformationPartitionsTableInfo.Columns.TABLE_CATALOG,
+                InformationTablePartitionsExpression.PartitionsTableCatalogExpression::new)
+            .put(InformationPartitionsTableInfo.Columns.TABLE_TYPE,
+                InformationTablePartitionsExpression.PartitionsTableTypeExpression::new)
             .put(InformationPartitionsTableInfo.Columns.PARTITION_IDENT,
                 InformationTablePartitionsExpression.PartitionsPartitionIdentExpression::new)
             .put(InformationPartitionsTableInfo.Columns.VALUES,
@@ -93,16 +97,44 @@ public class InformationSchemaExpressionFactories {
                 InformationTablePartitionsExpression.PartitionsRoutingHashFunctionExpression::new)
             .put(InformationPartitionsTableInfo.Columns.CLOSED, InformationTablePartitionsExpression.ClosedExpression::new)
             .put(InformationPartitionsTableInfo.Columns.TABLE_VERSION, PartitionsVersionExpression::new)
-            .put(InformationPartitionsTableInfo.Columns.TABLE_SETTINGS, PartitionsSettingsExpression::new).build();
+            .put(InformationPartitionsTableInfo.Columns.TABLE_SETTINGS, PartitionsSettingsExpression::new)
+            .put(InformationPartitionsTableInfo.Columns.SELF_REFERENCING_COLUMN_NAME,
+                InformationTablePartitionsExpression.PartitionsNullExpression::new)
+            .put(InformationPartitionsTableInfo.Columns.REFERENCE_GENERATION,
+                InformationTablePartitionsExpression.PartitionsNullExpression::new).build();
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<ColumnContext>> columnsFactories() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<ColumnContext>>builder()
             .put(InformationColumnsTableInfo.Columns.TABLE_SCHEMA, InformationColumnsExpression.ColumnsSchemaNameExpression::new)
             .put(InformationColumnsTableInfo.Columns.TABLE_NAME, InformationColumnsExpression.ColumnsTableNameExpression::new)
+            .put(InformationColumnsTableInfo.Columns.TABLE_CATALOG, InformationColumnsExpression.ColumnsTableCatalogExpression::new)
             .put(InformationColumnsTableInfo.Columns.COLUMN_NAME, InformationColumnsExpression.ColumnsColumnNameExpression::new)
             .put(InformationColumnsTableInfo.Columns.ORDINAL_POSITION, InformationColumnsExpression.ColumnsOrdinalExpression::new)
             .put(InformationColumnsTableInfo.Columns.DATA_TYPE, InformationColumnsExpression.ColumnsDataTypeExpression::new)
+            .put(InformationColumnsTableInfo.Columns.COLUMN_DEFAULT, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.CHARACTER_MAXIMUM_LENGTH, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.CHARACTER_OCTET_LENGTH, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.NUMERIC_PRECISION, InformationColumnsExpression.ColumnsNumericPrecisionExpression::new)
+            .put(InformationColumnsTableInfo.Columns.NUMERIC_PRECISION_RADIX, InformationColumnsExpression.ColumnsNumericPrecisionRadixExpression::new)
+            .put(InformationColumnsTableInfo.Columns.NUMERIC_SCALE, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.DATETIME_PRECISION, InformationColumnsExpression.ColumnsDatetimePrecisionExpression::new)
+            .put(InformationColumnsTableInfo.Columns.INTERVAL_TYPE, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.INTERVAL_PRECISION, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.CHARACTER_SET_CATALOG, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.CHARACTER_SET_SCHEMA, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.CHARACTER_SET_NAME, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.COLLATION_CATALOG, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.COLLATION_SCHEMA, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.COLLATION_NAME, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.DOMAIN_CATALOG, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.DOMAIN_SCHEMA, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.DOMAIN_NAME, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.USER_DEFINED_TYPE_CATALOG, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.USER_DEFINED_TYPE_SCHEMA, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.USER_DEFINED_TYPE_NAME, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.CHECK_REFERENCES, InformationColumnsExpression.ColumnsNullExpression::new)
+            .put(InformationColumnsTableInfo.Columns.CHECK_ACTION, InformationColumnsExpression.ColumnsNullExpression::new)
             .put(InformationColumnsTableInfo.Columns.IS_GENERATED, () -> new InformationColumnsExpression<Boolean>() {
                 @Override
                 public Boolean value() {
@@ -135,6 +167,20 @@ public class InformationSchemaExpressionFactories {
                 @Override
                 public BytesRef value() {
                     return new BytesRef(row.ident().name());
+                }
+            })
+            .put(InformationTablesTableInfo.Columns.TABLE_CATALOG, () -> new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                @Override
+                public BytesRef value() {
+                    return new BytesRef(row.ident().schema());
+                }
+            })
+            .put(InformationTablesTableInfo.Columns.TABLE_TYPE, () -> new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                @Override
+                public BytesRef value() {
+                    return InformationTablePartitionsExpression.TABLE_TYPE;
                 }
             })
             .put(InformationTablesTableInfo.Columns.NUMBER_OF_SHARDS, () -> new RowContextCollectorExpression<TableInfo, Integer>() {
@@ -235,6 +281,8 @@ public class InformationSchemaExpressionFactories {
                         return null;
                     }
                 })
+            .put(InformationTablesTableInfo.Columns.SELF_REFERENCING_COLUMN_NAME, RowCollectNullExpressionFactory::new)
+            .put(InformationTablesTableInfo.Columns.REFERENCE_GENERATION, RowCollectNullExpressionFactory::new)
             .put(InformationTablesTableInfo.Columns.TABLE_VERSION, TablesVersionExpression::new)
             .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS, TablesSettingsExpression::new
             ).build();
@@ -298,5 +346,13 @@ public class InformationSchemaExpressionFactories {
                     return BytesRefs.toBytesRef(row.comments);
                 }
             }).build();
+    }
+
+    public static class RowCollectNullExpressionFactory extends RowContextCollectorExpression<TableInfo, BytesRef> {
+
+        @Override
+        public BytesRef value() {
+            return null;
+        }
     }
 }
