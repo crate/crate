@@ -142,11 +142,12 @@ The E2 discovery mechanism can additionaly filter machines by instance tags.
 Tags are key-value pairs that can be assigned to an instance as meta data when
 it is launched.
 
-A good example usage of tags is to assign environment and usage type information.
+A good example usage of tags is to assign environment and usage type
+information.
 
-Let's assume you have pool of several instances tagged with ``env`` and ``type``,
-where ``env`` is either ``dev`` or ``production`` and ``type`` is either ``app``
-or ``database``.
+Let's assume you have pool of several instances tagged with ``env`` and
+``type``, where ``env`` is either ``dev`` or ``production`` and ``type`` is
+either ``app`` or ``database``.
 
  .. image:: ../_static/ec2-discovery-tags.png
     :alt: Adding tags on instance launch
@@ -155,6 +156,7 @@ or ``database``.
 Setting ``discovery.ec2.tag.env`` to ``production`` will filter machines with
 the tag key ``env`` set to ``production`` excluding machines that have set the
 same key set to ``dev`` (and vice versa).
+
 To further more exclude "``app`` instances" from discovery you can add the
 setting ``discovery.ec2.tag.type: database``.
 
@@ -176,8 +178,8 @@ Filter by Availability Zones
 
 A third possible way to filter instances is via availability zone. Let's say
 you have several clusters for the same tenant in different availability zones
-(e.g. ``us-west-1`` and ``us-west-2``), you can launch the instance with the same
-security group (e.g. ``sg-crate-demo``) and filter the instances used for
+(e.g. ``us-west-1`` and ``us-west-2``), you can launch the instance with the
+same security group (e.g. ``sg-crate-demo``) and filter the instances used for
 discovery by availability zone::
 
   discovery.ec2:

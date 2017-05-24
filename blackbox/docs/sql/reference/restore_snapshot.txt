@@ -19,13 +19,14 @@ Synopsis
 Description
 ===========
 
-Restore one or more tables or partitions from an existing snapshot into the cluster.
-The snapshot must be given as fully qualified reference with ``repository_name``
-and ``snapshot_name``.
+Restore one or more tables or partitions from an existing snapshot into the
+cluster. The snapshot must be given as fully qualified reference with
+``repository_name`` and ``snapshot_name``.
 
-It is possible to restore all tables contained in the snapshot using the ``ALL``
-keyword. Single tables and/or partitions can be selected for restoring by giving them
-as ``table_ident`` or partition reference given the ``partition_column`` values.
+It is possible to restore all tables contained in the snapshot using the
+``ALL`` keyword. Single tables and/or partitions can be selected for restoring
+by giving them as ``table_ident`` or partition reference given the
+``partition_column`` values.
 
 Tables that are to be restored must not exist yet.
 
@@ -34,12 +35,13 @@ To cancel a restore operation simply drop the tables that are being restored.
 Parameters
 ==========
 
-:repository_name: the name of the repository of the snapshot to restore as ident
+:repository_name: the name of the repository of the snapshot to restore as
+                  ident
 
 :snapshot_name: the name of the snapshot as ident
 
-:table_ident: The name (optionally schema-qualified) of an existing
-              table that is to be restored from the snapshot
+:table_ident: The name (optionally schema-qualified) of an existing table that
+              is to be restored from the snapshot
 
 :partition_column: Column name by which the table is partitioned
 
@@ -50,12 +52,12 @@ Parameters
 
     [ WITH (restore_parameter [= value], [, ...]) ]
 
-The following configuration parameters can be used to modify how the snapshot is
-restored to the cluster:
+The following configuration parameters can be used to modify how the snapshot
+is restored to the cluster:
 
-:ignore_unavailable: (Default ``false``) Per default the restore command fails if a table
-                     is given that does not exist in the snapshot. If set to ``true`` those
-                     missing tables are ignored.
+:ignore_unavailable: (Default ``false``) Per default the restore command fails
+                     if a table is given that does not exist in the snapshot.
+                     If set to ``true`` those missing tables are ignored.
 
 :wait_for_completion: (Default: ``false``) By default the request returns once
                       the restore operation started. If set to ``true`` the

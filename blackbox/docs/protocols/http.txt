@@ -9,8 +9,8 @@ SQL HTTP Endpoint
 Crate provides a HTTP Endpoint that can be used to submit SQL queries. The
 endpoint is accessible under ``<servername:port>/_sql``.
 
-SQL statements are sent to the ``_sql`` endpoint in ``json`` format,
-whereby the statement is sent as value associated to the key ``stmt``.
+SQL statements are sent to the ``_sql`` endpoint in ``json`` format, whereby
+the statement is sent as value associated to the key ``stmt``.
 
 .. seealso::
 
@@ -30,19 +30,22 @@ A simple ``SELECT`` statement can be submitted like this::
 
 .. note::
 
-    We're using a simple command line invokation of ``curl`` here so you can see how to run this by hand in the terminal. For the rest of the examples in this document, we use `here documents`_ (i.e. ``EOF``) for multiline readability.
+    We're using a simple command line invokation of ``curl`` here so you can
+    see how to run this by hand in the terminal. For the rest of the examples
+    in this document, we use `here documents`_ (i.e. ``EOF``) for multiline
+    readability.
 
 .. _parameter_substitution:
 
 Parameter Substitution
 ======================
 
-In addition to the ``stmt`` key the request body may also contain an ``args`` key
-which can be used for SQL parameter substitution.
+In addition to the ``stmt`` key the request body may also contain an ``args``
+key which can be used for SQL parameter substitution.
 
 The SQL statement has to be changed to use placeholders where the values should
-be inserted. Placeholders can either be numbered (in the form of ``$1``, ``$2``,
-etc.) or unnumbered using a question mark ``?``.
+be inserted. Placeholders can either be numbered (in the form of ``$1``,
+``$2``, etc.) or unnumbered using a question mark ``?``.
 
 The placeholders will then be substituted with values from an array that is
 expected under the ``args`` key::
@@ -71,6 +74,7 @@ expected under the ``args`` key::
 .. warning::
 
     Parameter substition must not be used within subscript notation.
+
     For example, ``column[?]`` is not allowed.
 
 The same query using question marks as placeholders looks like this::
@@ -123,12 +127,11 @@ will be used instead.
 Column Types
 ============
 
-Crate can respond a list ``col_types`` with the data type id of every
-responded column. This way one can know what exact data type a column
-is holding.
+Crate can respond a list ``col_types`` with the data type id of every responded
+column. This way one can know what exact data type a column is holding.
 
-In order to get the list of column data types, a ``types`` query
-parameter must be passed to the request::
+In order to get the list of column data types, a ``types`` query parameter must
+be passed to the request::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X POST '127.0.0.1:4200/_sql?types&pretty' -d@- <<- EOF
@@ -147,9 +150,9 @@ parameter must be passed to the request::
       "duration" : ...
     }
 
-Collection data types like ``Set`` or ``Array`` are displayed as
-a list where the first value is the collection type and the second is
-the inner type. Of course the inner type could also be a collection.
+Collection data types like ``Set`` or ``Array`` are displayed as a list where
+the first value is the collection type and the second is the inner type. Of
+course the inner type could also be a collection.
 
 Example of JSON representation of a column list of (String, Set<Integer[]>)::
 
@@ -200,8 +203,8 @@ IDs of all currently available data types:
 Bulk Operations
 ===============
 
-The REST endpoint allows to issue bulk operations which are executed as
-single calls on the back-end site. It can be compared to `prepared statement`_.
+The REST endpoint allows to issue bulk operations which are executed as single
+calls on the back-end site. It can be compared to `prepared statement`_.
 
 A bulk operation can be expressed simply as an SQL statement.
 
@@ -211,14 +214,14 @@ Supported bulk SQL statements are:
  - Update
  - Delete
 
-Instead of the ``args`` (:ref:`parameter_substitution`) key, use the
-key ``bulk_args``. This allows to specify a list of lists, containing all
-the records which shall be processed. The inner lists need to match the
-specified columns.
+Instead of the ``args`` (:ref:`parameter_substitution`) key, use the key
+``bulk_args``. This allows to specify a list of lists, containing all the
+records which shall be processed. The inner lists need to match the specified
+columns.
 
-The bulk response contains a ``results`` array, with a rowcount for each
-bulk operation. Those results are in the same order as the issued
-operations of the bulk operation.
+The bulk response contains a ``results`` array, with a rowcount for each bulk
+operation. Those results are in the same order as the issued operations of the
+bulk operation.
 
 The following example describes how to issue an insert bulk operation and
 insert three records at once::
@@ -368,9 +371,9 @@ Currently the defined error codes are:
 Bulk Errors
 -----------
 
-If a bulk operation fails, the resulting rowcount will be ``-2`` and
-the resulting object may contain an ``error_message`` depending on
-the resulting error::
+If a bulk operation fails, the resulting rowcount will be ``-2`` and the
+resulting object may contain an ``error_message`` depending on the resulting
+error::
 
     sh$ curl -sS -H 'Content-Type: application/json' \
     ... -X POST '127.0.0.1:4200/_sql?pretty' -d@- <<- EOF
@@ -394,8 +397,8 @@ the resulting error::
 
 .. note::
 
-    Every bulk operation will be executed, independent if one of the
-    operation fails.
+   Every bulk operation will be executed, independent if one of the operation
+   fails.
 
 .. _prepared statement: http://en.wikipedia.org/wiki/Prepared_statement
 .. _here documents: http://www.tldp.org/LDP/abs/html/here-docs.html

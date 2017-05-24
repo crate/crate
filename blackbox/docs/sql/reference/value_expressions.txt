@@ -6,6 +6,7 @@ Value Expressions
 =================
 
 Value expressions are expressions which return a single value.
+
 They can be used in many contexts of many statements.
 
 A value expression can be:
@@ -72,6 +73,7 @@ Parameter Reference
 ===================
 
 A parameter reference is a placeholder for a value.
+
 Crate clients usually have some kind of API to provide those values.
 
 Parameter references can either be unnumbered or numbered:
@@ -159,7 +161,9 @@ A type cast specifies the conversion from one type to another. The syntax is::
 Object Constructor
 ==================
 
-A object constructor is an expression which builds an object using its arguments.
+A object constructor is an expression which builds an object using its
+arguments.
+
 It consists of one ore more ``ident = expression``, separated by commas and
 enclosed in curly brackets::
 

@@ -13,15 +13,15 @@ Basic Configuration
 ===================
 
 Support for *Snapshot* and *Restore* to the `Amazon S3`_ service is enabled by
-default in CrateDB. If you need to explicitly turn it off, disable the
-cloud setting in the ``crate.yml`` file::
+default in CrateDB. If you need to explicitly turn it off, disable the cloud
+setting in the ``crate.yml`` file::
 
   cloud.enabled: false
 
-To be able to use the S3 API, CrateDB must `sign the requests`_ by using
-AWS credentials consisting of an access key and a secret key. Therefore
-AWS provides `IAM roles`_ to avoid any distribution of your AWS credentials
-to the instances.
+To be able to use the S3 API, CrateDB must `sign the requests`_ by using AWS
+credentials consisting of an access key and a secret key. Therefore AWS
+provides `IAM roles`_ to avoid any distribution of your AWS credentials to the
+instances.
 
 .. _s3_authentication:
 
@@ -29,10 +29,10 @@ Authentication
 --------------
 
 It is recommended to restrict the permissions of CrateDB on the S3 to only the
-required extend. First, an IAM role is required. This `AWS guide`_ gives
-a short description of how to create a policy offer using the CLI or the AWS
-management console. Further, access of the snapshot to the S3 bucket needs
-to be restricted. An example policy file granting anybody access to a bucket
+required extend. First, an IAM role is required. This `AWS guide`_ gives a
+short description of how to create a policy offer using the CLI or the AWS
+management console. Further, access of the snapshot to the S3 bucket needs to
+be restricted. An example policy file granting anybody access to a bucket
 called ``snaps.example.com`` is attached below:
 
 .. code-block:: json

@@ -4,14 +4,14 @@
 Replication
 ===========
 
-Replication of a table in Crate means that each primary shard of a
-table is stored additionally on so called secondary shards. This might
-be useful for better read performance and high availability. If not
-specified, crate creates one replica, which means that a tables
-content is stored twice across the nodes of a cluster.
+Replication of a table in Crate means that each primary shard of a table is
+stored additionally on so called secondary shards. This might be useful for
+better read performance and high availability. If not specified, crate creates
+one replica, which means that a tables content is stored twice across the nodes
+of a cluster.
 
-Defining the number of replicas is done using the
-``number_of_replicas`` property.
+Defining the number of replicas is done using the ``number_of_replicas``
+property.
 
 Example::
 
@@ -24,20 +24,20 @@ Example::
 The `number_of_replicas` property also accepts an string as parameter that
 contains a `range`.
 
-A range is a definition of minimum number of replicas to maximum
-number of replicas depending on the number of nodes in the
-cluster. The table below shows some examples.
+A range is a definition of minimum number of replicas to maximum number of
+replicas depending on the number of nodes in the cluster. The table below shows
+some examples.
 
-===== ======================================================================
+===== =========================================================================
 Range Explanation
-===== ======================================================================
+===== =========================================================================
 0-1   Will create 0 or 1 replicas depending on the number of available nodes
------ ----------------------------------------------------------------------
-2-4   Table requires at least 2 replicas to be fully replicated. Will
-      create up to 4 if nodes are added.
------ ----------------------------------------------------------------------
+----- -------------------------------------------------------------------------
+2-4   Table requires at least 2 replicas to be fully replicated. Will create up
+      to 4 if nodes are added.
+----- -------------------------------------------------------------------------
 0-all Will expand the number of replicas to the available number of nodes.
-===== ======================================================================
+===== =========================================================================
 
 For details of the range syntax refer to :ref:`number_of_replicas`.
 

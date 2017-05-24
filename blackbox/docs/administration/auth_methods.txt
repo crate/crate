@@ -10,21 +10,21 @@ Trust Method
 ============
 
 When the ``trust`` authentication method is used, the server just takes the
-username provided by the client as is without further validation. This is useful
-for any setup where access is controlled by other means, like network
+username provided by the client as is without further validation. This is
+useful for any setup where access is controlled by other means, like network
 restrictions as implemented by :ref:`administration_hba`.
 
 Trust Authentication Over Postgres Protocol
 -------------------------------------------
 
-The Postgres Protocol requires a user for every connection which is sent by
-all client implementations.
+The Postgres Protocol requires a user for every connection which is sent by all
+client implementations.
 
 Trust Authentication Over HTTP
 ------------------------------
 
-The HTTP implementation takes the value of the ``X-USER`` request header
-as the username.
+The HTTP implementation takes the value of the ``X-USER`` request header as the
+username.
 
 Since a user is always required for trust authentication, it is possible to
 specify a default user in case that the ``X-USER`` header is not set. This is

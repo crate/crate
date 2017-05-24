@@ -38,10 +38,10 @@ Synopsis
 Description
 ===========
 
-CREATE ANALYZER speifies a whole analyzer chain for use in fulltext
-searches. It is possible to extend an existing analyzer or define a
-new analyzer chain from scratch. For examples and detailed explanation
-see :ref:`create_custom_analyzer`.
+CREATE ANALYZER speifies a whole analyzer chain for use in fulltext searches.
+It is possible to extend an existing analyzer or define a new analyzer chain
+from scratch. For examples and detailed explanation see
+:ref:`create_custom_analyzer`.
 
 Parameters
 ==========
@@ -50,8 +50,8 @@ Parameters
 
 :parent_analyzer_name: the name of the analyzer to inherit defaults from.
 
-:override_parameter: the name of a parameter of the parent analyzer
-    which should be assigned a new value to.
+:override_parameter: the name of a parameter of the parent analyzer which
+                     should be assigned a new value to.
 
 :tokenizer_name: the name of a builtin tokenizer to be used.
 

@@ -6,22 +6,23 @@ Postgres Wire Protocol
 
 Crate contains experimental support for the `PostgreSQL wire protocol v3`_.
 
-If a node is started with postgres support enabled it will bind to
-port ``5432`` by default. To use a custom port,
-set the corresponding :ref:`conf_ports`
-in the :doc:`Configuration <../configuration>`.
+If a node is started with postgres support enabled it will bind to port
+``5432`` by default. To use a custom port, set the corresponding
+:ref:`conf_ports` in the :doc:`Configuration <../configuration>`.
 
 However, even though connecting PostgreSQL tools and client libraries is
 supported, the actual SQL statements have to be supported by Crate's SQL
-dialect. A notable difference is that Crate doesn't support transactions,
-which is why clients should generally enable ``autocommit``.
+dialect. A notable difference is that Crate doesn't support transactions, which
+is why clients should generally enable ``autocommit``.
 
 .. note::
 
     In order to use ``setFetchSize`` in JDBC it is possible to set autocommit
     to false.
+
     The client will utilize the fetchSize on SELECT statements and only load up
     to fetchSize rows into memory.
+
     See `PostgreSQL JDBC Query docs
     <https://jdbc.postgresql.org/documentation/head/query.html>` for more
     information.
@@ -43,8 +44,8 @@ with ``N`` to indicate that it does not support SSL.
 
 Since Crate uses schemas instead of databases, the ``database`` parameter sets
 the default schema name for future queries. If no schema is specified, the
-schema ``doc``will be used as default. Additionally, the only
-supported charset is ``UTF8``.
+schema ``doc``will be used as default. Additionally, the only supported charset
+is ``UTF8``.
 
 Simple Query
 ------------
@@ -62,8 +63,8 @@ The `Extended Query`_ protocol is implemented with the following limitations:
 - ``describe`` messages for an unbound prepared statement always result in a
   ``NoData`` message instead of a ``ParameterDescription``.
 
-- To optimize the execution of bulk operations the execution of
-  statements is delayed until the ``Sync`` message is received
+- To optimize the execution of bulk operations the execution of statements is
+  delayed until the ``Sync`` message is received
 
 Copy Operations
 ---------------
@@ -79,8 +80,8 @@ Canceling Requests
 ------------------
 
 Operations can be cancelled using the ``KILL`` statement, hence the
-``CancelRequest`` message  is unsupported. Consequently, the server won't
-send a ``BackendKeyData`` message during connection initialization.
+``CancelRequest`` message  is unsupported. Consequently, the server won't send
+a ``BackendKeyData`` message during connection initialization.
 
 ``pg_type``
 -----------
@@ -145,14 +146,16 @@ Limitations
 
 - *reflection* methods like ``conn.getMetaData().getTables(...)`` won't work
   since the required tables are unavailable in Crate.
-  As a workaround it's possible to use ``SHOW TABLES`` or query
-  the ``information_schema`` tables manually using ``SELECT`` statements.
+
+  As a workaround it's possible to use ``SHOW TABLES`` or query the
+  ``information_schema`` tables manually using ``SELECT`` statements.
 
 - ``OBJECT`` and ``GEO_SHAPE`` columns can be streamed as ``JSON`` but require
   `pgjdbc`_ version ``9.4.1210`` or newer.
 
 - Multidimensional arrays will be streamed as ``JSON`` encoded string to avoid
-  a protocol limitation where all sub-arrays are required to have the same length.
+  a protocol limitation where all sub-arrays are required to have the same
+  length.
 
 - The behavior of ``PreparedStatement.executeBatch`` in error cases depends on
   in which stage an error occurs: A ``BatchUpdateException`` is thrown if no
@@ -165,8 +168,8 @@ Limitations
   Literals <data-type-object-literals>` in case an object key's starting
   character clashes with a JDBC escape keyword (see also `JDBC escape syntax
   <https://docs.oracle.com/javadb/10.10.1.2/ref/rrefjdbc1020262.html>`_).
-  Currently, disabling ``escape processing`` will remedy this, but prevent
-  the `Extended Query`_ API from working due to a `bug
+  Currently, disabling ``escape processing`` will remedy this, but prevent the
+  `Extended Query`_ API from working due to a `bug
   <https://github.com/pgjdbc/pgjdbc/issues/653>`_ at `pgjdbc`_.
 
 Connection Failover and Load Balancing
@@ -177,8 +180,8 @@ Connection failover and load balancing is supported as described here:
 
 .. note::
 
-    It is not recommended to use the **targetServerType** parameter since Crate
-    has no concept of Master/Slave nodes.
+   It is not recommended to use the **targetServerType** parameter since Crate
+   has no concept of Master/Slave nodes.
 
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
 .. _Simple Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#AEN108745

@@ -2,9 +2,8 @@
 Crate SQL
 =========
 
-Crate uses SQL to query documents. For concise reference documentation
-see :doc:`sql`. For general information about SQL please refer to
-`Wikipedia SQL`_.
+Crate uses SQL to query documents. For concise reference documentation see
+:doc:`sql`. For general information about SQL please refer to `Wikipedia SQL`_.
 
 .. _`Wikipedia SQL`: http://en.wikipedia.org/wiki/Sql
 

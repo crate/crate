@@ -39,4 +39,5 @@ string pattern as a filter and has an equivalent behavior to
 ``WHERE`` Clause
 ================
 
-The optional WHERE clause defines the condition to be met for a row to be returned.
+The optional WHERE clause defines the condition to be met for a row to be
+returned.

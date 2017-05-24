@@ -17,7 +17,8 @@ To use this plugin, you must:
 Enable the Enterprise License
 -----------------------------
 
-You can enable the :ref:`conf_enterprise_license` via the CrateDB configuration file.
+You can enable the :ref:`conf_enterprise_license` via the CrateDB configuration
+file.
 
 Enable Collecting Stats
 -----------------------
@@ -58,7 +59,8 @@ You can set the Java system properties with the ``-D`` option::
   ...             -Dcom.sun.management.jmxremote.ssl=false \
   ...             -Dcom.sun.management.jmxremote.authenticate=false
 
-However, the recommended way to set system properties is via the ``CRATE_JAVA_OPTS`` environment variable, like so::
+However, the recommended way to set system properties is via the
+``CRATE_JAVA_OPTS`` environment variable, like so::
 
   sh$ export CRATE_JAVA_OPTS="$CRATE_JAVA_OPTS \
         -Dcom.sun.management.jmxremote \
@@ -75,8 +77,8 @@ Using Docker
 
 .. highlight:: none
 
-To enable JMX monitoring when running CrateDB in a Docker container
-you have to set the following additional Java system properties::
+To enable JMX monitoring when running CrateDB in a Docker container you have to
+set the following additional Java system properties::
 
   -Djava.rmi.server.hostname=<RMI_PORT>
   -Dcom.sun.management.jmxremote.rmi.port=<RMI_HOSTNAME>
@@ -85,7 +87,8 @@ Here, ``<RMI_HOSTNAME>`` is the IP address or hostname of the Docker host and
 ``<RMI_PORT>`` is the statically assigned port of the RMI server. For
 convenience, ``<RMI_PORT>`` can be set to the same port the JMX server listens on.
 
-The ``<RMI_HOSTNAME>`` and ``<RMI_PORT>`` can be used by JMX clients (e.g. `JConsole`_ or `VisualVM`_) to connect to the JMX server.
+The ``<RMI_HOSTNAME>`` and ``<RMI_PORT>`` can be used by JMX clients (e.g.
+`JConsole`_ or `VisualVM`_) to connect to the JMX server.
 
 Here's an example Docker command::
 
@@ -98,7 +101,8 @@ Here's an example Docker command::
         -Djava.rmi.server.hostname=7979' \
         -p 7979:7979 crate
 
-Here, again, ``<RMI_HOSTNAME>`` is the IP address or hostname of the Docker host.
+Here, again, ``<RMI_HOSTNAME>`` is the IP address or hostname of the Docker
+host.
 
 JMX Beans
 ---------
@@ -106,9 +110,11 @@ JMX Beans
 QueryStats MBean
 ................
 
-The ``QueryStats`` JMX MBean exposes query frequency and average duration in milliseconds for ``SELECT``, ``UPDATE``, ``DELETE``, and ``INSERT`` queries.
+The ``QueryStats`` JMX MBean exposes query frequency and average duration in
+milliseconds for ``SELECT``, ``UPDATE``, ``DELETE``, and ``INSERT`` queries.
 
-Metrics can be accessed using the JMX MBean object name ``io.crate.monitoring:type=QueryStats`` and the following attributes:
+Metrics can be accessed using the JMX MBean object name
+``io.crate.monitoring:type=QueryStats`` and the following attributes:
 
 Frequency:
 

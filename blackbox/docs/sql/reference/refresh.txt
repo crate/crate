@@ -17,8 +17,8 @@ Synopsis
 Description
 ===========
 
-The REFRESH TABLE command refreshes one or more tables and all its rows,
-making all changes made to that table available to all further commands.
+The REFRESH TABLE command refreshes one or more tables and all its rows, making
+all changes made to that table available to all further commands.
 
 The ``PARTITION`` clause can be used to only refresh specific partitions of a
 partitioned table. All columns by which a table is partitioned are required.
@@ -28,22 +28,22 @@ For performance reasons doing that should be avoided if possible.
 
 See :ref:`partitioned_tables` for more information on partitioned tables.
 
-Without issuing this statement there is no guarantee that a change
-(``UPDATE``, ``DELETE``, ``COPY`` or ``INSERT``) will be seen by an
-immediately following ``SELECT`` statement for the row(s) affected by
-this change. By default a refresh is scheduled periodically.
+Without issuing this statement there is no guarantee that a change (``UPDATE``,
+``DELETE``, ``COPY`` or ``INSERT``) will be seen by an immediately following
+``SELECT`` statement for the row(s) affected by this change. By default a
+refresh is scheduled periodically.
 
-Internally a refresh opens a new table reader, which is then used by
-all subsequent searches on the affected table.
+Internally a refresh opens a new table reader, which is then used by all
+subsequent searches on the affected table.
 
-For further details see :ref:`refresh_data`. For changing the refresh
-interval see :ref:`sql_ref_refresh_interval`.
+For further details see :ref:`refresh_data`. For changing the refresh interval
+see :ref:`sql_ref_refresh_interval`.
 
 Parameters
 ==========
 
-:table_ident: The name (optionally schema-qualified) of an existing
-    table that is to be refreshed.
+:table_ident: The name (optionally schema-qualified) of an existing table that
+              is to be refreshed.
 
 :partition_column: Column name by which the table is partitioned.
 

@@ -5,25 +5,25 @@
 CrateDB CLI
 ===========
 
-After downloading and extracting the tarball (see :ref:`install_targz`)
-you will be able to invoke the CrateDB executable in the ``bin`` directory.
-The excutable is named ``crate``.
+After downloading and extracting the tarball (see :ref:`install_targz`) you
+will be able to invoke the CrateDB executable in the ``bin`` directory. The
+excutable is named ``crate``.
 
-The simplest way to start a CrateDB instance is to invoke ``crate`` without parameters.
-This will start the process in the foreground.
+The simplest way to start a CrateDB instance is to invoke ``crate`` without
+parameters. This will start the process in the foreground.
 
 ::
 
   sh$ ./bin/crate
 
-You can also start CrateDB in the background using the ``-d`` option. When starting CrateDB
-in the background it is helpful to write the process id into a pid file so you can find
-out the process id easlily::
+You can also start CrateDB in the background using the ``-d`` option. When
+starting CrateDB in the background it is helpful to write the process id into a
+pid file so you can find out the process id easlily::
 
   sh$ ./bin/crate -d -p ./crate.pid
 
-To stop the process that is running in the background send the
-``TERM`` or ``INT`` signal to it.
+To stop the process that is running in the background send the ``TERM`` or
+``INT`` signal to it.
 
 ::
 

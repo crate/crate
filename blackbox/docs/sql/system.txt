@@ -5,9 +5,9 @@
 System Information
 ==================
 
-Crate provides the ``sys`` schema which contains virtual tables.
-These tables are read-only and can be queried to get statistical
-real-time information about the cluster, its nodes and their shards:
+Crate provides the ``sys`` schema which contains virtual tables. These tables
+are read-only and can be queried to get statistical real-time information about
+the cluster, its nodes and their shards:
 
  * :ref:`sys.checks <sys-checks>`
  * :ref:`sys.cluster <sys-cluster>`
@@ -28,8 +28,8 @@ real-time information about the cluster, its nodes and their shards:
 Cluster
 =======
 
-Basic information about the Crate cluster can be retrieved from
-the ``sys.cluster`` table:
+Basic information about the Crate cluster can be retrieved from the
+``sys.cluster`` table:
 
 +------------------+---------------------------------+-------------------+
 | Name             | Description                     | Return Type       |
@@ -66,8 +66,8 @@ The result has at most 1 row::
 Cluster Settings
 ----------------
 
-The ``sys.cluster.settings`` expression returns information about the
-currently applied cluster settings.
+The ``sys.cluster.settings`` expression returns information about the currently
+applied cluster settings.
 
 ::
 
@@ -191,7 +191,8 @@ currently applied cluster settings.
     +-----------------------------------------------------------------------------------+--------------+
     SELECT ... rows in set (... sec)
 
-For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` configuration section.
+For further details, see the :ref:`Cluster Settings <conf-cluster-settings>`
+configuration section.
 
 .. _sys-nodes:
 
@@ -199,6 +200,7 @@ Nodes
 =====
 
 To get information about the nodes query for `sys.nodes`.
+
 This table can be queried for one, multiple or all nodes within a cluster.
 
 The table schema is as follows:
@@ -552,16 +554,17 @@ calculate the time difference between 2 probes.
 | ``process['cpu']['system']``             | The process CPU kernel time in milliseconds.   | ``Long``     |
 +------------------------------------------+------------------------------------------------+--------------+
 
-The cpu information values are cached for 1s. They might differ from the actual values
-at query time. Use the probe timestamp to get the time of the collect. When analyzing the
-cpu usage over time, always use ``process['probe_timestamp']`` to calculate the time difference
-between 2 probes.
+The cpu information values are cached for 1s. They might differ from the actual
+values at query time. Use the probe timestamp to get the time of the collect.
+When analyzing the cpu usage over time, always use
+``process['probe_timestamp']`` to calculate the time difference between 2
+probes.
 
 .. note::
 
-    If one of the queried nodes is not responding within three seconds
-    it returns ``null`` every column except ``id`` and ``name``.
-    This behaviour could be used to detect hanging nodes.
+    If one of the queried nodes is not responding within three seconds it
+    returns ``null`` every column except ``id`` and ``name``. This behaviour
+    could be used to detect hanging nodes.
 
 .. _sys-node-checks:
 
@@ -617,29 +620,28 @@ Example query::
 Acknowledge Failed Checks
 -------------------------
 
-It is possible to acknowledge every check by updating the
-``acknowledged`` column. By doing this, specially Crate's built-in
-Admin-UI won't complain anymore about failing checks.
+It is possible to acknowledge every check by updating the ``acknowledged``
+column. By doing this, specially Crate's built-in Admin-UI won't complain
+anymore about failing checks.
 
 Imagine we've added a new node to our cluster, but as the
 :ref:`gateway.expected_nodes <gateway.expected_nodes>` column can only
-be set via config-file or command-line argument, the check for this
-setting will not pass on the already running nodes until the
-config-file or command-line argument on these nodes is updated and the
-nodes are restarted (which is not what we want on a healthy well
-running cluster).
+be set via config-file or command-line argument, the check for this setting
+will not pass on the already running nodes until the config-file or
+command-line argument on these nodes is updated and the nodes are restarted
+(which is not what we want on a healthy well running cluster).
 
-In order to make the Admin-UI accept a failing check (so the checks
-label goes green again), we must acknowledge this check by updating
-it's ``acknowledged`` flag::
+In order to make the Admin-UI accept a failing check (so the checks label goes
+green again), we must acknowledge this check by updating it's ``acknowledged``
+flag::
 
   cr> update sys.node_checks set acknowledged = true where id = 1;
   UPDATE OK, 1 row affected (... sec)
 
 .. note::
 
-    Updates on this column are transient, so changed values are lost
-    after the affected node is restarted.
+   Updates on this column are transient, so changed values are lost after the
+   affected node is restarted.
 
 Description of Checked Node Settings
 ------------------------------------
@@ -647,18 +649,18 @@ Description of Checked Node Settings
 Recovery Expected Nodes
 .......................
 
-The check for the :ref:`gateway.expected_nodes
-<gateway.expected_nodes>` setting checks that the number of nodes that
-should be waited for the immediate cluster state recovery, must be
-equal to the maximum number of data and master nodes in the cluster.
+The check for the :ref:`gateway.expected_nodes <gateway.expected_nodes>`
+setting checks that the number of nodes that should be waited for the immediate
+cluster state recovery, must be equal to the maximum number of data and master
+nodes in the cluster.
 
 Recovery After Nodes
 ....................
 
 The check for the :ref:`gateway.recover_after_nodes
-<gateway.recover_after_nodes>` verifies that the number of started
-nodes before the cluster starts must be greater than the half of the
-expected number of nodes and equal/less than number of nodes in the cluster.
+<gateway.recover_after_nodes>` verifies that the number of started nodes before
+the cluster starts must be greater than the half of the expected number of
+nodes and equal/less than number of nodes in the cluster.
 
 ::
 
@@ -671,32 +673,32 @@ Recovery After Time
 ...................
 
 The check for the :ref:`gateway.recover_after_time
-<gateway.recover_after_time>` settings verifies that the time before
-recovery starts must not be less than default value of ``5m``.
+<gateway.recover_after_time>` settings verifies that the time before recovery
+starts must not be less than default value of ``5m``.
 
 Java 7 Deprecation Warning
 ..........................
 
-Starting with Crate 0.55.0 using Java 7 runtime environment is
-deprecated. Please update to Java 8 (>= update 20). See also `here
+Starting with Crate 0.55.0 using Java 7 runtime environment is deprecated.
+Please update to Java 8 (>= update 20). See also `here
 <https://crate.io/docs/reference/en/latest/installation.html#java-jvm-version>`_.
 
 Routing Allocation Disk Watermark High
 ......................................
 
 The check for the :ref:`cluster.routing.allocation.disk.watermark.high
-<cluster.routing.allocation.disk.watermark.high>` setting verifies that
-the high watermark is not exceeded on the current node. The usage of each disk
-for configured Crate data paths is verified against the threshold setting.
-If one or more verification fails the check is marked as not passed.
+<cluster.routing.allocation.disk.watermark.high>` setting verifies that the
+high watermark is not exceeded on the current node. The usage of each disk for
+configured Crate data paths is verified against the threshold setting. If one
+or more verification fails the check is marked as not passed.
 
 Routing Allocation Disk Watermark Low
 .....................................
 
 The check for the :ref:`cluster.routing.allocation.disk.watermark.low
 <cluster.routing.allocation.disk.watermark.low>` which controls the low
-watermark for the node disk usage. The check verifies that the low watermark
-is not exceeded on the current node. The verification is done against each disk
+watermark for the node disk usage. The check verifies that the low watermark is
+not exceeded on the current node. The verification is done against each disk
 for configured Crate data paths. The check is not passed if the verification
 for one or more disk fails.
 
@@ -705,8 +707,8 @@ for one or more disk fails.
 Shards
 ======
 
-The table ``sys.shards`` contains real-time statistics for all
-shards of all (non-system) tables.
+The table ``sys.shards`` contains real-time statistics for all shards of all
+(non-system) tables.
 
 The table schema is as follows:
 
@@ -899,8 +901,8 @@ The table schema is as follows:
 ``recovery``
 ------------
 
-Recovery is the process of moving a table shard to a different node or loading it
-from disk, e.g. during node startup (local gateway recovery), replication,
+Recovery is the process of moving a table shard to a different node or loading
+it from disk, e.g. during node startup (local gateway recovery), replication,
 shard rebalancing or snapshot recovery.
 
 +------------------------------------+----------------------------------------------------+-------------+
@@ -980,9 +982,9 @@ For example, you can query shards like this::
 Jobs, Operations, and Logs
 ==========================
 
-To see current activities in the cluster, crate provides the
-``sys.jobs`` and ``sys.operations`` tables and their corresponding "logs",
-``sys.jobs_log`` and ``sys.operations_log``.
+To see current activities in the cluster, crate provides the ``sys.jobs`` and
+``sys.operations`` tables and their corresponding "logs", ``sys.jobs_log`` and
+``sys.operations_log``.
 
 These tables are by default *always empty*. Jobs and operations aren't tracked
 unless stats collection is activated as tracking statistics adds a slight
@@ -1066,8 +1068,8 @@ table. The size of ``_log`` tables is determined by a fixed size
     +-...+------------------------------------...-+-...-----+-...---+-------+
     SELECT 2 rows in set (... sec)
 
-See :ref:`conf_collecting_stats` on how to enable logging and change the size of
-the corresponding tables.
+See :ref:`conf_collecting_stats` on how to enable logging and change the size
+of the corresponding tables.
 
 As described above the stats tracking is deactivated by default and has to be
 enabled using the ``SET`` statement. The same statement can be used to
@@ -1088,16 +1090,16 @@ deactivate the stats tracking. This will wipe all existing log entries::
 
 .. note::
 
-    Instead of ``SET``, the ``RESET`` statement could have been used to
-    reset the value of ``stats.enabled`` to its default which is false.
+   Instead of ``SET``, the ``RESET`` statement could have been used to reset
+   the value of ``stats.enabled`` to its default which is false.
 
 .. _sys-checks:
 
 Cluster Checks
 ==============
 
-The table ``sys.checks`` exposes a list of internal cluster checks and
-results of their validation.
+The table ``sys.checks`` exposes a list of internal cluster checks and results
+of their validation.
 
 The ``sys.checks`` table looks like this:
 
@@ -1147,9 +1149,10 @@ Minimum Master Nodes
 ....................
 
 The check for the :ref:`discovery.zen.minimum_master_nodes
-<discovery.zen.minimum_master_nodes>` setting verifies that the minimum
-number of nodes is equal/greater than the half of maximum number of nodes in
-the cluster.
+<discovery.zen.minimum_master_nodes>` setting verifies that the minimum number
+of nodes is equal/greater than the half of maximum number of nodes in the
+cluster.
+
 ::
 
   (N / 2) + 1 <= M
@@ -1158,7 +1161,8 @@ where ``N`` is the number of nodes in the cluster, and ``M`` is the value of
 the setting :ref:`discovery.zen.minimum_master_nodes
 <discovery.zen.minimum_master_nodes>`.
 
-You can change the value (via :ref:`ref-set`) permanently by issuing the following SQL statement::
+You can change the value (via :ref:`ref-set`) permanently by issuing the
+following SQL statement::
 
   SET GLOBAL PERSISTENT discovery.zen.minimum_master_nodes = M;
 
@@ -1263,8 +1267,8 @@ and reimported, this cluster check should pass.
 Repositories
 ============
 
-The table ``sys.repositories`` lists all configured repositories that can be used to
-create, manage and restore snapshots (see :ref:`snapshot-restore`).
+The table ``sys.repositories`` lists all configured repositories that can be
+used to create, manage and restore snapshots (see :ref:`snapshot-restore`).
 
 +---------------+-----------------------------------+-------------------+
 | Name          | Description                       | Return Type       |
@@ -1339,14 +1343,14 @@ repositories (see :ref:`snapshot-restore`).
 |                      | was created with.                |                   |
 +----------------------+----------------------------------+-------------------+
 
-Snapshot/Restore operates on a per-shard basis. Hence, the ``state`` column indicates
-whether all (``SUCCESS``), some (``PARTIAL``), or no shards(``FAILED``) have
-been backed up. ``PARTIAL`` snapshots are the result of some primaries becoming
-unavailable while taking the snapshot when there are no replicas at hand
-(cluster state is *RED*). If there are replicas of the (now unavailable) primaries
-(cluster state is *YELLOW*) the snapshot succeeds and all shards are
-included (state ``SUCCESS``). Building on a ``PARTIAL`` snapshot will include
-all primaries again.
+Snapshot/Restore operates on a per-shard basis. Hence, the ``state`` column
+indicates whether all (``SUCCESS``), some (``PARTIAL``), or no
+shards(``FAILED``) have been backed up. ``PARTIAL`` snapshots are the result of
+some primaries becoming unavailable while taking the snapshot when there are no
+replicas at hand (cluster state is *RED*). If there are replicas of the (now
+unavailable) primaries (cluster state is *YELLOW*) the snapshot succeeds and
+all shards are included (state ``SUCCESS``). Building on a ``PARTIAL`` snapshot
+will include all primaries again.
 
 .. warning::
 
@@ -1354,9 +1358,9 @@ all primaries again.
     to guarantee a full backup! Only ``SUCCESS`` includes all shards.
 
 The ``concrete_indices`` column contains the names of all Elasticsearch indices
-that were stored in the snapshot. A *normal* crate table maps to one Elasticsearch index,
-a partitioned table maps to one Elasticsearch index per partition.
-The mapping follows the following pattern:
+that were stored in the snapshot. A *normal* crate table maps to one
+Elasticsearch index, a partitioned table maps to one Elasticsearch index per
+partition. The mapping follows the following pattern:
 
 +-----------------------------------------+------------------------------------------+
 | CRATE table / partition name            | ``concrete_indices`` entry               |

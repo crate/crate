@@ -2,11 +2,13 @@
 Table Basics
 ============
 
-To create a table use the ``CREATE TABLE`` command. You must at least specify a name for the
-table and names and types of the columns.
+To create a table use the ``CREATE TABLE`` command. You must at least specify a
+name for the table and names and types of the columns.
+
 See :ref:`sql_ddl_datatypes` for information about the supported data types.
 
-Let's create a simple table with two columns of type ``integer`` and ``string``::
+Let's create a simple table with two columns of type ``integer`` and
+``string``::
 
     cr> create table my_table (
     ...   first_column integer,
@@ -19,8 +21,8 @@ A table can be removed by using the ``DROP TABLE`` command::
     cr> drop table my_table;
     DROP OK, 1 row affected (... sec)
 
-The ``DROP TABLE`` command takes the optional clause ``IF EXISTS`` which prevents the generation
-of an error if the specified table does not exist::
+The ``DROP TABLE`` command takes the optional clause ``IF EXISTS`` which
+prevents the generation of an error if the specified table does not exist::
 
     cr> drop table if exists my_table;
     DROP OK, 0 rows affected (... sec)
@@ -58,12 +60,12 @@ The following schema names are reserved and may not be used:
 
 .. note::
 
-   Schemas are primarily namespaces for tables. There is no notion of
-   access control. Everybody can see and manipulate tables in every schema.
+   Schemas are primarily namespaces for tables. There is no notion of access
+   control. Everybody can see and manipulate tables in every schema.
 
-A user created schema exists as long as there are tables with the same
-schema name. If the last table with that schema is dropped,
-the schema is gone (except for the ``blob`` and ``doc`` schema)::
+A user created schema exists as long as there are tables with the same schema
+name. If the last table with that schema is dropped, the schema is gone (except
+for the ``blob`` and ``doc`` schema)::
 
     cr> drop table my_schema.my_table ;
     DROP OK, 1 row affected (... sec)
@@ -93,12 +95,12 @@ the ``doc`` schema::
 Naming Restrictions
 ===================
 
-Table, schema and column identifiers cannot have the same names as reserved
-key words. Please refer to the :ref:`sql_lexical` section for
-more information about naming.
+Table, schema and column identifiers cannot have the same names as reserved key
+words. Please refer to the :ref:`sql_lexical` section for more information
+about naming.
 
-Additionally, table and schema names are restricted in terms of
-characters and length. They:
+Additionally, table and schema names are restricted in terms of characters and
+length. They:
 
   - may not contain one of the following characters: ``\ / * ? " < > |
     <whitespace> , #``

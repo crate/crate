@@ -22,6 +22,7 @@ Users cannot be backed up or restored.
 
     This document is not included in the doctest suite and therefore the
     following statements are not executed.
+
     The reason for that is, that the HTTP protocol does not support user
     authentication yet.
 
@@ -34,9 +35,8 @@ To create a new user for the CrateDB database cluster use the
     cr> CREATE USER user_a;
     CREATE OK, 1 row affected (... sec)
 
-The newly created user does not have any special privileges.
-It can be used to connect to the database cluster using available
-authentication methods.
+The newly created user does not have any special privileges. It can be used to
+connect to the database cluster using available authentication methods.
 
 The username parameter of the statement follows the principles of an identifier
 which means that it must be double-quoted if it contains special characters
@@ -98,8 +98,8 @@ shows whether the user has superuser privileges or not.
 
 .. warning::
 
-    When the :ref:`es_api_setting` is enabled, it is possible to read the
-    users data via the Elasticsearch API. Therefore access to the users table
-    is not restricted.
+   When the :ref:`es_api_setting` is enabled, it is possible to read the users
+   data via the Elasticsearch API. Therefore access to the users table is not
+   restricted.
 
 .. _Enterprise Edition: https://crate.io/enterprise/

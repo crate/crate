@@ -8,16 +8,16 @@ these rows. Crate supports joins and due to its distributed nature allows you
 to work with large amounts of data.
 
 In this document we will present the following topics. First, an overview of
-the existing types of joins and algorithms provided. Then a description of
-how Crate implements them, and finally how Crate uses optimizations to work
-with huge datasets.
+the existing types of joins and algorithms provided. Then a description of how
+Crate implements them, and finally how Crate uses optimizations to work with
+huge datasets.
 
 Types of Join
 =============
 
 A join is a relational operation that merges two data sets based on certain
-properties. :ref:`joins_figure_1` (Inspired by `this article`_) shows which elements appear
-in which join.
+properties. :ref:`joins_figure_1` (Inspired by `this article`_) shows which
+elements appear in which join.
 
 .. _joins_figure_1:
 
@@ -27,44 +27,50 @@ in which join.
 
    Figure 1
 
-   LEFT JOIN, RIGHT JOIN, INNER JOIN, OUTER JOIN, and CROSS JOIN of a set L and R.
+   LEFT JOIN, RIGHT JOIN, INNER JOIN, OUTER JOIN, and CROSS JOIN of a set L and
+   R.
 
 Cross Join
 ----------
 
-A **cross join** returns the Cartesian product of two or more relations.
-The result of the Cartesian product on the relation *L* and *R* consists of
-all possible permutations of each tuple of the relation *L* with every
-tuple of the relation *R*.
+A **cross join** returns the Cartesian product of two or more relations. The
+result of the Cartesian product on the relation *L* and *R* consists of all
+possible permutations of each tuple of the relation *L* with every tuple of the
+relation *R*.
 
 Inner Join
 ----------
 
-An **inner join** is a join of two or more relations that returns only
-tuples that satisfy the join condition.
+An **inner join** is a join of two or more relations that returns only tuples
+that satisfy the join condition.
 
 Equi Join
 .........
 
-An **equi join** is a subset of an inner join and a comparison-based
-join, that uses equality comparisons in the join condition. The equi
-join of the relation *L* and *R* combines tuple *l* of relation *L* with a tuple
-*r* of the relation *R* if the join attributes of both tuples are identical.
+An **equi join** is a subset of an inner join and a comparison-based join, that
+uses equality comparisons in the join condition. The equi join of the relation
+*L* and *R* combines tuple *l* of relation *L* with a tuple *r* of the relation
+*R* if the join attributes of both tuples are identical.
 
 Outer Join
 ----------
 
-An **outer join** returns a relation consisting of tuples that satisfy
-the join condition and dangling tuples from both or one of the
-relations, respectively to the outer join type.
+An **outer join** returns a relation consisting of tuples that satisfy the join
+condition and dangling tuples from both or one of the relations, respectively
+to the outer join type.
 
 An outer join has following types:
 
-  - **Left** outer join returns tuples of the relation *L* matching tuples of the relation *R* and dangling tuples of the relation *R* padded with null values.
+  - **Left** outer join returns tuples of the relation *L* matching tuples of
+    the relation *R* and dangling tuples of the relation *R* padded with null
+    values.
 
-  - **Right** outer join returns tuples of the relation *R* matching tuples of the relation *L* and dangling tuples from the relation *L* padded with null values.
+  - **Right** outer join returns tuples of the relation *R* matching tuples of
+    the relation *L* and dangling tuples from the relation *L* padded with null
+    values.
 
-  - **Full** outer join returns matching tuples of both relations and dangling tuples produced by left and right outer joins.
+  - **Full** outer join returns matching tuples of both relations and dangling
+    tuples produced by left and right outer joins.
 
 Joins in Crate
 ==============
@@ -79,8 +85,8 @@ Nested Loop Join
 The **nested loop** join is the simplest join algorithm. One of the relations
 is nominated as the inner relation and the other as the outer relation. Each
 tuple of the outer relation is compared with each tuple of the inner relation
-and if the join condition is satisfied, the tuples of the relation *L* and *R* are
-concatenated and added into the new relation::
+and if the join condition is satisfied, the tuples of the relation *L* and *R*
+are concatenated and added into the new relation::
 
     for each tuple l ∈ L do
         for each tuple r ∈ R do
@@ -92,30 +98,29 @@ concatenated and added into the new relation::
 Primitive Nested Loop
 .....................
 
-For joins on some relations, the nested loop operation can be executed
-directly on the handler node. Specifically for queries involving a CROSS
-JOIN or joins on `system tables`_ /`information_schema`_
-each shard sends the data to the handler node. Afterwards, this node
-runs the nested loop, applies limits, etc. and ultimately returns the
-results. Similarly, joins can be nested, so instead of collecting data
-from shards the rows can be the result of a previous join or `table function`_.
+For joins on some relations, the nested loop operation can be executed directly
+on the handler node. Specifically for queries involving a CROSS JOIN or joins
+on `system tables`_ /`information_schema`_ each shard sends the data to the
+handler node. Afterwards, this node runs the nested loop, applies limits, etc.
+and ultimately returns the results. Similarly, joins can be nested, so instead
+of collecting data from shards the rows can be the result of a previous join or
+`table function`_.
 
 Distributed Nested Loop
 .......................
 
-Relations are usually distributed to different nodes which require the
-nested loop to acquire the data before being able to join. After finding
-the locations of the required shards (which is done in the planning
-stage), the smaller data set (based on the row count) is broadcast amongst
-all the nodes holding the shards they are joined with. After that, each
-of the receiving nodes can start running a nested loop on the subset it
-has just received. Finally, the results are pushed to the original (planner)
-node to merge and return the results to the requesting client (see
+Relations are usually distributed to different nodes which require the nested
+loop to acquire the data before being able to join. After finding the locations
+of the required shards (which is done in the planning stage), the smaller data
+set (based on the row count) is broadcast amongst all the nodes holding the
+shards they are joined with. After that, each of the receiving nodes can start
+running a nested loop on the subset it has just received. Finally, the results
+are pushed to the original (planner) node to merge and return the results to
+the requesting client (see
 :ref:`joins_figure_2`).
 
-If the rows in the join result from or in another (nested) join or use
-a `table function`_ , the data is broadcast from (or to) different nodes
-directly.
+If the rows in the join result from or in another (nested) join or use a `table
+function`_ , the data is broadcast from (or to) different nodes directly.
 
 .. _joins_figure_2:
 
@@ -125,47 +130,45 @@ directly.
 
    Figure 2
 
-   Nodes that are holding the smaller shards broadcast the data to
-   the processing nodes which then return the results to the requesting node.
+   Nodes that are holding the smaller shards broadcast the data to the
+   processing nodes which then return the results to the requesting node.
 
 Optimization
 ------------
 
-Crate implements joins using a nested loop - which means that the
-runtime complexity grows exponentially (O(n*m)). Specifically
-for :ref:`cross-joins` this results in large amounts of data sent over
-the network and loaded into memory at the handler node. Crate reduces
-the volume of data transferred by employing Query Then Fetch: First,
-filtering and ordering are applied (if possible where the data is
-located) to obtain the affected document IDs. Next, as soon as the final
-data set is ready, Crate fetches the selected fields and returns the
-data to the client.
+Crate implements joins using a nested loop - which means that the runtime
+complexity grows exponentially (O(n*m)). Specifically for :ref:`cross-joins`
+this results in large amounts of data sent over the network and loaded into
+memory at the handler node. Crate reduces the volume of data transferred by
+employing Query Then Fetch: First, filtering and ordering are applied (if
+possible where the data is located) to obtain the affected document IDs. Next,
+as soon as the final data set is ready, Crate fetches the selected fields and
+returns the data to the client.
 
 Pre-Ordering and Limits
 .......................
 
-Queries can be optimized if they contain (a) ORDER BY, (b) LIMIT, or (c)
-if INNER/EQUI JOIN. In any of these cases, the nested loop can be
-terminated earlier:
+Queries can be optimized if they contain (a) ORDER BY, (b) LIMIT, or (c) if
+INNER/EQUI JOIN. In any of these cases, the nested loop can be terminated
+earlier:
 
 - Ordering allows determining whether there are records left
 - Limit states the maximum number of rows that are returned
 
-Consequently, the number of rows is significantly reduced allowing
-the operation to complete much faster.
+Consequently, the number of rows is significantly reduced allowing the
+operation to complete much faster.
 
 Push-Down Query Optimization
 ............................
 
-Complex queries such as Listing 2 require the planner to decide when to
-filter, sort, and merge in order to efficiently execute the plan. In
-this case, the query would be split internally into subqueries before
-running the nested loop. As shown in :ref:`joins_figure_3`, first filtering (and
-ordering) is applied to relations *L* and *R* on their shards, then the
-result is directly broadcast to the nodes running the nested loop. Not only
-will this behavior reduce the number of rows to work with, it also
-distributes the workload among the nodes so that the (expensive) join
-operation can run faster.
+Complex queries such as Listing 2 require the planner to decide when to filter,
+sort, and merge in order to efficiently execute the plan. In this case, the
+query would be split internally into subqueries before running the nested loop.
+As shown in :ref:`joins_figure_3`, first filtering (and ordering) is applied to
+relations *L* and *R* on their shards, then the result is directly broadcast to
+the nodes running the nested loop. Not only will this behavior reduce the
+number of rows to work with, it also distributes the workload among the nodes
+so that the (expensive) join operation can run faster.
 
 .. code-block:: SQL
 
@@ -176,7 +179,8 @@ operation can run faster.
       AND R.y < 10
     ORDER BY L.a
 
-*Listing 2. An INNER JOIN on ids (effectively an EQUI JOIN) which can be optimized.*
+*Listing 2. An INNER JOIN on ids (effectively an EQUI JOIN) which can be
+optimized.*
 
 .. _joins_figure_3:
 
@@ -186,8 +190,8 @@ operation can run faster.
 
    Figure 3
 
-   Complex queries are broken down into subqueries that are run
-   on their shards before joining.
+   Complex queries are broken down into subqueries that are run on their shards
+   before joining.
 
 Other Algorithms
 ----------------

@@ -5,8 +5,8 @@
 ``CREATE SNAPSHOT``
 ===================
 
-Create a new incremental snapshot inside a repository that contains the
-current state of the given tables and/or partitions and the cluster metadata.
+Create a new incremental snapshot inside a repository that contains the current
+state of the given tables and/or partitions and the cluster metadata.
 
 Synopsis
 ========
@@ -22,34 +22,36 @@ Description
 
 Create a new incremental snapshot inside a repository.
 
-A snapshot is a backup of the current state of the given tables and the cluster metadata
-at the point the CREATE SNAPSHOT query starts executing.
-Changes made after that are not considered for the snapshot.
+A snapshot is a backup of the current state of the given tables and the cluster
+metadata at the point the CREATE SNAPSHOT query starts executing. Changes made
+after that are not considered for the snapshot.
 
-A snapshot is fully qualified by its ``snapshot_name`` and the name of the repository
-it should be created in (``repository_name``). A ``snapshot_name`` must be unique
-per repository.
+A snapshot is fully qualified by its ``snapshot_name`` and the name of the
+repository it should be created in (``repository_name``). A ``snapshot_name``
+must be unique per repository.
 
 .. note::
 
-    For snapshot names the same :ref:`restrictions <sql_ddl_naming_restrictions>` as for table names apply.
+   For snapshot names the same :ref:`restrictions
+   <sql_ddl_naming_restrictions>` as for table names apply.
 
-    This is mainly because snapshot names will likely become stored as file or directory on disc
-    and hence must be valid filenames.
+   This is mainly because snapshot names will likely become stored as file or
+   directory on disc and hence must be valid filenames.
 
-Creating the snapshot operates on primary shards which are not currently relocated.
-If a shard is being relocated the snapshot of the shard is created
+Creating the snapshot operates on primary shards which are not currently
+relocated. If a shard is being relocated the snapshot of the shard is created
 when the relocation is completed.
 
 A snapshot only backups the parts of the data that are not yet stored in the
 given repository by older snapshots, thus creating snapshots is incremental.
 
-Snapshots can include one or more tables, each given as ``table_ident``.
-It is also possible to include only single partitions given the values of the partition columns.
+Snapshots can include one or more tables, each given as ``table_ident``. It is
+also possible to include only single partitions given the values of the
+partition columns.
 
-If ``ALL`` is used, every table in the cluster (except system tables, blob tables
-and information_schema tables) as well as all persistent settings and the full cluster metadata
-is included in the snapshot.
+If ``ALL`` is used, every table in the cluster (except system tables, blob
+tables and information_schema tables) as well as all persistent settings and
+the full cluster metadata is included in the snapshot.
 
 Parameters
 ==========
@@ -70,16 +72,17 @@ Parameters
 
     [ WITH (snapshot_parameter [= value], [, ...]) ]
 
-The following configuration parameters can be used to modify how the snapshot is
-created:
+The following configuration parameters can be used to modify how the snapshot
+is created:
 
 :wait_for_completion: (Default ``false``) By default the request returns once
                       the snapshot creation started. If set to ``true`` the
                       request returns after the whole snapshot was created or
                       an error occurred. The :ref:`sys.snapshots
-                      <sys-snapshots>` table can be queried
-                      to track the snapshot creation progress if
-                      ``wait_for_completion`` has been set to ``false``.
+                      <sys-snapshots>` table can be queried to track the
+                      snapshot creation progress if ``wait_for_completion`` has
+                      been set to ``false``.
 
-:ignore_unavailable: (Default ``false``) if a given table does not exist the command will fail by default.
-                     If set to ``true`` these tables are ignored and not included in the snapshot.
+:ignore_unavailable: (Default ``false``) if a given table does not exist the
+                     command will fail by default. If set to ``true`` these
+                     tables are ignored and not included in the snapshot.

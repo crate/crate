@@ -54,11 +54,10 @@ Fixes
    snapshot to fail.
 
  - Fixed the low/high disk-based shard allocation watermark settings. When a
-   percentage value is provided for either of settings, it won't be converted to
-   an absolute byte value.
+   percentage value is provided for either of settings, it won't be converted
+   to an absolute byte value.
 
- - Index columns based on string arrays are correctly populated with
-   values.
+ - Index columns based on string arrays are correctly populated with values.
 
  - Fixed evaluation on ``UPDATE`` of generated columns without referenced
    columns, e.g. generated columns with a ``CURRENT_TIMESTAMP`` expression.

@@ -5,12 +5,12 @@
 Lexical Structure
 =================
 
-An SQL input consists of a sequence of commands each of which
-is a sequence of tokens, terminated by a semicolon (``;``).
+An SQL input consists of a sequence of commands each of which is a sequence of
+tokens, terminated by a semicolon (``;``).
 
-The syntax of a command defines its set of valid tokens.
-A token can be a key word, an identifier, a quoted identifier,
-a literal (or constant), or a special character symbol.
+The syntax of a command defines its set of valid tokens. A token can be a key
+word, an identifier, a quoted identifier, a literal (or constant), or a special
+character symbol.
 
 .. _string_literal:
 
@@ -31,17 +31,17 @@ single quotes, e.g. ``'Jack''s car'``.
 
 .. note::
 
-  Two adjacent single quotes are **not** equivalent to the double-quote
-  character ``"``.
+   Two adjacent single quotes are **not** equivalent to the double-quote
+   character ``"``.
 
 .. _sql_lexical_keywords_identifiers:
 
 Key Words and Identifiers
 =========================
 
-The table bellow lists **key words** reserved in Crate and need to be quoted
-if used as identifiers. Items in bold are Crate specific and not included in
-the SQL standards from SQL-92 to SQL-2011.
+The table bellow lists **key words** reserved in Crate and need to be quoted if
+used as identifiers. Items in bold are Crate specific and not included in the
+SQL standards from SQL-92 to SQL-2011.
 
 .. csv-table::
    :widths: 10, 10, 10, 10
@@ -154,7 +154,8 @@ the SQL standards from SQL-92 to SQL-2011.
     DENSE_RANK, MATCH, SCOPE,
 
 Tokens such as ``my_table``, ``id``, ``name``, or ``data`` in the example above
-are **identifiers**, which identify names of tables, columns, and other database objects.
+are **identifiers**, which identify names of tables, columns, and other
+database objects.
 
 Example::
 
@@ -191,9 +192,9 @@ lowercase, such as
 
   INSERT INTO foo (id, name) VALUES (1, 'bar');
 
-Quoted identifiers can contain an arbitrary sequence of charactes enclosed
-by double quotes (``"``). Quoted identifiers are never keywords, so you can
-use ``"update"`` as a table or column name.
+Quoted identifiers can contain an arbitrary sequence of charactes enclosed by
+double quotes (``"``). Quoted identifiers are never keywords, so you can use
+``"update"`` as a table or column name.
 
 .. note::
 
@@ -207,11 +208,13 @@ Special Characters
 ==================
 
 Some non-alphanumeric characters do have a special meaning. For their usage
-please refer to the sections where the respective syntax elements are described.
+please refer to the sections where the respective syntax elements are
+described.
 
 :Semicolon:
-    The semicolon (``;``) terminates an SQL statement. It cannot appear anywhere
-    else within the command, except within a string or quoted identifier.
+    The semicolon (``;``) terminates an SQL statement. It cannot appear
+    anywhere else within the command, except within a string or quoted
+    identifier.
 
 :Comma:
     The comma (``,``) is used in various syntactical elements to separate
@@ -222,21 +225,21 @@ please refer to the sections where the respective syntax elements are described.
     e.g. ``arr[1]`` or ``obj['key']``.
 
 :Asterisk:
-    The asterisk (``*``) is used in some contexts to denote all columns of
-    a table. As an argument in global aggregate functions it has the meaning
-    of *any field*, e.g. ``COUNT(*)``.
+    The asterisk (``*``) is used in some contexts to denote all columns of a
+    table. As an argument in global aggregate functions it has the meaning of
+    *any field*, e.g. ``COUNT(*)``.
 
 :Period:
-    The period (``.``) is used for numeric values and to separate schema
-    and table names, e.g. ``blob.my_blob_table``.
+    The period (``.``) is used for numeric values and to separate schema and
+    table names, e.g. ``blob.my_blob_table``.
 
 .. _sql_lexical_comments:
 
 Comments
 ========
 
-An SQL input can contain comments. Comments are not implemented on the
-server side, but the `crash`_ command line interface ignores single line comments.
+An SQL input can contain comments. Comments are not implemented on the server
+side, but the `crash`_ command line interface ignores single line comments.
 Single line comments start with a double dash (``--``) and end at the end of
 that line.
 

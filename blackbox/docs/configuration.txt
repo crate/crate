@@ -6,36 +6,34 @@
 Configuration
 =============
 
-Since CrateDB has sensible defaults, there is no configuration
-needed at all for basic operation.
+Since CrateDB has sensible defaults, there is no configuration needed at all
+for basic operation.
 
-CrateDB is mainly configured via a configuration file, which is
-located at ``config/crate.yml``. The vanilla configuration file
-distributed with the package has all available settings as comments
-in it along with the according default value.
+CrateDB is mainly configured via a configuration file, which is located at
+``config/crate.yml``. The vanilla configuration file distributed with the
+package has all available settings as comments in it along with the according
+default value.
 
-The location of the config file can be specified upon startup like
-this::
+The location of the config file can be specified upon startup like this::
 
     sh$ ./bin/crate -Cpath.conf=/path/to/config/directory
 
 Any setting can be configured either by the config file or via the ``-C``
 option upon startup.
 
-For example, configuring the cluster name by using command line
-properties will work this way::
+For example, configuring the cluster name by using command line properties will
+work this way::
 
     sh$ ./bin/crate -Ccluster.name=cluster
 
 .. highlight:: yaml
 
-This is exactly the same as setting the cluster name in the config
-file::
+This is exactly the same as setting the cluster name in the config file::
 
     cluster.name = cluster
 
-Settings will get applied in the following order where the latter one
-will overwrite the prior one:
+Settings will get applied in the following order where the latter one will
+overwrite the prior one:
 
  1. internal defaults
  2. options from config file
@@ -46,14 +44,15 @@ will overwrite the prior one:
 Table Settings
 ==============
 
-For more info about table creating syntax please refer to :ref:`ref-create-table`
+For more info about table creating syntax please refer to
+:ref:`ref-create-table`
 
 **number_of_replicas**
   | *Default:*    ``1``
   | *Runtime:*    ``yes``
 
-  Specifies the number or range of replicas each shard of a table should
-  have for normal operation.
+  Specifies the number or range of replicas each shard of a table should have
+  for normal operation.
 
 **refresh_interval**
   | *Default:*   ``1000``
@@ -70,17 +69,18 @@ Blocks
   | *Default:*   ``false``
   | *Runtime:*   ``yes``
 
-  If set to ``true``, the table will be ``read_only`` and no write,
-  alter and drop operations are allowed.
-  It has the same effect like setting ``blocks.read`` and
-  ``blocks.metadata`` to ``true``.
+  If set to ``true``, the table will be ``read_only`` and no write, alter and
+  drop operations are allowed.
+
+  It has the same effect like setting ``blocks.read`` and ``blocks.metadata``
+  to ``true``.
 
 **blocks.read**
   | *Default:*   ``false``
   | *Runtime:*   ``yes``
 
-  If set to ``true``, no read (including export and snapshot)
-  operations are allowed on that table.
+  If set to ``true``, no read (including export and snapshot) operations are
+  allowed on that table.
 
 **blocks.write**
   | *Default:*   ``false``
@@ -93,9 +93,9 @@ Blocks
   | *Runtime:*   ``yes``
 
   If set to ``true``, no alter or drop operations are allowed.
-  There is one exception: setting a single ``blocks.*`` setting is
-  still allowed using ``ALTER`` to make it possible to change the
-  blocks setting.
+
+  There is one exception: setting a single ``blocks.*`` setting is still
+  allowed using ``ALTER`` to make it possible to change the blocks setting.
 
 Translog
 --------
@@ -103,11 +103,11 @@ Translog
 .. note::
 
   The translog provides a persistent log of all operations that have not been
-  transferred (flushed) to disk. Whenever a record is inserted into a table
-  (or updated) that change is appended both to an in-memory buffer **and** the
-  translog. When the translog reaches a certain size
-  (see :ref:`flush.threshold.size <flush_threshold_size>`)
-  the translog is ``fsynced``, flushed to disk, and cleared.
+  transferred (flushed) to disk. Whenever a record is inserted into a table (or
+  updated) that change is appended both to an in-memory buffer **and** the
+  translog. When the translog reaches a certain size (see
+  :ref:`flush.threshold.size <flush_threshold_size>`) the translog is
+  ``fsynced``, flushed to disk, and cleared.
 
 .. _flush_threshold_size:
 
@@ -122,9 +122,9 @@ Translog
   | *Runtime:*   ``no``
 
   Setting ``index.translog.sync_interval`` controls the period after which the
-  translog is ``fsynced`` to disk (defaults to 5 s). Value cannot be set below 100ms.
-  When setting this interval, please keep in mind that changes logged during this
-  interval and not synced to disk may get lost in case of a failure.
+  translog is ``fsynced`` to disk (defaults to 5 s). Value cannot be set below
+  100ms. When setting this interval, please keep in mind that changes logged
+  during this interval and not synced to disk may get lost in case of a failure.
 
 Allocation
 ----------
@@ -171,12 +171,12 @@ Unassigned
   | *Default:*  ``1m``
   | *Runtime:*  ``yes``
 
-  Delay the allocation of replica shards which have become unassigned because
-  a node has left. It defaults to ``1m`` to give a node time to restart
+  Delay the allocation of replica shards which have become unassigned because a
+  node has left. It defaults to ``1m`` to give a node time to restart
   completely (which can take some time when the node has lots of shards).
   Setting the timeout to ``0`` will start allocation immediately. This setting
-  can be changed on runtime in order to increase/decrease the delayed allocation
-  if needed.
+  can be changed on runtime in order to increase/decrease the delayed
+  allocation if needed.
 
 Column Policy
 -------------
@@ -201,7 +201,8 @@ Node Specific Settings
 **node.name**
   | *Runtime:* ``no``
 
-  The name of the node. If no name is configured a random one will be generated.
+  The name of the node. If no name is configured a random one will be
+  generated.
 
 .. note::
 
@@ -211,8 +212,8 @@ Node Specific Settings
   | *Default:*    ``1``
   | *Runtime:*   ``no``
 
-  Defines how many nodes are allowed to be started on the same machine using the
-  same configured data path defined via `path.data`_.
+  Defines how many nodes are allowed to be started on the same machine using
+  the same configured data path defined via `path.data`_.
 
 Node Types
 ----------
@@ -243,8 +244,8 @@ to differentiate nodes upon startup:
   | *Default:* ``false``
   | *Runtime:* ``no``
 
-  If set to ``true``, the node will use a *JVM-local*
-  transport and discovery. *Used primarily for testing purposes.*
+  If set to ``true``, the node will use a *JVM-local* transport and discovery.
+  *Used primarily for testing purposes.*
 
 Examples
 ........
@@ -261,8 +262,8 @@ and respond to queries:
      data: true
      master: false
 
-*Master-only*-nodes that do not contain *data* but are able to become *master* can be used to
-separate cluster-management loads from the query execution loads:
+*Master-only*-nodes that do not contain *data* but are able to become *master*
+can be used to separate cluster-management loads from the query execution loads:
 
 .. code-block::
    yaml
@@ -287,8 +288,8 @@ Read-only node
   | *Default:* ``false``
   | *Runtime:* ``no``
 
-  If set to ``true``, the node will only allow SQL statements which
-  are resulting in read operations.
+  If set to ``true``, the node will only allow SQL statements which are
+  resulting in read operations.
 
 .. _conf_hosts:
 
@@ -301,8 +302,8 @@ Hosts
   | *Default:*   ``_local_``
   | *Runtime:*   ``no``
 
-  The IP address CrateDB will bind itself to. This setting sets
-  both the `network.bind_host`_ and `network.publish_host`_ values.
+  The IP address CrateDB will bind itself to. This setting sets both the
+  `network.bind_host`_ and `network.publish_host`_ values.
 
 .. _network.bind_host:
 
@@ -318,13 +319,13 @@ Hosts
   | *Default:*   ``_local_``
   | *Runtime:*   ``no``
 
-  This setting is used by a CrateDB node to publish its own address
-  to the rest of the cluster.
+  This setting is used by a CrateDB node to publish its own address to the rest
+  of the cluster.
 
   .. note::
 
-    Apart from IPv4 and IPv6 addresses there are some special values that can be used
-    for all above settings:
+    Apart from IPv4 and IPv6 addresses there are some special values that can
+    be used for all above settings:
 
     =========================   =================================================================
     **_local_**                 Any loopback addresses on the system, for example 127.0.0.1.
@@ -343,30 +344,33 @@ Ports
 **http.port**
   | *Runtime:*   ``no``
 
-  This defines the TCP port range to which the CrateDB HTTP service will be bound to.
-  It defaults to ``4200-4300``. Always the first free port in this range is used. If this is set
-  to an integer value it is considered as an explicit single port.
+  This defines the TCP port range to which the CrateDB HTTP service will be
+  bound to. It defaults to ``4200-4300``. Always the first free port in this
+  range is used. If this is set to an integer value it is considered as an
+  explicit single port.
 
-  The HTTP protocol is used for the REST endpoint which is used by all clients except the Java client.
+  The HTTP protocol is used for the REST endpoint which is used by all clients
+  except the Java client.
 
 .. _http.publish_port:
 
 **http.publish_port**
   | *Runtime:*   ``no``
 
-  The port HTTP clients should use to communicate with the node. It is necessary to
-  define this setting if the bound HTTP port (``http.port``)
-  of the node is not directly reachable from outside, e.g. running it
-  behind a firewall or inside a Docker container.
+  The port HTTP clients should use to communicate with the node. It is
+  necessary to define this setting if the bound HTTP port (``http.port``) of
+  the node is not directly reachable from outside, e.g. running it behind a
+  firewall or inside a Docker container.
 
 .. _transport.tcp.port:
 
 **transport.tcp.port**
   | *Runtime:*   ``no``
 
-  This defines the TCP port range to which the CrateDB transport service will be bound to.
-  It defaults to ``4300-4400``. Always the first free port in this range is used. If this is set
-  to an integer value it is considered as an explicit single port.
+  This defines the TCP port range to which the CrateDB transport service will
+  be bound to. It defaults to ``4300-4400``. Always the first free port in this
+  range is used. If this is set to an integer value it is considered as an
+  explicit single port.
 
   The transport protocol is used for internal node-to-node communication.
 
@@ -375,27 +379,29 @@ Ports
 **transport.publish_port**
   | *Runtime:*   ``no``
 
-  The port that the node publishes to the cluster for its own discovery. It is necessary to
-  define this setting when the bound tranport port (``transport.tcp.port``)
-  of the node is not directly reachable from outside, e.g. running it
-  behind a firewall or inside a Docker container.
+  The port that the node publishes to the cluster for its own discovery. It is
+  necessary to define this setting when the bound tranport port
+  (``transport.tcp.port``) of the node is not directly reachable from outside,
+  e.g. running it behind a firewall or inside a Docker container.
 
 .. _psql_port:
 
 **psql.port**
   | *Runtime:*   ``no``
 
-  This defines the TCP port range to which the CrateDB Postgres service will be bound to.
-  It defaults to ``5432-5532``. Always the first free port in this range is used. If this is set
-  to an integer value it is considered as an explicit single port.
+  This defines the TCP port range to which the CrateDB Postgres service will be
+  bound to. It defaults to ``5432-5532``. Always the first free port in this
+  range is used. If this is set to an integer value it is considered as an
+  explicit single port.
 
 .. _conf-node-attributes:
 
 Node Attributes
 ---------------
 
-It is possible to apply generic attributes to a node, with configuration settings
-like ``node.key: value``. These attributes can be used for customized shard allocation.
+It is possible to apply generic attributes to a node, with configuration
+settings like ``node.key: value``. These attributes can be used for customized
+shard allocation.
 
 See also :ref:`conf-routing-allocation-awareness` Settings.
 
@@ -405,16 +411,16 @@ Paths
 **path.conf**
   | *Runtime:* ``no``
 
-  Filesystem path to the directory containing the configuration files ``crate.yml``
-  and ``log4j2.properties``.
+  Filesystem path to the directory containing the configuration files
+  ``crate.yml`` and ``log4j2.properties``.
 
 .. _path.data:
 
 **path.data**
   | *Runtime:* ``no``
 
-  Filesystem path to the directory where this CrateDB node stores its data (table
-  data and cluster metadata).
+  Filesystem path to the directory where this CrateDB node stores its data
+  (table data and cluster metadata).
 
   Multiple paths can be set by using a comma separated list and each of these
   paths will hold full shards (instead of striping data across them). In case
@@ -425,6 +431,7 @@ Paths
   | *Runtime:* ``no``
 
   Filesystem path to a directory where log files should be stored.
+
   Can be used as a variable inside ``log4j2.properties``.
 
   For example:
@@ -444,12 +451,12 @@ Paths
   A list of filesystem or UNC paths where repositories of type
   :ref:`ref-create-repository-types-fs` may be stored.
 
-  Without this setting a CrateDB user could write snapshot files to any directory
-  that is writable by the CrateDB process. To safeguard against this security issue,
-  the possible paths have to be whitelisted here.
+  Without this setting a CrateDB user could write snapshot files to any
+  directory that is writable by the CrateDB process. To safeguard against this
+  security issue, the possible paths have to be whitelisted here.
 
-  See also :ref:`location <ref-create-repository-types-fs-location>` setting
-  of repository type ``fs``.
+  See also :ref:`location <ref-create-repository-types-fs-location>` setting of
+  repository type ``fs``.
 
 Plugins
 -------
@@ -458,6 +465,7 @@ Plugins
   | *Runtime:* ``no``
 
   A list of plugins that are required for a node to startup.
+
   If any plugin listed here, the CrateDB node will fail to start.
 
 Memory
@@ -468,8 +476,8 @@ Memory
   | *Default:* ``false``
 
   CrateDB performs poorly when the JVM starts swapping: you should ensure that
-  it *never* swaps. If set to ``true``, CrateDB will use the ``mlockall`` system
-  call on startup to ensure that the memory pages of the CrateDB process
+  it *never* swaps. If set to ``true``, CrateDB will use the ``mlockall``
+  system call on startup to ensure that the memory pages of the CrateDB process
   are locked into RAM.
 
 Garbage Collection
@@ -482,43 +490,43 @@ The following settings can be used to adjust these timeouts:
   | *Default:* ``1000ms``
   | *Runtime:* ``no``
 
-  CrateDB will log a warning message if it takes more than the configured timespan
-  to collect the *Eden Space* (heap).
+  CrateDB will log a warning message if it takes more than the configured
+  timespan to collect the *Eden Space* (heap).
 
 **monitor.jvm.gc.collector.young.info**
   | *Default:* ``700ms``
   | *Runtime:* ``no``
 
-  CrateDB will log an info message if it takes more than the configured timespan
-  to collect the *Eden Space* (heap).
+  CrateDB will log an info message if it takes more than the configured
+  timespan to collect the *Eden Space* (heap).
 
 **monitor.jvm.gc.collector.young.debug**
   | *Default:* ``400ms``
   | *Runtime:* ``no``
 
-  CrateDB will log a debug message if it takes more than the configured timespan
-  to collect the *Eden Space* (heap).
+  CrateDB will log a debug message if it takes more than the configured
+  timespan to collect the *Eden Space* (heap).
 
 **monitor.jvm.gc.collector.old.warn**
   | *Default:* ``10000ms``
   | *Runtime:* ``no``
 
-  CrateDB will log a warning message if it takes more than the configured timespan
-  to collect the *Old Gen* / *Tenured Gen* (heap).
+  CrateDB will log a warning message if it takes more than the configured
+  timespan to collect the *Old Gen* / *Tenured Gen* (heap).
 
 **monitor.jvm.gc.collector.old.info**
   | *Default:* ``5000ms``
   | *Runtime:* ``no``
 
-  CrateDB will log an info message if it takes more than the configured timespan
-  to collect the *Old Gen* / *Tenured Gen* (heap).
+  CrateDB will log an info message if it takes more than the configured
+  timespan to collect the *Old Gen* / *Tenured Gen* (heap).
 
 **monitor.jvm.gc.collector.old.debug**
   | *Default:* ``2000ms``
   | *Runtime:* ``no``
 
-  CrateDB will log a debug message if it takes more than the configured timespan
-  to collect the *Old Gen* / *Tenured Gen* (heap).
+  CrateDB will log a debug message if it takes more than the configured
+  timespan to collect the *Old Gen* / *Tenured Gen* (heap).
 
 .. _es_api_setting:
 
@@ -533,15 +541,15 @@ Elasticsearch HTTP REST API
 
   .. warning::
 
-    Manipulating your data via elasticsearch API and not via SQL
-    might result in inconsistent data. You have been warned!
+    Manipulating your data via elasticsearch API and not via SQL might result
+    in inconsistent data. You have been warned!
 
 Cross-Origin Resource Sharing (CORS)
 ------------------------------------
 
 Many browsers support the `same-origin policy`_ which requires web applications
-to explicitly allow requests across origins. The `cross-origin resource sharing`_
-settings in CrateDB allow for configuring these.
+to explicitly allow requests across origins. The `cross-origin resource
+sharing`_ settings in CrateDB allow for configuring these.
 
 **http.cors.enabled**
   | *Default:* ``false``
@@ -556,8 +564,8 @@ settings in CrateDB allow for configuring these.
   Define allowed origins of a request. ``*`` allows *any* origin (which can be
   a substantial security risk) and by prepending a ``/`` the string will be
   treated as a regular expression. For example ``/https?:\/\/crate.io/`` will
-  allow requests from ``http://crate.io`` and ``https://crate.io``. This setting
-  disallows any origin by default.
+  allow requests from ``http://crate.io`` and ``https://crate.io``. This
+  setting disallows any origin by default.
 
 **http.cors.max-age**
   | *Default:* ``1728000`` (20 days)
@@ -589,10 +597,11 @@ Blobs
 **blobs.path**
   | *Runtime:* ``no``
 
-  Path to a filesystem directory where to store blob data allocated for this node.
+  Path to a filesystem directory where to store blob data allocated for this
+  node.
 
-  By default blobs will be stored under the same path as normal data.
-  A relative path value is interpreted as relative to ``CRATE_HOME``.
+  By default blobs will be stored under the same path as normal data. A
+  relative path value is interpreted as relative to ``CRATE_HOME``.
 
 .. _ref-configuration-repositories:
 
@@ -627,8 +636,8 @@ Repositories are used to :ref:`backup <snapshot-restore>` a CrateDB cluster.
   A list of protocols that are supported by repositories of type
   :ref:`ref-create-repository-types-url`.
 
-  The ``jar`` protocol is used to access the contents of jar files.
-  For more info, see the java `JarURLConnection documentation`_.
+  The ``jar`` protocol is used to access the contents of jar files. For more
+  info, see the java `JarURLConnection documentation`_.
 
 See also the :ref:`path.repo <conf-path-repo>` Setting.
 
@@ -640,21 +649,22 @@ Cluster Wide Settings
 All current applied cluster settings can be read by querying the
 :ref:`sys.cluster.settings <sys-cluster-settings>` column. Most
 cluster settings can be changed at runtime using the
-:ref:`SET/RESET<administration-set-reset>` statement. This is documented at each setting.
+:ref:`SET/RESET<administration-set-reset>` statement. This is documented at
+:each setting.
 
 .. _applying-cluster-settings:
 
 Non-Runtime Cluster Wide Settings
 ---------------------------------
 
-Cluster wide settings which cannot be changed at runtime need to be
-specified in the configuration of each node in the cluster.
+Cluster wide settings which cannot be changed at runtime need to be specified
+in the configuration of each node in the cluster.
 
 .. NOTE::
 
-   Cluster settings specified via node configurations are required to
-   be exactly the same on every node in the cluster for proper
-   operation of the cluster.
+   Cluster settings specified via node configurations are required to be
+   exactly the same on every node in the cluster for proper operation of the
+   cluster.
 
 .. _conf_collecting_stats:
 
@@ -667,14 +677,14 @@ Collecting Stats
   | *Default:*    ``false``
   | *Runtime:*   ``yes``
 
-  A boolean indicating whether or not to collect statistical
-  information about the cluster.
+  A boolean indicating whether or not to collect statistical information about
+  the cluster.
 
   .. note::
 
-    Enabling the collection of statistical information incurs a performance
-    penalty, as every operation across the cluster will cause data to be inserted
-    into the job logs table.
+     Enabling the collection of statistical information incurs a performance
+     penalty, as every operation across the cluster will cause data to be
+     inserted into the job logs table.
 
 .. _stats.jobs_log_size:
 
@@ -682,14 +692,15 @@ Collecting Stats
   | *Default:*   ``10000``
   | *Runtime:*  ``yes``
 
-  The maximum number of job records kept to be kept in the :ref:`sys.jobs_log <sys-logs>`
-  table on each node.
+  The maximum number of job records kept to be kept in the :ref:`sys.jobs_log
+  <sys-logs>` table on each node.
 
-  A job record corresponds to a single SQL statement to be executed on the cluster. These
-  records are used for performance analytics. A larger job log produces more comprehensive
-  stats, but uses more RAM.
+  A job record corresponds to a single SQL statement to be executed on the
+  cluster. These records are used for performance analytics. A larger job log
+  produces more comprehensive stats, but uses more RAM.
 
-  Older job records are deleted as newer records are added, once the limit is reached.
+  Older job records are deleted as newer records are added, once the limit is
+  reached.
 
   Setting this value to ``0`` disables collecting job information.
 
@@ -701,17 +712,18 @@ Collecting Stats
 
   The job record expiry time in seconds.
 
-  Job records in the :ref:`sys.jobs_log <sys-logs>` table are periodically cleared if
-  they are older than the expiry time. This setting overrides :ref:`stats.jobs_log_size
-  <stats.jobs_log_size>`.
+  Job records in the :ref:`sys.jobs_log <sys-logs>` table are periodically
+  cleared if they are older than the expiry time. This setting overrides
+  :ref:`stats.jobs_log_size <stats.jobs_log_size>`.
 
   If the value is set to ``0``, time based log entry eviction is disabled.
 
   .. note::
 
-    If both the :ref:`stats.operations_log_size <stats.operations_log_size>`
-    and :ref:`stats.operations_log_expiration <stats.operations_log_expiration>`
-    settings are disabled, jobs will not be recorded.
+     If both the :ref:`stats.operations_log_size <stats.operations_log_size>`
+     and
+     :ref:`stats.operations_log_expiration <stats.operations_log_expiration>`
+     settings are disabled, jobs will not be recorded.
 
 .. _stats.operations_log_size:
 
@@ -719,15 +731,15 @@ Collecting Stats
   | *Default:*   ``10000``
   | *Runtime:*  ``yes``
 
-  The maximum number of operations records to be kept in the :ref:`sys.operations_log
-  <sys-logs>` table on each node.
+  The maximum number of operations records to be kept in the
+  :ref:`sys.operations_log <sys-logs>` table on each node.
 
-  A job consists of one or more individual operations. Operations records are used for
-  performance analytics. A larger operations log produces more comprehensive stats, but
-  uses more RAM.
+  A job consists of one or more individual operations. Operations records are
+  used for performance analytics. A larger operations log produces more
+  comprehensive stats, but uses more RAM.
 
-  Older operations records are deleted as newer records are added, once the limit is
-  reached.
+  Older operations records are deleted as newer records are added, once the
+  limit is reached.
 
   Setting this value to ``0`` disables collecting operations information.
 
@@ -738,15 +750,16 @@ Collecting Stats
   | *Runtime:*  ``yes``
 
   Entries of :ref:`sys.operations_log <sys-logs>` are cleared by a periodically
-  job when they are older than the specified expire time. This setting overrides
-  :ref:`stats.operations_log_size <stats.operations_log_size>`. If the value is
-  set to ``0`` the time based log entry eviction is disabled.
+  job when they are older than the specified expire time. This setting
+  overrides :ref:`stats.operations_log_size <stats.operations_log_size>`. If
+  the value is set to ``0`` the time based log entry eviction is disabled.
 
   .. note::
 
-    If both setttings :ref:`stats.operations_log_size <stats.operations_log_size>`
-    and :ref:`stats.operations_log_expiration <stats.operations_log_expiration>`
-    are disabled, no job information will be collected.
+    If both setttings :ref:`stats.operations_log_size
+    <stats.operations_log_size>` and :ref:`stats.operations_log_expiration
+    <stats.operations_log_expiration>` are disabled, no job information will be
+    collected.
 
 .. _stats.service.interval:
 
@@ -754,12 +767,12 @@ Collecting Stats
   | *Default:*    ``1h``
   | *Runtime:*   ``yes``
 
-  Defines the refresh interval to refresh tables statistics used to
-  produce optimal query execution plans.
+  Defines the refresh interval to refresh tables statistics used to produce
+  optimal query execution plans.
 
-  This field expects a time value either as a long or double or
-  alternatively as a string literal with a time suffix
-  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
+  This field expects a time value either as a long or double or alternatively
+  as a string literal with a time suffix (``ms``, ``s``, ``m``, ``h``, ``d``,
+  ``w``).
 
   If the value provided is ``0`` then the refresh is disabled.
 
@@ -769,9 +782,9 @@ Collecting Stats
 
 .. _stats.breaker.log:
 
-Settings that control the behaviour of the the stats circuit breaker.
-There are two breakers in place, one for the jobs log and one for the operations
-log. For each of them the breaker limit can be set.
+Settings that control the behaviour of the the stats circuit breaker. There are
+two breakers in place, one for the jobs log and one for the operations log. For
+each of them the breaker limit can be set.
 
 .. _stats.breaker.log.jobs.limit:
 
@@ -795,16 +808,17 @@ log. For each of them the breaker limit can be set.
   :ref:`sys.operations_log <sys-logs>` table on each node.
 
   When this memory limit is reached the operations log circuit breaker logs an
-  error message and clears the :ref:`sys.operations_log <sys-logs>` table completely.
+  error message and clears the :ref:`sys.operations_log <sys-logs>` table
+  completely.
 
 .. _conf_usage_data_collector:
 
 Usage Data Collector
 --------------------
 
-The settings of the Usage Data Collector are read-only and cannot be set
-during runtime. Please refer to :ref:`usage_data_collector` to get further
-information about its usage.
+The settings of the Usage Data Collector are read-only and cannot be set during
+runtime. Please refer to :ref:`usage_data_collector` to get further information
+about its usage.
 
 .. _udc_enabled:
 
@@ -824,9 +838,9 @@ information about its usage.
 
   The delay for first ping after start-up.
 
-  This field expects a time value either as a long or double or
-  alternatively as a string literal with a time suffix
-  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
+  This field expects a time value either as a long or double or alternatively
+  as a string literal with a time suffix (``ms``, ``s``, ``m``, ``h``, ``d``,
+  ``w``).
 
 .. _cluster.udc.interval:
 
@@ -836,9 +850,9 @@ information about its usage.
 
   The interval a UDC ping is sent.
 
-  This field expects a time value either as a long or double or
-  alternatively as a string literal with a time suffix
-  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
+  This field expects a time value either as a long or double or alternatively
+  as a string literal with a time suffix (``ms``, ``s``, ``m``, ``h``, ``d``,
+  ``w``).
 
 .. _cluster.udc.url:
 
@@ -853,10 +867,10 @@ information about its usage.
 Graceful Stop
 -------------
 
-By default, when the CrateDB process stops it simply shuts down, possibly making some
-shards unavailable which leads to a *red* cluster state and lets some queries fail
-that required the now unavailable shards. In order to *safely* shutdown a CrateDB node,
-the graceful stop procedure can be used.
+By default, when the CrateDB process stops it simply shuts down, possibly
+making some shards unavailable which leads to a *red* cluster state and lets
+some queries fail that required the now unavailable shards. In order to
+*safely* shutdown a CrateDB node, the graceful stop procedure can be used.
 
 The following cluster settings can be used to change the shutdown behaviour of
 nodes of the cluster:
@@ -868,18 +882,18 @@ nodes of the cluster:
   | *Runtime:*  ``yes``
   | *Allowed Values:*   ``none | primaries | full``
 
-  ``none``: No minimum data availability is required. The node may
-  shut down even if records are missing after shutdown.
+  ``none``: No minimum data availability is required. The node may shut down
+  even if records are missing after shutdown.
 
-  ``primaries``: At least all primary shards need to be availabe after
-  the node has shut down. Replicas may be missing.
+  ``primaries``: At least all primary shards need to be availabe after the node
+  has shut down. Replicas may be missing.
 
-  ``full``: All records and all replicas need to be available after
-  the node has shut down. Data availability is full.
+  ``full``: All records and all replicas need to be available after the node
+  has shut down. Data availability is full.
 
   .. note::
 
-    This option is ignored if there is only 1 node in a cluster!
+     This option is ignored if there is only 1 node in a cluster!
 
 .. _cluster.graceful_stop.reallocate:
 
@@ -887,17 +901,18 @@ nodes of the cluster:
   | *Default:*   ``true``
   | *Runtime:*  ``yes``
 
-  ``true``: The ``graceful stop`` command allows shards to be
-  reallocated before shutting down the node in order to ensure minimum
-  data availability set with ``min_availability``.
+  ``true``: The ``graceful stop`` command allows shards to be reallocated
+  before shutting down the node in order to ensure minimum data availability
+  set with ``min_availability``.
 
-  ``false``: The ``graceful stop`` command will fail if the cluster
-  would need to reallocate shards in order to ensure the minimum data
-  availability set with ``min_availability``.
+  ``false``: The ``graceful stop`` command will fail if the cluster would need
+  to reallocate shards in order to ensure the minimum data availability set
+  with ``min_availability``.
 
   .. note::
 
-    Make sure you have enough nodes and enough disk space for the reallocation.
+     Make sure you have enough nodes and enough disk space for the
+     reallocation.
 
 .. _cluster.graceful_stop.timeout:
 
@@ -905,13 +920,13 @@ nodes of the cluster:
   | *Default:*   ``2h``
   | *Runtime:*  ``yes``
 
-  Defines the maximum waiting time in milliseconds for the
-  reallocation process to finish. The ``force`` setting will define
-  the behaviour when the shutdown process runs into this timeout.
+  Defines the maximum waiting time in milliseconds for the reallocation process
+  to finish. The ``force`` setting will define the behaviour when the shutdown
+  process runs into this timeout.
 
-  The timeout expects a time value either as a long or double or
-  alternatively as a string literal with a time suffix
-  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
+  The timeout expects a time value either as a long or double or alternatively
+  as a string literal with a time suffix (``ms``, ``s``, ``m``, ``h``, ``d``,
+  ``w``).
 
 .. _cluster.graceful_stop.force:
 
@@ -919,8 +934,8 @@ nodes of the cluster:
   | *Default:*   ``false``
   | *Runtime:*  ``yes``
 
-  Defines whether ``graceful stop`` should force stopping of the node
-  if it runs into the timeout which is specified with the
+  Defines whether ``graceful stop`` should force stopping of the node if it
+  runs into the timeout which is specified with the
   `cluster.graceful_stop.timeout`_ setting.
 
 .. _conf_bulk_operations:
@@ -928,10 +943,9 @@ nodes of the cluster:
 Bulk Operations
 ---------------
 
-SQL DML Statements involving a huge amount of rows
-like :ref:`copy_from`, :ref:`ref-insert` or :ref:`ref-update` can take an enormous
-amount of time and resources. The following settings change the behaviour of
-those queries.
+SQL DML Statements involving a huge amount of rows like :ref:`copy_from`,
+:ref:`ref-insert` or :ref:`ref-update` can take an enormous amount of time and
+resources. The following settings change the behaviour of those queries.
 
 .. _bulk.request_timeout:
 
@@ -939,8 +953,8 @@ those queries.
   | *Default:* ``1m``
   | *Runtime:* ``yes``
 
-  Defines the timeout of internal shard-based requests involved
-  in the execution of SQL DML Statements over a huge amount of rows.
+  Defines the timeout of internal shard-based requests involved in the
+  execution of SQL DML Statements over a huge amount of rows.
 
 .. _conf_discovery:
 
@@ -953,9 +967,9 @@ Discovery
   | *Default:*   ``1``
   | *Runtime:*  ``yes``
 
-  Set to ensure a node sees N other master eligible nodes to be
-  considered operational within the cluster. It's recommended to set
-  it to a higher value than 1 when running more than 2 nodes in the cluster.
+  Set to ensure a node sees N other master eligible nodes to be considered
+  operational within the cluster. It's recommended to set it to a higher value
+  than 1 when running more than 2 nodes in the cluster.
 
 .. _discovery.zen.ping_timeout:
 
@@ -963,9 +977,9 @@ Discovery
   | *Default:*   ``3s``
   | *Runtime:*  ``yes``
 
-  Set the time to wait for ping responses from other nodes when
-  discovering. Set this option to a higher value on a slow or congested network
-  to minimize discovery failures.
+  Set the time to wait for ping responses from other nodes when discovering.
+  Set this option to a higher value on a slow or congested network to minimize
+  discovery failures.
 
 .. _discovery.zen.publish_timeout:
 
@@ -973,12 +987,13 @@ Discovery
   | *Default:*   ``30s``
   | *Runtime:*  ``yes``
 
-  Time a node is waiting for responses from other nodes to a published
-  cluster state.
+  Time a node is waiting for responses from other nodes to a published cluster
+  state.
 
 .. NOTE::
 
-   Multicast used to be an option for node discovery, but was deprecated in CrateDB 1.0.3 and removed in CrateDB 1.1.
+   Multicast used to be an option for node discovery, but was deprecated in
+   CrateDB 1.0.3 and removed in CrateDB 1.1.
 
 .. _conf_host_discovery:
 
@@ -995,10 +1010,10 @@ configuration file.
 
 Currently there are two other discovery types: via DNS and via EC2 API.
 
-When a node starts up with one of these discovery types enabled, it performs
-a lookup using the settings for the specified mechanism listed below.
-The hosts and ports retrieved from the mechanism will be used to generate a
-list of unicast hosts for node discovery.
+When a node starts up with one of these discovery types enabled, it performs a
+lookup using the settings for the specified mechanism listed below. The hosts
+and ports retrieved from the mechanism will be used to generate a list of
+unicast hosts for node discovery.
 
 The same lookup is also performed by all nodes in a cluster whenever the master
 is re-elected (see :ref:`storage_consistency_cluster_meta_data`).
@@ -1015,11 +1030,11 @@ See also: :ref:`shared_nothing_discovery`.
 Discovery via DNS
 `````````````````
 
-Crate has built-in support for discovery via DNS. To enable DNS discovery
-the ``discovery.type`` setting needs to be set to ``srv``.
+Crate has built-in support for discovery via DNS. To enable DNS discovery the
+``discovery.type`` setting needs to be set to ``srv``.
 
-The order of the unicast hosts is defined by the priority, weight and name
-of each host defined in the SRV record. For example::
+The order of the unicast hosts is defined by the priority, weight and name of
+each host defined in the SRV record. For example::
 
     _crate._srv.example.com. 3600 IN SRV 2 20 4300 crate1.example.com.
     _crate._srv.example.com. 3600 IN SRV 1 10 4300 crate2.example.com.
@@ -1032,17 +1047,17 @@ would result in a list of discovery nodes ordered like::
 **discovery.srv.query**
   | *Runtime:*  ``no``
 
-  The DNS query that is used to look up SRV records,
-  usually in the format ``_service._protocol.fqdn``
-  If not set, the service discovery will not be able to look up any
-  SRV records.
+  The DNS query that is used to look up SRV records, usually in the format
+  ``_service._protocol.fqdn`` If not set, the service discovery will not be
+  able to look up any SRV records.
 
 **discovery.srv.resolver**
   | *Runtime:*  ``no``
 
-  The hostname or IP of the DNS server used to resolve DNS records.
-  If this is not set, or the specified hostname/IP is not resolvable,
-  the default (system) resolver is used.
+  The hostname or IP of the DNS server used to resolve DNS records. If this is
+  not set, or the specified hostname/IP is not resolvable, the default (system)
+  resolver is used.
+
   Optionally a custom port can be specified using the format ``hostname:port``.
 
 .. _conf_ec2_discovery:
@@ -1108,6 +1123,7 @@ Following settings control the discovery:
 
   EC2 instances for discovery can also be filtered by tags using the
   ``discovery.ec2.tag.`` prefix plus the tag name.
+
   E.g. to filter instances that have the ``environment`` tags with the value
   ``dev`` your setting will look like: ``discovery.ec2.tag.environment: dev``.
 
@@ -1129,12 +1145,14 @@ To enable Azure discovery set the ``discovery.type`` setting to ``azure``.
   | *Runtime:*  ``no``
 
   The name of the resource group the CrateDB cluster is running on.
+
   All nodes need to be started within the same resource group.
 
 **cloud.azure.management.subscription.id**
   | *Runtime:*  ``no``
 
   The subscription ID of your Azure account.
+
   You can find the ID on the `Azure Portal`_.
 
 **cloud.azure.management.tenant.id**
@@ -1173,29 +1191,28 @@ Routing Allocation
   | *Runtime:*  ``yes``
   | *Allowed Values:* ``all | none | primaries | new_primaries``
 
-  ``all`` allows all shard allocations, the cluster can allocate all
-  kinds of shards.
+  ``all`` allows all shard allocations, the cluster can allocate all kinds of
+  shards.
 
-  ``none`` allows no shard allocations at all. No shard will be moved
-  or created.
+  ``none`` allows no shard allocations at all. No shard will be moved or
+  created.
 
   ``primaries`` only primaries can be moved or created. This includes existing
   primary shards.
 
-  ``new_primaries`` allows allocations for new primary shards
-  only. This means that for example a newly added node will not
-  allocate any replicas. However it is still possible to allocate new
-  primary shards for new indices. Whenever you want to perform a zero
-  downtime upgrade of your cluster you need to set this value before
-  gracefully stopping the first node and reset it to ``all`` after
-  starting the last updated node.
+  ``new_primaries`` allows allocations for new primary shards only. This means
+  that for example a newly added node will not allocate any replicas. However
+  it is still possible to allocate new primary shards for new indices. Whenever
+  you want to perform a zero downtime upgrade of your cluster you need to set
+  this value before gracefully stopping the first node and reset it to ``all``
+  after starting the last updated node.
 
 .. note::
 
-  This allocation setting has no effect on recovery of primary shards!
-  Even when ``cluster.routing.allocation.enable`` is set to ``none``, nodes
-  will recover their unassigned local primary shards immediatelly after restart,
-  in case the ``recovery.initial_shards`` setting is satisfied.
+   This allocation setting has no effect on recovery of primary shards! Even
+   when ``cluster.routing.allocation.enable`` is set to ``none``, nodes will
+   recover their unassigned local primary shards immediatelly after restart, in
+   case the ``recovery.initial_shards`` setting is satisfied.
 
 .. _cluster.routing.allocation.allow_rebalance:
 
@@ -1204,9 +1221,9 @@ Routing Allocation
   | *Runtime:*  ``yes``
   | *Allowed Values:* ``always | indices_primary_active | indices_all_active``
 
-  Allow to control when rebalancing will happen based on the total
-  state of all the indices shards in the cluster. Defaulting to
-  ``indices_all_active`` to reduce chatter during initial recovery.
+  Allow to control when rebalancing will happen based on the total state of all
+  the indices shards in the cluster. Defaulting to ``indices_all_active`` to
+  reduce chatter during initial recovery.
 
 .. _cluster.routing.allocation.cluster_concurrent_rebalance:
 
@@ -1222,42 +1239,41 @@ Routing Allocation
   | *Default:*   ``4``
   | *Runtime:*  ``yes``
 
-  Define the number of initial recoveries of primaries that are
-  allowed per node. Since most times local gateway is used, those
-  should be fast and we can handle more of those per node without
-  creating load.
+  Define the number of initial recoveries of primaries that are allowed per
+  node. Since most times local gateway is used, those should be fast and we can
+  handle more of those per node without creating load.
 
 .. _cluster.routing.allocation.node_concurrent_recoveries:
 
 **cluster.routing.allocation.node_concurrent_recoveries**
   | *Default:*   ``2``
   | *Runtime:*  ``yes``
-    How many concurrent recoveries are allowed to happen on a node.
+
+  How many concurrent recoveries are allowed to happen on a node.
 
 .. _conf-routing-allocation-awareness:
 
 Awareness
 .........
 
-Cluster allocation awareness allows to configure shard and replicas
-allocation across generic attributes associated with nodes.
+Cluster allocation awareness allows to configure shard and replicas allocation
+across generic attributes associated with nodes.
 
 .. _cluster.routing.allocation.awareness.attributes:
 
 **cluster.routing.allocation.awareness.attributes**
   | *Runtime:*  ``no``
 
-  Define node attributes which will be used to do awareness based on
-  the allocation of a shard and its replicas. For example, let's say
-  we have defined an attribute ``rack_id`` and we start 2 nodes with
-  ``node.rack_id`` set to rack_one, and deploy a single table with 5
-  shards and 1 replica. The table will be fully deployed on the
-  current nodes (5 shards and 1 replica each, total of 10 shards).
+  Define node attributes which will be used to do awareness based on the
+  allocation of a shard and its replicas. For example, let's say we have
+  defined an attribute ``rack_id`` and we start 2 nodes with ``node.rack_id``
+  set to rack_one, and deploy a single table with 5 shards and 1 replica. The
+  table will be fully deployed on the current nodes (5 shards and 1 replica
+  each, total of 10 shards).
 
-  Now, if we start two more nodes, with ``node.rack_id`` set to
-  rack_two, shards will relocate to even the number of shards across
-  the nodes, but a shard and its replica will not be allocated in the
-  same rack_id value.
+  Now, if we start two more nodes, with ``node.rack_id`` set to rack_two,
+  shards will relocate to even the number of shards across the nodes, but a
+  shard and its replica will not be allocated in the same rack_id value.
 
   The awareness attributes can hold several values
 
@@ -1266,24 +1282,23 @@ allocation across generic attributes associated with nodes.
 **cluster.routing.allocation.awareness.force.\*.values**
   | *Runtime:*  ``no``
 
-  Attributes on which shard allocation will be forced. ``*`` is a
-  placeholder for the awareness attribute, which can be defined using
-  the `cluster.routing.allocation.awareness.attributes`_
-  setting. Let's say we configured an awareness attribute ``zone`` and
-  the values ``zone1, zone2`` here, start 2 nodes with ``node.zone``
-  set to ``zone1`` and create a table with 5 shards and 1
-  replica. The table will be created, but only 5 shards will be
-  allocated (with no replicas). Only when we start more shards with
+  Attributes on which shard allocation will be forced. ``*`` is a placeholder
+  for the awareness attribute, which can be defined using the
+  `cluster.routing.allocation.awareness.attributes`_ setting. Let's say we
+  configured an awareness attribute ``zone`` and the values ``zone1, zone2``
+  here, start 2 nodes with ``node.zone`` set to ``zone1`` and create a table
+  with 5 shards and 1 replica. The table will be created, but only 5 shards
+  will be allocated (with no replicas). Only when we start more shards with
   ``node.zone`` set to ``zone2`` the replicas will be allocated.
 
 Balanced Shards
 ...............
 
-All these values are relative to one another. The first three are used
-to compose a three separate weighting functions into one. The cluster
-is balanced when no allowed action can bring the weights of each node
-closer together by more then the fourth setting. Actions might not be
-allowed, for instance, due to forced awareness or allocation filtering.
+All these values are relative to one another. The first three are used to
+compose a three separate weighting functions into one. The cluster is balanced
+when no allowed action can bring the weights of each node closer together by
+more then the fourth setting. Actions might not be allowed, for instance, due
+to forced awareness or allocation filtering.
 
 .. _cluster.routing.allocation.balance.shard:
 
@@ -1291,9 +1306,9 @@ allowed, for instance, due to forced awareness or allocation filtering.
   | *Default:*   ``0.45f``
   | *Runtime:*  ``yes``
 
-  Defines the weight factor for shards allocated on a node
-  (float). Raising this raises the tendency to equalize the number of
-  shards across all nodes in the cluster.
+  Defines the weight factor for shards allocated on a node (float). Raising
+  this raises the tendency to equalize the number of shards across all nodes in
+  the cluster.
 
 .. _cluster.routing.allocation.balance.index:
 
@@ -1301,9 +1316,9 @@ allowed, for instance, due to forced awareness or allocation filtering.
   | *Default:*   ``0.55f``
   | *Runtime:*  ``yes``
 
-  Defines a factor to the number of shards per index allocated on a
-  specific node (float). Increasing this value raises the tendency to
-  equalize the number of shards per index across all nodes in the cluster.
+  Defines a factor to the number of shards per index allocated on a specific
+  node (float). Increasing this value raises the tendency to equalize the
+  number of shards per index across all nodes in the cluster.
 
 .. _cluster.routing.allocation.balance.threshold:
 
@@ -1311,44 +1326,42 @@ allowed, for instance, due to forced awareness or allocation filtering.
   | *Default:*   ``1.0f``
   | *Runtime:*  ``yes``
 
-  Minimal optimization value of operations that should be performed
-  (non negative float). Increasing this value will cause the cluster
-  to be less aggressive about optimising the shard balance.
+  Minimal optimization value of operations that should be performed (non
+  negative float). Increasing this value will cause the cluster to be less
+  aggressive about optimising the shard balance.
 
 Cluster-Wide Allocation Filtering
 .................................
 
-Allow to control the allocation of all shards based on include/exclude
-filters.
-E.g. this could be used to allocate all the new shards on the nodes
-with specific IP addresses or custom attributes.
+Allow to control the allocation of all shards based on include/exclude filters.
+
+E.g. this could be used to allocate all the new shards on the nodes with
+specific IP addresses or custom attributes.
 
 .. _cluster.routing.allocation.include.*:
 
 **cluster.routing.allocation.include.***
   | *Runtime:*  ``no``
 
-  Place new shards only on nodes where one of the specified values
-  matches the attribute. e.g.:
-  cluster.routing.allocation.include.zone: "zone1,zone2"
+  Place new shards only on nodes where one of the specified values matches the
+  attribute. e.g.: cluster.routing.allocation.include.zone: "zone1,zone2"
 
 .. _cluster.routing.allocation.exclude.*:
 
 **cluster.routing.allocation.exclude.***
   | *Runtime:*  ``no``
 
-  Place new shards only on nodes where none of the specified values
-  matches the attribute. e.g.:
-  cluster.routing.allocation.exclude.zone: "zone1"
+  Place new shards only on nodes where none of the specified values matches the
+  attribute. e.g.: cluster.routing.allocation.exclude.zone: "zone1"
 
 .. _cluster.routing.allocation.require.*:
 
 **cluster.routing.allocation.require.***
   | *Runtime:*  ``no``
 
-  Used to specify a number of rules, which all MUST match for a node
-  in order to allocate a shard on it. This is in contrast to include
-  which will include a node if ANY rule matches.
+  Used to specify a number of rules, which all MUST match for a node in order
+  to allocate a shard on it. This is in contrast to include which will include
+  a node if ANY rule matches.
 
 Disk-based Shard Allocation
 ...........................
@@ -1367,11 +1380,11 @@ Disk-based Shard Allocation
   | *Default:*   ``85%``
   | *Runtime:*  ``yes``
 
-  Defines the lower disk threshold limit for shard allocations. New
-  shards will not be allocated on nodes with disk usage greater
-  than this value. It can also be set to an absolute bytes value (like
-  e.g. ``500mb``) to prevent the cluster from allocating new shards on
-  node with less free disk space than this value.
+  Defines the lower disk threshold limit for shard allocations. New shards will
+  not be allocated on nodes with disk usage greater than this value. It can
+  also be set to an absolute bytes value (like e.g. ``500mb``) to prevent the
+  cluster from allocating new shards on node with less free disk space than
+  this value.
 
 .. _cluster.routing.allocation.disk.watermark.high:
 
@@ -1379,14 +1392,14 @@ Disk-based Shard Allocation
   | *Default:*   ``90%``
   | *Runtime:*  ``yes``
 
-  Defines the higher disk threshold limit for shard allocations. The
-  cluster will attempt to relocate existing shards to another node if
-  the disk usage on a node rises above this value. It can also be set
-  to an absolute bytes value (like e.g. ``500mb``) to relocate shards
-  from nodes with less free disk space than this value.
+  Defines the higher disk threshold limit for shard allocations. The cluster
+  will attempt to relocate existing shards to another node if the disk usage on
+  a node rises above this value. It can also be set to an absolute bytes value
+  (like e.g. ``500mb``) to relocate shards from nodes with less free disk space
+  than this value.
 
-By default, the cluster will retrieve information about the disk usage
-of the nodes every 30 seconds. This can also be changed by setting the
+By default, the cluster will retrieve information about the disk usage of the
+nodes every 30 seconds. This can also be changed by setting the
 `cluster.info.update.interval`_ setting.
 
 Recovery
@@ -1398,11 +1411,11 @@ Recovery
   | *Default:*   ``40mb``
   | *Runtime:*  ``yes``
 
-  Specifies the maximum number of bytes that can be transferred during
-  shard recovery per seconds. Limiting can be disabled by setting it
-  to ``0``. This setting allows to control the network usage of the recovery
-  process. Higher values may result in higher network utilization, but
-  also faster recovery process.
+  Specifies the maximum number of bytes that can be transferred during shard
+  recovery per seconds. Limiting can be disabled by setting it to ``0``. This
+  setting allows to control the network usage of the recovery process. Higher
+  values may result in higher network utilization, but also faster recovery
+  process.
 
 .. _indices.recovery.retry_delay_state_sync:
 
@@ -1419,8 +1432,8 @@ Recovery
   | *Default:*  ``5s``
   | *Runtime:*  ``yes``
 
-  Defines the time to wait after an issue caused by the network
-  before retrying to recover.
+  Defines the time to wait after an issue caused by the network before retrying
+  to recover.
 
 .. _indices.recovery.internal_action_timeout:
 
@@ -1428,8 +1441,7 @@ Recovery
   | *Default:*  ``15m``
   | *Runtime:*  ``yes``
 
-  Defines the timeout for internal requests made as part of the
-  recovery.
+  Defines the timeout for internal requests made as part of the recovery.
 
 .. _indices.recovery.internal_action_long_timeout:
 
@@ -1437,8 +1449,8 @@ Recovery
   | *Default:*  ``30m``
   | *Runtime:*  ``yes``
 
-  Defines the timeout for internal requests made as part of the
-  recovery that are expected to take a long time. Defaults to twice
+  Defines the timeout for internal requests made as part of the recovery that
+  are expected to take a long time. Defaults to twice
   :ref:`internal_action_timeout <indices.recovery.internal_action_timeout>`.
 
 .. _indices.recovery.recovery_activity_timeout:
@@ -1447,8 +1459,8 @@ Recovery
   | *Default:*  ``30m``
   | *Runtime:*  ``yes``
 
-  Recoveries that don't show any activity for more then this
-  interval will fail. Defaults to :ref:`internal_action_long_timeout
+  Recoveries that don't show any activity for more then this interval will
+  fail. Defaults to :ref:`internal_action_long_timeout
   <indices.recovery.internal_action_long_timeout>`.
 
 .. _indices.store.throttle:
@@ -1471,40 +1483,40 @@ Store Level Throttling
   | *Default:*   ``0b``
   | *Runtime:*  ``yes``
 
-  If throttling is enabled by `indices.store.throttle.type`_, this
-  setting specifies the maximum bytes per second a store module
-  process can operate with.
+  If throttling is enabled by `indices.store.throttle.type`_, this setting
+  specifies the maximum bytes per second a store module process can operate
+  with.
 
 Query Circuit Breaker
 ---------------------
 
-The Query circuit breaker will keep track of the used memory during
-the execution of a query. If a query consumes too much memory or if
-the cluster is already near its memory limit it will terminate the
-query to ensure the cluster keeps working.
+The Query circuit breaker will keep track of the used memory during the
+execution of a query. If a query consumes too much memory or if the cluster is
+already near its memory limit it will terminate the query to ensure the cluster
+keeps working.
 
 **indices.breaker.query.limit**
   | *Default:*   ``60%``
   | *Runtime:*   ``yes``
 
-  Specifies the limit for the query breaker. Provided values can
-  either be absolute values (intepreted as a number of bytes), byte
-  sizes (eg. 1mb) or percentage of the heap size (eg. 12%). A value of
-  ``-1`` disables breaking the circuit while still accounting memory usage.
+  Specifies the limit for the query breaker. Provided values can either be
+  absolute values (intepreted as a number of bytes), byte sizes (eg. 1mb) or
+  percentage of the heap size (eg. 12%). A value of ``-1`` disables breaking
+  the circuit while still accounting memory usage.
 
 **indices.breaker.query.overhead**
   | *Default:*   ``1.09``
   | *Runtime:*   ``no``
 
-  A constant that all data estimations are multiplied with to
-  determine a final estimation.
+  A constant that all data estimations are multiplied with to determine a final
+  estimation.
 
 Field Data Circuit Breaker
 --------------------------
 
-The field data circuit breaker allows estimation of needed heap memory
-required for loading field data into memory. If a certain limit
-is reached an exception is raised.
+The field data circuit breaker allows estimation of needed heap memory required
+for loading field data into memory. If a certain limit is reached an exception
+is raised.
 
 **indices.breaker.fielddata.limit**
   | *Default:*   ``60%``
@@ -1516,15 +1528,15 @@ is reached an exception is raised.
   | *Default:*   ``1.03``
   | *Runtime:*  ``yes``
 
-  A constant that all field data estimations are multiplied with to
-  determine a final estimation.
+  A constant that all field data estimations are multiplied with to determine a
+  final estimation.
 
 Request Circuit Breaker
 -----------------------
 
-The request circuit breaker allows an estimation of required heap memory
-per request. If a single request exceeds the specified amount of memory,
-an exception is raised.
+The request circuit breaker allows an estimation of required heap memory per
+request. If a single request exceeds the specified amount of memory, an
+exception is raised.
 
 **indices.breaker.request.limit**
   | *Default:*   ``60%``
@@ -1536,14 +1548,14 @@ an exception is raised.
   | *Default:*   ``1.0``
   | *Runtime:*  ``yes``
 
-  A constant that all request estimations are multiplied with to
-  determine a final estimation.
+  A constant that all request estimations are multiplied with to determine a
+  final estimation.
 
 Threadpools
 -----------
 
-Every node holds several thread pools to improve how threads are
-managed within a node. There are several pools, but the important ones include:
+Every node holds several thread pools to improve how threads are managed within
+a node. There are several pools, but the important ones include:
 
     * index: For index/delete operations, defaults to fixed
     * search: For count/search operations, defaults to fixed
@@ -1558,16 +1570,16 @@ managed within a node. There are several pools, but the important ones include:
   | *Runtime:*  ``no``
   | *Allowed Values:* ``fixed | cache``
 
-  ``fixed`` holds a fixed size of threads to handle the requests. It
-  also has a queue for pending requests if no threads are available.
+  ``fixed`` holds a fixed size of threads to handle the requests. It also has a
+  queue for pending requests if no threads are available.
 
   ``cache`` will spawn a thread if there are pending requests (unbounded).
 
 Fixed Threadpool Settings
 .........................
 
-If the type of a threadpool is set to ``fixed`` there are a few
-optional settings.
+If the type of a threadpool is set to ``fixed`` there are a few optional
+settings.
 
 .. _threadpool.<threadpool>.size:
 
@@ -1598,8 +1610,8 @@ Metadata
   | *Default:*  ``30s``
   | *Runtime:*  ``yes``
 
-  Defines how often the cluster collect metadata information
-  (e.g. disk usages etc.) if no concrete  event is triggered.
+  Defines how often the cluster collect metadata information (e.g. disk usages
+  etc.) if no concrete  event is triggered.
 
 .. _metadata_gateway:
 
@@ -1617,10 +1629,10 @@ Metadata Gateway
   | *Runtime:*  ``no``
 
   The setting ``gateway.expected_nodes`` defines the number of nodes that
-  should be waited for until the cluster state is recovered immediately.
-  The value of the setting should be equal to the number of nodes in the
-  cluster, because you only want the cluster state to be recovered after all
-  nodes are started.
+  should be waited for until the cluster state is recovered immediately. The
+  value of the setting should be equal to the number of nodes in the cluster,
+  because you only want the cluster state to be recovered after all nodes are
+  started.
 
 .. _gateway.recover_after_time:
 
@@ -1652,13 +1664,16 @@ Session Setting Parameters
 ==========================
 
 The section lists the session setting parameters supported by CrateDB.
-Parameters can be set with the ``SET/SET SESSION`` statement, see :ref:`ref-set`.
+
+Parameters can be set with the ``SET/SET SESSION`` statement, see
+:ref:`ref-set`.
 
 **search_path**
   | *Default:* ``doc``
 
-   This parameter holds the default schema for a session that should be used when
-   no schema is provided in queries.
+   This parameter holds the default schema for a session that should be used
+   when no schema is provided in queries.
+
    The value of ``search_path`` can be either a string or a comma-separated
    list of strings. However, CrateDB only considers the first element when a
    list is provided.
@@ -1669,12 +1684,13 @@ Logging
 =======
 
 CrateDB comes, out of the box, with Log4j_ 1.2.x. It tries to simplify log4j
-configuration by using YAML to configure it. The logging configuration
-file is at ``config/log4j2.properties``.
+configuration by using YAML to configure it. The logging configuration file is
+at ``config/log4j2.properties``.
 
-The yaml file is used to prepare a set of properties used for logging configuration
-using the `PropertyConfigurator`_ but without the tediously repeating ``log4j`` prefix.
-Here is a small example of a working logging configuration.
+The yaml file is used to prepare a set of properties used for logging
+configuration using the `PropertyConfigurator`_ but without the tediously
+repeating ``log4j`` prefix. Here is a small example of a working logging
+configuration.
 
 .. code-block:: yaml
 
@@ -1711,14 +1727,15 @@ Logger Settings
 It's possible to set the log level of loggers at runtime. This is particularly
 useful when debugging problems and there is a need to increase the log level
 without wanting to restart nodes. Logging settings are cluster wide and
-override the logging configuration of nodes defined in their ``log4j2.properties``.
+override the logging configuration of nodes defined in their
+``log4j2.properties``.
 
 The :ref:`RESET<ref-set>` statement is also supported, however only with the
 limitation that the reset of the logging override only takes affect after
 cluster restart.
 
-To set the log level you can use the regular :ref:`SET<ref-set>` statement,
-for example:
+To set the log level you can use the regular :ref:`SET<ref-set>` statement, for
+example:
 
 .. code-block:: sql
 
@@ -1730,7 +1747,8 @@ which defines the name of the logger that the log level should be applied to.
 In addition to `hierarchical named loggers`_ you can also change the log level
 of the root logger using the ``_root`` suffix.
 
-In the example above the log level ``INFO`` is applied to the logger ``action``.
+In the example above the log level ``INFO`` is applied to the logger
+``action``.
 
 Possible log levels are the same as for Log4j_: ``TRACE``, ``DEBUG``, ``INFO``,
 ``WARN``, and ``ERROR``. They must be provided as string literals in the
@@ -1743,8 +1761,8 @@ Possible log levels are the same as for Log4j_: ``TRACE``, ``DEBUG``, ``INFO``,
    in some cases.
 
 It is also possible to inspect the current "logging overrides" in a cluster by
-querying the ``sys.cluster`` table
-(see :ref:`Cluster Settings<sys-cluster-settings>`).
+querying the ``sys.cluster`` table (see :ref:`Cluster
+Settings<sys-cluster-settings>`).
 
 Environment Variables
 =====================
@@ -1754,22 +1772,21 @@ Environment Variables
 ``CRATE_HOME``
 --------------
 
-Specifies the home directory of the installation, it is used to find
-default file paths like e.g. ``config/crate.yml`` or the default data
-directory location. This variable is usally defined at the
-by-distribution shipped start-up script. In most cases it is the
-parent directory of the directory containing the ``bin/crate`` executable.
+Specifies the home directory of the installation, it is used to find default
+file paths like e.g. ``config/crate.yml`` or the default data directory
+location. This variable is usally defined at the by-distribution shipped
+start-up script. In most cases it is the parent directory of the directory
+containing the ``bin/crate`` executable.
 
 :CRATE_HOME: Home directory of CrateDB installation. Used to refer
-             to default config files, data locations, log files, etc.
-             All configured relative paths will use this directory as
-             a parent.
+             to default config files, data locations, log files, etc. All
+             configured relative paths will use this directory as a parent.
 
 ``CRATE_JAVA_OPTS``
 -------------------
 
-This variable allows you to set `Java options`_ for CrateDB, such as as the thread
-stack size.
+This variable allows you to set `Java options`_ for CrateDB, such as as the
+thread stack size.
 
 For example, to change the stack size in order to avoid stack overflow
 exceptions::
@@ -1781,74 +1798,74 @@ exceptions::
 ``CRATE_HEAP_SIZE``
 -------------------
 
-This variable specifies the amount of memory that can be used by the
-JVM.
+This variable specifies the amount of memory that can be used by the JVM.
 
 The value of the environment variable can be suffixed with ``g`` or ``m``. For
 example::
 
     CRATE_HEAP_SIZE=4g
 
-Certain operations in CrateDB require a lot of records to be hold in
-memory at a time. If the amount of heap that can be allocated by the
-JVM is too low these operations would fail with an OutOfMemory exception.
+Certain operations in CrateDB require a lot of records to be hold in memory at
+a time. If the amount of heap that can be allocated by the JVM is too low these
+operations would fail with an OutOfMemory exception.
 
-So it's important to choose a value high enough for the intended use-case.
-But there are two limitations:
+So it's important to choose a value high enough for the intended use-case. But
+there are two limitations:
 
 Use max. 50% of available RAM
 .............................
 
-Be aware that there is also another user of memory besides CrateDB's
-HEAP: our underlying storage engine `Lucene`_. It leverages the
-underlying OS for caching in-memory data structures by
-design. `Lucene`_ indexes are split in several segment files, every
-file is immutable and will never change. This makes them super
-cache-friendly and the underlying OS will keep hot segments resident
-in memory for faster access. So if all system memory is assigned to
-CrateDB's HEAP, there won't be any left-over for `Lucene`_ which can
-cause serious performance impacts.
+Be aware that there is also another user of memory besides CrateDB's HEAP: our
+underlying storage engine `Lucene`_. It leverages the underlying OS for caching
+in-memory data structures by design. `Lucene`_ indexes are split in several
+segment files, every file is immutable and will never change. This makes them
+super cache-friendly and the underlying OS will keep hot segments resident in
+memory for faster access. So if all system memory is assigned to CrateDB's
+HEAP, there won't be any left-over for `Lucene`_ which can cause serious
+performance impacts.
 
 .. note::
 
-   A good recommendation is to assign 50% of the available memory to
-   CrateDB's HEAP while leaving the other 50% free. It will not get
-   unused, `Lucene`_ will use whatever is left-over.
+   A good recommendation is to assign 50% of the available memory to CrateDB's
+   HEAP while leaving the other 50% free. It will not get unused, `Lucene`_
+   will use whatever is left-over.
 
 Never use more than 30.5 Gigabyte
 .................................
 
-In order to save on precious memory on x64 systems the Hotspot Java Virtual Machine
-uses a technique called `Compressed Ordinary object pointers (oops) <Compressed Oops>`_.
+In order to save on precious memory on x64 systems the Hotspot Java Virtual
+Machine uses a technique called `Compressed Ordinary object pointers (oops)
+<Compressed Oops>`_.
 
-These are pointers to java objects in the heap that only consume 32 Bit,
-which saves you lots of space.
-The actual native 64 bit pointers are computed by scaling the 32 bit value by a factor of 8
-and add it to a base heap address. This allows the JVM to address about 32 GB of heap.
+These are pointers to java objects in the heap that only consume 32 Bit, which
+saves you lots of space. The actual native 64 bit pointers are computed by
+scaling the 32 bit value by a factor of 8 and add it to a base heap address.
+This allows the JVM to address about 32 GB of heap.
 
-If you configure your heap to more than 32 GB `Compressed Oops`_ cannot be used anymore.
-In effect, there will be much less space available in the heap
-as object pointers now consume twice as much.
+If you configure your heap to more than 32 GB `Compressed Oops`_ cannot be used
+anymore. In effect, there will be much less space available in the heap as
+object pointers now consume twice as much.
 
-This boundary should be considered an upper bound for the heap size of any JVM application.
+This boundary should be considered an upper bound for the heap size of any JVM
+application.
 
 .. note::
 
-   In order to ensure that `Compressed Oops`_ are used no matter what JVM CrateDB runs on,
-   configuring the heap to a value less than or equal to *30.5 GB* (``30500m``) is suggested,
-   as some JVMs only support `Compressed Oops`_ up to that value.
+   In order to ensure that `Compressed Oops`_ are used no matter what JVM
+   CrateDB runs on, configuring the heap to a value less than or equal to *30.5
+   GB* (``30500m``) is suggested, as some JVMs only support `Compressed Oops`_
+   up to that value.
 
 Running CrateDB on machines with huge RAM
 .........................................
 
-If hardware with much more RAM is available, it is suggested to run more than one CrateDB instance
-on that machine with each one having a heap size of around 30.5 GB (``30500m``).
-But still leave half of the available RAM to `Lucene`_.
+If hardware with much more RAM is available, it is suggested to run more than
+one CrateDB instance on that machine with each one having a heap size of around
+30.5 GB (``30500m``). But still leave half of the available RAM to `Lucene`_.
 
-In this case consider adding: ``cluster.routing.allocation.same_shard.host: true``
-to your config. This will prevent allocating primary and replica
-of the same shard on the same machine even if more than one instances
-running on it.
+In this case consider adding: ``cluster.routing.allocation.same_shard.host:
+true`` to your config. This will prevent allocating primary and replica of the
+same shard on the same machine even if more than one instances running on it.
 
 Other System Configuration
 ==========================
@@ -1856,10 +1873,10 @@ Other System Configuration
 Virtual Memory
 --------------
 
-CrateDB uses a hybrid MMap/NIO file system storage directory to store
-its indices. Out-of-memory exceptions and failing bootstrap checks may be
-caused by the operating system's default limit on ``max_map_count`` (the
-maximum number of memory map areas a process may have) being too low.
+CrateDB uses a hybrid MMap/NIO file system storage directory to store its
+indices. Out-of-memory exceptions and failing bootstrap checks may be caused by
+the operating system's default limit on ``max_map_count`` (the maximum number
+of memory map areas a process may have) being too low.
 
 On Linux, you can increase the limit by running the following command::
 
@@ -1945,10 +1962,11 @@ one or multiple groups that are defined by their group key (``${order}``) and
 their fields (``user``, ``address``, ``method``, ``protocol``).
 
 **${order}:**
-  | An identifier that is used as a natural order key when looking up the
-  | host based configuration entries. For example, an order key of ``a`` will
-  | be looked up before an order key of ``b``. This key guarantees that the entry
-  | lookup order will remain independent from the insertion order of the entries.
+  | An identifier that is used as a natural order key when looking up the host
+  | based configuration entries. For example, an order key of ``a`` will be
+  | looked up before an order key of ``b``. This key guarantees that the entry
+  | lookup order will remain independent from the insertion order of the
+  | entries.
 
 The :ref:`administration_hba` setting is a list of predicates that users can
 specify to restrict or allow access to CrateDB.
@@ -1958,31 +1976,31 @@ The meaning of the fields of the are as follows:
 **auth.host_based.config.${order}.user**
   | *Runtime:*  ``no``
 
-  | Specifies an existing CrateDB username, only ``crate`` user (superuser)
-  | is available. If no user is specified in the entry, then
-  | all existing users can have access.
+  | Specifies an existing CrateDB username, only ``crate`` user (superuser) is
+  | available. If no user is specified in the entry, then all existing users
+  | can have access.
 
 **auth.host_based.config.${order}.address**
   | *Runtime:* ``no``
 
-  | The client machine addresses that the client matches, and which are
-  | allowed to authenticate. This field can contain an IP address or a CIDR
-  | mask. For example: ``127.0.0.1`` or ``127.0.0.1/32``. If no address is specified
-  | in the entry, then access to CrateDB is open for all hosts.
+  | The client machine addresses that the client matches, and which are allowed
+  | to authenticate. This field can contain an IP address or a CIDR mask. For
+  | example: ``127.0.0.1`` or ``127.0.0.1/32``. If no address is specified in
+  | the entry, then access to CrateDB is open for all hosts.
 
 **auth.host_based.config.${order}.method**
   | *Runtime:* ``no``
 
-  | The authentication method to use when a connection matches this entry.
-  | At the moment only the ``trust`` method is available. If no method is
+  | The authentication method to use when a connection matches this entry. At
+  | the moment only the ``trust`` method is available. If no method is
   | specified, the ``trust`` method is used by default (see :ref:`auth_trust`).
 
 **auth.host_based.config.${order}.protocol**
   | *Runtime:* ``no``
 
   | Specifies the protocol for which the authentication entry should be used.
-  | If no protocol is specified, then this entry will be valid for all protocols
-  | that rely on host based authentication see :ref:`auth_trust`).
+  | If no protocol is specified, then this entry will be valid for all
+  | protocols that rely on host based authentication see :ref:`auth_trust`).
 
 **Example of config groups:**
 

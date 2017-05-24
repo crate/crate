@@ -27,31 +27,31 @@ where ``relation`` is::
 Description
 ===========
 
-SELECT retrieves rows from a table. The general processing of SELECT
-is as follows:
+SELECT retrieves rows from a table. The general processing of SELECT is as
+follows:
 
-- The FROM item points to the table where the data should be retrieved
-  from. If no FROM item is specified, the query is executed against
+- The FROM item points to the table where the data should be retrieved from. If
+  no FROM item is specified, the query is executed against
   :ref:`sys.cluster <sys-cluster>`.
 
-- If the WHERE clause is specified, all rows that do not satisfy the
-  condition are eliminated from the output. (See WHERE Clause below.)
+- If the WHERE clause is specified, all rows that do not satisfy the condition
+  are eliminated from the output. (See WHERE Clause below.)
 
-- If the GROUP BY clause is specified, the output is combined into
-  groups of rows that match on one or more values.
+- If the GROUP BY clause is specified, the output is combined into groups of
+  rows that match on one or more values.
 
-- The actual output rows are computed using the SELECT output
-  expressions for each selected row or row group.
+- The actual output rows are computed using the SELECT output expressions for
+  each selected row or row group.
 
-- If the ORDER BY clause is specified, the returned rows are sorted in
-  the specified order. If ORDER BY is not given, the rows are returned
-  in whatever order the system finds fastest to produce.
+- If the ORDER BY clause is specified, the returned rows are sorted in the
+  specified order. If ORDER BY is not given, the rows are returned in whatever
+  order the system finds fastest to produce.
 
-- If DISTINCT is specified, one unique row is kept. All other
-  duplicate rows are removed from the result set.
+- If DISTINCT is specified, one unique row is kept. All other duplicate rows
+  are removed from the result set.
 
-- If the LIMIT or OFFSET clause is specified, the SELECT statement
-  only returns a subset of the result rows.
+- If the LIMIT or OFFSET clause is specified, the SELECT statement only returns
+  a subset of the result rows.
 
 Parameters
 ==========
@@ -59,37 +59,35 @@ Parameters
 ``SELECT`` List
 ---------------
 
-The SELECT list specifies expressions that form the output rows of the
-SELECT statement. The expressions can (and usually do) refer to
-columns computed in the FROM clause.
+The SELECT list specifies expressions that form the output rows of the SELECT
+statement. The expressions can (and usually do) refer to columns computed in
+the FROM clause.
 
 ::
 
     SELECT [ ALL | DISTINCT ] * | expression [ [ AS ] output_name ] [, ...]
 
-Just as in a table, every output column of a SELECT has a name. In a
-simple SELECT this name is just used to label the column for
-display. To specify the name to use for an output column, write AS
-``output_name`` after the column's ``expression``. (You can omit AS,
-but only if the desired output name does not match any reserved
-keyword. For protection against possible future keyword additions, it
-is recommended that you always either write AS or double-quote the
-output name.) If you do not specify a column name, a name is chosen
-automatically by Crate. If the column's expression is a simple column
-reference then the chosen name is the same as that column's name. In
-more complex cases a function or type name may be used, or the system
-may fall back on a generated name.
+Just as in a table, every output column of a SELECT has a name. In a simple
+SELECT this name is just used to label the column for display. To specify the
+name to use for an output column, write AS ``output_name`` after the column's
+``expression``. (You can omit AS, but only if the desired output name does not
+match any reserved keyword. For protection against possible future keyword
+additions, it is recommended that you always either write AS or double-quote
+the output name.) If you do not specify a column name, a name is chosen
+automatically by Crate. If the column's expression is a simple column reference
+then the chosen name is the same as that column's name. In more complex cases a
+function or type name may be used, or the system may fall back on a generated
+name.
 
-An output column's name can be used to refer to the column's value in
-ORDER BY and GROUP BY clauses, but not in the WHERE clause; there you
-must write out the expression instead.
+An output column's name can be used to refer to the column's value in ORDER BY
+and GROUP BY clauses, but not in the WHERE clause; there you must write out the
+expression instead.
 
 Instead of an expression, ``*`` can be written in the output list as a
-shorthand for all the columns of the selected rows. Also, you can
-write table_name.* as a shorthand for the columns coming from just
-that table. In these cases it is not possible to specify new names
-with AS; the output column names will be the same as the table
-columns' names.
+shorthand for all the columns of the selected rows. Also, you can write
+table_name.* as a shorthand for the columns coming from just that table. In
+these cases it is not possible to specify new names with AS; the output column
+names will be the same as the table columns' names.
 
 ``FROM`` Clause
 ---------------
@@ -111,10 +109,11 @@ A ``table_reference`` is a table ident with an optional table alias::
 
 .. _sql_reference_table_alias:
 
-:table_alias: A substitute name for the FROM item containing the alias.
- An alias is used for brevity. When an alias is provided, it completely hides
- the actual name of the table. For example given ``FROM foo AS f``, the
- remainder of the SELECT must refer to this 'FROM' item as 'f' not 'foo'.
+:table_alias: A substitute name for the FROM item containing the alias. An
+              alias is used for brevity. When an alias is provided, it
+              completely hides the actual name of the table. For example given
+              ``FROM foo AS f``, the remainder of the SELECT must refer to this
+              'FROM' item as 'f' not 'foo'.
 
 .. _sql_reference_joined_tables:
 
@@ -168,87 +167,91 @@ clauses of the surrounding ``SELECT`` statements are applied on the result of
 the inner ``SELECT`` statement.
 
 :select_stmt: A :ref:`SELECT <sql_reference_select>` statement.
+
 :alias: An :ref:`alias <sql_reference_table_alias>` for the sub select.
 
 ``WHERE`` Clause
 ----------------
 
-The optional WHERE clause defines the condition to be met for a row to
-be returned::
+The optional WHERE clause defines the condition to be met for a row to be
+returned::
 
     WHERE condition
 
-:condition: a where condition is any expression that evaluates to a
-  result of type boolean. Any row that does not satisfy this condition
-  will be eliminated from the output. A row satisfies the condition if
-  it returns true when the actual row values are substituted for any
-  variable references.
+:condition: a where condition is any expression that evaluates to a result of
+            type boolean. Any row that does not satisfy this condition will be
+            eliminated from the output. A row satisfies the condition if it
+            returns true when the actual row values are substituted for any
+            variable references.
 
 .. _sql_reference_group_by:
 
 ``GROUP BY`` Clause
 -------------------
 
-The optional GROUP BY clause will condense into a single row all
-selected rows that share the same values for the grouped expressions.
+The optional GROUP BY clause will condense into a single row all selected rows
+that share the same values for the grouped expressions.
 
-Aggregate expressions, if any are used, are computed across all rows
-making up each group, producing a separate value for each group.
+Aggregate expressions, if any are used, are computed across all rows making up
+each group, producing a separate value for each group.
 
 ::
 
     GROUP BY expression [, ...] [HAVING condition]
 
-:expression: An arbitrary expression formed from column references
-  of the queried relation that are also present in the result column list.
-  Numeric literals are interpreted as ordinals referencing an output
-  column from the select list.
-  It can also reference output columns by name.
-  In case of ambiguity, a GROUP BY name will be interpreted as a name of a
-  column from the queried relation rather than an output column name.
+:expression: An arbitrary expression formed from column references of the
+             queried relation that are also present in the result column list.
+             Numeric literals are interpreted as ordinals referencing an output
+             column from the select list.
+
+             It can also reference output columns by name.
+
+             In case of ambiguity, a GROUP BY name will be interpreted as a
+             name of a column from the queried relation rather than an output
+             column name.
 
 .. _sql_reference_having:
 
 ``HAVING`` Clause
 .................
 
-The optional HAVING clause defines the condition to be met for
-values whitin a resulting row of a group by clause.
+The optional HAVING clause defines the condition to be met for values whitin a
+resulting row of a group by clause.
 
-:condition: a having condition is any expression that evaluates to a result
-    of type boolean. Every row for which the condition is not satisfied
-    will be eliminated from the output.
-
-.. note::
-
-  When GROUP BY is present, it is not valid for the SELECT list
-  expressions to refer to ungrouped columns except within aggregate
-  functions, since there would otherwise be more than one possible
-  value to return for an ungrouped column.
+:condition: a having condition is any expression that evaluates to a result of
+            type boolean. Every row for which the condition is not satisfied
+            will be eliminated from the output.
 
 .. note::
 
-  Grouping can only be applied on indexed fields. For more information,
-  please refer to :ref:`sql_ddl_index_off`.
+   When GROUP BY is present, it is not valid for the SELECT list expressions to
+   refer to ungrouped columns except within aggregate functions, since there
+   would otherwise be more than one possible value to return for an ungrouped
+   column.
+
+.. note::
+
+   Grouping can only be applied on indexed fields. For more information, please
+   refer to :ref:`sql_ddl_index_off`.
 
 .. _sql_reference_order_by:
 
 ``ORDER BY`` Clause
 -------------------
 
-The ORDER BY clause causes the result rows to be sorted according to
-the specified expression(s).
+The ORDER BY clause causes the result rows to be sorted according to the
+specified expression(s).
 
 ::
 
     ORDER BY expression [ ASC | DESC ] [ NULLS { FIRST | LAST } ] [, ...]
 
-:expression: can be the name or ordinal number of an output column, or
-  it can be an arbitrary expression formed from input-column values.
+:expression: can be the name or ordinal number of an output column, or it can
+             be an arbitrary expression formed from input-column values.
 
-The optional keyword ASC (ascending) or DESC (descending) after any
-expression allows to define the direction in which values have are
-sorted. The default is ascending.
+The optional keyword ASC (ascending) or DESC (descending) after any expression
+allows to define the direction in which values have are sorted. The default is
+ascending.
 
 If NULLS FIRST is specified, null values sort before non null values. If NULLS
 LAST is specified null values sort after non null values.  If neither is
@@ -257,15 +260,15 @@ for ASC is NULLS LAST and the default for DESC is NULLS FIRST.
 
 .. note::
 
-  If two rows are equal according to the leftmost expression, they are compared
-  according to the next expression and so on. If they are equal according to
-  all specified expressions, they are returned in an implementation-dependent
-  order.
+   If two rows are equal according to the leftmost expression, they are
+   compared according to the next expression and so on. If they are equal
+   according to all specified expressions, they are returned in an
+   implementation-dependent order.
 
 .. note::
 
-  Sorting can only be applied on indexed fields. For more information,
-  please refer to :ref:`sql_ddl_index_off`.
+   Sorting can only be applied on indexed fields. For more information, please
+   refer to :ref:`sql_ddl_index_off`.
 
 Character-string data is sorted by its UTF-8 representation.
 
@@ -283,14 +286,14 @@ The optional LIMIT Clause allows to limit the number or retured result rows::
 
 :num_results: specifies the maximum number of result rows to return.
 
-    If a client using the `HTTP` or `Transport` protocol is used a default
-    limit of 10000 is implicitly added.
+              If a client using the `HTTP` or `Transport` protocol is used a
+              default limit of 10000 is implicitly added.
 
 .. note::
 
-    It is possible for repeated executions of the same LIMIT query to
-    return different subsets of the rows of a table, if there is not
-    an ORDER BY to enforce selection of a deterministic subset.
+   It is possible for repeated executions of the same LIMIT query to return
+   different subsets of the rows of a table, if there is not an ORDER BY to
+   enforce selection of a deterministic subset.
 
 ``OFFSET`` Clause
 -----------------

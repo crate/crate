@@ -4,12 +4,12 @@
 Generated Columns
 =================
 
-It is possible to define columns whose value is computed by
-applying a *generation expression* in the context of the current row, where
-it is possible to reference the values of other columns.
+It is possible to define columns whose value is computed by applying a
+*generation expression* in the context of the current row, where it is possible
+to reference the values of other columns.
 
-Generated columns are defined by providing a *generation expression*.
-Providing a data type is optional. It is inferred by the return type of the supplied
+Generated columns are defined by providing a *generation expression*. Providing
+a data type is optional. It is inferred by the return type of the supplied
 expression if omitted::
 
     cr> CREATE TABLE computed (
@@ -21,8 +21,8 @@ expression if omitted::
 
 For a full syntax description, see :ref:`ref-create-table`.
 
-Generated columns are read-only as they are computed internally.
-They are computed upon ``INSERT`` and ``UPDATE``::
+Generated columns are read-only as they are computed internally. They are
+computed upon ``INSERT`` and ``UPDATE``::
 
     cr> INSERT INTO computed (dividend, divisor) VALUES (1.7, 1.5), (0.0, 10.0);
     INSERT OK, 2 rows affected (... sec)
@@ -53,11 +53,11 @@ against the result of applying the *generation expression*::
 
 .. warning::
 
-    Supplied values for generated columns are not validated when they
-    are imported using ``copy from``.
+   Supplied values for generated columns are not validated when they are
+   imported using ``copy from``.
 
-They can also be used in the :ref:`partitioned_by_clause` in order to
-compute the value to partition by from existing columns in the table::
+They can also be used in the :ref:`partitioned_by_clause` in order to compute
+the value to partition by from existing columns in the table::
 
     cr> CREATE TABLE computed_and_partitioned (
     ...   huge_cardinality long,

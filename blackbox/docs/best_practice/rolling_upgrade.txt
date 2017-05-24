@@ -11,8 +11,8 @@ downtime.
 .. warning::
 
     Rolling upgrades are only possible if you are using a stable version of
-    CrateDB and are upgrading to a new patch version (see
-    :ref:`versions <sys-versions>`).
+    CrateDB and are upgrading to a new patch version (see :ref:`versions
+    <sys-versions>`).
 
     If you are upgrading to a testing version or are upgrading to a new major
     version or a new minor version, you must perform a full cluster restart.
@@ -28,8 +28,8 @@ requests but will make sure that any pending requests are finished.
 
 .. note::
 
-   Due to the distributed execution of requests, some client requests might fail
-   during a rolling upgrade.
+   Due to the distributed execution of requests, some client requests might
+   fail during a rolling upgrade.
 
 This process will ensure a certain data availability. Which can either be
 ``none``, ``primaries`` or ``full`` and can be configured using :ref:`ref-set`.
@@ -48,8 +48,8 @@ contained a primary that has no replicas that can take over.
 
 .. caution::
 
-   If you are upgrading from 0.54 to 0.55, please read the `accompanying notes`_
-   for the 0.55 release.
+   If you are upgrading from 0.54 to 0.55, please read the `accompanying
+   notes`_ for the 0.55 release.
 
 Requirements
 ============
@@ -62,13 +62,14 @@ contain enough nodes to hold the number of replicas that are configured even if
 one node is missing.
 
 So for example if there are only two nodes in a cluster and a table has one
-replica configured the ``graceful stop`` procedure will not succeed
-and abort as it won't be possible to relocate the replicas.
+replica configured the ``graceful stop`` procedure will not succeed and abort
+as it won't be possible to relocate the replicas.
 
 If a table has a range configured as number of replicas this will take into
 account the upper number of replicas.
 
-So, with two nodes and 0-1 replicas, the ``graceful stop`` procedure will abort.
+So, with two nodes and 0-1 replicas, the ``graceful stop`` procedure will
+abort.
 
 In short: for the ``full`` graceful stop to work the following has to be true::
 
@@ -123,8 +124,8 @@ need to send the ``USR2`` signal::
 
 .. note::
 
-  If your system uses SysVinit (e.g. Debian Wheezy), you can also use
-  ``service crate graceful-stop``.
+  If your system uses SysVinit (e.g. Debian Wheezy), you can also use ``service
+  crate graceful-stop``.
 
 Depending on the size of your cluster this might take a while. You might want
 to check your server logs to see if the graceful stop process is progressing
@@ -145,7 +146,8 @@ number of shards and the amount and size of records (and/or blob data). For
 that reason you should set the ``timeout`` setting to a reasonable time. By
 default the shutdown process aborts and the cluster will start distributing
 shards evenly again. If you want to force a shutdown after the timeout, even if
-the reallocating is not finished, you can set the ``force`` setting to ``true``.
+the reallocating is not finished, you can set the ``force`` setting to
+``true``.
 
 .. warning::
 
@@ -158,8 +160,8 @@ the reallocating is not finished, you can set the ``force`` setting to ``true``.
   enough nodes in the cluster to move shards or else the graceful shutdown
   procedure will fail!
 
-  For example, if there are 4 nodes and 3 configured replicas, there will not be
-  enough nodes to to fulfill the required replicas.
+  For example, if there are 4 nodes and 3 configured replicas, there will not
+  be enough nodes to to fulfill the required replicas.
 
 .. note::
 
@@ -168,8 +170,8 @@ the reallocating is not finished, you can set the ``force`` setting to ``true``.
 
 You can also set the ``reallocate`` setting to ``false`` if you want to ensure
 that a node cannot be stopped if the cluster would need to move shards off the
-node. This can prevent long waiting times until the shutdown process runs
-into timeout during reallocation.
+node. This can prevent long waiting times until the shutdown process runs into
+timeout during reallocation.
 
 By default, only the ``graceful stop`` command considers the cluster settings
 described at :ref:`conf_graceful_stop`.
@@ -230,15 +232,15 @@ to look for:
    the cluster turning red for a small instant when a node finally shuts down.
    This is due to the way the admin UI determines the cluster state.
 
-   If a query fails due to a missing node, the admin UI may falsely consider the
-   cluster to be in a critical state.
+   If a query fails due to a missing node, the admin UI may falsely consider
+   the cluster to be in a critical state.
 
 Step 2: Upgrade CrateDB
 -----------------------
 
 After the node is stopped you can safely upgrade your CrateDB installation.
-Depending on your installation and operating system you can do it by downloading
-the latest tarball or just use the package manager.
+Depending on your installation and operating system you can do it by
+downloading the latest tarball or just use the package manager.
 
 Example for RHEL/YUM::
 
@@ -250,8 +252,8 @@ man pages of your operating system or package manager.
 Step 3: Start CrateDB
 ---------------------
 
-Once the upgrade process is completed you can start the CrateDB process again by
-either invoking the bin/crate executable from the tarball directly::
+Once the upgrade process is completed you can start the CrateDB process again
+by either invoking the bin/crate executable from the tarball directly::
 
   sh$ /path/to/bin/crate
 

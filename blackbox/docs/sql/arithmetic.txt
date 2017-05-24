@@ -19,9 +19,9 @@ Supported operators
     ========   =========================================================
     operator   description
     ========   =========================================================
-    \+          add one number to another
-    \-          subtract the second number from the first
-    \*          multiply the first number with the second
+    \+         add one number to another
+    \-         subtract the second number from the first
+    \*         multiply the first number with the second
     /          divide the first number by the second
     %          finds the remainder of division of one number by another
     ========   =========================================================
