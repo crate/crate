@@ -6,14 +6,12 @@
 
 Explain the plan for a given statement.
 
-
 Synopsis
 ========
 
 ::
 
     EXPLAIN statement
-
 
 Description
 ===========
@@ -33,4 +31,3 @@ Parameters
 
 :statement: The statement for which a plan should be
             returned. Currently only SELECT and COPY FROM statements are supported.
-

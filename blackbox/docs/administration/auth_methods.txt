@@ -39,4 +39,3 @@ setting like this:
     auth:
       host_based:
         http_default_user: dustin
-

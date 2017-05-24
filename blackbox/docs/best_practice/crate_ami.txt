@@ -29,11 +29,9 @@ find the image in the public AMI repository. After choosing the desired AMI
 by its CrateDB version, it can be launched as an EC2 instance running on your
 account.
 
-
 .. image:: ../_static/crate-ami-search.png
    :alt: Search for public CrateDB AMI on AWS Management Console
    :width: 100%
-
 
 If you are using the `AWS CLI`_ you can find the public CrateDB AMI by using
 the ``describe-images`` command. The easiest way to search for it is by using
@@ -44,7 +42,6 @@ platform.
 ::
 
     sh$ aws ec2 describe-images --filters "Name=name,Values=crate-0.51.1-*"
-
 
 Launch the AMI
 ==============
@@ -97,7 +94,6 @@ instances (see :ref:`ec2_authentication`).
 .. note::
     *EC2 discovery* is only available on CrateDB version 0.51.0 or higher.
 
-
 Adapt CrateDB Configuration
 ---------------------------
 
@@ -121,7 +117,6 @@ used when a cluster with 3 or more nodes is set up.
       expected_nodes: 3
     " >> /etc/crate/crate.yml
 
-
 Launch AMI by Using the AWS CLI
 -------------------------------
 
@@ -135,12 +130,10 @@ file.
 
     sh$ aws ec2 run-instances --image-id ami-544c1923 --count 1 --iam-instance-profile Name="crate-ec2" --instance-type m3.medium --user-data $(base64 user-data.sh) --key-name my_key_pair
 
-
 .. note::
     In case you want to filter machines by instance tags or security groups,
     add this configuration to the ``USER-DATA`` field parameter
     (see :ref:`filter-by-tags`).
-
 
 Instance Types
 ==============

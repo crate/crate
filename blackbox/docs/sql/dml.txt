@@ -33,7 +33,6 @@ Inserting a row::
 When inserting a single row, if an error occurs an error is returned as
 a response.
 
-
 Inserting multiple rows at once (aka. bulk insert) can be done by defining
 multiple values for the ``INSERT`` statement::
 
@@ -60,7 +59,6 @@ When inserting multiple rows, if an error occurs for some of these rows there is
 no error returned but instead the number of rows affected would be decreased
 by the number of rows that failed to be inserted.
 
-
 When inserting into tables containing :ref:`ref-generated-columns`,
 their value can be safely omitted. It is *generated* upon insert:
 
@@ -86,7 +84,6 @@ of the column and the currently inserted row::
     cr> insert into debit_card (owner, num_part1, num_part2, check_sum) values
     ... ('Arthur Dent', 9876, 5432, 642935);
     SQLActionException[SQLParseException: Given value 642935 for generated column does not match defined generated expression value 642936]
-
 
 Inserting Data By Query
 -----------------------
@@ -338,7 +335,6 @@ This can also be done when using a query instead of values::
    cr> drop table uservisits2
     DROP OK, 1 row affected (... sec)
 
-
 Updating Data
 =============
 
@@ -374,7 +370,6 @@ Deleting rows in Crate is done using the SQL ``DELETE`` statement::
     cr> delete from locations where position > 3;
     DELETE OK, ... rows affected (... sec)
 
-
 .. _importing_data:
 
 Import and Export
@@ -402,7 +397,6 @@ Example JSON data::
     sure that they are correct.
   * Furthermore, column names in your data are considered case sensitive (as if they
     were quoted in a SQL statement).
-
 
 In order to import data into :ref:`partitioned_tables` take a look at the
 :ref:`copy_from` reference.
@@ -468,7 +462,6 @@ the table and shard id with gzip compression::
     cr> copy quotes to DIRECTORY '/tmp/' with (compression='gzip');
     COPY OK, 3 rows affected ...
 
-
 Instead of exporting a whole table, rows can be filtered by an
 optional WHERE clause condition. This is useful if only a subset of
 the data needs to be exported::
@@ -479,5 +472,4 @@ the data needs to be exported::
 For further details see :ref:`copy_to`.
 
 .. _PCRE: http://www.pcre.org/
-
 .. _`crate-python`: https://pypi.python.org/pypi/crate/

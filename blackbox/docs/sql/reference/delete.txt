@@ -23,7 +23,6 @@ in the table. The result is a valid, but empty table.
 Parameters
 ==========
 
-
 :table_ident: The name (optionally schema-qualified) of an existing
     table to delete rows from.
 
@@ -34,4 +33,3 @@ Parameters
 
 :condition: An expression that returns a value of type boolean. Only
     rows for which this expression returns true will be deleted.
-

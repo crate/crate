@@ -44,7 +44,6 @@ These ``_version`` values can now be used on updates and deletes.
     Optimistic concurrency control only works using the ``=`` operator,
     checking for the exact ``_version`` your update/delete is based on.
 
-
 Optimistic Update
 =================
 
@@ -70,7 +69,6 @@ Of course the same can be done when deleting a row::
     cr> delete from locations where id = '6' and "_version" = 3;
     DELETE OK, 1 row affected (... sec)
 
-
 Known Limitations
 =================
 
@@ -88,6 +86,5 @@ Known Limitations
   Both, ``DELETE`` and ``UPDATE``, commands will return a row count of 0 if
   the given required version does not match the actual version of the relevant
   row.
-
 
 .. _Optimistic Concurrency Control: http://en.wikipedia.org/wiki/Optimistic_concurrency_control

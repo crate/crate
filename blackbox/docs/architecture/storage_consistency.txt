@@ -59,7 +59,6 @@ are synchronous over all active replicas with the following flow:
 Should any replica shard fail to write the data or times out in step
 5, it's immediately considered as unavailable.
 
-
 Atomic on Document Level
 ========================
 
@@ -209,12 +208,7 @@ schema of a table:
 #. Every node might take some local action depending on the type of
    cluster state change.
 
-
-
 .. _Elasticsearch: http://www.elasticsearch.org/
-
 .. _Lucene: http://lucene.apache.org/core/
-
 .. _WAL: http://en.wikipedia.org/wiki/Write-ahead_logging
-
 .. _multi zone setups: https://crate.io/docs/scale/multi_zone_setup

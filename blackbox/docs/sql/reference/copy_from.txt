@@ -28,7 +28,6 @@ Description
 
 ``COPY FROM`` copies data from a URI to the specified table as a raw data import.
 
-
 The nodes in the cluster will attempt to read the files available at
 the URI and import the data. These files have to be UTF-8 encoded and
 contain a single JSON object per line. Any keys in the object will be
@@ -40,9 +39,7 @@ Example JSON data::
     {"id": 1, "quote": "Don't panic"}
     {"id": 2, "quote": "Ford, you're turning into a penguin. Stop it."}
 
-
 See also: :ref:`importing_data`.
-
 
 Type Casts and Constraints
 --------------------------
@@ -63,7 +60,6 @@ the `GeoJSON`_ format.
   has been written to the table and should be deleted before restarting
   the import.
 
-
 URI
 ===
 
@@ -72,7 +68,6 @@ Each URI must be formatted according to the `URI Scheme`_.
 
 In case the URI scheme is missing the value is assumed to be a file path
  and will be converted to a ``file://`` URI implicitly.
-
 
 For example:
 
@@ -85,7 +80,6 @@ Is converted to:
 .. code-block:: text
 
     'file:///tmp%20folder/file.json'
-
 
 Supported Schemes
 -----------------
@@ -135,7 +129,6 @@ Using the 's3://' URI scheme sets the ``shared`` option implicitly.
   connections are using the HTTPS protocol. Please make sure you update your
   firewall rules to allow outgoing connections on port ``443``.
 
-
 ``http``, ``https``, and ``jar`` (Java URL protocols)
 .....................................................
 
@@ -167,7 +160,6 @@ each column a value.
 
     [ PARTITION ( partition_column = value [ , ... ] ) ]
 
-
 :partition_column: The name of the column by which the table is partitioned.
                    All partition columns that were part of the
                    :ref:`partitioned_by_clause` of the :ref:`ref-create-table`
@@ -180,7 +172,6 @@ each column a value.
    Partitioned tables do not store the value for the partition column in each
    row, hence every row will be imported into the specified partition
    regardless of the value provided for the partition columns.
-
 
 ``WITH`` Clause
 ===============
@@ -211,7 +202,6 @@ The default value depends on the scheme of each URI.
 
 If an array of URIs is passed to ``COPY FROM`` this option will overwrite the
 default for *all* URIs.
-
 
 ``node_filters``
 ................
@@ -264,19 +254,11 @@ Default: false
 ``COPY FROM`` by default won't overwrite rows if a document with the same
 primary key already exists. Set to true to overwrite duplicate rows.
 
-
 .. _`AWS documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
-
 .. _`AWS Java Documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
-
 .. _`RFC2396`: http://www.ietf.org/rfc/rfc2396.txt
-
 .. _`URI Scheme`: https://en.wikipedia.org/wiki/URI_scheme
-
 .. _GeoJSON: http://geojson.org/
-
 .. _WKT: http://en.wikipedia.org/wiki/Well-known_text
-
 .. _URL: http://docs.oracle.com/javase/8/docs/api/java/net/URL.html
-
 .. _`URL encoded`: https://en.wikipedia.org/wiki/Percent-encoding

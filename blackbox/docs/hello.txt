@@ -88,8 +88,5 @@ Here it is used with a filter to only lookup Ford's tweets::
  Especially the `CRATE_HEAP_SIZE` environment variable is very important!
 
 .. _the CrateDB admin UI: https://crate.io/docs/connect/admin_ui/
-
 .. _SQL: https://en.wikipedia.org/wiki/SQL
-
 .. _Twitter: https://twitter.com
-

@@ -9,7 +9,6 @@ CrateDB supports using the `Amazon S3`_ (Amazon Simple Storage Service) as a
 snapshot repository. For this, you need to register the `AWS` plugin with
 CrateDB.
 
-
 Basic Configuration
 ===================
 
@@ -94,7 +93,6 @@ within the policy:
         "arn:aws:s3:::snaps.example.com"
      ]
   }
-
 
 .. _`Amazon S3`: http://aws.amazon.com/s3
 .. _`sign the requests`: http://docs.aws.amazon.com/general/latest/gr/signing_aws_api_requests.html

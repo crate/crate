@@ -265,7 +265,6 @@ instance on localhost. The load balancer tracks the health of the hosts and if
 either the application or the database on a single host fails the complete host
 will taken out of the load balancing.
 
-
 .. _master/slave architecture: https://en.wikipedia.org/wiki/Master/slave_(technology)
 .. _abstract syntax tree: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 .. _POJOs: https://en.wikipedia.org/wiki/Plain_Old_Java_Object

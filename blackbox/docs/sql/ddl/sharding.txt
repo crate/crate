@@ -48,7 +48,6 @@ statement and is used to route a row to a particular shard. Example::
     ... ) clustered by (first_column);
     CREATE OK, 1 row affected (... sec)
 
-
 If primary key constraints are defined, the routing column definition
 can be omitted as primary key columns are always used for routing by default.
 If the routing column is defined explicitly, it must match a primary key column::
@@ -59,7 +58,6 @@ If the routing column is defined explicitly, it must match a primary key column:
     ...   third_column string
     ... ) clustered by (first_column);
     CREATE OK, 1 row affected (... sec)
-
 
 Example for combining custom routing and shard definition::
 

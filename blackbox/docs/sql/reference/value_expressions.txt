@@ -30,7 +30,6 @@ A value expression can be:
 
 - A scalar subquery
 
-
 Literal value
 =============
 
@@ -43,7 +42,6 @@ Different types have different notations. The simplest forms are:
 - string literals: ``'this is a string literal'``
 
 - numeric literals: ``42``
-
 
 .. seealso::
 
@@ -70,7 +68,6 @@ multiple alias or table definitions::
 
     - :doc:`/sql/reference/lexical_structure`
 
-
 Parameter Reference
 ===================
 
@@ -82,7 +79,6 @@ Parameter references can either be unnumbered or numbered:
 - Question mark as an unnumbered placeholder: ``select * from t where x = ?``
 
 - ``$n`` as numbered placeholder: ``select * from t where x = $1 or x = $2``
-
 
 Operator Invocation
 ===================
@@ -160,7 +156,6 @@ A type cast specifies the conversion from one type to another. The syntax is::
 
     - :doc:`/sql/data_types`
 
-
 Object Constructor
 ==================
 
@@ -177,7 +172,6 @@ enclosed in curly brackets::
 Array Constructor
 =================
 
-
 A array constructor is an expression which builds an array. It consists of one
 or more expressions separated by commas, enclosed in square brackets and
 optionally prefixed with ``ARRAY``::
@@ -187,7 +181,6 @@ optionally prefixed with ``ARRAY``::
 .. seealso::
 
     - :ref:`data-type-array-literals`
-
 
 Scalar Subquery
 ===============

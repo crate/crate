@@ -111,7 +111,6 @@ the user ``dustin`` can authenticate to CrateDB over HTTP protocol from the
 And finally the entry ``{method: trust}`` means that any existing user (or superuser)
 can authenticate to CrateDB from any IP address using the ``trust`` method.
 
-
 Authenticating as a Superuser
 =============================
 
@@ -129,4 +128,3 @@ in the the ``auth.host_based`` setting, like this:
         config:
           0:
             user: crate
-

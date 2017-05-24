@@ -29,12 +29,10 @@ The created files are JSON formatted and contain one table row per line and,
 due to the distributed nature of Crate, *will remain on the same nodes*
 *where the shards are*.
 
-
 .. note::
 
   Currently only user tables can be exported. System tables like `sys.nodes`
   and blob tables don't work with the `COPY TO` statement.
-
 
 Parameters
 ==========
@@ -54,7 +52,6 @@ Parameters
 
 `WHERE` clauses use the same syntax as `SELECT` statements, allowing
 partial exports. (see :ref:`sql_dql_where_clause` for more information).
-
 
 Output URI
 ==========
@@ -99,7 +96,6 @@ not part of the partitioned tables.
 ::
 
     [ PARTITION ( partition_column = value [ , ... ] ) ]
-
 
 :partition_column: The name of the column by which the table is partitioned.
                    All partition columns that were part of the
@@ -158,7 +154,5 @@ Possible values for the ``format`` settings are:
              if columns are defined.
 
 .. _gzip: http://www.gzip.org/
-
 .. _`Amazon S3`: http://aws.amazon.com/s3/
-
 .. _NFS: http://en.wikipedia.org/wiki/Network_File_System

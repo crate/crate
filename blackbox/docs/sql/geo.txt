@@ -121,7 +121,6 @@ The second argument, the ``query_term`` is taken to match against the indexed ge
 The matching operation is determined by the ``match_type`` which determines the spatial relation
 we want to match. Available ``match_types`` are:
 
-
 :intersects: (Default) If the two shapes share some points and/or area, they are intersecting
             and considered matching using this ``match_type``.
             This also precludes containment or complete equality.
@@ -131,7 +130,6 @@ we want to match. Available ``match_types`` are:
 
 :within: If the indexed ``column_ident`` shape is completely inside the ``query_term`` shape
          they are considered matching using this ``match_type``.
-
 
 .. note::
 
@@ -153,11 +151,9 @@ we want to match. Available ``match_types`` are:
     But this is not:
     ``FROM t1, t2 WHERE match(t1.shape, 'POINT(1.1 2.2)') OR match(t2.shape, 'POINT(3.3 4.4)')``
 
-
 Having a table ``countries`` with a ``GEO_SHAPE`` column "geo" indexed using
 ``geohash`` you can query that column using the ``MATCH`` predicate with different
 match types as described above::
-
 
     cr> SELECT name from countries
     ... WHERE match("geo",
@@ -187,7 +183,6 @@ match types as described above::
     +--------------+
     SELECT 4 rows in set (... sec)
 
-
 Exact Queries
 =============
 
@@ -214,7 +209,6 @@ your geographic data::
     | TRUE               |
     +--------------------+
     SELECT 1 row in set (... sec)
-
 
 ::
 

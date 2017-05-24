@@ -82,7 +82,6 @@ If you are missing features, functions or dialect improvements and have a great
 use case for it, let us know on `Github`_. We’re always improving and extending
 Crate, and we love to hear feedback.
 
-
 Expression Evaluation
 =====================
 

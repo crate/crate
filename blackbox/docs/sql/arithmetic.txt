@@ -36,7 +36,6 @@ Below is an example using all available arithmetic operators::
     +-----------------------------------+
     SELECT 1 row in set (... sec)
 
-
 Result types
 ------------
 

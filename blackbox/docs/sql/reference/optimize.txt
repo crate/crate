@@ -39,7 +39,6 @@ For further information see :ref:`optimize`.
 
     System tables cannot be optimized
 
-
 Parameters
 ==========
 
@@ -48,7 +47,6 @@ Parameters
 
 :partition_column: Column name by which the table is partitioned.
 
-
 ``PARTITION`` Clause
 ====================
 
@@ -56,14 +54,12 @@ Parameters
 
     [ PARTITION ( partition_column = value [ , ... ] ) ]
 
-
 :partition_column: The name of the column by which the table is partitioned.
                    All partition columns that were part of the
                    :ref:`partitioned_by_clause` of the :ref:`ref-create-table`
                    statement must be specified.
 
 :value: The columns value.
-
 
 ``WITH`` Clause
 ===============

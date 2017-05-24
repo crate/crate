@@ -94,7 +94,6 @@ A table can be aliased for the sake of brevity too::
     +-------------------+
     SELECT 1 row in set (... sec)
 
-
 .. _sql_dql_joins:
 
 Joins
@@ -122,7 +121,6 @@ duplicate rows are removed from the result set::
     | 1373932800000 |
     +---------------+
     SELECT 3 rows in set (... sec)
-
 
 .. _sql_dql_where_clause:
 
@@ -203,7 +201,6 @@ The following example uses one of the supported ISO date formats::
     | 308534400000 | 2        |
     +--------------+----------+
     SELECT 2 rows in set (... sec)
-
 
 For a detailed explanation of the supported ISO date formats please refer to the `joda date_optional_time`_ site.
 
@@ -319,7 +316,6 @@ Examples::
 .. _POSIX Extended Regular Expressions: http://en.wikipedia.org/wiki/Regular_expression#POSIX_extended
 .. _PCRE: https://en.wikipedia.org/wiki/Perl_Compatible_Regular_Expressions
 
-
 .. _sql_dql_like:
 
 ``LIKE``
@@ -376,7 +372,6 @@ escape them using a backslash::
     over all rows and can't utilize the index. For better performance consider
     using a fulltext index.
 
-
 .. _sql_dql_not:
 
 ``NOT``
@@ -431,8 +426,6 @@ value from a right-hand set equals left-hand operand. Returns ``false`` otherwis
      +---------------------+-------------+
      SELECT 9 rows in set (... sec)
 
-
-
 .. _sql_dql_is_null:
 
 ``IS NULL``
@@ -477,7 +470,6 @@ does always return ``NULL`` when comparing ``NULL``.
     +----------+
     SELECT 1 row in set (... sec)
 
-
 .. _sql_dql_is_not_null:
 
 ``IS NOT NULL``
@@ -511,7 +503,6 @@ does always return ``NULL`` when comparing ``NULL``.
     |       12 |
     +----------+
     SELECT 1 row in set (... sec)
-
 
 .. _sql_dql_any_array:
 
@@ -678,7 +669,6 @@ Select a property of an inner object::
     +-----------+----------------+
     SELECT 1 row in set (... sec)
 
-
 Query for a property of an inner object::
 
     cr> select name, race['name'] from locations
@@ -689,7 +679,6 @@ Query for a property of an inner object::
     | Bartledan | Bartledannians |
     +-----------+----------------+
     SELECT 1 row in set (... sec)
-
 
 Inserting objects::
 
@@ -987,7 +976,6 @@ Some Examples::
     +---------------+-------------+
     SELECT 4 rows in set (... sec)
 
-
 .. _sql_dql_group_by:
 
 ``GROUP BY``
@@ -1052,7 +1040,6 @@ of the group by clause.
 It is also possible to use aggregates in the having clause just
 like in the result columns::
 
-
     cr> select count(*), kind from locations
     ... group by kind having min(name) = 'Berlin';
     +----------+------+
@@ -1072,7 +1059,6 @@ like in the result columns::
     |        4 | Galaxy |
     +----------+--------+
     SELECT 1 row in set (... sec)
-
 
 Comparison Operators
 ````````````````````

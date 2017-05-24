@@ -64,4 +64,3 @@ Parameters
 :char_filter_name: the name of a builtin char filter to be used.
 
 :char_filter_parameter: a name of a parameter for a given char filter.
-

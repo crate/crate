@@ -18,7 +18,6 @@ For a tabulated summary of aggregation functions, see :ref:`sql_dql_aggregation`
 ``count``
 =========
 
-
 .. _aggregation-count-star:
 
 ``count(*)``
@@ -145,7 +144,6 @@ will return the lexicographically smallest.::
     +------------------------------------+-------------+
     SELECT 3 rows in set (... sec)
 
-
 ``max``
 =======
 
@@ -185,7 +183,6 @@ Some Examples::
     | Altair            | Star System |
     +-------------------+-------------+
     SELECT 3 rows in set (... sec)
-
 
 ``sum``
 =======
@@ -300,7 +297,6 @@ Example::
     +--------------------------+-------------+
     SELECT 3 rows in set (... sec)
 
-
 ``variance``
 ============
 
@@ -387,7 +383,6 @@ a single value corresponding to the percentile of the specified fraction::
     +----------------------------+-------------+
     SELECT 3 rows in set (... sec)
 
-
 When supplied an array of fractions, the function will return an array of values
 corresponding to the percentile of each fraction specified::
 
@@ -398,7 +393,6 @@ corresponding to the percentile of each fraction specified::
     | [1.0, 5.984400000000001] |
     +--------------------------+
     SELECT 1 row in set (... sec)
-
 
 When a query with ``percentile`` function won't match any rows then a null
 result is returned.
@@ -413,7 +407,6 @@ in this implementation:
     - For small sets percentiles are highly accurate
     - It's difficult to generalize the exact level of accuracy, as it
       depends on your data distribution and volume of data being aggregated
-
 
 ``arbitrary``
 =============

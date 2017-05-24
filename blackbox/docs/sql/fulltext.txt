@@ -26,7 +26,6 @@ Synopsis
      , query_term
     )  [ using match_type [ with ( match_parameter [= value] [, ... ] ) ] ]
 
-
 The MATCH predicate performs a fulltext search on one or more indexed columns or indices
 and supports different matching techniques. It can also be used to perform :ref:`geographical
 searches <sql_dql_geo_search>` on :ref:`geo_shape_data_type` indices.
@@ -95,7 +94,6 @@ Arguments
 
 :match_type: Optional. Defaults to ``best_fields`` for fulltext indices. For details see :ref:`predicates_match_types`.
 
-
 .. note::
 
     The ``MATCH`` predicate can only be used in the :ref:`sql_dql_where_clause` and on user-created tables.
@@ -113,7 +111,6 @@ Arguments
     This is allowed: FROM t1, t2 WHERE match(t1.txt, 'foo') AND match(t2.txt, 'bar');
 
     But this is not: FROM t1, t2 WHERE match(t1.txt, 'foo') OR match(t2.txt, 'bar');
-
 
 .. _predicates_match_types:
 
@@ -149,7 +146,6 @@ The default ``match_type`` for fulltext indices is ``best_fields``.
                 one of the columns has to contain ``foo`` and a token that starts with ``ba`` in that order.
                 So a column containing ``foo baz`` would match and ``foo bar`` too.
 
-
 Options
 ```````
 
@@ -176,7 +172,6 @@ Not all options are applicable to all match types. See the options below for det
             Use ``prefix_length``, ``fuzzy_rewrite`` and ``max_expansions`` to fine tune the fuzzy matching process.
 
 :fuzzy_rewrite: The same than ``rewrite`` but only applies to queries using ``fuzziness``.
-
 
 :max_expansions: When using ``fuzziness`` or ``phrase_prefix`` this options controls
                  to how many different possible tokens a search token will be expanded.
@@ -215,11 +210,8 @@ Not all options are applicable to all match types. See the options below for det
               Defaults to ``0.0``. Not applicable to match type ``most_fields``
               as this type is executed as if it had a ``tie_breaker`` of ``1.0``.
 
-
 :zero_terms_query: If no tokens are generated analyzing the ``query_term`` then no documents are matched.
                    If ``all`` is given here, all documents are matched.
-
-
 
 Usage
 =====
@@ -253,7 +245,6 @@ the :ref:`_score <sql_administration_system_column_score>` can be selected::
 
     The `_score` is not an absolute value. It just sets
     a row in relation to the other ones.
-
 
 Searching On Multiple Columns
 =============================
@@ -308,7 +299,6 @@ use ``phrase`` or ``phrase_prefix``::
 A vast amount of options exist to fine-tune your fulltext search.
 A detailed reference can be found here :ref:`predicates_match`.
 
-
 Negative Search
 ===============
 
@@ -333,7 +323,6 @@ A negative fulltext search can be done using a ``NOT`` clause::
     | NULL                               |    1.0 |
     +------------------------------------+--------+
     SELECT 11 rows in set (... sec)
-
 
 Filter By :ref:`_score <sql_administration_system_column_score>`
 ================================================================

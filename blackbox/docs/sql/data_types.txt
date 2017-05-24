@@ -58,7 +58,6 @@ distinct parts like containers or collections:
 * `object`_
 * `array`_
 
-
 ``boolean``
 ===========
 
@@ -73,7 +72,6 @@ A basic boolean type. Accepting ``true`` and ``false`` as values. Example::
 
     cr> drop table my_bool_table;
     DROP OK, 1 row affected (... sec)
-
 
 .. _data-type-string:
 
@@ -121,7 +119,6 @@ as its within the corresponding range. Example::
     ... );
     CREATE OK, 1 row affected (... sec)
 
-
 ``ip``
 ======
 
@@ -147,7 +144,6 @@ Example::
     cr> insert into my_table_ips (fqdn, ip_addr)
     ... values ('localhost', 'not.a.real.ip');
     SQLActionException[ColumnValidationException: Validation failed for ip_addr: 'not.a.real.ip' cannot be cast to type ip]
-
 
 ``timestamp``
 =============
@@ -246,7 +242,6 @@ Create table example::
     ...   pin geo_point
     ... ) with (number_of_replicas = 0)
     CREATE OK, 1 row affected (... sec)
-
 
 .. _geo_shape_data_type:
 
@@ -347,7 +342,6 @@ The main difference is that the ``geohash`` supports higher precision than the
 ``quadtree`` tree. Both tree implementations support precision in order of
 fractions of millimeters.
 
-
 Representation
 --------------
 
@@ -370,7 +364,6 @@ Alternatively a `WKT`_ string can be used to represent a geo_shape as well::
     It is not possible to detect a geo_shape type for a dynamically created column.
     Like with :ref:`geo_point_data_type` type, geo_shape columns need to be created explicitly
     using either :ref:`ref-create-table` or :ref:`ref-alter-table`.
-
 
 .. _object_data_type:
 
@@ -603,7 +596,6 @@ Array types are defined as follows::
     ... );
     CREATE OK, 1 row affected (... sec)
 
-
 .. note::
 
     Currently arrays cannot be nested. Something like array(array(string))
@@ -640,7 +632,6 @@ Some valid arrays are::
     ARRAY[column_a, column_b]
     ARRAY[ARRAY[1, 2, 1 + 2], ARRAY[3, 4, 3 + 4]]
 
-
 Array Representation
 ....................
 
@@ -649,7 +640,6 @@ square brackets (``[]``), for example::
 
     [1, 2, 3]
     ['Zaphod', 'Ford', 'Arthur']
-
 
 .. _type_conversion:
 
@@ -668,7 +658,6 @@ Crate supports two equivalent syntaxes for type casts:
 
    cast(expression as type)
    expression::type
-
 
 Example usages:
 ::
@@ -709,7 +698,6 @@ types, e.g. converting an array of integer values to a boolean array.
    It is not possible to cast to or from ``object``, ``geopoint``, and
    ``geoshape`` data type.
 
-
 ``TRY_CAST``
 ------------
 
@@ -720,7 +708,6 @@ with ``cast``.
 ::
 
    try_cast(expression as type)
-
 
 Example usages:
 ::

@@ -19,7 +19,6 @@ that are then used as unicast hosts for node discovery (see
   Note that this best practice only describes how to use the EC2 discovery and
   its settings, and not how to set up a cluster on EC2 securely.
 
-
 Basic Configuration
 ===================
 
@@ -49,7 +48,6 @@ publish the site-local address::
 
    The requirement to explicitly configure CrateDB to bind to and publish the
    site-local address is new in :ref:`version_1.2.0`.
-
 
 .. _ec2_authentication:
 
@@ -104,7 +102,6 @@ and assign them with an IAM role. Note that all CrateDB instances of the same
 region will join the cluster as long as their cluster name is equal and they are
 able to communicate to each other over the transport port.
 
-
 Production Setup
 ================
 
@@ -129,7 +126,6 @@ The combination with the unique cluster name makes the production setup very
 simple yet secure.
 
 See also :ref:`discovery.ec2.groups <discovery_ec2_groups>`.
-
 
 Optional Filters
 ================
@@ -189,7 +185,6 @@ discovery by availability zone::
       availability_zones: us-west-1
 
 See also :ref:`discovery.ec2.availability_zones <discovery_ec2_zones>`.
-
 
 .. _`Amazon EC2`: http://aws.amazon.com/ec2
 .. _`EC2 API`: http://docs.aws.amazon.com/AWSEC2/latest/APIReference/Welcome.html

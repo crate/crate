@@ -25,7 +25,6 @@ Sampledata::
   ...  VALUES (1, 'foo', '2014-10-31 09:22:56', 'apple,banana'),
   ...   (2, 'bar', null, 'pear');
 
-
 Exporting Data From MySQL
 =========================
 
@@ -123,7 +122,6 @@ For help use the ``-h`` option:
 
   sh$ python mysql2crate.py -h
 
-
 Importing Data Into CrateDB
 ===========================
 
@@ -144,11 +142,9 @@ Finally use the ``COPY FROM`` statement to import your newly generated json file
 
   cr> COPY foo_imported FROM '/tmp/import.json' WITH (bulk_size=1000);
 
-
 .. note::
 
   Read :ref:`efficient_data_import` for more information how to import huge datasets into CrateDB.
-
 
 Third Party Tool: csvkit
 ========================
@@ -167,7 +163,6 @@ The simplest way to do so is like this:
 
   See also the documentation of `csvsql`_. To use the SQLAlchemy driver of
   CrateDB, the latest version of the `CrateDB Python package`_ is required.
-
 
 .. _`MySQL`: http://mysql.com
 .. _`CrateDB`: https://crate.io

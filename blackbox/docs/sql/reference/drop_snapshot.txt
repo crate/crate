@@ -14,7 +14,6 @@ Synopsis
 
     DROP SNAPSHOT repository_name.snapshot_name
 
-
 Description
 ===========
 
@@ -22,7 +21,6 @@ Delete a snapshot from a repository and all files only referenced by this snapsh
 
 If this statement is executed against a snapshot that is currently being created,
 the creation is aborted and all files created so far are deleted.
-
 
 Parameters
 ==========

@@ -29,4 +29,3 @@ Parameters
 
 :username: The unique name of the database user. The name follows the
   principles of a SQL identifier (see :ref:`sql_lexical_keywords_identifiers`).
-

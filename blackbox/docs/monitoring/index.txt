@@ -131,4 +131,3 @@ Average duration:
 .. _JMX documentation: http://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html#gdeum
 .. _JConsole: http://docs.oracle.com/javase/8/docs/technotes/guides/management/agent.html#gdeum
 .. _VisualVM: https://visualvm.java.net/
-

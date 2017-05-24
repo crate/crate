@@ -34,7 +34,6 @@ single quotes, e.g. ``'Jack''s car'``.
   Two adjacent single quotes are **not** equivalent to the double-quote
   character ``"``.
 
-
 .. _sql_lexical_keywords_identifiers:
 
 Key Words and Identifiers
@@ -43,7 +42,6 @@ Key Words and Identifiers
 The table bellow lists **key words** reserved in Crate and need to be quoted
 if used as identifiers. Items in bold are Crate specific and not included in
 the SQL standards from SQL-92 to SQL-2011.
-
 
 .. csv-table::
    :widths: 10, 10, 10, 10
@@ -155,7 +153,6 @@ the SQL standards from SQL-92 to SQL-2011.
     DELETE, MAP, SCHEMA,
     DENSE_RANK, MATCH, SCOPE,
 
-
 Tokens such as ``my_table``, ``id``, ``name``, or ``data`` in the example above
 are **identifiers**, which identify names of tables, columns, and other database objects.
 
@@ -170,7 +167,6 @@ Example::
 .. note::
 
   Key words and unquoted identifiers are case insensitive.
-
 
 This means that::
 
@@ -205,7 +201,6 @@ use ``"update"`` as a table or column name.
   e.g. ``"column['looks_like_nested']"``. When querying the information schema,
   the colum name would look identical as a nested object column!
 
-
 .. _sql_lexical_special_chars:
 
 Special Characters
@@ -235,7 +230,6 @@ please refer to the sections where the respective syntax elements are described.
     The period (``.``) is used for numeric values and to separate schema
     and table names, e.g. ``blob.my_blob_table``.
 
-
 .. _sql_lexical_comments:
 
 Comments
@@ -251,6 +245,5 @@ Example::
   SELECT *
     FROM information_schema.tables
     WHERE table_schema = 'doc'; -- query information schema for doc tables
-
 
 .. _`crash`: https://github.com/crate/crash/

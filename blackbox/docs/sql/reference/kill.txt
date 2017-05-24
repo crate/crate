@@ -5,9 +5,7 @@
 ``KILL``
 ========
 
-
 Kills active jobs in the crate cluster.
-
 
 Synopsis
 ========

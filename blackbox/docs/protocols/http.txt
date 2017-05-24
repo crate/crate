@@ -398,5 +398,4 @@ the resulting error::
     operation fails.
 
 .. _prepared statement: http://en.wikipedia.org/wiki/Prepared_statement
-
 .. _here documents: http://www.tldp.org/LDP/abs/html/here-docs.html

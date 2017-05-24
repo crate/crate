@@ -102,6 +102,4 @@ shows whether the user has superuser privileges or not.
     users data via the Elasticsearch API. Therefore access to the users table
     is not restricted.
 
-
-
 .. _Enterprise Edition: https://crate.io/enterprise/

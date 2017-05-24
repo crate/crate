@@ -126,7 +126,6 @@ A ``joined_relation`` is a relation which joins two relations together. See
 
     relation { , | join_type JOIN } relation [ ON join_condition ]
 
-
 :join_type: LEFT [OUTER], RIGHT [OUTER], FULL [OUTER], CROSS or INNER.
 
 :join_condition: An expression which specifies which rows in a join are
@@ -143,13 +142,11 @@ Table Function
 
     function_call
 
-
 :function_call: The call declaration of the function. Usually in the form of
                 `` function_name ( [ args ] )``.
 
                 Depending on the function the parenthesis and arguments are
                 either optional or required.
-
 
 Available functions are documented in the :doc:`table functions
 </sql/table_functions>` section.
@@ -166,15 +163,12 @@ an alias:
 
     ( select_stmt ) [ AS ] alias
 
-
 The sub-select behaves like a temporary table that is evaluated at runtime. The
 clauses of the surrounding ``SELECT`` statements are applied on the result of
 the inner ``SELECT`` statement.
 
-
 :select_stmt: A :ref:`SELECT <sql_reference_select>` statement.
 :alias: An :ref:`alias <sql_reference_table_alias>` for the sub select.
-
 
 ``WHERE`` Clause
 ----------------
@@ -224,7 +218,6 @@ values whitin a resulting row of a group by clause.
 :condition: a having condition is any expression that evaluates to a result
     of type boolean. Every row for which the condition is not satisfied
     will be eliminated from the output.
-
 
 .. note::
 
@@ -292,7 +285,6 @@ The optional LIMIT Clause allows to limit the number or retured result rows::
 
     If a client using the `HTTP` or `Transport` protocol is used a default
     limit of 10000 is implicitly added.
-
 
 .. note::
 

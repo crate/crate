@@ -21,5 +21,4 @@ supports, what they are and how to use them.
    :exclude: {4: '(?i)N\w*'}
    :included_cols: 0,1,2,3,6
 
-
 .. _ISO/IEC 9075: https://www.iso.org/obp/ui/#iso:std:iso-iec:9075:-2:ed-4:v1:en

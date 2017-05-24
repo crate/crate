@@ -113,7 +113,6 @@ These **features** of standard SQL are not supported:
 
   - Exclusion constraints
 
-
 These **functions** are either not supported or only partly supported:
 
 - Aggregate functions
@@ -138,13 +137,11 @@ These **functions** are either not supported or only partly supported:
 
 - XML functions
 
-
 The currently supported and unsupported features in Crate are exposed in the
 :ref:`information_schema` table (see :ref:`sql_features` for usage).
 
 If you are missing features, functions or dialect improvements and have a great
 use case for it, let us know on `Github`_. We’re always improving and extending
 Crate, and we love to hear feedback.
-
 
 .. _Github: https://github.com/crate/crate

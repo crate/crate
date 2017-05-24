@@ -204,7 +204,6 @@ Limitations
  - Joining more than 2 tables can result in execution plans which perform
    poorly as there is no query optimizer in place yet.
 
-
 .. _`nightly builds`: https://cdn.crate.io/downloads/releases/nightly/
 .. _`Cartesian Product`: https://en.wikipedia.org/wiki/Cartesian_product
 .. _`Crate.IO blog`: https://crate.io/blog/

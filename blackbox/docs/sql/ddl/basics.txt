@@ -88,7 +88,6 @@ the ``doc`` schema::
     +--------------+--------------+
     SELECT 1 row in set (... sec)
 
-
 .. _sql_ddl_naming_restrictions:
 
 Naming Restrictions

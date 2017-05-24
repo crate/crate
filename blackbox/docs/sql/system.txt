@@ -203,7 +203,6 @@ This table can be queried for one, multiple or all nodes within a cluster.
 
 The table schema is as follows:
 
-
 ``id``
 ------
 
@@ -564,7 +563,6 @@ between 2 probes.
     it returns ``null`` every column except ``id`` and ``name``.
     This behaviour could be used to detect hanging nodes.
 
-
 .. _sys-node-checks:
 
 Node Checks
@@ -642,7 +640,6 @@ it's ``acknowledged`` flag::
 
     Updates on this column are transient, so changed values are lost
     after the affected node is restarted.
-
 
 Description of Checked Node Settings
 ------------------------------------
@@ -958,7 +955,6 @@ shard rebalancing or snapshot recovery.
 |                                    | recovery.                                          |             |
 +------------------------------------+----------------------------------------------------+-------------+
 
-
 For example, you can query shards like this::
 
   cr> select schema_name as schema,
@@ -1042,7 +1038,6 @@ system column in the query::
     +---------------+--------...-+-----...-+------------+
     SELECT 1 row in set (... sec)
 
-
 .. note::
 
     In some cases internal "sub-jobs" are created. Parts of these sub-jobs may
@@ -1090,7 +1085,6 @@ deactivate the stats tracking. This will wipe all existing log entries::
     |        0 |
     +----------+
     SELECT 1 row in set (... sec)
-
 
 .. note::
 
@@ -1288,7 +1282,6 @@ create, manage and restore snapshots (see :ref:`snapshot-restore`).
 |               | see :ref:`ref-create-repository`. |                   |
 +---------------+-----------------------------------+-------------------+
 
-
 .. Hidden: create repository
 
    cr> CREATE REPOSITORY "my_repo" TYPE "fs"
@@ -1355,14 +1348,10 @@ unavailable while taking the snapshot when there are no replicas at hand
 included (state ``SUCCESS``). Building on a ``PARTIAL`` snapshot will include
 all primaries again.
 
-
-
 .. warning::
 
     In case of a ``PARTIAL`` state another snapshot should be created in order
     to guarantee a full backup! Only ``SUCCESS`` includes all shards.
-
-
 
 The ``concrete_indices`` column contains the names of all Elasticsearch indices
 that were stored in the snapshot. A *normal* crate table maps to one Elasticsearch index,
@@ -1380,8 +1369,6 @@ The mapping follows the following pattern:
 +-----------------------------------------+------------------------------------------+
 | ``my_schema.parted_table`` (value=null) | ``my_schema..partitioned.my_table.0400`` |
 +-----------------------------------------+------------------------------------------+
-
-
 
 .. Hidden: create snapshots
 
@@ -1410,7 +1397,6 @@ The mapping follows the following pattern:
     cr> DROP REPOSITORY "my_repo";
     DROP OK, 1 row affected (... sec)
 
-
 .. _sys-summits:
 
 Summits
@@ -1419,7 +1405,6 @@ Summits
 The ``sys.summits`` table contains the information about the mountains in the
 Alps higher than 2000m. The mountain names from the table are also used to
 generate random nodes names.
-
 
 .. _sys-users:
 
@@ -1437,7 +1422,6 @@ The table is only available in the CrateDB `Enterprise Edition`_.
 | ``superuser`` | Boolean flag to indicate whether the user    | ``Boolean`` |
 |               | is a superuser.                              |             |
 +---------------+----------------------------------------------+-------------+
-
 
 .. _configuration: ../configuration.html
 .. _Enterprise Edition: https://crate.io/enterprise/

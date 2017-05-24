@@ -28,8 +28,6 @@ For performance reasons doing that should be avoided if possible.
 
 See :ref:`partitioned_tables` for more information on partitioned tables.
 
-
-
 Without issuing this statement there is no guarantee that a change
 (``UPDATE``, ``DELETE``, ``COPY`` or ``INSERT``) will be seen by an
 immediately following ``SELECT`` statement for the row(s) affected by
@@ -49,14 +47,12 @@ Parameters
 
 :partition_column: Column name by which the table is partitioned.
 
-
 ``PARTITION`` Clause
 ====================
 
 ::
 
     [ PARTITION ( partition_column = value [ , ... ] ) ]
-
 
 :partition_column: The name of the column by which the table is partitioned.
                    All partition columns that were part of the

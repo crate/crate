@@ -16,7 +16,6 @@ Synopsis
     [CUSTERED [ BY (routing_column) ] INTO num_shards SHARDS ]
     [ WITH ( storage_parameter [= value] [, ... ] ) ]
 
-
 Description
 ===========
 

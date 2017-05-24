@@ -29,7 +29,6 @@ which is why clients should generally enable ``autocommit``.
     Write operations will still behave as if autocommit was enabled and commit
     or rollback calls are ignored.
 
-
 Server Compatibility and Implementation Status
 ==============================================
 
@@ -54,7 +53,6 @@ The `Simple Query`_ protocol is implemented with the following limitations:
 
 - The ``query`` may only contain one query. Sending multiple queries with one
   message is not supported.
-
 
 Extended Query
 --------------
@@ -83,7 +81,6 @@ Canceling Requests
 Operations can be cancelled using the ``KILL`` statement, hence the
 ``CancelRequest`` message  is unsupported. Consequently, the server won't
 send a ``BackendKeyData`` message during connection initialization.
-
 
 ``pg_type``
 -----------
@@ -121,7 +118,6 @@ Crate::
     +------+----------+---------+-------------+
     SELECT 20 rows in set (... sec)
 
-
 Show Transaction Isolation
 --------------------------
 
@@ -135,7 +131,6 @@ implemented::
     | read uncommitted      |
     +-----------------------+
     SHOW 1 row in set (... sec)
-
 
 Client Compatibility
 ====================
@@ -174,7 +169,6 @@ Limitations
   the `Extended Query`_ API from working due to a `bug
   <https://github.com/pgjdbc/pgjdbc/issues/653>`_ at `pgjdbc`_.
 
-
 Connection Failover and Load Balancing
 ......................................
 
@@ -185,7 +179,6 @@ Connection failover and load balancing is supported as described here:
 
     It is not recommended to use the **targetServerType** parameter since Crate
     has no concept of Master/Slave nodes.
-
 
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
 .. _Simple Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#AEN108745
