@@ -58,8 +58,8 @@ Fixes
  - Fixed an issue that causes hanging queries if a data node disconnects from
    the cluster.
 
- - CrateDB now throws a correct error if a user tries to create a table starting
-   with ``_``.
+ - CrateDB now throws a correct error if a user tries to create a table
+   starting with ``_``.
 
  - Fixed an issue that causes ``UnhandledServerException`` on joins when
    ``WHERE`` clause contains conditions on columns of array type of both tables

@@ -55,8 +55,7 @@ Breaking it down, that command:
   host machine to port ``4200`` on the container
 - Runs the command ``crate`` process inside the container
 
-Check the node is up with ``docker ps`` and you should see something like
-this:
+Check the node is up with ``docker ps`` and you should see something like this:
 
 .. code-block:: text
 

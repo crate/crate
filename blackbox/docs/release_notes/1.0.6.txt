@@ -38,8 +38,8 @@ Fixes
  - Fixed issue which prevents blob directories from being removed after a
    ``drop blob table`` command when a custom blob location is configured.
 
- - Fixed an issue that caused conditions like ``not x = any( )`` to not
-   find empty lists when used in WHERE clauses.
+ - Fixed an issue that caused conditions like ``not x = any( )`` to not find
+   empty lists when used in WHERE clauses.
 
  - Fixed a race condition in an unsorted right outer join with one empty table
    that could lead to incorrect results.

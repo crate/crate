@@ -17,10 +17,11 @@ Synopsis
 Description
 ===========
 
-Delete a snapshot from a repository and all files only referenced by this snapshot.
+Delete a snapshot from a repository and all files only referenced by this
+snapshot.
 
-If this statement is executed against a snapshot that is currently being created,
-the creation is aborted and all files created so far are deleted.
+If this statement is executed against a snapshot that is currently being
+created, the creation is aborted and all files created so far are deleted.
 
 Parameters
 ==========

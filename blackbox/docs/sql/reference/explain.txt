@@ -16,18 +16,18 @@ Synopsis
 Description
 ===========
 
-The ``EXPLAIN`` command displays the execution plan that the planner
-generates for the supplied statement. The plan is returned as a nested
-object containing the plan tree.
+The ``EXPLAIN`` command displays the execution plan that the planner generates
+for the supplied statement. The plan is returned as a nested object containing
+the plan tree.
 
 .. note::
 
-   The content of the returned plan tree should be considered
-   experimental and subject to change in future versions. Also not all
-   plan nodes provide in-depth details.
+   The content of the returned plan tree should be considered experimental and
+   subject to change in future versions. Also not all plan nodes provide
+   in-depth details.
 
 Parameters
 ==========
 
-:statement: The statement for which a plan should be
-            returned. Currently only SELECT and COPY FROM statements are supported.
+:statement: The statement for which a plan should be returned. Currently only
+            SELECT and COPY FROM statements are supported.

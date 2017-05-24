@@ -62,24 +62,27 @@ your browser once Crate is started::
 Install Using Docker
 ====================
 
-`Docker`_ is a lightweigt runtime to run distributed applications in a sandboxed container.
-We provide a Docker image for CrateDB for easy installation::
+`Docker`_ is a lightweigt runtime to run distributed applications in a
+sandboxed container. We provide a Docker image for CrateDB for easy
+installation::
 
     sh$ docker pull crate
     sh$ docker run -d -p 4200:4200 -p 4300:4300 crate crate -Ccluster.name=my_cluster
 
-The images are hosted on the `Docker Hub Registry`_. There is additional information
-on how to run Crate in a Docker container on the `docker-crate`_ Github repository.
+The images are hosted on the `Docker Hub Registry`_. There is additional
+information on how to run Crate in a Docker container on the `docker-crate`_
+Github repository.
 
 .. _install_production:
 
 Install CrateDB for Production
 ==============================
 
-We provide distributions for **RHEL/YUM** based systems, **Ubuntu**, **Debian** and **Arch Linux**.
+We provide distributions for **RHEL/YUM** based systems, **Ubuntu**, **Debian**
+and **Arch Linux**.
 
-You can find instruction how to install CrateDB for production on
-the Download_ page.
+You can find instruction how to install CrateDB for production on the Download_
+page.
 
 In case your distribution is missing feel free to `contact us
 <https://crate.io/about/contact/>`_. We're happy to create and maintain

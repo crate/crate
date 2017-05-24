@@ -21,8 +21,8 @@ See our `example crate plugin`_ for details about that.
 Plugin CrateDB Dependency
 =========================
 
-In order to develop a plugin against a CrateDB release, a dependency to
-the crate's server libraries must be set up.
+In order to develop a plugin against a CrateDB release, a dependency to the
+crate's server libraries must be set up.
 
 Gradle
 ------
@@ -87,20 +87,20 @@ Add crate as a dependency:
 Plugin Loading
 ==============
 
-Loading of plugins is done by crate for searching all class path
-element resources for a ``META-INF/services/io.crate.Plugin`` file.
+Loading of plugins is done by crate for searching all class path element
+resources for a ``META-INF/services/io.crate.Plugin`` file.
 
-Inside this file just one line is allowed defining the full qualified
-class name which is implementing the `Plugin interface`_. This is
-almost the same like you may know from Java's ServiceLoader.
+Inside this file just one line is allowed defining the full qualified class
+name which is implementing the `Plugin interface`_. This is almost the same
+like you may know from Java's ServiceLoader.
 
 Constructor with ``Settings`` argument
 --------------------------------------
 
-CrateDB passes a ``Settings`` instance to the plugin implementation
-constructor if such a constructor exists. Otherwise an empty
-constructor is used. By using the ``Settings`` instance, a plugin can
-process existing settings and/or implement it's own custom setting entries.
+CrateDB passes a ``Settings`` instance to the plugin implementation constructor
+if such a constructor exists. Otherwise an empty constructor is used. By using
+the ``Settings`` instance, a plugin can process existing settings and/or
+implement it's own custom setting entries.
 
 The `example crate plugin`_ makes use of that to implement a custom setting.
 
@@ -110,20 +110,19 @@ The `example crate plugin`_ makes use of that to implement a custom setting.
 Plugin Interface
 ================
 
-CrateDB uses `Guice`_ module binding concept and so does a plugin.
-As described at the ``io.crate.Plugin`` interface, a plugin can load
-serveral module types by implementing relevant methods:
+CrateDB uses `Guice`_ module binding concept and so does a plugin. As described
+at the ``io.crate.Plugin`` interface, a plugin can load serveral module types
+by implementing relevant methods:
 
  - lifecycle services
  - node level modules
  - index level modules
  - shard level modules
 
-Besides of implementing own modules, a plugin can also listen to
-other's module bindings. For example, as our `example crate plugin`_
-does, to the binding of the ``ScalarFunctionModule`` in order to
-register scalar functions. This can be achieved by implementing a
-related ``onModule(AnyModule module)`` method::
+Besides of implementing own modules, a plugin can also listen to other's module
+bindings. For example, as our `example crate plugin`_ does, to the binding of
+the ``ScalarFunctionModule`` in order to register scalar functions. This can be
+achieved by implementing a related ``onModule(AnyModule module)`` method::
 
   ....
   public void onModule(ScalarFunctionModule module) {
@@ -138,10 +137,10 @@ Again, checkout the `example crate plugin`_ to see this in action.
 ``AbstractPlugin`` Class
 ========================
 
-A good start for developing an own plugin is to extend the implementation
-from ``io.crate.plugin.AbstractPlugin``, which already implements all
-methods required by the Plugin interface. So one must just overwrite
-the relevant ones::
+A good start for developing an own plugin is to extend the implementation from
+``io.crate.plugin.AbstractPlugin``, which already implements all methods
+required by the Plugin interface. So one must just overwrite the relevant
+ones::
 
   public class MyAwesomePlugin extends AbstractPlugin {
 
@@ -164,14 +163,14 @@ the relevant ones::
       }
   }
 
-Methods ``name`` and ``description`` must be always implemented,
-anything else is already implemented by the abstract plugin class.
+Methods ``name`` and ``description`` must be always implemented, anything else
+is already implemented by the abstract plugin class.
 
 Installing a Plugin
 ===================
 
-Installing a plugin is simply done by copying the plugin's
-JAR file(s) somewhere into the class path or to one of the following places:
+Installing a plugin is simply done by copying the plugin's JAR file(s)
+somewhere into the class path or to one of the following places:
 
  - <CRATE_HOME>/plugins/
  - <CRATE_HOME>/plugins/<SOME_PLUGIN_NAME>/

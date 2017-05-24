@@ -6,14 +6,14 @@ Blob Support
 ============
 
 CrateDB includes support to store `binary large objects`_. By utilizing
-CrateDB's cluster features the files can be replicated and sharded just
-like regular data.
+CrateDB's cluster features the files can be replicated and sharded just like
+regular data.
 
 Creating a Table for Blobs
 ==========================
 
-Before adding blobs a ``blob table`` must be created. Lets use the
-crate shell ``crash`` to issue the SQL statement::
+Before adding blobs a ``blob table`` must be created. Lets use the crate shell
+``crash`` to issue the SQL statement::
 
     sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=1)"
     CREATE OK, 1 row affected (... sec)
@@ -24,15 +24,15 @@ Now crate is configured to allow blobs to be management under the
 Custom Location for Storing Blob Data
 =====================================
 
-It is possible to define a custom directory path for storing blob
-data which can be completely different than the normal data path.
-Best use case for this is storing normal data on a fast SSD and blob data
-on a large cheap spinning disk.
+It is possible to define a custom directory path for storing blob data which
+can be completely different than the normal data path. Best use case for this
+is storing normal data on a fast SSD and blob data on a large cheap spinning
+disk.
 
-The custom blob data path can be set either globally by config or
-while creating a blob table. The path can be either absolute or relative
-and must be creatable/writable by the user CrateDB is running as.
-A relative path value is relative to :ref:`env-crate-home`.
+The custom blob data path can be set either globally by config or while
+creating a blob table. The path can be either absolute or relative and must be
+creatable/writable by the user CrateDB is running as. A relative path value is
+relative to :ref:`env-crate-home`.
 
 Blob data will be stored under this path with the following layout::
 
@@ -41,8 +41,8 @@ Blob data will be stored under this path with the following layout::
 Global by Config
 ----------------
 
-Just uncomment or add following entry at the crate config in order to
-define a custom path globally for all blob tables::
+Just uncomment or add following entry at the crate config in order to define a
+custom path globally for all blob tables::
 
   blobs.path: /path/to/blob/data
 
@@ -51,9 +51,10 @@ Also see :ref:`configuration`.
 Per Blob Table Setting
 ----------------------
 
-It is also possible to define a custom blob data path per table
-instead of global by config. Also per table setting take precedence
-over the config setting.
+It is also possible to define a custom blob data path per table instead of
+global by config. Also per table setting take precedence over the config
+setting.
+
 See :ref:`ref-create-blob-table` for details.
 
 Creating a blob table with a custom blob data path::
@@ -73,9 +74,9 @@ TABLE`` clause::
 Uploading
 =========
 
-To upload a blob the sha1 hash of the blob has to be known upfront
-since this has to be used as the id of the new blob. For this example
-we use a fancy python one-liner to compute the shasum::
+To upload a blob the sha1 hash of the blob has to be known upfront since this
+has to be used as the id of the new blob. For this example we use a fancy
+python one-liner to compute the shasum::
 
     sh$ python -c 'import hashlib;print(hashlib.sha1("contents".encode("utf-8")).hexdigest())'
     4a756ca07e9487f482465a99e8286abc86ba4dc7
@@ -164,7 +165,8 @@ If the blob doesn't exist a 404 Not Found error is returned::
 Deleting a Blob Table
 =====================
 
-Blob tables can be deleted similar to normal tables (again using the crate shell here)::
+Blob tables can be deleted similar to normal tables (again using the crate
+shell here)::
 
     sh$ crash -c "drop blob table myblobs"
     DROP OK, 1 row affected (... sec)

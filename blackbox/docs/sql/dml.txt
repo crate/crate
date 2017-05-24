@@ -13,9 +13,9 @@ Inserting data to CrateDB is done by using the SQL ``INSERT`` statement.
 
 .. note::
 
-    The column list is always ordered alphabetically by column name.
-    If the insert columns are omitted, the values in the ``VALUES`` clauses
-    must correspond to the table columns in that order.
+    The column list is always ordered alphabetically by column name. If the
+    insert columns are omitted, the values in the ``VALUES`` clauses must
+    correspond to the table columns in that order.
 
 Inserting a row::
 
@@ -30,8 +30,8 @@ Inserting a row::
     ... );
     INSERT OK, 1 row affected (... sec)
 
-When inserting a single row, if an error occurs an error is returned as
-a response.
+When inserting a single row, if an error occurs an error is returned as a
+response.
 
 Inserting multiple rows at once (aka. bulk insert) can be done by defining
 multiple values for the ``INSERT`` statement::
@@ -55,12 +55,12 @@ multiple values for the ``INSERT`` statement::
     ... );
     INSERT OK, 2 rows affected (... sec)
 
-When inserting multiple rows, if an error occurs for some of these rows there is
-no error returned but instead the number of rows affected would be decreased
+When inserting multiple rows, if an error occurs for some of these rows there
+is no error returned but instead the number of rows affected would be decreased
 by the number of rows that failed to be inserted.
 
-When inserting into tables containing :ref:`ref-generated-columns`,
-their value can be safely omitted. It is *generated* upon insert:
+When inserting into tables containing :ref:`ref-generated-columns`, their value
+can be safely omitted. It is *generated* upon insert:
 
 .. Hidden: create debit_card table::
 
@@ -78,8 +78,8 @@ their value can be safely omitted. It is *generated* upon insert:
     ... ('Zaphod Beeblebrox', 1234, 5678);
     INSERT OK, 1 row affected (... sec)
 
-If a value is given, it is validated against the *generation clause*
-of the column and the currently inserted row::
+If a value is given, it is validated against the *generation clause* of the
+column and the currently inserted row::
 
     cr> insert into debit_card (owner, num_part1, num_part2, check_sum) values
     ... ('Arthur Dent', 9876, 5432, 642935);
@@ -93,11 +93,10 @@ Inserting Data By Query
     cr> refresh table locations
     REFRESH OK, 1 row affected (... sec)
 
-It is possible to insert data using a query instead of values. Column
-data types of source and target table can differ as long as the values
-are castable. This gives the opportunity to restructure the tables
-data, renaming a field, changing a field's data type or convert a
-normal table into a partitioned one.
+It is possible to insert data using a query instead of values. Column data
+types of source and target table can differ as long as the values are castable.
+This gives the opportunity to restructure the tables data, renaming a field,
+changing a field's data type or convert a normal table into a partitioned one.
 
 Example of changing a field's data type, in this case, changing the
 ``position`` data type from integer to short::
@@ -127,8 +126,8 @@ Example of changing a field's data type, in this case, changing the
    cr> drop table locations2
     DROP OK, 1 row affected (... sec)
 
-Example of creating a new partitioned table out of the ``locations``
-table with data partitioned by year::
+Example of creating a new partitioned table out of the ``locations`` table with
+data partitioned by year::
 
     cr> create table locations_parted (
     ...     id string primary key,
@@ -177,15 +176,15 @@ Resulting partitions of the last insert by query::
 
 .. note::
 
-   ``limit``, ``offset`` and ``order by`` are not supported inside the
-   query statement.
+   ``limit``, ``offset`` and ``order by`` are not supported inside the query
+   statement.
 
 ``ON DUPLICATE KEY UPDATE``
 ---------------------------
 
-The ``ON DUPLICATE KEY UPDATE`` clause is used to update the existing
-row if inserting is not possible because of a duplicate-key conflict
-if a document with the same ``PRIMARY KEY`` already exists::
+The ``ON DUPLICATE KEY UPDATE`` clause is used to update the existing row if
+inserting is not possible because of a duplicate-key conflict if a document
+with the same ``PRIMARY KEY`` already exists::
 
     cr> select
     ...     name,
@@ -232,10 +231,10 @@ if a document with the same ``PRIMARY KEY`` already exists::
     +------+--------+------------+
     SELECT 1 row in set (... sec)
 
-It's possible to refer to values which would be inserted if
-no duplicate-key conflict occured, by using the ``VALUES(column_ident)``
-function. This function is especially useful in multiple-row inserts,
-to refer to the current rows values::
+It's possible to refer to values which would be inserted if no duplicate-key
+conflict occured, by using the ``VALUES(column_ident)`` function. This function
+is especially useful in multiple-row inserts, to refer to the current rows
+values::
 
     cr> insert into uservisits (id, name, visits, last_visit) values
     ... (
@@ -379,7 +378,9 @@ Importing Data
 --------------
 
 Using the ``COPY FROM`` SQL statement, data can be imported into Crate.
-Currently the only supported data format is JSON, one line is representing one entry.
+
+Currently the only supported data format is JSON, one line is representing one
+entry.
 
 .. highlight:: json
 
@@ -390,13 +391,13 @@ Example JSON data::
 
 .. note::
 
-  * The ``COPY FROM`` statement will not convert or validate your data.
-    Please make sure that it fits your schema.
+  * The ``COPY FROM`` statement will not convert or validate your data. Please
+    make sure that it fits your schema.
   * Values for generated columns will be computed if the data does not contain
     them, otherwise they will be imported but not validated, so please make
     sure that they are correct.
-  * Furthermore, column names in your data are considered case sensitive (as if they
-    were quoted in a SQL statement).
+  * Furthermore, column names in your data are considered case sensitive (as if
+    they were quoted in a SQL statement).
 
 In order to import data into :ref:`partitioned_tables` take a look at the
 :ref:`copy_from` reference.
@@ -448,11 +449,11 @@ Exporting Data
 Data can be exported using the ``COPY TO`` statement. Data is exported in a
 distributed way, meaning each node will export its own data.
 
-Replicated data is not exported. So every row of an exported table is
-stored only once.
+Replicated data is not exported. So every row of an exported table is stored
+only once.
 
-This example shows how to export a given table into files named after
-the table and shard id with gzip compression::
+This example shows how to export a given table into files named after the table
+and shard id with gzip compression::
 
     cr> refresh table quotes;
     REFRESH OK...
@@ -462,9 +463,9 @@ the table and shard id with gzip compression::
     cr> copy quotes to DIRECTORY '/tmp/' with (compression='gzip');
     COPY OK, 3 rows affected ...
 
-Instead of exporting a whole table, rows can be filtered by an
-optional WHERE clause condition. This is useful if only a subset of
-the data needs to be exported::
+Instead of exporting a whole table, rows can be filtered by an optional WHERE
+clause condition. This is useful if only a subset of the data needs to be
+exported::
 
     cr> copy quotes where match(quote_ft, 'time') to DIRECTORY '/tmp/' with (compression='gzip');
     COPY OK, 2 rows affected ...

@@ -87,8 +87,8 @@ columns::
 Columns
 =======
 
-This table can be queried to get a list of all available columns of all tables and their
-definition like data type and ordinal position inside the table::
+This table can be queried to get a list of all available columns of all tables
+and their definition like data type and ordinal position inside the table::
 
     cr> select table_name, column_name, ordinal_position as pos, data_type
     ... from information_schema.columns
@@ -120,7 +120,8 @@ definition like data type and ordinal position inside the table::
     +-------------------+--------------------------------+------+--------------+
     SELECT 20 rows in set (... sec)
 
-You can even query this tables' own columns (attention: this might lead to infinite recursion of your mind, beware!)::
+You can even query this tables' own columns (attention: this might lead to
+infinite recursion of your mind, beware!)::
 
     cr> select column_name, data_type, ordinal_position
     ... from information_schema.columns
@@ -142,15 +143,15 @@ You can even query this tables' own columns (attention: this might lead to infin
 
 .. note::
 
-  Columns are always sorted alphabetically in ascending order regardless of the order
-  they were defined on table creation. Thus the ``ordinal_position`` reflects the alphabetical
-  position.
+  Columns are always sorted alphabetically in ascending order regardless of the
+  order they were defined on table creation. Thus the ``ordinal_position``
+  reflects the alphabetical position.
 
 Table Constraints
 =================
 
-This table can be queried to get a list of all defined table constraints,
-their type, name and which table they are defined in.
+This table can be queried to get a list of all defined table constraints, their
+type, name and which table they are defined in.
 
 .. note::
 
@@ -178,11 +179,11 @@ their type, name and which table they are defined in.
 Table Partitions
 ================
 
-This table can be queried to get information about all partitioned tables,
-Each partition of a table is represented as one row. The row contains the
+This table can be queried to get information about all partitioned tables, Each
+partition of a table is represented as one row. The row contains the
 information table name, schema name, partition ident, and the values of the
-partition. ``values`` is a key-value object with the 'partitioned by column'
-as key(s) and the corresponding value as value(s).
+partition. ``values`` is a key-value object with the 'partitioned by column' as
+key(s) and the corresponding value as value(s).
 
 For further information see :ref:`partitioned_tables`.
 
@@ -209,8 +210,8 @@ For further information see :ref:`partitioned_tables`.
 
 The following example shows a table where the column 'content' of table
 'a_partitioned_table' has been used to partition the table. The table has two
-partitions. The partitions are introduced when data is inserted where
-'content' is 'content_a', and 'content_b'.::
+partitions. The partitions are introduced when data is inserted where 'content'
+is 'content_a', and 'content_b'.::
 
     cr> select table_name, schema_name as schema, partition_ident, "values"
     ... from information_schema.table_partitions
@@ -223,9 +224,9 @@ partitions. The partitions are introduced when data is inserted where
     +---------------------+--------+--------------------+--------------------------+
     SELECT 2 rows in set (... sec)
 
-The second partition has been created
-after the number of shards for future partitions have been changed on the
-partitioned table, so they show ``5`` instead of ``4``::
+The second partition has been created after the number of shards for future
+partitions have been changed on the partitioned table, so they show ``5``
+instead of ``4``::
 
     cr> select table_name, partition_ident,
     ... number_of_shards, number_of_replicas
@@ -244,8 +245,10 @@ Table Settings
 
 Table settings specify configuration parameters for tables. Some settings can
 be set during Cluster runtime and others are only applied on cluster restart.
+
 This list of :ref:`conf_table_settings` shows detailed information of each
 parameter.
+
 Table parameters can be applied with ``CREATE TABLE`` on creation of a table.
 With ``ALTER TABLE`` they can be set on already existing tables.
 
@@ -380,7 +383,8 @@ Columns
     The return type of the function.
     If it doesn't apply, then ``NULL``.
 :is_deterministic:
-    If the routine is deterministic then `True`, else `False` (``NULL`` if it doesn't apply).
+    If the routine is deterministic then `True`, else `False` (``NULL`` if it
+    doesn't apply).
 :routine_definition:
     The function definition (``NULL`` if it doesn't apply).
 :specific_name:
@@ -461,7 +465,9 @@ Crate based to the current SQL standard (see :ref:`sql_supported_features`)::
     ``NO`` if not
 :is_verified_by:
     Identifies the conformance test used to verify the claim;
+
     Always ``NULL`` since the Crate development group does not perform formal
     testing of feature conformance
 :comments:
-    Either ``NULL`` or shows a comment about the supported status of the feature
+    Either ``NULL`` or shows a comment about the supported status of the
+    feature

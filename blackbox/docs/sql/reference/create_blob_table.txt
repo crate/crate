@@ -19,14 +19,14 @@ Synopsis
 Description
 ===========
 
-CREATE BLOB TABLE will create a new table for holding BLOBS. For
-details and examples see :ref:`blob_support`.
+CREATE BLOB TABLE will create a new table for holding BLOBS. For details and
+examples see :ref:`blob_support`.
 
-The CLUSTERED and WITH clauses follow the same semantics described
-under :ref:`ref_clustered_clause` and :ref:`with_clause`.
+The CLUSTERED and WITH clauses follow the same semantics described under
+:ref:`ref_clustered_clause` and :ref:`with_clause`.
 
-Additional to the storage parameter described at :ref:`with_clause`,
-following parameters are supported here:
+Additional to the storage parameter described at :ref:`with_clause`, following
+parameters are supported here:
 
 .. _ref-blobs-path:
 
@@ -35,9 +35,8 @@ following parameters are supported here:
 
 Specifies a custom path for storing blob data of a blob table.
 
-:blobs_path: The custom path for storing blob data as a string literal
-       value or string parameter. The path can be either absolute or
-       relative and must be creatable/writable by the user Crate
-       is running as. A relative path value is relative to
-       ref:`env-crate-home`. This path take precedence over any global
-       configured value.
+:blobs_path: The custom path for storing blob data as a string literal value or
+             string parameter. The path can be either absolute or relative and
+             must be creatable/writable by the user Crate is running as. A
+             relative path value is relative to :ref:`env-crate-home`. This
+             path take precedence over any global configured value.

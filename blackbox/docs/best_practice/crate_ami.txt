@@ -6,8 +6,8 @@ Launching EC2 Instances with the CrateDB AMI
 =============================================
 
 CrateDB provides custom public `AMI`_ s that can be launched by every EC2 user
-by using the AWS Management Console or `AWS CLI`_. The naming convention
-is as follows::
+by using the AWS Management Console or `AWS CLI`_. The naming convention is as
+follows::
 
     crate-<VERSION>-<REVISION>-<AMI_REVISION>-<BASE_AMI>
 
@@ -25,8 +25,8 @@ Finding the CrateDB AMI
 =======================
 
 To launch an EC2 instance based on the CrateDB AMI, use the search panel to
-find the image in the public AMI repository. After choosing the desired AMI
-by its CrateDB version, it can be launched as an EC2 instance running on your
+find the image in the public AMI repository. After choosing the desired AMI by
+its CrateDB version, it can be launched as an EC2 instance running on your
 account.
 
 .. image:: ../_static/crate-ami-search.png
@@ -63,12 +63,12 @@ Cloud-Init
 
 The AMI creates a basic CrateDB configuration at first launch (using
 Cloud-Init). During startup the `Cloud-Init`_ process checks if ephemeral
-devices are attached to the instance. If the device contains no filesystem
-it will be formatted with the *ext4* file system. Otherwise the filesystem
-already installed will be used. The mount point of each attached device is
-defined as ``/mnt/<DEV-NAME>`` where ``<DEV-NAME>`` is the name of the
-device as listed in ``/dev``. The configuration settings (defined in
-``/etc/crate/crate.yml`` are listed below and include:
+devices are attached to the instance. If the device contains no filesystem it
+will be formatted with the *ext4* file system. Otherwise the filesystem already
+installed will be used. The mount point of each attached device is defined as
+``/mnt/<DEV-NAME>`` where ``<DEV-NAME>`` is the name of the device as listed in
+``/dev``. The configuration settings (defined in ``/etc/crate/crate.yml`` are
+listed below and include:
 
   * Mount ephemeral devices and set the CrateDB data path on their mount points
     (:ref:`attached_devices`)
@@ -79,9 +79,9 @@ In addition to the preconfigured *Cloud-Init* setup, it is possible to inject
 commands as a *User-Data* shell-script.
 
 .. note::
-    Note that *User-Data* scripts are called before the pre-installed *Cloud-Init*
-    scripts and therefore the injected *User-Data* settings might be overridden
-    by *Cloud-Init* (see :ref:`cloud_init`).
+   Note that *User-Data* scripts are called before the pre-installed
+   *Cloud-Init* scripts and therefore the injected *User-Data* settings might
+   be overridden by *Cloud-Init* (see :ref:`cloud_init`).
 
 EC2 Discovery
 -------------
@@ -92,7 +92,7 @@ use `IAM roles`_ instead of providing your AWS credentials manually on your
 instances (see :ref:`ec2_authentication`).
 
 .. note::
-    *EC2 discovery* is only available on CrateDB version 0.51.0 or higher.
+   *EC2 discovery* is only available on CrateDB version 0.51.0 or higher.
 
 Adapt CrateDB Configuration
 ---------------------------
@@ -131,9 +131,9 @@ file.
     sh$ aws ec2 run-instances --image-id ami-544c1923 --count 1 --iam-instance-profile Name="crate-ec2" --instance-type m3.medium --user-data $(base64 user-data.sh) --key-name my_key_pair
 
 .. note::
-    In case you want to filter machines by instance tags or security groups,
-    add this configuration to the ``USER-DATA`` field parameter
-    (see :ref:`filter-by-tags`).
+   In case you want to filter machines by instance tags or security groups, add
+   this configuration to the ``USER-DATA`` field parameter (see
+   :ref:`filter-by-tags`).
 
 Instance Types
 ==============
@@ -156,16 +156,16 @@ Attached Devices
 To add a block device mapping before launching an instance, it is possible to
 use the ``block-device-mappings`` parameter with the ``run-instances`` command.
 In this case ``ephemeral1`` will be added as an instance store volume with the
-device name ``/dev/sdc``. For additional info see
-`device naming on linux instances`_.
+device name ``/dev/sdc``. For additional info see `device naming on linux
+instances`_.
 
 ::
 
     sh$ aws ec2 run-instances --image-id ami-544c1923 --count 1 --instance-type m3.medium --block-device-mappings "[{\"DeviceName\": \"/dev/sdc\",\"VirtualName\":\"ephemeral1\"}]"
 
 .. note::
-    Note that the data stored on ephemeral disks is not permanent and only
-    persists during the lifetime of an instance.
+   Note that the data stored on ephemeral disks is not permanent and only
+   persists during the lifetime of an instance.
 
 If no block device mapping is configured on the EC2 instance, the default data
 directory of CrateDB is set to ``/var/lib/crate``. The data paths are set in

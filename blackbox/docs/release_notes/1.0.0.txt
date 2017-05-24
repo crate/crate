@@ -83,7 +83,6 @@ Changes
 
  - Added support for global aggregations on subselects.
 
-
  - Added the ``-C`` option for providing Crate settings and deprecated usage of
    the ``.es`` prefix with ``-D`` option.
 
@@ -109,8 +108,8 @@ Changes
     - Local development: do not store ``base_uri`` permanently in localStorage
       but keep it in URL.
 
-    - Added Pepper contact widget which displays various Crate.IO
-      support Channels in a user friendly way.
+    - Added Pepper contact widget which displays various Crate.IO support
+      Channels in a user friendly way.
 
     - The first node in the node list is selected by default.
 

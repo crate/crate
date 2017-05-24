@@ -20,10 +20,11 @@ Description
 ``SHOW CREATE TABLE`` can be used to dump the schema of an existing
 user-created table.
 
-It is not possible to invoke ``SHOW CREATE TABLE`` on blob tables
-or system tables.
+It is not possible to invoke ``SHOW CREATE TABLE`` on blob tables or system
+tables.
 
 Parameters
 ==========
 
-:table_ident: The name (optionally schema-qualified) of the table which should be printed.
+:table_ident: The name (optionally schema-qualified) of the table which should
+              be printed.

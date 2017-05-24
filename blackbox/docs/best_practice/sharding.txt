@@ -63,8 +63,8 @@ could actually see performance degradation. Each shard comes with a cost in
 terms of open files, RAM, and CPU cycles. Smaller shards also means small shard
 indexes, which can adversely affect computed search term relevance.
 
-For performance reasons, one thousand shards per table per node is considered the
-highest recommended configuration. If you exceed this you will experience a
+For performance reasons, one thousand shards per table per node is considered
+the highest recommended configuration. If you exceed this you will experience a
 failing cluster check.
 
 Balancing Allocation

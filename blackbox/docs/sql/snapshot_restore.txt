@@ -7,10 +7,9 @@ Backup With Snapshot and Restore
 Snapshot
 --------
 
-In CRATE, backups are called *Snapshots*. They represent the state of
-the tables in a CRATE cluster at the time the *Snapshot* was
-created. A *Snapshot* is always stored in a *Repository* which has to
-be created first.
+In CRATE, backups are called *Snapshots*. They represent the state of the
+tables in a CRATE cluster at the time the *Snapshot* was created. A *Snapshot*
+is always stored in a *Repository* which has to be created first.
 
 Creating a Repository
 .....................
@@ -23,8 +22,8 @@ They are created using the :ref:`ref-create-repository` statement::
     ... WITH (location='repo_path', compress=true);
     CREATE OK, 1 row affected (... sec)
 
-Repositories are uniquely identified by their name. Every repository
-has a specific type which determines how snapshots are stored.
+Repositories are uniquely identified by their name. Every repository has a
+specific type which determines how snapshots are stored.
 
 CRATE supports different repository types:
 :ref:`ref-create-repository-types-fs`, :ref:`ref-create-repository-types-hdfs`,
@@ -32,10 +31,10 @@ CRATE supports different repository types:
 :ref:`ref-create-repository-types-url`. Support for further types can be
 added using :ref:`plugins`.
 
-The creation of a repository configures it inside the crate cluster. In
-general no data is written, no snapshots inside repositories changed or
-deleted. This way you can tell the CRATE cluster about existing repositories
-which already contain snapshots.
+The creation of a repository configures it inside the crate cluster. In general
+no data is written, no snapshots inside repositories changed or deleted. This
+way you can tell the CRATE cluster about existing repositories which already
+contain snapshots.
 
 Creating a repository with the same name will result in an error::
 
@@ -46,9 +45,8 @@ Creating a repository with the same name will result in an error::
 Creating a Snapshot
 ...................
 
-Snapshots are created inside a repository and can contain any number
-of tables. The :ref:`ref-create-snapshot` statement is used to create
-a snapshots::
+Snapshots are created inside a repository and can contain any number of tables.
+The :ref:`ref-create-snapshot` statement is used to create a snapshots::
 
     cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot1 ALL
     ... WITH (wait_for_completion=true, ignore_unavailable=true);
@@ -79,9 +77,9 @@ listing them explicitly::
     cr> REFRESH TABLE parted_table;
     REFRESH OK, 2 rows affected (... sec)
 
-Even single partition of :ref:`partitioned_tables` can be selected
-for backup. This is especially useful if old partitions need to be
-deleted but it should be possible to restore them if needed::
+Even single partition of :ref:`partitioned_tables` can be selected for backup.
+This is especially useful if old partitions need to be deleted but it should be
+possible to restore them if needed::
 
     cr> CREATE SNAPSHOT where_my_snapshots_go.snapshot3 TABLE
     ...    locations,
@@ -89,23 +87,22 @@ deleted but it should be possible to restore them if needed::
     ... WITH (wait_for_completion=true);
     CREATE OK, 1 row affected (... sec)
 
-Snapshots are **incremental**. Snapshots of the same cluster created later
-only store data not already contained in the repository.
+Snapshots are **incremental**. Snapshots of the same cluster created later only
+store data not already contained in the repository.
 
-All examples above are used with the argument ``wait_for_completion``
-set to *true*. As described in the :ref:`ref-create-repository`
-reference documentation, by doing this, the statement will only respond
-(successfully or not) when the snapshot is fully created.
-Otherwise the snapshot will be created in the background and
-the statement will immediately respond as successful. The status of a
-created snapshot can be retrieved by querying the :ref:`sys.snapshots
-<sys-snapshots>` system table.
+All examples above are used with the argument ``wait_for_completion`` set to
+*true*. As described in the :ref:`ref-create-repository` reference
+documentation, by doing this, the statement will only respond (successfully or
+not) when the snapshot is fully created. Otherwise the snapshot will be created
+in the background and the statement will immediately respond as successful. The
+status of a created snapshot can be retrieved by querying the
+:ref:`sys.snapshots <sys-snapshots>` system table.
 
 Restore
 -------
 
-Once a snapshot is created, it can be used to restore its tables to
-the state when the snapshot was created.
+Once a snapshot is created, it can be used to restore its tables to the state
+when the snapshot was created.
 
 To get basic information about snapshots the :ref:`sys.snapshots
 <sys-snapshots>` table can be queried::
@@ -133,16 +130,16 @@ Restoring a snapshot using the :ref:`ref-restore-snapshot` statement.::
     RESTORE OK, 1 row affected (... sec)
 
 In this case only the ``quotes`` table from snapshot
-``where_my_snapshots_go.snapshot2`` is restored. Using ``ALL`` instead
-of listing all tables restores the whole snapshot.
+``where_my_snapshots_go.snapshot2`` is restored. Using ``ALL`` instead of
+listing all tables restores the whole snapshot.
 
 It's not possible to restore tables that exist in the current cluster::
 
     cr> RESTORE SNAPSHOT where_my_snapshots_go.snapshot2 TABLE quotes;
     SQLActionException[TableAlreadyExistsException: The table 'doc.quotes' already exists.]
 
-Single partitions can be either imported into an existing partitioned
-table the partition belongs to.
+Single partitions can be either imported into an existing partitioned table the
+partition belongs to.
 
 .. Hidden: drop partition::
 
@@ -156,14 +153,16 @@ table the partition belongs to.
     ... WITH (wait_for_completion=true);
     RESTORE OK, 1 row affected (... sec)
 
-Or if no matching partition table exists, it will be implicitly
-created during restore.
+Or if no matching partition table exists, it will be implicitly created during
+restore.
 
 .. note::
 
     This is only possible with Crate version 0.55.5 or greater!
+
     Snapshots of single partitions that have been created with earlier versions
     of Crate may be restored, but lead to orphaned partitions!
+
     When using Crate prior to 0.55.5 you will have to create the table schema
     first before restoring.
 
@@ -183,10 +182,10 @@ Cleanup
 Dropping Snapshots
 ..................
 
-Dropping a snapshot deletes all files inside the repository that are
-only referenced by this snapshot. Due to its incremental nature this
-might be very few files (e.g. for intermediate snapshots). Snapshots
-are dropped using the :ref:`ref-drop-snapshot` command::
+Dropping a snapshot deletes all files inside the repository that are only
+referenced by this snapshot. Due to its incremental nature this might be very
+few files (e.g. for intermediate snapshots). Snapshots are dropped using the
+:ref:`ref-drop-snapshot` command::
 
     cr> DROP SNAPSHOT where_my_snapshots_go.snapshot3;
     DROP OK, 1 row affected (... sec)
@@ -206,8 +205,8 @@ If a repository is not needed anymore, it can be dropped using the
     DROP OK, 1 row affected (... sec)
 
 This statement, like :ref:`ref-create-repository`, does not manipulate
-repository contents but only deletes stored configuration for this
-repository in the cluster state, so it's not accessible any more.
+repository contents but only deletes stored configuration for this repository
+in the cluster state, so it's not accessible any more.
 
 .. Hidden: cleanup
 
@@ -227,14 +226,14 @@ Requirements for Using HDFS Repositories
 
 Crate supports repositories of type
 :ref:`ref-create-repository-types-hdfs` type by default, but required
-`Hadoop`_ java client libraries are not included in any Crate
-distribution and need to be added to Crate's hdfs plugin folder.
-By default this is ``$CRATE_HOME/plugins/es-repository-hdfs``
+`Hadoop`_ java client libraries are not included in any Crate distribution and
+need to be added to Crate's hdfs plugin folder. By default this is
+``$CRATE_HOME/plugins/es-repository-hdfs``
 
-Because some libraries `Hadoop`_ depends on are also required (and so
-deployed) by Crate, only the `Hadoop`_ libraries listed below must be
-copied into the ``$CRATE_HOME/plugins/es-repository-hdfs`` folder,
-other libraries will be ignored::
+Because some libraries `Hadoop`_ depends on are also required (and so deployed)
+by Crate, only the `Hadoop`_ libraries listed below must be copied into the
+``$CRATE_HOME/plugins/es-repository-hdfs`` folder, other libraries will be
+ignored::
 
  - apacheds-i18n-2.0.0-M15.jar
  - apacheds-kerberos-codec-2.0.0-M15.jar
@@ -276,9 +275,9 @@ other libraries will be ignored::
 
 .. note::
 
-   Only `Hadoop` version **2.x** is supported and as of writing
-   this documentation, the latest stable `Hadoop (YARN)` version
-   is **2.7.1**. Required libraries may differ for other versions.
+   Only `Hadoop` version **2.x** is supported and as of writing this
+   documentation, the latest stable `Hadoop (YARN)` version is **2.7.1**.
+   Required libraries may differ for other versions.
 
 .. _Hadoop: https://hadoop.apache.org/
 .. _Hadoop (YARN): https://hadoop.apache.org/docs/r2.7.1/hadoop-yarn/hadoop-yarn-site/YARN.html

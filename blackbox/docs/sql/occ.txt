@@ -5,12 +5,15 @@
 Optimistic Concurrency Control with Crate
 =========================================
 
-Even though Crate does not support transactions, `Optimistic Concurrency Control`_ can be achieved
-by using the internal system column :ref:`_version <sql_administration_system_column_version>`.
+Even though Crate does not support transactions, `Optimistic Concurrency
+Control`_ can be achieved by using the internal system column :ref:`_version
+<sql_administration_system_column_version>`.
 
-Every new row has an initial version of ``1``. This value is increased by ``1`` on every update.
+Every new row has an initial version of ``1``. This value is increased by ``1``
+on every update.
 
-.. Hidden: update some documents to raise their ``_version`` to 3. formerly done in other tests.::
+.. Hidden: update some documents to raise their ``_version`` to 3. formerly
+   done in other tests.::
 
     cr> update locations set date = 0
     ... where name < 'Altair' and kind = 'Star System';
@@ -72,10 +75,10 @@ Of course the same can be done when deleting a row::
 Known Limitations
 =================
 
- - The ``_version`` column can only be used when specifying the whole
-   primary key in a query. For example, the query below is not
-   possible with our used testing data because ``name`` is not
-   declared as a primary key and results in an error::
+ - The ``_version`` column can only be used when specifying the whole primary
+   key in a query. For example, the query below is not possible with our used
+   testing data because ``name`` is not declared as a primary key and results
+   in an error::
 
     cr> delete from locations where name = 'Aldebaran' and "_version" = 3;
     SQLActionException[UnsupportedFeatureException: _version is not allowed in
@@ -83,8 +86,8 @@ Known Limitations
 
 .. note::
 
-  Both, ``DELETE`` and ``UPDATE``, commands will return a row count of 0 if
-  the given required version does not match the actual version of the relevant
-  row.
+   Both, ``DELETE`` and ``UPDATE``, commands will return a row count of 0 if
+   the given required version does not match the actual version of the relevant
+   row.
 
 .. _Optimistic Concurrency Control: http://en.wikipedia.org/wiki/Optimistic_concurrency_control

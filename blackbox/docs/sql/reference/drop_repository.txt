@@ -18,11 +18,13 @@ Description
 ===========
 
 DROP REPOSITORY will unregister an existing repository from the cluster.
+
 It cannot be used for creating, dropping or restoring snapshots anymore.
 
 .. note::
 
-    Already stored snapshots in the repository remain unchanged during this operation.
+   Already stored snapshots in the repository remain unchanged during this
+   operation.
 
 Parameters
 ==========

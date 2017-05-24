@@ -16,8 +16,9 @@ Synopsis
 Description
 ===========
 
-``SHOW SCHEMAS`` can be used to retrieve defined schema names of the database in
-alphabetical order.
+``SHOW SCHEMAS`` can be used to retrieve defined schema names of the database
+in alphabetical order.
+
 The same list can be fetched by querying the the schema names from the
 ``information_schema.schemata`` table.
 
@@ -31,4 +32,5 @@ string pattern as a filter and has an equivalent behavior to
 ``WHERE`` Clause
 ================
 
-The optional WHERE clause defines the condition to be met for a row to be returned.
+The optional WHERE clause defines the condition to be met for a row to be
+returned.

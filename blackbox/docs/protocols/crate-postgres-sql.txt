@@ -8,8 +8,8 @@ Crate uses the PostgreSQL Wire Protocol (since Crate 0.56), which makes it easy
 to use many PostgreSQL compatible tools and libraries directly with Crate.
 However, many of these tools assume that they are talking to PostgreSQL
 specifically, and thus rely on SQL extensions and idioms that are unique to
-PostgreSQL. Because of this, some tools or libraries may not work with other SQL
-databases such as Crate.
+PostgreSQL. Because of this, some tools or libraries may not work with other
+SQL databases such as Crate.
 
 Crate’s SQL query engine enables real-time search & aggregations for online
 analytic processing (OLAP) and business intelligence (BI) with the benefit of
@@ -17,9 +17,9 @@ the ability to scale horizontally. The use-cases of Crate are different than
 those of PostgreSQL, as Crate’s specialized storage schema and query execution
 engine address different requirements (see `High Level Architecture`_).
 
-The listed features below cover the main differences in implementation
-and dialect between Crate and PostgreSQL.
-A detailed comparison between Crate’s SQL dialect and standard SQL is defined in
+The listed features below cover the main differences in implementation and
+dialect between Crate and PostgreSQL. A detailed comparison between Crate’s SQL
+dialect and standard SQL is defined in
 :ref:`crate_standard_sql`.
 
 ``COPY``
@@ -52,6 +52,7 @@ Declaration of Arrays
 
 The definition of an array by writing its values as a literal constant with the
 syntax of  ``'{ val1 delim val2 delim ... }'`` is not supported.
+
 While multidimensional arrays in PostgreSQL must have matching extends for each
 dimension, Crate allows different length nested arrays as this example shows::
 
@@ -67,16 +68,16 @@ Accessing Arrays
 ----------------
 
 Fetching arbitrary rectangular slices of an array using
-``lower-bound:upper-bound`` expression (see `Arrays`_) in the array subscript is
-not supported.
+``lower-bound:upper-bound`` expression (see `Arrays`_) in the array subscript
+is not supported.
 
 Text Search Functions and Operators
 ===================================
 
-The functions and operators provided by PostgreSQL for full-text search
-(see `PostgreSQL Fulltext Search`_) are not compatible with those provided by
-Crate. For more information about the built-in full-text search in Crate refer
-to :ref:`sql_dql_fulltext_search`.
+The functions and operators provided by PostgreSQL for full-text search (see
+`PostgreSQL Fulltext Search`_) are not compatible with those provided by Crate.
+For more information about the built-in full-text search in Crate refer to
+:ref:`sql_dql_fulltext_search`.
 
 If you are missing features, functions or dialect improvements and have a great
 use case for it, let us know on `Github`_. We’re always improving and extending
@@ -85,9 +86,8 @@ Crate, and we love to hear feedback.
 Expression Evaluation
 =====================
 
-Unlike PostgreSQL, expressions are not evaluated if the query results
-in 0 rows either because of the table is empty or by a not matching
-where clause.
+Unlike PostgreSQL, expressions are not evaluated if the query results in 0 rows
+either because of the table is empty or by a not matching where clause.
 
 .. _High Level Architecture: https://crate.io/overview/high-level-architecture
 .. _Value Expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html

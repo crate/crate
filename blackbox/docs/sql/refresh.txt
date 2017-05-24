@@ -5,12 +5,12 @@
 Refresh
 =======
 
-Crate is `eventually consistent`_. Data written with a former statement is
-not guaranteed to be fetched with the next following select statement for
-the affected rows.
+Crate is `eventually consistent`_. Data written with a former statement is not
+guaranteed to be fetched with the next following select statement for the
+affected rows.
 
-If required one or more tables can be refreshed explicitly in order
-to ensure that the latest state of the table gets fetched.
+If required one or more tables can be refreshed explicitly in order to ensure
+that the latest state of the table gets fetched.
 
 ::
 
@@ -46,10 +46,10 @@ Multiple Table Refresh
     ... VALUES (1, 'Don''t Panic', 19.5, '2014-04-08');
     INSERT OK, 1 row affected (... sec)
 
-If needed, multiple tables can be defined comma-separated in a single
-SQL request. This ensures that they all get refreshed and so their datasets
-get consistent. The result message is printed if the request on every given
-table is completed.
+If needed, multiple tables can be defined comma-separated in a single SQL
+request. This ensures that they all get refreshed and so their datasets get
+consistent. The result message is printed if the request on every given table
+is completed.
 
 ::
 
@@ -68,18 +68,20 @@ Partition Refresh
 Additionally it is possible to define a specific ``PARTITION`` of a partitioned
 table which should be refreshed (see :ref:`partitioned_tables`).
 
-By using the ``PARTITION`` clause in the refresh statement a separate request for
-a given partition can be performed. That means that only specific partitions of
-a partitioned table are refreshed. For further details on how to create a refresh
-request on partitioned tables see the SQL syntax and its synopsis (see :ref:`sql_ref_refresh`).
+By using the ``PARTITION`` clause in the refresh statement a separate request
+for a given partition can be performed. That means that only specific
+partitions of a partitioned table are refreshed. For further details on how to
+create a refresh request on partitioned tables see the SQL syntax and its
+synopsis (see :ref:`sql_ref_refresh`).
 
 ::
 
     cr> REFRESH TABLE parted_table PARTITION (day='2014-04-08');
     REFRESH OK, 1 row affected (... sec)
 
-In case the ``PARTITION`` clause is omitted all partitions will be refreshed. If a
-table has many partitions this should be avoided due to performance reasons.
+In case the ``PARTITION`` clause is omitted all partitions will be refreshed.
+If a table has many partitions this should be avoided due to performance
+reasons.
 
 .. _`eventually consistent`: http://en.wikipedia.org/wiki/Eventual_consistency
 

@@ -4,18 +4,18 @@
 Usage Data Collector
 ====================
 
-The CrateDB Usage Data Collector (UDC) is a sub-system that gathers
-usage data, reporting it to the UDC server at https://udc.crate.io.
-It is easy to disable, and does not collect any data that is confidential.
-For more information about what is being sent, see below.
+The CrateDB Usage Data Collector (UDC) is a sub-system that gathers usage data,
+reporting it to the UDC server at https://udc.crate.io. It is easy to disable,
+and does not collect any data that is confidential. For more information about
+what is being sent, see below.
 
-CrateDB uses this information as a form of automatic, effortless feedback from the
-community. We want to verify that we are doing the right thing by matching
+CrateDB uses this information as a form of automatic, effortless feedback from
+the community. We want to verify that we are doing the right thing by matching
 download statistics with usage statistics. After each release, we can see if
 there is a larger retention span of the server software.
 
-The data collected is clearly stated here. If any future versions of this system
-collect additional data, we will clearly announce those changes.
+The data collected is clearly stated here. If any future versions of this
+system collect additional data, we will clearly announce those changes.
 
 CrateDB is very concerned about your privacy. We do not disclose any personally
 identifiable information.
@@ -25,21 +25,24 @@ Technical Information
 
 To gather good statistics about CrateDB usage, UDC collects this information:
 
-    ================  =============================================================================
+    ================  =========================================================
     Name              Description
-    ================  =============================================================================
-    Kernel Version    The build number, and if there are any modifications to the kernel.
-    Cluster Id        A randomized globally unique id created every time the whole cluster is
-                      restarted.
+    ================  =========================================================
+    Kernel Version    The build number, and if there are any modifications to
+                      the kernel.
+    Cluster Id        A randomized globally unique id created every time the
+                      whole cluster is restarted.
     Master            Boolean whether the current node is master.
-    Ping Count        UDC holds an internal counter per node which is incremented for every ping,
-                      and reset on every restart of the a node.
+    Ping Count        UDC holds an internal counter per node which is
+                      incremented for every ping, and reset on every restart of
+                      the a node.
     Crate Version     The crate version.
     Java Version      The Java version crate is currently running with.
-    Hardware Address  MAC address to uniquely identify instances behind firewalls.
+    Hardware Address  MAC address to uniquely identify instances behind
+                      firewalls.
     Enterprise        Identifies whether the Enterprise Edition is used.
     License Ident     License Ident of the CrateDB Enterprise Edition.
-    ================  =============================================================================
+    ================  =========================================================
 
 After startup, UDC waits for 10 minutes before sending the first ping. It does
 this for two reasons; first, we don't want the startup to be slower because of
@@ -70,7 +73,8 @@ Crate.
 
 .. note::
 
-    If UDC is disabled on the CrateDB server the Intercom service is deactivated.
+   If UDC is disabled on the CrateDB server the Intercom service is
+   deactivated.
 
 .. highlight:: yaml
 

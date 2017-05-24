@@ -247,6 +247,7 @@ Computes the SHA1 checksum of the given string.
 Returns: ``string``
 
 Computes the MD5 checksum of the given string.
+
 See :ref:`sha1 <sha1>` for an example.
 
 Date and Time Functions
@@ -280,9 +281,9 @@ Valid intervals are:
 * year
 
 Valid values for ``timezone`` are either the name of a time zone (for example
-'Europe/Vienna') or the UTC offset of a time zone (for example '+01:00').
-To get a complete overview of all possible values take a look at the
-`available time zones`_ supported by `Joda-Time`_.
+'Europe/Vienna') or the UTC offset of a time zone (for example '+01:00'). To
+get a complete overview of all possible values take a look at the `available
+time zones`_ supported by `Joda-Time`_.
 
 The following example shows how to use the date_trunc function to generate a
 day based histogram in the ``Europe/Moscow`` timezone::
@@ -359,9 +360,9 @@ The following fields are supported:
   | century of era
 
   Returns the ISO representation which is a straight split of the date.
-  Year 2000 century 20 and year 2001 is also century 20. This is different
-  to the GregorianJulian (GJ) calendar system where 2001 would be century
-  21.
+
+  Year 2000 century 20 and year 2001 is also century 20. This is different to
+  the GregorianJulian (GJ) calendar system where 2001 would be century 21.
 
 **YEAR**
   | *Return type:* ``integer``
@@ -427,23 +428,25 @@ timestamp value is returned for every invocation of a single statement.
 
 .. note::
 
-    If the ``CURRENT_TIMESTAMP`` function is used in :ref:`sql-ddl-generated-columns`
-    it behaves slightly different in ``UPDATE`` operations. In such a case the
-    actual timestamp of each row update is returned.
+    If the ``CURRENT_TIMESTAMP`` function is used in
+    :ref:`sql-ddl-generated-columns` it behaves slightly different in
+    ``UPDATE`` operations. In such a case the actual timestamp of each row
+    update is returned.
 
 synopsis::
 
     CURRENT_TIMESTAMP [ ( precision ) ]
 
-``precision`` must be a positive integer between 0 and 3. The default value is 3.
-It determines the number of fractional seconds to output. A value of 0 means the
-timestamp will have second precision, no fractional seconds (milliseconds) are given.
+``precision`` must be a positive integer between 0 and 3. The default value is
+3. It determines the number of fractional seconds to output. A value of 0 means
+the timestamp will have second precision, no fractional seconds (milliseconds)
+are given.
 
 .. note::
 
    The ``CURRENT_TIMESTAMP`` will be evaluated  using javas
-   ``System.currentTimeMillis()``. So its actual result depends on the underlying
-   operating system.
+   ``System.currentTimeMillis()``. So its actual result depends on the
+   underlying operating system.
 
 ``date_format([format_string, [timezone,]] timestamp)``
 -------------------------------------------------------
@@ -460,14 +463,15 @@ Synopsis
 
     DATE_FORMAT( [ format_string, [ timezone, ] ] timestamp )
 
-The only mandatory argument is the ``timestamp`` value to format.
-It can be any expression that is safely convertible to timestamp.
+The only mandatory argument is the ``timestamp`` value to format. It can be any
+expression that is safely convertible to timestamp.
 
 Format
 ......
 
 The syntax for the ``format_string`` is 100% compatible to the syntax of the
-`MySQL date_format`_ function. For reference, the format is listed in detail below [#MySQL-Docs]_ :
+`MySQL date_format`_ function. For reference, the format is listed in detail
+below [#MySQL-Docs]_:
 
 .. csv-table:: date_format Format
    :header: "Format Specifier", "Description"
@@ -524,9 +528,9 @@ Timezone
 ........
 
 Valid values for ``timezone`` are either the name of a time zone (for example
-'Europe/Vienna') or the UTC offset of a time zone (for example '+01:00').
-To get a complete overview of all possible values take a look at the
-`available time zones`_ supported by `Joda-Time`_.
+'Europe/Vienna') or the UTC offset of a time zone (for example '+01:00'). To
+get a complete overview of all possible values take a look at the `available
+time zones`_ supported by `Joda-Time`_.
 
 The ``timezone`` will be ``UTC`` if not provided::
 
@@ -627,9 +631,10 @@ This function can always be used within the ``WHERE`` clause.
 
 Returns: ``boolean``
 
-The ``intersects`` function returns true if both argument shapes
-share some points or area, they *overlap*. This also includes two shapes
-where one lies :ref:`within <scalar_within>` the other.
+The ``intersects`` function returns true if both argument shapes share some
+points or area, they *overlap*. This also includes two shapes where one lies
+:ref:`within <scalar_within>` the other.
+
 If ``false`` is returned, both shapes are considered *disjoint*.
 
 Example::
@@ -656,8 +661,8 @@ Example::
     +------------+----------+
     SELECT 1 row in set (... sec)
 
-Due to a limitation on the :ref:`geo_shape_data_type` datatype
-this function cannot be used in the :ref:`sql_reference_order_by`.
+Due to a limitation on the :ref:`geo_shape_data_type` datatype this function
+cannot be used in the :ref:`sql_reference_order_by`.
 
 ``latitude(geo_point)`` and ``longitude(geo_point)``
 ----------------------------------------------------
@@ -697,8 +702,8 @@ implicit type casting from strings to geo point::
 
 Returns: ``string``
 
-Returns a `GeoHash <http://en.wikipedia.org/wiki/Geohash>`_ representation based
-on full precision (12 characters) of the input point, or ``NULL`` if not
+Returns a `GeoHash <http://en.wikipedia.org/wiki/Geohash>`_ representation
+based on full precision (12 characters) of the input point, or ``NULL`` if not
 available. The input has to be a column of type ``geo_point``, a valid WKT
 string or a double-array.See :ref:`geo_point_data_type` for more information of
 the implicit type casting of geo points.
@@ -719,13 +724,14 @@ Example::
 Mathematical Functions
 ======================
 
-All mathematical functions can be used within ``WHERE`` and
-``ORDER BY`` clauses.
+All mathematical functions can be used within ``WHERE`` and ``ORDER BY``
+clauses.
 
 ``abs(number)``
 ---------------
 
-Returns the absolute value of the given number in the datatype of the given number::
+Returns the absolute value of the given number in the datatype of the given
+number::
 
     cr> select abs(214748.0998), abs(0), abs(-214748) from sys.cluster;
     +------------------+--------+---------------+
@@ -761,12 +767,14 @@ long::
 ``floor(number)``
 -----------------
 
-Returns the largest integer or long value that is not greater than the argument.
+Returns the largest integer or long value that is not greater than the
+argument.
 
 Returns: ``long`` or ``integer``
 
-Return value will be an integer if the input value is an integer or a float.
-If the input value is of type long or double the return value will be of type long.
+Return value will be an integer if the input value is an integer or a float. If
+the input value is of type long or double the return value will be of type
+long.
 
 See below for an example::
 
@@ -798,8 +806,8 @@ See below for an example::
 .. note::
 
     An error is returned for arguments which lead to undefined or illegal
-    results. E.g. ln(0) results in ``minus infinity``, and therefore, an
-    error is returned.
+    results. E.g. ln(0) results in ``minus infinity``, and therefore, an error
+    is returned.
 
 ``log(x : number, b : number)``
 -------------------------------
@@ -831,8 +839,8 @@ The second argument (``b``) is optional. If not present, base 10 is used::
 .. note::
 
     An error is returned for arguments which lead to undefined or illegal
-    results. E.g. log(0) results in ``minus infinity``, and therefore, an
-    error is returned.
+    results. E.g. log(0) results in ``minus infinity``, and therefore, an error
+    is returned.
 
     The same is true for arguments which lead to a ``division by zero``, as
     e.g. log(10, 1) does.
@@ -1017,13 +1025,13 @@ Regular Expression Functions
 ============================
 
 The regular expression functions in crate use `Java Regular Expressions`_.
+
 See the api documentation for more details.
 
 .. note:
 
-   Be aware that, in contrast to the functions, the
-   :ref:`sql_ddl_regexp <regular expression operator>` is using
-   `Lucene Regular Expressions`_.
+   Be aware that, in contrast to the functions, the :ref:`sql_ddl_regexp
+   <regular expression operator>` is using `Lucene Regular Expressions`_.
 
 .. _Lucene Regular Expressions: http://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
 
@@ -1032,23 +1040,25 @@ See the api documentation for more details.
 ``regexp_matches(source, pattern [, flags])``
 ---------------------------------------------
 
-This function uses the regular expression pattern in ``pattern``
-to match against the ``source`` string.
+This function uses the regular expression pattern in ``pattern`` to match
+against the ``source`` string.
 
 Returns: ``string_array``
 
-If ``source`` matches, an array of the matched regular expression
-groups is returned.
-If no regular expression group was used, the whole pattern is used as
-a group.
+If ``source`` matches, an array of the matched regular expression groups is
+returned.
+
+If no regular expression group was used, the whole pattern is used as a group.
+
 If ``source`` does not match, this function returns ``NULL``.
 
-A regular expression group is formed by a subexpression that is
-surrounded by parentheses.The position of a group is determined by the
-position of its opening parenthesis.
+A regular expression group is formed by a subexpression that is surrounded by
+parentheses.The position of a group is determined by the position of its
+opening parenthesis.
+
 For example when matching the pattern ``\b([A-Z])`` a match for the
-subexpression ``([A-Z])`` would create group No. 1. If you want to
-group stuff with parentheses, but without grouping, use ``(?...)``.
+subexpression ``([A-Z])`` would create group No. 1. If you want to group stuff
+with parentheses, but without grouping, use ``(?...)``.
 
 For example matching the regular expression ``([Aa](.+)z)`` against
 ``alcatraz``, results in these groups:
@@ -1076,8 +1086,8 @@ The ``regexp_matches`` function will return all groups as a string array::
     +----------+
     SELECT 1 row in set (... sec)
 
-Through array element access functionality, a group can be selected
-directly. See :ref:`sql_dql_object_arrays_select` for details.
+Through array element access functionality, a group can be selected directly.
+See :ref:`sql_dql_object_arrays_select` for details.
 
 ::
 
@@ -1094,9 +1104,9 @@ directly. See :ref:`sql_dql_object_arrays_select` for details.
 Flags
 .....
 
-This function takes a number of flags as optional third parameter.
-These flags are given as a string containing any of the characters listed below.
-Order does not matter.
+This function takes a number of flags as optional third parameter. These flags
+are given as a string containing any of the characters listed below. Order does
+not matter.
 
 +-------+---------------------------------------------------------------------+
 | Flag  | Description                                                         |
@@ -1145,21 +1155,20 @@ Examples
 ``regexp_replace(source, pattern, replacement [, flags])``
 ----------------------------------------------------------
 
-``regexp_replace`` can be used to replace every (or only the first) occurence of
-a subsequence matching ``pattern`` in the ``source`` string with the ``replacement``
-string. If no subsequence in ``source`` matches the regular expression ``pattern``,
-``source`` is returned unchanged.
+``regexp_replace`` can be used to replace every (or only the first) occurence
+of a subsequence matching ``pattern`` in the ``source`` string with the
+``replacement`` string. If no subsequence in ``source`` matches the regular
+expression ``pattern``, ``source`` is returned unchanged.
 
 Returns: ``string``
 
-``pattern`` is a java regular expression. For details on the regexp syntax,
-see `Java Regular Expressions`_.
+``pattern`` is a java regular expression. For details on the regexp syntax, see
+`Java Regular Expressions`_.
 
-The ``replacement`` string may contain expressions like ``$N``
-where ``N`` is a digit between 0 and 9. It references the *N*\ th matched group of
-``pattern`` and the matching subsequence of that group will be inserted
-in the returned string. The expression ``$0`` will insert the whole matching
-``source``.
+The ``replacement`` string may contain expressions like ``$N`` where ``N`` is a
+digit between 0 and 9. It references the *N*\ th matched group of ``pattern``
+and the matching subsequence of that group will be inserted in the returned
+string. The expression ``$0`` will insert the whole matching ``source``.
 
 Per default, only the first occurrence of a subsequence matching ``pattern``
 will be replaced. If all occurrences shall be replaced use the ``g`` flag.
@@ -1167,8 +1176,9 @@ will be replaced. If all occurrences shall be replaced use the ``g`` flag.
 Flags
 .....
 
-``regexp_replace`` supports the same flags than ``regexp_matches``,
-see :ref:`regexp_matches Flags <scalar-regexp-matches-flags>` and additionally the ``g`` flag:
+``regexp_replace`` supports the same flags than ``regexp_matches``, see
+:ref:`regexp_matches Flags <scalar-regexp-matches-flags>` and additionally the
+``g`` flag:
 
 +-------+---------------------------------------------------------------------+
 | Flag  | Description                                                         |
@@ -1280,11 +1290,11 @@ It can be used to append elements to array fields
 
 .. note::
 
-   Appending to arrays with array_cat in updates is handy,
-   but unfortunately not isolated. We use optimistic concurrency control
-   to ensure that your update operation used the latest state of the row.
-   But only 3 retry attempts are made by fetching the newest version again
-   and if they all fail, the query fails.
+   Appending to arrays with array_cat in updates is handy, but unfortunately
+   not isolated. We use optimistic concurrency control to ensure that your
+   update operation used the latest state of the row. But only 3 retry attempts
+   are made by fetching the newest version again and if they all fail, the
+   query fails.
 
 You can also use the concat operator ``||`` with arrays
 
@@ -1301,7 +1311,8 @@ You can also use the concat operator ``||`` with arrays
 ``array_unique(first_array, [ second_array])``
 ----------------------------------------------
 
-The ``array_unique`` function merges two arrays into one array with unique elements
+The ``array_unique`` function merges two arrays into one array with unique
+elements
 
 Returns: ``array``
 
@@ -1329,7 +1340,8 @@ type of the first array with a defined type::
 ``array_difference(first_array, second_array)``
 -----------------------------------------------
 
-The ``array_difference`` function removes elements from the first array that are contained in the second array.
+The ``array_difference`` function removes elements from the first array that
+are contained in the second array.
 
 Returns: ``array``
 
@@ -1386,9 +1398,9 @@ Conditional Functions and Expressions
 ``CASE WHEN ... THEN ... END``
 ------------------------------
 
-The ``case`` expression is a generic conditional expression similar to
-if/else statements in other programming languages and can be used
-wherever an expression is valid.
+The ``case`` expression is a generic conditional expression similar to if/else
+statements in other programming languages and can be used wherever an
+expression is valid.
 
 ::
 
@@ -1397,15 +1409,14 @@ wherever an expression is valid.
        [ELSE result]
   END
 
-Each *condition* expression must result in a boolean value. If the
-condition's result is true, the value of the *result* expression
-that follows the condition will be the final result of the ``case``
-expression and the subsequent ``when`` branches will not be
-processed. If the condition's result is not true, any subsequent
-``when`` clauses are examined in the same manner. If no ``when``
-condition yields true, the value of the ``case`` expression is the
-result of the ``else`` clause. If the ``else`` clause is omitted and
-no condition is true, the result is null.
+Each *condition* expression must result in a boolean value. If the condition's
+result is true, the value of the *result* expression that follows the condition
+will be the final result of the ``case`` expression and the subsequent ``when``
+branches will not be processed. If the condition's result is not true, any
+subsequent ``when`` clauses are examined in the same manner. If no ``when``
+condition yields true, the value of the ``case`` expression is the result of
+the ``else`` clause. If the ``else`` clause is omitted and no condition is
+true, the result is null.
 
 .. Hidden: create table case_example
 
@@ -1435,8 +1446,8 @@ Example:
     +----+--------+
     SELECT 4 rows in set (... sec)
 
-As a variant, a ``case`` expression can be written using the *simple*
-form:
+As a variant, a ``case`` expression can be written using the *simple* form:
+
 ::
 
   CASE expression
@@ -1446,6 +1457,7 @@ form:
   END
 
 Example:
+
 ::
 
     cr> select id,
@@ -1476,13 +1488,13 @@ Example:
 ``if(condition, result [, default])``
 -------------------------------------
 
-The ``if`` function is a conditional function comparing to *if*
-statements of most other programming languages. If the given
-*condition* expresion evaluates to `true`, the *result* expression is
-evaluated and it's value is returned. If the *condition* evaluates to
-`false`, the *result* expression is not evaluated and the optional
-given *default* expression is evaluated instead and it's value will be
-returned. If the *default* argument is omitted, NULL will be returned instead.
+The ``if`` function is a conditional function comparing to *if* statements of
+most other programming languages. If the given *condition* expresion evaluates
+to `true`, the *result* expression is evaluated and it's value is returned. If
+the *condition* evaluates to `false`, the *result* expression is not evaluated
+and the optional given *default* expression is evaluated instead and it's value
+will be returned. If the *default* argument is omitted, NULL will be returned
+instead.
 
 .. Hidden: create table if_example
 
@@ -1535,10 +1547,9 @@ Returns: same type as arguments
 ``greatest('first_arg', second_arg[ , ... ])``
 ----------------------------------------------
 
-The ``greatest`` function takes one or more arguments of the same type
-and will return the largest value of these. NULL values in the arguments
-list are ignored. The result will be NULL only if all the arguments
-evaluate to NULL.
+The ``greatest`` function takes one or more arguments of the same type and will
+return the largest value of these. NULL values in the arguments list are
+ignored. The result will be NULL only if all the arguments evaluate to NULL.
 
 Returns: same type as arguments
 
@@ -1556,10 +1567,9 @@ Returns: same type as arguments
 ``least('first_arg', second_arg[ , ... ])``
 -------------------------------------------
 
-The ``least`` function takes one or more arguments of the same type
-and will return the smallest value of these. NULL values in the arguments
-list are ignored. The result will be NULL only if all the arguments
-evaluate to NULL.
+The ``least`` function takes one or more arguments of the same type and will
+return the smallest value of these. NULL values in the arguments list are
+ignored. The result will be NULL only if all the arguments evaluate to NULL.
 
 Returns: same type as arguments
 
@@ -1606,9 +1616,10 @@ return the default schema, which is ``doc``.
 
 Returns: ``string``
 
-The default schema can be set when using the `JDBC <https://crate.io/docs/reference/jdbc/#jdbc-url-format>`_
-and `HTTP clients <https://crate.io/docs/reference/protocols/http.html#default-schema>`_
-such as `Crate PDO`_.
+The default schema can be set when using the `JDBC
+<https://crate.io/docs/reference/jdbc/#jdbc-url-format>`_ and `HTTP clients
+<https://crate.io/docs/reference/protocols/http.html#default-schema>`_ such as
+`Crate PDO`_.
 
 The ``CURRENT_SCHEMA`` function has a special SQL syntax, meaning that it must
 be called without trailing parenthesis (``()``). However, Crate also supports

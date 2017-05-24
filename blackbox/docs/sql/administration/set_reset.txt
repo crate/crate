@@ -3,15 +3,14 @@
 Set and Reset
 =============
 
-The crate cluster can be configured at runtime using the :ref:`SET
-<ref-set>` and :ref:`RESET <ref-set>` statement.
-See the :ref:`Cluster Settings <conf-cluster-settings>` configuration
-section for details about the supported settings.
+The crate cluster can be configured at runtime using the :ref:`SET <ref-set>`
+and :ref:`RESET <ref-set>` statement. See the :ref:`Cluster Settings
+<conf-cluster-settings>` configuration section for details about the supported
+settings.
 
-If :ref:`SET <ref-set>` is used with ``PERSISTENT`` the change will
-survive a cluster restart, if used with
-``TRANSIENT`` the value will be restored to default or config file
-value on a restart::
+If :ref:`SET <ref-set>` is used with ``PERSISTENT`` the change will survive a
+cluster restart, if used with ``TRANSIENT`` the value will be restored to
+default or config file value on a restart::
 
     cr> SET GLOBAL PERSISTENT stats.enabled = false;
     SET OK, 1 row affected (... sec)
@@ -64,8 +63,8 @@ settings::
     +--...--------------------------------------------------------------------------------------------------------------------------------------...--+
     SELECT 1 row in set (... sec)
 
-Using the ``RESET`` statement, a setting will be reset to either on
-node startup defined configuration file value or to its default value::
+Using the ``RESET`` statement, a setting will be reset to either on node
+startup defined configuration file value or to its default value::
 
     cr> RESET GLOBAL stats.enabled, stats.operations_log_size;
     RESET OK, 1 row affected (... sec)

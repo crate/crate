@@ -6,22 +6,21 @@ Geo Search
 ==========
 
 Crate can be used to store and query geographical information of many kinds
-using the :ref:`geo_point_data_type` and :ref:`geo_shape_data_type` types.
-With these it is possible to store geographical locations, ways, shapes,
-areas and other entities. These can be queried for distance,
-containment, intersection and so on, making it possible to create apps and services
-with rich geographical features.
+using the :ref:`geo_point_data_type` and :ref:`geo_shape_data_type` types. With
+these it is possible to store geographical locations, ways, shapes, areas and
+other entities. These can be queried for distance, containment, intersection
+and so on, making it possible to create apps and services with rich
+geographical features.
 
-:ref:`Geographic shapes <geo_shape_data_type>` are stored using special indices.
-:ref:`Geographic points <geo_point_data_type>` are represented by their coordinates.
-They are represented as columns of the respective datatypes.
+:ref:`Geographic shapes <geo_shape_data_type>` are stored using special
+indices. ref:`Geographic points <geo_point_data_type>` are represented by
+their coordinates. They are represented as columns of the respective datatypes.
 
-Geographic indices for :ref:`geo_shape <geo_shape_data_type>` columns are used in order to
-speed up geographic searches even on complex shapes.
-This indexing process results in a representation that is not exact
-(See :ref:`geo_shape <geo_shape_data_type>` for details).
-Crate does not operate on vector shapes but on a kind of a grid with the given precision
-as resolution.
+Geographic indices for :ref:`geo_shape <geo_shape_data_type>` columns are used
+in order to speed up geographic searches even on complex shapes. This indexing
+process results in a representation that is not exact (See :ref:`geo_shape
+<geo_shape_data_type>` for details). Crate does not operate on vector shapes
+but on a kind of a grid with the given precision as resolution.
 
 Creating tables containing geographic information is straightforward::
 
@@ -35,8 +34,9 @@ Creating tables containing geographic information is straightforward::
     CREATE OK, 1 row affected  (... sec)
 
 This table will contain the shape of a country and the location of its capital
-alongside with other metadata. The shape is indexed with a maximum precision of 100 meters
-using a ``geohash`` index (For more information, see :ref:`geo_shape_data_type_index`).
+alongside with other metadata. The shape is indexed with a maximum precision of
+100 meters using a ``geohash`` index (For more information, see
+:ref:`geo_shape_data_type_index`).
 
 Let's insert Austria::
 
@@ -93,21 +93,22 @@ with lon and lat as seen above or as `WKT`_ string.
 :ref:`object literal <data-type-object-literals>` or parameter as seen above
 and as `WKT`_ string.
 
-When it comes to get some meaningful insights into your geographical data
-Crate supports different kinds of geographic queries.
+When it comes to get some meaningful insights into your geographical data Crate
+supports different kinds of geographic queries.
 
-Fast queries that leverage the geographic index are done using the :ref:`sql_dql_geo_match`:
+Fast queries that leverage the geographic index are done using the
+:ref:`sql_dql_geo_match`:
 
 .. _sql_dql_geo_match:
 
 Match Predicate
 ===============
 
-The ``MATCH`` predicate can be used to perform multiple kinds of searches
-on indices or indexed columns. While it can be used to perform
+The ``MATCH`` predicate can be used to perform multiple kinds of searches on
+indices or indexed columns. While it can be used to perform
 :ref:`fulltext searches <sql_dql_fulltext_search>` on analyzed indices of
-type :ref:`data-type-string`, it is also handy for operating on geographic indices,
-querying for relations between geographical shapes and points.
+type :ref:`data-type-string`, it is also handy for operating on geographic
+indices, querying for relations between geographical shapes and points.
 
 ::
 
@@ -116,44 +117,48 @@ querying for relations between geographical shapes and points.
 The Match predicate for geographical search supports a single ``column_ident``
 of a geo_shape indexed column as first argument.
 
-The second argument, the ``query_term`` is taken to match against the indexed geo_shape.
+The second argument, the ``query_term`` is taken to match against the indexed
+geo_shape.
 
-The matching operation is determined by the ``match_type`` which determines the spatial relation
-we want to match. Available ``match_types`` are:
+The matching operation is determined by the ``match_type`` which determines the
+spatial relation we want to match. Available ``match_types`` are:
 
-:intersects: (Default) If the two shapes share some points and/or area, they are intersecting
-            and considered matching using this ``match_type``.
-            This also precludes containment or complete equality.
+:intersects: (Default) If the two shapes share some points and/or area, they
+             are intersecting and considered matching using this
+             ``match_type``. This also precludes containment or complete
+             equality.
 
-:disjoint: If the two shapes share no single point and not area, they are disjoint.
-           This is the opposite of ``intersects``.
+:disjoint: If the two shapes share no single point and not area, they are
+           disjoint. This is the opposite of ``intersects``.
 
-:within: If the indexed ``column_ident`` shape is completely inside the ``query_term`` shape
-         they are considered matching using this ``match_type``.
-
-.. note::
-
-    The ``MATCH`` predicate can only be used in the :ref:`sql_dql_where_clause` and on user-created tables.
-    Using the ``MATCH`` predicate on system tables is not supported.
+:within: If the indexed ``column_ident`` shape is completely inside the
+         ``query_term`` shape they are considered matching using this
+         ``match_type``.
 
 .. note::
 
-    One MATCH predicate cannot combine columns of both relations of a join.
+    The ``MATCH`` predicate can only be used in the :ref:`sql_dql_where_clause`
+    and on user-created tables. Using the ``MATCH`` predicate on system tables
+    is not supported.
 
 .. note::
 
-    MATCH predicates cannot be used on columns of both relations of a join if they cannot be logically
-    applied to each of them separately. For example:
+   One MATCH predicate cannot combine columns of both relations of a join.
 
-    This is allowed:
-    ``FROM t1, t2 WHERE match(t1.shape, 'POINT(1.1 2.2)') AND match(t2.shape, 'POINT(3.3 4.4)')``
+.. note::
 
-    But this is not:
-    ``FROM t1, t2 WHERE match(t1.shape, 'POINT(1.1 2.2)') OR match(t2.shape, 'POINT(3.3 4.4)')``
+   MATCH predicates cannot be used on columns of both relations of a join if
+   they cannot be logically applied to each of them separately. For example:
+
+   This is allowed: ``FROM t1, t2 WHERE match(t1.shape, 'POINT(1.1 2.2)') AND
+   match(t2.shape, 'POINT(3.3 4.4)')``
+
+   But this is not: ``FROM t1, t2 WHERE match(t1.shape, 'POINT(1.1 2.2)') OR
+   match(t2.shape, 'POINT(3.3 4.4)')``
 
 Having a table ``countries`` with a ``GEO_SHAPE`` column "geo" indexed using
-``geohash`` you can query that column using the ``MATCH`` predicate with different
-match types as described above::
+``geohash`` you can query that column using the ``MATCH`` predicate with
+different match types as described above::
 
     cr> SELECT name from countries
     ... WHERE match("geo",
@@ -193,13 +198,15 @@ Exact Queries
  * :ref:`scalar_distance`
 
 They are exact, but this comes at the price of performance.
+
 They do not make use of the index but work on the `GeoJSON`_ that was inserted
-to compute the shape vector. This access is quite expensive and
-may significantly slow down your queries.
+to compute the shape vector. This access is quite expensive and may
+significantly slow down your queries.
+
 For fast querying, use the :ref:`sql_dql_geo_match`.
 
-But executed on a limited result set, they will help you get precise insights into
-your geographic data::
+But executed on a limited result set, they will help you get precise insights
+into your geographic data::
 
     cr> SELECT within(capital_location, shape) AS capital_in_country
     ... FROM country;
@@ -243,8 +250,8 @@ your geographic data::
     cr> DROP TABLE country;
     DROP OK, 1 row affected  (... sec)
 
-Nonetheless these scalars can be used everywhere in a
-SQL query where scalar functions are allowed.
+Nonetheless these scalars can be used everywhere in a SQL query where scalar
+functions are allowed.
 
 .. _GeoJSON: http://geojson.org/
 .. _WKT: http://en.wikipedia.org/wiki/Well-known_text

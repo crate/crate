@@ -2,11 +2,9 @@
 First Steps
 ===========
 
-- In order to get Crate up and running take a look at the
-  :doc:`installation`.
+- In order to get Crate up and running take a look at the :doc:`installation`.
 
-- If you are new to Crate, it is probably the best to say
-  :doc:`hello`.
+- If you are new to Crate, it is probably the best to say :doc:`hello`.
 
 - For details about working with Crate, see :doc:`sql/index`.
 

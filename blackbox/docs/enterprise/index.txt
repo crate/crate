@@ -4,9 +4,9 @@
 Enterprise Features
 ===================
 
-CrateDB provides an `Enterprise Edition`_, which is activated by default.
-The source code remains open, but if you want to use one of the enterprise
-features in production you need to purchase a `enterprise license`_.
+CrateDB provides an `Enterprise Edition`_, which is activated by default. The
+source code remains open, but if you want to use one of the enterprise features
+in production you need to purchase a `enterprise license`_.
 
 Current features:
 

@@ -4,9 +4,10 @@
 Hello CrateDB
 =============
 
-To get started let's have a quick look on how CrateDB can be used.
-This tutorial uses the ``crash`` command-line SQL_ shell shipped with
-the CrateDB distribution.
+To get started let's have a quick look on how CrateDB can be used. This
+tutorial uses the ``crash`` command-line SQL_ shell shipped with the CrateDB
+distribution.
+
 ::
 
     sh$ ./bin/crash
@@ -83,8 +84,8 @@ Here it is used with a filter to only lookup Ford's tweets::
  :doc:`Querying CrateDB <sql/dql>` - Filtering, ordering, grouping and powerful
  fulltext search. Learn how to find your data.
 
- :doc:`Configuration <configuration>` - After you're done trying out CrateDB and
- before you go into production you should take a look at this section.
+ :doc:`Configuration <configuration>` - After you're done trying out CrateDB
+ and before you go into production you should take a look at this section.
  Especially the `CRATE_HEAP_SIZE` environment variable is very important!
 
 .. _the CrateDB admin UI: https://crate.io/docs/connect/admin_ui/

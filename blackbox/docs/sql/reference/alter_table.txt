@@ -41,33 +41,35 @@ ALTER TABLE can be used to alter an existing table.
 ``ADD COLUMN`` can be used to add an additional column to a table.
 
 While columns can be added at any time, adding a new
-:ref:`generated column <ref-generated-columns>` is only possible if the table is empty.
+:ref:`generated column <ref-generated-columns>` is only possible if the table
+is empty.
 
 ``OPEN`` and ``CLOSE`` can be used to open or close the table, respectively.
 Closing a table prevents all operations, except ``ALTER TABLE ... OPEN``, to
-fail. Operations on closed partitions will not produce an exception, but will have
-no effect. Similarly, like ``SELECT`` and ``INSERT`` on partitioned will exclude
-closed partitions and continue working.
+fail. Operations on closed partitions will not produce an exception, but will
+have no effect. Similarly, like ``SELECT`` and ``INSERT`` on partitioned will
+exclude closed partitions and continue working.
 
-``RENAME TO`` can be used to rename a table, while maintaining its schema and data.
-During this operation the table will be closed, and all operations upon the table
-will fail until the rename operation is completed.
+``RENAME TO`` can be used to rename a table, while maintaining its schema and
+data. During this operation the table will be closed, and all operations upon
+the table will fail until the rename operation is completed.
 
 Use the ``BLOB`` keyword in order to alter a blob table (see
 :ref:`blob_support`). Blob tables cannot have custom columns which means that
 the ``ADD COLUMN`` keyword won't work.
 
-While altering a partitioned table, using ``ONLY`` will apply changes
-for the table **only** and not for any possible existing partitions. So
-these changes will only be applied to new partitions. The ``ONLY``
-keyword cannot be used together with a `PARTITION Clause`_.
+While altering a partitioned table, using ``ONLY`` will apply changes for the
+table **only** and not for any possible existing partitions. So these changes
+will only be applied to new partitions. The ``ONLY`` keyword cannot be used
+together with a `PARTITION Clause`_.
 
 Parameters
 ==========
 
 :table_ident: The name (optionally schema-qualified) of the table to alter.
 
-:parameter: The name of the parameter that is set to a new value or its default.
+:parameter: The name of the parameter that is set to a new value or its
+            default.
 
 :column_name: Name of the column which should be added.
 
@@ -80,9 +82,12 @@ See the CREATE TABLE :ref:`with_clause` for a list of available parameters.
 ``PARTITION`` Clause
 ====================
 
-If the table is partitioned this clause can be used to alter only a single partition.
+If the table is partitioned this clause can be used to alter only a single
+partition.
 
-.. note:: BLOB tables cannot be partitioned and hence this clause cannot be used.
+.. note::
+
+   BLOB tables cannot be partitioned and hence this clause cannot be used.
 
 This clause identifies a single partition. It takes one or more partition
 columns with a value each to identify the partition to alter.

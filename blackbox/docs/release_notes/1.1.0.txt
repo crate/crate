@@ -61,7 +61,6 @@ Changes
 
  - Added the ``licence.enterprise`` setting to the cluster settings.
 
-
  - It is now supported to order and group by predicate functions in general
    with the exception of the ``match`` predicate.
 

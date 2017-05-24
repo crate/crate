@@ -4,10 +4,10 @@
 Retrieving Data
 ===============
 
-Retrieving data from ``Crate`` is done by using a SQL ``SELECT`` statement.
-The response to a ``SELECT`` query contains the column names of the result,
-the actual result rows as a two-dimensional array of values, the row count
-and the duration.
+Retrieving data from ``Crate`` is done by using a SQL ``SELECT`` statement. The
+response to a ``SELECT`` query contains the column names of the result, the
+actual result rows as a two-dimensional array of values, the row count and the
+duration.
 
 A simple select::
 
@@ -20,8 +20,8 @@ A simple select::
     +-------------------+----------+
     SELECT 2 rows in set (... sec)
 
-If the '*' operator is used, all columns defined in the schema are returned
-for each row::
+If the '*' operator is used, all columns defined in the schema are returned for
+each row::
 
     cr> select * from locations order by id limit 1 offset 1;
     +----...-+--------------...-+----+-------------+--...-+--...-+----------+------------------...-+
@@ -55,9 +55,8 @@ or another ``SELECT`` statement. See :ref:`SELECT Reference
 
 A table is referenced by schema and table name and can optionally be aliased.
 If the table ``t`` is only referenced by table name, Crate assumes the table
-``doc.t`` was meant.
-Schemas that were newly created using :ref:`ref-create-table` must be
-referenced explicitly.
+``doc.t`` was meant. Schemas that were newly created using
+:ref:`ref-create-table` must be referenced explicitly.
 
 The two following queries are equivalent::
 
@@ -109,8 +108,8 @@ Joins
 ``DISTINCT`` Clause
 -------------------
 
-If DISTINCT is specified, one unique row is kept. All other
-duplicate rows are removed from the result set::
+If DISTINCT is specified, one unique row is kept. All other duplicate rows are
+removed from the result set::
 
     cr> select distinct date from locations order by date;
     +---------------+
@@ -140,8 +139,8 @@ A simple where clause example using an equality operator::
 Comparison Operators
 ....................
 
-Usual comparison operators to be used in the where clause are available for
-all simple data types:
+Usual comparison operators to be used in the where clause are available for all
+simple data types:
 
     ================  ==================================
     Operator          Description
@@ -170,8 +169,8 @@ all simple data types:
                       shortcut for ``a >= x AND a <= y``
     ================  ==================================
 
-For strings a lexicographical comparison is performed based on the
-Lucene TermRangeQuery::
+For strings a lexicographical comparison is performed based on the Lucene
+TermRangeQuery::
 
     cr> select name from locations where name > 'Argabuthon' order by name;
     +------------------------------------+
@@ -190,6 +189,7 @@ For details please refer to the `Apache Lucene`_ site.
 .. _`Apache Lucene`: http://lucene.apache.org/core/4_0_0/core/org/apache/lucene/search/Query.html
 
 Number and date field comparison behave as expected from standard SQL.
+
 The following example uses one of the supported ISO date formats::
 
     cr> select date, position from locations where date <= '1979-10-12' and
@@ -202,13 +202,14 @@ The following example uses one of the supported ISO date formats::
     +--------------+----------+
     SELECT 2 rows in set (... sec)
 
-For a detailed explanation of the supported ISO date formats please refer to the `joda date_optional_time`_ site.
+For a detailed explanation of the supported ISO date formats please refer to
+the `joda date_optional_time`_ site.
 
 .. _`joda date_optional_time`: http://joda-time.sourceforge.net/api-release/org/joda/time/format/ISODateTimeFormat.html#dateOptionalTimeParser%28%29
 
-For custom date types, or defined date formats in the object mapping
-the corresponding format should be used for a comparison. Otherwise
-the operation may fail.
+For custom date types, or defined date formats in the object mapping the
+corresponding format should be used for a comparison. Otherwise the operation
+may fail.
 
 .. _sql_ddl_regexp:
 
@@ -245,36 +246,35 @@ Operators for matching using regular expressions.
 
          'foo' !~* '.*bar.*'
 
-The ``~`` operator can be used to match a string against a regular
-expression. It returns ``true`` if the string matches the pattern,
-``false`` if not, and ``NULL`` if string is ``NULL``.
+The ``~`` operator can be used to match a string against a regular expression.
+It returns ``true`` if the string matches the pattern, ``false`` if not, and
+``NULL`` if string is ``NULL``.
 
-To negate the matching, use the optional ``!`` prefix. The operator
-returns ``true`` if the string does not match the pattern, ``false`` otherwise.
+To negate the matching, use the optional ``!`` prefix. The operator returns
+``true`` if the string does not match the pattern, ``false`` otherwise.
 
-The regular expression pattern is implicitly anchored, that means
-that the whole string must match, not a single
-subsequence. All unicode characters are allowed.
+The regular expression pattern is implicitly anchored, that means that the
+whole string must match, not a single subsequence. All unicode characters are
+allowed.
 
-If using `PCRE`_ features in the regular expression pattern, the operator
-uses the regular expression engine of the Java standard library
-``java.util.regex``.
+If using `PCRE`_ features in the regular expression pattern, the operator uses
+the regular expression engine of the Java standard library ``java.util.regex``.
 
-If not using `PCRE`_ features in the regular expression pattern, the
-operator uses `Lucene Regular Expressions`_, which are optimized
-for fast regular expression matching on Lucene terms.
+If not using `PCRE`_ features in the regular expression pattern, the operator
+uses `Lucene Regular Expressions`_, which are optimized for fast regular
+expression matching on Lucene terms.
 
 `Lucene Regular Expressions`_ are basically `POSIX Extended Regular
-Expressions`_ without the character classes and with some extensions,
-like a metacharacter ``#``  for the empty string or ``~`` for negation
-and others. By default all Lucene extensions are enabled. See the
-Lucene documentation for more details.
+Expressions`_ without the character classes and with some extensions, like a
+metacharacter ``#``  for the empty string or ``~`` for negation and others. By
+default all Lucene extensions are enabled. See the Lucene documentation for
+more details.
 
 .. note::
 
-    Since case-insensitive matching using ``~*`` or ``!~*`` implicitly uses
-    the regular expression engine of the Java standard library,
-    features of `Lucene Regular Expressions`_ do not work there.
+    Since case-insensitive matching using ``~*`` or ``!~*`` implicitly uses the
+    regular expression engine of the Java standard library, features of `Lucene
+    Regular Expressions`_ do not work there.
 
 Examples::
 
@@ -393,21 +393,23 @@ The result type is boolean.
 
 .. warning::
 
-   CrateDB handles the case of `NOT (NULL)` inconsistently. The above is only true when
-   the `NOT` appears in a `SELECT` clause or a `WHERE` clause that operates on system
-   tables. The result of `NOT (NULL)` in a `WHERE` clause that operates on user tables
-   will produce inconsistent but deterministic results (`NULL` or `TRUE`) depending on the
-   specifics of the clause. This does not adhere to standard SQL three-valued-logic and
-   will be fixed in a future release.
+   CrateDB handles the case of `NOT (NULL)` inconsistently. The above is only
+   true when the `NOT` appears in a `SELECT` clause or a `WHERE` clause that
+   operates on system tables. The result of `NOT (NULL)` in a `WHERE` clause
+   that operates on user tables will produce inconsistent but deterministic
+   results (`NULL` or `TRUE`) depending on the specifics of the clause. This
+   does not adhere to standard SQL three-valued-logic and will be fixed in a
+   future release.
 
 .. _sql_dql_in:
 
 ``IN``
 ------
 
-`Crate` also supports the binary operator ``IN``, which allows you to verify the membership
-of left-hand operand in a right-hand set of expressions. Returns ``true`` if any evaluated expression
-value from a right-hand set equals left-hand operand. Returns ``false`` otherwise::
+`Crate` also supports the binary operator ``IN``, which allows you to verify
+the membership of left-hand operand in a right-hand set of expressions. Returns
+``true`` if any evaluated expression value from a right-hand set equals
+left-hand operand. Returns ``false`` otherwise::
 
     cr> select name, kind from locations
     ... where (kind in ('Star System', 'Planet'))  order by name asc;
@@ -431,14 +433,14 @@ value from a right-hand set equals left-hand operand. Returns ``false`` otherwis
 ``IS NULL``
 -----------
 
-Returns ``TRUE`` if ``expr`` evaluates to ``NULL``.
-Given a column reference it returns ``TRUE`` if the field contains ``NULL``
-or is missing.
+Returns ``TRUE`` if ``expr`` evaluates to ``NULL``. Given a column reference it
+returns ``TRUE`` if the field contains ``NULL`` or is missing.
 
 Use this predicate to check for ``NULL`` values as SQL's three-valued logic
 does always return ``NULL`` when comparing ``NULL``.
 
-:expr: expression of one of the supported :ref:`sql_ddl_datatypes` supported by crate.
+:expr: expression of one of the supported :ref:`sql_ddl_datatypes` supported by
+       crate.
 
 ::
 
@@ -475,13 +477,14 @@ does always return ``NULL`` when comparing ``NULL``.
 ``IS NOT NULL``
 ---------------
 
-Returns ``TRUE`` if ``expr`` does not evaluate to ``NULL``.
-Additionally, for column references it returns ``FALSE`` if the column does not exist.
+Returns ``TRUE`` if ``expr`` does not evaluate to ``NULL``. Additionally, for
+column references it returns ``FALSE`` if the column does not exist.
 
 Use this predicate to check for non-``NULL`` values as SQL's three-valued logic
 does always return ``NULL`` when comparing ``NULL``.
 
-:expr: expression of one of the supported :ref:`sql_ddl_datatypes` supported by crate.
+:expr: expression of one of the supported :ref:`sql_ddl_datatypes` supported by
+       crate.
 
 ::
 
@@ -509,9 +512,9 @@ does always return ``NULL`` when comparing ``NULL``.
 ``ANY (array)``
 ---------------
 
-The ANY (or SOME) operator allows to search for elements within arrays. This allows to
-query for rows where an element of an array is, for example, equal to or
-greater than some ``expression``.
+The ANY (or SOME) operator allows to search for elements within arrays. This
+allows to query for rows where an element of an array is, for example, equal to
+or greater than some ``expression``.
 
 The following example returns any row where the array ``race['interests']``
 contains an element 'netball'::
@@ -549,8 +552,8 @@ It can also be used on arrays::
     +-----------+-----------------------------------------+
     SELECT 2 rows in set (... sec)
 
-This way it can be used as a shortcut for ``name = 'Bartledan' OR name = 'Algol'``
-or any other ANY comparison.
+This way it can be used as a shortcut for ``name = 'Bartledan' OR name =
+'Algol'`` or any other ANY comparison.
 
 Syntax of the ANY Operator:
 
@@ -558,19 +561,18 @@ Syntax of the ANY Operator:
 
     expression operator ANY | SOME (array)
 
-The ANY operator allows to apply an ``operator`` on the elements  of an
-``array``. The ``expression`` is evaluated and compared to each element  of
-the array using the ``operator``. The comparison must yield a boolean
-result.
+The ANY operator allows to apply an ``operator`` on the elements of an
+``array``. The ``expression`` is evaluated and compared to each element of the
+array using the ``operator``. The comparison must yield a boolean result.
 
 - The result of ANY is ``true`` if any comparison returns ``true``.
 
 - The result of ANY is ``false`` if no comparison returns ``true``, or an
   array contains no elements.
 
-- The result of ANY is ``NULL`` if either the expression or the array is
-  null. The result is also null, if no ``true`` comparison is obtained and
-  any element of the array is null.
+- The result of ANY is ``NULL`` if either the expression or the array is null.
+  The result is also null, if no ``true`` comparison is obtained and any
+  element of the array is null.
 
 .. note::
 
@@ -588,8 +590,8 @@ Negating ``ANY``
 One important thing to notice when using ANY is that negating the ANY operator
 does not behave as negating normal comparison operators.
 
-The following query can be translated to
-*get all rows where race['interests'] has at least one element that equals 'netball'*::
+The following query can be translated to *get all rows where race['interests']
+has at least one element that equals 'netball'*::
 
     cr> select race['name'], race['interests'] from locations
     ... where 'netball' = ANY(race['interests']);
@@ -600,9 +602,9 @@ The following query can be translated to
     +----------------+-----------------------------------------+
     SELECT 1 row in set (... sec)
 
-The following query using the negated operator ``!=`` can be translated to
-*get all rows where race['interests'] has at least one element that does not equal 'netball'*.
-As you see, the result is the same in this case::
+The following query using the negated operator ``!=`` can be translated to *get
+all rows where race['interests'] has at least one element that does not equal
+'netball'*. As you see, the result is the same in this case::
 
     cr> select race['name'], race['interests'] from locations
     ... where 'netball' != ANY(race['interests']);
@@ -614,8 +616,8 @@ As you see, the result is the same in this case::
     +----------------+-----------------------------------------+
     SELECT 2 rows in set (... sec)
 
-Negating the ``=`` query from above is totally different. It can be translated to
-*get all rows where race['interests'] has no value that equals 'netball'*::
+Negating the ``=`` query from above is totally different. It can be translated
+to *get all rows where race['interests'] has no value that equals 'netball'*::
 
     cr> select race['name'], race['interests'] from locations
     ... where not 'netball' = ANY(race['interests']) order by race['name'];
@@ -626,8 +628,8 @@ Negating the ``=`` query from above is totally different. It can be translated t
     +--------------+-------------------------------+
     SELECT 1 row in set (... sec)
 
-The same behaviour (though different comparison operations involved)
-holds true for operators
+The same behaviour (though different comparison operations involved) holds true
+for operators
 
  - ``LIKE`` and ``NOT LIKE``
 
@@ -636,9 +638,12 @@ holds true for operators
 Limits
 ------
 
-As unlimited SELECT queries could break your cluster if the matching rows exceed
-your node's RAM, SELECT statements are limited by default to **10000** rows.
+As unlimited SELECT queries could break your cluster if the matching rows
+exceed your node's RAM, SELECT statements are limited by default to **10000**
+rows.
+
 You can expand this limit by using an explicit LIMIT-clause.
+
 But you are encouraged to make use of a windowing using LIMIT and OFFSET to
 iterate through all the results of a potentially large resultset instead of
 expanding the default limit.
@@ -656,8 +661,9 @@ limit on SELECT statements.
 Inner Objects and Nested Objects
 --------------------------------
 
-``Crate`` supports an ``object`` data type, used for simple storing a whole object into a
-column and it's even possible to select and query for properties of such objects.
+``Crate`` supports an ``object`` data type, used for simple storing a whole
+object into a column and it's even possible to select and query for properties
+of such objects.
 
 Select a property of an inner object::
 
@@ -694,11 +700,14 @@ Inserting objects::
 Object Arrays
 -------------
 
-Arrays in crate can only be queried for containment using the :ref:`sql_dql_any_array`
-operator. One exception are object arrays. As you can access fields of :ref:`sql_dql_objects`
-using subscript expressions, you can access fields of object arrays.
-As an object array is no object, you won't get the value for a single field, but
-an array of all the values of that field for all objects in that object array.
+Arrays in crate can only be queried for containment using the
+:ref:`sql_dql_any_array` operator. One exception are object arrays. As you can
+access fields of :ref:`sql_dql_objects` using subscript expressions, you can
+access fields of object arrays.
+
+As an object array is no object, you won't get the value for a single field,
+but an array of all the values of that field for all objects in that object
+array.
 
 Examples::
 
@@ -758,10 +767,9 @@ Examples::
 Selecting Array Elements
 ........................
 
-Array elements can be selected directly using a integer value greater
-than or equal to **1**. The maximum supported array index is
-**2147483648**. Using an index greater than the actual array size
-results in a NULL value.
+Array elements can be selected directly using a integer value greater than or
+equal to **1**. The maximum supported array index is **2147483648**. Using an
+index greater than the actual array size results in a NULL value.
 
 ::
 
@@ -1001,28 +1009,30 @@ This is useful if used in conjunction with aggregation functions::
 
 .. note::
 
-    All columns that are used either as result column or in the order by clause
-    have to be used within the group by clause. Otherwise the statement won't
-    execute.
+   All columns that are used either as result column or in the order by clause
+   have to be used within the group by clause. Otherwise the statement won't
+   execute.
 
 .. note::
 
-    Grouping on multi-value fields doesn't work. If such a field is encountered
-    during a group by operation an error is thrown.
+   Grouping on multi-value fields doesn't work. If such a field is encountered
+   during a group by operation an error is thrown.
 
 .. note::
 
-    Grouping can only be applied to columns with a plain index, which is the
-    default for all columns.
-    For more information, please refer to :ref:`sql_ddl_index_plain`.
+   Grouping can only be applied to columns with a plain index, which is the
+   default for all columns.
+
+   For more information, please refer to :ref:`sql_ddl_index_plain`.
 
 .. _sql_dql_having:
 
 ``HAVING``
 ..........
 
-The having clause is the equivalent to the where clause for the
-resulting rows of a group by clause.
+The having clause is the equivalent to the where clause for the resulting rows
+of a group by clause.
+
 A simple having clause example using an equality operator::
 
     cr> select count(*), kind from locations
@@ -1035,10 +1045,11 @@ A simple having clause example using an equality operator::
     +----------+-------------+
     SELECT 2 rows in set (... sec)
 
-The condition of the having clause can refer to the resulting columns
-of the group by clause.
-It is also possible to use aggregates in the having clause just
-like in the result columns::
+The condition of the having clause can refer to the resulting columns of the
+group by clause.
+
+It is also possible to use aggregates in the having clause just like in the
+result columns::
 
     cr> select count(*), kind from locations
     ... group by kind having min(name) = 'Berlin';
@@ -1063,7 +1074,8 @@ like in the result columns::
 Comparison Operators
 ````````````````````
 
-The having clause supports the same operators as the :ref:`sql_dql_where_clause`:
+The having clause supports the same operators as the
+:ref:`sql_dql_where_clause`:
 
     ================  ==================================
     Operator          Description

@@ -21,24 +21,24 @@ Synopsis
 Description
 ===========
 
-The ``COPY TO`` command exports the contents of a table to one or more
-files into a given directory with unique filenames. Each node with at least
-one shard of the table will export its contents onto their local disk.
+The ``COPY TO`` command exports the contents of a table to one or more files
+into a given directory with unique filenames. Each node with at least one shard
+of the table will export its contents onto their local disk.
 
 The created files are JSON formatted and contain one table row per line and,
-due to the distributed nature of Crate, *will remain on the same nodes*
-*where the shards are*.
+due to the distributed nature of Crate, *will remain on the same nodes* *where
+the shards are*.
 
 .. note::
 
-  Currently only user tables can be exported. System tables like `sys.nodes`
-  and blob tables don't work with the `COPY TO` statement.
+   Currently only user tables can be exported. System tables like `sys.nodes`
+   and blob tables don't work with the `COPY TO` statement.
 
 Parameters
 ==========
 
 :table_ident: The name (optionally schema-qualified) of the table to
-  be exported.
+              be exported.
 
 :column: (optional) A list of column expressions that should be exported.
 
@@ -50,13 +50,14 @@ Parameters
 ``WHERE`` Clause
 ----------------
 
-`WHERE` clauses use the same syntax as `SELECT` statements, allowing
-partial exports. (see :ref:`sql_dql_where_clause` for more information).
+`WHERE` clauses use the same syntax as `SELECT` statements, allowing partial
+exports. (see :ref:`sql_dql_where_clause` for more information).
 
 Output URI
 ==========
 
 The ``output_uri`` can be any expression evaluating to a string.
+
 The resulting string should be a valid URI of one of the supporting schemes:
 
  * ``file://``
@@ -107,9 +108,9 @@ not part of the partitioned tables.
 .. note::
 
     If ``COPY TO`` is used on a partitioned table without the ``PARTITION``
-    clause, the partition columns and values will be included in the rows of the
-    exported files. If a partition column is a generated column, it
-    will not be included even if the ``PARTITION`` clause is missing.
+    clause, the partition columns and values will be included in the rows of
+    the exported files. If a partition column is a generated column, it will
+    not be included even if the ``PARTITION`` clause is missing.
 
 ``WITH`` Clause
 ===============
@@ -129,6 +130,7 @@ Possible copy_parameters are:
 ---------------
 
 Define if and how the exported data should be compressed.
+
 By default the output is not compressed.
 
 Possible values for the ``compression`` setting are:
@@ -145,7 +147,7 @@ Optional parameter to override default output behavior.
 Possible values for the ``format`` settings are:
 
 :json_object: Each row in the result set is serialized as JSON object and
-              and written to an output file where one line contains one object.
+              written to an output file where one line contains one object.
               This is the default behavior if no columns are defined. Use
               this format to import with :ref:`copy_from`.
 

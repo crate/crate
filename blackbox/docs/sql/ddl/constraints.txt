@@ -5,8 +5,10 @@ Constraints
 ``primary key``
 ===============
 
-The primary key constraint combines a unique constraint and a not-null constraint. It also defines
-the default routing value used for sharding. Example::
+The primary key constraint combines a unique constraint and a not-null
+constraint. It also defines the default routing value used for sharding.
+
+Example::
 
     cr> create table my_table1 (
     ...   first_column integer primary key,
@@ -38,13 +40,15 @@ Or using a alternate syntax::
 
 .. note::
 
-    Not all column types can be used as PRIMARY KEY. See :ref:`primary_key_constraint`.
+   Not all column types can be used as PRIMARY KEY.
+
+   See :ref:`primary_key_constraint`.
 
 ``not null``
 ============
 
-The not null constraint can be used on any table column and it prevents null values
-from being inserted.
+The not null constraint can be used on any table column and it prevents null
+values from being inserted.
 
 Example::
 

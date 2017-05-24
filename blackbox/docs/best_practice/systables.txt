@@ -5,20 +5,19 @@
 Troubleshooting with sys-Tables
 ===============================
 
-CrateDB maintains a set of diagnostic tables in the **sys** schema. It
-consists currently of ten tables that provide an overview of the
-cluster state. If something is going wrong and you initially don’t
-know why, they help you to analyze, identify the problem and start
-mitigating. While there is `detailed documentation about each single
-table <https://crate.io/docs/reference/sql/system.html>`__, this guide
-runs you through the most common situations.
+CrateDB maintains a set of diagnostic tables in the **sys** schema. It consists
+currently of ten tables that provide an overview of the cluster state. If
+something is going wrong and you initially don’t know why, they help you to
+analyze, identify the problem and start mitigating. While there is `detailed
+documentation about each single table
+<https://crate.io/docs/reference/sql/system.html>`__, this guide runs you
+through the most common situations.
 
 Step 1: Health Check
 ====================
 
-A good point to start is the table **sys.check** that maintains a number
-of health checks, you may know from the admin UI. Order them by
-severity::
+A good point to start is the table **sys.check** that maintains a number of
+health checks, you may know from the admin UI. Order them by severity::
 
     cr> SELECT description FROM sys.checks WHERE NOT passed ORDER BY severity DESC;
     +---------...-+
@@ -27,26 +26,25 @@ severity::
     +---------...-+
     SELECT ... in set (... sec)
 
-If a check fails, the description offers some explanation on how to
-proceed. The table reports checks that verify your cluster layout, give
-recommendations for configuration options, and warn you on incompatible
-software versions. More will be added as you go.
+If a check fails, the description offers some explanation on how to proceed.
+The table reports checks that verify your cluster layout, give recommendations
+for configuration options, and warn you on incompatible software versions. More
+will be added as you go.
 
 Step 2: Activity in the Cluster
 ===============================
 
-Statements that are currently executed on the server are tracked in the
-tables **sys.jobs** and **sys.operations**. They give you the
-opportunity to view the ongoing activity in the cluster.
+Statements that are currently executed on the server are tracked in the tables
+**sys.jobs** and **sys.operations**. They give you the opportunity to view the
+ongoing activity in the cluster.
 
 For these to work you have to enable status logging with::
 
     cr> SET GLOBAL stats.enabled = true;
     SET OK, 1 row affected (... sec)
 
-before you query these tables. Each syntactically correct request that
-got parsed and planned is listed in the **sys.jobs** table while it’s
-executed::
+before you query these tables. Each syntactically correct request that got
+parsed and planned is listed in the **sys.jobs** table while it’s executed::
 
     cr> SELECT id as job_uuid, date_format(started) AS start, stmt FROM sys.jobs;
     +--------------------------------------+-----------------------------+-------------------------------------...----------------------------------+
@@ -56,11 +54,11 @@ executed::
     +--------------------------------------+-----------------------------+-------------------------------------...----------------------------------+
     SELECT ... in set (... sec)
 
-Once you identified the dedicated job UUID, you can kill that job with
-the **KILL** command. A single job is split into several operations which
-run, depending on the query, on distributed nodes of your cluster.
-The table has also a system column **_node** indicating on which node
-CrateDB actually executes the operation::
+Once you identified the dedicated job UUID, you can kill that job with the
+**KILL** command. A single job is split into several operations which run,
+depending on the query, on distributed nodes of your cluster. The table has
+also a system column **_node** indicating on which node CrateDB actually
+executes the operation::
 
     cr> SELECT _node['name'], _node['hostname'], * FROM sys.operations;
     +---------------+------------------...+----+---------------...+---------+---------------+------------+
@@ -70,20 +68,19 @@ CrateDB actually executes the operation::
     +---------------+------------------...+----+---------------...+---------+---------------+------------+
     SELECT ... in set (... sec)
 
-Find out more about the **_node** system column in the next
-sections. If there are no current jobs nor operations that are causing
-problems, check the recorded history of finished jobs and operations
-in the tables **sys.jobs_log** and **sys.operations_log**,
-respectively.
+Find out more about the **_node** system column in the next sections. If there
+are no current jobs nor operations that are causing problems, check the
+recorded history of finished jobs and operations in the tables **sys.jobs_log**
+and **sys.operations_log**, respectively.
 
 Step 3: Analyzing Cluster Resources
 ===================================
 
-Sometimes it’s not a single query that causes problems, but a component
-of your distributed cluster. To find out more about it, check the table
-**sys.cluster**, which holds a single row containing the name and id of
-the current master along with several other settings. To list all
-available data, run::
+Sometimes it’s not a single query that causes problems, but a component of your
+distributed cluster. To find out more about it, check the table
+**sys.cluster**, which holds a single row containing the name and id of the
+current master along with several other settings. To list all available data,
+run::
 
     cr> SHOW COLUMNS IN cluster FROM sys;
     +--------------------------------------------------------------------------------...+-----------...+
@@ -94,9 +91,9 @@ available data, run::
     SHOW 104 rows in set (... sec)
 
 While **sys.cluster** contains information about the cluster as a whole,
-**sys.nodes** maintains more detailed information about each CrateDB
-instance. This can be useful to track down misbehaving data nodes since
-its CPU is overloaded or it has an outdated Java version::
+**sys.nodes** maintains more detailed information about each CrateDB instance.
+This can be useful to track down misbehaving data nodes since its CPU is
+overloaded or it has an outdated Java version::
 
     cr> SELECT name, load['1'], os_info['jvm']['version'] FROM sys.nodes;
     +-------+--------...+------------------------...+
@@ -115,8 +112,8 @@ To list all nodes using more than 98 per cent of the memory, type::
     ...
     SELECT ... in set (... sec)
 
-The table also contains the performance metrics like the load average,
-disk, memory, heap, or network throughput. Running::
+The table also contains the performance metrics like the load average, disk,
+memory, heap, or network throughput. Running::
 
     cr> SHOW columns IN nodes FROM sys;
     +-------------------------------------------------...+-----------...+
@@ -126,20 +123,19 @@ disk, memory, heap, or network throughput. Running::
     +-------------------------------------------------...+-----------...+
     SHOW ... rows in set (... sec)
 
-lists all available attributes. This object has the same structure as
-the **_node** system column of **sys.operations** from the previous
-section.
+lists all available attributes. This object has the same structure as the
+**_node** system column of **sys.operations** from the previous section.
 
 Step 4: Insights About Partitions, Shards, and Replication
 ==========================================================
 
 CrateDB divides the rows of each table into shards that are distinctively
-distributed to all nodes in your cluster. Replication uses the same
-mechanism to add redundancy and thus resilience to your data. While most
-of the time CrateDB takes transparently care of distributing and
-replicating the shards, it’s useful during troubleshooting to actually
-find out some more about these data structures. The **sys.shards** table
-provides access to the status and size of shards, its names and IDs::
+distributed to all nodes in your cluster. Replication uses the same mechanism
+to add redundancy and thus resilience to your data. While most of the time
+CrateDB takes transparently care of distributing and replicating the shards,
+it’s useful during troubleshooting to actually find out some more about these
+data structures. The **sys.shards** table provides access to the status and
+size of shards, its names and IDs::
 
     cr> SHOW COLUMNS IN shards FROM sys;
     +--------------------------------+-----------+
@@ -176,19 +172,19 @@ provides access to the status and size of shards, its names and IDs::
     +--------------------------------+-----------+
     SHOW 28 rows in set (... sec)
 
-The cluster state is somewhat delicate when nodes join or leave, since
-in those situations shards have to be rearranged to ensure that each of
-them is replicated to different nodes. As long as the **state**
-attribute is ‘STARTED’ for all shards, the cluster is in a stable state,
-otherwise CrateDB is occupied with some background activity. The cluster
-state indicators on the admin UI evaluate these values as well.
+The cluster state is somewhat delicate when nodes join or leave, since in those
+situations shards have to be rearranged to ensure that each of them is
+replicated to different nodes. As long as the **state** attribute is ‘STARTED’
+for all shards, the cluster is in a stable state, otherwise CrateDB is occupied
+with some background activity. The cluster state indicators on the admin UI
+evaluate these values as well.
 
-The **sys.shards** table contains even more information about the
-rebalancing activities. Sometimes CrateDB needs to transfer one shard to
-another node, since that may be necessary to ensure there are enough
-replicas of it distributed in the cluster. You can estimate the
-progress of that operation with the **recovery** object. To monitor the
-progress of the shard transfer, run this query::
+The **sys.shards** table contains even more information about the rebalancing
+activities. Sometimes CrateDB needs to transfer one shard to another node,
+since that may be necessary to ensure there are enough replicas of it
+distributed in the cluster. You can estimate the progress of that operation
+with the **recovery** object. To monitor the progress of the shard transfer,
+run this query::
 
     cr> select _node['hostname'], id, recovery['stage'], recovery['size']['percent'], routing_state, state from sys.shards
     ... where routing_state in ('RELOCATING','INITIALIZING') order by id;
@@ -200,17 +196,17 @@ progress of the shard transfer, run this query::
 
 It lists pairs of rows, in which the first row denotes the destination shard
 and the second row the source shard.
+
 Each row contains the shard's hostname, id and the recovery percentage of the
-transferred shard. When the shard starts relocating, a new shard entry
-appears in the  **sys.shards** table with a **routing_state** of `INITIALIZING`.
-The **state** of this row is `RECOVERING`. Meanwhile, the value of
+transferred shard. When the shard starts relocating, a new shard entry appears
+in the  **sys.shards** table with a **routing_state** of `INITIALIZING`. The
+**state** of this row is `RECOVERING`. Meanwhile, the value of
 **routing_state** of the source row switches from `STARTED` to `RELOCATING`
 until the transfer is done. After that, the source row is deleted from
 **sys.shards** automatically.
 
-To find out on which specific node a shard is stored, also use the
-object in the **_node** system column that is available for this
-table. As an example::
+To find out on which specific node a shard is stored, also use the object in
+the **_node** system column that is available for this table. As an example::
 
     cr> SELECT _node['hostname'], table_name, num_docs FROM sys.shards ORDER BY num_docs DESC LIMIT 3;
     +-------------------...+-----------...-+----------+
@@ -220,22 +216,22 @@ table. As an example::
     +-------------------...+------------...+----------+
     SELECT ... in set (... sec)
 
-list the hosts and tables with the highest number of rows inside a
-single shard. There’s a lot of additional information available for
-shards. To find out more about that, see our
-[documentation](https://crate.io/docs/reference/best_practice/data_import.html#shards-replicas).
+list the hosts and tables with the highest number of rows inside a single
+shard. There’s a lot of additional information available for shards. To find
+out more about that, see our
+[documentation](https://crate.io/docs/reference/best_practice/data_import.html#
+shards-replicas).
 
 Step 5: Managing Snapshots
 ==========================
 
-Finally, if your repair efforts did not succeed, your application or
-users accidently deleted some data, recover one of the previous taken
-snapshot of your cluster. The tables **sys.snapshots** and
-**sys.repositories** assist you in managing your backups. Remember, one
-or more backups are stored in repositories outside the CrateDB cluster
-initialized with the **CREATE REPOSITORY** request. An actual copy of a
-current database state is made with the **CREATE SNAPSHOT** command. If
-you forgot where you store your snapshots::
+Finally, if your repair efforts did not succeed, your application or users
+accidently deleted some data, recover one of the previous taken snapshot of
+your cluster. The tables **sys.snapshots** and **sys.repositories** assist you
+in managing your backups. Remember, one or more backups are stored in
+repositories outside the CrateDB cluster initialized with the **CREATE
+REPOSITORY** request. An actual copy of a current database state is made with
+the **CREATE SNAPSHOT** command. If you forgot where you store your snapshots::
 
     cr> SELECT * FROM sys.repositories;
     +------+----------+------+
@@ -244,8 +240,8 @@ you forgot where you store your snapshots::
     +------+----------+------+
     SELECT ... in set (... sec)
 
-might come in handy. To actually recover data, first determine which
-snapshot to restore. Suppose you make nightly backups, the command::
+might come in handy. To actually recover data, first determine which snapshot
+to restore. Suppose you make nightly backups, the command::
 
     cr> SELECT * FROM sys.snapshots ORDER BY started DESC LIMIT 7;
     +------------------+----------+------+------------+---------+-------+---------+
@@ -254,5 +250,5 @@ snapshot to restore. Suppose you make nightly backups, the command::
     +------------------+----------+------+------------+---------+-------+---------+
     SELECT ... in set (... sec)
 
-shows you last week’s snapshots along with its name, the stored indices,
-and how long they took.
+shows you last week’s snapshots along with its name, the stored indices, and
+how long they took.

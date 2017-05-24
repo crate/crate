@@ -69,14 +69,14 @@ Fixes
  - Fixed and issue that caused ``UPDATE`` statement on an empty partitioned
    table to throw ``UnsupportedOperationException``.
 
- - Fixed an issue that caused fulltext search with ``fuzziness='AUTO'``
-   to throw ``NumberFormatException``.
+ - Fixed an issue that caused fulltext search with ``fuzziness='AUTO'`` to
+   throw ``NumberFormatException``.
 
  - Fixed an issue in the ``LIKE`` predicate which prevented from using escaped
    backslash before the wildcard.
 
- - Fixed an issue that caused ``ORDER BY`` clause to be ignored if used
-   in combination with ``GROUP BY`` in subselects. e.g.::
+ - Fixed an issue that caused ``ORDER BY`` clause to be ignored if used in
+   combination with ``GROUP BY`` in subselects. e.g.::
 
        SELECT x from (SELECT * from t1) as tt
        GROUP BY x ORDER BY x`
