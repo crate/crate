@@ -24,19 +24,17 @@ package io.crate.operation.projectors;
 
 import io.crate.data.*;
 
-import java.util.Iterator;
-
 class DMLProjector implements Projector {
 
-    private final BatchAccumulator<Row, Iterator<? extends Row>> batchAccumulator;
+    private final ShardDMLExecutor batchAccumulator;
 
-    DMLProjector(BatchAccumulator<Row, Iterator<? extends Row>> batchAccumulator) {
+    DMLProjector(ShardDMLExecutor batchAccumulator) {
         this.batchAccumulator = batchAccumulator;
     }
 
     @Override
     public BatchIterator apply(BatchIterator batchIterator) {
-        return new AsyncOperationBatchIterator(batchIterator, 1, batchAccumulator);
+        return CollectingBatchIterator.newInstance(batchIterator, batchAccumulator, 1);
     }
 
     @Override

@@ -361,8 +361,8 @@ public class ProjectionToProjectorVisitor
             null,
             context.jobId
         );
-        ShardRequestAccumulator<ShardUpsertRequest, ShardUpsertRequest.Item> shardRequestAccumulator = new ShardRequestAccumulator<>(
-            ShardRequestAccumulator.DEFAULT_BULK_SIZE,
+        ShardDMLExecutor<ShardUpsertRequest, ShardUpsertRequest.Item> shardDMLExecutor = new ShardDMLExecutor<>(
+            ShardDMLExecutor.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
             resolveUidCollectExpression(projection.uidSymbol()),
             clusterService,
@@ -372,7 +372,7 @@ public class ProjectionToProjectorVisitor
             transportActionProvider.transportShardUpsertAction()::execute
         );
 
-        return new DMLProjector(shardRequestAccumulator);
+        return new DMLProjector(shardDMLExecutor);
     }
 
     @Override
@@ -383,8 +383,8 @@ public class ProjectionToProjectorVisitor
             context.jobId
         );
 
-        ShardRequestAccumulator<ShardDeleteRequest, ShardDeleteRequest.Item> shardRequestAccumulator = new ShardRequestAccumulator<>(
-            ShardRequestAccumulator.DEFAULT_BULK_SIZE,
+        ShardDMLExecutor<ShardDeleteRequest, ShardDeleteRequest.Item> shardDMLExecutor = new ShardDMLExecutor<>(
+            ShardDMLExecutor.DEFAULT_BULK_SIZE,
             threadPool.scheduler(),
             resolveUidCollectExpression(projection.uidSymbol()),
             clusterService,
@@ -393,7 +393,7 @@ public class ProjectionToProjectorVisitor
             ShardDeleteRequest.Item::new,
             transportActionProvider.transportShardDeleteAction()::execute
         );
-        return new DMLProjector(shardRequestAccumulator);
+        return new DMLProjector(shardDMLExecutor);
     }
 
     private void checkShardLevel(String errorMessage) {

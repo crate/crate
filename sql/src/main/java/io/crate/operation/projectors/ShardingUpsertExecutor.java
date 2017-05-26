@@ -82,7 +82,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
 
     private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
-    private static final Logger logger = Loggers.getLogger(ShardingUpsertExecutor.class);
+    private static final Logger LOGGER = Loggers.getLogger(ShardingUpsertExecutor.class);
 
     private final ClusterService clusterService;
     private final ScheduledExecutorService scheduler;
@@ -132,7 +132,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         this.createIndicesAction = createIndicesAction;
         this.rowConsumer = createRowConsumer(rowShardResolver, itemFactory, expressions, indexNameResolver);
         this.backpressureTrigger = createBackpressureTrigger(nodeJobsCounter);
-        this.execute = createExecutFunction();
+        this.execute = createExecuteFunction();
     }
 
     private Consumer<Row> createRowConsumer(RowShardResolver rowShardResolver, Function<String, TItem> itemFactory, List<? extends CollectExpression<Row, ?>> expressions, Supplier<String> indexNameResolver) {
@@ -166,7 +166,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         };
     }
 
-    private Function<Boolean, CompletableFuture<BitSet>> createExecutFunction() {
+    private Function<Boolean, CompletableFuture<BitSet>> createExecuteFunction() {
         return (isLastBatch) -> {
             CompletableFuture<BitSet> executeBulkFuture = new CompletableFuture<>();
 
@@ -227,7 +227,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
             }
 
             if (nodeId == null) {
-                logger.debug("Unable to get the node id for index {} and shard {}", indexName, id);
+                LOGGER.debug("Unable to get the node id for index {} and shard {}", indexName, id);
             }
             return new ShardLocation(shardIterator.shardId(), nodeId);
         } catch (IndexNotFoundException e) {

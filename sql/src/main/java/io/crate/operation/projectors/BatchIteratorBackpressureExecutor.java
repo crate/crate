@@ -87,12 +87,12 @@ public class BatchIteratorBackpressureExecutor<R> {
         this.bulkSize = bulkSize;
         this.consumeIteratorDelays = backoffPolicy.iterator();
         this.executionFuture = executionFuture;
+        this.bulkExecutionCompleteListener = createBulkExecutionCompleteListener(batchIterator);
+        this.loadNextBatchCompleteListener = createLoadNextBatchListener(batchIterator);
+        this.scheduleConsumeIteratorJob = createScheduleConsumeIteratorJob(batchIterator);
     }
 
     public void consumeIteratorAndExecute() {
-        bulkExecutionCompleteListener = createBulkExecutionCompleteListener(batchIterator);
-        loadNextBatchCompleteListener = createLoadNextBatchListener(batchIterator);
-        scheduleConsumeIteratorJob = createScheduleConsumeIteratorJob(batchIterator);
         safeConsumeIterator(batchIterator);
     }
 
