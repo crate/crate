@@ -104,11 +104,12 @@ Translog
 .. note::
 
   The translog provides a persistent log of all operations that have not been
-  transferred (flushed) to disk. Whenever a record is inserted into a table
-  (or updated) that change is appended both to an in-memory buffer **and** the
-  translog. When the translog reaches a certain size
-  (see :ref:`flush.threshold.size <flush_threshold_size>`)
-  the translog is ``fsynced``, flushed to disk, and cleared.
+  transferred (flushed) to disk. Whenever a record is inserted into a table (or
+  updated) that change is appended both to an in-memory buffer **and** the
+  translog. When the translog reaches a certain size (see
+  :ref:`translog.flush_threshold_size <flush_threshold_size>`) the translog is
+  ``fsynced``, flushed to disk, and cleared. In case of hardware failure,
+  any data written since the last translog flush will be discarded.
 
 .. _flush_threshold_size:
 
@@ -118,14 +119,24 @@ Translog
 
   Sets size of transaction log prior to flushing.
 
+.. _translog_sync_interval:
+
 **translog.sync_interval**
   | *Default:*    ``5s``
-  | *Runtime:*   ``no``
+  | *Runtime:*   ``yes``
 
-  Setting ``index.translog.sync_interval`` controls the period after which the
-  translog is ``fsynced`` to disk (defaults to 5 s). Value cannot be set below 100ms.
-  When setting this interval, please keep in mind that changes logged during this
-  interval and not synced to disk may get lost in case of a failure.
+  Setting ``translog.sync_interval`` controls the period after which the
+  translog is ``fsynced`` to disk (defaults to 5 s). Value cannot be set below
+  100ms. When setting this interval, please keep in mind that changes logged
+  during this interval and not synced to disk may get lost in case of a failure.
+
+**translog.durability**
+  | *Default:*    ``REQUEST``
+  | *Runtime:*   ``yes``
+
+  If set to ``ASYNC`` the translog gets flushed to disk in the background every
+  :ref:`translog.sync_interval <translog_sync_interval>`. If set to ``REQUEST``
+  the flush happens after every operation.
 
 Allocation
 ----------

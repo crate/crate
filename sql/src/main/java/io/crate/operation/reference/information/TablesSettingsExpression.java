@@ -165,10 +165,12 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         public static final String FLUSH_THRESHOLD_SIZE = "flush_threshold_size";
         public static final String SYNC_INTERVAL = "sync_interval";
+        public static final String DURABILITY = "durability";
 
         private void addChildImplementations() {
             childImplementations.put(FLUSH_THRESHOLD_SIZE, new TableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_SIZE));
             childImplementations.put(SYNC_INTERVAL, new TableParameterExpression(TableParameterInfo.TRANSLOG_SYNC_INTERVAL));
+            childImplementations.put(DURABILITY, new TableParameterExpression(TableParameterInfo.TRANSLOG_DURABILITY));
         }
     }
 
