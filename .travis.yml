@@ -22,7 +22,7 @@ notifications:
   email: false
 
 before_install:
-  - ulimit -u 2048
+  - ulimit -u 65535
   - ulimit -n 65536
 
 script:
