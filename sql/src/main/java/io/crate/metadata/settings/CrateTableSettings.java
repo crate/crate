@@ -23,10 +23,12 @@ package io.crate.metadata.settings;
 
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import io.crate.analyze.TableParameterInfo;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.translog.Translog;
 
 public class CrateTableSettings {
 
@@ -70,6 +72,10 @@ public class CrateTableSettings {
             return TimeValue.timeValueSeconds(5);
         }
     };
+
+    public static final StringSetting TRANSLOG_DURABILITY = new StringSetting(TableParameterInfo.TRANSLOG_DURABILITY,
+        Sets.newHashSet(Translog.Durability.REQUEST.name(), Translog.Durability.ASYNC.name()),
+        Translog.Durability.REQUEST.name());
 
     public static final TimeSetting REFRESH_INTERVAL = new TimeSetting() {
         @Override

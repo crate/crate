@@ -54,6 +54,7 @@ public class TableParameterInfo {
     public static final String BLOCKS_METADATA = IndexMetaData.SETTING_BLOCKS_METADATA;
     public static final String BLOBS_PATH = BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey();
     public static final String FLUSH_THRESHOLD_SIZE = IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING.getKey();
+    public static final String TRANSLOG_DURABILITY = IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING.getKey();
     public static final String TRANSLOG_SYNC_INTERVAL = IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey();
     public static final String ROUTING_ALLOCATION_ENABLE = EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING.getKey();
     public static final String TOTAL_SHARDS_PER_NODE = ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING.getKey();
@@ -75,6 +76,7 @@ public class TableParameterInfo {
             .add(FLUSH_THRESHOLD_SIZE)
             .add(ROUTING_ALLOCATION_ENABLE)
             .add(TRANSLOG_SYNC_INTERVAL)
+            .add(TRANSLOG_DURABILITY)
             .add(TOTAL_SHARDS_PER_NODE)
             .add(RECOVERY_INITIAL_SHARDS)
             .add(WARMER_ENABLED)
@@ -126,6 +128,7 @@ public class TableParameterInfo {
             .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, CrateTableSettings.RECOVERY_INITIAL_SHARDS.extract(settings))
             .put(TableParameterInfo.WARMER_ENABLED, CrateTableSettings.WARMER_ENABLED.extract(settings))
             .put(TableParameterInfo.TRANSLOG_SYNC_INTERVAL, CrateTableSettings.TRANSLOG_SYNC_INTERVAL.extractMillis(settings))
+            .put(TableParameterInfo.TRANSLOG_DURABILITY, CrateTableSettings.TRANSLOG_DURABILITY.extract(settings))
             .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.extractMillis(settings))
             .put(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, CrateTableSettings.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT.extractMillis(settings))
             .build();

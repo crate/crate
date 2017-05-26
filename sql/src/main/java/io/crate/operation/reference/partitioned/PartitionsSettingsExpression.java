@@ -162,10 +162,12 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
 
         public static final String FLUSH_THRESHOLD_SIZE = "flush_threshold_size";
         public static final String SYNC_INTERVAL = "sync_interval";
+        public static final String DURABILITY = "durability";
 
         private void addChildImplementations() {
             childImplementations.put(FLUSH_THRESHOLD_SIZE, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_SIZE));
             childImplementations.put(SYNC_INTERVAL, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_SYNC_INTERVAL));
+            childImplementations.put(DURABILITY, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_DURABILITY));
         }
     }
 
