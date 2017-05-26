@@ -28,7 +28,6 @@ import io.crate.action.LimitedExponentialBackoff;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-import io.crate.data.RowBridging;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.operation.NodeJobsCounter;
@@ -49,7 +48,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -65,10 +63,10 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -83,20 +81,16 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
 
     private static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
 
+    private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
     private static final Logger logger = Loggers.getLogger(ShardingUpsertExecutor.class);
-    private static final BackoffPolicy BACK_OFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
 
     private final ClusterService clusterService;
     private final ScheduledExecutorService scheduler;
     private final int bulkSize;
-    private int indexInBulk = 0;
     private final int createIndicesBulkSize;
     private final UUID jobId;
     private final RowShardResolver rowShardResolver;
-    private final Function<String, TItem> itemFactory;
     private final BiFunction<ShardId, String, TReq> requestFactory;
-    private final List<? extends CollectExpression<Row, ?>> expressions;
-    private final Supplier<String> indexNameResolver;
     private final boolean autoCreateIndices;
     private final BulkRequestExecutor<TReq> requestExecutor;
     private final TransportBulkCreateIndicesAction createIndicesAction;
@@ -104,18 +98,13 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private final Map<String, List<PendingRequest<TItem>>> pendingRequestsByIndex = new HashMap<>();
     private final BitSet responses = new BitSet();
     private final NodeJobsCounter nodeJobsCounter;
-    private final AtomicBoolean collectingEnabled = new AtomicBoolean(false);
-    private final AtomicBoolean isScheduledCollectionRunning = new AtomicBoolean(false);
-    private volatile boolean lastBulkScheduledToExecute = false;
     private final AtomicInteger pendingItemsCount = new AtomicInteger(0);
-    private final AtomicBoolean computeFinalResult = new AtomicBoolean(false);
-    private final CompletableFuture<List<Row>> result = new CompletableFuture<>();
 
     private int location = -1;
-    private final Iterator<TimeValue> consumeIteratorDelays;
-    private BiConsumer<BitSet, Throwable> bulkExecutionCompleteListener;
-    private BiConsumer<Object, Throwable> loadNextBatchCompleteListener;
-    private Runnable scheduleConsumeIteratorJob;
+
+    private final Consumer<Row> rowConsumer;
+    private final BooleanSupplier backpressureTrigger;
+    private final Function<Boolean, CompletableFuture<BitSet>> execute;
 
     public ShardingUpsertExecutor(ClusterService clusterService,
                                   NodeJobsCounter nodeJobsCounter,
@@ -137,161 +126,86 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         this.createIndicesBulkSize = Math.min(bulkSize, MAX_CREATE_INDICES_BULK_SIZE);
         this.jobId = jobId;
         this.rowShardResolver = rowShardResolver;
-        this.itemFactory = itemFactory;
         this.requestFactory = requestFactory;
-        this.expressions = expressions;
-        this.indexNameResolver = indexNameResolver;
         this.autoCreateIndices = autoCreateIndices;
         this.requestExecutor = requestExecutor;
         this.createIndicesAction = createIndicesAction;
-        this.consumeIteratorDelays = BACK_OFF_POLICY.iterator();
+        this.rowConsumer = createRowConsumer(rowShardResolver, itemFactory, expressions, indexNameResolver);
+        this.backpressureTrigger = createBackpressureTrigger(nodeJobsCounter);
+        this.execute = createExecutFunction();
+    }
+
+    private Consumer<Row> createRowConsumer(RowShardResolver rowShardResolver, Function<String, TItem> itemFactory, List<? extends CollectExpression<Row, ?>> expressions, Supplier<String> indexNameResolver) {
+        return (Row row) -> {
+            rowShardResolver.setNextRow(row);
+            for (int i = 0; i < expressions.size(); i++) {
+                CollectExpression<Row, ?> collectExpression = expressions.get(i);
+                collectExpression.setNextRow(row);
+            }
+            TItem item = itemFactory.apply(rowShardResolver.id());
+            String indexName = indexNameResolver.get();
+            ShardLocation shardLocation =
+                getShardLocation(indexName, rowShardResolver.id(), rowShardResolver.routing());
+            if (shardLocation == null) {
+                addToPendingRequests(item, indexName);
+            } else {
+                addToRequest(item, shardLocation, requestsByShard);
+            }
+        };
+    }
+
+    private BooleanSupplier createBackpressureTrigger(NodeJobsCounter nodeJobsCounter) {
+        return () -> {
+            for (ShardLocation shardLocation : requestsByShard.keySet()) {
+                String requestNodeId = shardLocation.nodeId;
+                if (nodeJobsCounter.getInProgressJobsForNode(requestNodeId) >= MAX_NODE_CONCURRENT_OPERATIONS) {
+                    return true;
+                }
+            }
+            return false;
+        };
+    }
+
+    private Function<Boolean, CompletableFuture<BitSet>> createExecutFunction() {
+        return (isLastBatch) -> {
+            CompletableFuture<BitSet> executeBulkFuture = new CompletableFuture<>();
+
+            if ((isLastBatch && pendingRequestsByIndex.isEmpty() == false)
+                || pendingRequestsByIndex.size() > createIndicesBulkSize) {
+
+                // We create new indices in an async fashion and execute the requests after they are created.
+                // This means the iterator consumer thread can carry on accumulating rows for the next bulk.
+                // We copy and clear the current bulk global requests and pendingRequests structures in order to allow the
+                // iterator consumer thread to create the next bulk whilst we create indices and execute this bulk.
+                Map<String, List<PendingRequest<TItem>>> pendingRequestsForCurrentBulk =
+                    new HashMap<>(pendingRequestsByIndex);
+                pendingRequestsByIndex.clear();
+
+                Map<ShardLocation, TReq> bulkRequests = new HashMap<>(requestsByShard);
+                requestsByShard.clear();
+
+                createPendingIndices(pendingRequestsForCurrentBulk)
+                    .thenAccept(resp -> {
+                        bulkRequests.putAll(getFromPendingToRequestMap(pendingRequestsForCurrentBulk));
+                        sendRequestsForBulk(executeBulkFuture, bulkRequests);
+                    });
+            } else {
+                sendRequestsForBulk(executeBulkFuture, requestsByShard);
+            }
+
+            return executeBulkFuture;
+        };
     }
 
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator batchIterator) {
-        bulkExecutionCompleteListener = createBulkExecutionCompleteListener(batchIterator);
-        loadNextBatchCompleteListener = createLoadNextBatchListener(batchIterator);
-        scheduleConsumeIteratorJob = createScheduleConsumeIteratorJob(batchIterator);
+        CompletableFuture executionFuture = new CompletableFuture();
+        new BatchIteratorBackpressureExecutor<>(batchIterator, scheduler,
+            rowConsumer, execute, backpressureTrigger, pendingItemsCount, bulkSize, BACKOFF_POLICY, executionFuture).
+            consumeIteratorAndExecute();
 
-        safeConsumeIterator(batchIterator);
-        return result;
-    }
-
-    private Runnable createScheduleConsumeIteratorJob(BatchIterator batchIterator) {
-        return () -> {
-            isScheduledCollectionRunning.set(false);
-            safeConsumeIterator(batchIterator);
-        };
-    }
-
-    private BiConsumer<Object, Throwable> createLoadNextBatchListener(BatchIterator batchIterator) {
-        return (r, t) -> {
-            if (t == null) {
-                unsafeConsumeIterator(batchIterator);
-            } else {
-                result.completeExceptionally(t);
-            }
-        };
-    }
-
-    private BiConsumer<BitSet, Throwable> createBulkExecutionCompleteListener(BatchIterator batchIterator) {
-        return (r, t) -> {
-            if (lastBulkScheduledToExecute &&
-                pendingItemsCount.get() == 0 &&
-                computeFinalResult.compareAndSet(false, true)) {
-
-                // all bulks are complete, close iterator and complete result
-                batchIterator.close();
-                if (t == null) {
-                    result.complete(Collections.singletonList(new Row1((long) responses.cardinality())));
-                } else {
-                    result.completeExceptionally(t);
-                }
-            } else {
-                safeConsumeIterator(batchIterator);
-            }
-        };
-    }
-
-    /**
-     * Consumes the iterator only if there isn't another thread already consuming it.
-     */
-    private void safeConsumeIterator(BatchIterator batchIterator) {
-        if (collectingEnabled.compareAndSet(false, true)) {
-            unsafeConsumeIterator(batchIterator);
-        }
-    }
-
-    /**
-     * Consumes the iterator without guarding against concurrent access to the iterator.
-     *
-     * !! THIS SHOULD ONLY BE CALLED BY THE loadNextBatch COMPLETE LISTENER !!
-     */
-    private void unsafeConsumeIterator(BatchIterator batchIterator) {
-        Row row = RowBridging.toRow(batchIterator.rowData());
-        try {
-            while (true) {
-                if (indexInBulk == bulkSize) {
-                    if (tryExecuteBulk(batchIterator, false) == false) {
-                        collectingEnabled.set(false);
-                        if (isScheduledCollectionRunning.compareAndSet(false, true)) {
-                            try {
-                                scheduleConsumeIterator(batchIterator);
-                            } catch (EsRejectedExecutionException e) {
-                                isScheduledCollectionRunning.set(false);
-                                if (collectingEnabled.compareAndSet(false, true)) {
-                                    // re-acquired the ownership of the iterator consumer, so let's try to
-                                    // execute / schedule this bulk again (otherwise someone else owns the
-                                    // iterator and carries on)
-                                    continue;
-                                }
-                            }
-                        }
-                        return;
-                    }
-                }
-
-                if (batchIterator.moveNext()) {
-                    onRow(row);
-                    pendingItemsCount.incrementAndGet();
-                } else {
-                    break;
-                }
-            }
-
-            if (batchIterator.allLoaded()) {
-                lastBulkScheduledToExecute = true;
-                execute(true).whenComplete(bulkExecutionCompleteListener);
-            } else {
-                batchIterator.loadNextBatch().whenComplete(loadNextBatchCompleteListener);
-            }
-        } catch (Throwable t) {
-            batchIterator.close();
-            result.completeExceptionally(t);
-        }
-    }
-
-    private void scheduleConsumeIterator(BatchIterator batchIterator) throws EsRejectedExecutionException {
-        scheduler.schedule(scheduleConsumeIteratorJob,
-            consumeIteratorDelays.next().getMillis(), TimeUnit.MILLISECONDS);
-    }
-
-    private boolean tryExecuteBulk(BatchIterator batchIterator, boolean isLastBatch) {
-        if (isExecutionPossibleOnAllNodes(requestsByShard)) {
-            indexInBulk = 0;
-            CompletableFuture<BitSet> bulkExecutionFuture = execute(isLastBatch);
-            bulkExecutionFuture.whenComplete(bulkExecutionCompleteListener);
-            return true;
-        }
-        return false;
-    }
-
-    private boolean isExecutionPossibleOnAllNodes(Map<ShardLocation, TReq> bulkRequests) {
-        for (ShardLocation shardLocation : bulkRequests.keySet()) {
-            String requestNodeId = shardLocation.nodeId;
-            if (nodeJobsCounter.getInProgressJobsForNode(requestNodeId) >= MAX_NODE_CONCURRENT_OPERATIONS) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private void onRow(Row row) {
-        indexInBulk++;
-        rowShardResolver.setNextRow(row);
-        for (int i = 0; i < expressions.size(); i++) {
-            CollectExpression<Row, ?> collectExpression = expressions.get(i);
-            collectExpression.setNextRow(row);
-        }
-        TItem item = itemFactory.apply(rowShardResolver.id());
-        String indexName = indexNameResolver.get();
-        ShardLocation shardLocation =
-            getShardLocation(indexName, rowShardResolver.id(), rowShardResolver.routing());
-        if (shardLocation == null) {
-            addToPendingRequests(item, indexName);
-        } else {
-            addToRequest(item, shardLocation, requestsByShard);
-        }
+        return executionFuture.
+            thenApply(ignored -> Collections.singletonList(new Row1((long) responses.cardinality())));
     }
 
     @Nullable
@@ -343,64 +257,6 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         pendingRequests.add(new PendingRequest<>(item, rowShardResolver.routing()));
     }
 
-    private static class ShardLocation {
-        private final ShardId shardId;
-
-        private final String nodeId;
-
-        public ShardLocation(ShardId shardId, String nodeId) {
-            this.shardId = shardId;
-            this.nodeId = nodeId;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-
-            ShardLocation that = (ShardLocation) o;
-
-            if (!shardId.equals(that.shardId)) return false;
-            return nodeId != null ? nodeId.equals(that.nodeId) : that.nodeId == null;
-        }
-
-        @Override
-        public int hashCode() {
-            int result = shardId.hashCode();
-            result = 31 * result + (nodeId != null ? nodeId.hashCode() : 0);
-            return result;
-        }
-    }
-
-    private CompletableFuture<BitSet> execute(boolean isLastBatch) {
-        CompletableFuture<BitSet> executeBulkFuture = new CompletableFuture<>();
-
-        if ((isLastBatch && pendingRequestsByIndex.isEmpty() == false)
-            || pendingRequestsByIndex.size() > createIndicesBulkSize) {
-
-            // We create new indices in an async fashion and execute the requests after they are created.
-            // This means the iterator consumer thread can carry on accumulating rows for the next bulk.
-            // We copy and clear the current bulk global requests and pendingRequests structures in order to allow the
-            // iterator consumer thread to create the next bulk whilst we create indices and execute this bulk.
-            Map<String, List<PendingRequest<TItem>>> pendingRequestsForCurrentBulk =
-                new HashMap<>(pendingRequestsByIndex);
-            pendingRequestsByIndex.clear();
-
-            Map<ShardLocation, TReq> bulkRequests = new HashMap<>(requestsByShard);
-            requestsByShard.clear();
-
-            createPendingIndices(pendingRequestsForCurrentBulk)
-                .thenAccept(resp -> {
-                    bulkRequests.putAll(getFromPendingToRequestMap(pendingRequestsForCurrentBulk));
-                    sendRequestsForBulk(executeBulkFuture, bulkRequests);
-                });
-        } else {
-            sendRequestsForBulk(executeBulkFuture, requestsByShard);
-        }
-
-        return executeBulkFuture;
-    }
-
     private void sendRequestsForBulk(CompletableFuture<BitSet> bulkResultFuture, Map<ShardLocation, TReq> bulkRequests) {
         if (bulkRequests.isEmpty()) {
             bulkResultFuture.complete(responses);
@@ -444,7 +300,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
                 scheduler,
                 l -> requestExecutor.execute(request, l),
                 listener,
-                BACK_OFF_POLICY
+                BACKOFF_POLICY
             );
             requestExecutor.execute(request, listener);
         }
@@ -481,6 +337,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         Map<String, List<PendingRequest<TItem>>> requestsByIndexForCurrentBulk) {
         Iterator<Map.Entry<String, List<PendingRequest<TItem>>>> it = requestsByIndexForCurrentBulk.entrySet().iterator();
         Map<ShardLocation, TReq> requests = new HashMap<>();
+
         while (it.hasNext()) {
             Map.Entry<String, List<PendingRequest<TItem>>> entry = it.next();
             String index = entry.getKey();
@@ -497,13 +354,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         return requests;
     }
 
-    public void reset() {
-        pendingRequestsByIndex.clear();
-        requestsByShard.clear();
-    }
-
     private static class PendingRequest<TItem> {
-
         private final TItem item;
         private final String routing;
 
@@ -511,5 +362,34 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
             this.item = item;
             this.routing = routing;
         }
+    }
+
+    private static class ShardLocation {
+        private final ShardId shardId;
+        private final String nodeId;
+
+        public ShardLocation(ShardId shardId, String nodeId) {
+            this.shardId = shardId;
+            this.nodeId = nodeId;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            ShardLocation that = (ShardLocation) o;
+
+            if (!shardId.equals(that.shardId)) return false;
+            return nodeId != null ? nodeId.equals(that.nodeId) : that.nodeId == null;
+        }
+
+        @Override
+        public int hashCode() {
+            int result = shardId.hashCode();
+            result = 31 * result + (nodeId != null ? nodeId.hashCode() : 0);
+            return result;
+        }
+
     }
 }
