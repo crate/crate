@@ -1,17 +1,23 @@
 dependencies {
     compile project(':es:es-core')
-    compile "io.netty:netty:${versions.netty}"
+    compile "io.netty:netty-buffer:${versions.netty4}"
+    compile "io.netty:netty-codec:${versions.netty4}"
+    compile "io.netty:netty-codec-http:${versions.netty4}"
+    compile "io.netty:netty-common:${versions.netty4}"
+    compile "io.netty:netty-handler:${versions.netty4}"
+    compile "io.netty:netty-resolver:${versions.netty4}"
+    compile "io.netty:netty-transport:${versions.netty4}"
 }
 
 sourceSets {
     main {
-        java.srcDirs = ['../upstream/modules/transport-netty3/src/main/java']
+        java.srcDirs = ['../upstream/modules/transport-netty4/src/main/java']
     }
 }
 
 idea {
     module {
-        contentRoot = file('../upstream/modules/transport-netty3/src/main')
+        contentRoot = file('../upstream/modules/transport-netty4/src/main')
         excludeDirs += file('build')
     }
 }

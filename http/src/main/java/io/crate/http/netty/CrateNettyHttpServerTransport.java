@@ -22,25 +22,27 @@
 
 package io.crate.http.netty;
 
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelPipeline;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.http.netty3.Netty3HttpServerTransport;
-import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jboss.netty.channel.*;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 
 
 @Singleton
-public class CrateNettyHttpServerTransport extends Netty3HttpServerTransport {
+public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
 
     /**
      * A data structure for items that can be added to the channel pipeline of the HTTP transport.
@@ -49,14 +51,14 @@ public class CrateNettyHttpServerTransport extends Netty3HttpServerTransport {
 
         final String base;
         final String name;
-        final Supplier<ChannelUpstreamHandler> handlerFactory;
+        final Supplier<ChannelHandler> handlerFactory;
 
         /**
          * @param base              the name of the existing handler in the pipeline before/after which the new handler should be added
          * @param name              the name of the new handler that should be added to the pipeline
          * @param handlerFactory    a supplier that provides a new instance of the handler
          */
-        public ChannelPipelineItem(String base, String name, Supplier<ChannelUpstreamHandler> handlerFactory) {
+        public ChannelPipelineItem(String base, String name, Supplier<ChannelHandler> handlerFactory) {
             this.base = base;
             this.name = name;
             this.handlerFactory = handlerFactory;
@@ -74,8 +76,8 @@ public class CrateNettyHttpServerTransport extends Netty3HttpServerTransport {
     }
 
     @Override
-    public ChannelPipelineFactory configureServerChannelPipelineFactory() {
-        return new CrateHttpChannelPipelineFactory(this, detailedErrorsEnabled, threadPool);
+    public HttpChannelHandler configureServerChannelHandler() {
+        return new CrateHttpChannelHandler(this, detailedErrorsEnabled, threadPool);
     }
 
     public void addBefore(ChannelPipelineItem item) {
@@ -148,29 +150,29 @@ public class CrateNettyHttpServerTransport extends Netty3HttpServerTransport {
         }
     }
 
-    protected class CrateHttpChannelPipelineFactory extends HttpChannelPipelineFactory {
+    protected class CrateHttpChannelHandler extends HttpChannelHandler {
 
-        CrateHttpChannelPipelineFactory(CrateNettyHttpServerTransport transport,
-                                               boolean detailedErrorsEnabled,
-                                               ThreadPool threadPool) {
+        CrateHttpChannelHandler(CrateNettyHttpServerTransport transport,
+                                boolean detailedErrorsEnabled,
+                                ThreadPool threadPool) {
             super(transport, detailedErrorsEnabled, threadPool.getThreadContext());
         }
 
         @Override
-        public ChannelPipeline getPipeline() throws Exception {
-            ChannelPipeline pipeline = super.getPipeline();
+        protected void initChannel(Channel ch) throws Exception {
+            super.initChannel(ch);
+            ChannelPipeline pipeline = ch.pipeline();
             synchronized (addBeforeList) {
                 for (ChannelPipelineItem item : addBeforeList) {
                     pipeline.addBefore(item.base, item.name, item.handlerFactory.get());
                 }
             }
-            return pipeline;
         }
     }
 
     public static InetAddress getRemoteAddress(Channel channel) {
-        if (channel.getRemoteAddress() instanceof InetSocketAddress) {
-            return ((InetSocketAddress) channel.getRemoteAddress()).getAddress();
+        if (channel.remoteAddress() instanceof InetSocketAddress) {
+            return ((InetSocketAddress) channel.remoteAddress()).getAddress();
         }
         // In certain cases the channel is an EmbeddedChannel (e.g. in tests)
         // and this type of channel has an EmbeddedSocketAddress instance as remoteAddress

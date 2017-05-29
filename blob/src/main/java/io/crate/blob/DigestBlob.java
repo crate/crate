@@ -25,12 +25,12 @@ import com.google.common.io.ByteStreams;
 import io.crate.blob.exceptions.BlobAlreadyExistsException;
 import io.crate.blob.exceptions.DigestMismatchException;
 import io.crate.common.Hex;
+import io.netty.buffer.ByteBuf;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.transport.netty3.Netty3Utils;
-import org.jboss.netty.buffer.ChannelBuffer;
+import org.elasticsearch.transport.netty4.Netty4Utils;
 
 import java.io.*;
 import java.nio.ByteBuffer;
@@ -100,10 +100,10 @@ public class DigestBlob implements Closeable {
         md.update(bbf.slice());
     }
 
-    private void addContent(ChannelBuffer buffer, boolean last) throws IOException {
+    private void addContent(ByteBuf buffer, boolean last) throws IOException {
         if (buffer != null) {
             int readableBytes = buffer.readableBytes();
-            ByteBuffer byteBuffer = buffer.toByteBuffer();
+            ByteBuffer byteBuffer = buffer.nioBuffer();
             if (file == null) {
                 file = createTmpFile();
             }
@@ -200,7 +200,7 @@ public class DigestBlob implements Closeable {
 
     public void addContent(BytesReference content, boolean last) {
         try {
-            addContent(Netty3Utils.toChannelBuffer(content), last);
+            addContent(Netty4Utils.toByteBuf(content), last);
         } catch (IOException e) {
             throw new BlobWriteException(digest, size, e);
         }
@@ -212,11 +212,11 @@ public class DigestBlob implements Closeable {
         }
 
         int written = 0;
-        ChannelBuffer channelBuffer = Netty3Utils.toChannelBuffer(content);
-        int readableBytes = channelBuffer.readableBytes();
+        ByteBuf byteBuf = Netty4Utils.toByteBuf(content);
+        int readableBytes = byteBuf.readableBytes();
         assert readableBytes + headSize.get() <= headLength : "Got too many bytes in addToHead()";
 
-        ByteBuffer byteBuffer = channelBuffer.toByteBuffer();
+        ByteBuffer byteBuffer = byteBuf.nioBuffer();
         while (written < readableBytes) {
             updateDigest(byteBuffer);
             written += headFileChannel.write(byteBuffer);

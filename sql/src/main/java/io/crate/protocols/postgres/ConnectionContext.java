@@ -28,6 +28,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.HbaProtocol;
@@ -42,13 +43,10 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.network.InetAddresses;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -359,13 +357,7 @@ class ConnectionContext {
 
     private void authenticate(Channel channel, Properties properties) {
         String userName = properties.getProperty("user");
-        SocketAddress socketAddress = channel.remoteAddress();
-        InetAddress address;
-        if (socketAddress instanceof InetSocketAddress) {
-            address = ((InetSocketAddress) socketAddress).getAddress();
-        } else {
-            address = InetAddresses.forString("127.0.0.1");
-        }
+        InetAddress address = CrateNettyHttpServerTransport.getRemoteAddress(channel);
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(userName, address, HbaProtocol.POSTGRES);
         if (authMethod == null) {
             String errorMessage = String.format(

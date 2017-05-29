@@ -22,7 +22,7 @@
 package io.crate.blob;
 
 import io.crate.common.Hex;
-import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -36,7 +36,7 @@ public class StartBlobRequest extends BlobTransferRequest<StartBlobRequest> {
     public StartBlobRequest() {
     }
 
-    public StartBlobRequest(String index, byte[] digest, BytesArray content, boolean last) {
+    public StartBlobRequest(String index, byte[] digest, BytesReference content, boolean last) {
         super(index, UUID.randomUUID(), content, last);
         this.digest = digest;
     }

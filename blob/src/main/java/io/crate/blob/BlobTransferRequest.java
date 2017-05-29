@@ -22,7 +22,6 @@
 package io.crate.blob;
 
 import org.elasticsearch.action.support.replication.ReplicationRequest;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -52,7 +51,7 @@ public abstract class BlobTransferRequest<T extends ReplicationRequest<T>>
         return last;
     }
 
-    public BlobTransferRequest(String index, UUID transferId, BytesArray content, boolean last) {
+    public BlobTransferRequest(String index, UUID transferId, BytesReference content, boolean last) {
         this.index = index;
         this.transferId = transferId;
         this.content = content;
