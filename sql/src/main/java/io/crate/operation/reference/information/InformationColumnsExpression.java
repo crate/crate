@@ -46,12 +46,29 @@ public abstract class InformationColumnsExpression<T>
         }
     }
 
+    public static class ColumnsTableCatalogExpression extends InformationColumnsExpression<BytesRef> {
+
+        @Override
+        public BytesRef value() {
+            assert row.info.ident().tableIdent().schema() != null : "table schema can't be null";
+            return new BytesRef(row.info.ident().tableIdent().name());
+        }
+    }
+
     public static class ColumnsColumnNameExpression extends InformationColumnsExpression<BytesRef> {
 
         @Override
         public BytesRef value() {
             assert row.info.ident().tableIdent().name() != null : "column name name can't be null";
             return new BytesRef(row.info.ident().columnIdent().sqlFqn());
+        }
+    }
+
+    public static class ColumnsNullExpression extends InformationColumnsExpression<BytesRef> {
+
+        @Override
+        public BytesRef value() {
+            return null;
         }
     }
 

@@ -142,10 +142,10 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC);
         Bucket result = collect(collectNode);
 
-        String expected = "id| string| NULL| false| true| 1| cluster| sys\n" +
-                          "master_node| string| NULL| false| true| 2| cluster| sys\n" +
-                          "name| string| NULL| false| true| 3| cluster| sys\n" +
-                          "settings| object| NULL| false| true| 4| cluster| sys\n";
+        String expected = "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| id| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 1| cluster| cluster| sys| NULL| NULL| NULL\n" +
+                          "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| master_node| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 2| cluster| cluster| sys| NULL| NULL| NULL\n" +
+                          "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| name| string| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 3| cluster| cluster| sys| NULL| NULL| NULL\n" +
+                          "NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| NULL| settings| object| NULL| NULL| NULL| NULL| NULL| NULL| NULL| false| true| NULL| NULL| NULL| 4| cluster| cluster| sys| NULL| NULL| NULL\n";
 
 
         assertThat(TestingHelpers.printedTable(result), Matchers.containsString(expected));
