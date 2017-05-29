@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static org.hamcrest.Matchers.*;
 
@@ -400,5 +401,14 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(" / by zero");
         execute("select 1/0 from sys.shards");
+    }
+
+    @Test
+    public void testDistinctConcat() throws Exception {
+        execute("SELECT distinct concat(schema_name, '.', table_name) as t FROM sys.shards order by 1");
+        assertThat(printedTable(response.rows()),
+            is("blob.blobs\n" +
+               "doc.characters\n" +
+               "doc.quotes\n"));
     }
 }

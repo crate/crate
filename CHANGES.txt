@@ -30,6 +30,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that led to ``ArrayIndexOutOfBoundsException`` on
+   ``DISTINCT`` or ``GROUP BY`` queries on the ``sys.shards`` table.
+
  - Fixed an issue that could cause ``sys.operations`` entries to remain even
    after the operation has finished.
 
