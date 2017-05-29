@@ -38,26 +38,43 @@ public class NodeJobsCounterTest extends CrateUnitTest {
     }
 
     @Test
-    public void testIncrementUpdatesStats() {
-        nodeJobsCounter.increment("node1");
+    public void testIncrementJobsUpdatesStats() {
+        nodeJobsCounter.incJobsCount("node1");
         assertThat(nodeJobsCounter.getInProgressJobsForNode("node1"), is(1L));
     }
 
     @Test
-    public void testDecrementSpecifiedNodeOnly() {
-        nodeJobsCounter.increment("node1");
-        nodeJobsCounter.increment("node2");
+    public void testIncrementRetriesUpdatesStats() {
+        nodeJobsCounter.incRetriesCount("node1");
+        assertThat(nodeJobsCounter.getParkedRetriesForNode("node1"), is(1L));
+    }
 
-        nodeJobsCounter.decrement("node1");
+    @Test
+    public void testDecrementJobsForSpecifiedNodeOnly() {
+        nodeJobsCounter.incJobsCount("node1");
+        nodeJobsCounter.incJobsCount("node2");
+
+        nodeJobsCounter.decJobsCount("node1");
 
         assertThat(nodeJobsCounter.getInProgressJobsForNode("node1"), is(0L));
         assertThat(nodeJobsCounter.getInProgressJobsForNode("node2"), is(1L));
     }
 
     @Test
-    public void testIncrementNullUpdatesStatsForUnidentifiedNode() {
+    public void testDecrementRetriesForSpecifiedNodeOnly() {
+        nodeJobsCounter.incRetriesCount("node1");
+        nodeJobsCounter.incRetriesCount("node2");
+
+        nodeJobsCounter.decRetriesCount("node1");
+
+        assertThat(nodeJobsCounter.getParkedRetriesForNode("node1"), is(0L));
+        assertThat(nodeJobsCounter.getParkedRetriesForNode("node2"), is(1L));
+    }
+
+    @Test
+    public void testIncrementJobsNullUpdatesStatsForUnidentifiedNode() {
         try {
-            nodeJobsCounter.increment(null);
+            nodeJobsCounter.incJobsCount(null);
         } catch (Throwable e) {
             fail("Did not expect exception when attempting to register a job against null node but got: " +
                  e.getMessage());
@@ -67,9 +84,30 @@ public class NodeJobsCounterTest extends CrateUnitTest {
     }
 
     @Test
-    public void testDecrementForNullDoesntFail() {
+    public void testIncrementRetriesNullUpdatesStatsForUnidentifiedNode() {
         try {
-            nodeJobsCounter.decrement(null);
+            nodeJobsCounter.incRetriesCount(null);
+        } catch (Throwable e) {
+            fail("Did not expect exception when attempting register a retry against null node but got: " +
+                 e.getMessage());
+        }
+        long jobsForNullNode = nodeJobsCounter.getParkedRetriesForNode(null);
+        assertThat(jobsForNullNode, is(1L));
+    }
+
+    @Test
+    public void testDecrementJobsForNullDoesntFail() {
+        try {
+            nodeJobsCounter.decJobsCount(null);
+        } catch (Exception e) {
+            fail("Did not expect unregistering a job for a null node to fail but got: " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testDecrementRetriesForNullDoesntFail() {
+        try {
+            nodeJobsCounter.decRetriesCount(null);
         } catch (Exception e) {
             fail("Did not expect unregistering a job for a null node to fail but got: " + e.getMessage());
         }

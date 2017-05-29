@@ -23,30 +23,45 @@
 package io.crate.operation.projectors;
 
 import io.crate.exceptions.SQLExceptions;
+import io.crate.operation.NodeJobsCounter;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
+import javax.annotation.Nullable;
 import java.util.Iterator;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-public class RetryListener<TReq, TResp> implements ActionListener<TResp> {
+public class RetryListener<TResp> implements ActionListener<TResp> {
 
     private final ScheduledExecutorService scheduler;
     private final ActionListener<TResp> delegate;
     private final Iterator<TimeValue> delay;
     private final Runnable retryCommand;
+    private final NodeJobsCounter nodeJobsCounter;
+    private final String nodeId;
 
     public RetryListener(ScheduledExecutorService scheduler,
                          Consumer<ActionListener<TResp>> command,
                          ActionListener<TResp> delegate,
                          Iterable<TimeValue> backOffPolicy) {
+        this(scheduler, command, delegate, backOffPolicy, null, null);
+    }
+
+    public RetryListener(ScheduledExecutorService scheduler,
+                         Consumer<ActionListener<TResp>> command,
+                         ActionListener<TResp> delegate,
+                         Iterable<TimeValue> backOffPolicy,
+                         @Nullable  NodeJobsCounter nodeJobsCounter,
+                         @Nullable  String nodeId) {
         this.scheduler = scheduler;
         this.delegate = delegate;
         this.delay = backOffPolicy.iterator();
         this.retryCommand = () -> command.accept(this);
+        this.nodeJobsCounter = nodeJobsCounter;
+        this.nodeId = nodeId;
     }
 
     @Override
@@ -59,6 +74,9 @@ public class RetryListener<TReq, TResp> implements ActionListener<TResp> {
         Throwable throwable = SQLExceptions.unwrap(e);
         if (throwable instanceof EsRejectedExecutionException && delay.hasNext()) {
             TimeValue currentDelay = delay.next();
+            if(nodeJobsCounter != null) {
+                nodeJobsCounter.incRetriesCount(nodeId);
+            }
             scheduler.schedule(retryCommand, currentDelay.millis(), TimeUnit.MILLISECONDS);
         } else {
             delegate.onFailure(e);

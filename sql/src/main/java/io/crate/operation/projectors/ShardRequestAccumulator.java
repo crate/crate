@@ -111,19 +111,24 @@ public class ShardRequestAccumulator<TReq extends ShardRequest<TReq, TItem>, TIt
         }
 
         final String nodeId = getLocalNodeId();
-        operationsTracker.increment(nodeId);
+        operationsTracker.incJobsCount(nodeId);
 
         FutureActionListener<ShardResponse, Iterator<? extends Row>> listener = new FutureActionListener<>(r -> {
             currentRequest = requestFactory.get();
-            operationsTracker.decrement(nodeId);
+            operationsTracker.incJobsCount(nodeId);
             return responseToRowIt(isLastBatch, r);
         });
         transportAction.accept(
             currentRequest,
             new RetryListener<>(scheduler,
-                (actionListener) -> transportAction.accept(currentRequest, actionListener),
+                (actionListener) -> {
+                    operationsTracker.decRetriesCount(nodeId);
+                    transportAction.accept(currentRequest, actionListener);
+                },
                 listener,
-                BACKOFF_POLICY
+                BACKOFF_POLICY,
+                operationsTracker,
+                nodeId
             )
         );
         return listener;
@@ -133,7 +138,7 @@ public class ShardRequestAccumulator<TReq extends ShardRequest<TReq, TItem>, TIt
     private String getLocalNodeId() {
         String nodeId = null;
         try {
-            nodeId= clusterService.localNode().getId();
+            nodeId = clusterService.localNode().getId();
         } catch (IllegalStateException e) {
             logger.debug("Unable to get local node id", e);
         }

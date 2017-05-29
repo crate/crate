@@ -75,7 +75,8 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import static io.crate.operation.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
+import static io.crate.operation.NodeJobsCounter.MAX_NODE_CONCURRENT_JOBS;
+import static io.crate.operation.NodeJobsCounter.MAX_NODE_PARKED_RETRIES;
 
 public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>
     implements Function<BatchIterator, CompletableFuture<? extends Iterable<Row>>> {
@@ -288,7 +289,8 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private boolean isExecutionPossibleOnAllNodes(Map<ShardLocation, TReq> bulkRequests) {
         for (ShardLocation shardLocation : bulkRequests.keySet()) {
             String requestNodeId = shardLocation.nodeId;
-            if (nodeJobsCounter.getInProgressJobsForNode(requestNodeId) >= MAX_NODE_CONCURRENT_OPERATIONS) {
+            if (nodeJobsCounter.getInProgressJobsForNode(requestNodeId) >= MAX_NODE_CONCURRENT_JOBS &&
+                nodeJobsCounter.getParkedRetriesForNode(requestNodeId) >= MAX_NODE_PARKED_RETRIES) {
                 return false;
             }
         }
@@ -436,19 +438,19 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
             it.remove();
 
             final ShardLocation shardLocation = entry.getKey();
-            nodeJobsCounter.increment(shardLocation.nodeId);
+            nodeJobsCounter.incJobsCount(shardLocation.nodeId);
             ActionListener<ShardResponse> listener = new ActionListener<ShardResponse>() {
 
                 @Override
                 public void onResponse(ShardResponse shardResponse) {
-                    nodeJobsCounter.decrement(shardLocation.nodeId);
+                    nodeJobsCounter.decJobsCount(shardLocation.nodeId);
                     processShardResponse(shardResponse);
                     countdown();
                 }
 
                 @Override
                 public void onFailure(Exception e) {
-                    nodeJobsCounter.decrement(shardLocation.nodeId);
+                    nodeJobsCounter.decJobsCount(shardLocation.nodeId);
                     countdown();
                 }
 
@@ -459,13 +461,19 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
                 }
             };
 
-            listener = new RetryListener<>(
+            RetryListener<ShardResponse> retryListener = new RetryListener<>(
                 scheduler,
-                l -> requestExecutor.execute(request, l),
+                l -> {
+                    // retrying, so decrement the retries count
+                    nodeJobsCounter.decRetriesCount(shardLocation.nodeId);
+                    requestExecutor.execute(request, l);
+                },
                 listener,
-                BACK_OFF_POLICY
+                BACK_OFF_POLICY,
+                nodeJobsCounter,
+                shardLocation.nodeId
             );
-            requestExecutor.execute(request, listener);
+            requestExecutor.execute(request, retryListener);
         }
     }
 
