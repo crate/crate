@@ -210,26 +210,18 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
 
     @Test
     public void testMatchAddress() throws Exception {
-        // matches
-        Map.Entry<String, Map<String, String>> entry = new HashMap.SimpleEntry<>(
-            "0", Collections.singletonMap("address", "10.0.1.100")
-        );
-        assertTrue(isValidAddress(entry, InetAddresses.forString("10.0.1.100")));
-        assertFalse(isValidAddress(entry, InetAddresses.forString("10.0.1.99")));
-        assertFalse(isValidAddress(entry, InetAddresses.forString("10.0.1.101")));
+        String hbaAddress = "10.0.1.100";
+        assertTrue(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.100")));
+        assertFalse(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.99")));
+        assertFalse(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.101")));
 
-        entry = new HashMap.SimpleEntry<>(
-            "0", Collections.singletonMap("address", "10.0.1.0/24") // 10.0.1.0 -- 10.0.1.255
-        );
-        assertTrue(isValidAddress(entry, InetAddresses.forString("10.0.1.0")));
-        assertTrue(isValidAddress(entry, InetAddresses.forString("10.0.1.255")));
-        assertFalse(isValidAddress(entry, InetAddresses.forString("10.0.0.255")));
-        assertFalse(isValidAddress(entry, InetAddresses.forString("10.0.2.0")));
+        hbaAddress = "10.0.1.0/24";  // 10.0.1.0 -- 10.0.1.255
+        assertTrue(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.0")));
+        assertTrue(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.255")));
+        assertFalse(isValidAddress(hbaAddress, InetAddresses.forString("10.0.0.255")));
+        assertFalse(isValidAddress(hbaAddress, InetAddresses.forString("10.0.2.0")));
 
-        entry = new HashMap.SimpleEntry<>(
-            "0", Collections.emptyMap() // key "address" is missing
-        );
-        assertTrue(isValidAddress(entry,
+        assertTrue(isValidAddress(null,
             InetAddresses.forString(
                 String.format("%s.%s.%s.%s", randomInt(255), randomInt(255), randomInt(255), randomInt(255)))
             )

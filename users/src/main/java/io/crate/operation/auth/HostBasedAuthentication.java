@@ -21,14 +21,12 @@ package io.crate.operation.auth;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.crate.operation.user.UserManager;
-import io.crate.operation.user.UserManagerService;
-import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.network.Cidrs;
+import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
-import org.jboss.netty.handler.ipfilter.CIDR4;
 
 import javax.annotation.Nullable;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -121,7 +119,7 @@ public class HostBasedAuthentication implements Authentication {
         }
         return hbaConf.entrySet().stream()
             .filter(e -> Matchers.isValidUser(e, user))
-            .filter(e -> Matchers.isValidAddress(e, address))
+            .filter(e -> Matchers.isValidAddress(e.getValue().get(KEY_ADDRESS), address))
             .filter(e -> Matchers.isValidProtocol(e.getValue().get(KEY_PROTOCOL), protocol))
             .findFirst();
     }
@@ -133,25 +131,31 @@ public class HostBasedAuthentication implements Authentication {
             return hbaUser == null || user.equals(hbaUser);
         }
 
-        static boolean isValidAddress(Map.Entry<String, Map<String, String>> entry, InetAddress address) {
-            String hbaAddress = entry.getValue().get(KEY_ADDRESS);
+        static boolean isValidAddress(@Nullable String hbaAddress, InetAddress address) {
             if (hbaAddress == null) {
                 // no IP/CIDR --> 0.0.0.0/0 --> match all
                 return true;
-            } else if (!hbaAddress.contains("/")) {
-                // if IP format --> add 32 mask bits
-                hbaAddress += "/32";
             }
-            try {
-                return CIDR4.newCIDR(hbaAddress).contains(address);
-            } catch (UnknownHostException e) {
-                // this should not happen because we add the required network mask upfront
+            int p = hbaAddress.indexOf('/');
+            if (p < 0) {
+                return InetAddresses.forString(hbaAddress).equals(address);
             }
-            return false;
+            long[] minAndMax = Cidrs.cidrMaskToMinMax(hbaAddress);
+            int addressAsInt = ipv4AddressToInt(address.getAddress());
+            return minAndMax[0] <= addressAsInt && addressAsInt < minAndMax[1];
         }
 
         static boolean isValidProtocol(String hbaProtocol, HbaProtocol protocol) {
             return hbaProtocol == null || hbaProtocol.equals(protocol.toString());
         }
+    }
+
+    private static int ipv4AddressToInt(byte[] address) {
+        int net = 0;
+        for (byte a : address) {
+            net <<= 8;
+            net |= a & 0xFF;
+        }
+        return net;
     }
 }
