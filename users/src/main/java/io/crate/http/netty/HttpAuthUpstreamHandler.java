@@ -19,22 +19,29 @@
 package io.crate.http.netty;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.operation.auth.*;
+import io.crate.operation.auth.Authentication;
+import io.crate.operation.auth.AuthenticationMethod;
+import io.crate.operation.auth.AuthenticationProvider;
+import io.crate.operation.auth.HbaProtocol;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.*;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
-import org.jboss.netty.channel.*;
-import org.jboss.netty.handler.codec.http.*;
-import org.jboss.netty.util.CharsetUtil;
 
 import javax.annotation.Nullable;
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
-import static org.jboss.netty.buffer.ChannelBuffers.*;
+import static io.netty.buffer.Unpooled.copiedBuffer;
 
-public class HttpAuthUpstreamHandler extends SimpleChannelUpstreamHandler {
+
+public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object> {
 
     private static final Logger LOGGER = Loggers.getLogger(HttpAuthUpstreamHandler.class);
     private final Authentication authService;
@@ -48,28 +55,27 @@ public class HttpAuthUpstreamHandler extends SimpleChannelUpstreamHandler {
     }
 
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-        Object msg = e.getMessage();
+    protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof HttpRequest) {
-            handleHttpRequest(ctx, e, (HttpRequest) msg);
-        } else if (msg instanceof HttpChunk) {
-            handleHttpChunk(ctx, e);
+            handleHttpRequest(ctx, (HttpRequest) msg);
+        } else if (msg instanceof HttpContent) {
+            handleHttpChunk(ctx, ((HttpContent) msg));
         } else {
             // neither http request nor http chunk - send upstream and see ...
-            ctx.sendUpstream(e);
+            ctx.fireChannelRead(msg);
         }
     }
 
-    private void handleHttpRequest(ChannelHandlerContext ctx, MessageEvent e, HttpRequest request) {
+    private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest request) {
         String username = userFromRequest(request);
-        InetAddress address = addressFromRequestOrChannel(request, ctx.getChannel());
+        InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, address, HbaProtocol.HTTP);
         if (authMethod == null) {
             String errorMessage = String.format(
                 Locale.ENGLISH,
                 "No valid auth.host_based.config entry found for host \"%s\", user \"%s\", protocol \"%s\"",
                 address.getHostAddress(), username, HbaProtocol.HTTP.toString());
-            sendUnauthorized(ctx.getChannel(), errorMessage);
+            sendUnauthorized(ctx.channel(), errorMessage);
         } else {
             authMethod.httpAuthentication(username)
                 .whenComplete((user, throwable) -> {
@@ -79,34 +85,37 @@ public class HttpAuthUpstreamHandler extends SimpleChannelUpstreamHandler {
                                 username, authMethod.name());
                         }
                         authorized = true;
-                        ctx.sendUpstream(e);
+                        ctx.fireChannelRead(request);
                     } else {
-                        sendUnauthorized(ctx.getChannel(), throwable.getMessage());
+                        sendUnauthorized(ctx.channel(), throwable.getMessage());
                     }
                 });
         }
     }
 
-    private void handleHttpChunk(ChannelHandlerContext ctx, MessageEvent e) {
+    private void handleHttpChunk(ChannelHandlerContext ctx, HttpContent msg) {
         if (authorized) {
-            ctx.sendUpstream(e);
+            ctx.fireChannelRead(msg);
         } else {
-            sendUnauthorized(ctx.getChannel(), null);
+            sendUnauthorized(ctx.channel(), null);
         }
     }
 
     @VisibleForTesting
     static void sendUnauthorized(Channel channel, @Nullable String body) {
         LOGGER.warn(body == null ? "unauthorized http chunk" : body);
-        DefaultHttpResponse response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED);
+        HttpResponse response;
         if (body != null) {
             if (!body.endsWith("\n")) {
                 body += "\n";
             }
-            HttpHeaders.setContentLength(response, body.length());
-            response.setContent(copiedBuffer(body, CharsetUtil.UTF_8));
+            response = new DefaultFullHttpResponse(
+                HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED, copiedBuffer(body, StandardCharsets.UTF_8));
+            HttpUtil.setContentLength(response, body.length());
+        } else {
+            response = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.UNAUTHORIZED);
         }
-        channel.write(response).addListener(ChannelFutureListener.CLOSE);
+        channel.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
     }
 
     @VisibleForTesting

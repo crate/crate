@@ -88,11 +88,19 @@ class RestResultSetReceiver extends BaseResultReceiver {
 
     @Override
     public void allFinished(boolean interrupted) {
+        BytesRestResponse response;
         try {
-            channel.sendResponse(new BytesRestResponse(RestStatus.OK, finishBuilder()));
+            response = new BytesRestResponse(RestStatus.OK, finishBuilder());
+        } catch (Throwable t) {
+            fail(t);
+            return;
+        }
+
+        try {
+            channel.sendResponse(response);
             super.allFinished(interrupted);
         } catch (Throwable e) {
-            fail(e);
+            LOGGER.error(e);
         } finally {
             rowAccounting.close();
         }

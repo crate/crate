@@ -51,7 +51,7 @@ import org.elasticsearch.common.transport.PortsRange;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.BindHttpException;
 import org.elasticsearch.transport.BindTransportException;
-import org.elasticsearch.transport.netty3.Netty3Transport;
+import org.elasticsearch.transport.netty4.Netty4Transport;
 
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -118,18 +118,18 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             return;
         }
         EventLoopGroup boss = new NioEventLoopGroup(
-            Netty3Transport.NETTY_BOSS_COUNT.get(settings), daemonThreadFactory(settings, "postgres-netty-boss"));
+            Netty4Transport.NETTY_BOSS_COUNT.get(settings), daemonThreadFactory(settings, "postgres-netty-boss"));
         EventLoopGroup worker = new NioEventLoopGroup(
-            Netty3Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, "postgres-netty-worker"));
+            Netty4Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, "postgres-netty-worker"));
         Authentication authentication = authProvider.get();
-        Boolean reuseAddress = Netty3Transport.TCP_REUSE_ADDRESS.get(settings);
+        Boolean reuseAddress = Netty4Transport.TCP_REUSE_ADDRESS.get(settings);
         bootstrap = new ServerBootstrap()
             .channel(NioServerSocketChannel.class)
             .group(boss, worker)
             .option(ChannelOption.SO_REUSEADDR, reuseAddress)
             .childOption(ChannelOption.SO_REUSEADDR, reuseAddress)
-            .childOption(ChannelOption.TCP_NODELAY, Netty3Transport.TCP_NO_DELAY.get(settings))
-            .childOption(ChannelOption.SO_KEEPALIVE, Netty3Transport.TCP_KEEP_ALIVE.get(settings))
+            .childOption(ChannelOption.TCP_NODELAY, Netty4Transport.TCP_NO_DELAY.get(settings))
+            .childOption(ChannelOption.SO_KEEPALIVE, Netty4Transport.TCP_KEEP_ALIVE.get(settings))
             .childHandler(new ChannelInitializer<Channel>() {
                 @Override
                 protected void initChannel(Channel ch) throws Exception {

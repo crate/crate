@@ -25,36 +25,26 @@ import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.operation.auth.HbaProtocol;
 import io.crate.operation.user.User;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.network.InetAddresses;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
+import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.codec.http.*;
 import org.elasticsearch.common.settings.Settings;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.*;
-import org.jboss.netty.handler.codec.http.*;
-import org.jboss.netty.util.CharsetUtil;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Matchers;
 
 import javax.annotation.Nullable;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
 
-import static org.elasticsearch.mock.orig.Mockito.times;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.*;
 
 public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
-
-    private Channel ch;
-    private DefaultChannelFuture cf;
-    private static final InetSocketAddress IPv4_LOCALHOST = new InetSocketAddress(InetAddresses.forString("127.0.0.1"), 54321);
 
     private final AuthenticationMethod denyAll = new AuthenticationMethod() {
 
         @Override
-        public CompletableFuture<User> pgAuthenticate(io.netty.channel.Channel channel, String userName) {
+        public CompletableFuture<User> pgAuthenticate(Channel channel, String userName) {
             return CompletableFutures.failedFuture(new Throwable("denied"));
         }
 
@@ -89,137 +79,87 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         }
     };
 
-    /**
-     * Create a new mocked ChannelHandlerContext instance with the given mocked Channel.
-     * It can handle upstream and returns DefaultChannelFuture on write.
-     * The remote address is localhost/127.0.0.1:54321
-     *
-     * @param ch   mocked implementation of Channel interface
-     * @return     mocked instance of ChannelHandlerContext
-     */
-    private static ChannelHandlerContext getChannelHandlerContext(Channel ch) {
-        ChannelFuture cf = new DefaultChannelFuture(ch, false);
-        when(ch.write(Matchers.any())).thenReturn(cf);
-        when(ch.getRemoteAddress()).thenReturn(IPv4_LOCALHOST);
-
-        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
-        when(ctx.getChannel()).thenReturn(ch);
-        when(ctx.canHandleUpstream()).thenReturn(true);
-        return ctx;
-    }
-
-    private void assertUnauthorized(Channel ch, @Nullable String error) {
-        ArgumentCaptor<HttpResponse> writeCaptor = ArgumentCaptor.forClass(HttpResponse.class);
-        verify(ch).write(writeCaptor.capture());
-        HttpResponse response = writeCaptor.getValue();
-        assertThat(response.getStatus(), is(HttpResponseStatus.UNAUTHORIZED));
-        ChannelBuffer content = error == null ? ChannelBuffers.EMPTY_BUFFER : ChannelBuffers.copiedBuffer(error, CharsetUtil.US_ASCII);
-        assertThat(response.getContent(), is(content));
-    }
-
-    private void setupChannel() {
-        ch = mock(Channel.class);
-        cf = new DefaultChannelFuture(ch, false);
-        when(ch.write(Matchers.any())).thenReturn(cf);
-    }
-
-    private static MessageEvent messageEventFromRequest(HttpRequest request) {
-        MessageEvent e = mock(MessageEvent.class);
-        when(e.getMessage()).thenReturn(request);
-        return e;
+    private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
+        assertThat(resp.status(), is(HttpResponseStatus.UNAUTHORIZED));
+        assertThat(resp.content().toString(StandardCharsets.UTF_8), is(expectedBody));
     }
 
     @Test
     public void testChannelClosedWhenUnauthorized() throws Exception {
-        setupChannel();
-
+        EmbeddedChannel ch = new EmbeddedChannel();
         HttpAuthUpstreamHandler.sendUnauthorized(ch, null);
-        cf.setSuccess();
-        verify(ch, times(1)).close();
+
+        HttpResponse resp = ch.readOutbound();
+        assertThat(resp.status(), is(HttpResponseStatus.UNAUTHORIZED));
+        assertThat(ch.isOpen(), is(false));
     }
 
     @Test
     public void testSendUnauthorizedWithoutBody() throws Exception {
-        setupChannel();
-
+        EmbeddedChannel ch = new EmbeddedChannel();
         HttpAuthUpstreamHandler.sendUnauthorized(ch, null);
 
-        ArgumentCaptor<HttpResponse> writeCaptor = ArgumentCaptor.forClass(HttpResponse.class);
-        verify(ch).write(writeCaptor.capture());
-        HttpResponse response = writeCaptor.getValue();
-        assertThat(response.getStatus(), is(HttpResponseStatus.UNAUTHORIZED));
-        assertThat(response.getContent(), is(ChannelBuffers.EMPTY_BUFFER));
+        DefaultFullHttpResponse resp = ch.readOutbound();
+        assertThat(resp.content(), is(Unpooled.EMPTY_BUFFER));
     }
 
     @Test
     public void testSendUnauthorizedWithBody() throws Exception {
-        setupChannel();
+        EmbeddedChannel ch = new EmbeddedChannel();
+        HttpAuthUpstreamHandler.sendUnauthorized(ch, "not allowed\n");
 
-        String error = "not allowed\n";
-        HttpAuthUpstreamHandler.sendUnauthorized(ch, error);
-        assertUnauthorized(ch, error);
+        DefaultFullHttpResponse resp = ch.readOutbound();
+        assertThat(resp.content().toString(StandardCharsets.UTF_8), is("not allowed\n"));
     }
 
     @Test
     public void testSendUnauthorizedWithBodyNoNewline() throws Exception {
-        setupChannel();
-
+        EmbeddedChannel ch = new EmbeddedChannel();
         HttpAuthUpstreamHandler.sendUnauthorized(ch, "not allowed");
-        assertUnauthorized(ch, "not allowed\n");
+
+        DefaultFullHttpResponse resp = ch.readOutbound();
+        assertThat(resp.content().toString(StandardCharsets.UTF_8), is("not allowed\n"));
     }
 
     @Test
     public void testAuthorized() throws Exception {
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, AuthenticationProvider.NOOP_AUTH);
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
 
-        Channel ch = mock(Channel.class);
-        ChannelHandlerContext ctx = getChannelHandlerContext(ch);
+        DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        ch.writeInbound(request);
 
-        DefaultHttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        MessageEvent e = messageEventFromRequest(request);
-
-        handler.messageReceived(ctx, e);
-        assertTrue(handler.authorized());
-        verify(ctx, times(1)).sendUpstream(e);
+        assertThat(handler.authorized(), is(true));
     }
 
 
     @Test
     public void testNotNoHbaConfig() throws Exception {
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authService);
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
 
-        Channel ch = mock(Channel.class);
-        ChannelHandlerContext ctx = getChannelHandlerContext(ch);
+        DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request.headers().add("X-User", "null");
+        request.headers().add("X-Real-Ip", "10.1.0.100");
 
-        DefaultHttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql") {
-            @Override
-            public HttpHeaders headers() {
-                DefaultHttpHeaders headers = new DefaultHttpHeaders();
-                headers.add("X-User", "null");
-                headers.add("X-Real-Ip", "10.1.0.100");
-                return headers;
-            }
-        };
-        MessageEvent e = messageEventFromRequest(request);
-
-        handler.messageReceived(ctx, e);
+        ch.writeInbound(request);
         assertFalse(handler.authorized());
-        assertUnauthorized(ch, "No valid auth.host_based.config entry found for host \"10.1.0.100\", user \"null\", protocol \"http\"\n");
 
+        assertUnauthorized(
+            ch.readOutbound(),
+            "No valid auth.host_based.config entry found for host \"10.1.0.100\", user \"null\", protocol \"http\"\n");
     }
 
     @Test
     public void testUnauthorizedUser() throws Exception {
         HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authService);
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
 
-        Channel ch = mock(Channel.class);
-        ChannelHandlerContext ctx = getChannelHandlerContext(ch);
+        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
 
-        HttpRequest request = new DefaultHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        MessageEvent e = messageEventFromRequest(request);
+        ch.writeInbound(request);
 
-        handler.messageReceived(ctx, e);
         assertFalse(handler.authorized());
-        assertUnauthorized(ch, "denied\n");
+        assertUnauthorized(ch.readOutbound(), "denied\n");
     }
 }

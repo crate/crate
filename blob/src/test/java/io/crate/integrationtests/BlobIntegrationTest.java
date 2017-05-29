@@ -263,15 +263,13 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         outputStream.write("Host: localhost\r\n\r\n".getBytes(StandardCharsets.UTF_8));
         outputStream.flush();
 
-        BufferedReader reader = new BufferedReader(
-            new InputStreamReader(socket.getInputStream(),
-                StandardCharsets.UTF_8));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
         String line;
         List<String> lines = new ArrayList<>();
         while ((line = reader.readLine()) != null) {
             lines.add(line);
         }
-        assertThat(lines, hasItem("Connection: close"));
+        assertThat(lines, hasItem("connection: close"));
     }
 
     private void assertSocketIsConnected(Socket socket) {

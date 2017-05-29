@@ -85,13 +85,13 @@ The blob can now be uploaded by issuing a PUT request::
 
     sh$ curl -isSX PUT '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7' -d 'contents'
     HTTP/1.1 201 Created
-    Content-Length: 0
+    content-length: 0
 
 If a blob already exists with the given hash a 409 Conflict is returned::
 
     sh$ curl -isSX PUT '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7' -d 'contents'
     HTTP/1.1 409 Conflict
-    Content-Length: 0
+    content-length: 0
 
 
 List
@@ -133,17 +133,17 @@ If the blob doesn't exist a 404 Not Found error is returned::
 
     sh$ curl -isS '127.0.0.1:4200/_blobs/myblobs/e5fa44f2b31c1fb553b6021e7360d07d5d91ff5e'
     HTTP/1.1 404 Not Found
-    Content-Length: 0
+    content-length: 0
 
 To determine if a blob exists without downloading it, a HEAD request can be
 used::
 
     sh$ curl -sS -I '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     HTTP/1.1 200 OK
-    Content-Length: 8
-    Accept-Ranges: bytes
-    Expires: Thu, 31 Dec 2037 23:59:59 GMT
-    Cache-Control: max-age=315360000
+    content-length: 8
+    accept-ranges: bytes
+    expires: Thu, 31 Dec 2037 23:59:59 GMT
+    cache-control: max-age=315360000
 
 .. note::
 
@@ -157,13 +157,13 @@ To delete a blob simply use a DELETE request::
 
     sh$ curl -isS -XDELETE '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     HTTP/1.1 204 No Content
-    Content-Length: 0
+    content-length: 0
 
 If the blob doesn't exist a 404 Not Found error is returned::
 
     sh$ curl -isS -XDELETE '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     HTTP/1.1 404 Not Found
-    Content-Length: 0
+    content-length: 0
 
 
 Deleting a blob table

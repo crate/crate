@@ -23,11 +23,12 @@
 package io.crate.http.netty;
 
 import io.crate.test.integration.CrateUnitTest;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jboss.netty.channel.SimpleChannelUpstreamHandler;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -36,7 +37,22 @@ import static org.mockito.Mockito.mock;
 public class CrateNettyHttpServerTransportTest extends CrateUnitTest {
 
     private static CrateNettyHttpServerTransport.ChannelPipelineItem channelPipelineItem(String base, String name) {
-        return new CrateNettyHttpServerTransport.ChannelPipelineItem(base, name, SimpleChannelUpstreamHandler::new);
+        return new CrateNettyHttpServerTransport.ChannelPipelineItem(base, name, () -> new ChannelHandler() {
+            @Override
+            public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+
+            }
+
+            @Override
+            public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+
+            }
+
+            @Override
+            public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+
+            }
+        });
     }
 
     @Test

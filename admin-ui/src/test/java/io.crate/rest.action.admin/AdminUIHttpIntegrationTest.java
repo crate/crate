@@ -16,7 +16,7 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.transport.Netty3Plugin;
+import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Before;
 
 import java.io.IOException;
@@ -42,14 +42,14 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put(HTTP_ENABLED.getKey(), true)
-            .put(HTTP_DEFAULT_TYPE_SETTING.getKey(), "netty3")
+            .put(HTTP_DEFAULT_TYPE_SETTING.getKey(), "netty4")
             .build();
     }
 
     @SuppressWarnings("unchecked")
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(AdminUIPlugin.class, Netty3Plugin.class);
+        return Arrays.asList(AdminUIPlugin.class, Netty4Plugin.class);
     }
 
     @Before
