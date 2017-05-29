@@ -116,7 +116,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         for (Reference reference : tablesTableInfo.columns()) {
             toCollect.add(reference);
         }
-        Symbol tableNameRef = toCollect.get(9);
+        Symbol tableNameRef = toCollect.get(12);
 
         FunctionImplementation eqImpl
             = functions.getBuiltin(EqOperator.NAME, ImmutableList.of(DataTypes.STRING, DataTypes.STRING));
@@ -126,7 +126,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
         Bucket result = collect(collectNode);
         assertThat(TestingHelpers.printedTable(result),
-            is("NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| shards| sys| NULL\n"));
+            is("NULL| NULL| NULL| strict| 0| 1| NULL| NULL| NULL| NULL| NULL| sys| shards| sys| BASE TABLE| NULL\n"));
     }
 
     @Test

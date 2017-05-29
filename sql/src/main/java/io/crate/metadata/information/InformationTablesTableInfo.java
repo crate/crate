@@ -37,6 +37,8 @@ public class InformationTablesTableInfo extends InformationTableInfo {
     public static class References {
         public static final Reference TABLE_SCHEMA = createRef(Columns.TABLE_SCHEMA, DataTypes.STRING);
         public static final Reference TABLE_NAME = createRef(Columns.TABLE_NAME, DataTypes.STRING);
+        public static final Reference TABLE_CATALOG = createRef(Columns.TABLE_CATALOG, DataTypes.STRING);
+        public static final Reference TABLE_TYPE = createRef(Columns.TABLE_TYPE, DataTypes.STRING);
         public static final Reference NUMBER_OF_SHARDS = createRef(Columns.NUMBER_OF_SHARDS, DataTypes.INTEGER);
         public static final Reference NUMBER_OF_REPLICAS = createRef(Columns.NUMBER_OF_REPLICAS, DataTypes.STRING);
         public static final Reference CLUSTERED_BY = createRef(Columns.CLUSTERED_BY, DataTypes.STRING);
@@ -58,6 +60,9 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         public static final Reference TABLE_VERSION_UPGRADED_ES = createRef(
             Columns.TABLE_VERSION_UPGRADED_ES, DataTypes.OBJECT);
         public static final Reference CLOSED = createRef(Columns.CLOSED, DataTypes.BOOLEAN);
+        public static final Reference REFERENCE_GENERATION = createRef(Columns.REFERENCE_GENERATION, DataTypes.STRING);
+        public static final Reference SELF_REFERENCING_COLUMN_NAME = createRef(Columns.SELF_REFERENCING_COLUMN_NAME,
+            DataTypes.STRING);
 
         public static final Reference TABLE_SETTINGS = createRef(Columns.TABLE_SETTINGS, DataTypes.OBJECT);
 
@@ -120,6 +125,8 @@ public class InformationTablesTableInfo extends InformationTableInfo {
             ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
                 .put(Columns.TABLE_SCHEMA, References.TABLE_SCHEMA)
                 .put(Columns.TABLE_NAME, References.TABLE_NAME)
+                .put(Columns.TABLE_CATALOG, References.TABLE_CATALOG)
+                .put(Columns.TABLE_TYPE, References.TABLE_TYPE)
                 .put(Columns.NUMBER_OF_SHARDS, References.NUMBER_OF_SHARDS)
                 .put(Columns.NUMBER_OF_REPLICAS, References.NUMBER_OF_REPLICAS)
                 .put(Columns.CLUSTERED_BY, References.CLUSTERED_BY)
@@ -135,6 +142,8 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 .put(Columns.TABLE_VERSION_UPGRADED_CRATEDB, References.TABLE_VERSION_UPGRADED_CRATEDB)
                 .put(Columns.TABLE_VERSION_UPGRADED_ES, References.TABLE_VERSION_UPGRADED_ES)
                 .put(Columns.CLOSED, References.CLOSED)
+                .put(Columns.REFERENCE_GENERATION, References.REFERENCE_GENERATION)
+                .put(Columns.SELF_REFERENCING_COLUMN_NAME, References.SELF_REFERENCING_COLUMN_NAME)
                 .put(Columns.TABLE_SETTINGS, References.TABLE_SETTINGS)
                 .put(Columns.TABLE_SETTINGS_BLOCKS, References.TABLE_SETTINGS_BLOCKS)
                 .put(Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, References.TABLE_SETTINGS_BLOCKS_READ_ONLY)
@@ -165,10 +174,14 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 References.NUMBER_OF_REPLICAS,
                 References.NUMBER_OF_SHARDS,
                 References.PARTITIONED_BY,
+                References.REFERENCE_GENERATION,
                 References.ROUTING_HASH_FUNCTION,
+                References.SELF_REFERENCING_COLUMN_NAME,
                 References.TABLE_SETTINGS,
+                References.TABLE_CATALOG,
                 References.TABLE_NAME,
                 References.TABLE_SCHEMA,
+                References.TABLE_TYPE,
                 References.TABLE_VERSION
             )
         );

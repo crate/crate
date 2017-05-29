@@ -81,6 +81,10 @@ public class InformationSchemaExpressionFactories {
                 InformationTablePartitionsExpression.PartitionsTableNameExpression::new)
             .put(InformationPartitionsTableInfo.PartitionsTableColumns.SCHEMA_NAME,
                 InformationTablePartitionsExpression.PartitionsSchemaNameExpression::new)
+            .put(InformationPartitionsTableInfo.Columns.TABLE_CATALOG,
+                InformationTablePartitionsExpression.PartitionsTableCatalogExpression::new)
+            .put(InformationPartitionsTableInfo.Columns.TABLE_TYPE,
+                InformationTablePartitionsExpression.PartitionsTableTypeExpression::new)
             .put(InformationPartitionsTableInfo.Columns.PARTITION_IDENT,
                 InformationTablePartitionsExpression.PartitionsPartitionIdentExpression::new)
             .put(InformationPartitionsTableInfo.Columns.VALUES,
@@ -93,7 +97,11 @@ public class InformationSchemaExpressionFactories {
                 InformationTablePartitionsExpression.PartitionsRoutingHashFunctionExpression::new)
             .put(InformationPartitionsTableInfo.Columns.CLOSED, InformationTablePartitionsExpression.ClosedExpression::new)
             .put(InformationPartitionsTableInfo.Columns.TABLE_VERSION, PartitionsVersionExpression::new)
-            .put(InformationPartitionsTableInfo.Columns.TABLE_SETTINGS, PartitionsSettingsExpression::new).build();
+            .put(InformationPartitionsTableInfo.Columns.TABLE_SETTINGS, PartitionsSettingsExpression::new)
+            .put(InformationPartitionsTableInfo.Columns.SELF_REFERENCING_COLUMN_NAME,
+                InformationTablePartitionsExpression.PartitionsNullExpression::new)
+            .put(InformationPartitionsTableInfo.Columns.REFERENCE_GENERATION,
+                InformationTablePartitionsExpression.PartitionsNullExpression::new).build();
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<ColumnContext>> columnsFactories() {
@@ -159,6 +167,20 @@ public class InformationSchemaExpressionFactories {
                 @Override
                 public BytesRef value() {
                     return new BytesRef(row.ident().name());
+                }
+            })
+            .put(InformationTablesTableInfo.Columns.TABLE_CATALOG, () -> new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                @Override
+                public BytesRef value() {
+                    return new BytesRef(row.ident().schema());
+                }
+            })
+            .put(InformationTablesTableInfo.Columns.TABLE_TYPE, () -> new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                @Override
+                public BytesRef value() {
+                    return InformationTablePartitionsExpression.TABLE_TYPE;
                 }
             })
             .put(InformationTablesTableInfo.Columns.NUMBER_OF_SHARDS, () -> new RowContextCollectorExpression<TableInfo, Integer>() {
@@ -259,6 +281,8 @@ public class InformationSchemaExpressionFactories {
                         return null;
                     }
                 })
+            .put(InformationTablesTableInfo.Columns.SELF_REFERENCING_COLUMN_NAME, RowCollectNullExpressionFactory::new)
+            .put(InformationTablesTableInfo.Columns.REFERENCE_GENERATION, RowCollectNullExpressionFactory::new)
             .put(InformationTablesTableInfo.Columns.TABLE_VERSION, TablesVersionExpression::new)
             .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS, TablesSettingsExpression::new
             ).build();
@@ -322,5 +346,13 @@ public class InformationSchemaExpressionFactories {
                     return BytesRefs.toBytesRef(row.comments);
                 }
             }).build();
+    }
+
+    public static class RowCollectNullExpressionFactory extends RowContextCollectorExpression<TableInfo, BytesRef> {
+
+        @Override
+        public BytesRef value() {
+            return null;
+        }
     }
 }
