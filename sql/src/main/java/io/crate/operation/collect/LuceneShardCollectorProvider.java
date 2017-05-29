@@ -49,6 +49,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 
 public class LuceneShardCollectorProvider extends ShardCollectorProvider {
@@ -86,14 +87,15 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     protected CrateCollector.Builder getBuilder(RoutedCollectPhase collectPhase,
                                                 boolean requiresScroll,
                                                 JobCollectContext jobCollectContext) {
-        SharedShardContext sharedShardContext = jobCollectContext.sharedShardContexts().getOrCreateContext(indexShard.shardId());
+        ShardId shardId = indexShard.shardId();
+        SharedShardContext sharedShardContext = jobCollectContext.sharedShardContexts().getOrCreateContext(shardId);
         Engine.Searcher searcher = sharedShardContext.acquireSearcher();
         IndexShard indexShard = sharedShardContext.indexShard();
         try {
             LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
                 collectPhase.whereClause(),
                 indexShard.mapperService(),
-                sharedShardContext.indexService().newQueryShardContext(searcher.reader(), System::currentTimeMillis),
+                sharedShardContext.indexService().newQueryShardContext(shardId.getId(), searcher.reader(), System::currentTimeMillis),
                 indexShard.indexFieldDataService(),
                 sharedShardContext.indexService().cache()
             );
@@ -134,7 +136,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             queryContext = luceneQueryBuilder.convert(
                 collectPhase.whereClause(),
                 indexService.mapperService(),
-                indexService.newQueryShardContext(searcher.reader(), System::currentTimeMillis),
+                indexService.newQueryShardContext(indexShard.shardId().getId(), searcher.reader(), System::currentTimeMillis),
                 indexService.fieldData(),
                 indexService.cache()
             );
@@ -159,6 +161,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             searcher.searcher(),
             queryContext.query(),
             queryContext.minScore(),
+            queryContext.queryShardContext(),
             Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
             batchSize,
             fieldTypeLookup,

@@ -134,11 +134,6 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     }
 
     @Override
-    public Object valueForSearch(Object value) {
-        return innerFieldType.valueForSearch(value);
-    }
-
-    @Override
     public Query termQuery(Object value, @Nullable QueryShardContext context) {
         return innerFieldType.termQuery(value, context);
     }
@@ -149,8 +144,8 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     }
 
     @Override
-    public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper) {
-        return innerFieldType.rangeQuery(lowerTerm, upperTerm, includeLower, includeUpper);
+    public Query rangeQuery(Object lowerTerm, Object upperTerm, boolean includeLower, boolean includeUpper, QueryShardContext queryShardContext) {
+        return innerFieldType.rangeQuery(lowerTerm, upperTerm, includeLower, includeUpper, queryShardContext);
     }
 
     @Override

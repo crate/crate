@@ -31,7 +31,12 @@ import com.vividsolutions.jts.geom.Geometry;
 import io.crate.Constants;
 import io.crate.analyze.MatchOptionsAnalysis;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
+import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.data.Input;
@@ -48,8 +53,25 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.DocInputFactory;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
-import io.crate.operation.operator.*;
-import io.crate.operation.operator.any.*;
+import io.crate.operation.operator.AndOperator;
+import io.crate.operation.operator.EqOperator;
+import io.crate.operation.operator.GtOperator;
+import io.crate.operation.operator.GteOperator;
+import io.crate.operation.operator.LikeOperator;
+import io.crate.operation.operator.LtOperator;
+import io.crate.operation.operator.LteOperator;
+import io.crate.operation.operator.OrOperator;
+import io.crate.operation.operator.RegexpMatchCaseInsensitiveOperator;
+import io.crate.operation.operator.RegexpMatchOperator;
+import io.crate.operation.operator.any.AnyEqOperator;
+import io.crate.operation.operator.any.AnyGtOperator;
+import io.crate.operation.operator.any.AnyGteOperator;
+import io.crate.operation.operator.any.AnyLikeOperator;
+import io.crate.operation.operator.any.AnyLtOperator;
+import io.crate.operation.operator.any.AnyLteOperator;
+import io.crate.operation.operator.any.AnyNeqOperator;
+import io.crate.operation.operator.any.AnyNotLikeOperator;
+import io.crate.operation.operator.any.AnyOperator;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.predicate.NotPredicate;
@@ -65,7 +87,13 @@ import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.geo.Polygon;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.*;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.BoostQuery;
+import org.apache.lucene.search.ConstantScoreQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.RegexpQuery;
+import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.spatial.geopoint.document.GeoPointField;
 import org.apache.lucene.spatial.geopoint.search.GeoPointInPolygonQuery;
 import org.apache.lucene.spatial.geopoint.search.XGeoPointDistanceRangeQuery;
@@ -88,7 +116,13 @@ import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
-import org.elasticsearch.index.mapper.*;
+import org.elasticsearch.index.mapper.BaseGeoPointFieldMapper;
+import org.elasticsearch.index.mapper.GeoPointFieldMapper;
+import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
+import org.elasticsearch.index.mapper.LatLonPointFieldMapper;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.RegexpFlag;
 import org.elasticsearch.index.search.geo.LegacyInMemoryGeoBoundingBoxQuery;
@@ -98,7 +132,16 @@ import org.locationtech.spatial4j.shape.Shape;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -222,6 +265,10 @@ public class LuceneQueryBuilder {
         @Nullable
         MappedFieldType getFieldTypeOrNull(String fqColumnName) {
             return mapperService.fullName(fqColumnName);
+        }
+
+        public QueryShardContext queryShardContext() {
+            return queryShardContext;
         }
     }
 
@@ -372,11 +419,11 @@ public class LuceneQueryBuilder {
                 BooleanQuery.Builder query = new BooleanQuery.Builder();
                 query.setMinimumNumberShouldMatch(1);
                 query.add(
-                    fieldType.rangeQuery(value, null, false, false),
+                    fieldType.rangeQuery(value, null, false, false, context.queryShardContext),
                     BooleanClause.Occur.SHOULD
                 );
                 query.add(
-                    fieldType.rangeQuery(null, value, false, false),
+                    fieldType.rangeQuery(null, value, false, false, context.queryShardContext),
                     BooleanClause.Occur.SHOULD
                 );
                 return query.build();
@@ -560,7 +607,7 @@ public class LuceneQueryBuilder {
                         return null;
                     }
                     if (reference.isNullable()) {
-                        builder.add(fieldType.rangeQuery(null, null, true, true), BooleanClause.Occur.MUST);
+                        builder.add(fieldType.rangeQuery(null, null, true, true, context.queryShardContext), BooleanClause.Occur.MUST);
                     }
                 }
                 if (ctx.hasStrictThreeValuedLogicFunction) {
@@ -597,7 +644,7 @@ public class LuceneQueryBuilder {
                     // is null on an unknown column is always true
                     return Queries.newMatchAllQuery();
                 }
-                return Queries.not(fieldType.rangeQuery(null, null, true, true));
+                return Queries.not(fieldType.rangeQuery(null, null, true, true, context.queryShardContext));
             }
         }
 
@@ -637,7 +684,7 @@ public class LuceneQueryBuilder {
                     filterClauses.add(genericFunctionFilter(input, context), BooleanClause.Occur.MUST);
                     return filterClauses.build();
                 }
-                return fieldType.termQuery(literal.value(), null);
+                return fieldType.termQuery(literal.value(), context.queryShardContext);
             }
         }
 
@@ -682,8 +729,8 @@ public class LuceneQueryBuilder {
                 return rangeQuery.toQuery(
                     arrayReference,
                     literal.value(),
-                    context::getFieldTypeOrNull
-                );
+                    context::getFieldTypeOrNull,
+                    context.queryShardContext);
             }
 
             @Override
@@ -693,7 +740,7 @@ public class LuceneQueryBuilder {
                 booleanQuery.setMinimumNumberShouldMatch(1);
                 for (Object value : toIterable(arrayLiteral.value())) {
                     booleanQuery.add(
-                        inverseRangeQuery.toQuery(reference, value, context::getFieldTypeOrNull),
+                        inverseRangeQuery.toQuery(reference, value, context::getFieldTypeOrNull, context.queryShardContext),
                         BooleanClause.Occur.SHOULD);
                 }
                 return booleanQuery.build();
@@ -754,10 +801,10 @@ public class LuceneQueryBuilder {
                 if (tuple == null) {
                     return null;
                 }
-                return toQuery(tuple.v1(), tuple.v2().value(), context::getFieldTypeOrNull);
+                return toQuery(tuple.v1(), tuple.v2().value(), context::getFieldTypeOrNull, context.queryShardContext);
             }
 
-            public Query toQuery(Reference reference, Object value, FieldTypeLookup fieldTypeLookup) {
+            public Query toQuery(Reference reference, Object value, FieldTypeLookup fieldTypeLookup, QueryShardContext queryShardContext) {
                 String columnName = reference.ident().columnIdent().fqn();
                 MappedFieldType fieldType = fieldTypeLookup.get(columnName);
                 if (fieldType == null) {
@@ -766,7 +813,7 @@ public class LuceneQueryBuilder {
                 }
                 Tuple<?, ?> bounds = boundsFunction.apply(value);
                 assert bounds != null : "bounds must not be null";
-                return fieldType.rangeQuery(bounds.v1(), bounds.v2(), includeLower, includeUpper);
+                return fieldType.rangeQuery(bounds.v1(), bounds.v2(), includeLower, includeUpper, queryShardContext);
             }
         }
 

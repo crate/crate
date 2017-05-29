@@ -148,7 +148,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             Settings.EMPTY,
             mock(ThreadPool.class),
             clusterService,
-            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
+            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL, clusterService.getClusterSettings()),
             mock(MappingUpdatedAction.class),
             mock(ActionFilters.class),
             mock(JobContextService.class),

@@ -25,39 +25,16 @@ package io.crate.azure;
 import com.microsoft.windowsazure.core.Builder.Registry;
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeService.Management;
-import io.crate.azure.management.AzureComputeServiceImpl;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.settings.Settings;
 
-/**
- * Azure Module
- * <p>
- * <ul>
- * <li>If needed this module will bind azure discovery service by default to AzureComputeServiceImpl.</li>
- * </ul>
- *
- * @see io.crate.azure.management.AzureComputeServiceImpl
- */
-public class AzureModule extends AbstractModule {
+public class AzureConfiguration {
 
     public static final String AZURE = "azure";
     public static final String VNET = "vnet";
     public static final String SUBNET = "subnet";
-
-    // pkg private so it is settable by tests
-    static Class<? extends AzureComputeService> computeServiceImpl = AzureComputeServiceImpl.class;
-
-    public static Class<? extends AzureComputeService> getComputeServiceImpl() {
-        return computeServiceImpl;
-    }
-
-    @Override
-    protected void configure() {
-        bind(AzureComputeService.class).to(computeServiceImpl).asEagerSingleton();
-    }
 
     public static void registerServices(Registry registry) {
         // taken from https://github.com/Appdynamics/azure-connector-extension/blob/master/src/main/java/com/appdynamics/connectors/azure/ConnectorLocator.java

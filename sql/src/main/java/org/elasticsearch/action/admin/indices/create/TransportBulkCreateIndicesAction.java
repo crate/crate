@@ -28,6 +28,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
@@ -59,12 +60,10 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.NodeServicesProvider;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -96,7 +95,6 @@ public class TransportBulkCreateIndicesAction
 
     private final AliasValidator aliasValidator;
     private final IndicesService indicesService;
-    private final NodeServicesProvider nodeServicesProvider;
     private final AllocationService allocationService;
     private final Environment environment;
     private final BulkActiveShardsObserver activeShardsObserver;
@@ -121,7 +119,6 @@ public class TransportBulkCreateIndicesAction
                                             ThreadPool threadPool,
                                             AliasValidator aliasValidator,
                                             IndicesService indicesService,
-                                            NodeServicesProvider nodeServicesProvider,
                                             AllocationService allocationService,
                                             IndexNameExpressionResolver indexNameExpressionResolver,
                                             ActionFilters actionFilters) {
@@ -129,7 +126,6 @@ public class TransportBulkCreateIndicesAction
         this.environment = environment;
         this.aliasValidator = aliasValidator;
         this.indicesService = indicesService;
-        this.nodeServicesProvider = nodeServicesProvider;
         this.allocationService = allocationService;
         this.activeShardsObserver = new BulkActiveShardsObserver(settings, clusterService, threadPool);
     }
@@ -214,7 +210,7 @@ public class TransportBulkCreateIndicesAction
                                                        (tmpImd.getNumberOfReplicas() + 1) + "]");
                 }
                 // create the index here (on the master) to validate it can be created, as well as adding the mapping
-                IndexService indexService = indicesService.createIndex(nodeServicesProvider, tmpImd, Collections.emptyList());
+                IndexService indexService = indicesService.createIndex(tmpImd, Collections.emptyList());
                 createdIndices.add(indexService.index());
 
                 // now add the mappings
@@ -226,7 +222,9 @@ public class TransportBulkCreateIndicesAction
                     throw mpe;
                 }
 
-                QueryShardContext queryShardContext = indexService.newQueryShardContext();
+                // the context is only used for validation so it's fine to pass fake values for the shard id and the current
+                // timestamp
+                QueryShardContext queryShardContext = indexService.newQueryShardContext(0, null, () -> 0L);
                 for (AliasMetaData aliasMetaData : templatesAliases.values()) {
                     if (aliasMetaData.filter() != null) {
                         aliasValidator.validateAliasFilter(aliasMetaData.alias(), aliasMetaData.filter().uncompressed(), queryShardContext);
@@ -333,7 +331,7 @@ public class TransportBulkCreateIndicesAction
             try {
                 MetaDataCreateIndexService.validateIndexName(index, currentState);
                 indicesToCreate.add(index);
-            } catch (IndexAlreadyExistsException e) {
+            } catch (ResourceAlreadyExistsException e) {
                 // ignore
             }
         }

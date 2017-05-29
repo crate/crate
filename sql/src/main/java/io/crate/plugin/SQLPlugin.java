@@ -31,7 +31,7 @@ import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobModule;
 import io.crate.jobs.transport.NodeDisconnectJobMonitorService;
-import io.crate.lucene.ArrayMapperModule;
+import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.MetaDataBlobModule;
@@ -130,7 +130,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             NodeDisconnectJobMonitorService.class,
             PostgresNetty.class,
             JobContextService.class,
-            Schemas.class);
+            Schemas.class,
+            ArrayMapperService.class);
     }
 
     @Override
@@ -160,7 +161,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new SysChecksModule());
         modules.add(new SysNodeChecksModule());
         modules.add(new RepositorySettingsModule());
-        modules.add(new ArrayMapperModule());
         return modules;
     }
 

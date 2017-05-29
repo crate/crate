@@ -22,7 +22,6 @@
 
 package io.crate.monitor;
 
-
 import org.elasticsearch.common.settings.Settings;
 
 public class SigarNodeInfoLoader implements NodeInfoLoader {

@@ -31,6 +31,7 @@ import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -65,7 +66,7 @@ public class TransportStartBlobAction
     }
 
     @Override
-    protected PrimaryResult shardOperationOnPrimary(StartBlobRequest request) throws Exception {
+    protected PrimaryResult shardOperationOnPrimary(StartBlobRequest request, IndexShard primary) throws Exception {
         logger.trace("shardOperationOnPrimary {}", request);
         final StartBlobResponse response = newResponseInstance();
         transferTarget.startTransfer(request, response);
@@ -73,7 +74,7 @@ public class TransportStartBlobAction
     }
 
     @Override
-    protected ReplicaResult shardOperationOnReplica(StartBlobRequest request) {
+    protected ReplicaResult shardOperationOnReplica(StartBlobRequest request, IndexShard replica) {
         logger.trace("shardOperationOnReplica operating on replica {}", request);
         final StartBlobResponse response = newResponseInstance();
         transferTarget.startTransfer(request, response);

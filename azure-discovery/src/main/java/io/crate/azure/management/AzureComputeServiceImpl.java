@@ -28,7 +28,7 @@ import com.microsoft.azure.utility.AuthHelper;
 import com.microsoft.windowsazure.Configuration;
 import com.microsoft.windowsazure.core.DefaultBuilder;
 import com.microsoft.windowsazure.management.configuration.ManagementConfiguration;
-import io.crate.azure.AzureModule;
+import io.crate.azure.AzureConfiguration;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -114,7 +114,7 @@ public class AzureComputeServiceImpl extends AbstractLifecycleComponent implemen
             );
 
             DefaultBuilder registry = DefaultBuilder.create();
-            AzureModule.registerServices(registry);
+            AzureConfiguration.registerServices(registry);
             conf = ManagementConfiguration.configure(null, new Configuration(registry),
                 URI.create(Azure.ENDPOINT), subscriptionId, authRes.getAccessToken());
         } catch (Exception e) {

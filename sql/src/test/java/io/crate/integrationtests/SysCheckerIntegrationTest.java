@@ -29,16 +29,19 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
+import static org.elasticsearch.common.settings.Settings.builder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false)
+@ESIntegTestCase.ClusterScope(
+    numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false, autoMinMasterNodes = false)
 @UseJdbc
 public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testChecksPresenceAndSeverityLevels() throws Exception {
-        internalCluster().startNode();
+        // must set minimum_master_nodes due to autoMinMasterNodes=false ClusterScope
+        internalCluster().startNode(builder().put("discovery.zen.minimum_master_nodes", 1).build());
         internalCluster().ensureAtLeastNumDataNodes(1);
 
         SQLResponse response = execute("select severity, passed from sys.checks order by id asc");
@@ -50,7 +53,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testMinimumMasterNodesCheckSetNotCorrectNumberOfMasterNodes() throws InterruptedException {
-        Settings settings = Settings.builder().put("discovery.zen.minimum_master_nodes", 1).build();
+        Settings settings = builder().put("discovery.zen.minimum_master_nodes", 1).build();
         internalCluster().startNode(settings);
         internalCluster().startNode(settings);
         internalCluster().ensureAtLeastNumDataNodes(2);
@@ -60,7 +63,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testMinimumMasterNodesCheckWithCorrectSetting() {
-        Settings settings = Settings.builder().put("discovery.zen.minimum_master_nodes", 2).build();
+        Settings settings = builder().put("discovery.zen.minimum_master_nodes", 2).build();
         internalCluster().startNode(settings);
         internalCluster().startNode(settings);
         internalCluster().ensureAtLeastNumDataNodes(2);
@@ -70,7 +73,8 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testNumberOfPartitionCheckPassedForDocTablesCustomAndDefaultSchemas() {
-        internalCluster().startNode();
+        // must set minimum_master_nodes due to autoMinMasterNodes=false ClusterScope
+        internalCluster().startNode(builder().put("discovery.zen.minimum_master_nodes", 1));
         internalCluster().ensureAtLeastNumDataNodes(1);
         execute("create table foo.bar (id int) partitioned by (id)");
         execute("create table bar (id int) partitioned by (id)");

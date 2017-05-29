@@ -60,7 +60,7 @@ public class SrvDiscoveryIntegrationTest extends ESIntegTestCase {
     @Test
     public void testClusterSrvDiscovery() throws Exception {
         Settings localSettings = builder()
-            .put("discovery.type", "srv")
+            .put("discovery.zen.hosts_provider", "srv")
             .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY.getKey(), "_test._srv.crate.internal.")
             .build();
         internalCluster().startNode(localSettings);
