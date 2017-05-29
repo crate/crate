@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.blob.v2.BlobAdminClient;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
@@ -31,7 +30,6 @@ import org.apache.lucene.util.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,17 +51,10 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     public void initTestData() throws Exception {
         Setup setup = new Setup(sqlExecutor);
         setup.groupBySetup();
-        sqlExecutor.exec(
-            "create table quotes (id integer primary key, quote string) with(number_of_replicas=1)");
-        BlobAdminClient blobAdminClient = internalCluster().getInstance(BlobAdminClient.class);
-        Settings indexSettings = Settings.builder()
-            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
-            .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 5)
-            .build();
-        blobAdminClient.createBlobTable("blobs", indexSettings);
-        sqlExecutor.ensureGreen();
+        execute("create table quotes (id integer primary key, quote string) with (number_of_replicas=1)");
+        execute("create blob table blobs clustered into 5 shards with (number_of_replicas=1)");
+        ensureGreen();
     }
-
 
     @Test
     public void testPathAndBlobPath() throws Exception {
