@@ -103,3 +103,8 @@ table will fail until the rename operation is completed.
 
     cr> drop table if exists table_b;
     DROP OK, 1 row affected (... sec)
+
+.. Warning::
+
+    Do not run multiple concurrent rename operations on the same table. The rename
+    operation is not atomic.
