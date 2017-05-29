@@ -35,6 +35,5 @@ public class SigarModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(SigarService.class).toInstance(sigarService);
     }
 }

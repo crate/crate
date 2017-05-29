@@ -28,6 +28,7 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -48,12 +49,10 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.IndexAlreadyExistsException;
-import org.elasticsearch.indices.IndexTemplateAlreadyExistsException;
 
 import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
 import java.util.SortedMap;
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class TableCreator {
@@ -144,20 +143,24 @@ public class TableCreator {
     }
 
 
-    private void setException(CompletableFuture<Long> result, Throwable e, CreateTableAnalyzedStatement statement) {
+    private static void setException(CompletableFuture<Long> result, Throwable e, CreateTableAnalyzedStatement statement) {
         e = SQLExceptions.unwrap(e);
         String message = e.getMessage();
         if ("mapping [default]".equals(message) && e.getCause() != null) {
             // this is a generic mapping parse exception,
             // the cause has usually a better more detailed error message
             result.completeExceptionally(e.getCause());
-        } else if (statement.ifNotExists() &&
-                   (e instanceof IndexAlreadyExistsException
-                    || (e instanceof IndexTemplateAlreadyExistsException && statement.templateName() != null))) {
+        } else if (statement.ifNotExists() && (e instanceof ResourceAlreadyExistsException ||
+                                               (statement.templateName() != null && isTemplateAlreadyExistsException(e)))) {
             result.complete(null);
         } else {
             result.completeExceptionally(e);
         }
+    }
+
+    private static boolean isTemplateAlreadyExistsException(Throwable e) {
+        return e instanceof IllegalArgumentException
+            && e.getMessage() != null && e.getMessage().endsWith("already exists");
     }
 
     private void deleteOrphans(final CreateTableResponseListener listener, TableIdent tableIdent) {

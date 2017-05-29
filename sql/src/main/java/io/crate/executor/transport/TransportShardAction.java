@@ -36,7 +36,6 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -82,7 +81,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         KillableWrapper<WriteResult<ShardResponse>> callable = new KillableWrapper<WriteResult<ShardResponse>>() {
             @Override
             public WriteResult<ShardResponse> call() throws Exception {
-                return processRequestItems(shardRequest.shardId(), shardRequest, killed);
+                return processRequestItems(indexShard, shardRequest, killed);
             }
         };
         return wrapOperationInKillable(shardRequest, callable);
@@ -94,7 +93,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         KillableWrapper<Translog.Location> callable = new KillableWrapper<Translog.Location>() {
             @Override
             public Translog.Location call() throws Exception {
-                return processRequestItemsOnReplica(shardRequest.shardId(), shardRequest);
+                return processRequestItemsOnReplica(indexShard, shardRequest);
             }
 
         };
@@ -137,9 +136,9 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         }
     }
 
-    protected abstract WriteResult<ShardResponse> processRequestItems(ShardId shardId, Request request, AtomicBoolean killed) throws InterruptedException;
+    protected abstract WriteResult<ShardResponse> processRequestItems(IndexShard indexShard, Request request, AtomicBoolean killed) throws InterruptedException;
 
-    protected abstract Translog.Location processRequestItemsOnReplica(ShardId shardId, Request request);
+    protected abstract Translog.Location processRequestItemsOnReplica(IndexShard indexShard, Request request);
 
     static abstract class KillableWrapper<WrapperResponse> implements KillableCallable<WrapperResponse> {
 

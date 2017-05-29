@@ -33,6 +33,7 @@ import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -65,7 +66,7 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
     }
 
     @Override
-    protected PrimaryResult shardOperationOnPrimary(DeleteBlobRequest request) throws Exception {
+    protected PrimaryResult shardOperationOnPrimary(DeleteBlobRequest request, IndexShard primary) throws Exception {
         logger.trace("shardOperationOnPrimary {}", request);
         BlobShard blobShard = blobIndicesService.blobShardSafe(request.shardId());
         boolean deleted = blobShard.delete(request.id());
@@ -74,7 +75,7 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
     }
 
     @Override
-    protected ReplicaResult shardOperationOnReplica(DeleteBlobRequest request) {
+    protected ReplicaResult shardOperationOnReplica(DeleteBlobRequest request, IndexShard replica) {
         logger.warn("shardOperationOnReplica operating on replica but relocation is not implemented {}", request);
         BlobShard blobShard = blobIndicesService.blobShardSafe(request.shardId());
         blobShard.delete(request.id());

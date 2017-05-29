@@ -59,7 +59,6 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
-import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.DocumentSourceMissingException;
@@ -68,7 +67,6 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.get.GetResult;
 import org.elasticsearch.index.mapper.*;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
@@ -91,7 +89,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         new SymbolToFieldExtractor<>(new GetResultFieldExtractorFactory());
 
     private final MappingUpdatedAction mappingUpdatedAction;
-    private final IndicesService indicesService;
     private final Functions functions;
     private final Schemas schemas;
 
@@ -111,21 +108,18 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         super(settings, ACTION_NAME, transportService, indexNameExpressionResolver, clusterService,
             indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest::new);
         this.mappingUpdatedAction = mappingUpdatedAction;
-        this.indicesService = indicesService;
         this.functions = functions;
         this.schemas = schemas;
         jobContextService.addListener(this);
     }
 
     @Override
-    protected WriteResult<ShardResponse> processRequestItems(ShardId shardId,
+    protected WriteResult<ShardResponse> processRequestItems(IndexShard indexShard,
                                                              ShardUpsertRequest request,
                                                              AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
         DocTableInfo tableInfo = schemas.getTableInfo(
             TableIdent.fromIndexName(request.index()), Operation.INSERT, null);
-        IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
-        IndexShard indexShard = indexService.getShard(shardId.id());
 
         Collection<ColumnIdent> notUsedNonGeneratedColumns = ImmutableList.of();
         if (request.validateConstraints()) {
@@ -179,9 +173,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @Override
-    protected Translog.Location processRequestItemsOnReplica(ShardId shardId, ShardUpsertRequest request) {
-        IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
-        IndexShard indexShard = indexService.getShard(shardId.id());
+    protected Translog.Location processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) {
         Translog.Location location = null;
         for (ShardUpsertRequest.Item item : request.items()) {
             if (item.source() == null) {

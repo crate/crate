@@ -23,16 +23,21 @@
 package io.crate.plugin;
 
 import io.crate.discovery.SrvUnicastHostsProvider;
+import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.DiscoveryModule;
-import org.elasticsearch.discovery.zen.ZenDiscovery;
+import org.elasticsearch.discovery.zen.UnicastHostsProvider;
+import org.elasticsearch.plugins.DiscoveryPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.transport.TransportService;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Supplier;
 
-public class SrvPlugin extends Plugin {
+public class SrvPlugin extends Plugin implements DiscoveryPlugin {
 
     private final static String DISCOVERY_NAME = "srv";
 
@@ -50,14 +55,9 @@ public class SrvPlugin extends Plugin {
         );
     }
 
-    public void onModule(DiscoveryModule discoveryModule) {
-        /*
-         * Different types of discovery modules can be defined on startup using the `discovery.type` setting.
-         * This SrvDiscoveryModule can be loaded using `-Cdiscovery.type=srv`
-         */
-        if (DISCOVERY_NAME.equals(settings.get("discovery.type"))) {
-            discoveryModule.addDiscoveryType(DISCOVERY_NAME, ZenDiscovery.class);
-            discoveryModule.addUnicastHostProvider(DISCOVERY_NAME, SrvUnicastHostsProvider.class);
-        }
+    @Override
+    public Map<String, Supplier<UnicastHostsProvider>> getZenHostsProviders(TransportService transportService,
+                                                                            NetworkService networkService) {
+        return Collections.singletonMap(DISCOVERY_NAME, () -> new SrvUnicastHostsProvider(settings, transportService));
     }
 }

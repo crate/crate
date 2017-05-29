@@ -873,7 +873,13 @@ is re-elected (see :ref:`storage_consistency_cluster_meta_data`).
 **disovery.type**
   | *Default:*   ``not set``
   | *Runtime:*   ``no``
-  | *Allowed Values:*  ``srv``, ``ec2``
+  | *Allowed Values:*  ``zen``, ``ec2``
+
+
+**discovery.zen.hosts_provider**
+  | *Default:*   ``not set```
+  | *Runtime:*   ``no``
+  | *Allowed Values:* ``srv``, ``azure``
 
 See also: :ref:`shared_nothing_discovery`.
 
@@ -882,8 +888,8 @@ See also: :ref:`shared_nothing_discovery`.
 Discovery via DNS
 `````````````````
 
-CrateDB has built-in support for discovery via DNS. To enable DNS discovery the
-``discovery.type`` setting needs to be set to ``srv``.
+Crate has built-in support for discovery via DNS. To enable DNS discovery the
+``discovery.zen.hosts_provider`` setting needs to be set to ``srv``.
 
 The order of the unicast hosts is defined by the priority, weight and name of
 each host defined in the SRV record. For example::
@@ -991,7 +997,7 @@ Discovery on Microsoft Azure
 ````````````````````````````
 
 CrateDB has built-in support for discovery via the Azure Virtual Machine API.
-To enable Azure discovery set the ``discovery.type`` setting to ``azure``.
+To enable Azure discovery set the ``discovery.zen.hosts_provider`` setting to ``azure``.
 
 **cloud.azure.management.resourcegroup.name**
   | *Runtime:*  ``no``

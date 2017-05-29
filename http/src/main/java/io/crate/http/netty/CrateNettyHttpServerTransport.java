@@ -25,8 +25,6 @@ package io.crate.http.netty;
 import io.crate.plugin.PipelineRegistry;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
@@ -38,12 +36,10 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
 
-@Singleton
 public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
 
     private final PipelineRegistry pipelineRegistry;
 
-    @Inject
     public CrateNettyHttpServerTransport(Settings settings,
                                          NetworkService networkService,
                                          BigArrays bigArrays,

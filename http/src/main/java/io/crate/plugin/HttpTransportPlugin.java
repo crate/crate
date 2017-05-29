@@ -24,8 +24,13 @@ package io.crate.plugin;
 import io.crate.http.netty.CrateNettyHttpServerTransport;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.network.NetworkModule;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.SearchRequestParsers;
@@ -34,12 +39,14 @@ import org.elasticsearch.watcher.ResourceWatcherService;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
+import java.util.function.Supplier;
 
 import static org.elasticsearch.common.network.NetworkModule.HTTP_TYPE_KEY;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 
 
-public class HttpTransportPlugin extends Plugin {
+public class HttpTransportPlugin extends Plugin implements NetworkPlugin {
 
     private static final String CRATE_HTTP_TRANSPORT_NAME = "crate";
     private final PipelineRegistry pipelineRegistry = new PipelineRegistry();
@@ -71,9 +78,16 @@ public class HttpTransportPlugin extends Plugin {
             .build();
     }
 
-    public void onModule(NetworkModule networkModule) {
-        if (networkModule.canRegisterHttpExtensions()) {
-            networkModule.registerHttpTransport(CRATE_HTTP_TRANSPORT_NAME, CrateNettyHttpServerTransport.class);
-        }
+
+    @Override
+    public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings,
+                                                                        ThreadPool threadPool,
+                                                                        BigArrays bigArrays,
+                                                                        CircuitBreakerService circuitBreakerService,
+                                                                        NamedWriteableRegistry namedWriteableRegistry,
+                                                                        NetworkService networkService) {
+        return Collections.singletonMap(
+            CRATE_HTTP_TRANSPORT_NAME,
+            () -> new CrateNettyHttpServerTransport(settings, networkService, bigArrays, threadPool, pipelineRegistry));
     }
 }

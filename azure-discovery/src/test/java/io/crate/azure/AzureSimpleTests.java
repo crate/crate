@@ -21,6 +21,7 @@ package io.crate.azure;
 
 import io.crate.azure.management.AzureComputeService.Discovery;
 import io.crate.azure.management.AzureComputeService.Management;
+import io.crate.azure.plugin.AzureDiscoveryPlugin;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -40,7 +41,7 @@ public class AzureSimpleTests extends AbstractAzureComputeServiceTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Collections.singletonList(AzureComputeServiceSimpleMock.TestPlugin.class);
+        return Collections.singletonList(AzureDiscoveryPlugin.class);
     }
 
     @Test

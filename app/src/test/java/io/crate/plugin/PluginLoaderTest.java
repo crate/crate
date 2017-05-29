@@ -22,7 +22,11 @@
 
 package io.crate.plugin;
 
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
 import io.crate.test.CauseMatcher;
+import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
@@ -74,6 +78,30 @@ public class PluginLoaderTest extends ESIntegTestCase {
         Settings settings = corePlugin.settings;
 
         assertThat(settings.get("setting.for.crate"), is("foo"));
+    }
+
+    @Test
+    public void testLoadPluginRegisteringScalarFunction() throws Exception {
+        String node = startNodeWithPlugins("/io/crate/plugin/simple_plugin_registering_scalar_function");
+
+        PluginsService pluginsService = internalCluster().getInstance(PluginsService.class, node);
+        PluginLoaderPlugin corePlugin = getCratePlugin(pluginsService);
+
+        PluginLoader pluginLoader = corePlugin.pluginLoader;
+        assertThat(pluginLoader.plugins.size(), is(1));
+        assertThat(pluginLoader.plugins.get(0).getClass().getCanonicalName(), is("io.crate.plugin.ExamplePlugin"));
+
+        Functions functions = internalCluster().getInstance(Functions.class);
+        assertThat(functions.getBuiltin("is_even", Collections.singletonList(DataTypes.LONG)).info(),
+                   is(new FunctionInfo(
+                       new FunctionIdent("is_even", Collections.singletonList(DataTypes.LONG)),
+                       DataTypes.BOOLEAN)));
+
+        // Also check that the built-in functions are not lost
+        assertThat(functions.getBuiltin("abs", Collections.singletonList(DataTypes.LONG)).info(),
+                   is(new FunctionInfo(
+                       new FunctionIdent("abs", Collections.singletonList(DataTypes.LONG)),
+                       DataTypes.LONG)));
     }
 
     @Test

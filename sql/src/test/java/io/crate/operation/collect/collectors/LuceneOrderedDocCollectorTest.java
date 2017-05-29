@@ -41,12 +41,20 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.search.*;
+import org.apache.lucene.search.FieldDoc;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.SortedNumericSortField;
+import org.apache.lucene.search.TopFieldDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.LegacyLongFieldMapper;
+import org.elasticsearch.index.query.QueryShardContext;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -58,6 +66,7 @@ import java.util.Collections;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.mock;
 
 public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
@@ -119,7 +128,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         Sort sort = new Sort(sortField);
 
         Query nextPageQuery = LuceneOrderedDocCollector.nextPageQuery(
-            lastCollected, orderBy, new Object[]{missingValue}, name -> valueFieldType);
+            lastCollected, orderBy, new Object[]{missingValue}, name -> valueFieldType, mock(QueryShardContext.class));
         TopFieldDocs result = search(reader, nextPageQuery, sort);
         Long results[] = new Long[result.scoreDocs.length];
         for (int i = 0; i < result.scoreDocs.length; i++) {
@@ -140,7 +149,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         FieldDoc fieldDoc = new FieldDoc(1, 0, new Object[]{null});
         OrderBy orderBy = new OrderBy(Collections.<Symbol>singletonList(REFERENCE), new boolean[]{false}, new Boolean[]{null});
         Object missingValue = LuceneMissingValue.missingValue(orderBy, 0);
-        LuceneOrderedDocCollector.nextPageQuery(fieldDoc, orderBy, new Object[]{missingValue}, name -> valueFieldType);
+        LuceneOrderedDocCollector.nextPageQuery(fieldDoc, orderBy, new Object[]{missingValue}, name -> valueFieldType, mock(QueryShardContext.class));
     }
 
     // search after queries
@@ -235,7 +244,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         FieldDoc lastCollected = new FieldDoc(0, 0, new Object[]{2L});
 
         Query nextPageQuery = LuceneOrderedDocCollector.nextPageQuery(
-            lastCollected, orderBy, new Object[]{}, name -> valueFieldType);
+            lastCollected, orderBy, new Object[]{}, name -> valueFieldType, mock(QueryShardContext.class));
 
         // returns null which leads to reuse of old query without paging optimization
         assertNull(nextPageQuery);

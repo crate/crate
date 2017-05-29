@@ -148,7 +148,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             Settings.EMPTY,
             mock(ThreadPool.class),
             clusterService,
-            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
+            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL, clusterService.getClusterSettings()),
             mock(MappingUpdatedAction.class),
             mock(ActionFilters.class),
             mock(JobContextService.class),
@@ -187,7 +187,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
         TransportWriteAction.WriteResult<ShardResponse> result = transportShardUpsertAction.processRequestItems(
-            shardId, request, new AtomicBoolean(false));
+            indexShard, request, new AtomicBoolean(false));
 
         assertThat(result.getResponse().failure(), instanceOf(VersionConflictEngineException.class));
     }
@@ -206,7 +206,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
         TransportWriteAction.WriteResult<ShardResponse> result = transportShardUpsertAction.processRequestItems(
-            shardId, request, new AtomicBoolean(false));
+            indexShard, request, new AtomicBoolean(false));
 
         ShardResponse response = result.getResponse();
         assertThat(response.failures().size(), is(1));
@@ -439,7 +439,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
         TransportWriteAction.WriteResult<ShardResponse> result = transportShardUpsertAction.processRequestItems(
-            shardId, request, new AtomicBoolean(true));
+            indexShard, request, new AtomicBoolean(true));
 
         assertThat(result.getResponse().failure(), instanceOf(InterruptedException.class));
     }
@@ -460,7 +460,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         reset(indexShard);
 
         // would fail with NPE if not skipped
-        transportShardUpsertAction.processRequestItemsOnReplica(shardId, request);
+        transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
         verify(indexShard, times(0)).index(any(Engine.Index.class));
     }
 }

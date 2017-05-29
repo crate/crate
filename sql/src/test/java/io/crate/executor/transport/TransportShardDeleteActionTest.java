@@ -70,7 +70,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
 
         transportShardDeleteAction = new TransportShardDeleteAction(
             Settings.EMPTY,
-            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
+            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL, clusterService.getClusterSettings()),
             mock(IndexNameExpressionResolver.class),
             mock(ClusterService.class),
             indicesService,
@@ -87,7 +87,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         request.add(1, new ShardDeleteRequest.Item("1"));
 
         TransportWriteAction.WriteResult<ShardResponse> result = transportShardDeleteAction.processRequestItems(
-            shardId, request, new AtomicBoolean(true));
+            indexShard, request, new AtomicBoolean(true));
 
         assertThat(result.getResponse().failure(), instanceOf(InterruptedException.class));
         assertThat(request.skipFromLocation(), is(1));
@@ -101,7 +101,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         request.skipFromLocation(1);
 
         // replica operation must skip all not by primary processed items
-        transportShardDeleteAction.processRequestItemsOnReplica(shardId, request);
+        transportShardDeleteAction.processRequestItemsOnReplica(indexShard, request);
         verify(indexShard, times(0)).delete(any(Engine.Delete.class));
     }
 }

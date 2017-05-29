@@ -15,6 +15,13 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+ - onModule() method had been removed from io.crate.Plugin interface,
+   so createGuiceModules() must be used instead.
+
+ - ``srv`` and ``azure`` are no longer valid configuration options for ``discovery.type``.
+   Instead there is a new ``discovery.zen.hosts_provider`` settings which can
+   be set to either ``srv`` or ``azure``.
+
  - Changed default required shard copies for table creation and write
    operations from quorum to ``all``.
 
@@ -28,6 +35,8 @@ Breaking Changes (Packaging only)
 
 Changes
 =======
+
+ - Updated Elasticsearch to 5.1.2
 
  - Expose new setting ``write.wait_for_active_shards`` to allow users to
    adjust the required shard copies for write operation to their needs.
