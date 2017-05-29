@@ -41,7 +41,7 @@ import java.util.function.Function;
 
 public class FetchProjection extends Projection {
 
-    private static final int HEAP_IN_MB = (int) JvmInfo.jvmInfo().getConfiguredMaxHeapSize() / (1024 * 1024);
+    private static final int HEAP_IN_MB = (int) (JvmInfo.jvmInfo().getConfiguredMaxHeapSize() / (1024 * 1024));
     private static final int MAX_FETCH_SIZE = maxFetchSize(HEAP_IN_MB);
 
     private final int collectPhaseId;
