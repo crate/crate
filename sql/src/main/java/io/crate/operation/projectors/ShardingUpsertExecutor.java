@@ -23,6 +23,8 @@
 package io.crate.operation.projectors;
 
 import com.carrotsearch.hppc.IntArrayList;
+import com.google.common.annotations.VisibleForTesting;
+import com.sun.org.apache.xpath.internal.operations.Bool;
 import io.crate.action.FutureActionListener;
 import io.crate.action.LimitedExponentialBackoff;
 import io.crate.data.BatchIterator;
@@ -54,6 +56,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
+import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collections;
@@ -116,6 +119,21 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private BiConsumer<BitSet, Throwable> bulkExecutionCompleteListener;
     private BiConsumer<Object, Throwable> loadNextBatchCompleteListener;
     private Runnable scheduleConsumeIteratorJob;
+
+    @VisibleForTesting
+    public int getBulkSize() {
+        return bulkSize;
+    }
+
+    @VisibleForTesting
+    public int getIndexInBulk() {
+        return indexInBulk;
+    }
+
+    @VisibleForTesting
+    Boolean compareAndSet(Boolean expected, Boolean update) {
+        return isScheduledCollectionRunning.compareAndSet(expected, update);
+    }
 
     public ShardingUpsertExecutor(ClusterService clusterService,
                                   NodeJobsCounter nodeJobsCounter,
@@ -207,14 +225,15 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
      *
      * !! THIS SHOULD ONLY BE CALLED BY THE loadNextBatch COMPLETE LISTENER !!
      */
-    private void unsafeConsumeIterator(BatchIterator batchIterator) {
+    @VisibleForTesting
+    void unsafeConsumeIterator(BatchIterator batchIterator) {
         Row row = RowBridging.toRow(batchIterator.rowData());
         try {
             while (true) {
-                if (indexInBulk == bulkSize) {
+                if (getIndexInBulk() == getBulkSize()) {
                     if (tryExecuteBulk(batchIterator, false) == false) {
                         collectingEnabled.set(false);
-                        if (isScheduledCollectionRunning.compareAndSet(false, true)) {
+                        if (compareAndSet(false, true)) {
                             try {
                                 scheduleConsumeIterator(batchIterator);
                             } catch (EsRejectedExecutionException e) {
@@ -251,12 +270,12 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         }
     }
 
-    private void scheduleConsumeIterator(BatchIterator batchIterator) throws EsRejectedExecutionException {
+    void scheduleConsumeIterator(BatchIterator batchIterator) throws EsRejectedExecutionException {
         scheduler.schedule(scheduleConsumeIteratorJob,
             consumeIteratorDelays.next().getMillis(), TimeUnit.MILLISECONDS);
     }
 
-    private boolean tryExecuteBulk(BatchIterator batchIterator, boolean isLastBatch) {
+    boolean tryExecuteBulk(BatchIterator batchIterator, boolean isLastBatch) {
         if (isExecutionPossibleOnAllNodes(requestsByShard)) {
             indexInBulk = 0;
             CompletableFuture<BitSet> bulkExecutionFuture = execute(isLastBatch);
