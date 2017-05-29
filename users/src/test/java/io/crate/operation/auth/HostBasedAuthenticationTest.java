@@ -20,26 +20,23 @@ package io.crate.operation.auth;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.operation.user.User;
-import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.jboss.netty.channel.Channel;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.net.InetAddress;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import static io.crate.operation.auth.HostBasedAuthentication.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 
 public class HostBasedAuthenticationTest extends CrateUnitTest {
@@ -73,20 +70,6 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
             .put(AuthenticationProvider.AUTH_HOST_BASED_ENABLED_SETTING.getKey(), true)
             .build();
         authService = new HostBasedAuthentication(settings, null);
-    }
-
-    private static ClusterService createClusterService(Settings settings){
-        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
-        Set<Setting<?>> cSettings = new HashSet<>();
-        cSettings.addAll(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
-        cSettings.addAll(sqlPlugin.getSettings());
-        ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, cSettings);
-
-        ClusterService clusterService = mock(ClusterService.class);
-        when(clusterService.getSettings()).thenReturn(settings);
-        when(clusterService.getClusterSettings()).thenReturn(clusterSettings);
-
-        return clusterService;
     }
 
     @SafeVarargs
