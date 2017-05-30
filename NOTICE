@@ -1,130 +1,45 @@
-Crate
-Copyright 2013-2015 Crate.IO GmbH ("Crate")
+CrateDB
+Copyright 2013-2018 Crate.IO GmbH ("Crate")
 
 
-Third party dependencies:
+Licensed to Crate.IO GmbH (referred to in this notice as "Crate") under one or
+more contributor license agreements.
 
-=========================================================================
+Different parts of CrateDB are available under different licences.
 
-Lucene
-http://lucene.apache.org/
-developed by The Apache Software Foundation
-License: Apache License v2 (http://www.apache.org/licenses)
+Unless otherwise stated, every component of CrateDB is licensed under the
+Apache License, Version 2.0.
 
-=========================================================================
+CrateDB also includes enterprise features. These features are marked in the
+documentation and in their respective source files, and are not licensed under
+the Apache License. To use these components, you must purchase a commercial
+licence agreement with Crate.
 
-Elasticsearch
-http://www.elasticsearch.org/
-developed by Elastic and Shay Banon
-License: Apache License v2 (http://www.apache.org/licenses)
+To enable or use any of the enterprise features, Crate must have given you
+permission to enable and use the Enterprise Edition of CrateDB and you must
+have a valid Enterprise or Subscription Agreement with Crate. If you enable or
+use features that are part of the Enterprise Edition, you represent and warrant
+that you have a valid Enterprise or Subscription Agreement with Crate. Your use
+of features of the Enterprise Edition is governed by the terms and conditions
+of your Enterprise or Subscription Agreement with Crate.
 
-=========================================================================
+Third-party components bundled with the CrateDB source code are listed in the
+LICENSE file along with their respective licenses. Any additional mandatory
+notices pertaining to those dependencies will be reproduced in this file.
 
-Presto (SQL Parser)
-http://prestodb.io
-developed by Facebook (https://github.com/facebook/presto)
-License: Apache License v2 (http://www.apache.org/licenses)
+Crate provides pre-built releases for convenience, also known as convenience
+releases. Building CrateDB from source pulls in a number of additional
+third-party dependencies. Hence, convenience releases will contain a mix of
+CrateDB source code and third-party build-time dependencies not listed in the
+LICENSE file or in this file.
 
-=========================================================================
+Crate is committed to only using permissively licensed third-party code.
+However, for the time being, if you make use of convenience releases, it is
+your responsibility to check the licensing status of the bundled third-party
+build-time dependencies.
 
-Netty
-http://netty.io
-developed by The Netty Project
-License: Apache License v2 (http://www.apache.org/licenses)
 
-=========================================================================
+================================================================================
 
-SRV Discovery Plugin for Elasticsearch
-https://github.com/grantr/elasticsearch-srv-discovery
-developed by Grant Rodgers
-License: MIT License, http://www.opensource.org/licenses/mit-license.php
-
-=========================================================================
-
-AWS Cloud Plugin for Elasticsearch
-https://github.com/elastic/elasticsearch-cloud-aws
-developed by Elastic
-License: Apache License v2 (http://www.apache.org/licenses)
-
-=========================================================================
-
-Meyer CSS reset
-http://meyerweb.com/eric/tools/css/reset/
-License: none (public domain)
-
-=========================================================================
-
-normalize.css
-http://github.com/necolas/normalize.css
-Copyright (c) Nicolas Gallagher and Jonathan Neal
-License: https://github.com/necolas/normalize.css/blob/master/LICENSE.md
-
-=========================================================================
-
-CSS3-mediaqueries.js
-http://code.google.com/p/css3-mediaqueries-js/
-License: MIT License, http://www.opensource.org/licenses/mit-license.php
-
-=========================================================================
-
-jQuery
-Copyright 2012 jQuery Foundation and other contributors
-http://jquery.com
-License: MIT License, http://jquery.org/license/
-
-=========================================================================
-
-Mustache.js
-Copyright (c) 2009 Chris Wanstrath (Ruby)
-Copyright (c) 2010 Jan Lehnardt (JavaScript)
-http://mustache.github.com
-License: MIT License
-
-=========================================================================
-
-Raphael
-http://raphaeljs.com, from fork at git@github.com:mobz/g.raphael.git
-Copyright (c) 2010 Dmitry Baranovskiy
-License: MIT (http://raphaeljs.com/license.htm
-
-=========================================================================
-
-date-range-parser
-https://github.com/mobz/date-range-parser
-Contributed to the Apache Software Foundation by Ben Birch - Aconex
-License: Apache License v2 (http://www.apache.org/licenses)
-
-=========================================================================
-
-Bootstrap
-https://getbootstrap.com
-Copyright 2012 Twitter, Inc.
-License: Apache License v2 (http://www.apache.org/licenses)
-
-=========================================================================
-
-'SB Admin' HTML Template
-http://startbootstrap.com
-Copyright 2013 Iron Summit Media Strategies
-License: Apache License v2 (http://www.apache.org/licenses)
-
-=========================================================================
-
-AngularJS
-http://angularjs.org
-Copyright 2010-2014 Google, Inc
-License: MIT (https://github.com/angular/angular.js/blob/master/LICENSE)
-
-=========================================================================
-
-Various Components of Lovely Systems GmbH
-http://www.lovelysystems.com
-Copyright Lovely Systems GmbH
-License: Apache 2.0 (http://www.apache.org/licenses)
-
-=========================================================================
-
-Apache XBean
-http://geronimo.apache.org/xbean/
-Copyright Apache Software Foundation
-License: Apache License v2 (http://www.apache.org/licenses)
+This product includes software developed by The Apache Software
+Foundation (http://www.apache.org/).
