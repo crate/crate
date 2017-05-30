@@ -22,23 +22,22 @@
 package io.crate.plugin;
 
 import io.crate.http.netty.CrateNettyHttpServerTransport;
-import org.elasticsearch.action.ActionRequest;
-import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import static org.elasticsearch.common.network.NetworkModule.HTTP_TYPE_KEY;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 
 
-public class HttpTransportPlugin extends Plugin implements ActionPlugin {
+public class HttpTransportPlugin extends Plugin {
 
     private static final String CRATE_HTTP_TRANSPORT_NAME = "crate";
 
@@ -77,10 +76,5 @@ public class HttpTransportPlugin extends Plugin implements ActionPlugin {
         if (networkModule.canRegisterHttpExtensions()) {
             networkModule.registerHttpTransport(CRATE_HTTP_TRANSPORT_NAME, CrateNettyHttpServerTransport.class);
         }
-    }
-
-    @Override
-    public List<ActionHandler<? extends ActionRequest<?>, ? extends ActionResponse>> getActions() {
-        return Collections.emptyList();
     }
 }
