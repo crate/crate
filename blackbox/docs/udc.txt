@@ -36,8 +36,8 @@ To gather good statistics about CrateDB usage, UDC collects this information:
     Ping Count        UDC holds an internal counter per node which is
                       incremented for every ping, and reset on every restart of
                       the a node.
-    Crate Version     The crate version.
-    Java Version      The Java version crate is currently running with.
+    CrateDB Version   The CrateDB version.
+    Java Version      The Java version CrateDB is currently running with.
     Hardware Address  MAC address to uniquely identify instances behind
                       firewalls.
     Enterprise        Identifies whether the Enterprise Edition is used.
@@ -69,7 +69,7 @@ How to Disable UDC
 
 Below are two ways you can disable UDC. However we hope you support us offering
 the open source edition, and leave UDC on, so we learn how many people use
-Crate.
+CrateDB.
 
 .. note::
 

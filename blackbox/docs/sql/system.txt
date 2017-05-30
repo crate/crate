@@ -5,7 +5,7 @@
 System Information
 ==================
 
-Crate provides the ``sys`` schema which contains virtual tables. These tables
+CrateDB provides the ``sys`` schema which contains virtual tables. These tables
 are read-only and can be queried to get statistical real-time information about
 the cluster, its nodes and their shards:
 
@@ -28,7 +28,7 @@ the cluster, its nodes and their shards:
 Cluster
 =======
 
-Basic information about the Crate cluster can be retrieved from the
+Basic information about the CrateDB cluster can be retrieved from the
 ``sys.cluster`` table:
 
 +------------------+---------------------------------+-------------------+
@@ -257,9 +257,9 @@ The table schema is as follows:
 |                       | transport interfaces. You can specify the ports |             |
 |                       | via your own custom `configuration`_.           |             |
 +-----------------------+-------------------------------------------------+-------------+
-| ``port['http']``      | Crate's HTTP port.                              | ``Integer`` |
+| ``port['http']``      | CrateDB's HTTP port.                            | ``Integer`` |
 +-----------------------+-------------------------------------------------+-------------+
-| ``port['transport']`` | Crate's binary transport port.                  | ``Integer`` |
+| ``port['transport']`` | CrateDB's binary transport port.                | ``Integer`` |
 +-----------------------+-------------------------------------------------+-------------+
 | ``port['psql']``      | The PostgreSQL wire protocol port.              | ``Integer`` |
 +-----------------------+-------------------------------------------------+-------------+
@@ -314,7 +314,7 @@ The table schema is as follows:
 | ``heap['used']``            | Currently used heap memory in bytes.           | ``Long``    |
 +-----------------------------+------------------------------------------------+-------------+
 | ``heap['max']``             | Maximum available heap memory. You can specify | ``Long``    |
-|                             | the max heap memory Crate should use in the    |             |
+|                             | the max heap memory CrateDB should use in the  |             |
 |                             | `configuration`_.                              |             |
 +-----------------------------+------------------------------------------------+-------------+
 | ``heap['free']``            | Currently available heap memory in bytes.      | ``Long``    |
@@ -331,7 +331,7 @@ The table schema is as follows:
 +-------------------------------+---------------------------------------------------+-------------+
 |   Column Name                 |                  Description                      | Return Type |
 +===============================+===================================================+=============+
-| ``version``                   | Crate version information.                        | ``Object``  |
+| ``version``                   | CrateDB version information.                      | ``Object``  |
 +-------------------------------+---------------------------------------------------+-------------+
 | ``version['number']``         | Version string in format ``"major.minor.hotfix"`` | ``String``  |
 +-------------------------------+---------------------------------------------------+-------------+
@@ -532,21 +532,21 @@ calculate the time difference between 2 probes.
 +------------------------------------------+------------------------------------------------+--------------+
 | Column Name                              | Description                                    | Return Type  |
 +==========================================+================================================+==============+
-| ``process``                              | Statistics about the Crate process.            | ``Object``   |
+| ``process``                              | Statistics about the CrateDB process.          | ``Object``   |
 +------------------------------------------+------------------------------------------------+--------------+
 | ``process['open_file_descriptors']``     | Number of currently open file descriptors used | ``Long``     |
-|                                          | by the Crate process.                          |              |
+|                                          | by the CrateDB process.                        |              |
 +------------------------------------------+------------------------------------------------+--------------+
 | ``process['max_open_file_descriptors']`` | The maximum number of open file descriptors    | ``Long``     |
-|                                          | Crate can use.                                 |              |
+|                                          | CrateDB can use.                               |              |
 +------------------------------------------+------------------------------------------------+--------------+
 | ``process['probe_timestamp']``           | The system UNIX timestamp at the moment of     | ``Long``     |
 |                                          | the probe collection.                          |              |
 +------------------------------------------+------------------------------------------------+--------------+
-| ``process['cpu']``                       | Information about the CPU usage of the Crate   | ``Object``   |
+| ``process['cpu']``                       | Information about the CPU usage of the CrateDB | ``Object``   |
 |                                          | process.                                       |              |
 +------------------------------------------+------------------------------------------------+--------------+
-| ``process['cpu']['percent']``            | The CPU usage of the Crate JVM process given   | ``Short``    |
+| ``process['cpu']['percent']``            | The CPU usage of the CrateDB JVM process given | ``Short``    |
 |                                          | in percent.                                    |              |
 +------------------------------------------+------------------------------------------------+--------------+
 | ``process['cpu']['user']``               | The process CPU user time in milliseconds.     | ``Long``     |
@@ -621,7 +621,7 @@ Acknowledge Failed Checks
 -------------------------
 
 It is possible to acknowledge every check by updating the ``acknowledged``
-column. By doing this, specially Crate's built-in Admin-UI won't complain
+column. By doing this, specially CrateDB's built-in Admin-UI won't complain
 anymore about failing checks.
 
 Imagine we've added a new node to our cluster, but as the
@@ -679,7 +679,7 @@ starts must not be less than default value of ``5m``.
 Java 7 Deprecation Warning
 ..........................
 
-Starting with Crate 0.55.0 using Java 7 runtime environment is deprecated.
+Starting with CrateDB 0.55.0 using Java 7 runtime environment is deprecated.
 Please update to Java 8 (>= update 20). See also `here
 <https://crate.io/docs/reference/en/latest/installation.html#java-jvm-version>`_.
 
@@ -689,7 +689,7 @@ Routing Allocation Disk Watermark High
 The check for the :ref:`cluster.routing.allocation.disk.watermark.high
 <cluster.routing.allocation.disk.watermark.high>` setting verifies that the
 high watermark is not exceeded on the current node. The usage of each disk for
-configured Crate data paths is verified against the threshold setting. If one
+configured CrateDB data paths is verified against the threshold setting. If one
 or more verification fails the check is marked as not passed.
 
 Routing Allocation Disk Watermark Low
@@ -699,7 +699,7 @@ The check for the :ref:`cluster.routing.allocation.disk.watermark.low
 <cluster.routing.allocation.disk.watermark.low>` which controls the low
 watermark for the node disk usage. The check verifies that the low watermark is
 not exceeded on the current node. The verification is done against each disk
-for configured Crate data paths. The check is not passed if the verification
+for configured CrateDB data paths. The check is not passed if the verification
 for one or more disk fails.
 
 .. _sys-shards:
@@ -982,7 +982,7 @@ For example, you can query shards like this::
 Jobs, Operations, and Logs
 ==========================
 
-To see current activities in the cluster, crate provides the ``sys.jobs`` and
+To see current activities in the cluster, CrateDB provides the ``sys.jobs`` and
 ``sys.operations`` tables and their corresponding "logs", ``sys.jobs_log`` and
 ``sys.operations_log``.
 
@@ -1011,8 +1011,8 @@ being executed in the cluster::
     +-----------------------------------------------------------------------+-...-----+
     SELECT 1 row in set (... sec)
 
-Each request sent to crate that queries data or manipulates data is considered
-a ``job`` if it passes the analysis step.
+Each request sent to CrateDB that queries data or manipulates data is
+considered a ``job`` if it passes the analysis step.
 
 For example a request that fails because it attempts to query a table that
 doesn't exist won't get listed.
@@ -1339,8 +1339,8 @@ repositories (see :ref:`snapshot-restore`).
 |                      | ``IN_PROGRESS``, ``SUCCESS``,    |                   |
 |                      | ``PARTIAL``, or ``FAILED``.      |                   |
 +----------------------+----------------------------------+-------------------+
-| ``version``          | The Crate version this snapshot  | ``String``        |
-|                      | was created with.                |                   |
+| ``version``          | The CrateDB version this         | ``String``        |
+|                      | snapshot was created with.       |                   |
 +----------------------+----------------------------------+-------------------+
 
 Snapshot/Restore operates on a per-shard basis. Hence, the ``state`` column
@@ -1358,12 +1358,12 @@ will include all primaries again.
     to guarantee a full backup! Only ``SUCCESS`` includes all shards.
 
 The ``concrete_indices`` column contains the names of all Elasticsearch indices
-that were stored in the snapshot. A *normal* crate table maps to one
+that were stored in the snapshot. A *normal* CrateDB table maps to one
 Elasticsearch index, a partitioned table maps to one Elasticsearch index per
 partition. The mapping follows the following pattern:
 
 +-----------------------------------------+------------------------------------------+
-| CRATE table / partition name            | ``concrete_indices`` entry               |
+| CrateDB table / partition name          | ``concrete_indices`` entry               |
 +=========================================+==========================================+
 | ``doc.my_table``                        | ``my_table``                             |
 +-----------------------------------------+------------------------------------------+

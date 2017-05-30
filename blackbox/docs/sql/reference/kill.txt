@@ -5,7 +5,7 @@
 ``KILL``
 ========
 
-Kills active jobs in the crate cluster.
+Kills active jobs in the CrateDB cluster.
 
 Synopsis
 ========
@@ -18,10 +18,10 @@ Synopsis
 Description
 ===========
 
-The ``KILL ALL`` statement kills all active jobs within the crate cluster. The
-statement ``KILL job_id`` kills the job with a specified ``job_id``.
+The ``KILL ALL`` statement kills all active jobs within the CrateDB cluster.
+The statement ``KILL job_id`` kills the job with a specified ``job_id``.
 
-Be aware that Crate doesn't have transactions. If an operation which modifies
+Be aware that CrateDB doesn't have transactions. If an operation which modifies
 data is killed, it won't rollback. For example if a update operation is killed
 it is likely that it updated some documents before being killed. This might
 leave the data in an inconsistent state. So take care when using ``KILL``.

@@ -337,7 +337,7 @@ This can also be done when using a query instead of values::
 Updating Data
 =============
 
-In order to update documents in `Crate` the SQL `UPDATE` statement can be
+In order to update documents in CrateDB the SQL `UPDATE` statement can be
 used::
 
     cr> update locations set description = 'Updated description'
@@ -358,13 +358,13 @@ increment a number like this::
 .. note::
 
     If the same documents are updated concurrently an VersionConflictException
-    might occur. Crate contains a retry logic that tries to resolve the
+    might occur. CrateDB contains a retry logic that tries to resolve the
     conflict automatically.
 
 Deleting Data
 =============
 
-Deleting rows in Crate is done using the SQL ``DELETE`` statement::
+Deleting rows in CrateDB is done using the SQL ``DELETE`` statement::
 
     cr> delete from locations where position > 3;
     DELETE OK, ... rows affected (... sec)
@@ -377,7 +377,7 @@ Import and Export
 Importing Data
 --------------
 
-Using the ``COPY FROM`` SQL statement, data can be imported into Crate.
+Using the ``COPY FROM`` SQL statement, data can be imported into CrateDB.
 
 Currently the only supported data format is JSON, one line is representing one
 entry.

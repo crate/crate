@@ -5,16 +5,16 @@ Plugins
 =======
 
 CrateDB implements a plugin loading infrastructure making it possible to
-develop plugins for crate.
+develop plugins for CrateDB.
 
 A plugin must at least:
 
  - implement the ``io.crate.Plugin`` interface
  - register its implementation at
-   ``META-INF/services/io.crate.Plugin`` so crate plugin load can find
+   ``META-INF/services/io.crate.Plugin`` so CrateDB plugin load can find
    it.
 
-See our `example crate plugin`_ for details about that.
+See our `CrateDB example plugin`_ for details about that.
 
 .. _plugins_crate_dep:
 
@@ -22,7 +22,7 @@ Plugin CrateDB Dependency
 =========================
 
 In order to develop a plugin against a CrateDB release, a dependency to the
-crate's server libraries must be set up.
+CrateDB's server libraries must be set up.
 
 Gradle
 ------
@@ -35,7 +35,7 @@ Define bintray (jCenter) repository:
        jcenter()
    }
 
-Add crate to compile dependencies:
+Add CrateDB to compile dependencies:
 
 .. code-block:: groovy
 
@@ -70,7 +70,7 @@ Add bintray (jCenter) as a repository to your maven ``settings.xml``:
     <activeProfile>bintray</activeProfile>
   </activeProfiles>
 
-Add crate as a dependency:
+Add CrateDB as a dependency:
 
 .. code-block:: xml
 
@@ -87,7 +87,7 @@ Add crate as a dependency:
 Plugin Loading
 ==============
 
-Loading of plugins is done by crate for searching all class path element
+Loading of plugins is done by CrateDB for searching all class path element
 resources for a ``META-INF/services/io.crate.Plugin`` file.
 
 Inside this file just one line is allowed defining the full qualified class
@@ -102,7 +102,7 @@ if such a constructor exists. Otherwise an empty constructor is used. By using
 the ``Settings`` instance, a plugin can process existing settings and/or
 implement it's own custom setting entries.
 
-The `example crate plugin`_ makes use of that to implement a custom setting.
+The `CrateDB example plugin`_ makes use of that to implement a custom setting.
 
 .. highlight:: java
 .. _plugins_interface:
@@ -120,7 +120,7 @@ by implementing relevant methods:
  - shard level modules
 
 Besides of implementing own modules, a plugin can also listen to other's module
-bindings. For example, as our `example crate plugin`_ does, to the binding of
+bindings. For example, as our `CrateDB example plugin`_ does, to the binding of
 the ``ScalarFunctionModule`` in order to register scalar functions. This can be
 achieved by implementing a related ``onModule(AnyModule module)`` method::
 
@@ -130,7 +130,7 @@ achieved by implementing a related ``onModule(AnyModule module)`` method::
   }
   ...
 
-Again, checkout the `example crate plugin`_ to see this in action.
+Again, checkout the `CrateDB example plugin`_ to see this in action.
 
 .. _plugins_abstract_plugin:
 
@@ -151,7 +151,7 @@ ones::
 
       @Override
       public String description() {
-          return "A really awesome crate plugin";
+          return "A really awesome CrateDB plugin";
       }
 
       @Override
@@ -176,5 +176,5 @@ somewhere into the class path or to one of the following places:
  - <CRATE_HOME>/plugins/<SOME_PLUGIN_NAME>/
  - <CRATE_HOME>/plugins/<SOME_PLUGIN_NAME>/lib/
 
-.. _`example crate plugin`: https://github.com/crate/crate-example-plugin
+.. _`CrateDB example plugin`: https://github.com/crate/crate-example-plugin
 .. _Guice: https://github.com/google/guice

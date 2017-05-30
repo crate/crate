@@ -179,7 +179,7 @@ tuples for all other records from *right* that don't match any record on the
 Join Conditions
 ...............
 
-Crate supports all operators and scalar functions as join conditions in the
+CrateDB supports all operators and scalar functions as join conditions in the
 ``WHERE`` clause.
 
 Example with ``within`` scalar function::
@@ -210,4 +210,4 @@ Limitations
 
 .. _`nightly builds`: https://cdn.crate.io/downloads/releases/nightly/
 .. _`Cartesian Product`: https://en.wikipedia.org/wiki/Cartesian_product
-.. _`Crate.IO blog`: https://crate.io/blog/
+.. _`Crate.io blog`: https://crate.io/blog/

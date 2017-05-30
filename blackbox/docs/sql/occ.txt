@@ -1,11 +1,11 @@
 .. highlight:: psql
 .. _sql_occ:
 
-=========================================
-Optimistic Concurrency Control with Crate
-=========================================
+===========================================
+Optimistic Concurrency Control with CrateDB
+===========================================
 
-Even though Crate does not support transactions, `Optimistic Concurrency
+Even though CrateDB does not support transactions, `Optimistic Concurrency
 Control`_ can be achieved by using the internal system column :ref:`_version
 <sql_administration_system_column_version>`.
 

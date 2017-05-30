@@ -83,8 +83,8 @@ Changes
 
  - Added support for global aggregations on subselects.
 
- - Added the ``-C`` option for providing Crate settings and deprecated usage of
-   the ``.es`` prefix with ``-D`` option.
+ - Added the ``-C`` option for providing CrateDB settings and deprecated usage
+   of the ``.es`` prefix with ``-D`` option.
 
  - Added support for global aggregations on joins
 
@@ -108,14 +108,14 @@ Changes
     - Local development: do not store ``base_uri`` permanently in localStorage
       but keep it in URL.
 
-    - Added Pepper contact widget which displays various Crate.IO support
+    - Added Pepper contact widget which displays various Crate.io support
       Channels in a user friendly way.
 
     - The first node in the node list is selected by default.
 
     - The first table in the table list is selected by default.
 
-    - Developer news from crate.io website are now loaded correctly into
+    - Developer news from Crate.io website are now loaded correctly into
       newsfeed.
 
  - Updated Crash to 0.20.0 which includes the following change:

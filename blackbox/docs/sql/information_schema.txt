@@ -417,7 +417,7 @@ SQL Features
 ============
 
 The ``sql_features`` table outlines supported and unsupported SQL features of
-Crate based to the current SQL standard (see :ref:`sql_supported_features`)::
+CrateDB based to the current SQL standard (see :ref:`sql_supported_features`)::
 
     cr> select feature_name, is_supported, sub_feature_id, sub_feature_name
     ... from information_schema.sql_features
@@ -461,12 +461,12 @@ Crate based to the current SQL standard (see :ref:`sql_supported_features`)::
     Descriptive name of the subfeature by the Standard;
     If it has zero-length, this is a feature
 :is_supported:
-    ``YES`` if the feature is fully supported by the current version of Crate,
-    ``NO`` if not
+    ``YES`` if the feature is fully supported by the current version of
+    CrateDB, ``NO`` if not
 :is_verified_by:
     Identifies the conformance test used to verify the claim;
 
-    Always ``NULL`` since the Crate development group does not perform formal
+    Always ``NULL`` since the CrateDB development group does not perform formal
     testing of feature conformance
 :comments:
     Either ``NULL`` or shows a comment about the supported status of the

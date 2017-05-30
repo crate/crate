@@ -3,22 +3,22 @@ Clusters and Shared Nothing
 ===========================
 
 The aim of this document is to describe, on a high level, how the distributed
-SQL database Crate uses a shared nothing architecture to form
+SQL database CrateDB uses a shared nothing architecture to form
 high-availability, resilient database clusters with minimal effort of
 configuration. It will lay out the core concepts of the shared nothing
-architecture at the heart of Crate. The main difference to a controller-based
-architecture (e.g `master/slave architecture`_) is that every node in the Crate
-cluster can perform every operation - hence all nodes are equal in terms of
-functionality (see :ref:`shared_nothing_components`) and are configured the
-same.
+architecture at the heart of CrateDB. The main difference to a controller-based
+architecture (e.g `master/slave architecture`_) is that every node in the
+CrateDB cluster can perform every operation - hence all nodes are equal in
+terms of functionality (see :ref:`shared_nothing_components`) and are
+configured the same.
 
 .. _shared_nothing_components:
 
-Components of a Crate Node
-==========================
+Components of a CrateDB Node
+============================
 
-To understand how a Crate cluster works it makes sense to first take a look at
-the components of an individual node of the cluster.
+To understand how a CrateDB cluster works it makes sense to first take a look
+at the components of an individual node of the cluster.
 
 .. _figure_1:
 
@@ -28,10 +28,10 @@ the components of an individual node of the cluster.
 
    Figure 1
 
-   Multiple interconnected instances of Crate form a single database cluster.
+   Multiple interconnected instances of CrateDB form a single database cluster.
    The components of each node are equal.
 
-:ref:`figure_1` shows that in Crate each node of a cluster contains the same
+:ref:`figure_1` shows that in CrateDB each node of a cluster contains the same
 components that (a) interface with each other, (b) with the same component from
 a different node and/or (c) with the outside world. These four major components
 are: SQL Handler, Job Execution Service, Cluster State Service, and Data
@@ -47,7 +47,7 @@ The SQL Handler part of a node is responsible for three aspects:
 (`abstract syntax tree`_).
 
 The SQL Handler is the only of the four components that interfaces with the
-"outside world". Crate supports two protocols to handle client requests:
+"outside world". CrateDB supports two protocols to handle client requests:
 (a) HTTP and
 (b) a Binary Transport Protocol.
 A typical request contains a SQL statement and its corresponding arguments.
@@ -60,7 +60,7 @@ The phases of the job and the resulting operations are already defined in the
 execution plan. A job usually consists of multiple operations that are
 distributed via the Transport Protocol to the involved nodes, be it the local
 node and/or one or multiple remote nodes. Jobs maintain IDs of their individual
-operations. This allows Crate to "track" (or for example "kill") distributed
+operations. This allows CrateDB to "track" (or for example "kill") distributed
 queries.
 
 Cluster State Service
@@ -78,7 +78,7 @@ Data Storage
 
 The data storage component handles operations to store and retrieve data from
 disk based on the execution plan.
-In Crate, the data stored in the tables is sharded, meaning that tables are
+In CrateDB, the data stored in the tables is sharded, meaning that tables are
 divided and (usually) stored across multiple nodes. Each shard is a separate
 Lucene index that is stored physically on the filesystem. Reads and writes are
 operating on a shard level.
@@ -88,11 +88,12 @@ operating on a shard level.
 Multi Node Setup: Clusters
 ==========================
 
-A Crate cluster is a set of two or more instances of Crate running on different
-hosts forming a single database unit. For inter-node communication Crate uses a
-software specific Transport Protocol that utilizes byte-serialized Plain Old
-Java Objects (`POJOs`_) and operates on a separate port. That so-called
-"transport port" must be open and reachable from all nodes in the cluster.
+A CrateDB cluster is a set of two or more instances of CrateDB running on
+different hosts forming a single database unit. For inter-node communication
+CrateDB uses a software specific Transport Protocol that utilizes
+byte-serialized Plain Old Java Objects (`POJOs`_) and operates on a separate
+port. That so-called "transport port" must be open and reachable from all nodes
+in the cluster.
 
 Cluster State Management
 ------------------------
@@ -123,11 +124,12 @@ Primary Election
 ----------------
 
 Shared nothing architecture is often also referred to as "masterless"
-architecture. For Crate, this is fully true in terms of data storage. However,
-coordinating metadata, settings and DDL requires to have a dynamic Metadata
-Primary to be elected. In a Crate cluster any node is eligible to be elected as
-a Metadata Primary, although this could also be restricted to a subset of nodes
-if required. There must be only one single Metadata Primary per cluster.
+architecture. For CrateDB, this is fully true in terms of data storage.
+However, coordinating metadata, settings and DDL requires to have a dynamic
+Metadata Primary to be elected. In a CrateDB cluster any node is eligible to be
+elected as a Metadata Primary, although this could also be restricted to a
+subset of nodes if required. There must be only one single Metadata Primary per
+cluster.
 
 To ensure that even in case of a network partition (when one part of the
 cluster is not available) the cluster requires a quorum (relative to the
@@ -183,7 +185,7 @@ Node discovery happens in multiple steps:
 Networking
 ----------
 
-In a Crate cluster all nodes have a direct link to all other nodes; this is
+In a CrateDB cluster all nodes have a direct link to all other nodes; this is
 known as `full mesh`_ topology. Due to simplicity reasons every node maintains
 a one-way connections to every other node in the network. The network topology
 of a 5 node cluster looks like this:
@@ -196,7 +198,7 @@ of a 5 node cluster looks like this:
 
    Figure 3
 
-   Network topology of a 5 node Crate cluster. Each line represents a one-way
+   Network topology of a 5 node CrateDB cluster. Each line represents a one-way
    connection.
 
 The advantages of a fully connected network are that it provides a high degree
@@ -211,7 +213,7 @@ number of connections (c) grows quadratically with the number of nodes (n):
 Cluster Behavior
 ================
 
-The fact that each Crate node in a cluster is equal allows applications and
+The fact that each CrateDB node in a cluster is equal allows applications and
 users to connect to any node and get the same response for the same operations.
 As already described in section :ref:`shared_nothing_components` the SQL
 Handler is responsible handling incoming client SQL requests, either using HTTP
@@ -259,9 +261,9 @@ cases is stateless already.
 
    Elastic deployment making use of the shared nothing architecture.
 
-If you deploy an instance of Crate together with every application server you
+If you deploy an instance of CrateDB together with every application server you
 will be able to dynamically scale up and down your database backend depending
-on your needs. The application only needs to communicate to its "bound" Crate
+on your needs. The application only needs to communicate to its "bound" CrateDB
 instance on localhost. The load balancer tracks the health of the hosts and if
 either the application or the database on a single host fails the complete host
 will taken out of the load balancing.

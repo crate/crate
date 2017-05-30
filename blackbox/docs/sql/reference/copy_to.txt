@@ -5,7 +5,7 @@
 ``COPY TO``
 ===========
 
-Export table contents to files on Crate node machines.
+Export table contents to files on CrateDB node machines.
 
 Synopsis
 ========
@@ -26,8 +26,8 @@ into a given directory with unique filenames. Each node with at least one shard
 of the table will export its contents onto their local disk.
 
 The created files are JSON formatted and contain one table row per line and,
-due to the distributed nature of Crate, *will remain on the same nodes* *where
-the shards are*.
+due to the distributed nature of CrateDB, *will remain on the same nodes*
+*where the shards are*.
 
 .. note::
 

@@ -424,8 +424,8 @@ Paths
 
   Multiple paths can be set by using a comma separated list and each of these
   paths will hold full shards (instead of striping data across them). In case
-  Crate finds striped shards at the provided locations (from CrateDB <0.55.0),
-  these shards will be migrated automatically on startup.
+  CrateDB finds striped shards at the provided locations (from CrateDB
+  <0.55.0), these shards will be migrated automatically on startup.
 
 **path.logs**
   | *Runtime:* ``no``
@@ -483,8 +483,8 @@ Memory
 Garbage Collection
 ------------------
 
-Crate logs if JVM garbage collection on different memory pools takes too long.
-The following settings can be used to adjust these timeouts:
+CrateDB logs if JVM garbage collection on different memory pools takes too
+long. The following settings can be used to adjust these timeouts:
 
 **monitor.jvm.gc.collector.young.warn**
   | *Default:* ``1000ms``
@@ -1030,7 +1030,7 @@ See also: :ref:`shared_nothing_discovery`.
 Discovery via DNS
 `````````````````
 
-Crate has built-in support for discovery via DNS. To enable DNS discovery the
+CrateDB has built-in support for discovery via DNS. To enable DNS discovery the
 ``discovery.type`` setting needs to be set to ``srv``.
 
 The order of the unicast hosts is defined by the priority, weight and name of

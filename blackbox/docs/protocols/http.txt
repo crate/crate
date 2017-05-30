@@ -6,7 +6,7 @@
 SQL HTTP Endpoint
 =================
 
-Crate provides a HTTP Endpoint that can be used to submit SQL queries. The
+CrateDB provides a HTTP Endpoint that can be used to submit SQL queries. The
 endpoint is accessible under ``<servername:port>/_sql``.
 
 SQL statements are sent to the ``_sql`` endpoint in ``json`` format, whereby
@@ -103,7 +103,7 @@ The same query using question marks as placeholders looks like this::
 Default Schema
 ==============
 
-It is possible to set a default schema while querying the Crate cluster via
+It is possible to set a default schema while querying the CrateDB cluster via
 ``_sql`` end point. In such case the HTTP request should contain the
 ``Default-Schema`` header with the specified schema name::
 
@@ -127,7 +127,7 @@ will be used instead.
 Column Types
 ============
 
-Crate can respond a list ``col_types`` with the data type id of every responded
+CrateDB can respond a list ``col_types`` with the data type id of every responded
 column. This way one can know what exact data type a column is holding.
 
 In order to get the list of column data types, a ``types`` query parameter must
@@ -293,8 +293,8 @@ GET parameter can be specified to return the stack trace::
 
 .. note::
 
-    This parameter is intended for crate developers or for users requesting
-    support for Crate. Client libraries shouldn't make use of this option and
+    This parameter is intended for CrateDB developers or for users requesting
+    support for CrateDB. Client libraries shouldn't make use of this option and
     not include the stacktrace.
 
 Currently the defined error codes are:

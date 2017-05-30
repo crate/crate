@@ -82,7 +82,7 @@ Available parameters are:
                    so, executes it.
 
 :only_expunge_deletes: Should the merge process only expunge segments with
-                       deletes in it. In Crate, a row is not deleted from a
+                       deletes in it. In CrateDB, a row is not deleted from a
                        segment, just marked as deleted. During a merge process
                        of segments, a new segment is created that does not have
                        those deletes. This flag allows to only merge segments

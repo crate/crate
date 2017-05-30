@@ -5,8 +5,8 @@
 Refresh
 =======
 
-Crate is `eventually consistent`_. Data written with a former statement is not
-guaranteed to be fetched with the next following select statement for the
+CrateDB is `eventually consistent`_. Data written with a former statement is
+not guaranteed to be fetched with the next following select statement for the
 affected rows.
 
 If required one or more tables can be refreshed explicitly in order to ensure

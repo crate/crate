@@ -13,7 +13,7 @@ To obtain the `UUID`_ of a job, stats needs to be enabled (see
 :ref:`conf_collecting_stats`). Job logging can be disabled by
 setting the queue size to zero.
 
-Killing an active job forces Crate to stop its execution on the cluster
+Killing an active job forces CrateDB to stop its execution on the cluster
 immediately. There are two different SQL commands available for killing jobs.
 
 The ``KILL ALL`` statement stops every single job on each node that is running.

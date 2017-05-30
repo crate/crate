@@ -36,7 +36,7 @@ Changes
 
  - Updated crate-admin to 1.0.3 which includes the following change:
 
-    - Added compatibility with future crate versions which will serve the
+    - Added compatibility with future CrateDB versions which will serve the
       admin-ui from ``/admin/`` instead of ``/_plugins/crate-admin/``.
 
 Fixes

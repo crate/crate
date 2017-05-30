@@ -5,14 +5,14 @@
 Supported Features
 ==================
 
-This section provides a list of features that Crate supports and to what extent
-it conforms to the current SQL standard `ISO/IEC 9075`_ "Database Language
-SQL".
+This section provides a list of features that CrateDB supports and to what
+extent it conforms to the current SQL standard `ISO/IEC 9075`_ "Database
+Language SQL".
 
 This list is approximate and features that are listed as supported might be
 nonconforming in their implementation. However, the main reference
-documentation of Crate always contains the most accurate information about what
-Crate supports, what they are and how to use them.
+documentation of CrateDB always contains the most accurate information about
+what CrateDB supports, what they are and how to use them.
 
 .. csv-table::
    :header: ID,Package,#,Description,Supported,Verified,Comments

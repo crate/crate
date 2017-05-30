@@ -4,13 +4,13 @@ Joins
 
 `JOINs`_ are essential operations in relational databases. They create a link
 between rows based on common values and allow the meaningful combination of
-these rows. Crate supports joins and due to its distributed nature allows you
+these rows. CrateDB supports joins and due to its distributed nature allows you
 to work with large amounts of data.
 
 In this document we will present the following topics. First, an overview of
 the existing types of joins and algorithms provided. Then a description of how
-Crate implements them, and finally how Crate uses optimizations to work with
-huge datasets.
+CrateDB implements them, and finally how CrateDB uses optimizations to work
+with huge datasets.
 
 Types of Join
 =============
@@ -72,10 +72,10 @@ An outer join has following types:
   - **Full** outer join returns matching tuples of both relations and dangling
     tuples produced by left and right outer joins.
 
-Joins in Crate
-==============
+Joins in CrateDB
+================
 
-Crate supports (a) CROSS JOIN, (b) INNER JOIN, (c) EQUI JOIN, (d) LEFT JOIN,
+CrateDB supports (a) CROSS JOIN, (b) INNER JOIN, (c) EQUI JOIN, (d) LEFT JOIN,
 (e) RIGHT JOIN and (f) FULL JOIN. To implement these, the nested loop join
 algorithm is implemented with a few optimizations.
 
@@ -136,13 +136,13 @@ function`_ , the data is broadcast from (or to) different nodes directly.
 Optimization
 ------------
 
-Crate implements joins using a nested loop - which means that the runtime
+CrateDB implements joins using a nested loop - which means that the runtime
 complexity grows exponentially (O(n*m)). Specifically for :ref:`cross-joins`
 this results in large amounts of data sent over the network and loaded into
-memory at the handler node. Crate reduces the volume of data transferred by
+memory at the handler node. CrateDB reduces the volume of data transferred by
 employing Query Then Fetch: First, filtering and ordering are applied (if
 possible where the data is located) to obtain the affected document IDs. Next,
-as soon as the final data set is ready, Crate fetches the selected fields and
+as soon as the final data set is ready, CrateDB fetches the selected fields and
 returns the data to the client.
 
 Pre-Ordering and Limits

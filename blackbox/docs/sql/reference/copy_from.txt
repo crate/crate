@@ -44,10 +44,10 @@ See also: :ref:`importing_data`.
 Type Casts and Constraints
 --------------------------
 
-Crate does not check if the column's data types match the types from the import
-file. It does not cast the types but will always import the data as in the
-source file. Furthermore Crate will only check for primary key duplicates but
-not for other :ref:`column_constraints` like ``NOT NULL``.
+CrateDB does not check if the column's data types match the types from the
+import file. It does not cast the types but will always import the data as in
+the source file. Furthermore CrateDB will only check for primary key duplicates
+but not for other :ref:`column_constraints` like ``NOT NULL``.
 
 For example a `WKT`_ string cannot be imported into a column of ``geo_shape``
 or ``geo_point`` type, since there is no implict cast to the `GeoJSON`_ format.
@@ -87,11 +87,11 @@ Supported Schemes
 ........
 
 The provided (absolute) path should point to files available *on at least one
-node* with read access to the Crate process (with its default user 'crate')
+node* with read access to the CrateDB process (with its default user 'crate')
 there.
 
 By default each node will attempt to read the files specified. In case the URI
-points to a shared folder (where other Crate nodes also have access) the
+points to a shared folder (where other CrateDB nodes also have access) the
 ``shared`` option must be set to true in order to avoid importing duplicates.
 
 .. _copy_from_s3:
@@ -105,7 +105,7 @@ Can be used to access buckets on the Amazon AWS S3 Service:
 
     s3://[<accesskey>:<secretkey>@]<bucketname>/<path>
 
-If ``accesskey`` and ``secretkey`` are ommited, Crate attempts to load the
+If ``accesskey`` and ``secretkey`` are ommited, CrateDB attempts to load the
 credentials from the environment or Java settings.
 
 Environment Variables - ``AWS_ACCESS_KEY_ID`` and ``AWS_SECRET_KEY``
@@ -132,10 +132,10 @@ Using the 's3://' URI scheme sets the ``shared`` option implicitly.
 ``http``, ``https``, and ``jar`` (Java URL protocols)
 .....................................................
 
-In addition to the schemes above, Crate supports all protocols supported by the
-`URL`_ implementation of its JVM (typically ``http``, ``https``, ``ftp``, and
-``jar``). Please refer to the documentation of the JVM vendor for an accurate
-list of supported protocols.
+In addition to the schemes above, CrateDB supports all protocols supported by
+the `URL`_ implementation of its JVM (typically ``http``, ``https``, ``ftp``,
+and ``jar``). Please refer to the documentation of the JVM vendor for an
+accurate list of supported protocols.
 
 These schemes *do not* support wildcard expansion.
 
@@ -188,7 +188,7 @@ Options
 ``bulk_size``
 .............
 
-Crate will process the lines it reads from the ``path`` in bulks. This option
+CrateDB will process the lines it reads from the ``path`` in bulks. This option
 specifies the size of one batch. The provided value must be greater than 0, the
 default value is 10000.
 
@@ -196,7 +196,7 @@ default value is 10000.
 ..........
 
 This option should be set to true if the URI's location is accessible by more
-than one Crate node to prevent them from importing the same file.
+than one CrateDB node to prevent them from importing the same file.
 
 The default value depends on the scheme of each URI.
 

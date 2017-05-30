@@ -74,7 +74,7 @@ Parameter Reference
 
 A parameter reference is a placeholder for a value.
 
-Crate clients usually have some kind of API to provide those values.
+CrateDB clients usually have some kind of API to provide those values.
 
 Parameter references can either be unnumbered or numbered:
 
@@ -85,7 +85,7 @@ Parameter references can either be unnumbered or numbered:
 Operator Invocation
 ===================
 
-There are two different types of operators in Crate:
+There are two different types of operators in CrateDB:
 
 - Binary: ``expression operator expression``
 
