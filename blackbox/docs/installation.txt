@@ -45,7 +45,7 @@ You can start the shell using the ``crash`` command::
 
 The CrateDB distribution also comes with a web based administration
 interface. It is served on port ``4200`` and you can access it with
-your browser once Crate is started::
+your browser once CrateDB is started::
 
   http://host1.example.com:4200/
 
@@ -70,7 +70,7 @@ installation::
     sh$ docker run -d -p 4200:4200 -p 4300:4300 crate crate -Ccluster.name=my_cluster
 
 The images are hosted on the `Docker Hub Registry`_. There is additional
-information on how to run Crate in a Docker container on the `docker-crate`_
+information on how to run CrateDB in a Docker container on the `docker-crate`_
 Github repository.
 
 .. _install_production:

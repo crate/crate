@@ -5,7 +5,7 @@
 ``SET`` and ``RESET``
 =====================
 
-Change and restore settings at runtime. To get an overview of available Crate
+Change and restore settings at runtime. To get an overview of available CrateDB
 settings, see :ref:`configuration`. Only settings documented with *Runtime:*
 ``yes`` can be changed.
 
@@ -35,8 +35,8 @@ Setting the unsupported settings will be ignored and logged with the ``WARN``
 logging level. See :ref:`conf-session-settings`, to get an overview of the
 supported session setting parameters.
 
-``SET LOCAL`` does not have any effect on Crate configurations. All ``SET
-LOCAL`` statements will be ignored by Crate and logged with the ``WARN``
+``SET LOCAL`` does not have any effect on CrateDB configurations. All ``SET
+LOCAL`` statements will be ignored by CrateDB and logged with the ``WARN``
 logging level.
 
 ``SET SESSION/LOCAL`` are introduced to be compliant with third-party

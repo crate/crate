@@ -5,7 +5,7 @@
 Geo Search
 ==========
 
-Crate can be used to store and query geographical information of many kinds
+CrateDB can be used to store and query geographical information of many kinds
 using the :ref:`geo_point_data_type` and :ref:`geo_shape_data_type` types. With
 these it is possible to store geographical locations, ways, shapes, areas and
 other entities. These can be queried for distance, containment, intersection
@@ -19,7 +19,7 @@ their coordinates. They are represented as columns of the respective datatypes.
 Geographic indices for :ref:`geo_shape <geo_shape_data_type>` columns are used
 in order to speed up geographic searches even on complex shapes. This indexing
 process results in a representation that is not exact (See :ref:`geo_shape
-<geo_shape_data_type>` for details). Crate does not operate on vector shapes
+<geo_shape_data_type>` for details). CrateDB does not operate on vector shapes
 but on a kind of a grid with the given precision as resolution.
 
 Creating tables containing geographic information is straightforward::
@@ -93,8 +93,8 @@ with lon and lat as seen above or as `WKT`_ string.
 :ref:`object literal <data-type-object-literals>` or parameter as seen above
 and as `WKT`_ string.
 
-When it comes to get some meaningful insights into your geographical data Crate
-supports different kinds of geographic queries.
+When it comes to get some meaningful insights into your geographical data
+CrateDB supports different kinds of geographic queries.
 
 Fast queries that leverage the geographic index are done using the
 :ref:`sql_dql_geo_match`:

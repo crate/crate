@@ -4,7 +4,7 @@
 Retrieving Data
 ===============
 
-Retrieving data from ``Crate`` is done by using a SQL ``SELECT`` statement. The
+Retrieving data from CrateDB is done by using a SQL ``SELECT`` statement. The
 response to a ``SELECT`` query contains the column names of the result, the
 actual result rows as a two-dimensional array of values, the row count and the
 duration.
@@ -54,7 +54,7 @@ or another ``SELECT`` statement. See :ref:`SELECT Reference
 <sql_reference_select>`
 
 A table is referenced by schema and table name and can optionally be aliased.
-If the table ``t`` is only referenced by table name, Crate assumes the table
+If the table ``t`` is only referenced by table name, CrateDB assumes the table
 ``doc.t`` was meant. Schemas that were newly created using
 :ref:`ref-create-table` must be referenced explicitly.
 
@@ -100,7 +100,7 @@ Joins
 
 .. note::
 
-    Crate currently supports only a limited set of JOINs.
+    CrateDB currently supports only a limited set of JOINs.
     See the :ref:`sql_joins` for current state.
 
 .. _sql_dql_distinct_clause:
@@ -321,7 +321,7 @@ Examples::
 ``LIKE``
 --------
 
-`Crate` supports the `LIKE` operator. This operator can be used to query for
+CrateDB supports the `LIKE` operator. This operator can be used to query for
 rows where only part of a columns value should match something. For example to
 get all locations where the name starts with 'Ar' the following query can be
 used::
@@ -368,9 +368,9 @@ escape them using a backslash::
 .. note::
 
     Queries with a like clause can be quite slow. Especially if the like clause
-    starts with a wildcard character. Because in that case CRATE has to iterate
-    over all rows and can't utilize the index. For better performance consider
-    using a fulltext index.
+    starts with a wildcard character. Because in that case CrateDB has to
+    iterate over all rows and can't utilize the index. For better performance
+    consider using a fulltext index.
 
 .. _sql_dql_not:
 
@@ -406,7 +406,7 @@ The result type is boolean.
 ``IN``
 ------
 
-`Crate` also supports the binary operator ``IN``, which allows you to verify
+CrateDB also supports the binary operator ``IN``, which allows you to verify
 the membership of left-hand operand in a right-hand set of expressions. Returns
 ``true`` if any evaluated expression value from a right-hand set equals
 left-hand operand. Returns ``false`` otherwise::
@@ -440,7 +440,7 @@ Use this predicate to check for ``NULL`` values as SQL's three-valued logic
 does always return ``NULL`` when comparing ``NULL``.
 
 :expr: expression of one of the supported :ref:`sql_ddl_datatypes` supported by
-       crate.
+       CrateDB.
 
 ::
 
@@ -484,7 +484,7 @@ Use this predicate to check for non-``NULL`` values as SQL's three-valued logic
 does always return ``NULL`` when comparing ``NULL``.
 
 :expr: expression of one of the supported :ref:`sql_ddl_datatypes` supported by
-       crate.
+       CrateDB.
 
 ::
 
@@ -661,7 +661,7 @@ limit on SELECT statements.
 Inner Objects and Nested Objects
 --------------------------------
 
-``Crate`` supports an ``object`` data type, used for simple storing a whole
+CrateDB supports an ``object`` data type, used for simple storing a whole
 object into a column and it's even possible to select and query for properties
 of such objects.
 
@@ -700,7 +700,7 @@ Inserting objects::
 Object Arrays
 -------------
 
-Arrays in crate can only be queried for containment using the
+Arrays in CrateDB can only be queried for containment using the
 :ref:`sql_dql_any_array` operator. One exception are object arrays. As you can
 access fields of :ref:`sql_dql_objects` using subscript expressions, you can
 access fields of object arrays.
@@ -797,7 +797,7 @@ index greater than the actual array size results in a NULL value.
 Data Aggregation
 ----------------
 
-Crate supports :ref:`aggregation` via the following aggregation functions.
+CrateDB supports :ref:`aggregation` via the following aggregation functions.
 
 Aggregation works across all the rows that match a query or on all matching
 rows in every distinct group of a ``GROUP BY`` statement. Aggregating
@@ -989,7 +989,7 @@ Some Examples::
 ``GROUP BY``
 ------------
 
-Crate supports the `group by` clause. This clause can be used to group the
+CrateDB supports the `group by` clause. This clause can be used to group the
 resulting rows by the value(s) of one or more columns. That means that rows
 that contain duplicate values will be merged together.
 

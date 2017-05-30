@@ -132,7 +132,7 @@ Returns: ``integer``
 
 .. note::
 
-    Crate.io uses UTF-8 encoding internally, which uses between 1 and 4 bytes
+    CrateDB uses UTF-8 encoding internally, which uses between 1 and 4 bytes
     per character.
 
 ::
@@ -233,11 +233,11 @@ Computes the SHA1 checksum of the given string.
 
 ::
 
-    cr> select sha1('crate');
+    cr> select sha1('foo');
     +------------------------------------------+
-    | sha1('crate')                            |
+    | sha1('foo')                              |
     +------------------------------------------+
-    | 1673dc397042322a0a5ac49c79cc08d3a25cb0f6 |
+    | 0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33 |
     +------------------------------------------+
     SELECT 1 row in set (... sec)
 
@@ -1024,7 +1024,7 @@ See below for an example::
 Regular Expression Functions
 ============================
 
-The regular expression functions in crate use `Java Regular Expressions`_.
+The regular expression functions in CrateDB use `Java Regular Expressions`_.
 
 See the api documentation for more details.
 
@@ -1619,10 +1619,10 @@ Returns: ``string``
 The default schema can be set when using the `JDBC
 <https://crate.io/docs/reference/jdbc/#jdbc-url-format>`_ and `HTTP clients
 <https://crate.io/docs/reference/protocols/http.html#default-schema>`_ such as
-`Crate PDO`_.
+`CrateDB PDO`_.
 
 The ``CURRENT_SCHEMA`` function has a special SQL syntax, meaning that it must
-be called without trailing parenthesis (``()``). However, Crate also supports
+be called without trailing parenthesis (``()``). However, CrateDB also supports
 the optional parenthesis.
 
 Synopsis::
@@ -1647,4 +1647,4 @@ Example::
 .. _Java Regular Expressions: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
 .. _`MySQL date_format`: http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
 .. _`Haversine formula`: https://en.wikipedia.org/wiki/Haversine_formula
-.. _`Crate PDO`: https://crate.io/docs/reference/pdo/usage.html#dsn
+.. _`CrateDB PDO`: https://crate.io/docs/reference/pdo/usage.html#dsn

@@ -55,7 +55,7 @@ The table settings returned within the ``WITH`` clause of the result are all
 available table settings showing their respective values at the time of the
 execution of the ``SHOW`` statement.
 
-Different versions of Crate may have different default table settings. This
+Different versions of CrateDB may have different default table settings. This
 means that if you re-create the table using the resulting ``CREATE TABLE``
 statement the settings of the 'old' table may differ from the settings of the
 'new' table. This is because the table settings are set explicitly on creation

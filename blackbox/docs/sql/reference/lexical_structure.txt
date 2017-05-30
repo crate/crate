@@ -24,7 +24,7 @@ delimited with single quotes ``'`` as defined in ANSI SQL, for example
 Escape Strings
 --------------
 
-The escape character in Crate is the single-quote ``'``. A character gets
+The escape character in CrateDB is the single-quote ``'``. A character gets
 escaped when adding a single-quote before it. For example a single quote
 character within a string literal can be included by writing two adjacent
 single quotes, e.g. ``'Jack''s car'``.
@@ -39,9 +39,9 @@ single quotes, e.g. ``'Jack''s car'``.
 Key Words and Identifiers
 =========================
 
-The table bellow lists **key words** reserved in Crate and need to be quoted if
-used as identifiers. Items in bold are Crate specific and not included in the
-SQL standards from SQL-92 to SQL-2011.
+The table bellow lists **key words** reserved in CrateDB and need to be quoted
+if used as identifiers. Items in bold are CrateDB specific and not included in
+the SQL standards from SQL-92 to SQL-2011.
 
 .. csv-table::
    :widths: 10, 10, 10, 10

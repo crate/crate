@@ -12,13 +12,13 @@ regular data.
 Creating a Table for Blobs
 ==========================
 
-Before adding blobs a ``blob table`` must be created. Lets use the crate shell
-``crash`` to issue the SQL statement::
+Before adding blobs a ``blob table`` must be created. Lets use the CrateDB
+shell ``crash`` to issue the SQL statement::
 
     sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=1)"
     CREATE OK, 1 row affected (... sec)
 
-Now crate is configured to allow blobs to be management under the
+Now CrateDB is configured to allow blobs to be management under the
 ``/_blobs/myblobs`` endpoint.
 
 Custom Location for Storing Blob Data
@@ -41,7 +41,7 @@ Blob data will be stored under this path with the following layout::
 Global by Config
 ----------------
 
-Just uncomment or add following entry at the crate config in order to define a
+Just uncomment or add following entry at the CrateDB config in order to define a
 custom path globally for all blob tables::
 
   blobs.path: /path/to/blob/data
@@ -165,7 +165,7 @@ If the blob doesn't exist a 404 Not Found error is returned::
 Deleting a Blob Table
 =====================
 
-Blob tables can be deleted similar to normal tables (again using the crate
+Blob tables can be deleted similar to normal tables (again using the CrateDB
 shell here)::
 
     sh$ crash -c "drop blob table myblobs"

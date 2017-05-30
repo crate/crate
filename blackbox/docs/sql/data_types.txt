@@ -5,8 +5,8 @@
 Data Types
 ==========
 
-Data can be stored in different formats. Crate has different types that can be
-specified if a table is created using the the :ref:`ref-create-table`
+Data can be stored in different formats. CrateDB has different types that can
+be specified if a table is created using the the :ref:`ref-create-table`
 statement. Data types play a central role as they limit what kind of data can
 be inserted, how it is stored and they also influence the behaviour when the
 records are queried.
@@ -97,7 +97,7 @@ Columns of type string can also be analyzed. See :ref:`sql_ddl_index_fulltext`.
 Numeric Types
 =============
 
-Crate supports a set of numeric types: ``integer``, ``long``, ``short``,
+CrateDB supports a set of numeric types: ``integer``, ``long``, ``short``,
 ``double``, ``float`` and ``byte``.
 
 The ``float`` and ``double`` data types are inexact, variable-precision numeric
@@ -319,10 +319,10 @@ Both of these index types accept the following parameters:
               :ref:`geo_shape_data_type_index`). This can be used to control
               the precision of the used index. Since this parameter requires a
               certain level of understanting of the underlying implementation,
-              users may use the ``precision`` parameter instead. Crate uses the
-              ``tree_levels`` parameter internally and this is what is returned
-              via the ``SHOW CREATE TABLE`` statement even if you use the
-              precision parameter. Defaults to the value which is ``50m``
+              users may use the ``precision`` parameter instead. CrateDB uses
+              the ``tree_levels`` parameter internally and this is what is
+              returned via the ``SHOW CREATE TABLE`` statement even if you use
+              the precision parameter. Defaults to the value which is ``50m``
               converted to ``precision`` depending on the index type.
 
 .. _geo_shape_data_type_index:
@@ -331,7 +331,7 @@ Geo Shape Index Structure
 -------------------------
 
 Computations on very complex polygons and geometry collections are exact but
-very expensive. To provide fast queries even on complex shapes, Crate uses a
+very expensive. To provide fast queries even on complex shapes, CrateDB uses a
 different approach to store, analyze and query geo shapes.
 
 The surface of the earth is represented as a number of grid layers each with
@@ -608,7 +608,8 @@ Combined::
 ``array``
 =========
 
-Crate supports arrays. An array is a collection of other data types. These are:
+CrateDB supports arrays. An array is a collection of other data types. These
+are:
 
 * boolean
 * string
@@ -681,8 +682,8 @@ Type Conversion
 
 A type ``cast`` specifies a conversion from one data type to another. It will
 only succeed if the value of the expression is convertible to the desired data
-type, otherwise an error is thrown. Crate supports two equivalent syntaxes for
-type casts:
+type, otherwise an error is thrown. CrateDB supports two equivalent syntaxes
+for type casts:
 
 ::
 

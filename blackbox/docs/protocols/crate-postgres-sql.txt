@@ -1,48 +1,49 @@
 .. _crate_postgres_sql:
 
-========================
-Crate SQL and PostgreSQL
-========================
+==========================
+CrateDB SQL and PostgreSQL
+==========================
 
-Crate uses the PostgreSQL Wire Protocol (since Crate 0.56), which makes it easy
-to use many PostgreSQL compatible tools and libraries directly with Crate.
-However, many of these tools assume that they are talking to PostgreSQL
-specifically, and thus rely on SQL extensions and idioms that are unique to
-PostgreSQL. Because of this, some tools or libraries may not work with other
-SQL databases such as Crate.
+CrateDB uses the PostgreSQL Wire Protocol (since CrateDB 0.56), which makes it
+easy to use many PostgreSQL compatible tools and libraries directly with
+CrateDB. However, many of these tools assume that they are talking to
+PostgreSQL specifically, and thus rely on SQL extensions and idioms that are
+unique to PostgreSQL. Because of this, some tools or libraries may not work
+with other SQL databases such as CrateDB.
 
-Crate’s SQL query engine enables real-time search & aggregations for online
+CrateDB’s SQL query engine enables real-time search & aggregations for online
 analytic processing (OLAP) and business intelligence (BI) with the benefit of
-the ability to scale horizontally. The use-cases of Crate are different than
-those of PostgreSQL, as Crate’s specialized storage schema and query execution
-engine address different requirements (see `High Level Architecture`_).
+the ability to scale horizontally. The use-cases of CrateDB are different than
+those of PostgreSQL, as CrateDB’s specialized storage schema and query
+execution engine address different requirements (see `High Level
+Architecture`_).
 
 The listed features below cover the main differences in implementation and
-dialect between Crate and PostgreSQL. A detailed comparison between Crate’s SQL
-dialect and standard SQL is defined in
+dialect between CrateDB and PostgreSQL. A detailed comparison between CrateDB’s
+SQL dialect and standard SQL is defined in
 :ref:`crate_standard_sql`.
 
 ``COPY``
 ========
 
-Crate does not support the distinct sub-protocol that is used to serve ``COPY``
-operations and provides another implementation for transferring bulk data using
-the :ref:`copy_from` and :ref:`copy_to` statements.
+CrateDB does not support the distinct sub-protocol that is used to serve
+``COPY`` operations and provides another implementation for transferring bulk
+data using the :ref:`copy_from` and :ref:`copy_to` statements.
 
 Objects
 =======
 
 The definition of structured values by using ``JSON`` types, *composite types*
-or ``HSTORE`` are not supported. Crate alternatively allows the definition of
+or ``HSTORE`` are not supported. CrateDB alternatively allows the definition of
 nested documents (of type :ref:`object_data_type`) that store fieldscontaining
-any Crate supported data type, including nested object types.
+any CrateDB supported data type, including nested object types.
 
 Type Casts
 ==========
 
-Crate accepts the :ref:`type_conversion` syntax for conversion of one data type
-to another but does not support the PostgreSQL specific ``expression::type``
-syntax (see `Value Expressions`_).
+CrateDB accepts the :ref:`type_conversion` syntax for conversion of one data
+type to another but does not support the PostgreSQL specific
+``expression::type`` syntax (see `Value Expressions`_).
 
 Arrays
 ======
@@ -54,7 +55,8 @@ The definition of an array by writing its values as a literal constant with the
 syntax of  ``'{ val1 delim val2 delim ... }'`` is not supported.
 
 While multidimensional arrays in PostgreSQL must have matching extends for each
-dimension, Crate allows different length nested arrays as this example shows::
+dimension, CrateDB allows different length nested arrays as this example
+shows::
 
     cr> select [[1,2,3],[1,2]] from sys.cluster;
     +---------------------+
@@ -75,13 +77,13 @@ Text Search Functions and Operators
 ===================================
 
 The functions and operators provided by PostgreSQL for full-text search (see
-`PostgreSQL Fulltext Search`_) are not compatible with those provided by Crate.
-For more information about the built-in full-text search in Crate refer to
-:ref:`sql_dql_fulltext_search`.
+`PostgreSQL Fulltext Search`_) are not compatible with those provided by
+CrateDB. For more information about the built-in full-text search in CrateDB
+refer to :ref:`sql_dql_fulltext_search`.
 
 If you are missing features, functions or dialect improvements and have a great
 use case for it, let us know on `Github`_. We’re always improving and extending
-Crate, and we love to hear feedback.
+CrateDB, and we love to hear feedback.
 
 Expression Evaluation
 =====================

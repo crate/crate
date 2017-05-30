@@ -4,15 +4,15 @@
 Postgres Wire Protocol
 ======================
 
-Crate contains experimental support for the `PostgreSQL wire protocol v3`_.
+CrateDB contains experimental support for the `PostgreSQL wire protocol v3`_.
 
 If a node is started with postgres support enabled it will bind to port
 ``5432`` by default. To use a custom port, set the corresponding
 :ref:`conf_ports` in the :doc:`Configuration <../configuration>`.
 
 However, even though connecting PostgreSQL tools and client libraries is
-supported, the actual SQL statements have to be supported by Crate's SQL
-dialect. A notable difference is that Crate doesn't support transactions, which
+supported, the actual SQL statements have to be supported by CrateDB's SQL
+dialect. A notable difference is that CrateDB doesn't support transactions, which
 is why clients should generally enable ``autocommit``.
 
 .. note::
@@ -33,17 +33,17 @@ is why clients should generally enable ``autocommit``.
 Server Compatibility and Implementation Status
 ==============================================
 
-Crate emulates PostgreSQL server version ``9.5``
+CrateDB emulates PostgreSQL server version ``9.5``
 
 Start-Up
 --------
 
-The connection handshake is implemented without authentication support. Crate
+The connection handshake is implemented without authentication support. CrateDB
 will always respond with ``AuthenticationOK`` and any SSLRequests are answered
 with ``N`` to indicate that it does not support SSL.
 
-Since Crate uses schemas instead of databases, the ``database`` parameter sets
-the default schema name for future queries. If no schema is specified, the
+Since CrateDB uses schemas instead of databases, the ``database`` parameter
+sets the default schema name for future queries. If no schema is specified, the
 schema ``doc``will be used as default. Additionally, the only supported charset
 is ``UTF8``.
 
@@ -69,7 +69,7 @@ The `Extended Query`_ protocol is implemented with the following limitations:
 Copy Operations
 ---------------
 
-Crate does not support the ``COPY`` sub-protocol.
+CrateDB does not support the ``COPY`` sub-protocol.
 
 Function Call
 -------------
@@ -90,7 +90,7 @@ Some clients require the `pg_catalog.pg_type` in order to be able to stream
 arrays or other non-primitive types.
 
 For compatibility reasons there is a trimmed down `pg_type` table available in
-Crate::
+CrateDB::
 
     cr> select * from pg_catalog.pg_type order by oid;
     +------+----------+---------+-------------+
@@ -145,7 +145,7 @@ Limitations
 ...........
 
 - *reflection* methods like ``conn.getMetaData().getTables(...)`` won't work
-  since the required tables are unavailable in Crate.
+  since the required tables are unavailable in CrateDB.
 
   As a workaround it's possible to use ``SHOW TABLES`` or query the
   ``information_schema`` tables manually using ``SELECT`` statements.
@@ -180,8 +180,8 @@ Connection failover and load balancing is supported as described here:
 
 .. note::
 
-   It is not recommended to use the **targetServerType** parameter since Crate
-   has no concept of Master/Slave nodes.
+   It is not recommended to use the **targetServerType** parameter since
+   CrateDB has no concept of Master/Slave nodes.
 
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
 .. _Simple Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#AEN108745

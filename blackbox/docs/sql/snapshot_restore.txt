@@ -7,9 +7,9 @@ Backup With Snapshot and Restore
 Snapshot
 --------
 
-In CRATE, backups are called *Snapshots*. They represent the state of the
-tables in a CRATE cluster at the time the *Snapshot* was created. A *Snapshot*
-is always stored in a *Repository* which has to be created first.
+In CrateDB, backups are called *Snapshots*. They represent the state of the
+tables in a CrateDB cluster at the time the *Snapshot* was created. A
+*Snapshot* is always stored in a *Repository* which has to be created first.
 
 Creating a Repository
 .....................
@@ -25,16 +25,16 @@ They are created using the :ref:`ref-create-repository` statement::
 Repositories are uniquely identified by their name. Every repository has a
 specific type which determines how snapshots are stored.
 
-CRATE supports different repository types:
+CrateDB supports different repository types:
 :ref:`ref-create-repository-types-fs`, :ref:`ref-create-repository-types-hdfs`,
 :ref:`ref-create-repository-types-s3`, and
 :ref:`ref-create-repository-types-url`. Support for further types can be
 added using :ref:`plugins`.
 
-The creation of a repository configures it inside the crate cluster. In general
-no data is written, no snapshots inside repositories changed or deleted. This
-way you can tell the CRATE cluster about existing repositories which already
-contain snapshots.
+The creation of a repository configures it inside the CrateDB cluster. In
+general no data is written, no snapshots inside repositories changed or
+deleted. This way you can tell the CrateDB cluster about existing repositories
+which already contain snapshots.
 
 Creating a repository with the same name will result in an error::
 
@@ -158,12 +158,12 @@ restore.
 
 .. note::
 
-    This is only possible with Crate version 0.55.5 or greater!
+    This is only possible with CrateDB version 0.55.5 or greater!
 
     Snapshots of single partitions that have been created with earlier versions
-    of Crate may be restored, but lead to orphaned partitions!
+    of CrateDB may be restored, but lead to orphaned partitions!
 
-    When using Crate prior to 0.55.5 you will have to create the table schema
+    When using CrateDB prior to 0.55.5 you will have to create the table schema
     first before restoring.
 
 ::
@@ -224,14 +224,14 @@ in the cluster state, so it's not accessible any more.
 Requirements for Using HDFS Repositories
 ----------------------------------------
 
-Crate supports repositories of type
+CrateDB supports repositories of type
 :ref:`ref-create-repository-types-hdfs` type by default, but required
-`Hadoop`_ java client libraries are not included in any Crate distribution and
-need to be added to Crate's hdfs plugin folder. By default this is
+`Hadoop`_ java client libraries are not included in any CrateDB distribution
+and need to be added to CrateDB's hdfs plugin folder. By default this is
 ``$CRATE_HOME/plugins/es-repository-hdfs``
 
 Because some libraries `Hadoop`_ depends on are also required (and so deployed)
-by Crate, only the `Hadoop`_ libraries listed below must be copied into the
+by CrateDB, only the `Hadoop`_ libraries listed below must be copied into the
 ``$CRATE_HOME/plugins/es-repository-hdfs`` folder, other libraries will be
 ignored::
 

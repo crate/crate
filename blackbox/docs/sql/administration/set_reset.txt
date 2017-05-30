@@ -3,7 +3,7 @@
 Set and Reset
 =============
 
-The crate cluster can be configured at runtime using the :ref:`SET <ref-set>`
+The CrateDB cluster can be configured at runtime using the :ref:`SET <ref-set>`
 and :ref:`RESET <ref-set>` statement. See the :ref:`Cluster Settings
 <conf-cluster-settings>` configuration section for details about the supported
 settings.

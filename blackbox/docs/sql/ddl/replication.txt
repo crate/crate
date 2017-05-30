@@ -4,11 +4,11 @@
 Replication
 ===========
 
-Replication of a table in Crate means that each primary shard of a table is
+Replication of a table in CrateDB means that each primary shard of a table is
 stored additionally on so called secondary shards. This might be useful for
-better read performance and high availability. If not specified, crate creates
-one replica, which means that a tables content is stored twice across the nodes
-of a cluster.
+better read performance and high availability. If not specified, CrateDB
+creates one replica, which means that a tables content is stored twice across
+the nodes of a cluster.
 
 Defining the number of replicas is done using the ``number_of_replicas``
 property.

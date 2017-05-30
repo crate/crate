@@ -3,7 +3,7 @@ Architecture
 ============
 
 This section provides an overview about the core concepts and an architectural
-overview of Crate.
+overview of CrateDB.
 
 |
 

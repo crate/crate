@@ -74,10 +74,10 @@ name to use for an output column, write AS ``output_name`` after the column's
 match any reserved keyword. For protection against possible future keyword
 additions, it is recommended that you always either write AS or double-quote
 the output name.) If you do not specify a column name, a name is chosen
-automatically by Crate. If the column's expression is a simple column reference
-then the chosen name is the same as that column's name. In more complex cases a
-function or type name may be used, or the system may fall back on a generated
-name.
+automatically by CrateDB. If the column's expression is a simple column
+reference then the chosen name is the same as that column's name. In more
+complex cases a function or type name may be used, or the system may fall back
+on a generated name.
 
 An output column's name can be used to refer to the column's value in ORDER BY
 and GROUP BY clauses, but not in the WHERE clause; there you must write out the
