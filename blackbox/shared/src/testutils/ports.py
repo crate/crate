@@ -64,9 +64,15 @@ class PortPool(object):
             port_end = port_start + range_size + 1
 
             with self.lock:
-                for i in range(port_start, port_end):
+                loop_continue = False
+                for i in range(port_start + 1, port_end):
                     if i in self.ports:
-                        continue
+                         loop_continue = True
+                         break
+
+                if (loop_continue):
+                    continue
+
                 try:
                     for i in range(port_start, port_end):
                         self.bind_port(addr, i)
