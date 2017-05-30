@@ -15,6 +15,10 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+ - ``srv`` is no longer a valid configuration option for ``discovery.type``.
+   Instead there is a new ``discovery.zen.hosts_provider`` settings which can
+   be set to ``srv`` to enable DNS service discovery.
+
 Changes
 =======
 
