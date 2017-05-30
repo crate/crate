@@ -23,6 +23,7 @@ import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.operation.auth.HbaProtocol;
+import io.crate.operation.user.User;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -77,19 +78,16 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                 address.getHostAddress(), username, HbaProtocol.HTTP.toString());
             sendUnauthorized(ctx.channel(), errorMessage);
         } else {
-            authMethod.httpAuthentication(username)
-                .whenComplete((user, throwable) -> {
-                    if (throwable == null) {
-                        if (user != null && LOGGER.isTraceEnabled()) {
-                            LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".",
-                                username, authMethod.name());
-                        }
-                        authorized = true;
-                        ctx.fireChannelRead(request);
-                    } else {
-                        sendUnauthorized(ctx.channel(), throwable.getMessage());
-                    }
-                });
+            try {
+                User user = authMethod.authenticate(username);
+                if (user != null && LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".", username, authMethod.name());
+                }
+                authorized = true;
+                ctx.fireChannelRead(request);
+            } catch (Exception e) {
+                sendUnauthorized(ctx.channel(), e.getMessage());
+            }
         }
     }
 

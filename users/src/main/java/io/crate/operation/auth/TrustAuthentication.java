@@ -18,14 +18,8 @@
 
 package io.crate.operation.auth;
 
-import io.crate.concurrent.CompletableFutures;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
-import io.crate.protocols.postgres.Messages;
-import io.netty.channel.Channel;
-
-import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
 
 
 public class TrustAuthentication implements AuthenticationMethod {
@@ -38,35 +32,17 @@ public class TrustAuthentication implements AuthenticationMethod {
         this.userManager = userManager;
     }
 
-    private static CompletableFuture<User> failedFutureForUser(String userName) {
-        return CompletableFutures.failedFuture(
-            new Throwable(String.format(Locale.ENGLISH, "trust authentication failed for user \"%s\"", userName))
-        );
-    }
-
     @Override
-    public CompletableFuture<User> pgAuthenticate(Channel channel, String userName) {
+    public User authenticate(String userName) {
         User user = userManager.findUser(userName);
         if (user == null) {
-            return failedFutureForUser(userName);
+            throw new RuntimeException("trust authentication failed for user \"" + userName + "\"");
         }
-        CompletableFuture<User> future = new CompletableFuture<>();
-        Messages.sendAuthenticationOK(channel)
-            .addListener(f -> future.complete(user));
-        return future;
+        return user;
     }
 
     @Override
     public String name() {
         return NAME;
-    }
-
-    @Override
-    public CompletableFuture<User> httpAuthentication(String userName) {
-        User user = userManager.findUser(userName);
-        if (user == null) {
-            return failedFutureForUser(userName);
-        }
-        return CompletableFuture.completedFuture(user);
     }
 }

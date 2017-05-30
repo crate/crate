@@ -18,7 +18,6 @@
 
 package io.crate.http.netty;
 
-import io.crate.concurrent.CompletableFutures;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.AuthenticationProvider;
@@ -26,7 +25,6 @@ import io.crate.operation.auth.HbaProtocol;
 import io.crate.operation.user.User;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.http.*;
 import org.elasticsearch.common.settings.Settings;
@@ -35,7 +33,6 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CompletableFuture;
 
 import static org.hamcrest.core.Is.is;
 
@@ -44,18 +41,13 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
     private final AuthenticationMethod denyAll = new AuthenticationMethod() {
 
         @Override
-        public CompletableFuture<User> pgAuthenticate(Channel channel, String userName) {
-            return CompletableFutures.failedFuture(new Throwable("denied"));
+        public User authenticate(String userName) {
+            throw new RuntimeException("denied");
         }
 
         @Override
         public String name() {
             return "denyAll";
-        }
-
-        @Override
-        public CompletableFuture<User> httpAuthentication(String userName) {
-            return CompletableFutures.failedFuture(new Throwable("denied"));
         }
     };
 

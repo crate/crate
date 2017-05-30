@@ -26,10 +26,8 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManagerProvider;
 import io.crate.plugin.PipelineRegistry;
-import io.crate.protocols.postgres.Messages;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
-import io.netty.channel.Channel;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
@@ -37,7 +35,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import java.net.InetAddress;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 
@@ -67,21 +64,13 @@ public class AuthenticationProvider implements Provider<Authentication> {
 
         private final AuthenticationMethod alwaysOk = new AuthenticationMethod() {
             @Override
-            public CompletableFuture<User> pgAuthenticate(Channel channel, String userName) {
-                CompletableFuture<User> future = new CompletableFuture<>();
-                Messages.sendAuthenticationOK(channel)
-                    .addListener(f -> future.complete(null));
-                return future;
+            public User authenticate(String userName) {
+                return null;
             }
 
             @Override
             public String name() {
                 return "alwaysOk";
-            }
-
-            @Override
-            public CompletableFuture<User> httpAuthentication(String userName) {
-                return CompletableFuture.completedFuture(null);
             }
         };
 

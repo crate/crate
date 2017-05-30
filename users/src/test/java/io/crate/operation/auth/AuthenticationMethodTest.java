@@ -27,8 +27,6 @@ import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
 import io.crate.operation.user.UserManagerService;
 import io.crate.test.integration.CrateUnitTest;
-import io.netty.channel.Channel;
-import io.netty.channel.embedded.EmbeddedChannel;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Test;
 
@@ -55,18 +53,9 @@ public class AuthenticationMethodTest extends CrateUnitTest {
         TrustAuthentication trustAuth = new TrustAuthentication(fakeUserManager);
         assertThat(trustAuth.name(), is("trust"));
 
-        Channel ch = new EmbeddedChannel();
+        assertThat(trustAuth.authenticate("crate").name(), is("crate"));
 
-        trustAuth.pgAuthenticate(ch, "crate")
-            .whenComplete((user, throwable) -> {
-                assertThat(user.name(), is("crate"));
-                assertNull(throwable);
-            });
-
-        trustAuth.pgAuthenticate(ch, "cr8")
-            .whenComplete((success, throwable) -> {
-                assertNotNull(throwable);
-            });
-
+        expectedException.expectMessage("trust authentication failed for user \"cr8\"");
+        trustAuth.authenticate("cr8");
     }
 }

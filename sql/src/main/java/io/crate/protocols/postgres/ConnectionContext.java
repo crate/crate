@@ -32,6 +32,7 @@ import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.HbaProtocol;
+import io.crate.operation.user.User;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
@@ -367,20 +368,19 @@ class ConnectionContext {
             );
             Messages.sendAuthenticationError(channel, errorMessage);
         } else {
-            authMethod.pgAuthenticate(channel, userName)
-                .whenComplete((user, throwable) -> {
-                    if (throwable == null) {
-                        if (user != null && LOGGER.isTraceEnabled()) {
-                            LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".",
-                                    user.name(), authMethod.name());
-                        }
-                        sessionContext = new SessionContext(properties, user);
-                        session = sqlOperations.createSession(sessionContext);
-                        sendReadyForQuery(channel);
-                    } else {
-                        Messages.sendAuthenticationError(channel, throwable.getMessage());
-                    }
-                });
+            try {
+                User user = authMethod.authenticate(userName);
+                if (user != null && LOGGER.isTraceEnabled()) {
+                    LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".",
+                        user.name(), authMethod.name());
+                }
+                sessionContext = new SessionContext(properties, user);
+                session = sqlOperations.createSession(sessionContext);
+                Messages.sendAuthenticationOK(channel)
+                    .addListener(f -> sendReadyForQuery(channel));
+            } catch (Exception e) {
+                Messages.sendAuthenticationError(channel, e.getMessage());
+            }
         }
     }
 

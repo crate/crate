@@ -21,19 +21,18 @@ package io.crate.operation.auth;
 import com.google.common.collect.ImmutableMap;
 import io.crate.operation.user.User;
 import io.crate.test.integration.CrateUnitTest;
-import io.netty.channel.Channel;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 
 import static io.crate.operation.auth.HostBasedAuthentication.Matchers.*;
 import static org.hamcrest.core.Is.is;
@@ -116,19 +115,15 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
     public void testResolveAuthMethod() throws Exception {
         AuthenticationMethod noopAuthMethod = new AuthenticationMethod() {
 
+            @Nullable
             @Override
-            public CompletableFuture<User> pgAuthenticate(Channel channel, String userName) {
+            public User authenticate(String userName) {
                 return null;
             }
 
             @Override
             public String name() {
                 return "trust";
-            }
-
-            @Override
-            public CompletableFuture<User> httpAuthentication(String userName) {
-                return null;
             }
         };
         authService.registerAuthMethod(noopAuthMethod.name(), () -> noopAuthMethod);

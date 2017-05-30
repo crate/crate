@@ -23,34 +23,20 @@
 package io.crate.operation.auth;
 
 import io.crate.operation.user.User;
-import io.netty.channel.Channel;
 
-import java.util.concurrent.CompletableFuture;
+import javax.annotation.Nullable;
 
-/**
- * Common interface for Authentication methods.
- *
- * An auth method must provide a unique name which is exposed via the {@link #name()} method.
- *
- * It is also responsible for authentication for the Postgres Wire Protocol,
- * {@link #pgAuthenticate(Channel channel, String userName)},
- */
 public interface AuthenticationMethod {
     /**
-     * Authenticates the Postgres Wire Protocol client,
-     * sends AuthenticationOK if authentication is successful
-     * If authentication fails a throwable is passed to the future
-     * @param channel request channel
      * @param userName the userName sent with the startup message
-     * @return Future with authenticated user or null
-     *
+     * @return the user or null; null should be handled as if it's a "guest" user
+     * @throws RuntimeException if the authentication failed
      */
-    CompletableFuture<User> pgAuthenticate(Channel channel, String userName);
+    @Nullable
+    User authenticate(String userName);
 
     /**
-     * @return name of the authentication method
+     * @return unique name of the authentication method
      */
     String name();
-
-    CompletableFuture<User> httpAuthentication(String userName);
 }

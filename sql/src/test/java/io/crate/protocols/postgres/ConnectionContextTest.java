@@ -35,21 +35,19 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.channel.Channel;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 import static io.netty.util.ReferenceCountUtil.releaseLater;
-import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
 
@@ -109,7 +107,7 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
         when(sqlOperations.createSession(any(SessionContext.class))).thenReturn(session);
         ConnectionContext ctx = new ConnectionContext(
                 sqlOperations,
-                new TestAuthentication(completedFuture(null)));
+                new TestAuthentication(null));
 
         EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
@@ -126,7 +124,7 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBindMessageCanBeReadIfTypeForParamsIsUnknown() throws Exception {
-        ConnectionContext ctx = new ConnectionContext(sqlOperations, new TestAuthentication(completedFuture(null)));
+        ConnectionContext ctx = new ConnectionContext(sqlOperations, new TestAuthentication(null));
         EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
@@ -147,10 +145,10 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
 
     private static class TestAuthentication implements Authentication {
 
-        private final CompletableFuture<User> future;
+        private final User user;
 
-        TestAuthentication(CompletableFuture<User> future) {
-            this.future = future;
+        TestAuthentication(User user) {
+            this.user = user;
         }
 
         @Override
@@ -161,22 +159,17 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
         @Override
         public AuthenticationMethod resolveAuthenticationType(String user, InetAddress address, HbaProtocol protocol) {
             return new AuthenticationMethod() {
+                @Nullable
                 @Override
-                public CompletableFuture<User> pgAuthenticate(Channel channel, String userName) {
-                    return future;
+                public User authenticate(String userName) {
+                    return TestAuthentication.this.user;
                 }
 
                 @Override
                 public String name() {
-                    return "test-auth";
-                }
-
-                @Override
-                public CompletableFuture<User> httpAuthentication(String userName) {
-                    return future;
+                    return null;
                 }
             };
         }
     }
-
 }
