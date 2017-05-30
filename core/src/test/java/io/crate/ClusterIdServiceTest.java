@@ -22,15 +22,12 @@
 package io.crate;
 
 import io.crate.plugin.CrateCorePlugin;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.Collection;
 import java.util.Collections;
-
-import static org.elasticsearch.common.settings.Settings.builder;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
 public class ClusterIdServiceTest extends ESIntegTestCase {
@@ -42,9 +39,7 @@ public class ClusterIdServiceTest extends ESIntegTestCase {
 
     @Test
     public void testClusterIdGeneration() throws Exception {
-        Settings localSettings = builder()
-            .put("discovery.type", "local").build();
-        String node_0 = internalCluster().startNode(localSettings);
+        String node_0 = internalCluster().startNode();
 
         ClusterIdService clusterIdService = internalCluster().getInstance(ClusterIdService.class, node_0);
         assertNotNull(clusterIdService.clusterId().get());
@@ -52,15 +47,13 @@ public class ClusterIdServiceTest extends ESIntegTestCase {
 
     @Test
     public void testClusterIdTransient() throws Exception {
-        Settings localSettings = builder()
-            .put("discovery.type", "local").build();
-        String node_0 = internalCluster().startNode(localSettings);
+        String node_0 = internalCluster().startNode();
 
         ClusterIdService clusterIdService = internalCluster().getInstance(ClusterIdService.class, node_0);
         String clusterId = clusterIdService.clusterId().get().value().toString();
 
         internalCluster().stopRandomDataNode();
-        node_0 = internalCluster().startNode(localSettings);
+        node_0 = internalCluster().startNode();
 
         clusterIdService = internalCluster().getInstance(ClusterIdService.class, node_0);
         String clusterId2 = clusterIdService.clusterId().get().value().toString();
