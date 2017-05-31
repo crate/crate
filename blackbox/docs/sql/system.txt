@@ -982,15 +982,15 @@ For example, you can query shards like this::
 Jobs, Operations, and Logs
 ==========================
 
-To see current activities in the cluster, CrateDB provides the ``sys.jobs`` and
-``sys.operations`` tables and their corresponding "logs", ``sys.jobs_log`` and
-``sys.operations_log``.
+To let you inspect the activities currently taking place in a cluster, CrateDB
+provides system tables that let you track current cluster jobs and operations.
+CrateDB also logs both of these tables.
 
-These tables are by default *always empty*. Jobs and operations aren't tracked
-unless stats collection is activated as tracking statistics adds a slight
-performance overhead.
+By default, these tables are not populated, because tracking jobs and
+operations adds a slight performance overhead.
 
-To activate stats tracking use :ref:`ref-set`::
+If you want to use the jobs and operations tables, you must enable the
+collection of CrateDB statistics with :ref:`ref-set`, like so::
 
     cr> set global stats.enabled = true;
     SET OK, 1 row affected (... sec)
@@ -1000,8 +1000,8 @@ To activate stats tracking use :ref:`ref-set`::
 Jobs
 ----
 
-The ``sys.jobs`` table provides an overview over all jobs that are currently
-being executed in the cluster::
+The ``sys.jobs`` table is a constantly updated view of all jobs that are
+currently being executed in the cluster::
 
     cr> select stmt, started from sys.jobs where stmt like 'sel% from %jobs%';
     +-----------------------------------------------------------------------+-...-----+
@@ -1011,25 +1011,17 @@ being executed in the cluster::
     +-----------------------------------------------------------------------+-...-----+
     SELECT 1 row in set (... sec)
 
-Each request sent to CrateDB that queries data or manipulates data is
-considered a ``job`` if it passes the analysis step.
-
-For example a request that fails because it attempts to query a table that
-doesn't exist won't get listed.
+Every request that queries data or manipulates data is considered a "job" if it
+is a valid query. Requests that are not valid queries (for example, a request
+that tries to query a non-existent table) will not show up as jobs.
 
 .. _sys-operations:
 
 Operations
 ----------
 
-The ``sys.operations`` table lists all operations that are currently being
-executed in the cluster.
-
-A ``operation`` is part of a ``job`` but not all jobs list their operations. A
-operation is listed on each node it's being executed on.
-
-To see on which nodes the operations are being executed, use the ``_node``
-system column in the query::
+The ``sys.operations`` table is a constantly updated view of all operations
+that are currently being executed in the cluster::
 
     cr> select _node['name'], job_id, name, used_bytes from sys.operations
     ... order by name limit 1;
@@ -1040,23 +1032,26 @@ system column in the query::
     +---------------+--------...-+-----...-+------------+
     SELECT 1 row in set (... sec)
 
+An operation is a node-specific sub-component of a job (for when a job involves
+multi-node processing). Jobs that do not require multi-node processing will not
+produce any operations.
+
 .. note::
 
-    In some cases internal "sub-jobs" are created. Parts of these sub-jobs may
-    appear in `sys.operations`. These entries don't have corresponding entries
-    in `sys.jobs`.
+    In some cases, operations are generated for internal CrateDB work that does
+    not directly correspond to a user request. These entries do not have
+    corresponding entries in ``sys.jobs``.
 
 .. _sys-logs:
 
 Logs
 ----
 
-Both ``sys.jobs`` and ``sys.operations`` have a corresponding ``_log`` table.
+The ``sys.jobs`` and ``sys.operations`` tables have corresponding log tables:
+``sys.jobs_log`` and ``sys.operations_log``.
 
-After a job or operation finishes the entries will be moved into the ``_log``
-table. The size of ``_log`` tables is determined by a fixed size
-(:ref:`stats.jobs_log_size <stats.jobs_log_size>`) or by an expiration time
-(:ref:`stats.jobs_log_expiration <stats.jobs_log_expiration>`)::
+After a job or operation finishes, the corresponding entry will be moved into
+the corresponding log table::
 
     cr> select id, stmt, started, ended, error
     ... from sys.jobs_log order by ended desc limit 2;
@@ -1068,30 +1063,19 @@ table. The size of ``_log`` tables is determined by a fixed size
     +-...+------------------------------------...-+-...-----+-...---+-------+
     SELECT 2 rows in set (... sec)
 
-See :ref:`conf_collecting_stats` on how to enable logging and change the size
-of the corresponding tables.
+Invalid queries are also logged in the ``sys.jobs_log`` table, i.e. queries
+that never make it to the ``sys.jobs`` table because they could not be
+executed.
 
-As described above the stats tracking is deactivated by default and has to be
-enabled using the ``SET`` statement. The same statement can be used to
-deactivate the stats tracking. This will wipe all existing log entries::
+The log tables are bound by a fixed size
+(:ref:`stats.jobs_log_size <stats.jobs_log_size>`) or by an expiration time
+(:ref:`stats.jobs_log_expiration <stats.jobs_log_expiration>`)
 
-    cr> set global stats.enabled = false;
-    SET OK, 1 row affected (... sec)
+See :ref:`conf_collecting_stats` for information on how to configure logs.
 
-::
+.. CAUTION::
 
-    cr> select count(*) from sys.jobs_log;
-    +----------+
-    | count(*) |
-    +----------+
-    |        0 |
-    +----------+
-    SELECT 1 row in set (... sec)
-
-.. note::
-
-   Instead of ``SET``, the ``RESET`` statement could have been used to reset
-   the value of ``stats.enabled`` to its default which is false.
+   If you deactivate statistics tracking, the logs tables will be truncated.
 
 .. _sys-checks:
 
