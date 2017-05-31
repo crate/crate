@@ -532,11 +532,11 @@ Collecting Stats
   A boolean indicating whether or not to collect statistical information about
   the cluster.
 
-  .. note::
+  .. NOTE::
 
      Enabling the collection of statistical information incurs a performance
-     penalty, as every operation across the cluster will cause data to be
-     inserted into the job logs table.
+     penalty, as details about every job and operation across the cluster will
+     cause data to be inserted into the corresponding system tables.
 
 .. _stats.jobs_log_size:
 
