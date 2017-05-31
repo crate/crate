@@ -213,7 +213,8 @@ You can even query this tables' own columns (attention: this might lead to infin
   position.
 
 
-The specification of columns, which is compliant with SQL99:
+Columns Specification
+---------------------
 
 +-------------------------------+-----------------------------------------------+---------------+
 |            Name               |                Description                    |   Data Type   |
@@ -239,16 +240,28 @@ The specification of columns, which is compliant with SQL99:
 | ``column_default``            | Not implemented                               |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``character_maximum_length``  | Not implemented                               |               |
+|                               |                                               |               |
+|                               | Please refer to :ref:`data-type-string` type  |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``character_octet_length``    | Not implemented                               |               |
+|                               |                                               |               |
+|                               | Please refer to :ref:`data-type-string` type  |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``numeric_precision``         | Not implemented                               |               |
+| ``numeric_precision``         | Indicates the number of significant digits    | Integer       |
+|                               | for a numeric ``data_type``. For all other    |               |
+|                               | data types this column is ``null``.           |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``numeric_precision_radix``   | Not implemented                               |               |
+| ``numeric_precision_radix``   | Indicates in which base the value in the      | Integer       |
+|                               | column ``numeric_precision`` for a numeric    |               |
+|                               | ``data_type`` is exposed. This can either be  |               |
+|                               | 2 (binary) or 10 (decimal). For all other     |               |
+|                               | data types this column is ``null``.           |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``numeric_scale``             | Not implemented                               |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``datetime_precision``        | Not implemented                               |               |
+| ``datetime_precision``        | Contains the fractional seconds precision for | Integer       |
+|                               | a ``timestamp`` ``data_type``. For all other  |               |
+|                               | data types this column is ``null``.           |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``interval_type``             | Not implemented                               |               |
 +-------------------------------+-----------------------------------------------+---------------+
