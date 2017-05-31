@@ -52,23 +52,12 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
-import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import java.util.function.*;
 
 import static io.crate.operation.NodeJobsCounter.MAX_NODE_CONCURRENT_OPERATIONS;
 
@@ -159,6 +148,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
             for (ShardLocation shardLocation : requestsByShard.keySet()) {
                 String requestNodeId = shardLocation.nodeId;
                 if (nodeJobsCounter.getInProgressJobsForNode(requestNodeId) >= MAX_NODE_CONCURRENT_OPERATIONS) {
+                    LOGGER.debug("reached maximum concurrent operations for node {}", requestNodeId);
                     return true;
                 }
             }
@@ -298,7 +288,12 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
 
             listener = new RetryListener<>(
                 scheduler,
-                l -> requestExecutor.execute(request, l),
+                l -> {
+                    LOGGER.debug("Executing retry Listener for nodeId: {} request: {}",
+                        shardLocation.nodeId,
+                        request);
+                    requestExecutor.execute(request, l);
+                },
                 listener,
                 BACKOFF_POLICY
             );
