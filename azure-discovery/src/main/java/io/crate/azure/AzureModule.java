@@ -23,7 +23,6 @@
 package io.crate.azure;
 
 import com.microsoft.windowsazure.core.Builder.Registry;
-import io.crate.azure.discovery.AzureDiscovery;
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeService.Management;
 import io.crate.azure.management.AzureComputeServiceImpl;
@@ -43,6 +42,10 @@ import org.elasticsearch.common.settings.Settings;
  * @see io.crate.azure.management.AzureComputeServiceImpl
  */
 public class AzureModule extends AbstractModule {
+
+    public static final String AZURE = "azure";
+    public static final String VNET = "vnet";
+    public static final String SUBNET = "subnet";
 
     // pkg private so it is settable by tests
     static Class<? extends AzureComputeService> computeServiceImpl = AzureComputeServiceImpl.class;
@@ -92,8 +95,8 @@ public class AzureModule extends AbstractModule {
         }
 
         // User set discovery.type: azure
-        if (!AzureDiscovery.AZURE.equalsIgnoreCase(settings.get("discovery.type"))) {
-            logger.trace("discovery.type not set to {}", AzureDiscovery.AZURE);
+        if (!AZURE.equalsIgnoreCase(settings.get("discovery.type"))) {
+            logger.trace("discovery.type not set to {}", AZURE);
             return false;
         }
 
@@ -114,10 +117,10 @@ public class AzureModule extends AbstractModule {
         }
 
         String discoveryType = AzureComputeService.Discovery.DISCOVERY_METHOD.get(settings);
-        if (!(AzureDiscovery.SUBNET.equalsIgnoreCase(discoveryType) ||
-              AzureDiscovery.VNET.equalsIgnoreCase(discoveryType) ||
+        if (!(SUBNET.equalsIgnoreCase(discoveryType) ||
+              VNET.equalsIgnoreCase(discoveryType) ||
               discoveryType == null)) {
-            logger.warn("discovery.azure.method must be set to {} or {}. Ignoring value {}", AzureDiscovery.VNET, AzureDiscovery.SUBNET, discoveryType);
+            logger.warn("discovery.azure.method must be set to {} or {}. Ignoring value {}", VNET, SUBNET, discoveryType);
         }
 
         logger.trace("all required properties for azure discovery are set!");

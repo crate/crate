@@ -23,7 +23,6 @@
 package io.crate.azure.plugin;
 
 import io.crate.azure.AzureModule;
-import io.crate.azure.discovery.AzureDiscovery;
 import io.crate.azure.discovery.AzureUnicastHostsProvider;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -32,6 +31,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.DiscoveryModule;
+import org.elasticsearch.discovery.zen.ZenDiscovery;
 import org.elasticsearch.plugins.Plugin;
 
 import java.util.ArrayList;
@@ -39,9 +39,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
-import static io.crate.azure.management.AzureComputeService.Discovery.DISCOVERY_METHOD;
-import static io.crate.azure.management.AzureComputeService.Discovery.HOST_TYPE;
-import static io.crate.azure.management.AzureComputeService.Discovery.REFRESH;
+import static io.crate.azure.management.AzureComputeService.Discovery.*;
 import static io.crate.azure.management.AzureComputeService.Management.*;
 
 
@@ -97,9 +95,8 @@ public class AzureDiscoveryPlugin extends Plugin {
 
     public void onModule(DiscoveryModule discoveryModule) {
         if (AzureModule.isDiscoveryReady(settings, logger)) {
-            discoveryModule.addDiscoveryType("azure", AzureDiscovery.class);
-            discoveryModule.addUnicastHostProvider("azure", AzureUnicastHostsProvider.class);
+            discoveryModule.addDiscoveryType(AzureModule.AZURE, ZenDiscovery.class);
+            discoveryModule.addUnicastHostProvider(AzureModule.AZURE, AzureUnicastHostsProvider.class);
         }
     }
-
 }

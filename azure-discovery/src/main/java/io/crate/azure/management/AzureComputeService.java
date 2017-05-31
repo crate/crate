@@ -22,7 +22,7 @@ package io.crate.azure.management;
 import com.microsoft.azure.management.compute.ComputeManagementClient;
 import com.microsoft.azure.management.network.NetworkResourceProviderClient;
 import com.microsoft.windowsazure.Configuration;
-import io.crate.azure.discovery.AzureDiscovery;
+import io.crate.azure.AzureModule;
 import io.crate.azure.discovery.AzureUnicastHostsProvider;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.settings.Setting;
@@ -56,7 +56,7 @@ public interface AzureComputeService extends LifecycleComponent {
             "discovery.azure.host.type", s -> AzureUnicastHostsProvider.HostType.PRIVATE_IP.name(),
             Function.identity(), Setting.Property.NodeScope);
         public static final Setting<String> DISCOVERY_METHOD = new Setting<>(
-            "discovery.azure.method", s -> AzureDiscovery.VNET, Function.identity(), Setting.Property.NodeScope);
+            "discovery.azure.method", s -> AzureModule.VNET, Function.identity(), Setting.Property.NodeScope);
     }
 
     Configuration configuration();
