@@ -25,16 +25,15 @@ package io.crate.analyze.relations;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.QuerySpec;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public final class JoinPairs {
 
@@ -156,5 +155,19 @@ public final class JoinPairs {
         if (joinPair.isOuterRelation(right)) {
             rightQuerySpec.orderBy(null);
         }
+    }
+
+    /**
+     * Extracts the fields from the given join conditions and returns a list.
+     */
+    public static List<Field> extractFieldsFromJoinConditions(Iterable<JoinPair> joinPairs) {
+        List<Field> outputs = new ArrayList<>();
+        for (JoinPair pair : joinPairs) {
+            Symbol condition = pair.condition();
+            if (condition != null) {
+                FieldsVisitor.visitFields(condition, outputs::add);
+            }
+        }
+        return outputs;
     }
 }

@@ -107,8 +107,10 @@ public class ManyTableConsumer implements Consumer {
                         joinPushDowns += implicitJoinedRelations.contains(pair) ? 1 : 0;
                     }
                 } else {
-                    // relations are directly joined
-                    joinPushDowns += 1;
+                    if (includesBothRelations(joinPair, a, b)) {
+                        // relations are directly joined
+                        joinPushDowns += 1;
+                    }
                 }
             }
             if (joinPushDowns == relations.size() - 1) {
@@ -125,6 +127,18 @@ public class ManyTableConsumer implements Consumer {
         return bestOrder;
     }
 
+    /*
+     * Returns true if the join condition of the join pair actually includes both relations
+     */
+    private static boolean includesBothRelations(JoinPair joinPair, QualifiedName rel1, QualifiedName rel2) {
+        for (Field f : JoinPairs.extractFieldsFromJoinConditions(Collections.singletonList(joinPair))) {
+            QualifiedName relationName = f.relation().getQualifiedName();
+            if (relationName.equals(rel1) && relationName.equals(rel2)) {
+                return true;
+            }
+        }
+        return false;
+    }
     private static Collection<QualifiedName> getNamesFromOrderBy(OrderBy orderBy) {
         Set<QualifiedName> orderByOrder = new LinkedHashSet<>();
         Set<QualifiedName> names = new HashSet<>();

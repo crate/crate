@@ -93,10 +93,10 @@ public class T3 {
     public static final QualifiedName T3 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t3"));
     public static final QualifiedName T4 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t4"));
 
-    public static final ImmutableList<AnalyzedRelation> RELATIONS = ImmutableList.<AnalyzedRelation>of(TR_1, TR_2, TR_3);
-    public static final Map<QualifiedName, AnalyzedRelation> SOURCES = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+    public static final ImmutableList<AnalyzedRelation> RELATIONS = ImmutableList.of(TR_1, TR_2, TR_3, TR_4);
+    public static final Map<QualifiedName, AnalyzedRelation> SOURCES = ImmutableMap.of(
         T1, TR_1,
         T2, TR_2,
-        T3, TR_3
-    );
+        T3, TR_3,
+        T4, TR_4);
 }
