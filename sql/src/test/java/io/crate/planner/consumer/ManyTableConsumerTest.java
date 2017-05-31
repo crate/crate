@@ -224,7 +224,7 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
             relations,
             Collections.emptySet(),
             joinPairs,
-            ImmutableList.of(T3.T4)), contains(T3.T4, T3.T3, T3.T1, T3.T2));
+            ImmutableList.of(T3.T4)), contains(T3.T4, T3.T1, T3.T3, T3.T2));
     }
 
     @Test
@@ -237,18 +237,23 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
                                         " join users_multi_pk on t3.z=users_multi_pk.id" +
                                         " order by t3.c");
         TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
-        assertThat(root.toString(), is("join.join.join.join.doc.t3.doc.t1.doc.t2.doc.users.doc.users_multi_pk"));
+        assertThat(root.toString(), is("join.join.join.join.doc.t3.doc.t1.doc.users_multi_pk.doc.t2.doc.users"));
         assertThat(root.joinPair().condition(),
-                   isSQL("(join.join.join.doc.t3.doc.t1.doc.t2.doc.users.\"join.join.doc.t3.doc.t1.doc.t2\"['join.doc" +
-                         ".t3.doc.t1['doc.t3['z']']'] = to_int(doc.users_multi_pk.id))"));
+                   isSQL("((join.join.join.doc.t3.doc.t1.doc.users_multi_pk.doc.t2.\"join.join.doc.t3.doc.t1.doc" +
+                         ".users_multi_pk\"['join.doc.t3.doc.t1['doc.t1['i']']'] = to_int(doc.users.id)) AND (join" +
+                         ".join.join.doc.t3.doc.t1.doc.users_multi_pk.doc.t2.\"join.join.doc.t3.doc.t1.doc" +
+                         ".users_multi_pk\"['join.doc.t3.doc.t1['doc.t3['z']']'] = to_int(join.join.join.doc.t3.doc" +
+                         ".t1.doc.users_multi_pk.doc.t2.\"join.join.doc.t3.doc.t1.doc.users_multi_pk\"['doc" +
+                         ".users_multi_pk['id']'])))"));
         TwoTableJoin tt1 = (TwoTableJoin) root.left();
-        assertThat(tt1.toString(), is("join.join.join.doc.t3.doc.t1.doc.t2.doc.users"));
+        assertThat(tt1.toString(), is("join.join.join.doc.t3.doc.t1.doc.users_multi_pk.doc.t2"));
         assertThat(tt1.joinPair().condition(),
-                   isSQL("(join.join.doc.t3.doc.t1.doc.t2.\"join.doc.t3.doc.t1\"['doc.t1['i']'] = to_int(doc.users.id))"));
+                   isSQL("((join.join.doc.t3.doc.t1.doc.users_multi_pk.\"join.doc.t3.doc.t1\"['doc.t1['a']'] = " +
+                         "doc.t2.b) AND (doc.t2.b = join.join.doc.t3.doc.t1.doc.users_multi_pk.\"join.doc.t3.doc" +
+                         ".t1\"['doc.t3['c']']))"));
         TwoTableJoin tt2 = (TwoTableJoin) tt1.left();
-        assertThat(tt2.toString(), is("join.join.doc.t3.doc.t1.doc.t2"));
-        assertThat(tt2.joinPair().condition(),
-                   isSQL("((join.doc.t3.doc.t1.doc.t1['a'] = doc.t2.b) AND (doc.t2.b = join.doc.t3.doc.t1.doc.t3['c']))"));
+        assertThat(tt2.toString(), is("join.join.doc.t3.doc.t1.doc.users_multi_pk"));
+        assertThat(tt2.joinPair().condition(), nullValue());
 
         TwoTableJoin tt3 = (TwoTableJoin) tt2.left();
         assertThat(tt3.toString(), is("join.doc.t3.doc.t1"));
