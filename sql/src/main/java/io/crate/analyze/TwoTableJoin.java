@@ -66,7 +66,7 @@ public class TwoTableJoin implements QueriedRelation {
         fields = new Fields(querySpec.outputs().size());
         for (int i = 0; i < querySpec.outputs().size(); i++) {
             Symbol output = querySpec.outputs().get(i);
-            String name = SymbolPrinter.INSTANCE.printSimple(output);
+            String name = SymbolPrinter.INSTANCE.printSimple(output).replace("\"", "");
             Path fqPath;
             // prefix paths with origin relationName to keep them unique
             if (output instanceof Field) {
