@@ -30,6 +30,13 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue with algorithm that tries to reorder the joined tables using
+   the optimum ordering. The issue caused an exception to be thrown when join
+   conditions contain table(s) which are not part of the adjacent joined tables.
+   E.g.::
+
+     SELECT * FROM t1 JOIN t2 JOIN t3 JOIN t4 ON t4.id = t2.id
+
  - Fixed an issue that led to ``ArrayIndexOutOfBoundsException`` on
    ``DISTINCT`` or ``GROUP BY`` queries on the ``sys.shards`` table.
 
@@ -56,5 +63,9 @@ Fixes
    is no ``GROUP BY`` present or if the set of ``GROUP BY`` expressions is
    the same as the set ``SELECT`` expressions.
 
+<<<<<<< HEAD
  - Added validation that ``ORDER BY`` symbols are included in the ``SELECT``
    list when ``DISTINCT`` is used.
+=======
+ - Fix NPE when ordering by system columns
+>>>>>>> fd640ae20... Fix: Prevent wrong reordering of join pairs

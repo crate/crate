@@ -224,7 +224,7 @@ public class ManyTableConsumerTest extends CrateUnitTest {
             relations,
             Collections.emptySet(),
             joinPairs,
-            ImmutableList.of(T3.T4)), contains(T3.T4, T3.T1, T3.T2, T3.T3));
+            ImmutableList.of(T3.T4)), contains(T3.T4, T3.T1, T3.T3, T3.T2));
     }
 
     @Test

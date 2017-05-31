@@ -33,6 +33,7 @@ import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.Plan;
+import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -84,11 +85,13 @@ public class ManyTableConsumer implements Consumer {
         Set<QualifiedName> outerJoinRelations = JoinPairs.outerJoinRelations(joinPairs);
         Collection<QualifiedName> bestOrder = null;
         int best = -1;
+        List<JoinPair> currentPermutationJoinPairs = new ArrayList<>(joinPairs.size());
         outerloop:
         for (List<QualifiedName> permutation : Collections2.permutations(relations)) {
             if (!preSorted.equals(permutation.subList(0, preSorted.size()))) {
                 continue;
             }
+            currentPermutationJoinPairs.clear();
             int joinPushDowns = 0;
             for (int i = 0; i < permutation.size() - 1; i++) {
                 QualifiedName a = permutation.get(i);
@@ -105,11 +108,18 @@ public class ManyTableConsumer implements Consumer {
                         pair.add(a);
                         pair.add(b);
                         joinPushDowns += implicitJoinedRelations.contains(pair) ? 1 : 0;
+                        currentPermutationJoinPairs.add(new JoinPair(a, b, JoinType.CROSS));
                     }
                 } else {
-                    if (includesBothRelations(joinPair, a, b)) {
-                        // relations are directly joined
-                        joinPushDowns += 1;
+                    switch (JoinPairs.determineRelationInclusion(currentPermutationJoinPairs, joinPair, a, b)) {
+                        case BOTH_INCLUDED:
+                            // relations are directly joined
+                            joinPushDowns += 1;
+                            currentPermutationJoinPairs.add(new JoinPair(a, b, JoinType.CROSS));
+                            break;
+                        case FOREIGN_INCLUDED:
+                            // join condition includes a relation that is not part of the current join tree permutation
+                            continue outerloop;
                     }
                 }
             }
@@ -127,18 +137,6 @@ public class ManyTableConsumer implements Consumer {
         return bestOrder;
     }
 
-    /*
-     * Returns true if the join condition of the join pair actually includes both relations
-     */
-    private static boolean includesBothRelations(JoinPair joinPair, QualifiedName rel1, QualifiedName rel2) {
-        for (Field f : JoinPairs.extractFieldsFromJoinConditions(Collections.singletonList(joinPair))) {
-            QualifiedName relationName = f.relation().getQualifiedName();
-            if (relationName.equals(rel1) && relationName.equals(rel2)) {
-                return true;
-            }
-        }
-        return false;
-    }
     private static Collection<QualifiedName> getNamesFromOrderBy(OrderBy orderBy) {
         Set<QualifiedName> orderByOrder = new LinkedHashSet<>();
         Set<QualifiedName> names = new HashSet<>();

@@ -170,4 +170,43 @@ public final class JoinPairs {
         }
         return outputs;
     }
+
+    public enum RelationInclusion {
+        /**
+         * join condition of the join pair actually includes both relations
+         */
+        BOTH_INCLUDED,
+
+        /**
+         * join condition of the join pair doesn't include both relations
+         */
+        FOREIGN_INCLUDED,
+
+        /**
+         * join condition of the join pair includes relations not already part of the join tree
+         */
+        NOT_INCLUDED
+    }
+
+    /**
+     * See {@link RelationInclusion} for result description
+     */
+    public static RelationInclusion determineRelationInclusion(List<JoinPair> currentPermutationJoinPairs,
+                                                               JoinPair joinPair,
+                                                               QualifiedName rel1,
+                                                               QualifiedName rel2) {
+        for (Field f : JoinPairs.extractFieldsFromJoinConditions(Collections.singletonList(joinPair))) {
+            QualifiedName relationName = f.relation().getQualifiedName();
+
+            // Join condition contains relations not included in existing join pairs
+            if (currentPermutationJoinPairs.stream().noneMatch(jp -> jp.containsRelation(relationName))) {
+                return RelationInclusion.FOREIGN_INCLUDED;
+            }
+
+            if (relationName.equals(rel1) && relationName.equals(rel2)) {
+                return RelationInclusion.BOTH_INCLUDED;
+            }
+        }
+        return RelationInclusion.NOT_INCLUDED;
+    }
 }
