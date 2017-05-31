@@ -154,17 +154,7 @@ public class BatchIteratorBackpressureExecutor<R> {
                     if (tryExecuteBulk(false) == false) {
                         collectingEnabled.set(false);
                         if (isScheduledCollectionRunning.compareAndSet(false, true)) {
-                            try {
-                                scheduleConsumeIterator();
-                            } catch (EsRejectedExecutionException e) {
-                                isScheduledCollectionRunning.set(false);
-                                if (collectingEnabled.compareAndSet(false, true)) {
-                                    // re-acquired the ownership of the iterator consumer, so let's try to
-                                    // execute / schedule this bulk again (otherwise someone else owns the
-                                    // iterator and carries on)
-                                    continue;
-                                }
-                            }
+                            scheduleConsumeIterator();
                         }
                         return;
                     }
