@@ -879,7 +879,7 @@ is re-elected (see :ref:`storage_consistency_cluster_meta_data`).
 **discovery.zen.hosts_provider**
   | *Default:*   ``not set```
   | *Runtime:*   ``no``
-  | *Allowed Values:* ``srv``
+  | *Allowed Values:* ``srv``, ``azure``
 
 See also: :ref:`shared_nothing_discovery`.
 
@@ -997,7 +997,7 @@ Discovery on Microsoft Azure
 ````````````````````````````
 
 CrateDB has built-in support for discovery via the Azure Virtual Machine API.
-To enable Azure discovery set the ``discovery.type`` setting to ``azure``.
+To enable Azure discovery set the ``discovery.zen.hosts_provider`` setting to ``azure``.
 
 **cloud.azure.management.resourcegroup.name**
   | *Runtime:*  ``no``

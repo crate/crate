@@ -24,32 +24,40 @@ package io.crate.azure.plugin;
 
 import io.crate.azure.AzureModule;
 import io.crate.azure.discovery.AzureUnicastHostsProvider;
+import io.crate.azure.management.AzureComputeServiceImpl;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.DiscoveryModule;
-import org.elasticsearch.discovery.zen.ZenDiscovery;
+import org.elasticsearch.discovery.zen.UnicastHostsProvider;
+import org.elasticsearch.plugins.DiscoveryPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.search.SearchRequestParsers;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
+import org.elasticsearch.watcher.ResourceWatcherService;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
+import java.util.function.Supplier;
 
 import static io.crate.azure.management.AzureComputeService.Discovery.*;
 import static io.crate.azure.management.AzureComputeService.Management.*;
 
 
-public class AzureDiscoveryPlugin extends Plugin {
+public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
 
     private final Settings settings;
+    private final AzureComputeServiceImpl azureComputeService;
+
     protected final Logger logger = Loggers.getLogger(AzureDiscoveryPlugin.class);
 
     public AzureDiscoveryPlugin(Settings settings) {
         this.settings = settings;
+        this.azureComputeService = new AzureComputeServiceImpl(settings);
     }
 
     public String name() {
@@ -62,7 +70,7 @@ public class AzureDiscoveryPlugin extends Plugin {
 
     @Override
     public List<Setting<?>> getSettings() {
-        List<Setting<?>> settings = Arrays.asList(
+        return Arrays.asList(
             SUBSCRIPTION_ID,
             RESOURCE_GROUP_NAME,
             TENANT_ID,
@@ -72,31 +80,29 @@ public class AzureDiscoveryPlugin extends Plugin {
             HOST_TYPE,
             DISCOVERY_METHOD
         );
-        return settings;
     }
 
     @Override
-    public Collection<Module> createGuiceModules() {
-        List<Module> modules = new ArrayList<>();
-        if (AzureModule.isDiscoveryReady(settings, logger)) {
-            modules.add(new AzureModule());
-        }
-        return modules;
+    public Collection<Object> createComponents(Client client,
+                                               ClusterService clusterService,
+                                               ThreadPool threadPool,
+                                               ResourceWatcherService resourceWatcherService,
+                                               ScriptService scriptService,
+                                               SearchRequestParsers searchRequestParsers) {
+        return Collections.singletonList(azureComputeService);
     }
 
     @Override
-    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        Collection<Class<? extends LifecycleComponent>> services = new ArrayList<>();
-        if (AzureModule.isDiscoveryReady(settings, logger)) {
-            services.add(AzureModule.getComputeServiceImpl());
-        }
-        return services;
-    }
-
-    public void onModule(DiscoveryModule discoveryModule) {
-        if (AzureModule.isDiscoveryReady(settings, logger)) {
-            discoveryModule.addDiscoveryType(AzureModule.AZURE, ZenDiscovery.class);
-            discoveryModule.addUnicastHostProvider(AzureModule.AZURE, AzureUnicastHostsProvider.class);
-        }
+    public Map<String, Supplier<UnicastHostsProvider>> getZenHostsProviders(TransportService transportService,
+                                                                            NetworkService networkService) {
+        return Collections.singletonMap(
+            AzureModule.AZURE,
+            () -> {
+                if (AzureModule.isCloudReady(settings)) {
+                    return new AzureUnicastHostsProvider(settings, azureComputeService, transportService, networkService);
+                } else {
+                    return Collections::emptyList;
+                }
+            });
     }
 }
