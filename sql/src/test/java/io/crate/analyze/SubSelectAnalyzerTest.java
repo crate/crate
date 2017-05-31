@@ -152,4 +152,18 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                    isSQL("SELECT max(doc.t2.b), doc.t2.i GROUP BY doc.t2.i " +
                          "HAVING ((doc.t2.i > 10) AND (max(doc.t2.b) > '100'))"));
     }
+
+    @Test
+    public void testPreserveAliasOnSingleRowSubSelectWithVirtualTableJoin() throws Exception {
+        SelectAnalyzedStatement statement = analyze("SELECT " +
+                                                    "   (select min(t1.x) from t1) as min_col," +
+                                                    "   (select 10) + (select 20) as add_subquery "+
+                                                    "FROM (select * from t1) tt1");
+        QueriedDocTable relation = (QueriedDocTable) statement.relation();
+        assertThat(relation.fields().size(), is(2));
+        assertThat(relation.fields().get(0), isField("min_col"));
+        assertThat(relation.fields().get(1), isField("add_subquery"));
+        assertThat(relation.tableRelation().tableInfo(), is(T1_INFO));
+    }
+
 }
