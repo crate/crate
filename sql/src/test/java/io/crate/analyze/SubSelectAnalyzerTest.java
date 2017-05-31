@@ -110,4 +110,17 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage("Column alias \"i\" is ambiguous");
         analyze("select aliased_sub.i, aliased_sub.b from (select t1.i, t2.i, t2.b from t1, t2) as aliased_sub");
     }
+
+    @Test
+    public void testPreserveAliasOnSubSelectInSelectList() throws Exception {
+        SelectAnalyzedStatement statement = analyze("SELECT " +
+                                                    "   (select min(t1.x) from t1) as min_col," +
+                                                    "   (select 10) + (select 20) as add_subquery "+
+                                                    "FROM (select * from t1) tt1");
+        QueriedDocTable relation = (QueriedDocTable) statement.relation();
+        assertThat(relation.fields().size(), is(2));
+        assertThat(relation.fields().get(0), isField("min_col"));
+        assertThat(relation.fields().get(1), isField("add_subquery"));
+        assertThat(relation.tableRelation().tableInfo(), is(T1_INFO));
+    }
 }
