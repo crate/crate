@@ -26,9 +26,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import io.crate.analyze.*;
-import io.crate.analyze.symbol.Aggregations;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.metadata.OutputName;
 import io.crate.metadata.Path;
@@ -64,13 +62,13 @@ final class SubselectRewriter {
             boolean mergedWithParent = false;
             QuerySpec currentQS = relation.querySpec();
             if (parent != null) {
-                FieldReplacer fieldReplacer = new FieldReplacer(currentQS.outputs());
+                FieldReplacer fieldReplacer = new FieldReplacer(currentQS.outputs(), parent);
                 QuerySpec parentQS = parent.querySpec().copyAndReplace(fieldReplacer);
                 if (canBeMerged(currentQS, parentQS)) {
                     QuerySpec currentWithParentMerged = mergeQuerySpec(currentQS, parentQS);
                     relation = new QueriedSelectRelation(
                         relation.subRelation(),
-                        namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.replacedFieldsByNewOutput),
+                        namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.fieldByQSOutputSymbol),
                         currentWithParentMerged
                     );
                     mergedWithParent = true;
@@ -84,7 +82,7 @@ final class SubselectRewriter {
             }
             if (!mergedWithParent && parent != null) {
                 parent.subRelation(subRelation);
-                FieldReplacer fieldReplacer = new FieldReplacer(subRelation.fields());
+                FieldReplacer fieldReplacer = new FieldReplacer(subRelation.fields(), parent);
                 parent.querySpec().replace(fieldReplacer);
             }
             if (relation.subRelation() != origSubRelation) {
@@ -100,13 +98,13 @@ final class SubselectRewriter {
                 return table;
             }
             QuerySpec currentQS = table.querySpec();
-            FieldReplacer fieldReplacer = new FieldReplacer(currentQS.outputs());
+            FieldReplacer fieldReplacer = new FieldReplacer(currentQS.outputs(), parent);
             QuerySpec parentQS = parent.querySpec().copyAndReplace(fieldReplacer);
             if (canBeMerged(currentQS, parentQS)) {
                 QuerySpec currentWithParentMerged = mergeQuerySpec(currentQS, parentQS);
                 return new QueriedTable(
                     table.tableRelation(),
-                    namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.replacedFieldsByNewOutput),
+                    namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.fieldByQSOutputSymbol),
                     currentWithParentMerged
                 );
             }
@@ -119,13 +117,13 @@ final class SubselectRewriter {
                 return table;
             }
             QuerySpec currentQS = table.querySpec();
-            FieldReplacer fieldReplacer = new FieldReplacer(currentQS.outputs());
+            FieldReplacer fieldReplacer = new FieldReplacer(currentQS.outputs(), parent);
             QuerySpec parentQS = parent.querySpec().copyAndReplace(fieldReplacer);
             if (canBeMerged(currentQS, parentQS)) {
                 QuerySpec currentWithParentMerged = mergeQuerySpec(currentQS, parentQS);
                 return new QueriedDocTable(
                     table.tableRelation(),
-                    namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.replacedFieldsByNewOutput),
+                    namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.fieldByQSOutputSymbol),
                     currentWithParentMerged
                 );
             }
@@ -138,13 +136,13 @@ final class SubselectRewriter {
                 return multiSourceSelect;
             }
             QuerySpec currentQS = multiSourceSelect.querySpec();
-            FieldReplacer fieldReplacer = new FieldReplacer(currentQS.outputs());
+            FieldReplacer fieldReplacer = new FieldReplacer(currentQS.outputs(), parent);
             QuerySpec parentQS = parent.querySpec().copyAndReplace(fieldReplacer);
             if (canBeMerged(currentQS, parentQS)) {
                 QuerySpec currentWithParentMerged = mergeQuerySpec(currentQS, parentQS);
                 return new MultiSourceSelect(
                     mapSourceRelations(multiSourceSelect),
-                    namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.replacedFieldsByNewOutput),
+                    namesFromOutputs(currentWithParentMerged.outputs(), fieldReplacer.fieldByQSOutputSymbol),
                     currentWithParentMerged,
                     multiSourceSelect.joinPairs()
                 );
@@ -282,17 +280,21 @@ final class SubselectRewriter {
     private final static class FieldReplacer extends ReplacingSymbolVisitor<Void> implements Function<Symbol, Symbol> {
 
         private final List<? extends Symbol> outputs;
-        final HashMap<Symbol, Field> replacedFieldsByNewOutput = new HashMap<>();
+        final Map<Symbol, Field> fieldByQSOutputSymbol = new HashMap<>();
 
-        FieldReplacer(List<? extends Symbol> outputs) {
+        FieldReplacer(List<? extends Symbol> outputs, QueriedRelation relation) {
             super(ReplaceMode.COPY);
+            // Store the fields of a relation mapped to its output symbol so they will not get lost (e.g. alias preserve)
+            for (Field field : relation.fields()) {
+                fieldByQSOutputSymbol.put(relation.querySpec().outputs().get(field.index()), field);
+            }
             this.outputs = outputs;
         }
 
         @Override
         public Symbol visitField(Field field, Void context) {
             Symbol newOutput = outputs.get(field.index());
-            replacedFieldsByNewOutput.put(newOutput, field);
+            fieldByQSOutputSymbol.put(newOutput, field);
             return newOutput;
         }
 
