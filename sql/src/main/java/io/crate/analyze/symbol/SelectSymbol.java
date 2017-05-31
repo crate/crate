@@ -35,6 +35,7 @@ public class SelectSymbol extends Symbol {
 
     private final AnalyzedRelation relation;
     private final DataType type;
+    private boolean isPlanned = false;
 
     public SelectSymbol(AnalyzedRelation relation, DataType type) {
         this.relation = relation;
@@ -73,5 +74,13 @@ public class SelectSymbol extends Symbol {
     @Override
     public String representation() {
         return "SubQuery{" + relation.getQualifiedName() + '}';
+    }
+
+    public boolean isPlanned() {
+        return isPlanned;
+    }
+
+    public void markAsPlanned() {
+        isPlanned = true;
     }
 }

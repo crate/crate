@@ -69,7 +69,10 @@ public class SubqueryPlanner {
 
         @Override
         public Void visitSelectSymbol(SelectSymbol selectSymbol, Symbol parent) {
-            planSubquery(selectSymbol);
+            if (!selectSymbol.isPlanned()) {
+                planSubquery(selectSymbol);
+                selectSymbol.markAsPlanned();
+            }
             return null;
         }
 
