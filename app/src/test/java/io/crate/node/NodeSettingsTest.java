@@ -27,7 +27,6 @@ import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.internal.CrateSettingsPreparer;
@@ -46,8 +45,6 @@ import java.util.Collections;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
 
 
 public class NodeSettingsTest extends CrateUnitTest {
@@ -90,9 +87,7 @@ public class NodeSettingsTest extends CrateUnitTest {
             .put("node.data", true)
             .put("path.home", createConfigPath())
             // Avoid connecting to other test nodes
-            .put("network.publish_host", "127.0.0.111")
-            .put("discovery.type", "local")
-            .put("transport.type", "local");
+            .put("network.publish_host", "127.0.0.111");
 
         Terminal terminal = Terminal.DEFAULT;
         Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal, Collections.emptyMap());
@@ -146,24 +141,5 @@ public class NodeSettingsTest extends CrateUnitTest {
             Constants.TRANSPORT_PORT_RANGE,
             node.settings().get("transport.tcp.port")
         );
-    }
-
-    @Test
-    public void testInvalidUnicastHost() throws Exception {
-        Settings.Builder builder = Settings.builder()
-            .put("discovery.zen.ping.unicast.hosts", "nonexistinghost:4300")
-            .put("path.home", createConfigPath());
-        Terminal terminal = Terminal.DEFAULT;
-        Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal, Collections.emptyMap());
-
-        try {
-            node = new CrateNode(environment);
-            fail("Exception expected (failed to resolve address)");
-        } catch (Throwable t) {
-            assertThat(t, instanceOf(CreationException.class));
-            Throwable rootCause = ((CreationException) t).getErrorMessages().iterator().next().getCause();
-            assertThat(rootCause, instanceOf(IllegalArgumentException.class));
-            assertThat(rootCause.getMessage(), is("Failed to resolve address for [nonexistinghost:4300]"));
-        }
     }
 }

@@ -80,7 +80,7 @@ public class ESGetTask extends JobTask {
     private final Collection<CollectExpression<GetResponse, ?>> expressions;
 
     static abstract class JobContext<Action extends TransportAction<Request, Response>,
-        Request extends ActionRequest<Request>, Response extends ActionResponse> extends AbstractExecutionSubContext
+        Request extends ActionRequest, Response extends ActionResponse> extends AbstractExecutionSubContext
         implements ActionListener<Response> {
 
         private static final Logger LOGGER = Loggers.getLogger(JobContext.class);
@@ -335,7 +335,7 @@ public class ESGetTask extends JobTask {
             includes.add(col.name());
         }
         if (includes.size() > 0) {
-            return new FetchSourceContext(includes.toArray(new String[includes.size()]));
+            return new FetchSourceContext(true, includes.toArray(new String[includes.size()]), new String[0]);
         }
         return new FetchSourceContext(false);
     }

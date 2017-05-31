@@ -35,8 +35,8 @@ import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
-import org.apache.lucene.search.*;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.search.*;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -205,17 +205,18 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
                 if (nullsFirst) {
                     BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                     booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
+                    // FIXME: add queryShardContext to all rangeQuery calls
                     if (orderBy.reverseFlags()[i]) {
-                        booleanQuery.add(fieldType.rangeQuery(null, value, false, true), BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(fieldType.rangeQuery(null, value, false, true, null), BooleanClause.Occur.MUST_NOT);
                     } else {
-                        booleanQuery.add(fieldType.rangeQuery(value, null, true, false), BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(fieldType.rangeQuery(value, null, true, false, null), BooleanClause.Occur.MUST_NOT);
                     }
                     orderQuery = booleanQuery.build();
                 } else {
                     if (orderBy.reverseFlags()[i]) {
-                        orderQuery = fieldType.rangeQuery(value, null, false, false);
+                        orderQuery = fieldType.rangeQuery(value, null, false, false, null);
                     } else {
-                        orderQuery = fieldType.rangeQuery(null, value, false, false);
+                        orderQuery = fieldType.rangeQuery(null, value, false, false, null);
                     }
                 }
                 queryBuilder.add(orderQuery, BooleanClause.Occur.MUST);

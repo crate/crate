@@ -489,7 +489,9 @@ public class SQLTransportExecutor {
         ).actionGet();
 
         if (actionGet.isTimedOut()) {
-            LOGGER.info("ensure state timed out, cluster state:\n{}\n{}", client.admin().cluster().prepareState().get().getState().prettyPrint(), client.admin().cluster().preparePendingClusterTasks().get().prettyPrint());
+            LOGGER.info("ensure state timed out, cluster state:\n{}\n{}",
+                client.admin().cluster().prepareState().get().getState(),
+                client.admin().cluster().preparePendingClusterTasks().get());
             assertThat("timed out waiting for state", actionGet.isTimedOut(), equalTo(false));
         }
         if (state == ClusterHealthStatus.YELLOW) {

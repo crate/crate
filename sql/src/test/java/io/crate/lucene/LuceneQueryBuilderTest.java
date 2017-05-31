@@ -40,7 +40,16 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.queries.TermsQuery;
-import org.apache.lucene.search.*;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.ConstantScoreQuery;
+import org.apache.lucene.search.PointInSetQuery;
+import org.apache.lucene.search.PointRangeQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.RegexpQuery;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TermRangeQuery;
+import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
 import org.apache.lucene.spatial.prefix.WithinPrefixTreeQuery;
 import org.elasticsearch.common.UUIDs;
@@ -52,13 +61,15 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.analysis.AnalysisService;
+import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
-import org.elasticsearch.index.mapper.*;
-import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactoryProvider;
+import org.elasticsearch.index.mapper.ArrayMapper;
+import org.elasticsearch.index.mapper.ArrayTypeParser;
+import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.analysis.AnalysisModule;
@@ -76,7 +87,10 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -115,8 +129,8 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Settings nodeSettings = Settings.builder().put("path.home", tempDir).build();
         IndexSettings idxSettings = IndexSettingsModule.newIndexSettings(index, nodeSettings);
         when(indexCache.getIndexSettings()).thenReturn(idxSettings);
-        AnalysisService analysisService = createAnalysisService(idxSettings, nodeSettings);
-        mapperService = createMapperService(idxSettings, analysisService);
+        IndexAnalyzers indexAnalyzers = createIndexAnalyzers(idxSettings, nodeSettings);
+        mapperService = createMapperService(idxSettings, indexAnalyzers);
 
         // @formatter:off
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()
@@ -154,10 +168,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         when(indexFieldDataService.getForField(mapperService.fullName("point"))).thenReturn(geoFieldData);
     }
 
-    private MapperService createMapperService(IndexSettings indexSettings, AnalysisService analysisService) {
-        DynamicArrayFieldMapperBuilderFactoryProvider arrayMapperProvider =
-            new DynamicArrayFieldMapperBuilderFactoryProvider();
-        arrayMapperProvider.dynamicArrayFieldMapperBuilderFactory = new BuilderFactory();
+    private MapperService createMapperService(IndexSettings indexSettings, IndexAnalyzers indexAnalyzers) {
         IndicesModule indicesModule = new IndicesModule(Collections.singletonList(
             new MapperPlugin() {
                 @Override
@@ -167,15 +178,14 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
             }));
         return new MapperService(
             indexSettings,
-            analysisService,
+            indexAnalyzers,
             new SimilarityService(indexSettings, Collections.emptyMap()),
             indicesModule.getMapperRegistry(),
-            () -> null,
-            arrayMapperProvider
+            () -> null
         );
     }
 
-    private AnalysisService createAnalysisService(IndexSettings indexSettings, Settings nodeSettings) throws IOException {
+    private IndexAnalyzers createIndexAnalyzers(IndexSettings indexSettings, Settings nodeSettings) throws IOException {
         Environment env = new Environment(nodeSettings);
         AnalysisModule analysisModule = new AnalysisModule(env, Collections.emptyList());
         return analysisModule.getAnalysisRegistry().build(indexSettings);

@@ -22,14 +22,38 @@
 
 package io.crate.lucene;
 
-import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.BuilderFactory;
-import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
+import org.elasticsearch.indices.IndicesService;
 
-public class ArrayMapperModule extends AbstractModule {
+import java.io.IOException;
+
+@Singleton
+public class ArrayMapperService extends AbstractLifecycleComponent {
+
+    private final IndicesService indicesService;
+
+    @Inject
+    public ArrayMapperService(Settings settings, IndicesService indicesService) {
+        super(settings);
+        this.indicesService = indicesService;
+    }
 
     @Override
-    protected void configure() {
-        bind(DynamicArrayFieldMapperBuilderFactory.class).to(BuilderFactory.class).asEagerSingleton();
+    protected void doStart() {
+        indicesService.getMapperRegistry().registerDynamicArrayBuilderFactory(new BuilderFactory());
+    }
+
+    @Override
+    protected void doStop() {
+
+    }
+
+    @Override
+    protected void doClose() throws IOException {
+
     }
 }

@@ -48,6 +48,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class TransportShardDeleteAction extends TransportShardAction<ShardDeleteRequest, ShardDeleteRequest.Item> {
 
     private final static String ACTION_NAME = "indices:crate/data/write/delete";
+    private final IndicesService indicesService;
 
     @Inject
     public TransportShardDeleteAction(Settings settings,
@@ -60,6 +61,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                                       ActionFilters actionFilters) {
         super(settings, ACTION_NAME, transportService, indexNameExpressionResolver,
             clusterService, indicesService, threadPool, shardStateAction, actionFilters, ShardDeleteRequest::new);
+        this.indicesService = indicesService;
     }
 
     @Override
