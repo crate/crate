@@ -786,4 +786,18 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
             is("1| Greece| 1| Marios| 1| 3| 30.0\n" +
                "1| Greece| 1| Marios| 1| 4| 40.0\n"));
     }
+
+    @Test
+    public void testJoinOnVirtualTableWithSingleRowSubselect() throws Exception {
+        execute("SELECT\n" +
+                "        (select min(t1.x) from\n" +
+                "            (select col1 as x from unnest([1, 2, 3])) t1,\n" +
+                "            (select * from unnest([1, 2, 3])) t2\n" +
+                "        ) as min_col1,\n" +
+                "        *\n" +
+                "    FROM\n" +
+                "        unnest([1]) tt1," +
+                "        unnest([2]) tt2");
+        assertThat(printedTable(response.rows()), is("1| 1| 2\n"));
+    }
 }
