@@ -22,16 +22,18 @@
 package io.crate.plugin;
 
 import io.crate.http.netty.CrateNettyHttpServerTransport;
-import org.elasticsearch.common.component.LifecycleComponent;
-import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.network.NetworkModule;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.script.ScriptService;
+import org.elasticsearch.search.SearchRequestParsers;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.watcher.ResourceWatcherService;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.List;
 
 import static org.elasticsearch.common.network.NetworkModule.HTTP_TYPE_KEY;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
@@ -40,6 +42,7 @@ import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESS
 public class HttpTransportPlugin extends Plugin {
 
     private static final String CRATE_HTTP_TRANSPORT_NAME = "crate";
+    private final PipelineRegistry pipelineRegistry = new PipelineRegistry();
 
     public String name() {
         return "http";
@@ -50,8 +53,14 @@ public class HttpTransportPlugin extends Plugin {
     }
 
     @Override
-    public Collection<Module> createGuiceModules() {
-        return Collections.emptyList();
+    public Collection<Object> createComponents(Client client,
+                                               ClusterService clusterService,
+                                               ThreadPool threadPool,
+                                               ResourceWatcherService resourceWatcherService,
+                                               ScriptService scriptService,
+                                               SearchRequestParsers searchRequestParsers) {
+        // pipelineRegistry is returned here so that it's bound in guice and can be injected in other places
+        return Collections.singletonList(pipelineRegistry);
     }
 
     @Override
@@ -60,16 +69,6 @@ public class HttpTransportPlugin extends Plugin {
             .put(HTTP_TYPE_KEY, CRATE_HTTP_TRANSPORT_NAME)
             .put(SETTING_HTTP_COMPRESSION.getKey(), false)
             .build();
-    }
-
-    @Override
-    public List<Setting<?>> getSettings() {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        return Collections.emptyList();
     }
 
     public void onModule(NetworkModule networkModule) {

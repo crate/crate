@@ -22,13 +22,13 @@
 
 package io.crate.operation.auth;
 
+import io.crate.http.netty.HttpAuthUpstreamHandler;
 import io.crate.operation.collect.sources.SysTableRegistry;
 import io.crate.operation.user.*;
+import io.crate.plugin.PipelineRegistry;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
-import io.crate.http.netty.CrateNettyHttpServerTransport;
-import io.crate.http.netty.HttpAuthUpstreamHandler;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -66,12 +66,12 @@ public class UserServiceFactoryImpl implements UserServiceFactory {
     }
 
     @Override
-    public void registerHttpAuthHandler(Settings settings, CrateNettyHttpServerTransport httpTransport, Authentication authService) {
-        CrateNettyHttpServerTransport.ChannelPipelineItem pipelineItem = new CrateNettyHttpServerTransport.ChannelPipelineItem(
+    public void registerHttpAuthHandler(Settings settings, PipelineRegistry pipelineRegistry, Authentication authService) {
+        PipelineRegistry.ChannelPipelineItem pipelineItem = new PipelineRegistry.ChannelPipelineItem(
             "blob_handler",
             "auth_handler",
             () -> new HttpAuthUpstreamHandler(settings, authService)
         );
-        httpTransport.addBefore(pipelineItem);
+        pipelineRegistry.addBefore(pipelineItem);
     }
 }

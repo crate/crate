@@ -22,8 +22,8 @@
 
 package io.crate.http.netty;
 
+import io.crate.plugin.PipelineRegistry;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPipeline;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -36,118 +36,26 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Supplier;
 
 
 @Singleton
 public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
 
-    /**
-     * A data structure for items that can be added to the channel pipeline of the HTTP transport.
-     */
-    public static class ChannelPipelineItem {
-
-        final String base;
-        final String name;
-        final Supplier<ChannelHandler> handlerFactory;
-
-        /**
-         * @param base              the name of the existing handler in the pipeline before/after which the new handler should be added
-         * @param name              the name of the new handler that should be added to the pipeline
-         * @param handlerFactory    a supplier that provides a new instance of the handler
-         */
-        public ChannelPipelineItem(String base, String name, Supplier<ChannelHandler> handlerFactory) {
-            this.base = base;
-            this.name = name;
-            this.handlerFactory = handlerFactory;
-        }
-    }
-
-    private final List<ChannelPipelineItem> addBeforeList = new ArrayList<>();
+    private final PipelineRegistry pipelineRegistry;
 
     @Inject
     public CrateNettyHttpServerTransport(Settings settings,
                                          NetworkService networkService,
                                          BigArrays bigArrays,
-                                         ThreadPool threadPool) {
+                                         ThreadPool threadPool,
+                                         PipelineRegistry pipelineRegistry) {
         super(settings, networkService, bigArrays, threadPool);
+        this.pipelineRegistry = pipelineRegistry;
     }
 
     @Override
     public HttpChannelHandler configureServerChannelHandler() {
         return new CrateHttpChannelHandler(this, detailedErrorsEnabled, threadPool);
-    }
-
-    public void addBefore(ChannelPipelineItem item) {
-        synchronized (addBeforeList) {
-            addSorted(addBeforeList, item);
-        }
-    }
-
-    List<ChannelPipelineItem> addBefore() {
-        return addBeforeList;
-    }
-
-    /**
-     * Add a new {@link ChannelPipelineItem} to an existing list.
-     * An item has base on which it depends on and after which it must be added to the pipeline.
-     * Since items may be added at different times and from different places the dependencies of items may not be present
-     * when they are added.
-     * The sorting works as follows:
-     *   * first, add new item to existing list
-     *   * create a copy on which we can iterate because we may need to modify the order of items of the existing list
-     *   * iterate over items and check if an item already exists which depends on the iterated item - add new item after
-     *   * iterate over items and check if an item already exists on which the iterated item depends on - add new item before
-     *   * if non of the previous predicates apply, add the iterated item at the end of the list
-     *
-     * @param pipelineItems   list to add newItem to
-     * @param newItem         new pipeline item to be added
-     */
-    private void addSorted(List<ChannelPipelineItem> pipelineItems, ChannelPipelineItem newItem) {
-        pipelineItems.add(newItem);
-
-        if (pipelineItems.size() < 2) {
-            return;
-        }
-
-        ArrayList<ChannelPipelineItem> copy = new ArrayList<>(pipelineItems.size());
-        copy.addAll(pipelineItems);
-
-        for (ChannelPipelineItem item : copy) {
-            pipelineItems.remove(item);
-
-            boolean prev = false;
-            int prevIdx = 0;
-            for (ChannelPipelineItem o : pipelineItems) {
-                if (o.name.equals(item.base)) {
-                    prev = true;
-                    break;
-                }
-                prevIdx++;
-            }
-            if (prev) {
-                pipelineItems.add(prevIdx + 1, item);
-                continue;
-            }
-
-            boolean next = false;
-            int nextIdx = 0;
-            for (ChannelPipelineItem o : pipelineItems) {
-                if (o.base.equals(item.name)) {
-                    next = true;
-                    break;
-                }
-                nextIdx++;
-            }
-            if (next) {
-                pipelineItems.add(nextIdx, item);
-                continue;
-            }
-
-            pipelineItems.add(item);
-        }
     }
 
     protected class CrateHttpChannelHandler extends HttpChannelHandler {
@@ -162,11 +70,7 @@ public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
         protected void initChannel(Channel ch) throws Exception {
             super.initChannel(ch);
             ChannelPipeline pipeline = ch.pipeline();
-            synchronized (addBeforeList) {
-                for (ChannelPipelineItem item : addBeforeList) {
-                    pipeline.addBefore(item.base, item.name, item.handlerFactory.get());
-                }
-            }
+            pipelineRegistry.registerItems(pipeline);
         }
     }
 

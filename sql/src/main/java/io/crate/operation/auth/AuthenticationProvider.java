@@ -23,9 +23,9 @@
 package io.crate.operation.auth;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManagerProvider;
+import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.postgres.Messages;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
@@ -97,12 +97,12 @@ public class AuthenticationProvider implements Provider<Authentication> {
     };
 
     @Inject
-    public AuthenticationProvider(Settings settings, UserManagerProvider userManagerProvider, CrateNettyHttpServerTransport httpTransport) {
+    public AuthenticationProvider(Settings settings, UserManagerProvider userManagerProvider, PipelineRegistry pipelineRegistry) {
             UserServiceFactory serviceFactory = UserServiceFactoryLoader.load(settings);
             if (serviceFactory != null) {
                 authService = serviceFactory.authService(settings, userManagerProvider.get());
                 if (authService.enabled()) {
-                    serviceFactory.registerHttpAuthHandler(settings, httpTransport, authService);
+                    serviceFactory.registerHttpAuthHandler(settings, pipelineRegistry, authService);
                 }
             } else {
                 authService = NOOP_AUTH;

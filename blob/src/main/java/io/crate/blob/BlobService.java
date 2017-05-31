@@ -26,8 +26,8 @@ import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
 import io.crate.blob.recovery.BlobRecoveryHandler;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
-import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.http.netty.HttpBlobHandler;
+import io.crate.plugin.PipelineRegistry;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.client.Client;
@@ -55,8 +55,8 @@ public class BlobService extends AbstractLifecycleComponent {
     private final ClusterService clusterService;
     private final TransportService transportService;
     private final BlobTransferTarget blobTransferTarget;
-    private final CrateNettyHttpServerTransport nettyTransport;
-    private Client client;
+    private final Client client;
+    private final PipelineRegistry piplineRegistry;
 
     @Inject
     public BlobService(Settings settings,
@@ -67,7 +67,7 @@ public class BlobService extends AbstractLifecycleComponent {
                        TransportService transportService,
                        BlobTransferTarget blobTransferTarget,
                        Client client,
-                       CrateNettyHttpServerTransport nettyTransport) {
+                       PipelineRegistry pipelineRegistry) {
         super(settings);
         this.clusterService = clusterService;
         this.blobIndicesService = blobIndicesService;
@@ -76,7 +76,7 @@ public class BlobService extends AbstractLifecycleComponent {
         this.transportService = transportService;
         this.blobTransferTarget = blobTransferTarget;
         this.client = client;
-        this.nettyTransport = nettyTransport;
+        this.piplineRegistry = pipelineRegistry;
     }
 
     public RemoteDigestBlob newBlob(String index, String digest) {
@@ -86,8 +86,8 @@ public class BlobService extends AbstractLifecycleComponent {
 
     @Override
     protected void doStart() throws ElasticsearchException {
-        nettyTransport.addBefore(
-            new CrateNettyHttpServerTransport.ChannelPipelineItem(
+        piplineRegistry.addBefore(
+            new PipelineRegistry.ChannelPipelineItem(
                 "aggregator", "blob_handler", () -> new HttpBlobHandler(this, blobIndicesService))
         );
 

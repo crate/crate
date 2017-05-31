@@ -20,24 +20,19 @@
  * agreement.
  */
 
-package io.crate.http.netty;
+package io.crate.plugin;
 
-import io.crate.test.integration.CrateUnitTest;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
-import org.elasticsearch.common.network.NetworkService;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
-import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
-public class CrateNettyHttpServerTransportTest extends CrateUnitTest {
+public class PipelineRegistryTest {
 
-    private static CrateNettyHttpServerTransport.ChannelPipelineItem channelPipelineItem(String base, String name) {
-        return new CrateNettyHttpServerTransport.ChannelPipelineItem(base, name, () -> new ChannelHandler() {
+    private static PipelineRegistry.ChannelPipelineItem channelPipelineItem(String base, String name) {
+        return new PipelineRegistry.ChannelPipelineItem(base, name, () -> new ChannelHandler() {
             @Override
             public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
 
@@ -57,24 +52,20 @@ public class CrateNettyHttpServerTransportTest extends CrateUnitTest {
 
     @Test
     public void testAddSortedToPipline() throws Exception {
-        CrateNettyHttpServerTransport httpTransport = new CrateNettyHttpServerTransport(Settings.EMPTY,
-            mock(NetworkService.class),
-            mock(BigArrays.class),
-            mock(ThreadPool.class));
+        PipelineRegistry pipelineRegistry = new PipelineRegistry();
 
-        httpTransport.addBefore(channelPipelineItem("c", "d"));
-        httpTransport.addBefore(channelPipelineItem("a", "b"));
-        httpTransport.addBefore(channelPipelineItem("d", "e"));
-        httpTransport.addBefore(channelPipelineItem("b", "c"));
+        pipelineRegistry.addBefore(channelPipelineItem("c", "d"));
+        pipelineRegistry.addBefore(channelPipelineItem("a", "b"));
+        pipelineRegistry.addBefore(channelPipelineItem("d", "e"));
+        pipelineRegistry.addBefore(channelPipelineItem("b", "c"));
 
-        int size = httpTransport.addBefore().size();
+        int size = pipelineRegistry.addBeforeList().size();
         assertThat(size, is(4));
 
-        String[] names = new String[httpTransport.addBefore().size()];
+        String[] names = new String[pipelineRegistry.addBeforeList().size()];
         for (int i = 0; i < size; i++) {
-            names[i] = httpTransport.addBefore().get(i).name;
+            names[i] = pipelineRegistry.addBeforeList().get(i).name;
         }
         assertThat(names, is(new String[]{"b", "c", "d", "e"}));
     }
-
 }

@@ -24,10 +24,10 @@ package io.crate.operation.auth;
 
 import io.crate.operation.collect.sources.SysTableRegistry;
 import io.crate.operation.user.UserManager;
+import io.crate.plugin.PipelineRegistry;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
-import io.crate.http.netty.CrateNettyHttpServerTransport;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -57,6 +57,6 @@ public interface UserServiceFactory {
                                  SysTableRegistry sysTableRegistry);
 
     void registerHttpAuthHandler(Settings settings,
-                                 CrateNettyHttpServerTransport httpTransport,
+                                 PipelineRegistry pipelineRegistry,
                                  Authentication authService);
 }
