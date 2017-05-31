@@ -31,6 +31,8 @@ abstract class InformationTablePartitionsExpression<T>
     extends RowContextCollectorExpression<PartitionInfo, T> {
 
     public static final BytesRef TABLE_TYPE = new BytesRef("BASE TABLE");
+    public static final BytesRef SELF_REFERENCING_COLUMN_NAME = new BytesRef("_id");
+    public static final BytesRef REFERENCE_GENERATION = new BytesRef("SYSTEM GENERATED");
 
     public static class PartitionsTableNameExpression extends InformationTablePartitionsExpression<BytesRef> {
         @Override
@@ -107,11 +109,17 @@ abstract class InformationTablePartitionsExpression<T>
         }
     }
 
-    public static class PartitionsNullExpression extends InformationTablePartitionsExpression<BytesRef> {
-
+    public static class PartitionsSelfReferencingColumnNameExpression extends InformationTablePartitionsExpression<BytesRef> {
         @Override
         public BytesRef value() {
-            return null;
+            return SELF_REFERENCING_COLUMN_NAME;
+        }
+    }
+
+    public static class PartitionsReferenceGenerationExpression extends InformationTablePartitionsExpression<BytesRef> {
+        @Override
+        public BytesRef value() {
+            return REFERENCE_GENERATION;
         }
     }
 }

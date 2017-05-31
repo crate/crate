@@ -99,9 +99,9 @@ public class InformationSchemaExpressionFactories {
             .put(InformationPartitionsTableInfo.Columns.TABLE_VERSION, PartitionsVersionExpression::new)
             .put(InformationPartitionsTableInfo.Columns.TABLE_SETTINGS, PartitionsSettingsExpression::new)
             .put(InformationPartitionsTableInfo.Columns.SELF_REFERENCING_COLUMN_NAME,
-                InformationTablePartitionsExpression.PartitionsNullExpression::new)
+                InformationTablePartitionsExpression.PartitionsSelfReferencingColumnNameExpression::new)
             .put(InformationPartitionsTableInfo.Columns.REFERENCE_GENERATION,
-                InformationTablePartitionsExpression.PartitionsNullExpression::new).build();
+                InformationTablePartitionsExpression.PartitionsReferenceGenerationExpression::new).build();
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<ColumnContext>> columnsFactories() {
@@ -281,8 +281,20 @@ public class InformationSchemaExpressionFactories {
                         return null;
                     }
                 })
-            .put(InformationTablesTableInfo.Columns.SELF_REFERENCING_COLUMN_NAME, RowCollectNullExpressionFactory::new)
-            .put(InformationTablesTableInfo.Columns.REFERENCE_GENERATION, RowCollectNullExpressionFactory::new)
+            .put(InformationTablesTableInfo.Columns.SELF_REFERENCING_COLUMN_NAME, () -> new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                @Override
+                public BytesRef value() {
+                    return InformationTablePartitionsExpression.SELF_REFERENCING_COLUMN_NAME;
+                }
+            })
+            .put(InformationTablesTableInfo.Columns.REFERENCE_GENERATION, () -> new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                @Override
+                public BytesRef value() {
+                    return InformationTablePartitionsExpression.REFERENCE_GENERATION;
+                }
+            })
             .put(InformationTablesTableInfo.Columns.TABLE_VERSION, TablesVersionExpression::new)
             .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS, TablesSettingsExpression::new
             ).build();
@@ -346,13 +358,5 @@ public class InformationSchemaExpressionFactories {
                     return BytesRefs.toBytesRef(row.comments);
                 }
             }).build();
-    }
-
-    public static class RowCollectNullExpressionFactory extends RowContextCollectorExpression<TableInfo, BytesRef> {
-
-        @Override
-        public BytesRef value() {
-            return null;
-        }
     }
 }

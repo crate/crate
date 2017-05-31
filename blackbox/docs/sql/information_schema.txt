@@ -104,11 +104,11 @@ Tables Specification
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``partitioned_by``               | The column used to partition the table                                             | ``String``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``reference_generation``         | Not implemented                                                                    |             |
+| ``reference_generation``         | Specifies how values in the self-referencing column are generated                  | ``String``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``routing_hash_function``        | The hash function used for internal routing                                        | ``String``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``self_referencing_column_name`` | Not implemented                                                                    |             |
+| ``self_referencing_column_name`` | The name of the column that uniquely identifies each row (always ``_id``)          | ``String``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``settings``                     | :ref:`conf_table_settings`                                                         | ``Object``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
