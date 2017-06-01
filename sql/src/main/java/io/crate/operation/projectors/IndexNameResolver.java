@@ -26,6 +26,7 @@ import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import io.crate.collections.Lists2;
 import io.crate.data.Input;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
@@ -37,7 +38,6 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 public class IndexNameResolver {
 
@@ -60,11 +60,11 @@ public class IndexNameResolver {
         return tableIdent::indexName;
     }
 
-    public static Supplier<String> forPartition(TableIdent tableIdent, String partitionIdent) {
-        return (Supplier) () -> PartitionName.indexName(tableIdent, partitionIdent);
+    private static Supplier<String> forPartition(TableIdent tableIdent, String partitionIdent) {
+        return () -> PartitionName.indexName(tableIdent, partitionIdent);
     }
 
-    public static Supplier<String> forPartition(final TableIdent tableIdent, final List<Input<?>> partitionedByInputs) {
+    private static Supplier<String> forPartition(final TableIdent tableIdent, final List<Input<?>> partitionedByInputs) {
         assert partitionedByInputs.size() > 0 : "must have at least 1 partitionedByInput";
         final LoadingCache<List<BytesRef>, String> cache = CacheBuilder.newBuilder()
             .initialCapacity(10)
@@ -77,9 +77,7 @@ public class IndexNameResolver {
             });
         return () -> {
             // copy because the values of the inputs are mutable
-            List<BytesRef> partitions = partitionedByInputs.stream()
-                .map(Inputs.TO_BYTES_REF)
-                .collect(Collectors.toList());
+            List<BytesRef> partitions = Lists2.copyAndReplace(partitionedByInputs, Inputs.TO_BYTES_REF);
             try {
                 return cache.get(partitions);
             } catch (ExecutionException e) {
