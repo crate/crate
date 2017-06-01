@@ -249,15 +249,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         }
     }
 
-    private boolean isAnOpenIndex(String index) {
-        for (String openIndex : concreteOpenIndices) {
-            if (openIndex.equals(index)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     public List<ColumnIdent> primaryKey() {
         return primaryKeys;
     }

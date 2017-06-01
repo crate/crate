@@ -22,7 +22,6 @@
 package io.crate.testing;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import io.crate.Version;
@@ -43,14 +42,10 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeDiagnosingMatcher;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -62,17 +57,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.*;
 
 public class TestingHelpers {
 
@@ -263,9 +252,7 @@ public class TestingHelpers {
     /**
      * Get the values at column index <code>index</code> within all <code>rows</code>
      */
-    public static
-    @Nullable
-    Object[] getColumn(Object[][] rows, int index) throws Exception {
+    public static Object[] getColumn(Object[][] rows, int index) throws Exception {
         if (rows.length == 0 || rows[0].length <= index) {
             throw new NoSuchElementException("no column with index " + index);
         }
@@ -274,34 +261,6 @@ public class TestingHelpers {
             column[i] = rows[i][index];
         }
         return column;
-    }
-
-    public static ThreadPool newMockedThreadPool() {
-        ThreadPool threadPool = Mockito.mock(ThreadPool.class);
-        final ExecutorService executorService = Executors.newSingleThreadExecutor();
-
-        doAnswer(new Answer() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                executorService.shutdown();
-                return null;
-            }
-        }).when(threadPool).shutdown();
-        when(threadPool.executor(anyString())).thenReturn(executorService);
-
-        try {
-            doAnswer(new Answer() {
-                @Override
-                public Object answer(InvocationOnMock invocation) throws Throwable {
-                    executorService.awaitTermination(1, TimeUnit.SECONDS);
-                    return null;
-                }
-            }).when(threadPool).awaitTermination(anyLong(), any(TimeUnit.class));
-        } catch (InterruptedException e) {
-            throw Throwables.propagate(e);
-        }
-
-        return threadPool;
     }
 
     public static Reference refInfo(String fqColumnName, DataType dataType, RowGranularity rowGranularity, String... nested) {

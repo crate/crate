@@ -40,8 +40,9 @@ import java.util.List;
 public class QueriedSelectRelation implements QueriedRelation {
 
     private final Fields fields;
+    private final QuerySpec querySpec;
+
     private QueriedRelation subRelation;
-    private QuerySpec querySpec;
 
     public QueriedSelectRelation(QueriedRelation subRelation, Collection<? extends Path> outputNames, QuerySpec querySpec) {
         this.subRelation = subRelation;
@@ -64,10 +65,6 @@ public class QueriedSelectRelation implements QueriedRelation {
     @Override
     public QuerySpec querySpec() {
         return querySpec;
-    }
-
-    public void querySpec(QuerySpec querySpec) {
-        this.querySpec = querySpec;
     }
 
     @Override

@@ -88,8 +88,6 @@ public class ExecutionPhasesTaskTest {
             null
         );
 
-
-        String localNodeId = "node1";
         NodeOperation n1 = NodeOperation.withDownstream(c1, m1, (byte) 0);
         NodeOperation n2 = NodeOperation.withDownstream(m1, m2, (byte) 0);
         NodeOperation n3 = NodeOperation.withDownstream(m2, mock(ExecutionPhase.class), (byte) 0);

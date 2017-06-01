@@ -33,17 +33,12 @@ import java.util.Map;
 public class MappingSymbolVisitor extends ReplacingSymbolVisitor<Map<? extends Symbol, ? extends Symbol>> {
 
     private static final MappingSymbolVisitor REPLACING = new MappingSymbolVisitor(ReplaceMode.MUTATE);
-    private static final MappingSymbolVisitor COPYING = new MappingSymbolVisitor(ReplaceMode.COPY);
 
     public static MappingSymbolVisitor inPlace() {
         return REPLACING;
     }
 
-    public static MappingSymbolVisitor copying() {
-        return COPYING;
-    }
-
-    protected MappingSymbolVisitor(ReplaceMode mode) {
+    private MappingSymbolVisitor(ReplaceMode mode) {
         super(mode);
     }
 
