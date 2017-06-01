@@ -22,24 +22,18 @@
 package io.crate.planner.projection;
 
 import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocSysColumns;
-import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
@@ -48,85 +42,42 @@ import java.util.function.Function;
  */
 public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
-    private Boolean overwriteDuplicates;
-    private
-    @Nullable
-    String[] includes;
-    private
-    @Nullable
-    String[] excludes;
+    private final Boolean overwriteDuplicates;
 
-    protected Reference rawSourceReference;
-    protected InputColumn rawSourceSymbol;
+    private final Reference rawSourceReference;
+    private final InputColumn rawSourceSymbol;
 
     private final static String OVERWRITE_DUPLICATES = "overwrite_duplicates";
     private final static boolean OVERWRITE_DUPLICATES_DEFAULT = false;
 
+    @Nullable
+    private String[] includes;
+
+    @Nullable
+    private String[] excludes;
+
+
     public SourceIndexWriterProjection(TableIdent tableIdent,
                                        @Nullable String partitionIdent,
                                        Reference rawSourceReference,
+                                       InputColumn rawSourcePtr,
                                        List<ColumnIdent> primaryKeys,
-                                       List<ColumnIdent> partitionedBy,
-                                       List<BytesRef> partitionValues,
+                                       List<Symbol> partitionedBySymbols,
                                        @Nullable ColumnIdent clusteredByColumn,
-                                       int clusteredByIdx,
                                        Settings settings,
                                        @Nullable String[] includes,
                                        @Nullable String[] excludes,
+                                       List<Symbol> idSymbols,
+                                       @Nullable Symbol clusteredBySymbol,
                                        boolean autoCreateIndices) {
-        super(tableIdent, partitionIdent, primaryKeys, clusteredByColumn, settings, autoCreateIndices);
-
+        super(tableIdent, partitionIdent, primaryKeys, clusteredByColumn, settings, idSymbols, autoCreateIndices);
         this.rawSourceReference = rawSourceReference;
         this.includes = includes;
         this.excludes = excludes;
-
-        int currentInputIndex = primaryKeys.size();
-
-        // "_id" is always generated, no need to try to parse it from the source.
-        if (primaryKeys.size() == 1 && primaryKeys.get(0).equals(DocSysColumns.ID)) {
-            idSymbols = Collections.emptyList();
-        } else {
-            List<Symbol> idSymbols = new ArrayList<>(primaryKeys.size());
-            for (int i = 0; i < primaryKeys.size(); i++) {
-                InputColumn ic = new InputColumn(i, null);
-                idSymbols.add(ic);
-                if (i == clusteredByIdx) {
-                    clusteredBySymbol = ic;
-                }
-            }
-            this.idSymbols = idSymbols;
-        }
-
-        List<Symbol> partitionedBySymbols = new ArrayList<>(partitionedBy.size());
-        for (int i = 0, length = partitionedBy.size(); i < length; i++) {
-            int idx = primaryKeys.indexOf(partitionedBy.get(i));
-            Symbol partitionSymbol;
-            if (partitionValues.size() > i) {
-                // copy from into partition, do NOT define partition symbols
-                if (idx > -1) {
-                    // copy from into partition where partitioned column is a primary key
-                    // set partition value as primary key input
-                    idSymbols.set(idx, Literal.of(partitionValues.get(i)));
-                }
-                continue;
-            }
-            if (idx == -1) {
-                partitionSymbol = new InputColumn(currentInputIndex++, null);
-            } else {
-                // partition column is part of primary key, use primary key input
-                partitionSymbol = idSymbols.get(idx);
-            }
-            partitionedBySymbols.add(partitionSymbol);
-        }
         this.partitionedBySymbols = partitionedBySymbols;
-
-        // if clusteredByColumn equals _id then the routing is implicit.
-        if (clusteredByIdx == -1 && clusteredByColumn != null && !DocSysColumns.ID.equals(clusteredByColumn)) {
-            clusteredBySymbol = new InputColumn(currentInputIndex++, null);
-        }
-
+        this.clusteredBySymbol = clusteredBySymbol;
+        this.rawSourceSymbol = rawSourcePtr;
         overwriteDuplicates = settings.getAsBoolean(OVERWRITE_DUPLICATES, OVERWRITE_DUPLICATES_DEFAULT);
-        rawSourceSymbol = new InputColumn(currentInputIndex, DataTypes.STRING);
     }
 
     public SourceIndexWriterProjection(StreamInput in) throws IOException {

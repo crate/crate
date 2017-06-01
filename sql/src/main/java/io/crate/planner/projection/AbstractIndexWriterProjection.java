@@ -40,28 +40,26 @@ import java.util.List;
 
 public abstract class AbstractIndexWriterProjection extends Projection {
 
-    protected final static List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
-        new Value(DataTypes.LONG)  // number of rows imported
-    );
+    private final static List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(new Value(DataTypes.LONG));  // number of rows imported
 
-    protected final static String BULK_SIZE = "bulk_size";
-    protected final static int BULK_SIZE_DEFAULT = 10000;
+    private final static String BULK_SIZE = "bulk_size";
+    private final static int BULK_SIZE_DEFAULT = 10000;
 
-    protected Integer bulkActions;
+    private Integer bulkActions;
     protected TableIdent tableIdent;
     protected String partitionIdent;
     protected List<ColumnIdent> primaryKeys;
-    protected
-    @Nullable
-    ColumnIdent clusteredByColumn;
 
-    protected List<Symbol> idSymbols;
-    protected List<Symbol> partitionedBySymbols;
-    protected
+    @Nullable
+    private ColumnIdent clusteredByColumn;
+
+    private List<Symbol> idSymbols;
+    List<Symbol> partitionedBySymbols;
+
     @Nullable
     Symbol clusteredBySymbol;
 
-    protected boolean autoCreateIndices;
+    private boolean autoCreateIndices;
 
 
     protected AbstractIndexWriterProjection(TableIdent tableIdent,
@@ -69,12 +67,14 @@ public abstract class AbstractIndexWriterProjection extends Projection {
                                             List<ColumnIdent> primaryKeys,
                                             @Nullable ColumnIdent clusteredByColumn,
                                             Settings settings,
+                                            List<Symbol> idSymbols,
                                             boolean autoCreateIndices) {
         this.tableIdent = tableIdent;
         this.partitionIdent = partitionIdent;
         this.primaryKeys = primaryKeys;
         this.clusteredByColumn = clusteredByColumn;
         this.autoCreateIndices = autoCreateIndices;
+        this.idSymbols = idSymbols;
 
         this.bulkActions = settings.getAsInt(BULK_SIZE, BULK_SIZE_DEFAULT);
         Preconditions.checkArgument(bulkActions > 0, "\"bulk_size\" must be greater than 0.");

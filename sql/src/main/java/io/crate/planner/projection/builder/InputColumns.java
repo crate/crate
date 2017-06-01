@@ -24,6 +24,8 @@ package io.crate.planner.projection.builder;
 import com.google.common.base.MoreObjects;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
 import io.crate.types.DataType;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -123,6 +125,14 @@ public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColum
     @Override
     protected Symbol visitSymbol(Symbol symbol, Context context) {
         return MoreObjects.firstNonNull(context.inputs.get(symbol), symbol);
+    }
+
+    @Override
+    public Symbol visitReference(Reference ref, Context context) {
+        if (ref instanceof GeneratedReference) {
+            return visitSymbol(((GeneratedReference) ref).generatedExpression(), context);
+        }
+        return visitSymbol(ref, context);
     }
 
     @Override

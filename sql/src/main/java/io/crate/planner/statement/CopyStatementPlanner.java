@@ -23,11 +23,12 @@
 package io.crate.planner.statement;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
@@ -46,19 +47,17 @@ import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SourceIndexWriterProjection;
 import io.crate.planner.projection.WriterProjection;
+import io.crate.planner.projection.builder.InputColumns;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import javax.annotation.Nullable;
+import java.util.*;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class CopyStatementPlanner {
 
@@ -68,122 +67,153 @@ public class CopyStatementPlanner {
         this.clusterService = clusterService;
     }
 
-    public Plan planCopyFrom(CopyFromAnalyzedStatement analysis, Planner.Context context) {
+    public Plan planCopyFrom(CopyFromAnalyzedStatement copyFrom, Planner.Context context) {
         /*
-         * copy from has two "modes":
-         *
-         * 1: non-partitioned tables or partitioned tables with partition ident --> import into single es index
-         *    -> collect raw source and import as is
-         *
-         * 2: partitioned table without partition ident
-         *    -> collect document and partition by values
-         *    -> exclude partitioned by columns from document
-         *    -> insert into es index (partition determined by partition by value)
+         * Create a plan that reads json-objects-lines from a file and then executes upsert requests to index the data
          */
-
-        DocTableInfo table = analysis.table();
-        int clusteredByPrimaryKeyIdx = table.primaryKey().indexOf(analysis.table().clusteredBy());
-        List<String> partitionedByNames;
-        String partitionIdent = null;
-
-        List<BytesRef> partitionValues;
-        if (analysis.partitionIdent() == null) {
-
+        DocTableInfo table = copyFrom.table();
+        String partitionIdent = copyFrom.partitionIdent();
+        List<String> partitionedByNames = Collections.emptyList();
+        List<BytesRef> partitionValues = Collections.emptyList();
+        if (partitionIdent == null) {
             if (table.isPartitioned()) {
-                partitionedByNames = Lists.newArrayList(
-                    Lists.transform(table.partitionedBy(), ColumnIdent::fqn));
-            } else {
-                partitionedByNames = Collections.emptyList();
+                partitionedByNames = Lists2.copyAndReplace(table.partitionedBy(), ColumnIdent::fqn);
             }
-            partitionValues = ImmutableList.of();
         } else {
             assert table.isPartitioned() : "table must be partitioned if partitionIdent is set";
             // partitionIdent is present -> possible to index raw source into concrete es index
-
-            partitionValues = PartitionName.decodeIdent(analysis.partitionIdent());
-            partitionIdent = analysis.partitionIdent();
-            partitionedByNames = Collections.emptyList();
+            partitionValues = PartitionName.decodeIdent(partitionIdent);
         }
 
+        // need to exclude _id columns; they're auto generated and won't be available in the files being imported
+        ColumnIdent clusteredBy = table.clusteredBy();
+        if (DocSysColumns.ID.equals(clusteredBy)) {
+            clusteredBy = null;
+        }
+        List<Reference> primaryKeyRefs = table.primaryKey().stream()
+            .filter(r -> !r.equals(DocSysColumns.ID))
+            .map(table::getReference)
+            .collect(Collectors.toList());
+
+        List<Symbol> toCollect = getSymbolsRequiredForShardIdCalc(
+            primaryKeyRefs,
+            table.partitionedByColumns(),
+            clusteredBy == null ? null : table.getReference(clusteredBy)
+        );
+        Reference rawOrDoc = rawOrDoc(table, partitionIdent);
+        int rawOrDocIdx = toCollect.size();
+        toCollect.add(rawOrDoc);
+        String[] excludes = partitionedByNames.size() > 0
+            ? partitionedByNames.toArray(new String[partitionedByNames.size()]) : null;
+
+        InputColumns.Context inputColsContext = new InputColumns.Context(toCollect);
+        Symbol clusteredByInputCol = null;
+        if (clusteredBy != null) {
+            clusteredByInputCol = InputColumns.create(table.getReference(clusteredBy), inputColsContext);
+        }
         SourceIndexWriterProjection sourceIndexWriterProjection = new SourceIndexWriterProjection(
             table.ident(),
             partitionIdent,
             table.getReference(DocSysColumns.RAW),
+            new InputColumn(rawOrDocIdx, rawOrDoc.valueType()),
             table.primaryKey(),
-            table.partitionedBy(),
-            partitionValues,
-            table.clusteredBy(),
-            clusteredByPrimaryKeyIdx,
-            analysis.settings(),
+            InputColumns.create(table.partitionedByColumns(), inputColsContext),
+            clusteredBy,
+            copyFrom.settings(),
             null,
-            partitionedByNames.size() >
-            0 ? partitionedByNames.toArray(new String[partitionedByNames.size()]) : null,
+            excludes,
+            InputColumns.create(primaryKeyRefs, inputColsContext),
+            clusteredByInputCol,
             table.isPartitioned() // autoCreateIndices
         );
         List<Projection> projections = Collections.singletonList(sourceIndexWriterProjection);
 
-        List<ColumnIdent> primaryKeys = new ArrayList<>(table.primaryKey().size());
-        List<Symbol> toCollect = new ArrayList<>();
-        // add primaryKey columns
-        for (ColumnIdent primaryKey : table.primaryKey()) {
-            Reference reference = table.getReference(primaryKey);
-            if (reference instanceof GeneratedReference && table.partitionedByColumns().contains(reference)) {
-                // will track this reference in the partitioned by list (so we can extract its references and
-                // the function expression
-                continue;
-            }
-            toCollect.add(reference);
-            primaryKeys.add(primaryKey);
-        }
-        partitionedByNames.removeAll(Lists.transform(primaryKeys, ColumnIdent::fqn));
-
-        // add partitioned columns (if not part of primaryKey)
-        Set<Reference> referencedReferences = new HashSet<>();
-        for (String partitionedColumn : partitionedByNames) {
-            Reference reference = table.getReference(ColumnIdent.fromPath(partitionedColumn));
-            Symbol symbol;
-            if (reference instanceof GeneratedReference) {
-                symbol = ((GeneratedReference) reference).generatedExpression();
-                referencedReferences.addAll(((GeneratedReference) reference).referencedReferences());
-            } else {
-                symbol = reference;
-            }
-            toCollect.add(symbol);
-        }
-        // add clusteredBy column (if not part of primaryKey)
-        if (clusteredByPrimaryKeyIdx == -1 && table.clusteredBy() != null &&
-            !DocSysColumns.ID.equals(table.clusteredBy())) {
-            toCollect.add(table.getReference(table.clusteredBy()));
-        }
-        // add _raw or _doc
-        if (table.isPartitioned() && analysis.partitionIdent() == null) {
-            toCollect.add(table.getReference(DocSysColumns.DOC));
-        } else {
-            toCollect.add(table.getReference(DocSysColumns.RAW));
-        }
-
-        // add columns referenced by generated columns which are used as partitioned by column
-        for (Reference reference : referencedReferences) {
-            if (!toCollect.contains(reference)) {
-                toCollect.add(reference);
-            }
-        }
+        // if there are partitionValues (we've had a PARTITION clause in the statement)
+        // we need to use the calculated partition values because the partition columns are likely NOT in the data being read
+        // the partitionedBy-inputColumns created for the projection are still valid because the positions are not changed
+        rewriteToCollectToUsePartitionValues(table.partitionedByColumns(), partitionValues, toCollect);
 
         DiscoveryNodes allNodes = clusterService.state().nodes();
         FileUriCollectPhase collectPhase = new FileUriCollectPhase(
             context.jobId(),
             context.nextExecutionPhaseId(),
             "copyFrom",
-            getExecutionNodes(allNodes, analysis.settings().getAsInt("num_readers", allNodes.getSize()), analysis.nodePredicate()),
-            analysis.uri(),
+            getExecutionNodes(allNodes, copyFrom.settings().getAsInt("num_readers", allNodes.getSize()), copyFrom.nodePredicate()),
+            copyFrom.uri(),
             toCollect,
             projections,
-            analysis.settings().get("compression", null),
-            analysis.settings().getAsBoolean("shared", null)
+            copyFrom.settings().get("compression", null),
+            copyFrom.settings().getAsBoolean("shared", null)
         );
 
         Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
         return Merge.ensureOnHandler(collect, context, Collections.singletonList(MergeCountProjection.INSTANCE));
+    }
+
+    private static void rewriteToCollectToUsePartitionValues(List<Reference> partitionedByColumns,
+                                                             List<BytesRef> partitionValues,
+                                                             List<Symbol> toCollect) {
+        for (int i = 0; i < partitionValues.size(); i++) {
+            Reference partitionedByColumn = partitionedByColumns.get(i);
+            int idx;
+            if (partitionedByColumn instanceof GeneratedReference) {
+                idx = toCollect.indexOf(((GeneratedReference) partitionedByColumn).generatedExpression());
+            } else {
+                idx = toCollect.indexOf(partitionedByColumn);
+            }
+            if (idx > -1) {
+                toCollect.set(idx, Literal.of(partitionValues.get(i)));
+            }
+        }
+    }
+
+    /**
+     * To generate the upsert request the following is required:
+     *
+     *  - tableIdent + partitionIdent / partitionValues
+     *      -> to retrieve the indexName
+     *
+     *  - primaryKeys + clusteredBy  (+ indexName)
+     *      -> to calculate the shardId
+     */
+    private static List<Symbol> getSymbolsRequiredForShardIdCalc(List<Reference> primaryKeyRefs,
+                                                                 List<Reference> partitionedByRefs,
+                                                                 @Nullable Reference clusteredBy) {
+        HashSet<Symbol> toCollectUnique = new HashSet<>();
+        primaryKeyRefs.forEach(r -> addWithRefDependencies(toCollectUnique, r));
+        partitionedByRefs.forEach(r -> addWithRefDependencies(toCollectUnique, r));
+        if (clusteredBy != null) {
+            addWithRefDependencies(toCollectUnique, clusteredBy);
+        }
+        return new ArrayList<>(toCollectUnique);
+    }
+
+    private static void addWithRefDependencies(HashSet<Symbol> toCollectUnique, Reference ref) {
+        if (ref instanceof GeneratedReference) {
+            toCollectUnique.add(((GeneratedReference) ref).generatedExpression());
+        } else {
+            toCollectUnique.add(ref);
+        }
+    }
+
+    /**
+     * Return RAW or DOC Reference:
+     *
+     * Copy from has two "modes" on how the json-object-lines are processed:
+     *
+     * 1: non-partitioned tables or partitioned tables with partition ident --> import into single es index
+     *    -> collect raw source and import as is
+     *
+     * 2: partitioned table without partition ident
+     *    -> collect document and partition by values
+     *    -> exclude partitioned by columns from document
+     *    -> insert into es index (partition determined by partition by value)
+     */
+    private static Reference rawOrDoc(DocTableInfo table, String selectedPartitionIdent) {
+        if (table.isPartitioned() && selectedPartitionIdent == null) {
+            return table.getReference(DocSysColumns.DOC);
+        }
+        return table.getReference(DocSysColumns.RAW);
     }
 
     public Plan planCopyTo(CopyToAnalyzedStatement statement, Planner.Context context) {
