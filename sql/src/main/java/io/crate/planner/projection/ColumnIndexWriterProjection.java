@@ -56,8 +56,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        @Nullable String partitionIdent,
                                        List<ColumnIdent> primaryKeys,
                                        List<Reference> columns,
-                                       @Nullable
-                                           Map<Reference, Symbol> onDuplicateKeyAssignments,
+                                       @Nullable Map<Reference, Symbol> onDuplicateKeyAssignments,
                                        List<Symbol> primaryKeySymbols,
                                        List<ColumnIdent> partitionedByColumns,
                                        List<Symbol> partitionedBySymbols,
@@ -65,8 +64,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        @Nullable Symbol clusteredBySymbol,
                                        Settings settings,
                                        boolean autoCreateIndices) {
-        super(tableIdent, partitionIdent, primaryKeys, clusteredByColumn, settings, autoCreateIndices);
-        this.idSymbols = primaryKeySymbols;
+        super(tableIdent, partitionIdent, primaryKeys, clusteredByColumn, settings, primaryKeySymbols, autoCreateIndices);
         this.partitionedBySymbols = partitionedBySymbols;
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
         this.columnReferences = new ArrayList<>(columns);

@@ -41,10 +41,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
 import static org.hamcrest.Matchers.*;
@@ -568,14 +565,17 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             "create table %s (a int) with (number_of_replicas = 0)",
             tableName));
 
-        Path tmpDir = newTempDir(LifecycleScope.TEST);
-        Path target = Files.createDirectories(tmpDir.resolve("target"));
-        File file = new File(target.toFile(), "integers.json");
         String r1 = "{\"a\": 1}";
         String r2 = "{\"a\": 2}";
         String r3 = "{\"a\": 3}";
-        Files.write(file.toPath(), ImmutableList.of(r1, r2, r3), StandardCharsets.UTF_8);
+        return tmpFileWithLines(ImmutableList.of(r1, r2, r3));
+    }
 
+    private static Path tmpFileWithLines(Iterable<String> lines) throws IOException {
+        Path tmpDir = newTempDir(LifecycleScope.TEST);
+        Path target = Files.createDirectories(tmpDir.resolve("target"));
+        File file = new File(target.toFile(), "data.json");
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
         return Files.createSymbolicLink(tmpDir.resolve("link"), target);
     }
 
@@ -592,7 +592,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public void testCopyFromSymlinkFolderWithPrefixedWildcard() throws Exception {
         Path link = setUpTableAndSymlink("t");
         execute("copy t from ? with (shared=true)", new Object[]{
-            link.toUri().toString() + "i*"
+            link.toUri().toString() + "d*"
         });
         assertThat(response.rowCount(), is(3L));
     }
@@ -610,8 +610,30 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public void testCopyFromFileInSymlinkFolder() throws Exception {
         Path link = setUpTableAndSymlink("t");
         execute("copy t from ? with (shared=true)", new Object[]{
-            link.toUri().toString() + "integers.json"
+            link.toUri().toString() + "data.json"
         });
         assertThat(response.rowCount(), is(3L));
+    }
+
+    @Test
+    public void testCopyWithGeneratedPartitionColumnThatIsPartOfPrimaryKey() throws Exception {
+        execute("create table t1 (\n" +
+                "  guid string,\n" +
+                "  ts timestamp,\n" +
+                "  g_ts_month timestamp generated always as date_trunc('month', ts),\n" +
+                "  primary key (guid, g_ts_month)\n" +
+                ") partitioned by (g_ts_month)");
+        ensureYellow();
+
+        Path path = tmpFileWithLines(Arrays.asList(
+            "{\"guid\": \"a\", \"ts\": 1496275200000}",
+            "{\"guid\": \"b\", \"ts\": 1496275300000}"
+        ));
+        execute("copy t1 from ? with (shared=true)", new Object[] { path.toUri().toString() + "*.json"});
+        assertThat(response.rowCount(), is(2L));
+
+        execute("copy t1 partition (g_ts_month = 1496275200000) from ? with (shared=true, overwrite_duplicates=true)",
+            new Object[] { path.toUri().toString() + "*.json"});
+        assertThat(response.rowCount(), is(2L));
     }
 }

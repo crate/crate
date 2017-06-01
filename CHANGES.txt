@@ -30,6 +30,9 @@ Changes
 Fixes
 =====
 
+ - Fixed a ``COPY FROM`` issue that caused imports into tables with certain
+   combinations of PARTITIONED BY, PRIMARY KEY and GENERATED COLUMNS to fail.
+
  - Fixed an issue with algorithm that tries to reorder the joined tables using
    the optimum ordering. The issue caused an exception to be thrown when join
    conditions contain table(s) which are not part of the adjacent joined tables.

@@ -59,9 +59,9 @@ public class Lists2 {
         }
     }
 
-    public static <T> List<T> copyAndReplace(List<T> list, Function<? super T, T> replaceFunc) {
-        List<T> copy = new ArrayList<T>(list.size());
-        for (T item : list) {
+    public static <I, O> List<O> copyAndReplace(List<I> list, Function<? super I, ? extends O> replaceFunc) {
+        List<O> copy = new ArrayList<O>(list.size());
+        for (I item : list) {
             copy.add(replaceFunc.apply(item));
         }
         return copy;
