@@ -1,0 +1,28 @@
+.. _ref-grant:
+
+=========
+``GRANT``
+=========
+
+Grants privilege to an existing user.
+
+Synopsis
+========
+
+.. code-block:: psql
+
+  GRANT { { DQL | DML | DDL [,...] } | ALL [ PRIVILEGES ] }
+  TO user_name [, ...];
+
+Description
+===========
+
+``GRANT`` is a management statement to grant a ``DQL``, ``DML`` or ``DDL``
+privilege on the cluster to one or many existing users.
+
+For usage of the ``GRANT`` statement see :ref:`administration-privileges`.
+
+Parameters
+==========
+
+:user_name: The name of an existing user.

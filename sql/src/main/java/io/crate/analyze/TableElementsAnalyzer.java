@@ -26,6 +26,7 @@ import io.crate.data.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Reference;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.*;
 import io.crate.types.DataTypes;
@@ -43,11 +44,12 @@ public class TableElementsAnalyzer {
     public static AnalyzedTableElements analyze(List<TableElement> tableElements,
                                                 Row parameters,
                                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                                TableIdent tableIdent,
                                                 @Nullable TableInfo tableInfo) {
         AnalyzedTableElements analyzedTableElements = new AnalyzedTableElements();
         for (TableElement tableElement : tableElements) {
             ColumnDefinitionContext ctx = new ColumnDefinitionContext(
-                null, parameters, fulltextAnalyzerResolver, analyzedTableElements, tableInfo);
+                null, parameters, fulltextAnalyzerResolver, analyzedTableElements, tableIdent, tableInfo);
             ANALYZER.process(tableElement, ctx);
             if (ctx.analyzedColumnDefinition.ident() != null) {
                 analyzedTableElements.add(ctx.analyzedColumnDefinition);
@@ -60,7 +62,7 @@ public class TableElementsAnalyzer {
                                                 Row parameters,
                                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                                 TableInfo tableInfo) {
-        return analyze(Arrays.asList(tableElement), parameters, fulltextAnalyzerResolver, tableInfo);
+        return analyze(Arrays.asList(tableElement), parameters, fulltextAnalyzerResolver, tableInfo.ident(), tableInfo);
     }
 
     private static class ColumnDefinitionContext {
@@ -68,17 +70,21 @@ public class TableElementsAnalyzer {
         final FulltextAnalyzerResolver fulltextAnalyzerResolver;
         AnalyzedColumnDefinition analyzedColumnDefinition;
         final AnalyzedTableElements analyzedTableElements;
+        final TableIdent tableIdent;
+        @Nullable
         final TableInfo tableInfo;
 
         ColumnDefinitionContext(@Nullable AnalyzedColumnDefinition parent,
                                 Row parameters,
                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                 AnalyzedTableElements analyzedTableElements,
+                                TableIdent tableIdent,
                                 @Nullable  TableInfo tableInfo) {
             this.analyzedColumnDefinition = new AnalyzedColumnDefinition(parent);
             this.parameters = parameters;
             this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
             this.analyzedTableElements = analyzedTableElements;
+            this.tableIdent = tableIdent;
             this.tableInfo = tableInfo;
         }
     }
@@ -88,7 +94,7 @@ public class TableElementsAnalyzer {
 
         @Override
         public Void visitColumnDefinition(ColumnDefinition node, ColumnDefinitionContext context) {
-            context.analyzedColumnDefinition.name(node.ident());
+            context.analyzedColumnDefinition.name(node.ident(), context.tableIdent);
             for (ColumnConstraint columnConstraint : node.constraints()) {
                 process(columnConstraint, context);
             }
@@ -105,7 +111,7 @@ public class TableElementsAnalyzer {
         public Void visitAddColumnDefinition(AddColumnDefinition node, ColumnDefinitionContext context) {
             String columnName = ExpressionToStringVisitor.convert(node.name(), context.parameters);
             ColumnIdent ident = ColumnIdent.fromPath(columnName);
-            context.analyzedColumnDefinition.name(ident.name());
+            context.analyzedColumnDefinition.name(ident.name(), context.tableIdent);
 
             // nested columns can only be added using alter table so no other columns exist.
             assert context.analyzedTableElements.columns().size() == 0 :
@@ -132,7 +138,7 @@ public class TableElementsAnalyzer {
                     }
                     parent.markAsParentColumn();
                     leaf = new AnalyzedColumnDefinition(parent);
-                    leaf.name(name);
+                    leaf.name(name, context.tableIdent);
                     parent.addChild(leaf);
                     parent = leaf;
                 }
@@ -181,6 +187,7 @@ public class TableElementsAnalyzer {
                     context.parameters,
                     context.fulltextAnalyzerResolver,
                     context.analyzedTableElements,
+                    context.tableIdent,
                     context.tableInfo
                 );
                 process(columnDefinition, childContext);
@@ -250,7 +257,7 @@ public class TableElementsAnalyzer {
         public Void visitIndexDefinition(IndexDefinition node, ColumnDefinitionContext context) {
             context.analyzedColumnDefinition.setAsIndexColumn();
             context.analyzedColumnDefinition.dataType("text");
-            context.analyzedColumnDefinition.name(node.ident());
+            context.analyzedColumnDefinition.name(node.ident(), context.tableIdent);
 
             setAnalyzer(node.properties(), context, node.method());
 

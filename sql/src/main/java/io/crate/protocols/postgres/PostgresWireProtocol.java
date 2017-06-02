@@ -25,7 +25,6 @@ package io.crate.protocols.postgres;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.operation.auth.Authentication;
@@ -370,8 +369,7 @@ class PostgresWireProtocol {
                     LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".",
                         user.name(), authMethod.name());
                 }
-                SessionContext sessionContext = new SessionContext(properties, user);
-                session = sqlOperations.createSession(sessionContext);
+                session = sqlOperations.createSession(properties, user);
                 Messages.sendAuthenticationOK(channel)
                     .addListener(f -> sendReadyForQuery(channel));
             } catch (Exception e) {
@@ -547,10 +545,11 @@ class PostgresWireProtocol {
         if (outputTypes == null) {
             // this is a DML query
             maxRows = 0;
-            resultReceiver = new RowCountReceiver(query, channel);
+            resultReceiver = new RowCountReceiver(query, channel, session.sessionContext());
         } else {
             // query with resultSet
-            resultReceiver = new ResultSetReceiver(query, channel, outputTypes, session.getResultFormatCodes(portalName));
+            resultReceiver = new ResultSetReceiver(query, channel, session.sessionContext(), outputTypes,
+                session.getResultFormatCodes(portalName));
         }
         session.execute(portalName, maxRows, resultReceiver);
     }
@@ -596,11 +595,12 @@ class PostgresWireProtocol {
             session.bind("", "", Collections.emptyList(), null);
             List<Field> fields = session.describe('P', "");
             if (fields == null) {
-                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel);
+                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel, session.sessionContext());
                 session.execute("", 0, rowCountReceiver);
             } else {
                 Messages.sendRowDescription(channel, fields, null);
-                ResultSetReceiver resultSetReceiver = new ResultSetReceiver(query, channel, Symbols.extractTypes(fields), null);
+                ResultSetReceiver resultSetReceiver = new ResultSetReceiver(query, channel, session.sessionContext(),
+                    Symbols.extractTypes(fields), null);
                 session.execute("", 0, resultSetReceiver);
             }
             ReadyForQueryCallback readyForQueryCallback = new ReadyForQueryCallback(channel);

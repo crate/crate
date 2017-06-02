@@ -494,7 +494,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testTableStartWithUnderscore() throws Exception {
         expectedException.expect(InvalidTableNameException.class);
-        expectedException.expectMessage("table name \"_invalid\" is invalid.");
+        expectedException.expectMessage("table name \"doc._invalid\" is invalid.");
         e.analyze("create table _invalid (id integer primary key)");
     }
 
@@ -693,7 +693,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testExplicitSchemaHasPrecedenceOverDefaultSchema() throws Exception {
         CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement("create table foo.bar (x string)"),
-            new SessionContext(0, Option.NONE, "hoschi", null),
+            new SessionContext(0, Option.NONE, "hoschi", null, s -> {}, t -> {}),
             new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())).analyzedStatement();
 
         // schema from statement must take precedence
@@ -704,7 +704,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testDefaultSchemaIsAddedToTableIdentIfNoEplicitSchemaExistsInTheStatement() throws Exception {
         CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement("create table bar (x string)"),
-            new SessionContext(0, Option.NONE, "hoschi", null),
+            new SessionContext(0, Option.NONE, "hoschi", null, s -> {}, t -> {}),
             new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())).analyzedStatement();
 
         assertThat(statement.tableIdent().schema(), is("hoschi"));

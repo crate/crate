@@ -21,20 +21,32 @@
 
 package io.crate.exceptions;
 
+import io.crate.metadata.TableIdent;
+
+import java.util.Collections;
 import java.util.Locale;
 
-public class InvalidTableNameException extends ValidationException {
+public class InvalidTableNameException extends ValidationException implements TableScopeException {
 
-    public InvalidTableNameException(String tableName, Throwable e) {
+    private final TableIdent tableIdent;
+
+    InvalidTableNameException(String tableName, Throwable e) {
         super(String.format(Locale.ENGLISH, "table name \"%s\" is invalid.", tableName), e);
+        tableIdent = TableIdent.fromIndexName(tableName);
     }
 
-    public InvalidTableNameException(String tableName) {
-        super(String.format(Locale.ENGLISH, "table name \"%s\" is invalid.", tableName));
+    public InvalidTableNameException(TableIdent tableIdent) {
+        super(String.format(Locale.ENGLISH, "table name \"%s\" is invalid.", tableIdent.fqn()));
+        this.tableIdent = tableIdent;
     }
 
     @Override
     public int errorCode() {
         return 2;
+    }
+
+    @Override
+    public Iterable<TableIdent> getTableIdents() {
+        return Collections.singletonList(tableIdent);
     }
 }

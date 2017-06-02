@@ -23,22 +23,32 @@ package io.crate.exceptions;
 
 import io.crate.metadata.TableIdent;
 
+import java.util.Collections;
 import java.util.Locale;
 
-public class TableAlreadyExistsException extends ConflictException {
+public class TableAlreadyExistsException extends ConflictException implements TableScopeException {
+
+    private TableIdent tableIdent;
 
     private static final String MESSAGE_TMPL = "The table '%s' already exists.";
 
     public TableAlreadyExistsException(TableIdent tableIdent) {
         super(String.format(Locale.ENGLISH, MESSAGE_TMPL, tableIdent));
+        this.tableIdent = tableIdent;
     }
 
-    public TableAlreadyExistsException(String tableName, Throwable e) {
+    TableAlreadyExistsException(String tableName, Throwable e) {
         super(String.format(Locale.ENGLISH, MESSAGE_TMPL, tableName), e);
+        this.tableIdent = TableIdent.fromIndexName(tableName);
     }
 
     @Override
     public int errorCode() {
         return 3;
+    }
+
+    @Override
+    public Iterable<TableIdent> getTableIdents() {
+        return Collections.singletonList(tableIdent);
     }
 }

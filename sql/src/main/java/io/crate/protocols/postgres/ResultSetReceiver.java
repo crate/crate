@@ -24,6 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.data.Row;
+import io.crate.operation.user.ExceptionAuthorizedValidator;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.types.DataType;
 import io.netty.channel.Channel;
@@ -36,6 +37,7 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     private final String query;
     private final Channel channel;
+    private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
     private final List<? extends DataType> columnTypes;
 
     @Nullable
@@ -45,10 +47,12 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     ResultSetReceiver(String query,
                       Channel channel,
+                      ExceptionAuthorizedValidator exceptionAuthorizedValidator,
                       List<? extends DataType> columnTypes,
                       @Nullable FormatCodes.FormatCode[] formatCodes) {
         this.query = query;
         this.channel = channel;
+        this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
         this.columnTypes = columnTypes;
         this.formatCodes = formatCodes;
     }
@@ -76,7 +80,7 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        Messages.sendErrorResponse(channel, SQLExceptions.createSQLActionException(throwable))
+        Messages.sendErrorResponse(channel, SQLExceptions.createSQLActionException(throwable, exceptionAuthorizedValidator))
             .addListener(f -> super.fail(throwable));
     }
 }

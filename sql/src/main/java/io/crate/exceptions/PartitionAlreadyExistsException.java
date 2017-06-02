@@ -23,17 +23,27 @@
 package io.crate.exceptions;
 
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.TableIdent;
 
+import java.util.Collections;
 import java.util.Locale;
 
-public class PartitionAlreadyExistsException extends ConflictException {
+public class PartitionAlreadyExistsException extends ConflictException implements TableScopeException {
+
+    private final TableIdent tableIdent;
 
     public PartitionAlreadyExistsException(PartitionName partitionName) {
         super(String.format(Locale.ENGLISH, "Partition '%s' already exists", partitionName));
+        this.tableIdent = partitionName.tableIdent();
     }
 
     @Override
     public int errorCode() {
         return 7;
+    }
+
+    @Override
+    public Iterable<TableIdent> getTableIdents() {
+        return Collections.singletonList(tableIdent);
     }
 }

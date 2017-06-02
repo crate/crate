@@ -28,6 +28,7 @@ import io.crate.action.sql.*;
 import io.crate.analyze.symbol.Field;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.operation.user.ExceptionAuthorizedValidator;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.shade.org.postgresql.util.PGobject;
@@ -178,15 +179,15 @@ public class SQLTransportExecutor {
             session.bind(UNNAMED, UNNAMED, argsList, null);
             List<Field> outputFields = session.describe('P', UNNAMED);
             if (outputFields == null) {
-                ResultReceiver resultReceiver = new RowCountReceiver(listener);
+                ResultReceiver resultReceiver = new RowCountReceiver(listener, session.sessionContext());
                 session.execute(UNNAMED, 0, resultReceiver);
             } else {
-                ResultReceiver resultReceiver = new ResultSetReceiver(listener, outputFields);
+                ResultReceiver resultReceiver = new ResultSetReceiver(listener, session.sessionContext(), outputFields);
                 session.execute(UNNAMED, 0, resultReceiver);
             }
             session.sync();
         } catch (Throwable t) {
-            listener.onFailure(SQLExceptions.createSQLActionException(t));
+            listener.onFailure(SQLExceptions.createSQLActionException(t, session.sessionContext()));
         }
     }
 
@@ -222,11 +223,11 @@ public class SQLTransportExecutor {
                 if (t == null) {
                     listener.onResponse(new SQLBulkResponse(results));
                 } else {
-                    listener.onFailure(SQLExceptions.createSQLActionException(t));
+                    listener.onFailure(SQLExceptions.createSQLActionException(t, session.sessionContext()));
                 }
             });
         } catch (Throwable t) {
-            listener.onFailure(SQLExceptions.createSQLActionException(t));
+            listener.onFailure(SQLExceptions.createSQLActionException(t, session.sessionContext()));
         }
     }
 
@@ -544,11 +545,14 @@ public class SQLTransportExecutor {
 
         private final List<Object[]> rows = new ArrayList<>();
         private final ActionListener<SQLResponse> listener;
+        private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
         private final List<Field> outputFields;
 
         ResultSetReceiver(ActionListener<SQLResponse> listener,
+                          ExceptionAuthorizedValidator exceptionAuthorizedValidator,
                           List<Field> outputFields) {
             this.listener = listener;
+            this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
             this.outputFields = outputFields;
         }
 
@@ -565,7 +569,7 @@ public class SQLTransportExecutor {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            listener.onFailure(SQLExceptions.createSQLActionException(t));
+            listener.onFailure(SQLExceptions.createSQLActionException(t, exceptionAuthorizedValidator));
             super.fail(t);
         }
 
@@ -597,11 +601,14 @@ public class SQLTransportExecutor {
     private static class RowCountReceiver extends BaseResultReceiver {
 
         private final ActionListener<SQLResponse> listener;
+        private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
 
         private long rowCount;
 
-        RowCountReceiver(ActionListener<SQLResponse> listener) {
+        RowCountReceiver(ActionListener<SQLResponse> listener,
+                         ExceptionAuthorizedValidator exceptionAuthorizedValidator) {
             this.listener = listener;
+            this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
         }
 
         @Override
@@ -624,7 +631,7 @@ public class SQLTransportExecutor {
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            listener.onFailure(SQLExceptions.createSQLActionException(t));
+            listener.onFailure(SQLExceptions.createSQLActionException(t, exceptionAuthorizedValidator));
             super.fail(t);
         }
     }

@@ -44,7 +44,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.FieldReplacer;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.exceptions.ValidationException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.operation.operator.AndOperator;
@@ -466,11 +466,11 @@ public class ManyTableConsumer implements Consumer {
 
         private static boolean isUnsupportedStatement(MultiSourceSelect statement, ConsumerContext context) {
             if (statement.querySpec().groupBy().isPresent()) {
-                context.validationException(new ValidationException("GROUP BY on JOINS is not supported"));
+                context.validationException(new UnsupportedFeatureException("GROUP BY on JOINS is not supported"));
                 return true;
             }
             if (statement.querySpec().hasAggregates()) {
-                context.validationException(new ValidationException("AGGREGATIONS on JOINS are not supported"));
+                context.validationException(new UnsupportedFeatureException("AGGREGATIONS on JOINS are not supported"));
                 return true;
             }
 

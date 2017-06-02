@@ -21,16 +21,27 @@
 
 package io.crate.exceptions;
 
+import io.crate.metadata.TableIdent;
+
+import java.util.Collections;
 import java.util.Locale;
 
-public class AlterTableAliasException extends ValidationException {
+public class AlterTableAliasException extends ValidationException implements TableScopeException {
 
-    public AlterTableAliasException(String tableAlias) {
-        super(String.format(Locale.ENGLISH, "Alter table using a \"%s\" as table alias is not supported", tableAlias));
+    private final TableIdent tableIdent;
+
+    public AlterTableAliasException(TableIdent tableIdent) {
+        super(String.format(Locale.ENGLISH, "Alter table using a \"%s\" as table alias is not supported", tableIdent.fqn()));
+        this.tableIdent = tableIdent;
     }
 
     @Override
     public int errorCode() {
         return 5;
+    }
+
+    @Override
+    public Iterable<TableIdent> getTableIdents() {
+        return Collections.singletonList(tableIdent);
     }
 }

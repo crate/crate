@@ -108,6 +108,7 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
         properties.setProperty("user", "crate");
         try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
             conn.createStatement().execute("CREATE USER arthur");
+            conn.createStatement().execute("Grant DQL to arthur");
         }
         // connection with user arthur is possible
         properties.setProperty("user", "arthur");
@@ -125,6 +126,7 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
             conn.createStatement().execute("CREATE USER requiredssluser");
             conn.createStatement().execute("CREATE USER optionalssluser");
             conn.createStatement().execute("CREATE USER neverssluser");
+            conn.createStatement().execute("GRANT DQL to requiredssluser, optionalssluser, neverssluser");
         }
 
         // We don't have SSL available in the following tests:
