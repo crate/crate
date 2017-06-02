@@ -1,0 +1,144 @@
+.. highlight:: psql
+.. _administration-privileges:
+
+=======================
+Cluster Wide Privileges
+=======================
+
+.. note::
+
+    Privileges are only part of the CrateDB `Enterprise Edition`_.
+    When the CrateDB Enterprise Edition is disabled, there will be
+    no user privilege checks, and every statement will be executed
+    without the validation of privileges.
+
+User privileges are applied on the whole cluster and propagated
+to all tables and schemas in the cluster. For example, a user with
+``DQL`` privilege can issue ``SELECT`` queries on any table and
+schema in the cluster. Similarly a user with ``DML`` privilege can
+issue ``INSERT`` statement to any table and schema in the cluster.
+There is no option to ``GRANT`` or ``REVOKE`` privileges on object
+level, such as table or schema.
+
+.. note::
+
+    Superusers are allowed to execute any statement without any privilege
+    checks. Currently only ``DQL``, ``DML`` and ``DDL`` privileges can be
+    granted. Any statements which are not allowed with those privileges,
+    such as ``GRANT`` and ``REVOKE``, can only be issued by a superuser.
+
+``Privilege Types``
+====================
+
+``DQL``
+.......
+
+Granting ``Data Query Language (DQL)`` privilege to a user, indicates that this
+user is allowed to execute ``SELECT``, ``SHOW`` and ``SET SESSION`` statements,
+as well as using the available user defined functions.
+
+``DML``
+.......
+
+Granting ``Data Manipulation Language (DML)`` privilege to a user, indicates
+that this user is allowed to execute ``INSERT``, ``UPDATE`` and ``DELETE``
+statements.
+
+``DDL``
+.......
+
+Granting ``Data Definition Language (DDL)`` privilege to a user, indicates that
+this user is allowed to execute ``CREATE``, ``DROP`` and ``ALTER`` statements.
+
+``GRANT``
+=========
+
+.. hide:
+
+    cr> CREATE user wolfgang;
+    CREATE OK, 1 row affected (... sec)
+
+    cr> CREATE user will;
+    CREATE OK, 1 row affected (... sec)
+
+To grant a privilege to an existing user we use the :doc:`/sql/reference/grant`
+SQL statement, for example::
+
+    cr> GRANT DML TO wolfgang;
+    GRANT OK, 1 row affected (... sec)
+
+
+If a user with the username specified in the SQL statement does not exist the
+statement returns an error::
+
+    cr> GRANT DQL TO layla;
+    UserDoesNotExistException ...
+
+To grant ``ALL PRIVILEGES`` to user will, we can use the following syntax::
+
+    cr> GRANT ALL PRIVILEGES TO will;
+    GRANT OK, 2 rows affected (... sec)
+
+Using "ALL PRIVILEGES" is a shortcut to grant all the currently grantable
+privileges to a user, namely ``DQL``, ``DML`` and ``DDL``.
+
+Privileges can be granted to multiple users in the same statement, like so::
+
+    cr> GRANT DDL TO wolfgang, will;
+    GRANT OK, 2 row affected (... sec)
+
+``REVOKE``
+==========
+
+To revoke a privilege that was previously granted to a user use the
+:doc:`/sql/reference/revoke` SQL statement, for example::
+
+    cr> REVOKE DDL from will;
+    REVOKE OK, 1 row affected (... sec)
+
+If a user with the username specified in the SQL statement does not exist the
+statement returns an error::
+
+    cr> REVOKE DDL FROM layla;
+    UserDoesNotExistException ...
+
+``REVOKE ALL`` or ``REVOKE ALL PRIVILEGES`` will revoke all privileges
+that were previously granted to a user, it can be used like this::
+
+    cr> REVOKE ALL FROM wolfgang;
+    REVOKE OK, 3 row affected (... sec)
+
+Privileges can be revoked from multiple users in the same statement,
+like so::
+
+    cr> REVOKE DDL FROM wolfgang, will;
+    REVOKE OK, 2 row affected (... sec)
+
+List Privileges
+===============
+
+CrateDB exposes privileges ``sys.privileges`` system table.
+
+.. note::
+    Please note that this table can only be accessed by the superuser.
+
+By querying the ``sys.privileges`` table you can get all
+information regarding the existing privileges. E.g.::
+
+    cr> SELECT * FROM sys.privileges;
+    +-------------+-----------+---------+------------+-------+-----------+
+    | grantor     | grantee   | class   | state      | type  | ident     |
+    +-------------+-----------+---------+------------+-------+-----------+
+    | crate       | will      | cluster | grant      | DML   | null      |
+    | crate       | will      | cluster | grant      | DQL   | null      |
+    +-------------+-----------+---------+------------+-------+-----------+
+    SELECT 3 rows in set (... sec)
+
+The column ``grantor`` shows the user who granted the privilege, the column ``grantee``
+shows the user for whom the privilege was granted. The column ``class`` identifies on
+which type of context the privilege applies. ``ident`` stands for the ident of the object
+that the privilege is set on and finally ``type`` stands for the type of privileges that
+was granted or revoked.
+
+
+.. _Enterprise Edition: https://crate.io/enterprise/
