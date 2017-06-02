@@ -2,24 +2,21 @@ dependencies {
     compile project(':es:es-core')
     compile project(':es:es-client')
 
-    // mvn dependency:tree | grep -o ' .- .*:test' | cut -d ' ' -f 3 | sort | uniq| sed "s/\(.*\):jar:\(.*\):test/testCompile '\1:\2'/g"
+    // same deps as in es/upstream/test/framework/build.gradle  except ES/ES-client (we compile the project)
     compile "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
-    compile "com.google.jimfs:jimfs:1.0"
-    compile "commons-codec:commons-codec:${versions.commonscodec}"
-    compile "commons-logging:commons-logging:${versions.commonslogging}"
     compile "junit:junit:${versions.junit}"
-    compile("org.apache.httpcomponents:httpclient:${versions.httpclient}") {
-        exclude group: "commons-codec", module: "commons-codec"
-    }
-    compile "org.apache.httpcomponents:httpcore:${versions.httpcore}"
-    compile "org.apache.lucene:lucene-codecs:${versions.lucene}"
-    // If the version here is increased the `AssertingLeafReader` class needs to
-    // be updated as it is a copy from lucene-test-framework
-    compile "org.apache.lucene:lucene-test-framework:${versions.lucene}"
-    compile "org.elasticsearch:securemock:${versions.securemock}"
     compile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+    compile "org.apache.lucene:lucene-test-framework:${versions.lucene}"
+    compile "org.apache.lucene:lucene-codecs:${versions.lucene}"
+    compile "org.apache.httpcomponents:httpclient:${versions.httpclient}"
+    compile "org.apache.httpcomponents:httpcore:${versions.httpcore}"
+    compile "commons-logging:commons-logging:${versions.commonslogging}"
+    compile "commons-codec:commons-codec:${versions.commonscodec}"
+    compile "org.elasticsearch:securemock:${versions.securemock}"
 
+    // crate extra dependencies
     compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
+    compile "com.google.guava:guava:${versions.guava}"
 }
 
 sourceSets {
