@@ -1,0 +1,220 @@
+============
+Docker Swarm
+============
+
+Docker Swarm is a great cluster orchestration tool that has been
+integrated into the Docker engine starting with their 1.12 release.
+Since this tooling is perfect for creating Crate clusters, we want to
+show you how to get three nodes of our SQL database working together.
+
+Prerequisites
+-------------
+
+-  `Docker machine <https://docs.docker.com/machine/install-machine/>`__
+-  `A working Docker
+   installation <https://docs.docker.com/engine/installation/>`__
+-  A couple of nodes (for a development setup virtual machines work as
+   well) with SSH access and Linux
+
+Having that handy will provide a solid starting point for creating a
+Crate cluster.
+
+Setup
+-----
+
+We are using 3 type-0 machines from our friends at
+`Packet.net <https://packet.net>`__. To provision those (CentOS 7)
+machines, we have ``docker-machine`` take care of installing the Docker
+daemon by issuing this command on your development machine (for each of
+the nodes you want to provision). Be sure to replace with your actual
+IPs, ``crate-sw-X`` is the name of each node.
+
+.. code-block:: bash
+
+    $ docker-machine create -d generic —generic-ip-address <MANAGER-IP> —generic-ssh-user root crate-sw-1
+    Running pre-create checks...
+    Creating machine...
+    (crate-sw-1) No SSH key specified. Assuming an existing key at the default location.
+    Waiting for machine to be running, this may take a few minutes...
+    Detecting operating system of created instance...
+    Waiting for SSH to be available...
+    Detecting the provisioner...
+    Provisioning with centos...
+    Copying certs to the local machine directory...
+    Copying certs to the remote machine...
+    Setting Docker configuration on the remote daemon...
+    Checking connection to Docker...
+    Docker is up and running!
+    To see how to connect your Docker Client to the Docker Engine running on this virtual machine, run: docker-machine env crate-sw-1
+
+With Docker installed on every machine, we now have to join them into a
+swarm, but first let's check if all the machines are available:
+
+.. code-block:: bash
+
+    $ docker-machine ls
+    NAME         ACTIVE   DRIVER       STATE     URL                         SWARM   DOCKER    ERRORS
+    crate-sw-1   -        generic      Running   tcp://<IP1>:2376           v1.12.1
+    crate-sw-2   -        generic      Running   tcp://<IP2>:2376           v1.12.1
+    crate-sw-3   -        generic      Running   tcp://<IP3>:2376           v1.12.1
+
+Gather Your Swarm
+-----------------
+
+For the machines to work together, we can create a swarm with `Docker's
+Swarm <https://docs.docker.com/engine/swarm/>`__ feature, which works in
+a Master-Slave configuration. Hence, in order to continue, choose one of
+these machines to become the master node:
+
+.. code-block:: bash
+
+    $ eval $(docker-machine env crate-sw-1) # connect your local docker client to the remote machine
+    $ docker swarm init --advertise-addr <MANAGER-IP>:2377
+    Swarm initialized: current node (4dbxlrkuxnq7m36p7u8hiwba4) is now a manager.
+
+    To add a worker to this swarm, run the following command:
+
+        docker swarm join \
+        --token <TOKEN> \
+        <MANAGER-IP>:2377
+
+    To add a manager to this swarm, run 'docker swarm join-token manager' and follow the instructions.
+
+As the output of the previous command already suggests, join the worker
+nodes like this:
+
+.. code-block:: bash
+
+    $ eval $(docker-machine env crate-sw-2) # connect the local docker client to one of the worker nodes
+    $ docker swarm join --token <TOKEN> <MANAGER-IP>:2377
+    This node joined a swarm as a worker.
+    $ eval $(docker-machine env crate-sw-3) # connect the local docker client to the other worker node
+    $ docker swarm join --token <TOKEN> <MANAGER-IP>:2377
+    This node joined a swarm as a worker.
+
+Your swarm is now up and running, ready for a deployment.
+
+Ready to Serve
+--------------
+
+For the Crate cluster to talk to the nodes, we still need a network,
+which - for now - will be a Docker overlay network. For a production
+deployment, this should be a more informed choice since a
+software-emulated network connection might not perform as expected. In
+order to create the network run the following command:
+
+.. code-block:: bash
+
+    $ docker network create -d overlay crate-network
+    6p7nxdurhzw2hcwy3bjm2z2wo
+
+Finally we are able to run Crate on top of the Docker cluster! For this,
+a ``docker service`` is required - which is created by this command:
+
+.. code-block:: bash
+
+    $ eval $(docker-machine env crate-sw-1) # connect your local docker client to the remote machine
+    $ docker service create \
+        --name crate \
+        --network crate-network \
+        --mode global \
+        --endpoint-mode dnsrr \
+        --update-parallelism 1 \
+        --update-delay 60s \
+        --mount type=bind,source=/tmp,target=/data \
+      crate:latest \
+        crate \
+        -Cdiscovery.zen.ping.unicast.hosts=crate \
+        -Cgateway.expected_nodes=3 \
+        -Cdiscovery.zen.minimum_master_nodes=2 \
+        -Cgateway.recover_after_nodes=2 \
+        -Cnetwork.bind=_site_
+
+There are several things that need explanation in there:
+
+.. code-block:: bash
+
+        --name crate #\
+        --network crate-network \
+        --mode global \
+
+These lines name the cluster 'crate', add the previously created overlay
+network to the service and set the scaling mode to "global", which means
+that there will always one container per node. Next the parameters:
+
+.. code-block:: bash
+
+        --endpoint-mode dnsrr \
+        --update-parallelism 1 \
+        --update-delay 60s \
+        --mount type=bind,source=/tmp,target=/data \
+
+define the endpoint mode to be 'dnsrr' (DNS round robin - the dns entry
+'crate' should cycle through the available IP addresses),
+``update-parallelism`` and ``update-delay`` set how many instances
+should be updated in parallel and with what delay. Finally there is some
+volume mapping to ensure Crate is writing data to a persistent volume
+outside of the container (*don't use /tmp 's tmpfs for storing data. It
+will be gone after restarting*).
+
+.. code-block:: bash
+
+      crate:latest \
+        crate \
+        -Cdiscovery.zen.ping.unicast.hosts=crate \
+        -Cgateway.expected_nodes=3 \
+        -Cdiscovery.zen.minimum_master_nodes=2 \
+        -Cgateway.recover_after_nodes=2 \
+        -Cnetwork.bind=_site_
+
+This part is the same for many Docker deployments of Crate:
+
+-  *Unicast hosts:* the Docker DNS record 'crate' (the service name)
+   maps an IP address to the service name and let's the nodes discover
+   each other
+-  *Quorum parameters:* since we are working with a 3-node cluster, the
+   ``expected_nodes``, ``minimum_master_nodes``, and
+   ``recover_after_nodes`` are [set accordingly][1]
+-  *Set Crate's network binding:* the last line tells Crate to
+   explicitly listen and bind to the IPv4 address of ``eth0`` (check if
+   this is your ``crate-network`` NIC); required to work around
+   container networking magic
+
+Scaling
+-------
+
+By running the docker service in 'global mode', it automatically assigns
+one instance per node only. This means that by changing the number of
+nodes in a swarm, it will automatically scale up or down (also think of
+[reconfiguring the quorums][1])). To take control of this behavior, we
+recommend customizing `service
+constraints <https://docs.docker.com/engine/reference/commandline/service_create/#/specify-service-constraints-constraint>`__
+and labels. Alternatively 'replication mode' would allow for explicit
+scaling, but will also deploy more than one instance per machine, which
+is *greatly discouraged* since it gives a false impression about
+replication and resource availability.
+
+Next Steps
+----------
+
+This setup gives you a working cluster but by setting the endpoint-mode
+to ``DNSRR``, Docker disables its included load balancer and does not
+assign a public IP or port mapping to the cluster. The *other* setting
+``VIP`` (virtual IP) would provide a load-balanced public endpoint, but
+prohibits communication between the nodes. While we (and others)
+`consider this a bug <https://github.com/docker/docker/issues/25016>`__,
+a fix by Docker has yet (as of mid-September 2016) to be released.
+
+However since the ports are mapped automatically, there are steps to
+remedy this:
+
+-  Use NGINX (or any reverse proxy server) to distribute requests among
+   the swarm nodes by enumerating all container IPs in an `upstream
+   section <http://nginx.org/en/docs/http/ngx_http_upstream_module.html>`__
+-  Use a firewall
+   (`firewalld <https://docs.fedoraproject.org/en-US/Fedora/19/html/Security_Guide/sec-Configure_Port_Forwarding-CLI.html>`__,
+   `IPTables <https://www.digitalocean.com/community/tutorials/how-to-forward-ports-through-a-linux-gateway-with-iptables>`__,
+   `UFW <https://help.ubuntu.com/lts/serverguide/firewall.html>`__ ...)
+   to forward requests to the ports to the containers (but be aware that
+   the overlay network also requires `certain
+   ports <http://stackoverflow.com/questions/37312055/can-firewalld-work-with-the-docker-overlay-network>`__)

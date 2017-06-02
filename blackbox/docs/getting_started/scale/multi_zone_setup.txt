@@ -1,0 +1,130 @@
+================
+Multi Zone Setup
+================
+
+If possible, we recommend running all Crate nodes of a cluster inside
+the same physical space (e.g. data center) to minimize network latency
+and maximize speed between the nodes. These factors can have a
+significant impact on the performance of Crate clusters.
+
+This is because replicas are written *synchronously* and making a write
+task wait for the replicas to write somewhere in a data center hundreds
+of miles away can lead to noticeable latency and cause the cluster to
+slow down.
+
+In certain scenarios it may be necessary to run a cluster across
+multiple data centers or availability zones. We'll call these **zones**
+from now on.
+
+For a multi zone setup, Crate clusters need to fulfill the following 3
+requirements:
+
+Requirements
+------------
+
+1. When inserting data, it should be replicated in a way so that at
+   least one full replica is present inside each zone.
+2. If a zone becomes unavailable, all data still needs to be fully
+   available.
+3. When querying data, all data should only be collected from shards
+   that are inside the same zone as the initial request.
+
+To achieve these requirements, make use of **shard allocation
+awareness**. If you are new to setting up a multi-node Crate cluster you
+should read our `multi node setup </docs/scale/multi_node_setup>`__
+guide first.
+
+Assigning Tags
+--------------
+
+First, assign a tag containing the zone to the cluster nodes. This
+enables shard allocation awareness.
+
+It's possible to assign arbitrary tags to nodes using the *crate.yaml*
+settings file or the ``-C`` option on startup. `Read our in-depth
+guide </docs/reference/configuration.html>`__ for more details on Crate
+configuration options.
+
+In *crate.yaml* a zone tag looks like:
+
+.. code-block:: yaml
+
+    node.zone: us-east-1
+
+The node is tagged with a ``zone`` of the value ``us-east-1``, an
+availability zone of a cloud computing provider.
+
+.. NOTE::
+
+   These tags and settings can't be changed at runtime and need to be
+   set on startup.
+
+Allocation Awareness
+--------------------
+
+Now tags can be set as attributes for the shard allocation awareness. We
+use the tag ``zone`` that we just assigned to the node as an attribute:
+
+.. code-block:: yaml
+
+    cluster.routing.allocation.awareness.attributes: zone
+
+This means that Crate will try to allocate shards and their replicas
+according to the ``zone`` tags, so that a shard and its replica are not
+on a node with the same ``zone`` value.
+
+Let's add a second and a third node in a different zone (``us-west-1``)
+and tag them accordingly.
+
+.. code-block:: yaml
+
+    node.zone: us-west-1
+    cluster.routing.allocation.awareness.attributes: zone
+
+When the cluster is started, we will create a table with 6 shards and 1
+replica. The 6 shards will be distributed evenly across the nodes (2
+shards on each node) and the replicas allocated on nodes with a
+different ``zone`` value to its primary shard.
+
+If that isn't possible (e.g. ``num replicas > num zones - 1``) Crate
+will still allocate the replicas on nodes with the same ``zone`` value
+to avoid unassigned shards.
+
+.. NOTE::
+
+   Allocation awareness only means that Crate tries to conform to the
+   awareness attributes, to avoid such allocations, force the awareness.
+
+Force Awareness
+---------------
+
+To fulfill the 3rd requirement you need to ensure that when running a
+query on a node with a certain ``zone`` value it only executes the
+request on shards allocated on nodes with the same ``zone`` value.
+
+This means you need to know the different ``zone`` attribute values to
+force awareness on nodes.
+
+You can force awareness on certain attributes, for example, the
+``zone``:
+
+.. code-block:: yaml
+
+    cluster.routing.allocation.awareness.force.zone.values: us-east-1,us-west-1
+
+When set, no more replicas than needed are allocated on a specific group
+of nodes.
+
+.. TODO: turn this into a side bar
+
+.. TIP::
+
+   You have 2 nodes with ``zone`` set to ``us-east-1`` and create a table with
+   8 shards and 1 replica. 8 primary shards will be allocated and the 8 replica
+   shards left unassigned. Only when you add a new node with ``zone`` set to
+   ``us-west-1`` will the replica shards be allocated.
+
+By using these settings and their mechanisms correctly, you should be
+able to setup a cluster that spans across multiple zones and fulfills
+the 3 requirements above, but be aware of the drawbacks such a setup can
+have.

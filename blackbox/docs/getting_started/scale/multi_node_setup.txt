@@ -1,0 +1,221 @@
+================
+Multi Node Setup
+================
+
+Crate is a distributed datastore and so in production, a cluster will
+typically consist of 3 or more nodes. Crate makes cluster setup as easy
+as possible, but there are things to note when building a new cluster.
+
+Crate is designed in a shared nothing architecture, in which all nodes
+are equal and each node is self-sufficient. This means that nodes work
+on their own, and all nodes in a cluster are configured equally, the
+same as with a single-node instance.
+
+Node Settings
+-------------
+
+Set node specific settings in the configuration file named *crate.yaml*
+shipped with Crate.
+
+Cluster Name
+~~~~~~~~~~~~
+
+Crate nodes with the same cluster name will join the cluster. The
+simplest way to prevent other nodes from joining a cluster is to give it
+a different and unique name.
+
+.. code-block:: yaml
+
+    cluster.name: my_cluster
+
+Node Name
+~~~~~~~~~
+
+To name a node:
+
+.. code-block:: yaml
+
+    node.name: node1
+
+If the node name is omitted, then it's generated dynamically on startup.
+
+Inter-Node Communication
+------------------------
+
+The default port Crate uses communicate between nodes is *4300*. Crate
+calls it the *transport port* and it must be accessible from every node.
+
+It's possible to change the port range bound to the transport service:
+
+.. code-block:: bash
+
+    transport.tcp.port: 4350-4360
+
+Want to Know More?
+~~~~~~~~~~~~~~~~~~
+
+`More information on port
+settings <https://crate.io/docs/reference/configuration.html#conf-ports>`__
+can be found in Crate's reference guide.
+
+Crate binds to a second port, *4200*, that is only used for HTTP
+communication. Clients connecting to the Crate cluster are using this
+HTTP port, except the native Java client, which uses the transport port.
+
+Node Discovery
+--------------
+
+The simplest way to do node discovery is to provide a list of expected
+hosts, using the FQDN and transport port:
+
+.. code-block:: yaml
+
+    discovery.zen.ping.unicast.hosts:
+      - node1.example.com:4300
+      - node2.example.com:4300
+      - node3.example.com:4300
+
+Or use internal network IP addresses and the transport port:
+
+.. code-block:: yaml
+
+    discovery.zen.ping.unicast.hosts:
+      - 10.0.1.101:4300
+      - 10.0.1.102:4300
+      - 10.0.1.103:4300
+
+.. NOTE::
+
+   When adding new nodes to the cluster, you do not need to update the list of
+   unicast hosts for existing/running nodes. The cluster will find and add new
+   nodes when they ping existing ones.
+
+Providing a list of expected hosts is just one node discovery mechanism.
+
+CrateDB also supports node discovery via DNS as well as discovery via
+API for clusters running on *Amazon Web Services* (AWS) or Microsoft
+Azure. See `the
+documentation <https://crate.io/docs/reference/configuration.html#discovery>`__
+for more information.
+
+Master Node Election
+--------------------
+
+Although all Crate nodes in a cluster are equal, one node is elected as
+master for managing cluster meta data. Like any other peer-to-peer
+system, nodes communicate with each other directly. The master node is
+responsible for making changes to, publishing the global cluster state,
+and delegating redistribution of shards when nodes join or leave the
+cluster. All nodes are eligible to become master.
+
+There may only be one master per cluster. To ensure this, Crate sets a
+quorum which needs to be present to elect a master and for the cluster
+to be operational.
+
+This quorum can be configured using the ``minimum_master_nodes``
+setting. It's highly recommend to set the quorum greater than half the
+maximum number of nodes in the cluster:
+
+::
+
+    (N / 2) + 1
+
+where ``N`` is the maximum number of nodes in the cluster.
+
+.. NOTE::
+
+   Setting the quorum lower than described above may lead to 'split brain'
+   scenarios. This means that in the case of network partitioning there could
+   be more than one pool of nodes meeting the quorum electing a master on their
+   own. This can cause data loss and inconsistencies.
+
+If the number of nodes in a cluster changes, the quorum must be updated
+to prevent it being too high. This is not just because the quorum should
+never reach less than half the available nodes, but also to allow for
+unavailable nodes.
+
+Example
+~~~~~~~
+
+In a 3 node cluster, at least 2 nodes need to be aware of each other
+before they can elect a master. Add the following line to the
+configuration file:
+
+.. code-block:: yaml
+
+    discovery.zen.minimum_master_nodes: 2
+
+On an already running cluster it's possible to set using the following
+statement:
+
+.. code-block:: sql
+
+    SET GLOBAL PERSISTENT discovery.zen.minimum_master_nodes = 2;
+
+.. NOTE::
+
+   The formula means that a cluster with a maximum of 2 nodes, the quorum is
+   also 2. In practice this means that a 2-node cluster needs to have both
+   nodes online to be operational. Therefore a highly available and
+   fault-tolerant multi-node setup requires at least 3 nodes.
+
+Gateway Configuration
+---------------------
+
+The gateway persists cluster meta data on disk every time it changes.
+This data is stored persistently across full cluster restarts and
+recovered after nodes are restarted.
+
+There are three important settings that control how the gateway recovers
+the cluster state:
+
+``gateway.recover_after_nodes`` defines the number of nodes that need to
+be started before any cluster state recovery will start. Ideally this
+value should be equal to the number of nodes in the cluster, because you
+only want the cluster state to be recovered once all nodes are started.
+
+``gateway.recover_after_time`` defines the time to wait before starting
+the recovery once the number of nodes defined in
+``gateway.recover_after_nodes`` are started. This setting is only
+relevant if ``gateway.recover_after_nodes`` is less than
+``gateway.expected_nodes``.
+
+``gateway.expected_nodes`` defines how many nodes to wait for until the
+cluster state is recovered. The value should be equal to the number of
+nodes in the cluster, because you want the cluster state to be recovered
+after all nodes are started.
+
+These settings cannot be changed when a cluster is running. So they need
+to be set in the configuration file, e.g.:
+
+.. code-block:: yaml
+
+    gateway:
+      recover_after_nodes: 3
+      recover_after_time: 5m
+      expected_nodes: 3
+
+Or as command line options, ``-Cgateway.recover_after_nodes=3``.
+
+Publish Host and Port
+---------------------
+
+In certain cases the address of the node that runs Crate differs from
+the address where the transport endpoint can be accessed by other nodes.
+For example, when running Crate inside a Docker container.
+
+To solve this, Crate can publish the host and port for discovery. These
+published settings can differ from the address of the actual host:
+
+.. code-block:: yaml
+
+    # address accessible from outside
+    network.publish_host: public-address.example.com
+    # port accessible from outside
+    transport.publish_port: 4321
+
+Related
+-------
+
+- `Host settings for Nodes <https://crate.io/docs/reference/configuration.html#conf-hosts>`_
+- `Host settings for Ports <https://crate.io/docs/reference/configuration.html#conf-ports>`_

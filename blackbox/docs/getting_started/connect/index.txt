@@ -1,0 +1,15 @@
+====================
+Connect to a Cluster
+====================
+
+To Connect to your Crate Cluster, you will need to know the IP or DNS
+address of one node in the cluster and Crate uses port *4200* for HTTP
+transport. You then have several options available, our `Admin
+UI <admin_ui/>`__, our `CLI tool <crash/>`__ (Crash) and a `REST
+API </docs/getting-started/clients/rest/>`__.
+
+.. toctree::
+   :maxdepth: 1
+
+   admin_ui
+   crash

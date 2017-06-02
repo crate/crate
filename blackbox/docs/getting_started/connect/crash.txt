@@ -1,0 +1,36 @@
+==================
+Crash, Crate's CLI
+==================
+
+Crash is Crate's shell for interacting with clusters.
+
+The Crash shell can be used from within a node that is part of a cluster
+or on another machine to connect to a remote cluster.
+
+To launch Crash:
+
+.. code-block:: bash
+
+    ./bin/crash
+
+Your command prompt will then switch to a ``cr>`` prompt. Connect to a
+cluster using the URL and the Crate port (*4200*):
+
+.. code-block:: bash
+
+    cr> \connect 127.0.0.1:4200;
+
+You can then use Crash to issue SQL queries and other commands.
+
+Want to Know More?
+------------------
+
+-  More detailed documentation on Crash can be found
+   `here </docs/reference/crash/>`__.
+
+Next Steps
+----------
+
+-  `Import Data </docs/import>`__
+-  `Client Libraries </docs/clients>`__
+-  `Scale a Cluster </docs/scale>`__

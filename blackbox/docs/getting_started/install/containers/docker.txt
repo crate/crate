@@ -1,0 +1,158 @@
+====================================
+Getting Started with Crate on Docker
+====================================
+
+Docker allows developers to package applications and dependencies into
+standard, shippable units, great for easy deployments across platforms
+and constantly changing needs. Crate is available as a Docker image and
+is a perfect data store for Docker based applications.
+
+if you don't have Docker setup yet, find `instructions for all platforms
+here <https://docs.docker.com/engine/installation/>`__.
+
+Kitematic
+---------
+
+Kitematic is Docker's visual interface for creating Docker instances on
+Windows and Mac. Crate can be found in the list of default images in
+Kitematic.
+
+Click the *Create* button and Kitematic will download the image file
+from Docker hub and by default set port allocation between Docker and
+the host machine automatically.
+
+.. image:: docker-kitematic.png
+   :alt: kitematic overview
+
+|
+
+.. image:: docker-kitematic-dl.png
+   :alt: Downloading image
+
+To override settings for a Docker instance, click the *Settings* tab.
+For example to manually allocate ports and set a shared volume between
+Docker and the local machine, make the following changes:
+
+.. image:: docker-kitematic-ports.png
+   :alt: Assign Ports
+
+|
+
+.. image:: docker-kitematic-vol.png
+   :alt: Assign Volumes
+
+Command Line
+------------
+
+Fetch Crate Image
+~~~~~~~~~~~~~~~~~
+
+To use the command line to create Crate instances, first fetch the
+latest Crate image.
+
+.. code-block:: bash
+
+    docker pull crate
+
+Specify versions of the image by applying the ``:version*number`` tag.
+
+Start Crate Instances.
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: bash
+
+    docker run -P -d crate
+    docker run -P -d crate
+    docker run -d -p 4200:4200 -p 4300:4300 crate
+
+In this example we create three instances. The first two let Docker set
+the port allocation between Docker and the host automatically and one
+sets ports manually. These three instances will discover each other
+automatically.
+
+Then visit your Docker IP address on port 4200, e.g.
+*http://DOCKER\_IP:4200/admin*
+
+The above is a simple example, to make better use of Crate with Docker,
+we should set some other parameters.
+
+.. code-block:: bash
+
+    docker run -d -p 4200:4200 -p 4300:4300
+      -v <data-dir>:/data crate
+      crate -Cpath.conf=/path/to/crate/conf
+            -Ccluster.name=cluster
+            -Cnetwork.bind_host=_site_
+
+This starts a Crate Docker instance that maps the data storage path to a
+location shared between the Docker container and the host system (The
+value of ``<data-dir>``). This helps data remain consistent and
+persistent as container instances come and go on a local machine.
+
+We also set a path to the Crate config file for fine grained settings
+changes, and give the cluster a name.
+
+Docker has more configuration options Crate can leverage, `read about
+them here <https://docs.docker.com/engine/reference/run/>`__. Any `Crate
+specific settings <https://crate.io/docs/stable/configuration.html>`__
+are set using the ``crate -C`` prefix.
+
+Docker Compose
+--------------
+
+Docker's `Compose <https://docs.docker.com/compose/>`__ tool allows
+developers to configure complex Docker-based applications that can then
+be started with one ``docker-compose up`` command.
+
+Read about Docker Compose specifics
+`here <https://docs.docker.com/compose/>`__. In this example we will
+start a node.js container that connects to a two instance Crate cluster.
+
+.. code-block:: yaml
+
+    crate:
+      image: crate
+      ports:
+        - "4200:4200"
+        - "4300:4300"
+      volumes:
+        - /mnt/data/crate:/data
+      environment:
+        CRATE_HEAP_SIZE: 16g
+      command: crate -Cpath.conf=/path/to/crate/conf -Ccluster.name=cluster -Cnetwork.bind_host=_site_
+    crate2:
+      image: crate
+      volumes:
+        - /mnt/data/crate:/data
+    node:
+      build: .
+      ports:
+        - "8000:8000"
+      links:
+        - crate
+
+Here we create one Crate instance with the ports manually allocated, a
+shared file system volume, an environment variable set for the heap size
+and override the default Crate command to give the cluster a name and a
+config file. We then create another instance that joins the other in a
+cluster and a node.js instance that links to a Crate instance.
+
+Docker Machine and Swarm
+------------------------
+
+Crate works with any Docker instances created with the
+`Machine <https://docs.docker.com/machine/>`__ tool. Combined with
+Docker's cluster tool, `Swarm <https://www.docker.com/docker-swarm>`__,
+Crate becomes a powerful companion to Docker. Setting up Crate as part
+of a Docker Swarm is a little more complicated, but we have `a
+guide </docs/scale/docker_swarm/>`__ to get you started.
+
+Next Steps
+----------
+
+-  `Connect to Crate Cluster </docs/connect>`__
+-  `Import Data </docs/import>`__
+-  `Client Libraries </docs/clients>`__
+-  `CrateDB and Docker Best
+   Practices <https://crate.io/docs/reference/best_practice/docker.html>`__
+-  `Scale a Cluster </docs/scale>`__

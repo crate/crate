@@ -1,0 +1,153 @@
+=======================================================================
+Building Data Stream pipelines with Crate and StreamSets Data Collector
+=======================================================================
+
+`Crate <https://crate.io>`__ can be integrated with
+`StreamSets <https://streamsets.com/>`__ using its `JDBC
+driver <https://github.com/crate/crate-jdbc>`__ (>= 1.12.1).
+
+The Crate JDBC driver can be used as an origin and destination stage in
+the StreamSets Data Collector pipeline.
+
+`Install the StreamSets Data
+Collector <https://streamsets.com/opensource/>`__ on your localhost or
+any other desired location.
+
+In order to build your first data stream pipeline the standalone version
+of the Crate JDBC driver with included dependencies has to be obtained
+and installed in the StreamSets.
+
+You can download the latest standalone version directly from the
+`Bintray
+Repository <https://bintray.com/crate/crate/crate-jdbc/view/files/io/crate/crate-jdbc-standalone>`__.
+
+After the JDBC driver is downloaded to the arbitrary destination, you
+can proceed with the installation of the driver. We recommend following
+the StreamSets instruction for installing `additional
+drivers <https://streamsets.com/documentation/datacollector/1.3.0.2/help/index.html#Install_Config/AdditionalDrivers.html>`__.
+Although to have a quick start you can simply place the Crate JDBC
+driver jar in the StreamSets classpath.
+
+The next two sections provide a brief introduction to building simple
+data stream pipelines using Crate with StreamSets Data Collector. We are
+going to demonstrate how to build the pipeline with the `directory
+origin <https://streamsets.com/documentation/datacollector/latest/help/#Origins/Directory.html#concept_qcq_54n_jq>`__
+stage which contains CSV data sample, please refer to the `StreamSets
+tutorial <https://streamsets.com/documentation/datacollector/latest/help/#Tutorial/BasicTutorial.html#task_ftt_2vq_ks>`__
+to setup the origin correctly, and stream data to JDBC destination stage
+using the Crate JDBC driver.
+
+Crate JDBC Destination
+----------------------
+
+The Crate JDBC Producer destination uses the JDBC connection to write
+data to the database. In this section, we show how to build the
+StreamSets project for injecting CSV records from the local filesystem
+into the Crate database with the preliminary preprocessing of certain
+records fields.
+
+1. Create the `new
+   pipeline <https://streamsets.com/documentation/datacollector/latest/help/#Pipeline_Design/What_isa_Pipeline.html>`__
+   and follow the above mentioned StreamSets
+   `tutorial <https://streamsets.com/documentation/datacollector/latest/help/#Tutorial/BasicTutorial.html#task_ftt_2vq_ks>`__
+   which explains how to create the directory origin and read CSV files
+   from the local filesystem. Use the New York taxi `data
+   sample <https://www.streamsets.com/documentation/datacollector/sample_data/tutorial/nyc_taxi_data.csv>`__
+   provided in the tutorial.
+
+2. For the sake of simplicity, we use only 4 fields from the CSV file.
+   The directory origin does not perform any preliminary preprocessing
+   of records. All source fields are represented as strings in the CSV.
+   However, some of the selected fields should be processed and
+   converted into float values. Therefore, we add an additional
+   processing `Field
+   Converter <https://streamsets.com/documentation/datacollector/latest/help/#Processors/FieldConverter.html#concept_is3_zkp_wq>`__
+   stage into the pipeline. [Convert string input values]({% media
+   '/media/1605/2-streamsets-dst-field-conversion.png' %})
+
+3. Create the taxi table in Crate.
+
+``sql  CREATE TABLE taxi (      hack_license STRING,      medallion STRING,      total_amount FLOAT,      tip_amount FLOAT  );``
+
+4. The next step is to configure the Crate JDBC destination. First, load
+   the Crate JDBC driver must be loaded. [Load the Crate JDBC driver]({%
+   media '/media/1605/3-streamsets-dst-driver.png' %}) Then, we
+   configure the JDBC connection (1) and define the destination table
+   (2). After the above-mentioned configurations steps, we still can see
+   warnings in the *Credential tab*. It is solved by unchecking the user
+   authorization box because Crate does not support an authorization.
+   (3) [Configure the Crate JDBC driver]({% media
+   '/media/1605/4-streamsets-dst-jdbc-conf.png' %})
+
+5. Start the pipeline. [Pipelines run report]({% media
+   '/media/1605/5-streamsets-dst-output.png' %})
+
+Crate JDBC Origin
+-----------------
+
+The JDBC Consumer origin uses the JDBC connection to read data from the
+Crate database. The Crate origin stage returns data as a map with column
+names and field values.
+
+Currently, the usage of the Crate JDBC driver in combination with
+StreamSets Data Collector introduces few limitations:
+
+-  Only incremental mode for the data fetch is supported.
+-  The offset column should be the primary key column to prevent the
+   insertion of duplicate rows.
+-  The ``LIMIT`` clause should be explicitly set in the ``SELECT``
+   query.
+-  Batch size in the driver configuration is ignored.
+
+It is important to mention that you have to adjust the ``LIMIT`` size in
+the query and the Query Interval property in the JDBC configuration tab
+to get the suitable read performance, taking into consideration your
+particular use case and the nature of the data.
+
+The followings steps demonstrate how Crate can be used as the origin
+stage in the data stream pipeline. As sample data, we use `AMPLab
+rankings dataset <https://amplab.cs.berkeley.edu/benchmark/>`__. The
+data can be imported from `AWS S3 <https://aws.amazon.com/s3/>`__ to the
+Crate database using prepared data import queries hosted in the `Crate
+demo
+repository <https://github.com/crate/crate-demo/tree/master/amplab>`__.
+Create the `rankings
+table <https://github.com/crate/crate-demo/blob/master/amplab/queries/rankings.sql>`__
+and import the `rankings
+data <https://github.com/crate/crate-demo/blob/master/amplab/queries/import_rankings_1node.sql>`__.
+In the demo, we use the dataset which contains 18 millions of records.
+Assuming that the Crate cluster is set up and the rankings sample data
+is imported we can start building the data stream pipeline for streaming
+the data from the Crate database to CSV files.
+
+1. Create the `new
+   pipeline <https://streamsets.com/documentation/datacollector/latest/help/#Pipeline_Design/What_isa_Pipeline.html>`__
+   and configure the Crate JDBC Driver loading as it was done for the
+   JDBC destination configuration. In the JDBC tab of the Crate JDBC
+   origin we set the connection string (1), the SQL query for fetching
+   the data from the database (2), the offset value and column (3). For
+   more detail information on how to set the offset value and column see
+   the StreamSets
+   `documentation <https://streamsets.com/documentation/datacollector/1.1.3/help/#Origins/JDBCConsumer.html#concept_nxz_2kz_bs>`__.
+   [Configure the Crate JDBC driver]({% media
+   '/media/1605/3-streamsets-source-jdbc.png' %})
+
+**IMPORTANT**
+
+    To avoid unsupported transaction setting queries that may be invoked
+    against CrateDB, it is necessary to uncheck **Enforce Read-only
+    Connection** on the advanced tab of the JDBC consumer.
+
+2. We stream the records from Crate to CSV files. In order to accomplish
+   that we provide the path where the files are going to be created and
+   set the output file format in the directory origin to *Delimited*.
+   [Configure CSV destination]({% media
+   '/media/1605/4-streamsets-source-fs-conf1.png' %})
+
+3. Now we can start the pipeline and see rankings data streaming
+   statistics form the Crate database to CSV files. [Crate to CSV
+   report]({% media '/media/1605/6-streamsets-origin-report.png' %})
+
+-  `Download StreamSets <https://streamsets.com/opensource/>`__
+-  `StreamSets Official
+   documentation <https://streamsets.com/documentation/datacollector/latest/help/>`__

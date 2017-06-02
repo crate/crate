@@ -1,0 +1,94 @@
+=================================================
+Getting started with Crate on Amazon Web Services
+=================================================
+
+Amazon Web Services (AWS) is the worlds most popular cloud hosting
+provider with 1000s of options for platforms, applications and
+infrastructure.
+
+An AMI (Amazon Machine Image) is a pre-configured virtual appliance
+optimized for a particular use. With the Crate AMI, this includes
+dependencies, optimization and configuration to get Crate running as
+quickly and efficiently as possible. Using the AMI is our recommended
+method for running Crate clusters on AWS.
+
+With the AWS Command Line Interface
+-----------------------------------
+
+You can find the Crate AMI via the command line interface, in the format
+``crate-<VERSION>-<REV>-<BASE_AMI>``.
+
+For example, to find all Crate AMIs available:
+
+.. code-block:: bash
+
+    aws ec2 describe-images --filters "Name=name,Values=crate-*"
+
+.. image:: aws-terminal-output.png
+   :alt: Terminal Output
+
+If you are looking for particular Crate version, you can be more
+precise:
+
+.. code-block:: bash
+
+    aws ec2 describe-images --filters "Name=name,Values=crate-0.51.1-1-amzn-*"
+
+To run instances based on your AMI of choice, run the following command
+with the ``image-id`` of the Crate version you wish to run, the name of
+a security group that allows the ports Crate requires (4200, 4300) and
+if you want to use the EC2 API for inter-node discovery, a link to a
+``user-data`` script.
+
+.. code-block:: bash
+
+    aws ec2 run-instances --image-id ami-96702de1 --count x --instance-type m3.medium --user-data $(base64 user-data.sh) --key-name keyname --security-groups groupname
+
+With the AWS Web Interface
+--------------------------
+
+To use the AWS website to launch an instance, click the blue 'Launch
+Instance' button and find the available Crate AMIs under the *Community
+AMIs* section.
+
+.. image:: aws-crate-gui.png
+   :alt: AWS GUI
+
+Click the 'select' button on the AMI you wish to use and set the
+instance configuration. The most important options here are the number
+of instances you require and selecting a security group that opens ports
+4200 and 4300.
+
+The User Data file
+------------------
+
+Amongst other configuration options, the User Data file is primarily
+used for setting your AWS credentials to make use of the EC2 API for
+inter-node discovery.
+
+For example:
+
+.. code-block:: bash
+
+    #!/bin/bash
+    echo "
+    export AWS_ACCESS_KEY_ID=''
+    export AWS_SECRET_ACCESS_KEY=''
+    " >> /etc/sysconfig/crate
+
+More Details
+------------
+
+For more options and details on setting up a Crate cluster on AWS with
+our AMI, read `our best practice
+guide </docs/en/latest/best_practice/crate_ami.html>`__. For more
+details on running Crate with Docker on AWS, `read our blog
+post </blog/running-crate-with-docker-aws/>`__.
+
+Next Steps
+----------
+
+-  `Connect to Crate Cluster </docs/connect>`__
+-  `Import Data </docs/import>`__
+-  `Client Libraries </docs/clients>`__
+-  `Scale a Cluster </docs/scale>`__

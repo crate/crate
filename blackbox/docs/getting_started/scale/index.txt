@@ -1,0 +1,93 @@
+========================
+0 to 50 nodes in No Time
+========================
+
+Crate is designed to be easy to scale and adding a new node to a cluster
+is as simple as starting your first Crate instance.
+
+If you have followed any of our installation guides you likely now have
+one Crate instance running with some test data, for the sake of this
+tutorial, we will assume it's the public Twitter data.
+
+Here is my one node Crate cluster, not a large amount of data, but it's
+running in a Docker container on my local machine, so enough for
+demonstration purposes.
+
+Open the Crate admin UI at *SERVER\_IP:4200/admin* and you should see
+something like the following, note the *NODES: 1* indicator.
+
+.. image:: scale_1_node_cluster.png
+   :alt: A 1 Node Cluster
+
+Let's add a second Crate node to the cluster, this will depend on how
+you installed Crate, to start a new Crate instance, run the same command
+as starting your first. For example:
+
+**Docker**
+
+.. code-block:: bash
+
+    docker run -P -d crate
+
+**Ubuntu**
+
+.. code-block:: bash
+
+    sudo service crate start
+
+`Find our how to start nodes with other
+installations </docs/install/>`__.
+
+Within a couple of seconds, the second node will have joined the cluster
+and the *NODES:* count should have increased to 2. Depending on the
+complexity and quantity of data and hardware setup you will also notice
+the cluster state changes to yellow momentarily as it rebalances and
+resynchronizes data across the cluster.
+
+.. image:: scale_2_node_cluster.png
+   :alt: A 2 Node Cluster
+
+Add another node to the cluster using the same steps as above. You will
+notice the same happening as before, but this time quickly switch to the
+*TABLES* tab after adding the third node. Here you can see that Crate
+also provides information about how data is rebalancing at a table and
+shard level as well as at a cluster level.
+
+.. image:: scale_3_node_cluster.png
+   :alt: A 3 Node Cluster
+
+Try removing a node from the cluster by killing a Crate process or
+stopping a docker container with ``docker stop container_id``. You will
+notice that again the cluster will rebalance and re-sync across the
+remaining nodes.
+
+Try running a simple query on the cluster, such as:
+
+.. code-block:: sql
+
+    SELECT count(*) AS quantity, user['verified']
+    FROM tweets
+    GROUP BY user['verified']
+    ORDER BY quantity DESC  limit 100;
+
+Add and remove nodes to the cluster and try issuing the same query each
+time, you should notice no change in the result and very little
+difference in speed.
+
+Take It Further
+===============
+
+.. toctree::
+   :maxdepth: 1
+
+   multi_node_setup
+   multi_zone_setup
+   docker_swarm
+   kubernetes
+   resilience
+
+Related
+=======
+
+- `Setting Heap Size <https://crate.io/docs/stable/configuration.html#crate-heap-size>`_
+- `Configuring Node Quorum <https://crate.io/docs/scale/multi_node_setup/#master-node-election>`_

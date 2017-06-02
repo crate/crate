@@ -1,0 +1,38 @@
+==================
+Install on Windows
+==================
+
+Configure Windows
+-----------------
+
+To install Crate on Windows, you will need a `Java JDK
+installed <http://www.oracle.com/technetwork/java/javase/downloads/jdk8-downloads-2133151.html>`__.
+
+Set the ``JAVA_HOME`` environment variable:
+
+.. image:: windows-envvar.png
+   :alt: Windows environment variables
+
+|
+
+Allow the ports Crate uses through the Windows Firewall:
+
+.. image:: windows-port.gif
+   :alt: Windows Firewall ports
+
+Install Crate
+-------------
+
+`Download the Crate Tarball </docs/install/local/tarball/>`__, expand it
+and move to a convenient location.
+
+Start Crate by running ``.\bin\crate``, to create a cluster, run the
+command multiple times.
+
+Next Steps
+----------
+
+-  `Connect to Crate Cluster </docs/connect>`__
+-  `Import Data </docs/import>`__
+-  `Client Libraries </docs/clients>`__
+-  `Scale a Cluster </docs/scale>`__

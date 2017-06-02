@@ -1,0 +1,44 @@
+======================
+Install from a Tarball
+======================
+
+Latest Stable Release
+---------------------
+
+.. Version {{ CONFIG.stable\_version }}
+   Released on {{ CONFIG.stable\_version\_date }}
+
+`Download latest stable release`_.
+
+Start Crate by extracting the downloaded archive, move into the *bin*
+folder and run:
+
+.. code-block:: bash
+
+    ./crate
+
+To create a cluster of Crate instances, run the command multiple times.
+
+Testing Releases
+----------------
+
+.. TODO: should be updated to fetch version from version.json
+   for now we just link to the tarball archive
+
+Test builds of Crate should only be used for testing upcoming new features not
+in production. `Browse all releases`_.
+
+Nightly builds of Crate are provided for testing purposes only. You can
+`download the latest builds here`_.
+
+Next Steps
+----------
+
+-  `Connect to Crate Cluster </docs/connect>`__
+-  `Import Data </docs/import>`__
+-  `Client Libraries </docs/clients>`__
+-  `Scale a Cluster </docs/scale>`__
+
+.. _Download latest stable release: https://crate.io/download/
+.. _Browse all releases: https://cdn.crate.io/downloads/releases/
+.. _download the latest builds here: https://cdn.crate.io/downloads/releases/nightly/

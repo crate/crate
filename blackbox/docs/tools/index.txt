@@ -1,0 +1,159 @@
+=====
+Tools
+=====
+
+There are several tools that play well with Crate, from development
+utilities to data visualization tools. We even use some of them
+ourselves!
+
+This page gives an overview of the tools available and tested with the
+latest version of Crate. If you know of any other tools that work well
+with Crate, please `get in touch <mailto:office@crate.io>`__.
+
+Management Utilities
+--------------------
+
+SQuirreL SQL
+~~~~~~~~~~~~
+
+SQirreL is an open-source, cross-platform, graphical Java SQL Client
+(requires Java >= 6.x) that allows you to view the structure of any JDBC
+compliant database.
+
+Here is a setup guide about :doc:`squirrel`.
+
+-  `Download <http://squirrel-sql.sourceforge.net>`__
+-  `Official
+   documentation <http://squirrel-sql.sourceforge.net/paper/SQuirreL_us.pdf>`__
+
+conZole
+~~~~~~~
+
+conZole is a web-based SQL console written in Node.js that lets you
+inspect data in a Crate cluster. It uses the
+`node-crate <https://github.com/megastef/node-crate>`__ driver and
+`Zebra UI <http://www.zebkit.com/>`__ as the HTML5 front end.
+
+-  `Github <https://github.com/megastef/crate-conZole>`__
+
+Crash
+~~~~~
+
+The Crate Shell (aka ``crash``) is an officially maintained, open-source
+command line interface (SQL shell) for Crate. It's written in Python
+(requires Python >= 2.7) and supports multiple output formats such as
+tabular output, CSV or JSON.
+
+-  How to connect to Crate with crash
+   `here <https://crate.io/docs/connect/crash/>`__
+-  Full reference
+   `documentation <https://crate.io/docs/reference/crash/>`__
+-  `Github <https://github.com/crate/crash>`__
+-  `PyPi <https://pypi.python.org/pypi/crash>`__
+
+cr8 Utilities
+~~~~~~~~~~~~~
+
+``cr8`` is a collection of command line tools for Crate written in
+Python and developed by one of our core developers. It reduces
+repetitive tasks such as filling tables with sample data, a real 'Swiss
+army knife' for Crate users.
+
+-  `Blog post <https://crate.io/a/cr8-utility-scripts/>`__.
+-  `Github <https://github.com/mfussenegger/cr8>`__
+-  `PyPi <https://pypi.python.org/pypi/cr8>`__
+
+ctop
+~~~~
+
+``ctop`` is a simple stat/top tool for Crate written in Python and based
+on `urwid <http://urwid.org/>`__. It can display metrics such as CPU,
+memory, heap usage, network traffic and disk i/o in a console user
+interface.
+
+-  `Blog post <https://crate.io/a/ctop-top-for-crate-cluster/>`__
+-  `Github <https://github.com/chaudum/crate-top>`__
+
+Data Visualization
+------------------
+
+Tableau Desktop
+~~~~~~~~~~~~~~~
+
+Tableau is a business analytics and data visualization software that
+lets you see and understand data in minutes.
+
+Connecting Tableau to a Crate cluster requires our ODBC driver, find
+more details `here <https://crate.io/enterprise/odbc/>`_.
+
+-  `Official website <http://www.tableau.com/>`__
+-  `How to use Tableau <http://www.tableau.com/learn>`__
+
+SQLPad
+~~~~~~
+
+SQLPad is a beautiful, web-based SQL editor written in Node.js that can
+run in your own private cloud and supports multiple databases such as
+Postgres, MySQL, SQL Server, Vertica and since version ``1.12.0``, also
+Crate.
+
+-  `Website <http://rickbergfalk.github.io/sqlpad/>`__
+-  `Github <https://github.com/rickbergfalk/sqlpad>`__
+
+Pentaho
+~~~~~~~
+
+Pentaho prepares and blends data, delivering business analytics from any
+source. You can connect to Crate clusters by using the standalone
+version of `our JDBC driver <https://crate.io/docs/reference/jdbc/>`__.
+
+-  `Website <http://community.pentaho.com>`__
+-  `Github <https://github.com/pentaho/pentaho-kettle>`__
+
+StreamSets Data Collector
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+StreamSets Data Collector is a lightweight, powerful engine that streams data
+in real time. Use Data Collector to route and process data in your data
+streams. Read the manual (:doc:`streamsets`) on how to use Crate as an origin
+and destination in a StreamSets pipeline.
+
+-  `Download <https://streamsets.com/opensource/>`__
+-  `Official
+   documentation <https://streamsets.com/documentation/datacollector/latest/help/>`__
+
+Zoomdata
+~~~~~~~~
+
+Zoomdata is a SaaS solution for deep analysis of big data sets in a
+visual interface. Crate is available as a data source connection.
+
+Grafana
+~~~~~~~
+
+Grafana is a very versatile tool for visualizing all kinds of time
+series data, and it has a Crate plugin.
+
+-  `Website <https://grafana.net/>`__
+-  `Crate Datasource
+   Plugin <https://grafana.net/plugins/crate-datasource>`__
+
+Metabase
+~~~~~~~~
+
+Metabase is an open source, easy-to-use visualization that answers
+questions about your data. It's written in Clojure and comes with a
+Crate driver out of the box!
+
+-  `Read our blogpost about
+   Metabase <https://crate.io/a/visualize-crate-data-with-metabase/>`__
+-  `Website <http://www.metabase.com/>`__
+
+Read More
+---------
+
+.. toctree::
+   :maxdepth: 1
+
+   squirrel
+   streamsets

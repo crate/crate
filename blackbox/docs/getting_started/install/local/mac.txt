@@ -1,0 +1,21 @@
+==============
+Install on Mac
+==============
+
+You can install and run Crate on a Mac with one simple command in your
+terminal application:
+
+.. code-block:: bash
+
+    bash -c "$(curl -L try.crate.io)"
+
+To create a cluster, run the command multiple times to create new
+instances that will discover each when running on the same machine.
+
+Next Steps
+----------
+
+-  `Connect to Crate Cluster </docs/connect>`__
+-  `Import Data </docs/import>`__
+-  `Client Libraries </docs/clients>`__
+-  `Scale a Cluster </docs/scale>`__

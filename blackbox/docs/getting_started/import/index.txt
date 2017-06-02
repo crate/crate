@@ -1,0 +1,64 @@
+===========
+Import Data
+===========
+
+It's hard to see what a database is capable of without a real world
+dataset. Fortunately Crate ships with an easy method of obtaining data
+to experiment with.
+
+Open *http://SERVER\_IP:4200/admin* to access the Crate Admin UI. Click
+*Get Started* to import some sample Twitter data and use the *Console*
+tab to try out some queries.
+
+Familiar SQL
+------------
+
+Crate uses familiar SQL syntax for performing real-time distributed
+queries across a cluster. You gain the benefits of a NoSQL based,
+scalable data store without needing to rewrite your application queries.
+
+For example, we want to see tweets from verified users, returning all
+column values.
+
+.. code-block:: sql
+
+    SELECT *
+    FROM tweets
+    WHERE user['verified'] = true;
+
+``user['verified']`` indicates a column that is part of an object data
+type, in this case, ``user``. This object contains other fields of any
+type, including other objects.
+
+Analyze Data in Real Time
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Crate's SQL support includes distributed
+`aggregation <https://crate.io/docs/stable/sql/aggregation.html>`__,
+`scalar <https://crate.io/docs/stable/sql/scalar.html>`__ functions and
+`geospatial
+support <https://crate.io/docs/stable/sql/data_types.html#geo-point>`__
+for more complex queries and data analysis.
+
+For example:
+
+.. code-block:: sql
+
+    SELECT count(*) AS quantity,
+      user['verified']
+    FROM tweets
+    GROUP BY user['verified']
+    ORDER BY quantity DESC;
+
+This query counts the number of verified and non-verified twitter users
+and displays the quantity by each type. ``count(*)`` is an
+`aggregation <https://en.wikipedia.org/wiki/Aggregate_function>`__
+function that returns a count of all the rows that match the query. The
+``GROUP BY`` clause groups each count result into the two possible
+values of ``user['verified']`` (true and false).
+
+Next Steps
+----------
+
+-  `Client Libraries </docs/clients>`__
+-  `Scale a Cluster </docs/scale>`__

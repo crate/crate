@@ -1,0 +1,124 @@
+==========================================
+Getting Started with Crate on Docker Cloud
+==========================================
+
+`Docker Cloud <https://cloud.docker.com>`__ is Docker's official
+platform for building, managing and deploying Docker containers across a
+variety of cloud providers and a provides features ideal for Development
+workflows. One of the best and most relevant features for Crate users is
+`default support for overlay
+networking <https://docs.docker.com/engine/userguide/networking/get-started-overlay/>`__.
+
+Connect Cloud Providers
+-----------------------
+
+The first step is to connect the cloud hosting providers you would like
+to use with Docker Cloud. The current options are Amazon Web Services,
+Digital Ocean, Microsoft Azure, Softlayer and Packet.
+
+Create Nodes
+------------
+
+Visit the *Nodes* section of the
+`dashboard <https://cloud.docker.com/node/cluster/list/>`__ and click
+the large green *Launch your first Node* button.
+
+Give the cluster a name, select the details of your cloud provider and
+give the cluster a tag that we use to group and target services.
+
+[Nodes Section]({% media '/media/1603/dc\_create\_cluster.png' %})
+
+After a couple of minutes, the cluster will be ready.
+
+.. image:: docker_cloud_nodes.png
+   :alt: Cluster Ready
+
+And here are the new instances on Digital Ocean (in my case).
+
+.. image:: docker_cloud_droplets.png
+   :alt: New Instances
+
+Create Services
+---------------
+
+Next we need to setup our services. Docker Cloud provide an amazing
+selection of configuration and management options through their UI, but
+by far the easiest and quickest method for getting a Crate cluster
+deployed is by using a 'Stack' file. This allows us to set some options
+that Crate needs to function correctly and then you can analyze the
+resulting services to see what Docker Cloud is capable of.
+
+Click on the *Stacks* tab, then the green *Create your first stack*
+button. Give the Stack a name and add the following code:
+
+.. code-block:: yaml
+
+    crate1:
+      image: 'crate:latest'
+      command: 'crate -Cnetwork.bind_host=_eth0:ipv4_ -Cnetwork.publish_host=_ethwe:ipv4_'
+      ports:
+        - '4200:4200'
+        - '4300:4300'
+    crate2:
+      image: 'crate:latest'
+      command: 'crate -Cnetwork.bind_host=_eth0:ipv4_ -Cnetwork.publish_host=_ethwe:ipv4_'
+    crate3:
+      image: 'crate:latest'
+      command: 'crate -Cnetwork.bind_host=_eth0:ipv4_ -Cnetwork.publish_host=_ethwe:ipv4_'
+
+This creates three instances of Crate, all using the 'latest' tagged
+Docker image. One sets ports manually and the others use dynamic port
+allocation. Finally, we change the default
+`publish\_host </docs/stable/configuration.html#conf-hosts>`__. We do
+this because Docker Cloud has default support for Weave, which allows
+for seamless cross machine communication through its overlay network.
+However, Weave requires Crate to publish on a different interface to its
+default and this is how we accomplish this.
+
+Click the green *Create stack* button and you will see a list of the
+resulting services not yet running.
+
+Click the green *Start* button and after a few moments you will see our
+3 node Crate cluster spread across containers and nodes. We have used
+Docker Cloud's default approach to load balancing (Emptiest Node) but
+`there are many to choose
+from <https://docs.docker.com/docker-cloud/feature-reference/deployment-strategies/>`__.
+As we are setting one set of ports manually, this will limit some of our
+potential deployment strategies.
+
+.. image:: docker_cloud_running_services.png
+   :alt: Services
+
+Click the *Endpoints* tab to see the cluster URL and open the link
+ending in port 4200 under the *Service endpoints* section, adding
+*/admin* to access the Crate admin interface. You should see a 3 node
+cluster, indicated by the '3' in the top right of the window.
+
+.. image:: docker_cloud_endpoint.png
+   :alt: Services
+
+To double check what is happening, click the *Nodes* tab, you should see
+the two VMs, one with 1 container and 1 with 2.
+
+.. image:: docker_cloud_node_dashboard_spread.png
+   :alt: Nodes Tab
+
+Conclusion
+----------
+
+The real potential in the Docker Cloud lies in its simple scalability
+through a user-friendly UI (and CLI) which pairs well with Crate, this
+has been a simple, 'getting started' example and we recommend you look
+further at `Docker Cloud's
+documentation <https://docs.docker.com/docker-cloud/>`__ to explore its
+full potential.
+
+Next Steps
+----------
+
+-  `Connect to Crate Cluster </docs/connect>`__
+-  `Import Data </docs/import>`__
+-  `Client Libraries </docs/clients>`__
+-  `CrateDB and Docker Best
+   Practices <https://crate.io/docs/reference/best_practice/docker.html>`__
+-  `Scale a Cluster </docs/scale>`__

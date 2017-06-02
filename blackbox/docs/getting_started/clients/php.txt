@@ -1,0 +1,143 @@
+==============================
+Connecting to CrateDB with PHP
+==============================
+
+CrateDB supports integration with the
+`PDO <http://php.net/manual/en/intro.pdo.php>`__ and
+`DBAL <http://www.doctrine-project.org/projects/dbal.html>`__ data
+abstraction layers.
+
+PDO
+---
+
+Install Driver
+~~~~~~~~~~~~~~
+
+Install the driver by adding a dependency to your *composer.json* file:
+
+.. code-block:: json
+
+    {
+      "require": {
+        "crate/crate-pdo":"~0.6.0"
+      }
+    }
+
+And install with ``composer intall``.
+
+Connect to CrateDB
+~~~~~~~~~~~~~~~~~~
+
+To connect to your cluster, Crate follows standard PDO syntax to form a
+data source name string
+(`dsn <https://en.wikipedia.org/wiki/Data_source_name>`__) and then
+connect to it.
+
+.. code-block:: php
+
+    require_once __DIR__.'/vendor/autoload.php';
+    use Crate\PDO\PDO as PDO;
+
+    $dsn = 'crate:SERVER_IP:4200';
+    $connection = new PDO($dsn, null, null, null);
+
+As CrateDB doesn't support authentication, the other parameters can be
+left null.
+
+DBAL
+----
+
+Install Driver
+~~~~~~~~~~~~~~
+
+Install the driver by adding a dependency to your *composer.json* file:
+
+.. code-block:: json
+
+    {
+      "require": {
+        "crate/crate-dbal":"~0.3.0"
+      }
+    }
+
+And install with ``composer install``.
+
+Connect to Crate
+~~~~~~~~~~~~~~~~
+
+To connect to your cluster, Crate follows standard `DBAL
+syntax <http://doctrine-orm.readthedocs.org/projects/doctrine-dbal/en/latest/reference/configuration.html>`__
+to create an array of parameters and then create a connection.
+
+.. code-block:: php
+
+    $params = array(
+        'driverClass' => 'Crate\DBAL\Driver\PDOCrate\Driver',
+        'host' => 'SERVER_IP',
+        'port' => 4200
+    );
+
+    $connection = \Doctrine\DBAL\DriverManager::getConnection($params);
+    $schemaManager = $connection->getSchemaManager();
+
+ORM
+~~~
+
+If you are using Doctrine's ORM features, then an extra dependency is
+needed in your *composer.json* file.
+
+.. code-block:: json
+
+    {
+      "require": {
+        "crate/crate-dbal":"~0.3.0",
+        "doctrine/orm": "*"
+      }
+    }
+
+And install with ``composer intall``.
+
+To create a connection:
+
+.. code-block:: php
+
+    require_once "vendor/autoload.php";
+
+    use Doctrine\ORM\Tools\Setup;
+    use Doctrine\ORM\EntityManager;
+
+    $paths = array("/path/to/entity-files");
+    $isDevMode = false;
+
+    // the connection configuration
+    $params = array(
+        'driverClass' => 'Crate\DBAL\Driver\PDOCrate\Driver',
+        'host' => 'SERVER_IP',
+        'port' => 4200
+    );
+
+    $config = Setup::createAnnotationMetadataConfiguration($paths, $isDevMode);
+    $entityManager = EntityManager::create($params, $config);
+
+Setting up the Doctrine ORM requires some extra steps, and we suggest
+reading `the official Doctrine
+documentation <http://doctrine-orm.readthedocs.org/en/latest/index.html>`__
+to get started.
+
+Want to Know More?
+------------------
+
+-  More detailed documentation on the Crate PDO client is available
+   `here </docs/reference/pdo>`__.
+-  More detailed documentation on the Crate DBAL client is available
+   `here </docs/reference/dbal>`__.
+-  The **Crate Sample App** demonstrates features of Crate and `how to
+   use them in a PHP based
+   application <https://github.com/crate/crate-sample-apps/tree/master/php>`__
+   with an explanation of how the library is used
+   `here <https://github.com/crate/crate-sample-apps/blob/master/php/documentation.md>`__.
+
+Next Steps
+----------
+
+-  `Scale a Cluster </docs/scale>`__
