@@ -1,0 +1,29 @@
+.. _ref-revoke:
+
+==========
+``REVOKE``
+==========
+
+Revokes privilege from an existing user.
+
+Synopsis
+========
+
+.. code-block:: psql
+
+  REVOKE { { DQL | DML | DDL [,...] } | ALL [ PRIVILEGES ] }
+  FROM user_name [, ...];
+
+Description
+===========
+
+``REVOKE`` is a management statement to revoke a previously granted
+``DQL``, ``DML`` or ``DDL`` privilege on the cluster from one or
+many existing users.
+
+For usage of the ``REVOKE`` statement see :ref:`administration-privileges`.
+
+Parameters
+==========
+
+:user_name: The name of an existing user.
