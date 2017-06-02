@@ -1,0 +1,10 @@
+version: 1.0.{build}
+branches:
+  only:
+  - m/appveyor-min-master-nodes 
+install:
+- cmd: git submodule update --init -- es/upstream
+build_script:
+- cmd: gradlew.bat compileJava
+test_script:
+- ps: ./gradlew :sql:test -i

@@ -27,6 +27,7 @@ import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.equalTo;
@@ -49,6 +50,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @TestLogging("io.crate:TRACE, org.elasticsearch:TRACE")
     public void testMinimumMasterNodesCheckSetNotCorrectNumberOfMasterNodes() throws InterruptedException {
         Settings settings = Settings.builder().put("discovery.zen.minimum_master_nodes", 1).build();
         internalCluster().startNode(settings);
