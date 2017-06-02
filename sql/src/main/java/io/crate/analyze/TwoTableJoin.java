@@ -27,7 +27,7 @@ import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.format.SymbolPrinter;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.OutputName;
@@ -66,7 +66,7 @@ public class TwoTableJoin implements QueriedRelation {
         fields = new Fields(querySpec.outputs().size());
         for (int i = 0; i < querySpec.outputs().size(); i++) {
             Symbol output = querySpec.outputs().get(i);
-            String name = SymbolPrinter.INSTANCE.printSimple(output).replace("\"", "");
+            String name = Symbols.pathFromSymbol(output).outputName();
             Path fqPath;
             // prefix paths with origin relationName to keep them unique
             if (output instanceof Field) {
