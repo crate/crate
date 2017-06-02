@@ -21,47 +21,13 @@ Changes
  - Expose fields for ``information_schema.columns`` and
    ``information_schema.tables`` so that it conforms to SQL-99 standard.
 
- - Improved the resiliency of the retrieval of large results via HTTP. Queries
-   are now aborted and result in an error if they consume too much memory.
-
  - Extended the output of the  ``EXPLAIN`` statement.
 
  - Added support for joins on virtual tables.
 
- - Changed the ``QueryStats`` JMX MBean to deliver node-based values instead of
-   cluster-based values.
-   This makes it possible to spot performance discrepancies between nodes more
-   easily.
-
 Fixes
 =====
 
- - Fixed a ``COPY FROM`` issue that caused imports into tables with certain
-   combinations of PARTITIONED BY, PRIMARY KEY and GENERATED COLUMNS to fail.
-
- - Fixed an issue with algorithm that tries to reorder the joined tables using
-   the optimum ordering. The issue caused an exception to be thrown when join
-   conditions contain table(s) which are not part of the adjacent joined tables.
-   E.g.::
-
-    SELECT * FROM t1 JOIN t2 JOIN t3 JOIN t4 ON t4.id = t2.id
-
- - Fixed an issue that could cause ``sys.operations`` entries to remain even
-   after the operation has finished.
-
  - Fixed a NPE when querying ``sys.shards`` table
 
- - Optimized the JMX ``QueryStats`` MBean to prevent it from putting too much
-   load on the cluster.
-
- - Fixed the calculation of the ``OverallQueryAverageDuration`` ``QueryStats``
-   MBean.
-
- - The internal ``fetchSize`` is now dynamic based on configured heap and has
-   an upper bound to prevent ``OutOfMemory`` errors if a postgres client
-   retrieves a large result set without setting a ``fetchSize``, or setting a
-   ``fetchSize`` which is too large.
-
  - Log failed authentication attempts at log level ``WARN``
-
- - Fix NPE when ordering by system columns
