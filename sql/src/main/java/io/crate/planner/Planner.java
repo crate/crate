@@ -31,6 +31,7 @@ import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
 import io.crate.analyze.CreateAnalyzerAnalyzedStatement;
 import io.crate.analyze.CreateTableAnalyzedStatement;
+import io.crate.analyze.DCLStatement;
 import io.crate.analyze.DDLStatement;
 import io.crate.analyze.DeleteAnalyzedStatement;
 import io.crate.analyze.DropBlobTableAnalyzedStatement;
@@ -65,6 +66,7 @@ import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.InsertFromSubQueryPlanner;
 import io.crate.planner.consumer.UpdatePlanner;
+import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
@@ -303,6 +305,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitDDLStatement(DDLStatement statement, Context context) {
         return new GenericDDLPlan(context.jobId(), statement);
+    }
+
+    @Override
+    public Plan visitDCLStatement(DCLStatement statement, Context context) {
+        return new GenericDCLPlan(context.jobId(), statement);
     }
 
     @Override

@@ -176,7 +176,7 @@ public class UpdateAnalyzer {
         try {
             value = valueNormalizer.normalizeInputForReference(value, reference, tableInfo);
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
-            throw new ColumnValidationException(ident.sqlFqn(), e);
+            throw new ColumnValidationException(ident.sqlFqn(), tableInfo.ident(), e);
         }
 
         nestedAnalyzedStatement.addAssignment(reference, value);

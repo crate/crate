@@ -21,13 +21,24 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.ColumnIdent;
+import io.crate.analyze.TableIdentsExtractor;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.Path;
+import io.crate.metadata.TableIdent;
 
 import java.util.Locale;
 
-public class AmbiguousColumnException extends ValidationException {
+public class AmbiguousColumnException extends ValidationException implements TableScopeException {
 
-    public AmbiguousColumnException(ColumnIdent columnIdent) {
-        super(String.format(Locale.ENGLISH, "Column \"%s\" is ambiguous", columnIdent.sqlFqn()));
+    private final Symbol columnSymbol;
+
+    public AmbiguousColumnException(Path columnPath, Symbol columnSymbol) {
+        super(String.format(Locale.ENGLISH, "Column \"%s\" is ambiguous", columnPath.outputName()));
+        this.columnSymbol = columnSymbol;
+    }
+
+    @Override
+    public Iterable<TableIdent> getTableIdents() {
+        return TableIdentsExtractor.extract(columnSymbol);
     }
 }

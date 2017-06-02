@@ -22,11 +22,17 @@
 
 package io.crate.operation.auth;
 
-import io.crate.protocols.http.HttpAuthUpstreamHandler;
 import io.crate.metadata.sys.SysUsersTableInfo;
+import io.crate.metadata.sys.SysPrivilegesTableInfo;
 import io.crate.operation.collect.sources.SysTableRegistry;
-import io.crate.operation.user.*;
+import io.crate.operation.user.TransportCreateUserAction;
+import io.crate.operation.user.TransportDropUserAction;
+import io.crate.operation.user.TransportPrivilegesAction;
+import io.crate.operation.user.User;
+import io.crate.operation.user.UserManager;
+import io.crate.operation.user.UserManagerService;
 import io.crate.plugin.PipelineRegistry;
+import io.crate.protocols.http.HttpAuthUpstreamHandler;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -45,7 +51,7 @@ public class UserServiceFactoryImpl implements UserServiceFactory {
     }
 
     /**
-     *  This mus only be called once as TransportActions are registered here.
+     *  This must only be called once as TransportActions are registered here.
      */
     @Override
     public UserManager setupUserManager(Settings settings,
@@ -59,10 +65,18 @@ public class UserServiceFactoryImpl implements UserServiceFactory {
             settings, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver);
         TransportDropUserAction transportDropUserAction = new TransportDropUserAction(
             settings, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver);
-        UserManagerService userManager = new UserManagerService(transportCreateAction, transportDropUserAction, clusterService);
+        TransportPrivilegesAction transportPrivilegesAction = new TransportPrivilegesAction(
+            settings, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver);
+        UserManagerService userManager = new UserManagerService(
+            transportCreateAction, transportDropUserAction, transportPrivilegesAction, clusterService);
         sysTableRegistry.registerSysTable(new SysUsersTableInfo(clusterService),
             () -> CompletableFuture.completedFuture(userManager.users()),
             SysUsersTableInfo.sysUsersExpressions());
+
+        sysTableRegistry.registerSysTable(new SysPrivilegesTableInfo(clusterService),
+            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(userManager.users())),
+            SysPrivilegesTableInfo.expressions());
+
         return userManager;
     }
 

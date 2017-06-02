@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDelete;
 import io.crate.planner.node.dml.Upsert;
@@ -84,6 +85,10 @@ public class PlanVisitor<C, R> {
 
     public R visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, C context) {
         return visitPlan(genericDDLPlan, context);
+    }
+
+    public R visitGenericDCLPlan(GenericDCLPlan genericDCLPlan, C context) {
+        return visitPlan(genericDCLPlan, context);
     }
 
     public R visitNestedLoop(NestedLoop plan, C context) {

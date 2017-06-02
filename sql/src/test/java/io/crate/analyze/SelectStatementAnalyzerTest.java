@@ -859,7 +859,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testOrderByQualifiedName() throws Exception {
         expectedException.expect(RelationUnknownException.class);
-        expectedException.expectMessage("Cannot resolve relation 'friends'");
+        expectedException.expectMessage("Cannot resolve relation 'doc.friends'");
         analyze("select * from users order by friends.id");
     }
 
@@ -1077,7 +1077,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testTableAliasWrongUse() throws Exception {
         expectedException.expect(RelationUnknownException.class);
         // caused by where users.awesome, would have to use where u.awesome = true instead
-        expectedException.expectMessage("Cannot resolve relation 'users'");
+        expectedException.expectMessage("Cannot resolve relation 'doc.users'");
         analyze("select * from users as u where users.awesome = true");
     }
 

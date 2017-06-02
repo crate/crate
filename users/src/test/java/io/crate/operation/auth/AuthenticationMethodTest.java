@@ -23,6 +23,7 @@
 package io.crate.operation.auth;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
 import io.crate.operation.user.UserManagerService;
@@ -39,9 +40,9 @@ import static org.mockito.Mockito.mock;
 
 public class AuthenticationMethodTest extends CrateUnitTest {
 
-    private UserManager fakeUserManager = new UserManagerService(null, null, mock(ClusterService.class)) {
+    private UserManager fakeUserManager = new UserManagerService(null, null, null,  mock(ClusterService.class)) {
 
-        List<User> users = ImmutableList.of(new User("crate", EnumSet.of(User.Role.SUPERUSER)));
+        List<User> users = ImmutableList.of(new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of()));
 
         @Override
         public Iterable<User> users() {

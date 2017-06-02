@@ -42,7 +42,7 @@ public class ClientCertAuthTest extends CrateUnitTest {
 
     private ConnectionProperties sslConnWithCert;
     // "example.com" is the CN used in SelfSignedCertificate
-    private User exampleUser = new User("example.com", Collections.emptySet());
+    private User exampleUser = new User("example.com", Collections.emptySet(), Collections.emptySet());
     private SSLSession sslSession;
 
     @Before
@@ -64,7 +64,7 @@ public class ClientCertAuthTest extends CrateUnitTest {
 
     @Test
     public void testLookupValidUserWithCertWithDifferentCN() throws Exception {
-        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> new User("arthur", Collections.emptySet()));
+        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> new User("arthur", Collections.emptySet(), Collections.emptySet()));
 
         expectedException.expectMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur\"");
         clientCertAuth.authenticate("arthur", sslConnWithCert);

@@ -22,32 +22,27 @@
 
 package io.crate.exceptions;
 
-import io.crate.sql.tree.QualifiedName;
+import io.crate.metadata.TableIdent;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Locale;
 
-public class RelationUnknownException extends ResourceUnknownException {
+public class RelationUnknownException extends ResourceUnknownException implements TableScopeException {
 
-    private final QualifiedName qualifiedName;
+    private final TableIdent tableIdent;
 
     public static RelationUnknownException of(@Nullable String schemaName, String tableName) {
-        QualifiedName qualifiedName;
-        if (schemaName == null) {
-            qualifiedName = new QualifiedName(tableName);
-        } else {
-            qualifiedName = new QualifiedName(Arrays.asList(schemaName, tableName));
-        }
-        return new RelationUnknownException(qualifiedName);
+        return new RelationUnknownException(new TableIdent(schemaName, tableName));
     }
 
-    private RelationUnknownException(QualifiedName qualifiedName) {
-        super(String.format(Locale.ENGLISH, "Cannot resolve relation '%s'", qualifiedName));
-        this.qualifiedName = qualifiedName;
+    private RelationUnknownException(TableIdent tableIdent) {
+        super(String.format(Locale.ENGLISH, "Cannot resolve relation '%s'", tableIdent));
+        this.tableIdent = tableIdent;
     }
 
-    public QualifiedName qualifiedName() {
-        return qualifiedName;
+    @Override
+    public Iterable<TableIdent> getTableIdents() {
+        return Collections.singletonList(tableIdent);
     }
 }

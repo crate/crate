@@ -32,12 +32,18 @@ import io.crate.analyze.ddl.GeoSettingsApplier;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 public class AnalyzedColumnDefinition {
 
@@ -81,10 +87,10 @@ public class AnalyzedColumnDefinition {
     @Nullable
     private Expression generatedExpression;
 
-    public static void validateName(String name) {
+    public static void validateName(String name, TableIdent tableIdent) {
         Preconditions.checkArgument(!name.startsWith("_"), "Column name must not start with '_'");
         if (ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply(name)) {
-            throw new InvalidColumnNameException(name);
+            throw new InvalidColumnNameException(name, tableIdent);
         }
     }
 
@@ -92,8 +98,8 @@ public class AnalyzedColumnDefinition {
         this.parent = parent;
     }
 
-    public void name(String name) {
-        validateName(name);
+    public void name(String name, TableIdent tableIdent) {
+        validateName(name, tableIdent);
         this.name = name;
         if (this.parent != null) {
             this.ident = ColumnIdent.getChild(this.parent.ident, name);

@@ -23,30 +23,47 @@
 package io.crate.action.sql;
 
 import com.google.common.base.MoreObjects;
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.metadata.Schemas;
+import io.crate.operation.user.ExceptionAuthorizedValidator;
+import io.crate.operation.user.StatementAuthorizedValidator;
 import io.crate.operation.user.User;
 
 import javax.annotation.Nullable;
-import java.util.Properties;
 import java.util.Set;
 
-public class SessionContext {
+public class SessionContext implements StatementAuthorizedValidator, ExceptionAuthorizedValidator {
 
-    public static final SessionContext SYSTEM_SESSION = new SessionContext(0, Option.NONE, null, null);
+    public static final SessionContext SYSTEM_SESSION = new SessionContext(null, null, s -> {}, t -> {});
 
     private final int defaultLimit;
     private final Set<Option> options;
     private String defaultSchema;
+    @Nullable
     private final User user;
+    private final StatementAuthorizedValidator statementAuthorizedValidator;
+    private final ExceptionAuthorizedValidator exceptionAuthorizedValidator;
 
-    public SessionContext(Properties properties, @Nullable User user) {
-        this(0, Option.NONE, properties.getProperty("database"), user);
+    public SessionContext(@Nullable String defaultSchema,
+                          @Nullable User user,
+                          StatementAuthorizedValidator statementAuthorizedValidator,
+                          ExceptionAuthorizedValidator exceptionAuthorizedValidator) {
+        this(0, Option.NONE, defaultSchema, user,
+            statementAuthorizedValidator, exceptionAuthorizedValidator);
     }
 
-    public SessionContext(int defaultLimit, Set<Option> options, @Nullable String defaultSchema, @Nullable User user) {
+    public SessionContext(int defaultLimit,
+                          Set<Option> options,
+                          @Nullable String defaultSchema,
+                          @Nullable User user,
+                          StatementAuthorizedValidator statementAuthorizedValidator,
+                          ExceptionAuthorizedValidator exceptionAuthorizedValidator) {
         this.defaultLimit = defaultLimit;
         this.options = options;
         this.user = user;
+        this.statementAuthorizedValidator = statementAuthorizedValidator;
+        this.exceptionAuthorizedValidator = exceptionAuthorizedValidator;
         setDefaultSchema(defaultSchema);
     }
 
@@ -69,5 +86,15 @@ public class SessionContext {
 
     public int defaultLimit() {
         return defaultLimit;
+    }
+
+    @Override
+    public void ensureExceptionAuthorized(Throwable t) throws MissingPrivilegeException {
+        exceptionAuthorizedValidator.ensureExceptionAuthorized(t);
+    }
+
+    @Override
+    public void ensureStatementAuthorized(AnalyzedStatement statement) {
+        statementAuthorizedValidator.ensureStatementAuthorized(statement);
     }
 }

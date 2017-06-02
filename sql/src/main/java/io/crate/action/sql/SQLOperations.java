@@ -29,6 +29,7 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.Executor;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.user.User;
+import io.crate.operation.user.UserManager;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.Portal;
@@ -47,7 +48,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.NodeDisconnectedException;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 
@@ -69,6 +76,7 @@ public class SQLOperations {
     private final Provider<Executor> executorProvider;
     private final JobsLogs jobsLogs;
     private final ClusterService clusterService;
+    private final UserManager userManager;
     private final boolean isReadOnly;
     private volatile boolean disabled;
 
@@ -78,24 +86,32 @@ public class SQLOperations {
                          Provider<Executor> executorProvider,
                          JobsLogs jobsLogs,
                          Settings settings,
-                         ClusterService clusterService) {
+                         ClusterService clusterService,
+                         Provider<UserManager> userManagerProvider) {
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
         this.jobsLogs = jobsLogs;
         this.clusterService = clusterService;
+        this.userManager = userManagerProvider.get();
         this.isReadOnly = NODE_READ_ONLY_SETTING.get(settings);
     }
 
-    public Session createSession(SessionContext sessionContext) {
+    private Session createSession(SessionContext sessionContext) {
         if (disabled) {
             throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
         return new Session(executorProvider.get(), sessionContext);
     }
 
+    public Session createSession(@Nullable String defaultSchema, @Nullable User user) {
+        return createSession(new SessionContext(defaultSchema, user,
+            userManager.getStatementValidator(user), userManager.getExceptionValidator(user)));
+    }
+
     public Session createSession(@Nullable String defaultSchema, @Nullable User user, Set<Option> options, int defaultLimit) {
-        return createSession(new SessionContext(defaultLimit, options, defaultSchema, user));
+        return createSession(new SessionContext(defaultLimit, options, defaultSchema, user,
+            userManager.getStatementValidator(user), userManager.getExceptionValidator(user)));
     }
 
     /**
@@ -191,6 +207,10 @@ public class SQLOperations {
             return portal;
         }
 
+        public SessionContext sessionContext() {
+            return sessionContext;
+        }
+
         public void parse(String statementName, String query, List<DataType> paramTypes) {
             LOGGER.debug("method=parse stmtName={} query={} paramTypes={}", statementName, query, paramTypes);
 
@@ -202,7 +222,7 @@ public class SQLOperations {
                     statement = EMPTY_STMT;
                 } else {
                     jobsLogs.logPreExecutionFailure(UUID.randomUUID(), query, SQLExceptions.messageOf(t));
-                    throw SQLExceptions.createSQLActionException(t);
+                    throw SQLExceptions.createSQLActionException(t, sessionContext);
                 }
             }
             preparedStatements.put(statementName, new PreparedStmt(statement, query, paramTypes));
@@ -228,7 +248,7 @@ public class SQLOperations {
                 }
             } catch (Throwable t) {
                 jobsLogs.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), SQLExceptions.messageOf(t));
-                throw SQLExceptions.createSQLActionException(t);
+                throw SQLExceptions.createSQLActionException(t, sessionContext);
             }
         }
 
@@ -271,7 +291,7 @@ public class SQLOperations {
                             analyzedRelation = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
                             preparedStmt.relation(analyzedRelation);
                         } catch (Throwable t) {
-                            throw SQLExceptions.createSQLActionException(t);
+                            throw SQLExceptions.createSQLActionException(t, sessionContext);
                         }
                     }
                     if (analyzedRelation == null) {

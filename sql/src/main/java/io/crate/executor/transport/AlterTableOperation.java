@@ -191,7 +191,7 @@ public class AlterTableOperation {
     public CompletableFuture<Long> executeAlterTable(AlterTableAnalyzedStatement analysis) {
         DocTableInfo table = analysis.table();
         if (table.isAlias() && !table.isPartitioned()) {
-            return CompletableFutures.failedFuture(new AlterTableAliasException(table.ident().fqn()));
+            return CompletableFutures.failedFuture(new AlterTableAliasException(table.ident()));
         }
 
         List<CompletableFuture<Long>> results = new ArrayList<>(3);

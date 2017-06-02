@@ -113,7 +113,8 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
      */
     private void ensureColumnCanBeUpdated(ColumnIdent ci) {
         if (ci.isSystemColumn()) {
-            throw new ColumnValidationException(ci.toString(), "Updating a system column is not supported");
+            throw new ColumnValidationException(ci.toString(), tableInfo.ident(),
+                "Updating a system column is not supported");
         }
         if (tableInfo.clusteredBy() != null) {
             ensureNotUpdated(ci, tableInfo.clusteredBy(), "Updating a clustered-by column is not supported");
@@ -136,9 +137,9 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         }
     }
 
-    private static void ensureNotUpdated(ColumnIdent columnUpdated, ColumnIdent protectedColumnIdent, String errorMessage) {
+    private void ensureNotUpdated(ColumnIdent columnUpdated, ColumnIdent protectedColumnIdent, String errorMessage) {
         if (columnUpdated.equals(protectedColumnIdent) || protectedColumnIdent.isChildOf(columnUpdated)) {
-            throw new ColumnValidationException(columnUpdated.toString(), errorMessage);
+            throw new ColumnValidationException(columnUpdated.toString(), tableInfo.ident(), errorMessage);
         }
     }
 

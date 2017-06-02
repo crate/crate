@@ -22,7 +22,9 @@
 
 package io.crate.operation.user;
 
+import io.crate.analyze.user.Privilege;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 public class User {
@@ -35,9 +37,12 @@ public class User {
 
     private final String name;
 
-    public User(String name, Set<Role> roles) {
+    private final Set<Privilege> privileges;
+
+    public User(String name, Set<Role> roles, Set<Privilege> privileges) {
         this.roles = roles;
         this.name = name;
+        this.privileges = privileges;
     }
 
     public Set<Role> roles() {
@@ -52,17 +57,47 @@ public class User {
         return roles.contains(Role.SUPERUSER);
     }
 
+    public Set<Privilege> privileges() {
+        return privileges;
+    }
+
+    /**
+     * Checks if the user has a privilege that matches the given class, type and ident
+     * currently only the type is checked since Class is always CLUSTER and ident null.
+     * @param type           privilege type
+     * @param clazz          privilege class (ie. CLUSTER, TABLE, etc)
+     * @param ident          ident of the object
+     */
+    public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
+        Optional<Privilege> hasPrivilege = privileges.stream()
+            .filter(p -> p.type().equals(type))
+            .findFirst();
+        return hasPrivilege.isPresent();
+    }
+
+    /**
+     * Checks if the user has any privilege that matches the given class, type and ident
+     * currently we check for any privilege, since Class is always CLUSTER and ident null.
+     *
+     * @param clazz privilege class (ie. CLUSTER, TABLE, etc)
+     * @param ident ident of the object
+     */
+    public boolean hasAnyPrivilege(Privilege.Clazz clazz, String ident) {
+        return privileges().size() > 0;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        User that = (User)o;
+        User that = (User) o;
         return Objects.equals(name, that.name) &&
-               Objects.equals(roles, that.roles);
+               Objects.equals(roles, that.roles) &&
+               Objects.equals(privileges, that.privileges);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, roles);
+        return Objects.hash(name, roles, privileges);
     }
 }

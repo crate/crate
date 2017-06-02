@@ -24,7 +24,11 @@ package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.*;
+import io.crate.analyze.Analysis;
+import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.ParameterContext;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
@@ -43,7 +47,11 @@ import org.junit.Test;
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 
 public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
 

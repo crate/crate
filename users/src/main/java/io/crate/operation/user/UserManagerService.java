@@ -18,37 +18,43 @@
 
 package io.crate.operation.user;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.FutureActionListener;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AnalyzedStatement;
-import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.CreateUserAnalyzedStatement;
-import io.crate.analyze.DropUserAnalyzedStatement;
-import io.crate.exceptions.UnauthorizedException;
+import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserUnknownException;
 import io.crate.metadata.UsersMetaData;
+import io.crate.metadata.UsersPrivilegesMetaData;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Nullable;
 
+import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import static io.crate.metadata.UsersMetaData.PROTO;
-import static io.crate.metadata.UsersMetaData.TYPE;
 
 public class UserManagerService implements UserManager, ClusterStateListener {
 
-    public static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER));
+    public static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of());
 
-    private static final PermissionVisitor PERMISSION_VISITOR = new PermissionVisitor();
+    static {
+        MetaData.registerPrototype(UsersMetaData.TYPE, UsersMetaData.PROTO);
+        MetaData.registerPrototype(UsersPrivilegesMetaData.TYPE, UsersPrivilegesMetaData.PROTO);
+    }
+
+    @VisibleForTesting
+    static final StatementAuthorizedValidator NOOP_STATEMENT_VALIDATOR = s -> {
+    };
+    @VisibleForTesting
+    static final ExceptionAuthorizedValidator NOOP_EXCEPTION_VALIDATOR = t -> {
+    };
 
     private static final Consumer<User> ENSURE_DROP_USER_NOT_SUPERUSER = user -> {
         if (user != null && user.isSuperUser()) {
@@ -57,27 +63,39 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         }
     };
 
-    static {
-        MetaData.registerPrototype(TYPE, PROTO);
-    }
+    private static final Consumer<User> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER = user -> {
+        if (user != null && user.isSuperUser()) {
+            throw new UnsupportedOperationException(String.format(
+                Locale.ENGLISH, "Cannot alter privileges for superuser '%s'", user.name()));
+        }
+    };
 
     private final TransportCreateUserAction transportCreateUserAction;
     private final TransportDropUserAction transportDropUserAction;
+    private final TransportPrivilegesAction transportPrivilegesAction;
     private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
 
     public UserManagerService(TransportCreateUserAction transportCreateUserAction,
                               TransportDropUserAction transportDropUserAction,
+                              TransportPrivilegesAction transportPrivilegesAction,
                               ClusterService clusterService) {
         this.transportCreateUserAction = transportCreateUserAction;
         this.transportDropUserAction = transportDropUserAction;
+        this.transportPrivilegesAction = transportPrivilegesAction;
         clusterService.add(this);
     }
 
-    static Set<User> getUsers(@Nullable UsersMetaData metaData) {
+    static Set<User> getUsers(@Nullable UsersMetaData metaData,
+                              @Nullable UsersPrivilegesMetaData privilegesMetaData) {
         ImmutableSet.Builder<User> usersBuilder = new ImmutableSet.Builder<User>().add(CRATE_USER);
         if (metaData != null) {
             for (String userName : metaData.users()) {
-                usersBuilder.add(new User(userName, ImmutableSet.of()));
+                Set<Privilege> privileges = null;
+                if (privilegesMetaData != null) {
+                    privileges = privilegesMetaData.getUserPrivileges(userName);
+                }
+                usersBuilder.add(new User(userName, ImmutableSet.of(),
+                    privileges == null ? ImmutableSet.of() : privileges));
             }
         }
         return usersBuilder.build();
@@ -99,6 +117,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
         ENSURE_DROP_USER_NOT_SUPERUSER.accept(findUser(userName));
         FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
+            //noinspection PointlessBooleanExpression
             if (r.doesUserExist() == false) {
                 if (ifExists) {
                     return 0L;
@@ -111,14 +130,50 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         return listener;
     }
 
+    @Override
+    public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
+        userNames.forEach(s -> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER.accept(findUser(s)));
+        FutureActionListener<PrivilegesResponse, Long> listener = new FutureActionListener<>(r -> {
+            //noinspection PointlessBooleanExpression
+            if (r.unknownUserNames().isEmpty() == false) {
+                throw new UserUnknownException(r.unknownUserNames());
+            }
+            return r.affectedRows();
+        });
+        transportPrivilegesAction.execute(new PrivilegesRequest(userNames, privileges), listener);
+        return listener;
+    }
+
     public Iterable<User> users() {
         return users;
     }
 
     @Override
-    public void ensureAuthorized(AnalyzedStatement analyzedStatement,
-                                 SessionContext sessionContext) {
-        PERMISSION_VISITOR.process(analyzedStatement, sessionContext);
+    public StatementAuthorizedValidator getStatementValidator(@Nullable User user) {
+        if (authorizedValidationRequired(user)) {
+            return new StatementPrivilegeValidator(user);
+        }
+        return NOOP_STATEMENT_VALIDATOR;
+    }
+
+    @Override
+    public ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user) {
+        if (authorizedValidationRequired(user)) {
+            return new ExceptionPrivilegeValidator(user);
+        }
+        return NOOP_EXCEPTION_VALIDATOR;
+    }
+
+    @SuppressWarnings({"SimplifiableIfStatement", "PointlessBooleanExpression"})
+    private boolean authorizedValidationRequired(@Nullable User user) {
+        if (user == null) {
+            // this can occur when the hba setting is not there,
+            // in this case there is no authentication and everyone
+            // can access the cluster
+            return false;
+        }
+
+        return user.isSuperUser() == false;
     }
 
     @Override
@@ -126,54 +181,18 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         if (!event.metaDataChanged()) {
             return;
         }
-        users = getUsers(event.state().metaData().custom(UsersMetaData.TYPE));
+        MetaData metaData = event.state().metaData();
+        users = getUsers(metaData.custom(UsersMetaData.TYPE), metaData.custom(UsersPrivilegesMetaData.TYPE));
     }
 
 
     @Nullable
     public User findUser(String userName) {
-        for (User user: users()) {
+        for (User user : users()) {
             if (userName.equals(user.name())) {
                 return user;
             }
         }
         return null;
-    }
-
-    private static class PermissionVisitor extends AnalyzedStatementVisitor<SessionContext, Boolean> {
-
-        boolean isSuperUser(@Nullable User user) {
-            return user != null && user.isSuperUser();
-        }
-
-        private void throwUnauthorized(@Nullable User user) {
-            String userName = user != null ? user.name() : null;
-            throw new UnauthorizedException(
-                String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute statement", userName));
-        }
-
-        @Override
-        protected Boolean visitAnalyzedStatement(AnalyzedStatement analyzedStatement,
-                                                 SessionContext sessionContext) {
-            return true;
-        }
-
-        @Override
-        protected Boolean visitCreateUserStatement(CreateUserAnalyzedStatement analysis,
-                                                   SessionContext sessionContext) {
-            if (!isSuperUser(sessionContext.user())) {
-                throwUnauthorized(sessionContext.user());
-            }
-            return true;
-        }
-
-        @Override
-        protected Boolean visitDropUserStatement(DropUserAnalyzedStatement analysis,
-                                                 SessionContext sessionContext) {
-            if (!isSuperUser(sessionContext.user())) {
-                throwUnauthorized(sessionContext.user());
-            }
-            return true;
-        }
     }
 }

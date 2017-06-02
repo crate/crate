@@ -23,6 +23,7 @@
 package io.crate.executor.transport;
 
 import io.crate.action.job.ContextPreparer;
+import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.SelectSymbol;
@@ -31,6 +32,7 @@ import io.crate.data.CollectingBatchConsumer;
 import io.crate.data.Row;
 import io.crate.executor.Executor;
 import io.crate.executor.Task;
+import io.crate.executor.task.DCLTask;
 import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.ExplainTask;
 import io.crate.executor.task.NoopTask;
@@ -59,6 +61,7 @@ import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.node.dcl.GenericDCLPlan;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
@@ -98,6 +101,7 @@ public class TransportExecutor implements Executor {
     private final ThreadPool threadPool;
     private final Functions functions;
     private final TaskCollectingVisitor plan2TaskVisitor;
+    private final DCLStatementDispatcher dclStatementDispatcher;
     private DDLStatementDispatcher ddlAnalysisDispatcherProvider;
 
     private final ClusterService clusterService;
@@ -111,7 +115,6 @@ public class TransportExecutor implements Executor {
 
     private final static BulkNodeOperationTreeGenerator BULK_NODE_OPERATION_VISITOR = new BulkNodeOperationTreeGenerator();
 
-
     @Inject
     public TransportExecutor(Settings settings,
                              JobContextService jobContextService,
@@ -124,7 +127,8 @@ public class TransportExecutor implements Executor {
                              ClusterService clusterService,
                              NodeJobsCounter nodeJobsCounter,
                              IndicesService indicesService,
-                             SystemCollectSource systemCollectSource) {
+                             SystemCollectSource systemCollectSource,
+                             DCLStatementDispatcher dclStatementDispatcher) {
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
         this.transportActionProvider = transportActionProvider;
@@ -134,6 +138,7 @@ public class TransportExecutor implements Executor {
         this.ddlAnalysisDispatcherProvider = ddlAnalysisDispatcherProvider;
         this.clusterService = clusterService;
         this.indicesService = indicesService;
+        this.dclStatementDispatcher = dclStatementDispatcher;
         plan2TaskVisitor = new TaskCollectingVisitor();
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
@@ -235,6 +240,11 @@ public class TransportExecutor implements Executor {
         @Override
         public Task visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, Void context) {
             return new DDLTask(genericDDLPlan.jobId(), ddlAnalysisDispatcherProvider, genericDDLPlan.statement());
+        }
+
+        @Override
+        public Task visitGenericDCLPlan(GenericDCLPlan genericDCLPlan, Void context) {
+            return new DCLTask(genericDCLPlan.jobId(), dclStatementDispatcher, genericDCLPlan.statement());
         }
 
         @Override

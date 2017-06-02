@@ -71,6 +71,8 @@ statement
     | DROP FUNCTION (IF EXISTS)? name=qname
         '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
     | DROP USER (IF EXISTS)? name=ident                                              #dropUser
+    | GRANT ( privilegeTypes | ALL (PRIVILEGES)? ) TO ( ident (',' ident)* )         #grantPrivilege
+    | REVOKE ( privilegeTypes | ALL (PRIVILEGES)? ) FROM ( ident (',' ident)* )      #revokePrivilege
     | createStmt                                                                     #create
     ;
 
@@ -178,6 +180,10 @@ aliasedColumns
 
 expr
     : booleanExpression
+    ;
+
+privilegeTypes
+    : ident (',' ident)*
     ;
 
 booleanExpression
@@ -566,6 +572,7 @@ nonReserved
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
     | ISOLATION | TRANSACTION | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME | USER
+    | PRIVILEGES
     ;
 
 SELECT: 'SELECT';
@@ -765,6 +772,9 @@ ALWAYS: 'ALWAYS';
 READ: 'READ';
 
 USER: 'USER';
+GRANT: 'GRANT';
+REVOKE: 'REVOKE';
+PRIVILEGES: 'PRIVILEGES';
 
 
 EQ  : '=';

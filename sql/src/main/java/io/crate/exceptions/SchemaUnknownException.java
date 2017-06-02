@@ -23,12 +23,15 @@ package io.crate.exceptions;
 
 import java.util.Locale;
 
-public class SchemaUnknownException extends ResourceUnknownException {
+public class SchemaUnknownException extends ResourceUnknownException implements SchemaScopeException {
 
     private static final String MESSAGE_TMPL = "Schema '%s' unknown";
 
+    private final String schemaName;
+
     public SchemaUnknownException(String schema) {
         super(String.format(Locale.ENGLISH, MESSAGE_TMPL, schema));
+        this.schemaName = schema;
     }
 
     @Override
@@ -36,4 +39,8 @@ public class SchemaUnknownException extends ResourceUnknownException {
         return 5;
     }
 
+    @Override
+    public String getSchemaName() {
+        return schemaName;
+    }
 }

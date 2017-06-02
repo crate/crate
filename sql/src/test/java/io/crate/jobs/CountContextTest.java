@@ -24,7 +24,7 @@ package io.crate.jobs;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.WhereClause;
-import io.crate.exceptions.UnknownUpstreamFailure;
+import io.crate.exceptions.UnhandledServerException;
 import io.crate.operation.count.CountOperation;
 import io.crate.test.CauseMatcher;
 import io.crate.test.integration.CrateUnitTest;
@@ -38,7 +38,10 @@ import java.util.Map;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class CountContextTest extends CrateUnitTest {
 
@@ -65,9 +68,9 @@ public class CountContextTest extends CrateUnitTest {
         countContext = new CountContext(2, countOperation, new TestingBatchConsumer(), null, WhereClause.MATCH_ALL);
         countContext.prepare();
         countContext.start();
-        future.setException(new UnknownUpstreamFailure());
+        future.setException(new UnhandledServerException("dummy"));
         assertTrue(countContext.isClosed());
-        expectedException.expectCause(CauseMatcher.cause(UnknownUpstreamFailure.class));
+        expectedException.expectCause(CauseMatcher.cause(UnhandledServerException.class));
         countContext.completionFuture().get();
     }
 

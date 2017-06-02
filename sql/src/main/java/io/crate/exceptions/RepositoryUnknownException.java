@@ -24,7 +24,7 @@ package io.crate.exceptions;
 
 import java.util.Locale;
 
-public class RepositoryUnknownException extends ResourceUnknownException {
+public class RepositoryUnknownException extends ResourceUnknownException implements ClusterScopeException {
 
     public RepositoryUnknownException(String repositoryName) {
         super(String.format(Locale.ENGLISH, "Repository '%s' unknown", repositoryName));

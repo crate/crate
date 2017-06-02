@@ -26,9 +26,9 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
+import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.writer.Output;
@@ -45,7 +45,13 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.BinaryOperator;
@@ -90,7 +96,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         try {
             this.uri = new URI(uri);
         } catch (URISyntaxException e) {
-            throw new ValidationException(String.format(Locale.ENGLISH, "Invalid uri '%s'", uri), e);
+            throw new SQLParseException(String.format(Locale.ENGLISH, "Invalid uri '%s'", uri), e);
         }
         if (this.uri.getScheme() == null || this.uri.getScheme().equals("file")) {
             this.output = new OutputFile(this.uri, this.compressionType);

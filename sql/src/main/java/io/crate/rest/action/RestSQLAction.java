@@ -24,7 +24,11 @@ package io.crate.rest.action;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
-import io.crate.action.sql.*;
+import io.crate.action.sql.BaseResultReceiver;
+import io.crate.action.sql.Option;
+import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.analyze.symbol.Field;
@@ -35,20 +39,31 @@ import io.crate.breaker.RowAccounting;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
 import io.crate.operation.auth.AuthenticationProvider;
+import io.crate.operation.user.ExceptionAuthorizedValidator;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
-import io.crate.operation.user.UserManagerProvider;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.rest.*;
+import org.elasticsearch.rest.BaseRestHandler;
+import org.elasticsearch.rest.BytesRestResponse;
+import org.elasticsearch.rest.RestChannel;
+import org.elasticsearch.rest.RestController;
+import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.rest.RestStatus;
 
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 import static io.crate.action.sql.SQLOperations.Session.UNNAMED;
 
@@ -66,7 +81,7 @@ public class RestSQLAction extends BaseRestHandler {
     public RestSQLAction(Settings settings,
                          RestController controller,
                          SQLOperations sqlOperations,
-                         UserManagerProvider userManagerProvider,
+                         Provider<UserManager> userManagerProvider,
                          CrateCircuitBreakerService breakerService) {
         super(settings);
         this.sqlOperations = sqlOperations;
@@ -152,12 +167,13 @@ public class RestSQLAction extends BaseRestHandler {
             if (outputFields == null) {
                 return channel -> {
                     try {
-                        ResultReceiver resultReceiver
-                            = new RestRowCountReceiver(channel, startTime, request.paramAsBoolean("types", false));
+                        ResultReceiver resultReceiver = new RestRowCountReceiver(
+                            channel, session.sessionContext(), startTime,
+                            request.paramAsBoolean("types", false));
                         session.execute(UNNAMED, 0, resultReceiver);
                         session.sync();
                     } catch (Throwable t) {
-                        errorResponse(channel, t);
+                        errorResponse(channel, t, session.sessionContext());
                     }
                 };
             }
@@ -165,6 +181,7 @@ public class RestSQLAction extends BaseRestHandler {
                 try {
                     ResultReceiver resultReceiver = new RestResultSetReceiver(
                         channel,
+                        session.sessionContext(),
                         outputFields,
                         startTime,
                         new RowAccounting(
@@ -174,11 +191,11 @@ public class RestSQLAction extends BaseRestHandler {
                     session.execute(UNNAMED, 0, resultReceiver);
                     session.sync();
                 } catch (Throwable t) {
-                    errorResponse(channel, t);
+                    errorResponse(channel, t, session.sessionContext());
                 }
             };
         } catch (Throwable t) {
-            return channel -> errorResponse(channel, t);
+            return channel -> errorResponse(channel, t, session.sessionContext());
         }
     }
 
@@ -218,21 +235,21 @@ public class RestSQLAction extends BaseRestHandler {
                                 .bulkRows(results).build();
                             channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
                         } catch (Throwable e) {
-                            errorResponse(channel, e);
+                            errorResponse(channel, e, session.sessionContext());
                         }
                     } else {
-                        errorResponse(channel, t);
+                        errorResponse(channel, t, session.sessionContext());
                     }
                 });
             };
         } catch (Throwable t) {
-            return channel -> errorResponse(channel, t);
+            return channel -> errorResponse(channel, t, session.sessionContext());
         }
     }
 
-    private void errorResponse(RestChannel channel, Throwable t) {
+    private void errorResponse(RestChannel channel, Throwable t, ExceptionAuthorizedValidator exceptionAuthorizedValidator) {
         try {
-            channel.sendResponse(new CrateThrowableRestResponse(channel, SQLExceptions.createSQLActionException(t)));
+            channel.sendResponse(new CrateThrowableRestResponse(channel, SQLExceptions.createSQLActionException(t, exceptionAuthorizedValidator)));
         } catch (Throwable e) {
             logger.error("failed to send failure response", e);
         }

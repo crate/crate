@@ -16,6 +16,10 @@ statements that can only be invoked by superusers that already exist in the
 CrateDB cluster. Also the users table `sys.users` is only readable by
 superusers.
 
+When CrateDB is started, the cluster contains one predefined superuser. This
+user is called ``crate``. It is not possible to create any other superusers
+
+
 Users cannot be backed up or restored.
 
 .. hide:
@@ -35,8 +39,10 @@ To create a new user for the CrateDB database cluster use the
     cr> CREATE USER user_a;
     CREATE OK, 1 row affected (... sec)
 
-The newly created user does not have any special privileges. It can be used to
-connect to the database cluster using available authentication methods.
+The newly created user does not have any special :doc:`/sql/administration/privileges`.
+It can be used to connect to the database cluster using available authentication
+methods.
+
 
 The username parameter of the statement follows the principles of an identifier
 which means that it must be double-quoted if it contains special characters

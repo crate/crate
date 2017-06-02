@@ -22,10 +22,10 @@
 
 package io.crate.operation.user;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AnalyzedStatement;
-import io.crate.exceptions.UnauthorizedException;
+import io.crate.analyze.user.Privilege;
 
+import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -48,11 +48,25 @@ public interface UserManager extends UserLookup {
      */
     CompletableFuture<Long> dropUser(String userName, boolean ifExists);
 
+
     /**
-     * checks if user is allowed to execute statement
-     * @param analysis          analysed statement
-     * @param sessionContext    current session context
-     * @throws UnauthorizedException if the user is not authorized to perform the statement
+     * Apply given list of {@link Privilege}s for each given user
+
+     * @param userNames     List of user names all privileges should be applied for
+     * @param privileges    List of privileges to apply
+     * @return a future which returns the number of privileges which were successfully applied
      */
-    void ensureAuthorized(AnalyzedStatement analysis, SessionContext sessionContext);
+    CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges);
+
+    /**
+     * Look up a statement authorization validator for the given user.
+     * All statements will be validated by this before planning/executing.
+     */
+    StatementAuthorizedValidator getStatementValidator(@Nullable User user);
+
+    /**
+     * Look up a exception authorization validator for the given user.
+     * All exceptions will be validated by this before sending them to the client.
+     */
+    ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user);
 }

@@ -455,6 +455,7 @@ def test_suite():
                'sql/administration/show_create_table.txt',
                'sql/administration/user_defined_functions.txt',
                'sql/administration/user_management.txt',
+               'sql/administration/privileges.txt',
                'sql/dql.txt',
                'sql/refresh.txt',
                'sql/optimize.txt',

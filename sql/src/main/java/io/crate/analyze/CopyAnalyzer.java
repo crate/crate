@@ -248,7 +248,7 @@ class CopyAnalyzer {
                 analysis.parameterContext().parameters());
 
             if (!partitionExists(tableRelation.tableInfo(), partitionName)) {
-                throw new PartitionUnknownException(tableRelation.tableInfo().ident().fqn(), partitionName.ident());
+                throw new PartitionUnknownException(partitionName);
             }
             partitions = ImmutableList.of(partitionName.asIndexName());
         }

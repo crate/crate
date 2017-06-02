@@ -32,16 +32,24 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
-public class UserDefinedFunctionUnknownException extends ResourceUnknownException {
+public class UserDefinedFunctionUnknownException extends ResourceUnknownException implements SchemaScopeException {
 
+    private final String schema;
+    
     public UserDefinedFunctionUnknownException(String schema, String name, List<DataType> types) {
         super(String.format(Locale.ENGLISH, "Cannot resolve user defined function: '%s.%s(%s)'",
             schema, name, types.stream().map(DataType::getName).collect(Collectors.joining(",")))
         );
+        this.schema = schema;
     }
 
     @Override
     public int errorCode() {
         return 9;
+    }
+
+    @Override
+    public String getSchemaName() {
+        return schema;
     }
 }
