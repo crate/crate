@@ -129,6 +129,10 @@ Translog
   translog is ``fsynced`` to disk (defaults to 5 s). Value cannot be set below
   100ms. When setting this interval, please keep in mind that changes logged
   during this interval and not synced to disk may get lost in case of a failure.
+  This setting only takes effect if :ref:`translog.durability <translog_durability>`
+  is set to ``ASYNC``.
+
+.. _translog_durability:
 
 **translog.durability**
   | *Default:*    ``REQUEST``
