@@ -59,7 +59,7 @@ Changes
  - UDC: add the ``enterprise`` field to the ``UDC`` ping. The field identifies
    whether a user uses the enterprise version.
 
- - Added the ``licence.enterprise`` setting to the cluster settings.
+ - Added the ``license.enterprise`` setting to the cluster settings.
 
  - It is now supported to order and group by predicate functions in general
    with the exception of the ``match`` predicate.
