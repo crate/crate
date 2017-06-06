@@ -199,7 +199,7 @@
 
 # Sets size of transaction log prior to flushing.
 #
-#index.translog.flush_threshold_size: 200mb
+#index.translog.flush_threshold_size: 512mb
 
 # Sets period of no flushing after which force flush occurs.
 #

@@ -25,10 +25,11 @@ package io.crate.metadata.settings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.crate.analyze.TableParameterInfo;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.translog.Translog;
+
+import static org.elasticsearch.index.IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING;
 
 public class CrateTableSettings {
 
@@ -57,7 +58,7 @@ public class CrateTableSettings {
 
 
     public static final ByteSizeSetting FLUSH_THRESHOLD_SIZE = new ByteSizeSetting(
-        TableParameterInfo.FLUSH_THRESHOLD_SIZE, new ByteSizeValue(200, ByteSizeUnit.MB));
+        TableParameterInfo.FLUSH_THRESHOLD_SIZE, INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING.getDefault(Settings.EMPTY));
 
     public static final BoolSetting WARMER_ENABLED = new BoolSetting(TableParameterInfo.WARMER_ENABLED, true);
 
