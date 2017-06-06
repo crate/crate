@@ -144,7 +144,11 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         Settings indexSettings = Settings.builder()
             .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
             .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
+            // SETTING_AUTO_EXPAND_REPLICAS is enabled by default
+            // but for this test it needs to be disabled so we can have 0 replicas
+            .put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS, "false")
             .build();
+
         blobAdminClient.createBlobTable("test", indexSettings).get();
 
         logger.trace("--> starting [node2] ...");

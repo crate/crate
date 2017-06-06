@@ -36,6 +36,7 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
@@ -62,6 +63,7 @@ public final class TablePropertiesAnalyzer {
             .put(stripIndexPrefix(TableParameterInfo.WARMER_ENABLED), TableParameterInfo.WARMER_ENABLED)
             .put(stripIndexPrefix(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT), TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
             .put(stripIndexPrefix(TableParameterInfo.NUMBER_OF_SHARDS), TableParameterInfo.NUMBER_OF_SHARDS)
+            .put(stripIndexPrefix(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS), TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS)
             .put("blobs_path", TableParameterInfo.BLOBS_PATH)
             .build();
 
@@ -94,6 +96,7 @@ public final class TablePropertiesAnalyzer {
             .put(TableParameterInfo.WARMER_ENABLED, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.WARMER_ENABLED))
             .put(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT))
             .put(TableParameterInfo.NUMBER_OF_SHARDS, new NumberOfShardsSettingsApplier())
+            .put(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS, new SettingsAppliers.StringSettingsApplier(CrateTableSettings.SETTING_WAIT_FOR_ACTIVE_SHARDS))
             .put(TableParameterInfo.BLOBS_PATH, new BlobPathSettingApplier())
             .build();
 
@@ -194,8 +197,11 @@ public final class TablePropertiesAnalyzer {
     protected static class NumberOfReplicasSettingApplier extends SettingsAppliers.AbstractSettingsApplier {
 
         private static final Settings DEFAULT = Settings.builder()
-            .put(TableParameterInfo.NUMBER_OF_REPLICAS, 1)
-            .put(TableParameterInfo.AUTO_EXPAND_REPLICAS, false)
+            .put(TableParameterInfo.NUMBER_OF_REPLICAS, 0)
+            .put(TableParameterInfo.AUTO_EXPAND_REPLICAS,
+                IndexMetaData.INDEX_AUTO_EXPAND_REPLICAS_SETTING.getDefaultRaw(Settings.EMPTY))
+            .put(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS,
+                IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getDefaultRaw(Settings.EMPTY))
             .build();
 
         public NumberOfReplicasSettingApplier() {

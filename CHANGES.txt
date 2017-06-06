@@ -15,8 +15,16 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+ - Changed default required shard copies for table creation and write
+   operations from quorum to ``all``.
+
+ - Changed the default value of ``number_of_replicas`` from 1 to ``0-1``.
+
 Changes
 =======
+
+ - Expose new setting ``write.wait_for_active_shards`` to allow users to
+   adjust the required shard copies for write operation to their needs.
 
  - Expose fields for ``information_schema.columns`` and
    ``information_schema.tables`` so that it conforms to SQL-99 standard.

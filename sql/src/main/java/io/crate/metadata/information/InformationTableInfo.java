@@ -102,6 +102,13 @@ public class InformationTableInfo extends StaticTableInfo {
 
         public static final ColumnIdent TABLE_SETTINGS_REFRESH_INTERVAL = new ColumnIdent("settings",
             ImmutableList.of("refresh_interval"));
+
+        public static final ColumnIdent TABLE_SETTINGS_WRITE = new ColumnIdent("settings",
+            ImmutableList.of("write"));
+
+        public static final ColumnIdent TABLE_SETTINGS_WRITE_WAIT_FOT_ACTIVE_SHARDS = new ColumnIdent("settings",
+            ImmutableList.of("write","wait_for_active_shards"));
+
         public static final ColumnIdent TABLE_SETTINGS_UNASSIGNED = new ColumnIdent("settings",
             ImmutableList.of("unassigned"));
         public static final ColumnIdent TABLE_SETTINGS_UNASSIGNED_NODE_LEFT = new ColumnIdent("settings",

@@ -51,7 +51,8 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         long expectedUnassignedShards = numShards * numReplicas; // calculation is correct for cluster.numDataNodes = 1
 
         execute("create table locations (id integer primary key, name string) " +
-                "clustered into " + numShards + " shards with(number_of_replicas=" + numReplicas + ")");
+                "clustered into " + numShards + " shards with(number_of_replicas=" + numReplicas +
+                ", \"write.wait_for_active_shards\"=1)");
         ensureYellow();
 
         execute("select count(*) from sys.shards where table_name = 'locations' and state = 'UNASSIGNED'");
@@ -66,7 +67,9 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
         int numShards = 5;
 
         execute("create table locations (id integer primary key, name string) " +
-                "clustered into " + numShards + " shards with(number_of_replicas=" + numReplicas + ")");
+                "clustered into " + numShards +
+                " shards with(number_of_replicas=" + numReplicas +
+                ", \"write.wait_for_active_shards\"=1)");
         ensureYellow();
 
         execute("select \"primary\", state, count(*) from sys.shards where table_name = 'locations' group by \"primary\", state order by \"primary\"");
@@ -86,7 +89,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
         execute("create table locations (id integer primary key, name string) " +
                 "partitioned by (id) clustered into " + numShards + " shards with(number_of_replicas=" + numReplicas +
-                ")");
+                ", \"write.wait_for_active_shards\"=1)");
         execute("insert into locations (id, name) values (1, 'name1')");
         execute("insert into locations (id, name) values (2, 'name2')");
         refresh();
@@ -109,7 +112,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
 
         execute("create table locations (id integer primary key, name string) " +
                 "partitioned by (id) clustered into " + numShards + " shards with(number_of_replicas=" + numReplicas +
-                ")");
+                ", \"write.wait_for_active_shards\"=1)");
         execute("insert into locations (id, name) values (1, 'name1')");
         execute("insert into locations (id, name) values (2, 'name2')");
         refresh();

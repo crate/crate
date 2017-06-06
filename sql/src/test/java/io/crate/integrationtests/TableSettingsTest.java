@@ -47,7 +47,9 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
                 "\"warmer.enabled\" = false, " +
                 "\"translog.sync_interval\" = '20s'," +
                 "\"refresh_interval\" = '1000'," +
-                "\"unassigned.node_left.delayed_timeout\" = '1m'" +
+                "\"unassigned.node_left.delayed_timeout\" = '1m'," +
+                "\"number_of_replicas\" = 0 ," +
+                "\"write.wait_for_active_shards\" = 1" +
                 ")");
     }
 
@@ -68,6 +70,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
             assertTrue(((Map<String, Object>) row[0]).containsKey("warmer"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("refresh_interval"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("unassigned"));
+            assertTrue(((Map<String, Object>) row[0]).containsKey("write"));
         }
     }
 
@@ -128,5 +131,13 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
         execute("select * from information_schema.tables " +
                 "where settings['refresh_interval'] = 1000");
         assertEquals(1, response.rowCount());
+    }
+
+    @Test
+    public void testDefaultWaitForActiveShardsSettings() {
+        execute("select settings['write']['wait_for_active_shards'] from information_schema.tables " +
+            "where table_name = 'settings_table'");
+        assertEquals(1, response.rowCount());
+        assertEquals("1", response.rows()[0][0]);
     }
 }

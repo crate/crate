@@ -43,6 +43,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         childImplementations.put(TablesSettingsRecoveryExpression.NAME, new TablesSettingsRecoveryExpression());
         childImplementations.put(TablesSettingsWarmerExpression.NAME, new TablesSettingsWarmerExpression());
         childImplementations.put(TablesSettingsTranslogExpression.NAME, new TablesSettingsTranslogExpression());
+        childImplementations.put(TablesSettingsWriteExpression.NAME, new TablesSettingsWriteExpression());
         childImplementations.put(TablesSettingsUnassignedExpression.NAME, new TablesSettingsUnassignedExpression());
     }
 
@@ -171,6 +172,21 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
             childImplementations.put(FLUSH_THRESHOLD_SIZE, new TableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_SIZE));
             childImplementations.put(SYNC_INTERVAL, new TableParameterExpression(TableParameterInfo.TRANSLOG_SYNC_INTERVAL));
             childImplementations.put(DURABILITY, new TableParameterExpression(TableParameterInfo.TRANSLOG_DURABILITY));
+        }
+    }
+
+    static class TablesSettingsWriteExpression extends AbstractTablesSettingsExpression {
+
+        public static final String NAME = "write";
+
+        public TablesSettingsWriteExpression() {
+            addChildImplementations();
+        }
+
+        public static final String WAIT_FOR_ACTIVE_SHARDS = "wait_for_active_shards";
+
+        private void addChildImplementations() {
+            childImplementations.put(WAIT_FOR_ACTIVE_SHARDS, new TableParameterExpression(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS));
         }
     }
 

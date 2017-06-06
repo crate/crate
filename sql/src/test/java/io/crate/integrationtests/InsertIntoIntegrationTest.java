@@ -28,6 +28,7 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.core.IsNull;
 import org.junit.Test;
 
@@ -39,6 +40,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
+@ESIntegTestCase.ClusterScope(numDataNodes = 2)
 public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);

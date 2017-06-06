@@ -76,7 +76,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 " age short," +
                 " income double, " +
                 " good boolean" +
-                ") with (number_of_replicas=1)");
+                ") with (number_of_replicas=0)");
         ensureYellow();
         assertGotCancelled("insert into new_employees (select * from employees)", null, true);
         // There could still be running upsert requests after the kill happened, so wait for them

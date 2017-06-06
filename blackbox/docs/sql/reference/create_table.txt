@@ -230,7 +230,7 @@ Available parameters are:
 ......................
 
 Specifies the number or range of replicas each shard of a table should have for
-normal operation, the default is to have 1 replica.
+normal operation, the default is to have ``0-1`` replica.
 
 The number of replicas is defined like this::
 
@@ -264,6 +264,19 @@ to 1000 milliseconds.
    are other internal factors that might trigger a refresh.
 
 For further details see :ref:`refresh_data` or :ref:`sql_ref_refresh`.
+
+.. _sql_ref_write_wait_for_active_shards:
+
+``write.wait_for_active_shards``
+................................
+
+  Specifies the number of shard copies that need to be active for the write
+  operation to proceed. If less shards are active the operation will wait
+  for 30s for them to become active or timeout.
+
+  The number of shard copies is defined like this ::
+
+      number_of_shard_copies = (1 + number_of_replicas)
 
 
 .. _ref-configuration-blocks:

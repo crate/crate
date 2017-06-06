@@ -69,6 +69,12 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         public static final Reference TABLE_SETTINGS_REFRESH_INTERVAL = createRef(
             Columns.TABLE_SETTINGS_REFRESH_INTERVAL, DataTypes.LONG);
 
+        public static final Reference TABLE_SETTINGS_WRITE = createRef(
+            Columns.TABLE_SETTINGS_WRITE, DataTypes.OBJECT);
+
+        public static final Reference TABLE_SETTINGS_WRITE_WAIT_FOT_ACTIVE_SHARDS = createRef(
+            Columns.TABLE_SETTINGS_WRITE_WAIT_FOT_ACTIVE_SHARDS, DataTypes.STRING);
+
         public static final Reference TABLE_SETTINGS_BLOCKS = createRef(
             Columns.TABLE_SETTINGS_BLOCKS, DataTypes.OBJECT);
         public static final Reference TABLE_SETTINGS_BLOCKS_READ_ONLY = createRef(
@@ -162,6 +168,8 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 .put(Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, References.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS)
                 .put(Columns.TABLE_SETTINGS_WARMER, References.TABLE_SETTINGS_WARMER)
                 .put(Columns.TABLE_SETTINGS_WARMER_ENABLED, References.TABLE_SETTINGS_WARMER_ENABLED)
+                .put(Columns.TABLE_SETTINGS_WRITE, References.TABLE_SETTINGS_WRITE)
+                .put(Columns.TABLE_SETTINGS_WRITE_WAIT_FOT_ACTIVE_SHARDS, References.TABLE_SETTINGS_WRITE_WAIT_FOT_ACTIVE_SHARDS)
                 .put(Columns.TABLE_SETTINGS_UNASSIGNED, References.TABLE_SETTINGS_UNASSIGNED)
                 .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, References.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT)
                 .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, References.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)

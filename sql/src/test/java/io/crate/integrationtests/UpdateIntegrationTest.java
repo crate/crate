@@ -589,8 +589,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testMultiUpdateWithVersionAndConflict() throws Exception {
-        execute("create table test (id int primary key, c int) " +
-                "with (number_of_replicas=1)");
+        execute("create table test (id int primary key, c int)");
         ensureYellow();
         execute("insert into test (id, c) values (1, 1), (2, 1)");
         refresh();

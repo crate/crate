@@ -38,7 +38,7 @@ already existing user-created doc tables in the cluster::
     |    "blocks.read_only" = false,                      |
     |    "blocks.write" = false,                          |
     |    column_policy = 'dynamic',                       |
-    |    number_of_replicas = '1',                        |
+    |    number_of_replicas = '0-1',                      |
     |    "recovery.initial_shards" = 'quorum',            |
     |    refresh_interval = 1000,                         |
     |    "routing.allocation.enable" = 'all',             |
@@ -47,7 +47,8 @@ already existing user-created doc tables in the cluster::
     |    "translog.flush_threshold_size" = 536870912,     |
     |    "translog.sync_interval" = 5000,                 |
     |    "unassigned.node_left.delayed_timeout" = 60000,  |
-    |    "warmer.enabled" = true                          |
+    |    "warmer.enabled" = true,                         |
+    |    "write.wait_for_active_shards" = 'all'           |
     | )                                                   |
     +-----------------------------------------------------+
     SHOW 1 row in set (... sec)
