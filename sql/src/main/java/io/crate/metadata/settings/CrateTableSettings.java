@@ -25,6 +25,7 @@ package io.crate.metadata.settings;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import io.crate.analyze.TableParameterInfo;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.translog.Translog;
@@ -52,6 +53,11 @@ public class CrateTableSettings {
         ),
         "all"
     );
+
+    public static final StringSetting SETTING_WAIT_FOR_ACTIVE_SHARDS = new StringSetting(
+        TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS,
+        null,
+        IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getDefaultRaw(Settings.EMPTY));
 
     public static final StringSetting RECOVERY_INITIAL_SHARDS = new StringSetting(
         TableParameterInfo.RECOVERY_INITIAL_SHARDS, null, "quorum");

@@ -110,7 +110,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     @Test
     public void testGroupByWithLimitUnassignedShards() throws Exception {
         try {
-            execute("create table t (id int, name string) with (number_of_replicas=2)");
+            execute("create table t (id int, name string) with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
             ensureYellow();
 
             SQLResponse response = execute("select sum(num_docs), table_name, sum(num_docs) from sys.shards group by table_name order by table_name desc limit 1000");
@@ -361,7 +361,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     public void testSelectNodeSysExpressionWithUnassignedShards() throws Exception {
         try {
             execute("create table users (id integer primary key, name string) " +
-                    "clustered into 5 shards with (number_of_replicas=2)");
+                    "clustered into 5 shards with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
             ensureYellow();
             SQLResponse response = execute(
                 "select _node['name'], id from sys.shards where table_name = 'users' order by _node['name'] nulls last"

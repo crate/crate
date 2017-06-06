@@ -58,7 +58,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     public void testSelectIncludingUnassignedShards() throws Exception {
         execute("create table locations (id integer primary key, name string) " +
                 "clustered into 2 shards " +
-                "with (number_of_replicas=2)");
+                "with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
         client().admin().cluster().prepareHealth("locations").setWaitForYellowStatus().execute().actionGet();
 
         execute("select state, \"primary\", recovery from sys.shards where table_name = 'locations' order by state, \"primary\"");
@@ -75,7 +75,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     public void testSelectGroupByIncludingUnassignedShards() throws Exception {
         execute("create table locations (id integer primary key, name string) " +
                 "clustered into 5 shards " +
-                "with(number_of_replicas=2)");
+                "with(number_of_replicas=2 , \"write.wait_for_active_shards\"=1)");
         ensureYellow();
 
         execute("select count(*), state, \"primary\" from sys.shards " +
@@ -91,7 +91,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     public void testSelectCountIncludingUnassignedShards() throws Exception {
         execute("create table locations (id integer primary key, name string) " +
                 "clustered into 5 shards " +
-                "with(number_of_replicas=2)");
+                "with(number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
         ensureYellow();
 
         execute("select count(*) from sys.shards where schema_name='doc' AND table_name='locations'");
@@ -103,7 +103,7 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     public void testTableNameBlobTable() throws Exception {
         BlobAdminClient blobAdminClient = internalCluster().getInstance(BlobAdminClient.class);
         Settings indexSettings = Settings.builder()
-            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
+            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
             .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
             .build();
         blobAdminClient.createBlobTable("blobs", indexSettings).get();
@@ -116,11 +116,12 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
             assertThat((String) response.rows()[i][1], is("blobs"));
         }
 
-        execute("create blob table sbolb clustered into 4 shards with (number_of_replicas=3)");
+        execute("create blob table sbolb clustered into 4 shards " +
+            "with (number_of_replicas=0)");
         ensureYellow();
 
         execute("select schema_name, table_name from sys.shards where table_name = 'sbolb'");
-        assertThat(response.rowCount(), is(16L));
+        assertThat(response.rowCount(), is(4L));
         for (int i = 0; i < response.rowCount(); i++) {
             assertThat((String) response.rows()[i][0], is("blob"));
             assertThat((String) response.rows()[i][1], is("sbolb"));

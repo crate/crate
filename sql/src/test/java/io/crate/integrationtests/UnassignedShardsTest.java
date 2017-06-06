@@ -34,7 +34,7 @@ public class UnassignedShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testUnassignedReplicasAreVisibleAsUnassignedInSysShards() throws Exception {
-        execute("create table t (id int) clustered into 1 shards with (number_of_replicas=1)");
+        execute("create table t (id int) clustered into 1 shards with (number_of_replicas=1, \"write.wait_for_active_shards\"=1)");
         execute("select state, id, table_name from sys.shards where schema_name='doc' AND table_name='t' order by state");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("STARTED| 0| t\n" +

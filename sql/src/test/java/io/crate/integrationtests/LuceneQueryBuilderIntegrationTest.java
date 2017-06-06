@@ -113,7 +113,7 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
 
     @Test
     public void testWhereSubstringWithSysColumn() throws Exception {
-        execute("create table t (dummy string) clustered into 2 shards with (number_of_replicas = 1)");
+        execute("create table t (dummy string) clustered into 2 shards with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t (dummy) values ('yalla')");
         refresh();

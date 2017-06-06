@@ -37,9 +37,9 @@ settings like the ``number of shards`` or ``number of replicas``.
     | table_schema       | table_name        | number_of_shards | number_of_replicas |
     +--------------------+-------------------+------------------+--------------------+
     | blob               | myblobs           |                3 | 1                  |
-    | doc                | documents         |                4 | 1                  |
+    | doc                | documents         |                4 | 0-1                |
     | doc                | locations         |                2 | 0                  |
-    | doc                | partitioned_table |                4 | 1                  |
+    | doc                | partitioned_table |                4 | 0-1                |
     | doc                | quotes            |                2 | 0                  |
     | information_schema | columns           |                1 | 0                  |
     | information_schema | routines          |                1 | 0                  |
@@ -394,8 +394,8 @@ partitioned table, so they show ``5`` instead of ``4``::
     +---------------------+--------------------+------------------+--------------------+
     | table_name          | partition_ident    | number_of_shards | number_of_replicas |
     +---------------------+--------------------+------------------+--------------------+
-    | a_partitioned_table | 04566rreehimst2vc4 |                4 |                  1 |
-    | a_partitioned_table | 04566rreehimst2vc8 |                5 |                  1 |
+    | a_partitioned_table | 04566rreehimst2vc4 |                4 | 0-1                |
+    | a_partitioned_table | 04566rreehimst2vc8 |                5 | 0-1                |
     +---------------------+--------------------+------------------+--------------------+
     SELECT 2 rows in set (... sec)
 

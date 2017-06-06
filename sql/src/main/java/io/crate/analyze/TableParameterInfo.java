@@ -25,11 +25,13 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.metadata.settings.CrateTableSettings;
+import io.crate.metadata.settings.StringSetting;
 import io.crate.metadata.table.ColumnPolicy;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocationDecider;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.PrimaryShardAllocator;
 import org.elasticsearch.index.IndexSettings;
@@ -52,6 +54,7 @@ public class TableParameterInfo {
     public static final String BLOCKS_READ = IndexMetaData.SETTING_BLOCKS_READ;
     public static final String BLOCKS_WRITE = IndexMetaData.SETTING_BLOCKS_WRITE;
     public static final String BLOCKS_METADATA = IndexMetaData.SETTING_BLOCKS_METADATA;
+    public static final String SETTING_WAIT_FOR_ACTIVE_SHARDS = IndexMetaData.SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey();
     public static final String BLOBS_PATH = BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey();
     public static final String FLUSH_THRESHOLD_SIZE = IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING.getKey();
     public static final String TRANSLOG_DURABILITY = IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING.getKey();
@@ -81,6 +84,7 @@ public class TableParameterInfo {
             .add(RECOVERY_INITIAL_SHARDS)
             .add(WARMER_ENABLED)
             .add(UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
+            .add(SETTING_WAIT_FOR_ACTIVE_SHARDS)
             .build();
 
     private static final ImmutableList<String> SUPPORTED_INTERNAL_SETTINGS =
@@ -130,6 +134,7 @@ public class TableParameterInfo {
             .put(TableParameterInfo.TRANSLOG_SYNC_INTERVAL, CrateTableSettings.TRANSLOG_SYNC_INTERVAL.extractMillis(settings))
             .put(TableParameterInfo.TRANSLOG_DURABILITY, CrateTableSettings.TRANSLOG_DURABILITY.extract(settings))
             .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.extractMillis(settings))
+            .put(TableParameterInfo.SETTING_WAIT_FOR_ACTIVE_SHARDS, CrateTableSettings.SETTING_WAIT_FOR_ACTIVE_SHARDS.extract(settings))
             .put(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, CrateTableSettings.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT.extractMillis(settings))
             .build();
     }

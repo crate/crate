@@ -64,7 +64,7 @@ import java.util.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2)
 @UseJdbc
 public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -1348,7 +1348,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     @Test
     public void testAlterTableResetEmptyPartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp) " +
-                "partitioned by(date) clustered into 3 shards with (number_of_replicas='1-all')");
+                "partitioned by(date) clustered into 3 shards with (number_of_replicas='1')");
         ensureYellow();
 
         String templateName = PartitionName.templateName(null, "quotes");
@@ -1356,7 +1356,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
             .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
         assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
-        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("1-all"));
+        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
 
         execute("alter table quotes reset (number_of_replicas)");
         ensureYellow();
@@ -1364,15 +1364,15 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         templatesResponse = client().admin().indices()
             .prepareGetTemplates(templateName).execute().actionGet();
         templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
-        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
+        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-1"));
 
     }
 
     @Test
     public void testAlterTableResetPartitionedTable() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp) " +
-                "partitioned by(date) clustered into 3 shards with (number_of_replicas='1-all')");
+                "partitioned by(date) clustered into 3 shards with( number_of_replicas = '1-all')");
         ensureYellow();
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
@@ -1390,8 +1390,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         GetIndexTemplatesResponse templatesResponse = client().admin().indices()
             .prepareGetTemplates(templateName).execute().actionGet();
         Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
-        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
+        assertThat(templateSettings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
+        assertThat(templateSettings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-1"));
 
         List<String> partitions = ImmutableList.of(
             new PartitionName("quotes", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName(),
@@ -1404,7 +1404,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         for (String index : partitions) {
             assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_NUMBER_OF_REPLICAS), is("1"));
-            assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
+            assertThat(settingsResponse.getSetting(index, IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS), is("0-1"));
         }
 
     }

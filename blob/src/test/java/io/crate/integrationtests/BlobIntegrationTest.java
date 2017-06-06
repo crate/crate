@@ -308,7 +308,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         CloseableHttpResponse res = httpClient.execute(httpPut);
         assertThat(EntityUtils.toString(res.getEntity()),
             is("{\"_index\":\"test_no_blobs\",\"_type\":\"default\"," +
-               "\"_id\":\"1\",\"_version\":1,\"result\":\"created\",\"_shards\":{\"total\":1,\"successful\":1,\"failed\":0},\"created\":true}"));
+               "\"_id\":\"1\",\"_version\":1,\"result\":\"created\",\"_shards\":{\"total\":2,\"successful\":2,\"failed\":0},\"created\":true}"));
         assertThat(res.getStatusLine().getReasonPhrase(), is("Created"));
         assertThat(res.getStatusLine().getStatusCode(), is(201));
     }

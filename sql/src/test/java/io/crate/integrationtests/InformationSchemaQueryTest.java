@@ -36,8 +36,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     @Test
     public void testDoNotIgnoreClosedTables() throws Exception {
         execute("create table t3 (col1 integer, col2 string) " +
-                "clustered into 5 shards " +
-                "with (number_of_replicas=8)");
+                "clustered into 5 shards");
         execute("create table t1 (col1 integer, col2 string) " +
                 "clustered into 5 shards " +
                 "with (number_of_replicas=0)");
@@ -89,11 +88,9 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     public void testConcurrentUnassignedShardsReferenceResolver() throws Exception {
         internalCluster().ensureAtMostNumDataNodes(1);
         execute("create table t1 (col1 integer) " +
-                "clustered into 1 shards " +
-                "with (number_of_replicas=8)");
+                "clustered into 1 shards ");
         execute("create table t2 (col1 integer) " +
-                "clustered into 1 shards " +
-                "with (number_of_replicas=8)");
+                "clustered into 1 shards ");
         ensureYellow();
 
         final SQLResponse response = execute("select * from sys.shards where table_name in ('t1', 't2') and state='UNASSIGNED' order by schema_name, table_name, id");
