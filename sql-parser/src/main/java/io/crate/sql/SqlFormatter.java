@@ -340,6 +340,24 @@ public final class SqlFormatter {
         }
 
         @Override
+        public Void visitGrantPrivilege(GrantPrivilege node, Integer indent) {
+            builder.append("GRANT ");
+            appendPrivilegesList(node.privileges());
+            builder.append(" TO ");
+            appendUsersList(node.userNames());
+            return null;
+        }
+
+        @Override
+        public Void visitRevokePrivilege(RevokePrivilege node, Integer indent) {
+            builder.append("REVOKE ");
+            appendPrivilegesList(node.privileges());
+            builder.append(" FROM ");
+            appendUsersList(node.userNames());
+            return null;
+        }
+
+        @Override
         public Void visitDropUser(DropUser node, Integer indent) {
             builder.append("DROP USER ");
             if (node.ifExists()) {
@@ -589,6 +607,28 @@ public final class SqlFormatter {
             if (node.properties().isPresent()) {
                 builder.append(' ');
                 node.properties().get().accept(this, indent);
+            }
+            return null;
+        }
+
+        private Void appendPrivilegesList(EnumSet<PrivilegeType> privilegeTypes){
+            int j = 0;
+            for (PrivilegeType privilegeType : privilegeTypes) {
+                builder.append(privilegeType.toString());
+                if (j < privilegeTypes.size() - 1) {
+                    builder.append(", ");
+                }
+                j++;
+            }
+            return null;
+        }
+
+        private Void appendUsersList(List<String> userNames){
+            for (int i = 0; i < userNames.size(); i++) {
+                builder.append(quoteIdentifierIfNeeded(userNames.get(i)));
+                if (i < userNames.size() - 1) {
+                    builder.append(", ");
+                }
             }
             return null;
         }

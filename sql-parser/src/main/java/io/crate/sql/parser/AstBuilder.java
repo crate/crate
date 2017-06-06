@@ -34,6 +34,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -128,6 +129,38 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             getIdentText(context.name),
             context.EXISTS() != null
         );
+    }
+
+    @Override
+    public Node visitGrantPrivilege(SqlBaseParser.GrantPrivilegeContext context) {
+        List<String> usernames = identsToStrings(context.ident());
+        EnumSet<PrivilegeType> privilegeTypes;
+
+        if (context.ALL() != null) {
+            privilegeTypes = EnumSet.allOf(PrivilegeType.class);
+        } else {
+            privilegeTypes = EnumSet.noneOf(PrivilegeType.class);
+            for (int i = 0; i < context.privilege().size(); i++) {
+                privilegeTypes.add(PrivilegeType.valueOf(context.privilege(i).getText()));
+            }
+        }
+        return new GrantPrivilege(usernames, privilegeTypes);
+    }
+
+    @Override
+    public Node visitRevokePrivilege(SqlBaseParser.RevokePrivilegeContext context) {
+        List<String> usernames = identsToStrings(context.ident());
+        EnumSet<PrivilegeType> privilegeTypes;
+
+        if (context.ALL() != null) {
+            privilegeTypes = EnumSet.allOf(PrivilegeType.class);
+        } else {
+            privilegeTypes = EnumSet.noneOf(PrivilegeType.class);
+            for (int i = 0; i < context.privilege().size(); i++) {
+                privilegeTypes.add(PrivilegeType.valueOf(context.privilege(i).getText()));
+            }
+        }
+        return new RevokePrivilege(usernames, privilegeTypes);
     }
 
     @Override
@@ -696,6 +729,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     private String getIdentText(SqlBaseParser.IdentContext ident) {
         StringLiteral literal = (StringLiteral) visit(ident);
+        return literal.getValue();
+    }
+
+    private String getPrivilege(SqlBaseParser.PrivilegeContext privilege) {
+        StringLiteral literal = (StringLiteral) visit(privilege);
         return literal.getValue();
     }
 
