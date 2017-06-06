@@ -24,6 +24,7 @@ package io.crate.azure.plugin;
 
 import io.crate.azure.AzureModule;
 import io.crate.azure.discovery.AzureUnicastHostsProvider;
+import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeServiceImpl;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
@@ -41,23 +42,39 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.watcher.ResourceWatcherService;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
-import static io.crate.azure.management.AzureComputeService.Discovery.*;
-import static io.crate.azure.management.AzureComputeService.Management.*;
+import static io.crate.azure.management.AzureComputeService.Discovery.DISCOVERY_METHOD;
+import static io.crate.azure.management.AzureComputeService.Discovery.HOST_TYPE;
+import static io.crate.azure.management.AzureComputeService.Discovery.REFRESH;
+import static io.crate.azure.management.AzureComputeService.Management.APP_ID;
+import static io.crate.azure.management.AzureComputeService.Management.APP_SECRET;
+import static io.crate.azure.management.AzureComputeService.Management.RESOURCE_GROUP_NAME;
+import static io.crate.azure.management.AzureComputeService.Management.SUBSCRIPTION_ID;
+import static io.crate.azure.management.AzureComputeService.Management.TENANT_ID;
 
 
 public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
 
     private final Settings settings;
-    private final AzureComputeServiceImpl azureComputeService;
+    private AzureComputeServiceImpl azureComputeService;
 
     protected final Logger logger = Loggers.getLogger(AzureDiscoveryPlugin.class);
 
     public AzureDiscoveryPlugin(Settings settings) {
         this.settings = settings;
-        this.azureComputeService = new AzureComputeServiceImpl(settings);
+    }
+
+    private AzureComputeService azureComputeService() {
+        if (azureComputeService == null) {
+            azureComputeService = new AzureComputeServiceImpl(settings);
+        }
+        return azureComputeService;
     }
 
     public String name() {
@@ -89,7 +106,10 @@ public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
                                                ResourceWatcherService resourceWatcherService,
                                                ScriptService scriptService,
                                                SearchRequestParsers searchRequestParsers) {
-        return Collections.singletonList(azureComputeService);
+        if (AzureModule.isDiscoveryReady(settings, logger)) {
+            return Collections.singletonList(azureComputeService());
+        }
+        return Collections.emptyList();
     }
 
     @Override
@@ -98,8 +118,8 @@ public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
         return Collections.singletonMap(
             AzureModule.AZURE,
             () -> {
-                if (AzureModule.isCloudReady(settings)) {
-                    return new AzureUnicastHostsProvider(settings, azureComputeService, transportService, networkService);
+                if (AzureModule.isDiscoveryReady(settings, logger)) {
+                    return new AzureUnicastHostsProvider(settings, azureComputeService(), transportService, networkService);
                 } else {
                     return Collections::emptyList;
                 }
