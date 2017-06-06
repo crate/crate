@@ -43,7 +43,7 @@ already existing user-created doc tables in the cluster::
     |    "routing.allocation.enable" = 'all',             |
     |    "routing.allocation.total_shards_per_node" = -1, |
     |    "translog.durability" = 'REQUEST',               |
-    |    "translog.flush_threshold_size" = 209715200,     |
+    |    "translog.flush_threshold_size" = 536870912,     |
     |    "translog.sync_interval" = 5000,                 |
     |    "unassigned.node_left.delayed_timeout" = 60000,  |
     |    "warmer.enabled" = true                          |
