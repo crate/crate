@@ -34,6 +34,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -128,6 +129,38 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             getIdentText(context.name),
             context.EXISTS() != null
         );
+    }
+
+    @Override
+    public Node visitGrantPrivilege(SqlBaseParser.GrantPrivilegeContext context) {
+        List<String> usernames = identsToStrings(context.ident());
+        EnumSet<Privilege> privileges;
+
+        if (context.ALL() != null) {
+            privileges = EnumSet.allOf(Privilege.class);
+        } else {
+            privileges = EnumSet.noneOf(Privilege.class);
+            for (int i = 0; i < context.privilege().size(); i++) {
+                privileges.add(Privilege.valueOf(context.privilege(i).getText()));
+            }
+        }
+        return new GrantPrivilege(usernames, privileges);
+    }
+
+    @Override
+    public Node visitRevokePrivilege(SqlBaseParser.RevokePrivilegeContext context) {
+        List<String> usernames = identsToStrings(context.ident());
+        EnumSet<Privilege> privileges;
+
+        if (context.ALL() != null) {
+            privileges = EnumSet.allOf(Privilege.class);
+        } else {
+            privileges = EnumSet.noneOf(Privilege.class);
+            for (int i = 0; i < context.privilege().size(); i++) {
+                privileges.add(Privilege.valueOf(context.privilege(i).getText()));
+            }
+        }
+        return new RevokePrivilege(usernames, privileges);
     }
 
     @Override
@@ -696,6 +729,11 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     private String getIdentText(SqlBaseParser.IdentContext ident) {
         StringLiteral literal = (StringLiteral) visit(ident);
+        return literal.getValue();
+    }
+
+    private String getPrivilege(SqlBaseParser.PrivilegeContext privilege) {
+        StringLiteral literal = (StringLiteral) visit(privilege);
         return literal.getValue();
     }
 
