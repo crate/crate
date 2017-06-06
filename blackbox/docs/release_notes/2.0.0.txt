@@ -168,7 +168,7 @@ Changes
  - Added full support for ``DISTINCT`` on queries where ``GROUP BY`` is
    present.
 
- - UDC pings will send ``licence.ident`` if defined from now on.
+ - UDC pings will send ``license.ident`` if defined from now on.
 
  - Added support for ``GROUP BY`` in combination with subselect. E.g.::
 
