@@ -31,6 +31,8 @@ import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.operation.auth.HbaProtocol;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.user.User;
+import io.crate.protocols.postgres.ssl.SslHandler;
+import io.crate.protocols.postgres.ssl.SslHandlerUtils;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.netty.buffer.ByteBuf;
@@ -78,8 +80,13 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHandleEmptySimpleQuery() throws Exception {
-        ConnectionContext ctx = new ConnectionContext(mock(SQLOperations.class), AuthenticationProvider.NOOP_AUTH);
-        EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        EmbeddedChannel channel = new EmbeddedChannel();
+        ConnectionContext ctx =
+            ConnectionContext.setup(
+                channel,
+                SslHandlerUtils.getDefault(),
+                mock(SQLOperations.class),
+                AuthenticationProvider.NOOP_AUTH);
 
         ByteBuf buffer = releaseLater(Unpooled.buffer());
         Messages.writeCString(buffer, ";".getBytes(StandardCharsets.UTF_8));
@@ -105,11 +112,13 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
         SQLOperations sqlOperations = mock(SQLOperations.class);
         SQLOperations.Session session = mock(SQLOperations.Session.class);
         when(sqlOperations.createSession(any(SessionContext.class))).thenReturn(session);
-        ConnectionContext ctx = new ConnectionContext(
-                sqlOperations,
-                new TestAuthentication(null));
+        EmbeddedChannel channel = new EmbeddedChannel();
+        ConnectionContext.setup(
+            channel,
+            SslHandlerUtils.getDefault(),
+            sqlOperations,
+            new TestAuthentication(null));
 
-        EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
         ClientMessages.sendStartupMessage(buffer, "doc");
@@ -124,8 +133,12 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBindMessageCanBeReadIfTypeForParamsIsUnknown() throws Exception {
-        ConnectionContext ctx = new ConnectionContext(sqlOperations, new TestAuthentication(null));
-        EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        EmbeddedChannel channel = new EmbeddedChannel();
+        ConnectionContext.setup(
+            channel,
+            SslHandlerUtils.getDefault(),
+            sqlOperations,
+            new TestAuthentication(null));
 
         ByteBuf buffer = Unpooled.buffer();
         ClientMessages.sendStartupMessage(buffer, "doc");

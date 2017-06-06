@@ -23,4 +23,5 @@ include 'es',
         'jmx-monitoring',
         'lang-js',
         'users',
+        'ssl',
         'http'

@@ -33,13 +33,14 @@ import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.HbaProtocol;
 import io.crate.operation.user.User;
+import io.crate.protocols.postgres.ssl.SslHandler;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import org.apache.logging.log4j.Logger;
@@ -52,6 +53,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.function.BiConsumer;
 
+import static io.crate.protocols.postgres.ConnectionContext.State.PRE_STARTUP;
 import static io.crate.protocols.postgres.ConnectionContext.State.STARTUP_HEADER;
 import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
 
@@ -159,11 +161,11 @@ class ConnectionContext {
 
     private static final Logger LOGGER = Loggers.getLogger(ConnectionContext.class);
 
-    final MessageDecoder decoder;
-    final MessageHandler handler;
     private final SQLOperations sqlOperations;
     private final Authentication authService;
 
+    private ChannelPipeline pipeline;
+    private SslHandler sslHandler;
     private int msgLength;
     private byte msgType;
     private SQLOperations.Session session;
@@ -171,20 +173,32 @@ class ConnectionContext {
     private SessionContext sessionContext;
 
     enum State {
-        SSL_NEG,
+        PRE_STARTUP,
         STARTUP_HEADER,
         STARTUP_BODY,
         MSG_HEADER,
         MSG_BODY
     }
 
-    private State state = STARTUP_HEADER;
+    private State state = PRE_STARTUP;
 
-    ConnectionContext(SQLOperations sqlOperations, Authentication authService) {
+    private ConnectionContext(Channel channel, SslHandler sslHandler, SQLOperations sqlOperations, Authentication authService) {
+        this.pipeline = channel.pipeline();
         this.sqlOperations = sqlOperations;
+        this.sslHandler = sslHandler;
         this.authService = authService;
-        decoder = new MessageDecoder();
-        handler = new MessageHandler();
+        // initialize the Netty pipeline with this context's handlers
+        pipeline.addLast("frame-decoder", new MessageDecoder());
+        pipeline.addLast("handler", new MessageHandler());
+    }
+
+    public static ConnectionContext setup(
+            Channel channel,
+            SslHandler sslHandler,
+            SQLOperations sqlOperations,
+            Authentication authService)
+    {
+        return new ConnectionContext(channel, sslHandler, sqlOperations, authService);
     }
 
     private static void traceLogProtocol(int protocol) {
@@ -269,20 +283,16 @@ class ConnectionContext {
 
         private void dispatchState(ByteBuf buffer, Channel channel) {
             switch (state) {
-                case SSL_NEG:
-                    state = STARTUP_HEADER;
-                    handleStartupHeader(buffer, channel);
-                    return;
                 case STARTUP_HEADER:
                 case MSG_HEADER:
                     throw new IllegalStateException("Decoder should've processed the headers");
 
                 case STARTUP_BODY:
-                    state = State.MSG_HEADER;
+                    state = ConnectionContext.State.MSG_HEADER;
                     handleStartupBody(buffer, channel);
                     return;
                 case MSG_BODY:
-                    state = State.MSG_HEADER;
+                    state = ConnectionContext.State.MSG_HEADER;
                     LOGGER.trace("msg={} msgLength={} readableBytes={}", ((char) msgType), msgLength, buffer.readableBytes());
 
                     if (ignoreTillSync && msgType != 'S') {
@@ -390,16 +400,6 @@ class ConnectionContext {
         Messages.sendParameterStatus(channel, "client_encoding", "UTF8");
         Messages.sendParameterStatus(channel, "datestyle", "ISO");
         Messages.sendReadyForQuery(channel);
-    }
-
-    private void handleStartupHeader(ByteBuf buffer, Channel channel) {
-        buffer.readInt(); // sslCode
-        ByteBuf channelBuffer = channel.alloc().buffer(1);
-        channelBuffer.writeByte('N');
-        ChannelFuture channelFuture = channel.writeAndFlush(channelBuffer);
-        if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(future -> LOGGER.trace("sent SSL neg: N"));
-        }
     }
 
     /**
@@ -642,6 +642,11 @@ class ConnectionContext {
 
         private ByteBuf decode(ByteBuf buffer) {
             switch (state) {
+                case PRE_STARTUP:
+                    if (sslHandler.process(pipeline, buffer) == SslHandler.State.DONE) {
+                        state = STARTUP_HEADER;
+                    }
+                    return null;
                 /*
                  * StartupMessage:
                  * | int32 length | int32 protocol | [ string paramKey | string paramValue , ... ]
@@ -650,14 +655,7 @@ class ConnectionContext {
                     if (buffer.readableBytes() < 8) {
                         return null;
                     }
-                    buffer.markReaderIndex();
                     msgLength = buffer.readInt() - 8; // exclude length itself and protocol
-                    if (msgLength == 0) {
-                        // SSL negotiation pkg
-                        LOGGER.trace("Received SSL negotiation pkg");
-                        state = State.SSL_NEG;
-                        return buffer.readBytes(4);
-                    }
                     LOGGER.trace("Header pkgLength: {}", msgLength);
                     int protocol = buffer.readInt();
                     traceLogProtocol(protocol);
