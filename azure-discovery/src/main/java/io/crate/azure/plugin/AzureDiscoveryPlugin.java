@@ -22,7 +22,7 @@
 
 package io.crate.azure.plugin;
 
-import io.crate.azure.AzureModule;
+import io.crate.azure.AzureConfiguration;
 import io.crate.azure.discovery.AzureUnicastHostsProvider;
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeServiceImpl;
@@ -81,10 +81,6 @@ public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
         return "crate-azure-discovery";
     }
 
-    public String description() {
-        return "Azure Discovery Plugin";
-    }
-
     @Override
     public List<Setting<?>> getSettings() {
         return Arrays.asList(
@@ -106,7 +102,7 @@ public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
                                                ResourceWatcherService resourceWatcherService,
                                                ScriptService scriptService,
                                                SearchRequestParsers searchRequestParsers) {
-        if (AzureModule.isDiscoveryReady(settings, logger)) {
+        if (AzureConfiguration.isDiscoveryReady(settings, logger)) {
             return Collections.singletonList(azureComputeService());
         }
         return Collections.emptyList();
@@ -116,9 +112,9 @@ public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
     public Map<String, Supplier<UnicastHostsProvider>> getZenHostsProviders(TransportService transportService,
                                                                             NetworkService networkService) {
         return Collections.singletonMap(
-            AzureModule.AZURE,
+            AzureConfiguration.AZURE,
             () -> {
-                if (AzureModule.isDiscoveryReady(settings, logger)) {
+                if (AzureConfiguration.isDiscoveryReady(settings, logger)) {
                     return new AzureUnicastHostsProvider(settings, azureComputeService(), transportService, networkService);
                 } else {
                     return Collections::emptyList;

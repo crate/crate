@@ -24,7 +24,7 @@ package io.crate.azure.discovery;
 
 import com.microsoft.azure.management.network.NetworkResourceProviderClient;
 import com.microsoft.azure.management.network.models.*;
-import io.crate.azure.AzureModule;
+import io.crate.azure.AzureConfiguration;
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeService.Discovery;
 import org.apache.logging.log4j.Logger;
@@ -144,8 +144,8 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
                     return Collections.emptyList();
                 }
 
-                List<String> ipAddresses = listIPAddresses(client, resourceGroup, networkNameOfCurrentHost.get(AzureModule.VNET),
-                    networkNameOfCurrentHost.get(AzureModule.SUBNET), discoveryMethod, hostType, logger);
+                List<String> ipAddresses = listIPAddresses(client, resourceGroup, networkNameOfCurrentHost.get(AzureConfiguration.VNET),
+                    networkNameOfCurrentHost.get(AzureConfiguration.SUBNET), discoveryMethod, hostType, logger);
                 for (String networkAddress : ipAddresses) {
                     // limit to 1 port per address
                     TransportAddress[] addresses = transportService.addressesFromString(networkAddress, 1);
@@ -187,8 +187,8 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
                     // find public ip address
                     for (NetworkInterfaceIpConfiguration ipConfiguration : ips) {
                         if (ipAddress.equals(ipConfiguration.getPrivateIpAddress())) {
-                            networkNames.put(AzureModule.VNET, vn.getName());
-                            networkNames.put(AzureModule.SUBNET, subnet.getName());
+                            networkNames.put(AzureConfiguration.VNET, vn.getName());
+                            networkNames.put(AzureConfiguration.SUBNET, subnet.getName());
                             break;
                         }
 
@@ -213,7 +213,7 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
 
         try {
             List<Subnet> subnets = networkResourceProviderClient.getVirtualNetworksOperations().get(rgName, vnetName).getVirtualNetwork().getSubnets();
-            if (discoveryMethod.equalsIgnoreCase(AzureModule.VNET)) {
+            if (discoveryMethod.equalsIgnoreCase(AzureConfiguration.VNET)) {
                 for (Subnet subnet : subnets) {
                     ipConfigurations.addAll(subnet.getIpConfigurations());
                 }
