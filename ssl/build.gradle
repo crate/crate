@@ -1,0 +1,10 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+archivesBaseName = 'ssl'
+group = 'io.crate'
+description = 'SSL Encryption for CrateDB'
+
+dependencies {
+    compile project(':es:es-core')
+    compile "io.netty:netty-handler:${versions.netty4}"
+}
