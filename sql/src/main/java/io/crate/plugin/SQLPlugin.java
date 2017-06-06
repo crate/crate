@@ -72,7 +72,11 @@ import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestHandler;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -101,7 +105,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         List<Setting<?>> settings = new ArrayList<>();
         settings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTING_GROUP);
         settings.add(SQLOperations.NODE_READ_ONLY_SETTING);
-        settings.add(MonitorModule.NODE_INFO_EXTENDED_TYPE_SETTING);
 
         // Postgres settings are node settings
         settings.add(PostgresNetty.PSQL_ENABLED_SETTING.setting());

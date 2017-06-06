@@ -20,20 +20,18 @@
  * agreement.
  */
 
-package io.crate.module;
+package io.crate.monitor;
 
-import io.crate.monitor.SigarService;
-import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.settings.Settings;
 
-public class SigarModule extends AbstractModule {
-
-    private final SigarService sigarService;
-
-    public SigarModule(SigarService sigarService) {
-        this.sigarService = sigarService;
-    }
+public class SigarNodeInfoLoader implements NodeInfoLoader {
 
     @Override
-    protected void configure() {
+    public Class<? extends ExtendedNodeInfo> getExtendedNodeInfoClass(Settings settings) {
+        SigarService sigarService = new SigarService(settings);
+        if (sigarService.sigarAvailable()) {
+            return SigarExtendedNodeInfo.class;
+        }
+        return null;
     }
 }

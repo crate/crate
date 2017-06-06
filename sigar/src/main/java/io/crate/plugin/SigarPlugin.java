@@ -24,21 +24,14 @@ package io.crate.plugin;
 
 import io.crate.Plugin;
 import io.crate.module.SigarModule;
-import io.crate.monitor.MonitorModule;
-import io.crate.monitor.SigarExtendedNodeInfo;
 import io.crate.monitor.SigarService;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Collection;
 import java.util.Collections;
 
 public class SigarPlugin implements Plugin {
-
-    private static final String NODE_INFO_EXTENDED_TYPE = "sigar";
-    private static final Logger LOGGER = Loggers.getLogger(SigarPlugin.class);
 
     private final SigarService sigarService;
 
@@ -58,25 +51,14 @@ public class SigarPlugin implements Plugin {
 
     @Override
     public Settings additionalSettings() {
-        if (!sigarService.sigarAvailable()) {
-            LOGGER.warn("Sigar library is not available");
-            return Settings.EMPTY;
-        }
-
-        Settings.Builder settingsBuilder = Settings.builder();
-        settingsBuilder.put(MonitorModule.NODE_INFO_EXTENDED_TYPE_SETTING.getKey(), NODE_INFO_EXTENDED_TYPE);
-        return settingsBuilder.build();
+        return Settings.EMPTY;
     }
-
 
     @Override
     public Collection<Module> createGuiceModules() {
-        return Collections.singletonList(new SigarModule(sigarService));
-    }
-
-    public void onModule(MonitorModule monitorModule) {
         if (sigarService.sigarAvailable()) {
-            monitorModule.addExtendedNodeInfoType(NODE_INFO_EXTENDED_TYPE, SigarExtendedNodeInfo.class);
+            return Collections.singletonList(new SigarModule(sigarService));
         }
+        return Collections.emptyList();
     }
 }

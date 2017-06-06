@@ -15,6 +15,9 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+// FIXME: This was undocumented - should we still document it as breaking change?
+ - Removed the `node.info.extended.type` setting
+
  - ``srv`` and ``azure`` are no longer valid configuration options for ``discovery.type``.
    Instead there is a new ``discovery.zen.hosts_provider`` settings which can
    be set to either ``srv`` or ``azure``.
