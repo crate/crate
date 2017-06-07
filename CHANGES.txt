@@ -22,3 +22,6 @@ Changes
 Fixes
 =====
 
+ - Reflect internally used default size for ``translog.flush_threshold_size``
+   also in documentation and expose the correct default value in table
+   settings.
