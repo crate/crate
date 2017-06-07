@@ -32,8 +32,12 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.UnaryOperator;
 
 public class Symbols {
+
+    private static final ReplacingSymbolVisitor<Void> DEEP_COPY_VISITOR = new ReplacingSymbolVisitor<>(ReplaceMode.COPY);
+    public static final UnaryOperator<Symbol> DEEP_COPY = s -> DEEP_COPY_VISITOR.process(s, null);
 
     public static final Predicate<Symbol> IS_COLUMN = s ->
         s instanceof Field || s instanceof Reference || s instanceof RelationColumn;

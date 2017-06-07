@@ -309,7 +309,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         Merge merge = plan("select u1.name from users u1, users u2 where u1.id = u2.id order by 1");
         NestedLoop nl = (NestedLoop) merge.subPlan();
         CollectPhase cpLeft = ((Collect) nl.left()).collectPhase();
-        assertThat(cpLeft.toCollect(), contains(isReference("name"), isReference("id")));
+        assertThat(cpLeft.toCollect(), contains(isReference("id"), isReference("name")));
         CollectPhase cpRight = ((Collect) nl.right()).collectPhase();
         assertThat(cpRight.toCollect(), contains(isReference("id")));
     }

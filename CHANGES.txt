@@ -22,6 +22,9 @@ Changes
 Fixes
 =====
 
+ - Fixed a performance regression that could cause JOIN queries to execute
+   slower than they used to.
+
  - Return proper exception when group by is used on scalar funtions that are
    applied to an aggregation.
 
