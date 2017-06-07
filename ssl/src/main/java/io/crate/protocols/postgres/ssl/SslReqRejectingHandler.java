@@ -25,15 +25,17 @@ import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelPipeline;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 
 /**
  * Handler that processes an optional SSLRequest and rejects SSL.
  */
 public class SslReqRejectingHandler implements SslReqHandler {
 
-    private static final Logger LOGGER = Loggers.getLogger(SslReqRejectingHandler.class);
+    private final Logger LOGGER;
 
-    SslReqRejectingHandler() {
+    SslReqRejectingHandler(Settings settings) {
+        LOGGER = Loggers.getLogger(SslReqRejectingHandler.class, settings);
         LOGGER.debug("SSL support is disabled.");
     }
 

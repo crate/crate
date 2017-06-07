@@ -31,7 +31,7 @@ public class SslHandlerProvider implements Supplier<SslReqHandler> {
     private final SslReqHandler sslReqHandler;
 
     public SslHandlerProvider(Settings settings) {
-        this.sslReqHandler = new SslReqRejectingHandler();
+        this.sslReqHandler = new SslReqRejectingHandler(settings);
     }
 
     @Override

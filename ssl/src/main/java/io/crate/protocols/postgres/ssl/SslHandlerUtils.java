@@ -23,11 +23,12 @@ package io.crate.protocols.postgres.ssl;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
+import org.elasticsearch.common.settings.Settings;
 
 public class SslHandlerUtils {
 
     public static SslReqHandler getDefault() {
-        return new SslReqRejectingHandler();
+        return new SslReqRejectingHandler(Settings.EMPTY);
     }
 
     static void writeByteAndFlushMessage(Channel channel, int byteToWrite) {
