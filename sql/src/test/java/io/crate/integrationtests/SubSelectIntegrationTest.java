@@ -370,6 +370,16 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testGlobalAggregateOnVirtualTableWithGroupBy() throws Exception {
+        execute("create table t1 (id int, ts timestamp) with (number_of_replicas = 0)");
+        execute("insert into t1 (id, ts) values (1, current_timestamp)");
+        execute("refresh table t1");
+
+        execute("select sum(ids) from (select date_trunc('day', ts), count(distinct id) as ids from t1 group by 1) tt");
+        assertThat(printedTable(response.rows()), is("1.0\n"));
+    }
+
+    @Test
     public void testGlobalAggregationOnNestedSubQueryWithGlobalAggregation() throws Exception {
         execute("create table t (x int)");
         ensureYellow();

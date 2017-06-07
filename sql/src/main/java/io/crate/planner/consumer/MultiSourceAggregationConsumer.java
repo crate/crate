@@ -79,7 +79,8 @@ class MultiSourceAggregationConsumer implements Consumer {
 
             // whereClause is already handled within the plan, no need to add additional FilterProjection via addAggregations
             qs.where(WhereClause.MATCH_ALL);
-            return GlobalAggregateConsumer.addAggregations(qs, projectionBuilder, splitPoints, plannerContext, plan);
+            return GlobalAggregateConsumer.addAggregations(
+                qs, splitPoints.toCollect(), projectionBuilder, splitPoints, plannerContext, plan);
         }
     }
 
