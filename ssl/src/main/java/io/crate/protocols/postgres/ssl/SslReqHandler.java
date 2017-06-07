@@ -31,9 +31,9 @@ import org.elasticsearch.common.logging.Loggers;
  *
  * https://www.postgresql.org/docs/current/static/protocol-flow.html#AEN113116
  */
-public interface SslHandler {
+public interface SslReqHandler {
 
-    Logger LOGGER = Loggers.getLogger(SslHandler.class);
+    Logger LOGGER = Loggers.getLogger(SslReqHandler.class);
 
     /** Bytes to be available to the handler to processs the message */
     int NUM_BYTES_REQUIRED = 8;
@@ -45,6 +45,19 @@ public interface SslHandler {
         DONE
     }
 
+    /**
+     * Process receives incoming data from the Netty pipeline. It
+     * may request more data by returning the WAITING_FOR_INPUT
+     * state. The process method should return DONE when it has
+     * finished processing. It may add additional elements to the
+     * pipeline. The handler is responsible for to position the
+     * buffer read marker correctly such that successive readers
+     * see the correct data. The handler is expected to position the
+     * marker after the SSLRequest payload.
+     * @param pipeline The Netty pipeline which may be modified
+     * @param buffer The buffer with incoming data
+     * @return The state of the handler
+     */
     State process(ChannelPipeline pipeline, ByteBuf buffer);
 
 }

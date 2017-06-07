@@ -26,8 +26,8 @@ import io.netty.channel.Channel;
 
 public class SslHandlerUtils {
 
-    public static SslHandler getDefault() {
-        return new SslRejectingHandler();
+    public static SslReqHandler getDefault() {
+        return new SslReqRejectingHandler();
     }
 
     static void writeByteAndFlushMessage(Channel channel, int byteToWrite) {

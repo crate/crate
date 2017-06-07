@@ -27,9 +27,9 @@ import io.netty.channel.ChannelPipeline;
 /**
  * Handler that processes an optional SSLRequest and rejects SSL.
  */
-public class SslRejectingHandler implements SslHandler {
+public class SslReqRejectingHandler implements SslReqHandler {
 
-    SslRejectingHandler() {
+    SslReqRejectingHandler() {
         LOGGER.debug("SSL support is disabled.");
     }
 

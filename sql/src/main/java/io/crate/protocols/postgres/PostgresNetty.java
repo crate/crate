@@ -28,7 +28,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationProvider;
-import io.crate.protocols.postgres.ssl.SslHandler;
+import io.crate.protocols.postgres.ssl.SslReqHandler;
 import io.crate.protocols.postgres.ssl.SslHandlerProvider;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
@@ -127,7 +127,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             Netty4Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, "postgres-netty-worker"));
         Authentication authentication = authProvider.get();
         Boolean reuseAddress = Netty4Transport.TCP_REUSE_ADDRESS.get(settings);
-        final SslHandler sslHandler = sslHandlerProvider.get();
+        final SslReqHandler sslReqHandler = sslHandlerProvider.get();
         bootstrap = new ServerBootstrap()
             .channel(NioServerSocketChannel.class)
             .group(boss, worker)
@@ -138,7 +138,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             .childHandler(new ChannelInitializer<Channel>() {
                 @Override
                 protected void initChannel(Channel ch) throws Exception {
-                    ConnectionContext.setup(ch, sslHandler, sqlOperations, authentication);
+                    ConnectionContext.setup(ch, sslReqHandler, sqlOperations, authentication);
                 }
             });
 

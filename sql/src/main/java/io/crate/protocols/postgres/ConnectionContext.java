@@ -33,7 +33,7 @@ import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.HbaProtocol;
 import io.crate.operation.user.User;
-import io.crate.protocols.postgres.ssl.SslHandler;
+import io.crate.protocols.postgres.ssl.SslReqHandler;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
@@ -165,7 +165,7 @@ class ConnectionContext {
     private final Authentication authService;
 
     private ChannelPipeline pipeline;
-    private SslHandler sslHandler;
+    private SslReqHandler sslReqHandler;
     private int msgLength;
     private byte msgType;
     private SQLOperations.Session session;
@@ -182,10 +182,10 @@ class ConnectionContext {
 
     private State state = PRE_STARTUP;
 
-    private ConnectionContext(Channel channel, SslHandler sslHandler, SQLOperations sqlOperations, Authentication authService) {
+    private ConnectionContext(Channel channel, SslReqHandler sslReqHandler, SQLOperations sqlOperations, Authentication authService) {
         this.pipeline = channel.pipeline();
         this.sqlOperations = sqlOperations;
-        this.sslHandler = sslHandler;
+        this.sslReqHandler = sslReqHandler;
         this.authService = authService;
         // initialize the Netty pipeline with this context's handlers
         pipeline.addLast("frame-decoder", new MessageDecoder());
@@ -194,11 +194,11 @@ class ConnectionContext {
 
     public static ConnectionContext setup(
             Channel channel,
-            SslHandler sslHandler,
+            SslReqHandler sslReqHandler,
             SQLOperations sqlOperations,
             Authentication authService)
     {
-        return new ConnectionContext(channel, sslHandler, sqlOperations, authService);
+        return new ConnectionContext(channel, sslReqHandler, sqlOperations, authService);
     }
 
     private static void traceLogProtocol(int protocol) {
@@ -643,10 +643,13 @@ class ConnectionContext {
         private ByteBuf decode(ByteBuf buffer) {
             switch (state) {
                 case PRE_STARTUP:
-                    if (sslHandler.process(pipeline, buffer) == SslHandler.State.DONE) {
+                    if (sslReqHandler.process(pipeline, buffer) == SslReqHandler.State.DONE) {
                         state = STARTUP_HEADER;
+                        // We need to call decode again in case there are additional bytes in the buffer
+                        return decode(buffer);
+                    } else {
+                        return null;
                     }
-                    return null;
                 /*
                  * StartupMessage:
                  * | int32 length | int32 protocol | [ string paramKey | string paramValue , ... ]

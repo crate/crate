@@ -22,20 +22,21 @@
 
 package io.crate.protocols.postgres.ssl;
 
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 
-public class SslHandlerProvider implements Provider<SslHandler> {
+import java.util.function.Supplier;
 
-    private final SslHandler sslHandler;
+public class SslHandlerProvider implements Supplier<SslReqHandler> {
+
+    private final SslReqHandler sslReqHandler;
 
     public SslHandlerProvider(Settings settings) {
-        this.sslHandler = new SslRejectingHandler();
+        this.sslReqHandler = new SslReqRejectingHandler();
     }
 
     @Override
-    public SslHandler get() {
-        return sslHandler;
+    public SslReqHandler get() {
+        return sslReqHandler;
     }
 
 }
