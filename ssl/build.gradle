@@ -5,6 +5,6 @@ group = 'io.crate'
 description = 'SSL Encryption for CrateDB'
 
 dependencies {
-    compile "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
+    compile project(':es:es-core')
     compile "io.netty:netty-handler:${versions.netty4}"
 }
