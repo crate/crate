@@ -26,6 +26,8 @@ Changes
 Fixes
 =====
 
+ - The correct error messages and codes are now thrown for REST actions.
+
  - Fixed an issue that could cause non-grouping aggregations on virtual tables
    to return the wrong result.
 
