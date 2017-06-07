@@ -265,6 +265,9 @@ to 1000 milliseconds.
 
 For further details see :ref:`refresh_data` or :ref:`sql_ref_refresh`.
 
+
+.. _ref-configuration-blocks:
+
 ``blocks.read_only``
 ....................
 
@@ -336,10 +339,25 @@ Sets frequency of flush necessity check.
 
 :value: frequency in milliseconds.
 
+.. _translog_sync_interval:
+
 ``translog.sync_interval``
 ..........................
 
-How often the translog is fsynced to disk. Defaults to 5s
+How often the translog is fsynced to disk. Defaults to 5s.
+When setting this interval, please keep in mind that changes logged
+during this interval and not synced to disk may get lost in case of a
+failure. This setting only takes effect if :ref:`translog.durability
+<translog_durability>` is set to ``ASYNC``.
+
+.. _translog_durability:
+
+``translog.durability``
+.......................
+
+If set to ``ASYNC`` the translog gets flushed to disk in the background
+every :ref:`translog.sync_interval <translog_sync_interval>`. If set to
+``REQUEST`` the flush happens after every operation.
 
 :value: interval in milliseconds.
 
@@ -386,6 +404,16 @@ is available.
 Enabled by default.
 
 :value: ``true`` to enable warming up, otherwise ``false``
+
+``unassigned.node_left.delayed_timeout``
+........................................
+
+Delay the allocation of replica shards which have become unassigned because a
+node has left. It defaults to ``1m`` to give a node time to restart
+completely (which can take some time when the node has lots of shards).
+Setting the timeout to ``0`` will start allocation immediately. This setting
+can be changed on runtime in order to increase/decrease the delayed
+allocation if needed.
 
 .. _sql_ref_column_policy:
 

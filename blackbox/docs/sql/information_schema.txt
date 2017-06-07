@@ -110,7 +110,7 @@ Tables Specification
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``self_referencing_column_name`` | The name of the column that uniquely identifies each row (always ``_id``)          | ``String``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
-| ``settings``                     | :ref:`conf_table_settings`                                                         | ``Object``  |
+| ``settings``                     | :ref:`with_clause`                                                                 | ``Object``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
 | ``table_catalog``                | Refers to the ``table_schema``                                                     | ``String``  |
 +----------------------------------+------------------------------------------------------------------------------------+-------------+
@@ -402,8 +402,8 @@ Table Settings
 Table settings specify configuration parameters for tables. Some settings can
 be set during Cluster runtime and others are only applied on cluster restart.
 
-This list of :ref:`conf_table_settings` shows detailed information of each
-parameter.
+This list of table settings in :ref:`with_clause` shows detailed information
+of each parameter.
 
 Table parameters can be applied with ``CREATE TABLE`` on creation of a table.
 With ``ALTER TABLE`` they can be set on already existing tables.
