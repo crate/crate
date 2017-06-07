@@ -22,6 +22,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that could cause non-grouping aggregations on virtual tables
+   to return the wrong result.
+
  - Fixed a bug in the memory accounting of the circuit breaker for HTTP
    results when querying ``GEO_SHAPE`` columns.
 

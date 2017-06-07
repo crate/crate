@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.is;
 
 public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
@@ -42,7 +43,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         setup.setUpCharacters();
 
         execute("select i, name from (select id as i, name from characters order by name) as ch order by i desc");
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("4| Arthur\n" +
                "3| Trillian\n" +
                "2| Ford\n" +
@@ -56,7 +57,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("select id, name " +
                 "from (select * from characters where female = true) as ch " +
                 "where name like 'Arthur'");
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("4| Arthur\n"));
     }
 
@@ -67,7 +68,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("select id, name " +
                 "from (select * from characters where female = true) as ch " +
                 "where id = 4");
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("4| Arthur\n"));
     }
 
@@ -79,7 +80,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("select name " +
                 "from (select * from locations order by name limit 10 offset 5) as l " +
                 "limit 5 offset 4");
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("End of the Galaxy\n" +
                "Galactic Sector QQ7 Active J Gamma\n" +
                "North West Ripple\n" +
@@ -99,7 +100,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
                 " from (select a, i, (x + x) as xx from t1) as t) as tt " +
                 "order by aa");
 
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("aa| 9\n" +
                "bb| 14\n" +
                "cc| 20\n" +
@@ -114,7 +115,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
                 "  select gender, min(age) as minAge from characters group by gender" +
                 ") as ch " +
                 "where gender = 'male'");
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("male| 34\n"));
     }
 
@@ -151,7 +152,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
 
         List<Object[]> rows = Arrays.asList(response.rows());
         Collections.sort(rows, OrderingByPosition.arrayOrdering(0, true, null));
-        assertThat(TestingHelpers.printedTable(rows.toArray(new Object[0][])),
+        assertThat(printedTable(rows.toArray(new Object[0][])),
             is("Android| NULL\n" +
                "Human| 73.0\n" +
                "Vogon| NULL\n"));
@@ -172,7 +173,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
                 "  from t1, t2 where t2.y > 60) as t " +
                 "where col1 = 'a' order by col3");
 
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("a| 55\n" +
                "a| 77\n"));
     }
@@ -193,7 +194,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
                 "    from t1, t2 where t1.a='a' or t2.a='aa') as t) as tt " +
                 "order by aa, xyi");
 
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("aaa| 58\n" +
                "abb| 91\n" +
                "acc| 135\n" +
@@ -219,7 +220,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
                 "    from t1 left join t2 on t1.a = t2.a where t1.a='a') as t) as tt " +
                 "order by aa, xyi");
 
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("aa| 58\n"));
 
         execute("select aa, xyi from (" +
@@ -228,7 +229,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
                 "    from t1 right join t2 on t1.a = t2.a where t1.a='a' or t2.a in ('aa', 'bb')) as t) as tt " +
                 "order by aa, xyi");
 
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("aa| 58\n" +
                "bb| NULL\n"));
 
@@ -238,7 +239,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
                 "    from t1 full join t2 on t1.a = t2.a where t1.a='a' or t2.a in ('aa', 'bb')) as t) as tt " +
                 "order by aa, xyi");
 
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("aa| 58\n" +
                "bb| NULL\n"));
     }
@@ -258,7 +259,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t1, t2");
 
         execute("select * from t1 where x = (select y from t2)");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n"));
+        assertThat(printedTable(response.rows()), is("2\n"));
     }
 
     @Test
@@ -273,7 +274,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t1, t2, t3");
 
         execute("select * from t1 where x = (select y from t2 where y = (select z from t3))");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n"));
+        assertThat(printedTable(response.rows()), is("2\n"));
     }
 
     @Test
@@ -284,7 +285,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t1");
 
         execute("select sum(x) from t1 where x = (select 1)");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1.0\n"));
+        assertThat(printedTable(response.rows()), is("1.0\n"));
     }
 
     @Test
@@ -295,7 +296,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t1");
 
         execute("select sum(x), x from t1 where x = (select 1) group by x");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1.0| 1\n"));
+        assertThat(printedTable(response.rows()), is("1.0| 1\n"));
     }
 
     @Test
@@ -317,7 +318,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t1");
 
         execute("select x, (select 'foo') from t1 where x = (select 1)");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1| foo\n"));
+        assertThat(printedTable(response.rows()), is("1| foo\n"));
     }
 
     @Test
@@ -328,7 +329,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t");
 
         execute("select * from t as t1, t as t2 where t1.x = (select 1) order by t2.x");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1| 1\n1| 2\n"));
+        assertThat(printedTable(response.rows()), is("1| 1\n1| 2\n"));
     }
 
     @Test
@@ -343,7 +344,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testScalarSubqueryCanBeUsedInGroupByAndHaving() throws Exception {
         execute("select (select 'foo'), count(*) from unnest([1, 2]) group by 1 having count(*) = (select 2)");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("foo| 2\n"));
+        assertThat(printedTable(response.rows()), is("foo| 2\n"));
     }
 
     @Test
@@ -365,7 +366,17 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
 
         // orderBy and limit in subQuery to prevent rewrite to non-subquery
         execute("select sum(x) from (select x from t order by x limit 1) as t");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1.0\n"));
+        assertThat(printedTable(response.rows()), is("1.0\n"));
+    }
+
+    @Test
+    public void testGlobalAggregateOnVirtualTableWithGroupBy() throws Exception {
+        execute("create table t1 (id int, ts timestamp) with (number_of_replicas = 0)");
+        execute("insert into t1 (id, ts) values (1, current_timestamp)");
+        execute("refresh table t1");
+
+        execute("select sum(ids) from (select date_trunc('day', ts), count(distinct id) as ids from t1 group by 1) tt");
+        assertThat(printedTable(response.rows()), is("1.0\n"));
     }
 
     @Test
@@ -376,7 +387,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t");
 
         execute("select sum(x) from (select min(x) as x from (select max(x) as x from t) as t) as t");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2.0\n"));
+        assertThat(printedTable(response.rows()), is("2.0\n"));
     }
 
     @Test
@@ -386,13 +397,13 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
                 "       where t1.col1 = (select 1) " +
                 "       order by x limit 3" +
                 ") t");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("3.0\n"));
+        assertThat(printedTable(response.rows()), is("3.0\n"));
     }
 
     @Test
     public void testGlobalAggOnSubQueryWithWhereOnOuterRelation() throws Exception {
         execute("select sum(x) from (select min(col1) as x from unnest([1])) as t where x = 2");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("NULL\n"));
+        assertThat(printedTable(response.rows()), is("NULL\n"));
     }
 
     @Test
@@ -403,7 +414,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t");
 
         execute("select (select 2), x from t");
-        assertThat(TestingHelpers.printedTable(response.rows()),
+        assertThat(printedTable(response.rows()),
             is("2| 1\n" +
                "2| 1\n"));
     }
