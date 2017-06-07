@@ -35,7 +35,7 @@ public interface SslReqHandler {
 
     Logger LOGGER = Loggers.getLogger(SslReqHandler.class);
 
-    /** Bytes to be available to the handler to processs the message */
+    /** Bytes to be available to the handler to process the message */
     int NUM_BYTES_REQUIRED = 8;
     /* The payload of the SSL Request message */
     int SSL_REQUEST_CODE = 80877103;
