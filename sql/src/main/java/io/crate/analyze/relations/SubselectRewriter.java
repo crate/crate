@@ -283,16 +283,31 @@ final class SubselectRewriter {
         FieldReplacer(List<? extends Symbol> outputs, QueriedRelation relation) {
             super(ReplaceMode.COPY);
             // Store the fields of a relation mapped to its output symbol so they will not get lost (e.g. alias preserve)
-            for (Field field : relation.fields()) {
-                fieldByQSOutputSymbol.put(relation.querySpec().outputs().get(field.index()), field);
-            }
             this.outputs = outputs;
+
+            /* Create a "backrefs" map to be able to preserve field names/aliases if we merge relations
+             *
+             * currentQS.outputs,  parent-relation
+             *
+             * select aliased_sub.x / aliased_sub.i from (select x, i from t1) as aliased_sub
+             *
+             * parent.fields(): Field[divide..., rel=root]
+             * parent.querySpec.outputs:  divide(Field[x, rel=aliased_sub], Field[i, rel=aliased_sub]
+             * currentQS.outputs: Field[x, rel=t1], Field[i, rel=t1]
+             *
+             * -> fieldByQSOutputSymbol
+             *
+             * divide(Field[x, rel=t1], Field[i, rel=t2]  -> divide(Field[x, rel=aliased_sub], Field[i, rel=aliased_sub])
+             */
+            for (Field field : relation.fields()) {
+                fieldByQSOutputSymbol.put(apply(relation.querySpec().outputs().get(field.index())), field);
+            }
         }
 
         @Override
         public Symbol visitField(Field field, Void context) {
             Symbol newOutput = outputs.get(field.index());
-            fieldByQSOutputSymbol.put(newOutput, field);
+            fieldByQSOutputSymbol.putIfAbsent(newOutput, field);
             return newOutput;
         }
 

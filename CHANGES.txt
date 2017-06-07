@@ -32,6 +32,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that causes aliases used in the select list to get lost on
+   subselect queries.
+
  - The correct error messages and codes are now thrown for REST actions.
 
  - Fixed an issue that could cause non-grouping aggregations on virtual tables
