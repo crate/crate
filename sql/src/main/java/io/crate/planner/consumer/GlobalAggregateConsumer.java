@@ -66,6 +66,7 @@ class GlobalAggregateConsumer implements Consumer {
      * Either directly or by wrapping it into a Merge plan.
      */
     static Plan addAggregations(QuerySpec qs,
+                                Collection<? extends Symbol> subRelationOutputs,
                                 ProjectionBuilder projectionBuilder,
                                 SplitPoints splitPoints,
                                 Planner.Context plannerContext,
@@ -77,13 +78,14 @@ class GlobalAggregateConsumer implements Consumer {
         }
         WhereClause where = qs.where();
         if (where.hasQuery() || where.noMatch()) {
-            FilterProjection whereFilter = ProjectionBuilder.filterProjection(splitPoints.toCollect(), where);
+            FilterProjection whereFilter = ProjectionBuilder.filterProjection(subRelationOutputs, where);
             plan.addProjection(whereFilter, null, null, null);
         }
-        List<Projection> postAggregationProjections = createPostAggregationProjections(qs, splitPoints, plannerContext);
+        List<Projection> postAggregationProjections =
+            createPostAggregationProjections(qs, splitPoints.aggregates(), plannerContext);
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
             AggregationProjection finalAggregation = projectionBuilder.aggregationProjection(
-                splitPoints.toCollect(),
+                subRelationOutputs,
                 splitPoints.aggregates(),
                 AggregateMode.ITER_FINAL,
                 RowGranularity.CLUSTER
@@ -95,7 +97,7 @@ class GlobalAggregateConsumer implements Consumer {
             return plan;
         } else {
             AggregationProjection partialAggregation = projectionBuilder.aggregationProjection(
-                splitPoints.toCollect(),
+                subRelationOutputs,
                 splitPoints.aggregates(),
                 AggregateMode.ITER_PARTIAL,
                 RowGranularity.CLUSTER
@@ -114,17 +116,17 @@ class GlobalAggregateConsumer implements Consumer {
     }
 
     private static List<Projection> createPostAggregationProjections(QuerySpec qs,
-                                                                     SplitPoints splitPoints,
+                                                                     List<Function> aggregates,
                                                                      Planner.Context plannerContext) {
         List<Projection> postAggregationProjections = new ArrayList<>();
         Optional<HavingClause> having = qs.having();
         if (having.isPresent()) {
-            postAggregationProjections.add(ProjectionBuilder.filterProjection(splitPoints.aggregates(), having.get()));
+            postAggregationProjections.add(ProjectionBuilder.filterProjection(aggregates, having.get()));
         }
         Limits limits = plannerContext.getLimits(qs);
         // topN is used even if there is no limit because outputs might contain scalars which need to be executed
         postAggregationProjections.add(ProjectionBuilder.topNOrEval(
-            splitPoints.aggregates(), null, limits.offset(), limits.finalLimit(), qs.outputs()));
+            aggregates, null, limits.offset(), limits.finalLimit(), qs.outputs()));
         return postAggregationProjections;
     }
 
@@ -183,7 +185,8 @@ class GlobalAggregateConsumer implements Consumer {
             splitPoints.aggregates(),
             AggregateMode.PARTIAL_FINAL,
             RowGranularity.CLUSTER);
-        List<Projection> postAggregationProjections = createPostAggregationProjections(querySpec, splitPoints, plannerContext);
+        List<Projection> postAggregationProjections =
+            createPostAggregationProjections(querySpec, splitPoints.aggregates(), plannerContext);
         postAggregationProjections.add(0, aggregationProjection);
 
         return createMerge(collect, plannerContext, postAggregationProjections);
@@ -234,7 +237,14 @@ class GlobalAggregateConsumer implements Consumer {
             if (subPlan == null) {
                 return null;
             }
-            return addAggregations(qs, projectionBuilder, SplitPoints.create(qs), plannerContext, subPlan);
+            return addAggregations(
+                qs,
+                relation.subRelation().fields(),
+                projectionBuilder,
+                SplitPoints.create(qs),
+                plannerContext,
+                subPlan
+            );
         }
     }
 
