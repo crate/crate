@@ -32,6 +32,7 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
 import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.operation.user.User;
@@ -231,7 +232,7 @@ public class RestSQLAction extends BaseRestHandler {
 
     private void errorResponse(RestChannel channel, Throwable t) {
         try {
-            channel.sendResponse(new CrateThrowableRestResponse(channel, t));
+            channel.sendResponse(new CrateThrowableRestResponse(channel, SQLExceptions.createSQLActionException(t)));
         } catch (Throwable e) {
             logger.error("failed to send failure response", e);
         }
