@@ -45,7 +45,7 @@ already existing user-created doc tables in the cluster::
     |    "translog.disable_flush" = false,                |
     |    "translog.flush_threshold_ops" = 2147483647,     |
     |    "translog.flush_threshold_period" = 1800000,     |
-    |    "translog.flush_threshold_size" = 209715200,     |
+    |    "translog.flush_threshold_size" = 536870912,     |
     |    "translog.interval" = 5000,                      |
     |    "translog.sync_interval" = 5000,                 |
     |    "unassigned.node_left.delayed_timeout" = 60000,  |

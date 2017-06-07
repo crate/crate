@@ -76,7 +76,7 @@ public class CrateTableSettings {
 
 
     public static final ByteSizeSetting FLUSH_THRESHOLD_SIZE = new ByteSizeSetting(
-        TableParameterInfo.FLUSH_THRESHOLD_SIZE, new ByteSizeValue(200, ByteSizeUnit.MB), true);
+        TableParameterInfo.FLUSH_THRESHOLD_SIZE, new ByteSizeValue(512, ByteSizeUnit.MB), true);
 
     public static final IntSetting FLUSH_THRESHOLD_OPS = new IntSetting(TableParameterInfo.FLUSH_THRESHOLD_OPS, Integer.MAX_VALUE, true);
 
