@@ -23,8 +23,6 @@ package io.crate.protocols.postgres.ssl;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelPipeline;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
 
 /**
  * The handler interface for dealing with Postgres SSLRequest messages.
@@ -32,8 +30,6 @@ import org.elasticsearch.common.logging.Loggers;
  * https://www.postgresql.org/docs/current/static/protocol-flow.html#AEN113116
  */
 public interface SslReqHandler {
-
-    Logger LOGGER = Loggers.getLogger(SslReqHandler.class);
 
     /** Bytes to be available to the handler to process the message */
     int NUM_BYTES_REQUIRED = 8;
