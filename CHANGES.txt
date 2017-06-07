@@ -26,6 +26,9 @@ Changes
 Fixes
 =====
 
+ - Fixed a bug in the memory accounting of the circuit breaker for HTTP
+   results when querying ``GEO_SHAPE`` columns.
+
  - Reflect internally used default size for ``translog.flush_threshold_size``
    also in documentation and expose the correct default value in table
    settings.

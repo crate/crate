@@ -36,6 +36,10 @@ public class SizeEstimatorFactory {
             case ObjectType.ID:
                 // no type info for inner types so we just use an arbitrary constant size for now
                 return (SizeEstimator<T>) new ConstSizeEstimator(60);
+            case GeoShapeType.ID:
+                // no type info for inner types so we just use an arbitrary constant size for now
+                // geo_shapes are usually large objects, so estimated greater than regular object type
+                return (SizeEstimator<T>) new ConstSizeEstimator(120);
             case ArrayType.ID:
                 return (SizeEstimator<T>) new ArraySizeEstimator(create(((ArrayType) type).innerType()));
             case SetType.ID:
