@@ -22,20 +22,38 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.collect.*;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.SetMultimap;
+import com.google.common.collect.Sets;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.fetch.FetchFieldExtractor;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Aggregations;
+import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.FieldsVisitor;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.MatchPredicate;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.Limits;
 import io.crate.sql.tree.QualifiedName;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
 
 public final class RelationSplitter {
 
@@ -47,8 +65,6 @@ public final class RelationSplitter {
     private final List<Symbol> joinConditions;
     private Set<Field> canBeFetched;
     private RemainingOrderBy remainingOrderBy;
-
-    private static final Supplier<Set<Integer>> INT_SET_SUPPLIER = HashSet::new;
 
     public RelationSplitter(QuerySpec querySpec,
                             Collection<? extends AnalyzedRelation> relations,
@@ -178,105 +194,68 @@ public final class RelationSplitter {
         }
     }
 
+    /**
+     * Move ORDER BY expressions to the subRelations if it's safe.
+     * Move is safe if all order by expressions refer to the same relation and there is no outer join.
+     *
+     *  - NL with outer-join injects null rows; so it doesn't preserve the ordering
+     *  - Two or more relations in ORDER BY requires a post-join sorting, relying on preserving the pre-ordering doesn't work:
+     *
+     *  Example:
+     *
+     * <pre>
+     *   ORDER BY tx, ty
+     *
+     *   tx = [1, 1, 2, 2]
+     *   ty = [1, 2]
+     *
+     *   for x in tx:
+     *      for y in ty:
+     *
+     *   results in
+     *     1| 1
+     *     1| 2
+     *     1| 1
+     *     1| 2
+     *     ...
+     *
+     *   but should result in
+     *
+     *     1| 1
+     *     1| 1
+     *     1| 2
+     *     1| 2
+     *
+     * </pre>
+     */
     private void processOrderBy() {
-        if (!querySpec.orderBy().isPresent()) {
+        Optional<OrderBy> optOrderBy = querySpec.orderBy();
+        if (!optOrderBy.isPresent()) {
             return;
         }
-        OrderBy orderBy = querySpec.orderBy().get();
-
+        OrderBy orderBy = optOrderBy.get();
         Set<AnalyzedRelation> relations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
-        Consumer<Field> relationsConsumer = f -> relations.add(f.relation());
+        Consumer<Field> gatherRelations = f -> relations.add(f.relation());
 
-        // We copy all ORDER BY symbols to remainingOrderBy
-        extractRemainingOrderBy(orderBy, relations, relationsConsumer);
-
-        Multimap<AnalyzedRelation, Integer> splits = extractOrderByForPushDown(orderBy, relations, relationsConsumer);
-
-        // Pushed down the orderBy to subquery specs and also set the limitAndOffset if present
-        Optional<Symbol> limitAndOffset = Limits.mergeAdd(querySpec.limit(), querySpec.offset());
-        for (Map.Entry<AnalyzedRelation, Collection<Integer>> entry : splits.asMap().entrySet()) {
-            AnalyzedRelation relation = entry.getKey();
-            OrderBy newOrderBy = orderBy.subset(entry.getValue());
-            QuerySpec spec = getSpec(relation);
-            assert !spec.orderBy().isPresent() : "spec.orderBy() must not be present";
-            spec.orderBy(newOrderBy);
-            if (limitAndOffset.isPresent()) {
-                spec.limit(limitAndOffset);
-            }
-            requiredForQuery.addAll(newOrderBy.orderBySymbols());
+        if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
+            return;
         }
-    }
-
-    private void extractRemainingOrderBy(OrderBy orderBy, Set<AnalyzedRelation> relations, Consumer<Field> relationsConsumer) {
-        Integer idx = 0;
-        for (Symbol symbol : orderBy.orderBySymbols()) {
-            // If order by is pointing to an aggregation we cannot push it down
-            // because ordering needs to happen AFTER the join
-            if (Aggregations.containsAggregation(symbol)) {
-                continue;
-            }
-            relations.clear();
-            FieldsVisitor.visitFields(symbol, relationsConsumer);
-
-            // instantiate remainingOrderBy really only if needed!
-            // because it is used as a marker
-            if (remainingOrderBy == null) {
-                remainingOrderBy = new RemainingOrderBy();
-            }
-
-            OrderBy newOrderBy = orderBy.subset(Collections.singletonList(idx));
-            for (AnalyzedRelation rel : relations) {
-                remainingOrderBy.addRelation(rel.getQualifiedName());
-            }
-            remainingOrderBy.addOrderBy(newOrderBy);
-            idx++;
+        for (Symbol orderExpr : orderBy.orderBySymbols()) {
+            FieldsVisitor.visitFields(orderExpr, gatherRelations);
         }
-        relations.clear();
-    }
-
-    /**
-     * Extract the ORDER BY symbols which can be pushed down to subqueries.
-     * To extract them, the symbols are processed from left to right in their stated order.
-     * A symbol can only be pushed down if it contains a single relation.
-     * Additionally either the previous symbol (from left to right) contained the same relation,
-     * or that relation of the symbol did not occur yet.
-     * Once a symbols contains more than a single relation no further order by symbols may be pushed down.
-     *
-     * Examples:
-     * ORDER BY t1.a, t1.b, t2.x, t2.y -> t1: a, b, t2: x, y
-     * ORDER BY t1.a, t2.x, t1.b, t2.x -> t1: a, t2: x
-     * ORDER BY t1.a, fn(t1.a, t2.x), t2.x -> t1: a
-     * ORDER BY fn(t1.a, t2.x), t3.z -> none
-     */
-    private Multimap<AnalyzedRelation, Integer> extractOrderByForPushDown(OrderBy orderBy, Set<AnalyzedRelation> relations, Consumer<Field> relationsConsumer) {
-        Multimap<AnalyzedRelation, Integer> splits = Multimaps.newSetMultimap(
-            new IdentityHashMap<AnalyzedRelation, Collection<Integer>>(specs.size()),
-            INT_SET_SUPPLIER::get);
-
-        Integer idx = 0;
-        List<QualifiedName> allRelations = new ArrayList<>();
-        for (Symbol symbol : orderBy.orderBySymbols()) {
-            // If order by is pointing to an aggregation we cannot push it down
-            // because ordering needs to happen AFTER the join
-            if (Aggregations.containsAggregation(symbol)) {
-                continue;
+        if (relations.size() == 1 && joinPairs.stream().noneMatch(p -> p.joinType().isOuter())) {
+            AnalyzedRelation relationInOrderBy = relations.iterator().next();
+            QuerySpec spec = getSpec(relationInOrderBy);
+            orderBy = orderBy.copyAndReplace(Symbols.DEEP_COPY);
+            spec.orderBy(orderBy);
+            requiredForQuery.addAll(orderBy.orderBySymbols());
+        } else {
+            remainingOrderBy = new RemainingOrderBy();
+            for (AnalyzedRelation relation : relations) {
+                remainingOrderBy.addRelation(relation.getQualifiedName());
             }
-            relations.clear();
-            FieldsVisitor.visitFields(symbol, relationsConsumer);
-
-            if (relations.size() == 1) {
-                AnalyzedRelation rel = Iterables.getOnlyElement(relations);
-                if (!allRelations.contains(rel.getQualifiedName()) || allRelations.get(allRelations.size() - 1).equals(rel.getQualifiedName())) {
-                    splits.put(rel, idx);
-                    allRelations.add(rel.getQualifiedName());
-                }
-            } else {
-                break;
-            }
-            idx++;
+            remainingOrderBy.addOrderBy(orderBy);
         }
-        relations.clear();
-        return splits;
     }
 
     private final static class JoinConditionValidator extends DefaultTraversalSymbolVisitor<Void, Symbol> {

@@ -28,7 +28,13 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.PlanWithFetchDescription;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.planner.projection.*;
+import io.crate.planner.projection.EvalProjection;
+import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.OrderedTopNProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -146,7 +152,7 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
                                     ") t order by t1x desc limit 3");
         List<Projection> projections = ((NestedLoop) qtf.subPlan()).nestedLoopPhase().projections();
         assertThat(projections, Matchers.contains(
-            instanceOf(OrderedTopNProjection.class),
+            instanceOf(TopNProjection.class),
             instanceOf(FetchProjection.class),
             instanceOf(OrderedTopNProjection.class)));
 
