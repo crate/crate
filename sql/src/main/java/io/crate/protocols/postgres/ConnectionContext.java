@@ -40,6 +40,7 @@ import io.crate.types.DataType;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import org.apache.logging.log4j.Logger;
@@ -623,19 +624,19 @@ class ConnectionContext {
 
         @Override
         protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-            ByteBuf decode = decode(in, ctx);
+            ByteBuf decode = decode(in, ctx.pipeline());
             if (decode != null) {
                 out.add(decode);
             }
         }
 
-        private ByteBuf decode(ByteBuf buffer, ChannelHandlerContext ctx) {
+        private ByteBuf decode(ByteBuf buffer, ChannelPipeline pipeline) {
             switch (state) {
                 case PRE_STARTUP:
-                    if (sslReqHandler.process(ctx.pipeline(), buffer) == SslReqHandler.State.DONE) {
+                    if (sslReqHandler.process(pipeline, buffer) == SslReqHandler.State.DONE) {
                         state = STARTUP_HEADER;
                         // We need to call decode again in case there are additional bytes in the buffer
-                        return decode(buffer, ctx);
+                        return decode(buffer, pipeline);
                     } else {
                         return null;
                     }
