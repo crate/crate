@@ -40,7 +40,6 @@ import io.crate.types.DataType;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelPipeline;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import org.apache.logging.log4j.Logger;
@@ -161,10 +160,11 @@ class ConnectionContext {
 
     private static final Logger LOGGER = Loggers.getLogger(ConnectionContext.class);
 
+    final MessageDecoder decoder;
+    final MessageHandler handler;
     private final SQLOperations sqlOperations;
     private final Authentication authService;
 
-    private ChannelPipeline pipeline;
     private SslReqHandler sslReqHandler;
     private int msgLength;
     private byte msgType;
@@ -182,23 +182,12 @@ class ConnectionContext {
 
     private State state = PRE_STARTUP;
 
-    private ConnectionContext(Channel channel, SslReqHandler sslReqHandler, SQLOperations sqlOperations, Authentication authService) {
-        this.pipeline = channel.pipeline();
+    ConnectionContext(SslReqHandler sslReqHandler, SQLOperations sqlOperations, Authentication authService) {
         this.sqlOperations = sqlOperations;
         this.sslReqHandler = sslReqHandler;
         this.authService = authService;
-        // initialize the Netty pipeline with this context's handlers
-        pipeline.addLast("frame-decoder", new MessageDecoder());
-        pipeline.addLast("handler", new MessageHandler());
-    }
-
-    public static ConnectionContext setup(
-            Channel channel,
-            SslReqHandler sslReqHandler,
-            SQLOperations sqlOperations,
-            Authentication authService)
-    {
-        return new ConnectionContext(channel, sslReqHandler, sqlOperations, authService);
+        this.decoder = new MessageDecoder();
+        this.handler = new MessageHandler();
     }
 
     private static void traceLogProtocol(int protocol) {
@@ -634,19 +623,19 @@ class ConnectionContext {
 
         @Override
         protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception {
-            ByteBuf decode = decode(in);
+            ByteBuf decode = decode(in, ctx);
             if (decode != null) {
                 out.add(decode);
             }
         }
 
-        private ByteBuf decode(ByteBuf buffer) {
+        private ByteBuf decode(ByteBuf buffer, ChannelHandlerContext ctx) {
             switch (state) {
                 case PRE_STARTUP:
-                    if (sslReqHandler.process(pipeline, buffer) == SslReqHandler.State.DONE) {
+                    if (sslReqHandler.process(ctx.pipeline(), buffer) == SslReqHandler.State.DONE) {
                         state = STARTUP_HEADER;
                         // We need to call decode again in case there are additional bytes in the buffer
-                        return decode(buffer);
+                        return decode(buffer, ctx);
                     } else {
                         return null;
                     }

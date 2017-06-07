@@ -79,13 +79,12 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHandleEmptySimpleQuery() throws Exception {
-        EmbeddedChannel channel = new EmbeddedChannel();
         ConnectionContext ctx =
-            ConnectionContext.setup(
-                channel,
+            new ConnectionContext(
                 SslHandlerUtils.getDefault(),
                 mock(SQLOperations.class),
                 AuthenticationProvider.NOOP_AUTH);
+        EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = releaseLater(Unpooled.buffer());
         Messages.writeCString(buffer, ";".getBytes(StandardCharsets.UTF_8));
@@ -111,13 +110,12 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
         SQLOperations sqlOperations = mock(SQLOperations.class);
         SQLOperations.Session session = mock(SQLOperations.Session.class);
         when(sqlOperations.createSession(any(SessionContext.class))).thenReturn(session);
-        EmbeddedChannel channel = new EmbeddedChannel();
-        ConnectionContext.setup(
-            channel,
-            SslHandlerUtils.getDefault(),
-            sqlOperations,
-            new TestAuthentication(null));
-
+        ConnectionContext ctx =
+            new ConnectionContext(
+                SslHandlerUtils.getDefault(),
+                sqlOperations,
+                new TestAuthentication(null));
+        EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
         ClientMessages.sendStartupMessage(buffer, "doc");
@@ -132,12 +130,12 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBindMessageCanBeReadIfTypeForParamsIsUnknown() throws Exception {
-        EmbeddedChannel channel = new EmbeddedChannel();
-        ConnectionContext.setup(
-            channel,
-            SslHandlerUtils.getDefault(),
-            sqlOperations,
-            new TestAuthentication(null));
+        ConnectionContext ctx =
+            new ConnectionContext(
+                SslHandlerUtils.getDefault(),
+                sqlOperations,
+                new TestAuthentication(null));
+        EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
         ClientMessages.sendStartupMessage(buffer, "doc");

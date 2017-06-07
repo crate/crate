@@ -138,7 +138,12 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             .childHandler(new ChannelInitializer<Channel>() {
                 @Override
                 protected void initChannel(Channel ch) throws Exception {
-                    ConnectionContext.setup(ch, sslReqHandler, sqlOperations, authentication);
+                    ChannelPipeline pipeline = ch.pipeline();
+                    ConnectionContext connectionContext =
+                        new ConnectionContext(sslReqHandler, sqlOperations, authentication);
+                    // initialize the Netty pipeline with this context's handlers
+                    pipeline.addLast("frame-decoder", connectionContext.decoder);
+                    pipeline.addLast("handler", connectionContext.handler);
                 }
             });
 
