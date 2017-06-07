@@ -30,16 +30,35 @@ import io.crate.analyze.QueriedTable;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.symbol.AggregateMode;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.*;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.Routing;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.planner.*;
+import io.crate.planner.Merge;
+import io.crate.planner.NoopPlan;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.PositionalOrderBy;
+import io.crate.planner.TableStats;
 import io.crate.planner.distribution.DistributionType;
-import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.CollectPhase;
+import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
-import io.crate.planner.projection.*;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.EvalProjection;
+import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.OrderedTopNProjection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -51,7 +70,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static io.crate.testing.SymbolMatchers.*;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isInputColumn;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -296,7 +317,7 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = plan("select u1.name from users u1, users u2 where u1.id = u2.id order by 1");
         NestedLoop nl = (NestedLoop) merge.subPlan();
         CollectPhase cpLeft = ((Collect) nl.left()).collectPhase();
-        assertThat(cpLeft.toCollect(), contains(isReference("name"), isReference("id")));
+        assertThat(cpLeft.toCollect(), contains(isReference("id"), isReference("name")));
         CollectPhase cpRight = ((Collect) nl.right()).collectPhase();
         assertThat(cpRight.toCollect(), contains(isReference("id")));
     }
@@ -357,12 +378,12 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(nestedLoop.nestedLoopPhase().projections(),
             Matchers.contains(
                 instanceOf(FilterProjection.class),
-                instanceOf(OrderedTopNProjection.class),
+                instanceOf(EvalProjection.class),
                 instanceOf(GroupProjection.class)
             )
         );
 
-        OrderedTopNProjection projection = (OrderedTopNProjection) nestedLoop.nestedLoopPhase().projections().get(1);
+        EvalProjection projection = (EvalProjection) nestedLoop.nestedLoopPhase().projections().get(1);
         assertThat(projection.outputs().size(), is(2));
     }
 
