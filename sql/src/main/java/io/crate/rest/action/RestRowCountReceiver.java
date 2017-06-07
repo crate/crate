@@ -26,6 +26,7 @@ import io.crate.action.sql.BaseResultReceiver;
 import io.crate.analyze.symbol.Field;
 import io.crate.data.Row;
 import org.elasticsearch.common.logging.ESLogger;
+import io.crate.exceptions.SQLExceptions;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.BytesRestResponse;
@@ -95,7 +96,7 @@ class RestRowCountReceiver extends BaseResultReceiver {
     @Override
     public void fail(@Nonnull Throwable t) {
         try {
-            channel.sendResponse(new CrateThrowableRestResponse(channel, t));
+            channel.sendResponse(new CrateThrowableRestResponse(channel, SQLExceptions.createSQLActionException(t)));
         } catch (Throwable e) {
             LOGGER.error("failed to send failure response", e);
         } finally {
