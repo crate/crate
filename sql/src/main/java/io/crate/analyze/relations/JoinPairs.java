@@ -32,7 +32,12 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 
 public final class JoinPairs {
@@ -49,7 +54,7 @@ public final class JoinPairs {
         JoinPair joinPair = ofRelations(left, right, joinPairs, true);
         if (joinPair == null) {
             // default to cross join (or inner, doesn't matter)
-            return new JoinPair(left, right, JoinType.CROSS);
+            return JoinPair.crossJoin(left, right);
         }
         assert !(joinPairs instanceof ImmutableList) : "joinPairs list must be mutable if it contains items";
         // if it's an INNER, lets check for reverse relations and merge conditions
@@ -87,7 +92,7 @@ public final class JoinPairs {
         if (checkReversePair) {
             for (JoinPair joinPair : joinPairs) {
                 if (joinPair.equalsNames(right, left)) {
-                    JoinPair reverseJoinPair = new JoinPair(
+                    JoinPair reverseJoinPair = JoinPair.of(
                         joinPair.right(),
                         joinPair.left(),
                         joinPair.joinType().invert(),

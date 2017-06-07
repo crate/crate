@@ -36,14 +36,20 @@ public class JoinPair {
 
     private QualifiedName left;
     private QualifiedName right;
+
     @Nullable
     private Symbol condition;
 
-    public JoinPair(QualifiedName left, QualifiedName right, JoinType joinType) {
-        this(left, right, joinType, null);
+    public static JoinPair crossJoin(QualifiedName left, QualifiedName right) {
+        return new JoinPair(left, right, JoinType.CROSS, null);
     }
 
-    public JoinPair(QualifiedName left, QualifiedName right, JoinType joinType, @Nullable Symbol condition) {
+    public static JoinPair of(QualifiedName left, QualifiedName right, JoinType joinType, Symbol condition) {
+        assert condition != null || joinType == JoinType.CROSS : "condition must be present unless it's a cross-join";
+        return new JoinPair(left, right, joinType, condition);
+    }
+
+    private JoinPair(QualifiedName left, QualifiedName right, JoinType joinType, @Nullable Symbol condition) {
         this.left = left;
         this.right = right;
         this.joinType = joinType;

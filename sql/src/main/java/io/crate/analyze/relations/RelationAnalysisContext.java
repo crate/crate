@@ -29,7 +29,13 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class RelationAnalysisContext {
 
@@ -78,7 +84,7 @@ public class RelationAnalysisContext {
             }
             idx++;
         }
-        addJoinPair(new JoinPair(left, right, joinType, joinCondition));
+        addJoinPair(JoinPair.of(left, right, joinType, joinCondition));
     }
 
     List<JoinPair> joinPairs() {

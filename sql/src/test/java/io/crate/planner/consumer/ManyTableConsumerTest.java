@@ -26,7 +26,11 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.*;
+import io.crate.analyze.Analysis;
+import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.ParameterContext;
+import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.TwoTableJoin;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.planner.node.dql.join.JoinType;
@@ -40,7 +44,12 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
@@ -50,6 +59,13 @@ import static org.hamcrest.core.Is.is;
 public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
+    private final Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.of(
+        new QualifiedName(T3.T1_INFO.ident().name()), T3.TR_1,
+        new QualifiedName(T3.T2_INFO.ident().name()), T3.TR_2,
+        new QualifiedName(T3.T3_INFO.ident().name()), T3.TR_3,
+        new QualifiedName(T3.T4_INFO.ident().name()), T3.TR_4);
+
+    private final SqlExpressions expressions = new SqlExpressions(sources);
 
     @Before
     public void prepare() {
@@ -114,8 +130,8 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOptimizeJoinNoPresort() throws Exception {
-        JoinPair pair1 = new JoinPair(T3.T1, T3.T2, JoinType.CROSS);
-        JoinPair pair2 = new JoinPair(T3.T2, T3.T3, JoinType.CROSS);
+        JoinPair pair1 = JoinPair.crossJoin(T3.T1, T3.T2);
+        JoinPair pair2 = JoinPair.crossJoin(T3.T2, T3.T3);
         @SuppressWarnings("unchecked")
         Collection<QualifiedName> qualifiedNames = ManyTableConsumer.orderByJoinConditions(
             Arrays.asList(T3.T1, T3.T2, T3.T3),
@@ -139,8 +155,8 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNoOptimizeWithSortingAndOuterJoin() throws Exception {
-        JoinPair pair1 = new JoinPair(T3.T1, T3.T2, JoinType.LEFT);
-        JoinPair pair2 = new JoinPair(T3.T2, T3.T3, JoinType.LEFT);
+        JoinPair pair1 = JoinPair.of(T3.T1, T3.T2, JoinType.LEFT, expressions.asSymbol("t1.a = t2.b"));
+        JoinPair pair2 = JoinPair.of(T3.T2, T3.T3, JoinType.LEFT, expressions.asSymbol("t2.b = t3.c"));
         @SuppressWarnings("unchecked")
         Collection<QualifiedName> qualifiedNames = ManyTableConsumer.orderByJoinConditions(
             Arrays.asList(T3.T1, T3.T2, T3.T3),
@@ -201,14 +217,6 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(root.right().getQualifiedName().toString(), is("doc.t2"));
     }
 
-    private static final Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.of(
-        new QualifiedName(T3.T1_INFO.ident().name()), T3.TR_1,
-        new QualifiedName(T3.T2_INFO.ident().name()), T3.TR_2,
-        new QualifiedName(T3.T3_INFO.ident().name()), T3.TR_3,
-        new QualifiedName(T3.T4_INFO.ident().name()), T3.TR_4);
-
-    private static final SqlExpressions expressions = new SqlExpressions(sources);
-
     @Test
     public void testReordering4TableSortOnWhereAndJoinConditionsThatDontMatchThePair() throws Exception {
         List<QualifiedName> relations = ImmutableList.of(
@@ -217,9 +225,9 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
             T3.T3,
             T3.T4);
         List<JoinPair> joinPairs = ImmutableList.of(
-            new JoinPair(T3.T1, T3.T2, JoinType.INNER, expressions.asSymbol("t1.a=t2.b")),
-            new JoinPair(T3.T2, T3.T3, JoinType.INNER, expressions.asSymbol("t2.b=t1.a")),
-            new JoinPair(T3.T4, T3.T3, JoinType.INNER, expressions.asSymbol("t4.id=t3.c")));
+            JoinPair.of(T3.T1, T3.T2, JoinType.INNER, expressions.asSymbol("t1.a=t2.b")),
+            JoinPair.of(T3.T2, T3.T3, JoinType.INNER, expressions.asSymbol("t2.b=t1.a")),
+            JoinPair.of(T3.T4, T3.T3, JoinType.INNER, expressions.asSymbol("t4.id=t3.c")));
         assertThat(ManyTableConsumer.orderByJoinConditions(
             relations,
             Collections.emptySet(),

@@ -22,10 +22,27 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.collect.*;
-import io.crate.analyze.*;
-import io.crate.analyze.relations.*;
-import io.crate.analyze.symbol.*;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.QuerySpec;
+import io.crate.analyze.TwoTableJoin;
+import io.crate.analyze.WhereClause;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.JoinPair;
+import io.crate.analyze.relations.JoinPairs;
+import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.QuerySplitter;
+import io.crate.analyze.relations.RemainingOrderBy;
+import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.FieldReplacer;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.table.Operation;
@@ -35,13 +52,22 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.node.dql.QueryThenFetch;
-import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -112,14 +138,14 @@ public class ManyTableConsumer implements Consumer {
                         pair.add(a);
                         pair.add(b);
                         joinPushDowns += implicitJoinedRelations.contains(pair) ? 1 : 0;
-                        currentPermutationJoinPairs.add(new JoinPair(a, b, JoinType.CROSS));
+                        currentPermutationJoinPairs.add(JoinPair.crossJoin(a, b));
                     }
                 } else {
                     switch (JoinPairs.determineRelationInclusion(currentPermutationJoinPairs, joinPair, a, b)) {
                         case BOTH_INCLUDED:
                             // relations are directly joined
                             joinPushDowns += 1;
-                            currentPermutationJoinPairs.add(new JoinPair(a, b, JoinType.CROSS));
+                            currentPermutationJoinPairs.add(JoinPair.crossJoin(a, b));
                             break;
                         case FOREIGN_INCLUDED:
                             // join condition includes a relation that is not part of the current join tree permutation

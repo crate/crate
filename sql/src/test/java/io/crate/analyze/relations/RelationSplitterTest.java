@@ -279,7 +279,7 @@ public class RelationSplitterTest extends CrateUnitTest {
     @Test
     public void testNoSplitOnOuterJoinRelation() throws Exception {
         QuerySpec querySpec = fromQuery("t2.y < 10");
-        JoinPair joinPair = new JoinPair(T3.T1, T3.T2, JoinType.LEFT, asSymbol("t1.a = t2.b"));
+        JoinPair joinPair = JoinPair.of(T3.T1, T3.T2, JoinType.LEFT, asSymbol("t1.a = t2.b"));
         RelationSplitter splitter = split(querySpec, Collections.singletonList(joinPair));
 
         assertThat(querySpec, isSQL("SELECT true WHERE (doc.t2.y < 10)"));
@@ -313,7 +313,7 @@ public class RelationSplitterTest extends CrateUnitTest {
             .outputs(Arrays.asList(asSymbol("t1.a"), asSymbol("t2.b")))
             .orderBy(new OrderBy(
                 Collections.singletonList(asSymbol("t1.a")), new boolean[]{false}, new Boolean[]{null}));
-        JoinPair t1AndT2InnerJoin = new JoinPair(T3.T1, T3.T2, JoinType.INNER, asSymbol("t1.a = t2.b"));
+        JoinPair t1AndT2InnerJoin = JoinPair.of(T3.T1, T3.T2, JoinType.INNER, asSymbol("t1.a = t2.b"));
 
         RelationSplitter splitter = split(qs, Collections.singletonList(t1AndT2InnerJoin));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.a ORDER BY doc.t1.a"));
