@@ -55,7 +55,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "select aliased_sub.x / aliased_sub.i from (select x, i from t1) as aliased_sub");
         QueriedDocTable relation = (QueriedDocTable) statement.relation();
         assertThat(relation.fields().size(), is(1));
-        assertThat(relation.fields().get(0), isField("divide(x, i)"));
+        assertThat(relation.fields().get(0), isField("(x / i)"));
         assertThat(relation.tableRelation().tableInfo(), is(T1_INFO));
     }
 
@@ -83,7 +83,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedDocTable relation = (QueriedDocTable) statement.relation();
         assertThat(relation.fields().size(), is(2));
         assertThat(relation.fields().get(0), isField("aa"));
-        assertThat(relation.fields().get(1), isField("add(add(x, i), 1)"));
+        assertThat(relation.fields().get(1), isField("(xi + 1)"));
         assertThat(relation.tableRelation().tableInfo(), is(T1_INFO));
     }
 
@@ -154,7 +154,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void  testPreserveAliasOnSubSelectInSelectList() throws Exception {
+    public void testPreserveAliasOnSubSelectInSelectList() throws Exception {
         SelectAnalyzedStatement statement = analyze("SELECT " +
                                                     "   (select min(t1.x) from t1) as min_col," +
                                                     "   (select 10) + (select 20) as add_subquery "+
@@ -166,4 +166,15 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.tableRelation().tableInfo(), is(T1_INFO));
     }
 
+    @Test
+    public void testPreserveAliasedOnSubSelect() throws Exception {
+        SelectAnalyzedStatement statement = analyze("SELECT tt1.x as a1, min(tt1.x) as a2 " +
+                                                    "FROM (select * from t1) as tt1 " +
+                                                    "GROUP BY a1");
+        QueriedDocTable relation = (QueriedDocTable) statement.relation();
+        assertThat(relation.fields().size(), is(2));
+        assertThat(relation.fields().get(0), isField("a1"));
+        assertThat(relation.fields().get(1), isField("a2"));
+        assertThat(relation.tableRelation().tableInfo(), is(T1_INFO));
+    }
 }
