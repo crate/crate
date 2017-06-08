@@ -154,7 +154,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testPreserveAliasOnSingleRowSubSelectWithVirtualTableJoin() throws Exception {
+    public void  testPreserveAliasOnSubSelectInSelectList() throws Exception {
         SelectAnalyzedStatement statement = analyze("SELECT " +
                                                     "   (select min(t1.x) from t1) as min_col," +
                                                     "   (select 10) + (select 20) as add_subquery "+
