@@ -176,6 +176,13 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testGroupByWithDistinctAggregation() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Aggregate functions are not allowed in GROUP BY");
+        analyze("select count(DISTINCT name) from sys.nodes group by 1");
+    }
+
+    @Test
     public void testNegativeLiteral() throws Exception {
         SelectAnalyzedStatement analyze = analyze("select * from sys.nodes where port['http'] = -400");
         Function whereClause = (Function) analyze.relation().querySpec().where().query();

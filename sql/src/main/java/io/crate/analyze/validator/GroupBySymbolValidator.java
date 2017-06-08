@@ -54,6 +54,9 @@ public class GroupBySymbolValidator {
             switch (symbol.info().type()) {
                 case SCALAR:
                     visitSymbol(symbol, context);
+                    for (Symbol argument : symbol.arguments()) {
+                        process(argument, context);
+                    }
                     break;
                 case AGGREGATE:
                     throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
