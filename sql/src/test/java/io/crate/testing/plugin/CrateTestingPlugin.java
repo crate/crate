@@ -21,13 +21,33 @@
 
 package io.crate.testing.plugin;
 
-import io.crate.operation.scalar.ScalarFunctionModule;
+import com.google.common.collect.ImmutableList;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.testing.SleepScalarFunction;
+import io.crate.types.DataTypes;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.plugins.Plugin;
+
+import java.util.Collection;
+import java.util.Collections;
 
 public class CrateTestingPlugin extends Plugin {
 
-    public void onModule(ScalarFunctionModule module) {
-        module.register(new SleepScalarFunction());
+    @Override
+    public Collection<Module> createGuiceModules() {
+        return Collections.singletonList(new AbstractModule() {
+            @Override
+            protected void configure() {
+                MapBinder<FunctionIdent, FunctionImplementation> functionBinder =
+                    MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
+                functionBinder.addBinding(new FunctionIdent(
+                    SleepScalarFunction.NAME,
+                    ImmutableList.of(DataTypes.LONG))
+                ).toInstance(new SleepScalarFunction());
+            }
+        });
     }
 }

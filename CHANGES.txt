@@ -15,6 +15,9 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+ - onModule() method had been removed from io.crate.Plugin interface,
+   so createGuiceModules() must be used instead.
+
 // FIXME: This was undocumented - should we still document it as breaking change?
  - Removed the `node.info.extended.type` setting
 
