@@ -60,7 +60,7 @@ REM log4j options
 set JAVA_OPTS=%JAVA_OPTS% -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx=true -Dlog4j.skipJansi=true
 
 if "%CRATE_CLASSPATH%" == "" (
-    set CRATE_CLASSPATH=%CRATE_HOME%/lib/crate-app-@version@.jar;%CRATE_HOME%/lib/*
+    set CRATE_CLASSPATH=%CRATE_HOME%/lib/crate-app-@version@.jar;%CRATE_HOME%/lib/*;%CRATE_HOME%/lib/sigar/*
 ) else (
     ECHO Error: Don't modify the classpath with CRATE_CLASSPATH. 1>&2
     ECHO Add plugins and their dependencies into the plugins/ folder instead. 1>&2

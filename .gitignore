@@ -40,6 +40,7 @@ out/
 
 # Single files and directories
 app/enterprise/
+app/oss_modules/
 app/plugins/
 app/src/main/dist/bin/crate.bat
 app/src/main/dist/bin/crate.in.sh

@@ -25,44 +25,37 @@ package io.crate.monitor;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
+import java.util.ServiceLoader;
 
 public class MonitorModule extends AbstractModule {
 
-    public final static Setting<String> NODE_INFO_EXTENDED_TYPE_SETTING =
-        new Setting<>("node.info.extended.type", "none", Function.identity(), Setting.Property.NodeScope);
-    private final static Logger LOGGER = Loggers.getLogger(MonitorModule.class);
-
     private final Settings settings;
-    private final Map<String, Class<? extends ExtendedNodeInfo>> extendedNodeInfoTypes = new HashMap<>();
+    private final Logger logger;
 
     public MonitorModule(Settings settings) {
+        this.logger = Loggers.getLogger(MonitorModule.class, settings);
         this.settings = settings;
-        addExtendedNodeInfoType("none", ZeroExtendedNodeInfo.class);
-    }
-
-    public void addExtendedNodeInfoType(String type, Class<? extends ExtendedNodeInfo> clazz) {
-        LOGGER.trace("Registering extended node information type: {}", type);
-        if (extendedNodeInfoTypes.put(type, clazz) != null) {
-            throw new IllegalArgumentException("Extended node information type [" + type + "] is already registered");
-        }
     }
 
     @Override
     protected void configure() {
-        String extendedInfoType = NODE_INFO_EXTENDED_TYPE_SETTING.get(settings);
-        LOGGER.trace("Using extended node information type: {}", extendedInfoType);
-
-        Class<? extends ExtendedNodeInfo> extendedInfoClass = extendedNodeInfoTypes.get(extendedInfoType);
-        if (extendedInfoClass == null) {
-            throw new IllegalArgumentException("Unknown extended node information type [" + extendedInfoType + "]");
+        boolean bound = false;
+        for (NodeInfoLoader nodeInfoLoader : ServiceLoader.load(NodeInfoLoader.class)) {
+            Class<? extends ExtendedNodeInfo> extendedNodeInfoClass = nodeInfoLoader.getExtendedNodeInfoClass(settings);
+            if (extendedNodeInfoClass == null) {
+                continue;
+            }
+            if (bound) {
+                throw new IllegalArgumentException("Multiple ExtendedNodeInfo implementations found");
+            }
+            bind(ExtendedNodeInfo.class).to(extendedNodeInfoClass);
+            bound = true;
         }
-
-        bind(ExtendedNodeInfo.class).to(extendedInfoClass).asEagerSingleton();
+        if (!bound) {
+            logger.info("Sigar not available. CPU/DISK/Network stats won't be available");
+            bind(ExtendedNodeInfo.class).to(ZeroExtendedNodeInfo.class).asEagerSingleton();
+        }
     }
 }

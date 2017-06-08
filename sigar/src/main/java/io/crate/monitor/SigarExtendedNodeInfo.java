@@ -26,7 +26,16 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.SingleObjectCache;
 import org.elasticsearch.env.NodeEnvironment;
-import org.hyperic.sigar.*;
+import org.hyperic.sigar.CpuPerc;
+import org.hyperic.sigar.FileSystem;
+import org.hyperic.sigar.FileSystemMap;
+import org.hyperic.sigar.FileSystemUsage;
+import org.hyperic.sigar.NetInterfaceConfig;
+import org.hyperic.sigar.OperatingSystem;
+import org.hyperic.sigar.ProcCpu;
+import org.hyperic.sigar.Sigar;
+import org.hyperic.sigar.SigarException;
+import org.hyperic.sigar.Tcp;
 
 import java.io.File;
 import java.util.HashMap;

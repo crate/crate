@@ -344,7 +344,6 @@ distributions {
             }
             into("lib") {
                 from libs
-                exclude 'sigar-*.jar'
                 exclude 'jmx-*.jar'
                 exclude 'crate-*.jar'
                 exclude 'es.jar'
@@ -355,6 +354,9 @@ distributions {
             }
             into("lib") {
                 from("enterprise")
+            }
+            into("lib") {
+                from("oss_modules")
             }
             into('plugins') {
                 from('plugins') {
@@ -409,12 +411,26 @@ task collectEnterpriseModules(dependsOn: [':users:jar']) {
         }
     }
 }
-
 collectEnterpriseModules.outputs.file ('enterprise')
+
+
+// Enable dynamic loading of sigar; (There is no fixed compile-time-dependency)
+// It's known to cause trouble on specific platform, so it's important
+// that the JAR can be removed without breaking CrateDB
+task collectOSSModules(dependsOn: [':sigar:jar']) {
+    doLast {
+        copy {
+            from(project(':sigar').tasks.jar.archivePath)
+            from(project(':sigar').projectDir.path + "/lib")
+            into 'oss_modules/sigar'
+        }
+    }
+}
+collectOSSModules.outputs.file ('oss_modules')
+
 
 task downloadPlugins(
         dependsOn: [':admin-ui:downloadPlugin',
-                    ':sigar:jar',
                     ':es:es-repository-hdfs:jar',
                     ':azure-discovery:jar',
                     ':jmx-monitoring:jar',
@@ -455,13 +471,6 @@ task downloadPlugins(
             from(project(':lang-js').buildDir.path + '/tmp/plugin-descriptor.properties')
             into 'plugins/lang-js'
         }
-
-        // copy crate-sigar plugin
-        copy {
-            from(project(':sigar').tasks.jar.archivePath)
-            from(project(':sigar').projectDir.path + "/lib")
-            into 'plugins/crate-sigar'
-        }
     }
 }
 
@@ -478,7 +487,7 @@ task downloadCrash {
     }
 }
 
-processResources.dependsOn(downloadPlugins, downloadCrash, collectEnterpriseModules)
+processResources.dependsOn(downloadPlugins, downloadCrash, collectEnterpriseModules, collectOSSModules)
 
 task(runDebug, dependsOn: 'classes', type: JavaExec) {
     main = 'io.crate.bootstrap.CrateDB'
@@ -513,4 +522,6 @@ sourceSets {
     }
 }
 
-clean.dependsOn(['cleanDownloadPlugins', 'cleanCollectEnterpriseModules'])
+clean.dependsOn(['cleanDownloadPlugins',
+                 'cleanCollectEnterpriseModules',
+                 'cleanCollectOSSModules'])

@@ -24,9 +24,11 @@ package io.crate.monitor;
 
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.hyperic.sigar.Sigar;
 
+@Singleton
 public class SigarService extends AbstractComponent {
 
     private final Sigar sigar;
@@ -42,7 +44,7 @@ public class SigarService extends AbstractComponent {
                 sigar.getPid();
                 logger.trace("sigar loaded successfully");
             } catch (Throwable t) {
-                logger.trace("failed to load sigar", t);
+                logger.info("failed to load sigar", t);
                 if (sigar != null) {
                     try {
                         sigar.close();
@@ -57,7 +59,7 @@ public class SigarService extends AbstractComponent {
         this.sigar = sigar;
     }
 
-    public boolean sigarAvailable() {
+    boolean sigarAvailable() {
         return sigar != null;
     }
 

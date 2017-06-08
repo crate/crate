@@ -20,6 +20,12 @@ Breaking Changes
 
  - Changed the default value of ``number_of_replicas`` from 1 to ``0-1``.
 
+Breaking Changes (Packaging only)
+=================================
+
+ - The sigar jar and object files have been moved from ``plugins/sigar`` to
+   ``lib/sigar``.
+
 Changes
 =======
 
