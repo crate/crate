@@ -32,6 +32,9 @@ Changes
 Fixes
 =====
 
+ - Return proper exception when group by is used on scalar funtions that are
+   applied to an aggregation.
+
  - Fixed an issue that causes aliases used in the select list to get lost on
    subselect queries.
 
