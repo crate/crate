@@ -266,6 +266,10 @@ public class LuceneQueryBuilder {
         MappedFieldType getFieldTypeOrNull(String fqColumnName) {
             return mapperService.fullName(fqColumnName);
         }
+
+        public QueryShardContext queryShardContext() {
+            return queryShardContext;
+        }
     }
 
     public static String convertSqlLikeToLuceneWildcard(String wildcardString) {
