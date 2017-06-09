@@ -77,13 +77,13 @@ public class ObjectArrayMapper extends ObjectMapper {
 
     ObjectArrayMapper(String name, ObjectMapper innerMapper, Settings settings) {
         super(name,
-            innerMapper.fullPath(),
-            innerMapper.isEnabled(),
-            innerMapper.nested(),
-            innerMapper.dynamic(),
-            innerMapper.includeInAll(),
-            Collections.emptyMap(),
-            settings);
+              innerMapper.fullPath(),
+              innerMapper.isEnabled(),
+              innerMapper.nested(),
+              innerMapper.dynamic(),
+              innerMapper.includeInAll(),
+              Collections.emptyMap(),
+              settings);
         this.innerMapper = innerMapper;
     }
 
@@ -99,16 +99,24 @@ public class ObjectArrayMapper extends ObjectMapper {
 
     @Override
     public ObjectMapper updateFieldType(Map<String, MappedFieldType> fullNameToFieldType) {
-        ObjectArrayMapper clone = clone();
-        clone.innerMapper = innerMapper.updateFieldType(fullNameToFieldType);
-        return clone;
+        ObjectMapper updatedMapper = innerMapper.updateFieldType(fullNameToFieldType);
+        if (innerMapper != updatedMapper) {
+            ObjectArrayMapper clone = clone();
+            clone.innerMapper = updatedMapper;
+            return clone;
+        }
+        return this;
     }
 
     @Override
     public ObjectMapper mappingUpdate(Mapper mapper) {
-        ObjectArrayMapper clone = clone();
-        clone.innerMapper = innerMapper.mappingUpdate(mapper);
-        return clone;
+        ObjectMapper updatedMapper = innerMapper.mappingUpdate(mapper);
+        if (innerMapper != updatedMapper) {
+            ObjectArrayMapper clone = clone();
+            clone.innerMapper = updatedMapper;
+            return clone;
+        }
+        return this;
     }
 
     @Override
