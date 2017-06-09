@@ -21,6 +21,9 @@ Changes
 
 Fixes
 =====
+ 
+ - Fixed an issue that leads to an exception if the statement evaluates on
+   arrays that are provided in an aggregation function.
 
  - Fixed a performance regression that could cause JOIN queries to execute
    slower than they used to.
