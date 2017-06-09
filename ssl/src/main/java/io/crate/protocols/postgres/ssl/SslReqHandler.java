@@ -22,17 +22,24 @@
 package io.crate.protocols.postgres.ssl;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelPipeline;
 
 /**
  * The handler interface for dealing with Postgres SSLRequest messages.
  *
+ * ______________SslRequest_______________
+ * | length (int32) |   payload (int32)  |  <- pattern
+ * |       8        |      80877103      |  <- actual message
+ *
  * https://www.postgresql.org/docs/current/static/protocol-flow.html#AEN113116
+ *
+ * The handler implementation should be stateless.
  */
 public interface SslReqHandler {
 
-    /** Bytes to be available to the handler to process the message */
-    int NUM_BYTES_REQUIRED = 8;
+    /** The total size of the SslRequest message (including the size itself) */
+    int SSL_REQUEST_BYTE_LENGTH = 8;
     /* The payload of the SSL Request message */
     int SSL_REQUEST_CODE = 80877103;
 
@@ -50,10 +57,29 @@ public interface SslReqHandler {
      * buffer read marker correctly such that successive readers
      * see the correct data. The handler is expected to position the
      * marker after the SSLRequest payload.
-     * @param pipeline The Netty pipeline which may be modified
      * @param buffer The buffer with incoming data
+     * @param pipeline The Netty pipeline which may be modified
      * @return The state of the handler
      */
-    State process(ChannelPipeline pipeline, ByteBuf buffer);
+    State process(ByteBuf buffer, ChannelPipeline pipeline);
 
+
+    default void ackSslRequest(Channel channel) {
+        writeByteAndFlushMessage(channel, 'S');
+    }
+
+    default void rejectSslRequest(Channel channel) {
+        writeByteAndFlushMessage(channel, 'N');
+    }
+
+    /**
+     * Response to send to the remote end, either 'N' or 'S'.
+     * @param channel The channel to write the response to
+     * @param byteToWrite byte represented as an int
+     */
+    static void writeByteAndFlushMessage(Channel channel, int byteToWrite) {
+        ByteBuf channelBuffer = channel.alloc().buffer(1);
+        channelBuffer.writeByte(byteToWrite);
+        channel.writeAndFlush(channelBuffer);
+    }
 }

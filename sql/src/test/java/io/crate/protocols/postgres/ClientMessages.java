@@ -22,6 +22,7 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.protocols.postgres.ssl.SslReqHandler;
 import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
 import org.apache.lucene.util.BytesRef;
@@ -36,6 +37,11 @@ import java.util.List;
  * the PostgreSQL protocol documentation.
  */
 class ClientMessages {
+
+    static void sendSslReqMessage(ByteBuf buffer) {
+        buffer.writeInt(SslReqHandler.SSL_REQUEST_BYTE_LENGTH);
+        buffer.writeInt(SslReqHandler.SSL_REQUEST_CODE);
+    }
 
     static void sendStartupMessage(ByteBuf buffer, String dbName) {
         byte[] dbKey = "database".getBytes(StandardCharsets.UTF_8);

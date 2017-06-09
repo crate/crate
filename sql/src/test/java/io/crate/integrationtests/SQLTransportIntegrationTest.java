@@ -128,6 +128,10 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     protected SQLResponse response;
 
     public SQLTransportIntegrationTest() {
+        this(false);
+    }
+
+    public SQLTransportIntegrationTest(boolean useSSL) {
         this(new SQLTransportExecutor(
             new SQLTransportExecutor.ClientProvider() {
                 @Override
@@ -141,8 +145,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                     Iterator<InetSocketTransportAddress> addressIter = postgresNetty.boundAddresses().iterator();
                     if (addressIter.hasNext()) {
                         InetSocketTransportAddress address = addressIter.next();
-                        return String.format(Locale.ENGLISH, "jdbc:crate://%s:%d/",
-                            address.getHost(), address.getPort());
+                        return String.format(Locale.ENGLISH, "jdbc:crate://%s:%d/?ssl=%s",
+                            address.getHost(), address.getPort(), useSSL);
                     }
                     return null;
                 }

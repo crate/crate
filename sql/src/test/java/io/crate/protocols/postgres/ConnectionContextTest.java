@@ -31,13 +31,15 @@ import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.operation.auth.HbaProtocol;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.user.User;
-import io.crate.protocols.postgres.ssl.SslHandlerUtils;
+import io.crate.protocols.postgres.ssl.SslReqRejectingHandler;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,15 +49,18 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static io.netty.util.ReferenceCountUtil.releaseLater;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isOneOf;
 import static org.mockito.Mockito.*;
 
 public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLOperations sqlOperations;
     private List<SQLOperations.Session> sessions = new ArrayList<>();
+    private EmbeddedChannel channel;
 
     @Before
     public void prepare() {
@@ -77,11 +82,19 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
         };
     }
 
+    @After
+    public void dispose() {
+        if (channel != null) {
+            channel.close().awaitUninterruptibly();
+            channel = null;
+        }
+    }
+
     @Test
     public void testHandleEmptySimpleQuery() throws Exception {
         ConnectionContext ctx =
             new ConnectionContext(
-                SslHandlerUtils.getDefault(),
+                new SslReqRejectingHandler(Settings.EMPTY),
                 mock(SQLOperations.class),
                 AuthenticationProvider.NOOP_AUTH);
         EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -101,8 +114,6 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
         secondResponse.readBytes(responseBytes);
         // ReadyForQuery: 'Z' | int32 len | 'I'
         assertThat(responseBytes, is(new byte[]{'Z', 0, 0, 0, 5, 'I'}));
-
-        channel.close().awaitUninterruptibly();
     }
 
     @Test
@@ -112,7 +123,7 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
         when(sqlOperations.createSession(any(SessionContext.class))).thenReturn(session);
         ConnectionContext ctx =
             new ConnectionContext(
-                SslHandlerUtils.getDefault(),
+                new SslReqRejectingHandler(Settings.EMPTY),
                 sqlOperations,
                 new TestAuthentication(null));
         EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -125,14 +136,13 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
         channel.writeInbound(buffer);
 
         verify(session, times(1)).sync();
-        channel.close().awaitUninterruptibly();
     }
 
     @Test
     public void testBindMessageCanBeReadIfTypeForParamsIsUnknown() throws Exception {
         ConnectionContext ctx =
             new ConnectionContext(
-                SslHandlerUtils.getDefault(),
+                new SslReqRejectingHandler(Settings.EMPTY),
                 sqlOperations,
                 new TestAuthentication(null));
         EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -149,8 +159,6 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
         SQLOperations.Session session = sessions.get(0);
         // If the query can be retrieved via portalName it means bind worked
         assertThat(session.getQuery("P1"), is("select ?, ?"));
-
-        channel.close().awaitUninterruptibly();
     }
 
     private static class TestAuthentication implements Authentication {
@@ -182,4 +190,30 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
             };
         }
     }
+
+    @Test
+    public void testSslReqRejectingHandler() {
+        ConnectionContext ctx =
+            new ConnectionContext(
+                new SslReqRejectingHandler(Settings.EMPTY),
+                mock(SQLOperations.class),
+                AuthenticationProvider.NOOP_AUTH);
+
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        ByteBuf buffer = releaseLater(Unpooled.buffer());
+        ClientMessages.sendSslReqMessage(buffer);
+        channel.writeInbound(buffer);
+
+        // We should get back an 'N'...
+        ByteBuf responseBuffer = channel.readOutbound();
+        byte response = responseBuffer.readByte();
+        assertEquals(response, 'N');
+
+        // ...and continue unencrypted (no ssl handler)
+        for (Map.Entry<String, ChannelHandler> entry : channel.pipeline()) {
+            assertThat(entry.getValue(), isOneOf(ctx.decoder, ctx.handler));
+        }
+    }
+
 }

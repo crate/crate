@@ -1,0 +1,18 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+archivesBaseName = 'ssl-impl'
+group = 'io.crate'
+description = 'SSL Encryption Implementation for CrateDB'
+
+dependencies {
+    compile project(':ssl')
+    testCompile project(':sql')
+    testCompile project(':integration-testing')
+    testCompile project(path: ':sql', configuration: 'testOutput')
+    testCompile project(path: ':dex', configuration: 'testOutput')
+    testCompile('io.crate:crate-jdbc:2.1.5') {
+        exclude group: 'net.java.dev.jna', module: 'jna'
+        exclude group: 'commons-logging', module: 'commons-logging'
+        exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
+    }
+}

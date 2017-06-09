@@ -401,12 +401,13 @@ jar {
     from fileTree(buildDir).matching { include 'META-INF/services/*' }
 }
 
-task collectEnterpriseModules(dependsOn: [':users:jar']) {
+task collectEnterpriseModules(dependsOn: [':users:jar', ':ssl-impl:jar']) {
     // this task collects all enterprise module jars into a single folder
     // named enterprise from which the files are taken for the installDist task
     doLast {
         copy {
             from(project(':users').tasks.jar.archivePath)
+            from(project(':ssl-impl').tasks.jar.archivePath)
             into 'enterprise'
         }
     }
