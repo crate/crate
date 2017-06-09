@@ -83,7 +83,6 @@ public class DocInputFactory {
                     valueConversion = dataType::value;
                 } else {
                     // need to convert binary bytesRef to BytesRef string
-                    // FIXME: is valueForDisplay the correct replacement for valueForSearch?
                     valueConversion = i -> dataType.value(mappedFieldType.valueForDisplay(i));
                 }
                 break;
