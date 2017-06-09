@@ -26,6 +26,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -102,7 +103,13 @@ public class ArrayType extends DataType implements CollectionType, Streamer<Obje
 
         int size1 = val1 instanceof List ? ((List) val1).size() : ((Object[]) val1).length;
         int size2 = val2 instanceof List ? ((List) val2).size() : ((Object[]) val2).length;
-        return Integer.compare(size1, size2);
+
+        int compResult = Integer.compare(size1, size2);
+        if (compResult == 0) {
+            return Arrays.deepEquals((Object[]) val1, (Object[]) val2) ? 0 : 1;
+        } else {
+            return compResult;
+        }
     }
 
     @Override
