@@ -54,6 +54,7 @@ import io.crate.operation.reference.sys.node.local.SysNodeExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.protocols.postgres.PostgresNetty;
+import io.crate.protocols.postgres.ssl.SslConfigSettings;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.settings.CrateSetting;
 import org.elasticsearch.action.bulk.BulkModule;
@@ -114,6 +115,14 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(AuthenticationProvider.AUTH_HOST_BASED_ENABLED_SETTING.setting());
         settings.add(AuthenticationProvider.AUTH_HOST_BASED_CONFIG_SETTING.setting());
         settings.add(AuthenticationProvider.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting());
+
+        // Settings for SSL (available only in the Enterprise version)
+        settings.add(SslConfigSettings.SSL_ENABLED.setting());
+        settings.add(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.setting());
+        settings.add(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.setting());
+        settings.add(SslConfigSettings.SSL_KEYSTORE_FILEPATH.setting());
+        settings.add(SslConfigSettings.SSL_KEYSTORE_PASSWORD.setting());
+        settings.add(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.setting());
 
         // also add CrateSettings
         for (CrateSetting crateSetting : CrateSettings.CRATE_CLUSTER_SETTINGS) {

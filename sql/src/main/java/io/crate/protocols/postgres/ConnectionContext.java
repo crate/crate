@@ -72,7 +72,7 @@ import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
  *          |    SSLRequest                    |
  *          |--------------------------------->|
  *          |                                  |
- *          |     'S' | 'N' | error            |   (always N - ssl not supported)
+ *          |     'S' | 'N' | error            |   (supported in Enterprise version)
  *          |<---------------------------------|
  *
  *
@@ -633,7 +633,7 @@ class ConnectionContext {
         private ByteBuf decode(ByteBuf buffer, ChannelPipeline pipeline) {
             switch (state) {
                 case PRE_STARTUP:
-                    if (sslReqHandler.process(pipeline, buffer) == SslReqHandler.State.DONE) {
+                    if (sslReqHandler.process(buffer, pipeline) == SslReqHandler.State.DONE) {
                         state = STARTUP_HEADER;
                         // We need to call decode again in case there are additional bytes in the buffer
                         return decode(buffer, pipeline);

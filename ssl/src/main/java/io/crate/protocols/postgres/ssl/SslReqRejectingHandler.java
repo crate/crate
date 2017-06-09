@@ -34,14 +34,14 @@ public class SslReqRejectingHandler implements SslReqHandler {
 
     private final Logger LOGGER;
 
-    SslReqRejectingHandler(Settings settings) {
+    public SslReqRejectingHandler(Settings settings) {
         LOGGER = Loggers.getLogger(SslReqRejectingHandler.class, settings);
-        LOGGER.debug("SSL support is disabled.");
+        LOGGER.info("SSL support is disabled.");
     }
 
     @Override
-    public State process(ChannelPipeline pipeline, ByteBuf buffer) {
-        if (buffer.readableBytes() < NUM_BYTES_REQUIRED) {
+    public State process(ByteBuf buffer, ChannelPipeline pipeline) {
+        if (buffer.readableBytes() < SSL_REQUEST_BYTE_LENGTH) {
             return State.WAITING_FOR_INPUT;
         }
         // mark the buffer so we can jump back if we don't handle this startup
@@ -50,7 +50,7 @@ public class SslReqRejectingHandler implements SslReqHandler {
         if (buffer.readInt() == 8 && buffer.readInt() == SSL_REQUEST_CODE) {
             // optional SSL negotiation pkg
             LOGGER.trace("Received SSL negotiation pkg");
-            SslHandlerUtils.writeByteAndFlushMessage(pipeline.channel(), 'N');
+            rejectSslRequest(pipeline.channel());
             buffer.markReaderIndex();
         } else {
             buffer.resetReaderIndex();

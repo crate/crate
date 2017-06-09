@@ -22,21 +22,16 @@
 
 package io.crate.protocols.postgres.ssl;
 
-import org.elasticsearch.common.settings.Settings;
+/**
+ * Exception type for SSL configuration specific exceptions.
+ */
+public class SslConfigurationException extends RuntimeException {
 
-import java.util.function.Supplier;
-
-public class SslHandlerProvider implements Supplier<SslReqHandler> {
-
-    private final SslReqHandler sslReqHandler;
-
-    public SslHandlerProvider(Settings settings) {
-        this.sslReqHandler = new SslReqRejectingHandler(settings);
+    SslConfigurationException(String msg) {
+        super(msg);
     }
 
-    @Override
-    public SslReqHandler get() {
-        return sslReqHandler;
+    SslConfigurationException(String msg, Exception cause) {
+        super(msg, cause);
     }
-
 }
