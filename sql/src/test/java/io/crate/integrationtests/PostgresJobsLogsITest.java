@@ -31,6 +31,7 @@ import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.UUID;
@@ -76,10 +77,9 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
             String uniqueId = UUID.randomUUID().toString();
             final String stmtStr = "select name, '" + uniqueId + "' from sys.cluster";
-            final String stmtStrWhere = "select name, ''" + uniqueId + "'' from sys.cluster";
 
             conn.prepareStatement(stmtStr).execute();
-            assertJobLogContains(conn, new String[]{stmtStr}, new String[]{stmtStrWhere}, false);
+            assertJobLogContains(conn, new String[]{stmtStr}, false);
         }
     }
 
@@ -94,18 +94,12 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
             String uniqueId2 = UUID.randomUUID().toString();
             Statement statement = conn.createStatement();
             final String stmtStr1 = "insert into t (x) values ('" + uniqueId1 + "')";
-            final String stmtStr1Where = "insert into t (x) values (''" + uniqueId1 + "'')";
             final String stmtStr2 = "insert into t (x) values ('" + uniqueId2 + "')";
-            final String stmtStr2Where = "insert into t (x) values (''" + uniqueId2 + "'')";
             statement.addBatch(stmtStr1);
             statement.addBatch(stmtStr2);
             int[] results = statement.executeBatch();
             assertThat(results, is(new int[]{1, 1}));
-
-            assertJobLogContains(conn,
-                new String[]{stmtStr1, stmtStr2},
-                new String[]{stmtStr1Where, stmtStr2Where},
-                false);
+            assertJobLogContains(conn, new String[]{stmtStr1, stmtStr2}, false);
         }
     }
 
@@ -119,12 +113,11 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
             String uniqueId = UUID.randomUUID().toString();
             final String stmtStr = "insert into t(a,b) values(null, '" + uniqueId + "')";
-            final String stmtStrWhere = "insert into t(a,b) values(null, ''" + uniqueId + "'')";
             try {
                 conn.prepareStatement(stmtStr).execute();
                 fail("NOT NULL constraint is not respected");
             } catch (Exception e) {
-                assertJobLogContains(conn, new String[]{stmtStr}, new String[]{stmtStrWhere}, true);
+                assertJobLogContains(conn, new String[]{stmtStr}, true);
             }
         }
     }
@@ -141,53 +134,41 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
             String uniqueId2 = UUID.randomUUID().toString();
             String uniqueId3 = UUID.randomUUID().toString();
             Statement statement = conn.createStatement();
-            final String stmtStr1 = "insert into t (a, x) values (1, '" + uniqueId1 + "')";
-            final String stmtStr1Where = "insert into t (a, x) values (1, ''" + uniqueId1 + "'')";
-            final String stmtStr2 = "insert into t (a, x) values (null, '" + uniqueId2 + "')";
-            final String stmtStr2Where = "insert into t (a, x) values (null, ''" + uniqueId2 + "'')";
-            final String stmtStr3 = "insert into t (a, x) values (3, '" + uniqueId3 + "')";
-            final String stmtStr3Where = "insert into t (a, x) values (3, ''" + uniqueId3 + "'')";
-            statement.addBatch(stmtStr1);
-            statement.addBatch(stmtStr2);
-            statement.addBatch(stmtStr3);
+            final String insert1 = "insert into t (a, x) values (1, '" + uniqueId1 + "')";
+            final String insertNull = "insert into t (a, x) values (null, '" + uniqueId2 + "')";
+            final String insert3 = "insert into t (a, x) values (3, '" + uniqueId3 + "')";
+
+            statement.addBatch(insert1);
+            statement.addBatch(insertNull);
+            statement.addBatch(insert3);
             try {
                 statement.executeBatch();
                 fail("NOT NULL constraint is not respected");
             } catch (Exception e) {
-                assertJobLogContains(conn,
-                    new String[]{stmtStr1, stmtStr3},
-                    new String[]{stmtStr1Where, stmtStr3Where},
-                    false);
-                assertJobLogContains(conn,
-                    new String[]{stmtStr2},
-                    new String[]{stmtStr2Where},
-                    true);
+                assertJobLogContains(conn, new String[]{insert1, insert3}, false);
+                assertJobLogContains(conn, new String[]{insertNull}, true);
             }
         }
     }
 
     private void assertJobLogContains(final Connection conn,
-                                      final String[] stmtStrs,
-                                      final String[] stmtStrsWhere,
+                                      final String[] statements,
                                       final boolean checkForError) throws Exception {
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    for (int i = 0; i < stmtStrs.length; i++) {
-                        String stmtStr = stmtStrs[i];
-                        String stmtStrWhere = stmtStrsWhere[i];
-                        ResultSet resultSet = conn.prepareStatement("select stmt, error from sys.jobs_log " +
-                                                                    "where stmt='" + stmtStrWhere + "'").executeQuery();
-                        assertThat(resultSet.next(), is(true));
-                        assertThat(resultSet.getString(1), is(stmtStr));
-                        if (checkForError) {
-                            assertThat(resultSet.getString(2), is("Cannot insert null value for column a"));
-                        }
+        PreparedStatement pStmt = conn.prepareStatement("select stmt, error from sys.jobs_log where stmt = ?");
+        assertBusy(() -> {
+            try {
+                for (String stmtStr : statements) {
+                    pStmt.setString(1, stmtStr);
+                    ResultSet resultSet = pStmt.executeQuery();
+                    assertThat(
+                        "sys.jobs_log must have an entry WHERE stmt=" + stmtStr, resultSet.next(), is(true));
+                    assertThat(resultSet.getString(1), is(stmtStr));
+                    if (checkForError) {
+                        assertThat(resultSet.getString(2), is("Cannot insert null value for column a"));
                     }
-                } catch (Exception e) {
-                    fail("Shouldn't throw an exception: " + e.getMessage());
                 }
+            } catch (Exception e) {
+                fail("Shouldn't throw an exception: " + e.getMessage());
             }
         });
     }
