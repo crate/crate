@@ -34,15 +34,16 @@ level, such as table or schema.
 .......
 
 Granting ``Data Query Language (DQL)`` privilege to a user, indicates that this
-user is allowed to execute ``SELECT``, ``SHOW`` and ``SET SESSION`` statements,
-as well as using the available user defined functions.
+user is allowed to execute ``SELECT``, ``SHOW``, ``REFRESH``, ``COPY TO``,
+``EXPLAIN`` and ``SET SESSION`` statements, as well as using the available
+user defined functions.
 
 ``DML``
 .......
 
 Granting ``Data Manipulation Language (DML)`` privilege to a user, indicates
-that this user is allowed to execute ``INSERT``, ``UPDATE`` and ``DELETE``
-statements.
+that this user is allowed to execute ``INSERT``, ``COPY FROM```, ``UPDATE``
+and ``DELETE`` statements.
 
 ``DDL``
 .......
