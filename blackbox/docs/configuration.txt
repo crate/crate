@@ -1938,12 +1938,12 @@ Javascript Language
   experimental feature and is not securely sandboxed its disabled by default.
 
 Authentication
-==============
+--------------
 
 .. _host_based_auth:
 
 Trust Authentication
---------------------
+~~~~~~~~~~~~~~~~~~~~
 
 **auth.trust.http_default_user**
   | *Runtime:* ``no``
@@ -1954,7 +1954,7 @@ Trust Authentication
   ``X-USER`` request header.
 
 Host Based Authentication
--------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Authentication settings (``auth.host_based.*``) are node settings, which means
 that their values apply only to the node where they are applied and different
@@ -1968,7 +1968,7 @@ nodes may have different authentication settings.
   by default.
 
 HBA Entries
-~~~~~~~~~~~
+***********
 
 The ``auth.host_based.config.`` setting is a group setting that can have zero,
 one or multiple groups that are defined by their group key (``${order}``) and
