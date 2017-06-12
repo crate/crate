@@ -58,6 +58,74 @@
 # features of the Enterprise Edition is governed by the terms and conditions of
 # your Enterprise or Subscription Agreement with Crate.io.
 
+#/////////////////////////// JMX Monitoring Plugin ////////////////////////////
+
+# The JMX monitoring plugin requires that stat collection is enabled.
+#stats.enabled: true
+
+#//////////////////////// Database Administration /////////////////////////////
+
+# To allow authenticated access to CrateDB from specific hosts, you must enable
+# the host based authentication setting.
+#auth.host_based.enabled: true
+
+# Client access and authentication is then configured via the host based config,
+# a map of remote client access entries. For example:
+#auth:
+#  host_based:
+#    enabled: true
+#    config:
+#      0:
+#        user: mike
+#        address: 32.0.0.0/8
+#        method: trust
+#        protocol: pg
+#      a:
+#        user: barb
+#        address: 172.16.0.0
+#        protocol: pg
+#      b:
+#        user: crate
+#        address: 32.0.0.0/8
+#        method: trust
+#      y:
+#        user: eleven
+#        protocol: pg
+#      e:
+#        user: dustin
+#        address: 172.16.0.0
+#        method: trust
+#        protocol: http
+#      z:
+#        method: trust
+
+# When CrateDB is started, the cluster contains one predefined superuser, called
+# `crate`. To enable trust based authentication for the super user, `crate` must
+# be specified in the host_based setting, as follows:
+#auth:
+#  host_based:
+#    enabled: true
+#    config:
+#      0:
+#        user: crate
+
+# When trust based authentication is used, the server just takes the username
+# provided by the client as is without further validation. The HTTP
+# implementation takes the value of the `X-USER` request header as the username.
+# Since a user is always required for trust based authentication, a default user
+# (in case `X-USER` is not set) can be defined as follows:
+#auth:
+#  host_based:
+#    http_default_user: dustin
+
+#//////////////////////// User Defined Functions /////////////////////////////
+
+# To enable Javascript language for user defined functions, you can set it as
+# follows:
+#lang.js.enabled: true
+
+# The Javascript language is an experimental feature and is not securely
+# sandboxed, so it is disabled by default.
 
 ################################# Full Settings ###############################
 
