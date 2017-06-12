@@ -35,6 +35,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 import static org.hamcrest.core.Is.is;
 
@@ -142,8 +143,11 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
             statement.addBatch(insertNull);
             statement.addBatch(insert3);
             try {
-                statement.executeBatch();
-                fail("NOT NULL constraint is not respected");
+                int[] result = statement.executeBatch();
+                assertThat("One result must be 0 because it failed due to NOT NULL",
+                    IntStream.of(result).filter(i -> i == 0).count(), is(1L));
+                assertThat("Two inserts must have succeeded",
+                    IntStream.of(result).filter(i -> i == 1).count(), is(2L));
             } catch (Exception e) {
                 assertJobLogContains(conn, new String[]{insert1, insert3}, false);
                 assertJobLogContains(conn, new String[]{insertNull}, true);
