@@ -32,11 +32,9 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -48,7 +46,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class TransportShardDeleteAction extends TransportShardAction<ShardDeleteRequest, ShardDeleteRequest.Item> {
 
     private final static String ACTION_NAME = "indices:crate/data/write/delete";
-    private final IndicesService indicesService;
 
     @Inject
     public TransportShardDeleteAction(Settings settings,
@@ -61,14 +58,11 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                                       ActionFilters actionFilters) {
         super(settings, ACTION_NAME, transportService, indexNameExpressionResolver,
             clusterService, indicesService, threadPool, shardStateAction, actionFilters, ShardDeleteRequest::new);
-        this.indicesService = indicesService;
     }
 
     @Override
-    protected WriteResult<ShardResponse> processRequestItems(ShardId shardId, ShardDeleteRequest request, AtomicBoolean killed) throws InterruptedException {
+    protected WriteResult<ShardResponse> processRequestItems(IndexShard indexShard, ShardDeleteRequest request, AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
-        IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
-        IndexShard indexShard = indexService.getShard(shardId.id());
         Translog.Location translogLocation = null;
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
@@ -116,9 +110,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     }
 
     @Override
-    protected Translog.Location processRequestItemsOnReplica(ShardId shardId, ShardDeleteRequest request) {
-        IndexService indexService = indicesService.indexServiceSafe(request.shardId().getIndex());
-        IndexShard indexShard = indexService.getShard(shardId.id());
+    protected Translog.Location processRequestItemsOnReplica(IndexShard indexShard, ShardDeleteRequest request) {
         Translog.Location translogLocation = null;
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
