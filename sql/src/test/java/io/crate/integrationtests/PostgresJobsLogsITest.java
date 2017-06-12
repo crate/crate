@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
@@ -37,21 +38,20 @@ import java.util.UUID;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
+@UseJdbc(1)
 public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
-
-    private static final String JDBC_POSTGRESQL_URL = "jdbc:crate://127.0.0.1:4244/";
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         Settings.Builder builder = Settings.builder();
         return builder.put(super.nodeSettings(nodeOrdinal))
-            .put("psql.port", "4244")
+            .put("psql.port", "4244-4299")
             .put("network.host", "127.0.0.1").build();
     }
 
     @Before
     public void initDriverAndStats() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
             conn.createStatement().execute("set global stats.enabled = true");
             ResultSet rs = conn.createStatement().executeQuery("select stmt from sys.jobs");
             assertTrue("sys.jobs must contain statement", rs.next());
@@ -61,7 +61,7 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
     @After
     public void resetStats() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
             conn.createStatement().execute("reset global stats.enabled");
             ResultSet rs = conn.createStatement().executeQuery("select stmt from sys.jobs");
             assertFalse("sys.jobs must not contain entries", rs.next());
@@ -70,7 +70,7 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testStatsTableSuccess() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
             conn.setAutoCommit(true);
             ensureGreen();
 
@@ -85,7 +85,7 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testBatchOperationStatsTableSuccess() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
             conn.setAutoCommit(true);
             conn.createStatement().executeUpdate("create table t (x string) with (number_of_replicas = 0)");
             ensureGreen();
@@ -111,7 +111,7 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testStatsTableFailure() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
             conn.setAutoCommit(true);
             conn.createStatement().executeUpdate("create table t (a integer not null, b string) " +
                                                  "with (number_of_replicas = 0)");
@@ -131,7 +131,7 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
 
     @Test
     public void testBatchOperationStatsTableFailure() throws Exception {
-        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl())) {
             conn.setAutoCommit(true);
             conn.createStatement().executeUpdate("create table t (a integer not null, x string) " +
                                                  "with (number_of_replicas = 0)");
