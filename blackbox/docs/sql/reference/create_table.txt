@@ -276,8 +276,6 @@ The number of shard copies is defined like this ::
   number_of_shard_copies = (1 + number_of_replicas)
 
 
-.. _ref-configuration-blocks:
-
 blocks.read_only
 ~~~~~~~~~~~~~~~~
 

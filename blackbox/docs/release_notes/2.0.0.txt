@@ -230,6 +230,8 @@ Fixes
  - Fixed that ``sys.snapshot`` queries hung instead of throwing an error if
    something went wrong.
 
+.. _version_2.0.0_upgrade_notes:
+
 Upgrade Notes
 =============
 
