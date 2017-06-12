@@ -21,7 +21,7 @@
 
 package io.crate.exceptions;
 
-public class AnalyzerInvalidException extends ValidationException {
+public class AnalyzerInvalidException extends ValidationException implements ClusterScopeException {
 
     public AnalyzerInvalidException(String reason) {
         super(reason);

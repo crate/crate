@@ -34,21 +34,25 @@ level, such as table or schema.
 .......
 
 Granting ``Data Query Language (DQL)`` privilege to a user, indicates that this
-user is allowed to execute ``SELECT``, ``SHOW`` and ``SET SESSION`` statements,
-as well as using the available user defined functions.
+user is allowed to execute ``SELECT``, ``SHOW``, ``REFRESH``, ``COPY TO``,
+``SET SESSION`` statements, as well as using the available user defined
+functions.
 
 ``DML``
 .......
 
 Granting ``Data Manipulation Language (DML)`` privilege to a user, indicates
-that this user is allowed to execute ``INSERT``, ``UPDATE`` and ``DELETE``
-statements.
+that this user is allowed to execute ``INSERT``, ``COPY FROM```, ``UPDATE``
+and ``DELETE`` statements.
 
 ``DDL``
 .......
 
 Granting ``Data Definition Language (DDL)`` privilege to a user, indicates that
-this user is allowed to execute ``CREATE``, ``DROP`` and ``ALTER`` statements.
+this user is allowed to execute ``CREATE TABLE``, ``DROP TABLE``,
+``CREATE FUNCTION``, ``DROP FUNCTION``, ``CREATE REPOSITORY``,
+``DROP REPOSITORY``, ``CREATE SNAPSHOT``, ``DROP SNAPSHOT``,
+``RESTORE SNAPSHOT``, and ``ALTER`` statements.
 
 ``GRANT``
 =========
@@ -72,12 +76,12 @@ If a user with the username specified in the SQL statement does not exist the
 statement returns an error::
 
     cr> GRANT DQL TO layla;
-    UserDoesNotExistException ...
+    SQLActionException[UserUnknownException: User 'layla' does not exist]
 
 To grant ``ALL PRIVILEGES`` to user will, we can use the following syntax::
 
     cr> GRANT ALL PRIVILEGES TO will;
-    GRANT OK, 2 rows affected (... sec)
+    GRANT OK, 3 rows affected (... sec)
 
 Using "ALL PRIVILEGES" is a shortcut to grant all the currently grantable
 privileges to a user, namely ``DQL``, ``DML`` and ``DDL``.
@@ -85,7 +89,7 @@ privileges to a user, namely ``DQL``, ``DML`` and ``DDL``.
 Privileges can be granted to multiple users in the same statement, like so::
 
     cr> GRANT DDL TO wolfgang, will;
-    GRANT OK, 2 row affected (... sec)
+    GRANT OK, 1 row affected (... sec)
 
 ``REVOKE``
 ==========
@@ -100,19 +104,19 @@ If a user with the username specified in the SQL statement does not exist the
 statement returns an error::
 
     cr> REVOKE DDL FROM layla;
-    UserDoesNotExistException ...
+    SQLActionException[UserUnknownException: User 'layla' does not exist]
 
 ``REVOKE ALL`` or ``REVOKE ALL PRIVILEGES`` will revoke all privileges
 that were previously granted to a user, it can be used like this::
 
     cr> REVOKE ALL FROM wolfgang;
-    REVOKE OK, 3 row affected (... sec)
+    REVOKE OK, 2 rows affected (... sec)
 
 Privileges can be revoked from multiple users in the same statement,
 like so::
 
     cr> REVOKE DDL FROM wolfgang, will;
-    REVOKE OK, 2 row affected (... sec)
+    REVOKE OK, 0 rows affected (... sec)
 
 List Privileges
 ===============
@@ -125,14 +129,14 @@ CrateDB exposes privileges ``sys.privileges`` system table.
 By querying the ``sys.privileges`` table you can get all
 information regarding the existing privileges. E.g.::
 
-    cr> SELECT * FROM sys.privileges;
-    +-------------+-----------+---------+------------+-------+-----------+
-    | grantor     | grantee   | class   | state      | type  | ident     |
-    +-------------+-----------+---------+------------+-------+-----------+
-    | crate       | will      | cluster | grant      | DML   | null      |
-    | crate       | will      | cluster | grant      | DQL   | null      |
-    +-------------+-----------+---------+------------+-------+-----------+
-    SELECT 3 rows in set (... sec)
+    cr> SELECT * FROM sys.privileges order by type;
+    +---------+---------+---------+-------+-------+------+
+    | class   | grantee | grantor | ident | state | type |
+    +---------+---------+---------+-------+-------+------+
+    | CLUSTER | will    | crate   |  NULL | GRANT | DML  |
+    | CLUSTER | will    | crate   |  NULL | GRANT | DQL  |
+    +---------+---------+---------+-------+-------+------+
+    SELECT 2 rows in set (... sec)
 
 The column ``grantor`` shows the user who granted the privilege, the column ``grantee``
 shows the user for whom the privilege was granted. The column ``class`` identifies on

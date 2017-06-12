@@ -47,21 +47,24 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.udf.UserDefinedFunctionService;
+import io.crate.operation.user.UserManager;
 import io.crate.operation.user.UserManagerProvider;
-import io.crate.planner.TableStats;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.TableStats;
 import io.crate.sql.parser.SqlParser;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -93,11 +96,18 @@ public class SQLExecutor {
         private final Map<TableIdent, DocTableInfo> docTables = new HashMap<>();
         private final Map<TableIdent, BlobTableInfo> blobTables = new HashMap<>();
         private final Functions functions;
+        @Nullable
+        private  Provider<UserManager> userManagerProvider;
 
         private TableStats tableStats = new TableStats();
 
         public Builder(ClusterService clusterService) {
+            this(clusterService, null);
+        }
+
+        public Builder(ClusterService clusterService, @Nullable Provider<UserManager> userManagerProvider) {
             this.clusterService = clusterService;
+            this.userManagerProvider = userManagerProvider;
             schemas.put("sys", new SysSchemaInfo(clusterService));
             schemas.put("information_schema", new InformationSchemaInfo(clusterService));
             functions = getFunctions();
@@ -137,6 +147,16 @@ public class SQLExecutor {
                 schemas.put(BlobSchemaInfo.NAME, new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
             }
             File tempDir = createTempDir();
+            if (userManagerProvider == null) {
+                userManagerProvider = new UserManagerProvider(
+                    Settings.EMPTY,
+                    null,
+                    clusterService,
+                    null,
+                    null,
+                    null,
+                    null);
+            }
             return new SQLExecutor(
                 functions,
                 new Analyzer(
@@ -164,15 +184,7 @@ public class SQLExecutor {
                     ),
                     new ModulesBuilder().add(new RepositorySettingsModule())
                         .createInjector()
-                        .getInstance(RepositoryParamValidator.class),
-                    new UserManagerProvider(
-                        Settings.EMPTY,
-                        null,
-                        clusterService,
-                        null,
-                        null ,
-                        null ,
-                        null)
+                        .getInstance(RepositoryParamValidator.class)
                 ),
                 new Planner(
                     clusterService,
@@ -224,6 +236,10 @@ public class SQLExecutor {
 
     public static Builder builder(ClusterService clusterService) {
         return new Builder(clusterService);
+    }
+
+    public static Builder builder(ClusterService clusterService, Provider<UserManager> userManagerProvider) {
+        return new Builder(clusterService, userManagerProvider);
     }
 
     private SQLExecutor(Functions functions, Analyzer analyzer, Planner planner) {

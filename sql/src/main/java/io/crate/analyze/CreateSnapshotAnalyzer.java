@@ -115,7 +115,7 @@ class CreateSnapshotAnalyzer {
                     );
                     if (!docTableInfo.partitions().contains(partitionName)) {
                         if (!ignoreUnavailable) {
-                            throw new PartitionUnknownException(docTableInfo.ident().fqn(), partitionName.ident());
+                            throw new PartitionUnknownException(partitionName);
                         } else {
                             LOGGER.info("ignoring unknown partition of table '{}' with ident '{}'", partitionName.tableIdent(), partitionName.ident());
                         }

@@ -23,20 +23,31 @@ package io.crate.exceptions;
 
 import io.crate.metadata.TableIdent;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Locale;
 
-public class TableUnknownException extends ResourceUnknownException {
+public class TableUnknownException extends ResourceUnknownException implements TableScopeException {
+
+    private TableIdent tableIdent;
 
     public TableUnknownException(String tableName, Throwable e) {
         super(String.format(Locale.ENGLISH, "Table '%s' unknown", tableName), e);
+        this.tableIdent = TableIdent.fromIndexName(tableName);
     }
 
     public TableUnknownException(TableIdent tableIdent) {
         super(String.format(Locale.ENGLISH, "Table '%s' unknown", tableIdent));
+        this.tableIdent = tableIdent;
     }
 
     @Override
     public int errorCode() {
         return 1;
+    }
+
+    @Override
+    public Collection<TableIdent> getTableIdents() {
+        return Collections.singletonList(tableIdent);
     }
 }

@@ -82,7 +82,7 @@ public class RestActionReceiversTest extends CrateUnitTest {
 
     @Test
     public void testRestRowCountReceiver() throws Exception {
-        RestRowCountReceiver receiver = new RestRowCountReceiver(newChannel(), 0L, true);
+        RestRowCountReceiver receiver = new RestRowCountReceiver(newChannel(), t -> {}, 0L, true);
         receiver.setNextRow(row);
         XContentBuilder actualBuilder = receiver.finishBuilder();
 
@@ -101,6 +101,7 @@ public class RestActionReceiversTest extends CrateUnitTest {
     public void testRestResultSetReceiver() throws Exception {
         RestResultSetReceiver receiver = new RestResultSetReceiver(
             newChannel(),
+            t -> {},
             fields,
             0L,
             new RowAccounting(Symbols.extractTypes(fields), new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"))),

@@ -21,16 +21,27 @@
 
 package io.crate.exceptions;
 
+import io.crate.metadata.TableIdent;
+
+import java.util.Collections;
 import java.util.Locale;
 
-public class InvalidColumnNameException extends ValidationException {
+public class InvalidColumnNameException extends ValidationException implements TableScopeException {
 
-    public InvalidColumnNameException(String columnName) {
+    private final TableIdent tableIdent;
+
+    public InvalidColumnNameException(String columnName, TableIdent tableIdent) {
         super(String.format(Locale.ENGLISH, "column name \"%s\" is invalid.", columnName));
+        this.tableIdent = tableIdent;
     }
 
     @Override
     public int errorCode() {
         return 2;
+    }
+
+    @Override
+    public Iterable<TableIdent> getTableIdents() {
+        return Collections.singletonList(tableIdent);
     }
 }

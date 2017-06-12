@@ -97,7 +97,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
             true
         );
         AnalyzedTableElements tableElements = TableElementsAnalyzer.analyze(
-            createTable.tableElements(), parameters, fulltextAnalyzerResolver, null);
+            createTable.tableElements(), parameters, fulltextAnalyzerResolver, tableIdent, null);
 
         // validate table elements
         tableElements.finalizeAndValidate(
@@ -165,7 +165,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         for (Expression partitionByColumn : node.columns()) {
             ColumnIdent partitionedByIdent = ColumnIdent.fromPath(
                 ExpressionToStringVisitor.convert(partitionByColumn, context.parameterContext.parameters()));
-            context.statement.analyzedTableElements().changeToPartitionedByColumn(partitionedByIdent, false);
+            context.statement.analyzedTableElements().changeToPartitionedByColumn(partitionedByIdent, false, context.statement.tableIdent());
             ColumnIdent routing = context.statement.routing();
             if (routing != null && routing.equals(partitionedByIdent)) {
                 throw new IllegalArgumentException(CLUSTERED_BY_IN_PARTITIONED_ERROR);

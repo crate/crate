@@ -128,7 +128,7 @@ class InsertFromSubQueryAnalyzer {
             if (reference == null) {
                 DynamicReference dynamicReference = targetTable.getDynamic(columnIdent, true);
                 if (dynamicReference == null) {
-                    throw new ColumnUnknownException(targetColumnName);
+                    throw new ColumnUnknownException(targetColumnName, targetTable.ident());
                 }
                 targetReference = dynamicReference;
             } else {

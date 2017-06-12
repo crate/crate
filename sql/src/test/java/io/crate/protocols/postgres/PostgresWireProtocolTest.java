@@ -23,19 +23,21 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.SessionContext;
 import io.crate.executor.Executor;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.user.User;
+import io.crate.operation.user.UserManager;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.DummyUserManager;
 import io.crate.testing.SQLExecutor;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.embedded.EmbeddedChannel;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
@@ -47,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import static io.netty.util.ReferenceCountUtil.releaseLater;
 import static org.hamcrest.Matchers.is;
@@ -58,6 +61,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
+
+    private static final Provider<UserManager> USER_MANAGER_PROVIDER = DummyUserManager::new;
 
     private SQLOperations sqlOperations;
     private List<SQLOperations.Session> sessions = new ArrayList<>();
@@ -72,11 +77,12 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             () -> mock(Executor.class),
             new JobsLogs(() -> true),
             Settings.EMPTY,
-            clusterService
+            clusterService,
+            USER_MANAGER_PROVIDER
         ) {
             @Override
-            public Session createSession(SessionContext sessionContext) {
-                Session session = super.createSession(sessionContext);
+            public Session createSession(Properties properties, User user) {
+                Session session = super.createSession(properties, user);
                 sessions.add(session);
                 return session;
             }
@@ -121,7 +127,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     public void testFlushMessageResultsInSyncCallOnSession() throws Exception {
         SQLOperations sqlOperations = mock(SQLOperations.class);
         SQLOperations.Session session = mock(SQLOperations.Session.class);
-        when(sqlOperations.createSession(any(SessionContext.class))).thenReturn(session);
+        when(sqlOperations.createSession(any(Properties.class), any(User.class))).thenReturn(session);
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 new SslReqRejectingHandler(Settings.EMPTY),

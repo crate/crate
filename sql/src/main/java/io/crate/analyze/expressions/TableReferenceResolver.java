@@ -27,6 +27,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
@@ -39,10 +40,12 @@ import java.util.Locale;
 public class TableReferenceResolver implements FieldProvider<Reference> {
 
     private final Collection<Reference> tableReferences;
+    private final TableIdent tableIdent;
     private final List<Reference> references = new ArrayList<>();
 
-    public TableReferenceResolver(Collection<Reference> tableReferences) {
+    public TableReferenceResolver(Collection<Reference> tableReferences, TableIdent tableIdent) {
         this.tableReferences = tableReferences;
+        this.tableIdent = tableIdent;
     }
 
     @Override
@@ -70,7 +73,7 @@ public class TableReferenceResolver implements FieldProvider<Reference> {
             }
         }
 
-        throw new ColumnUnknownException(columnIdent.sqlFqn());
+        throw new ColumnUnknownException(columnIdent.sqlFqn(), tableIdent);
     }
 
     public List<Reference> references() {

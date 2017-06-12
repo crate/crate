@@ -396,7 +396,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         // validate the invalid mapping
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Column name must not start with '_'");
-        TransportShardUpsertAction.validateMapping(Arrays.asList(outerMapper).iterator());
+        TransportShardUpsertAction.validateMapping(Arrays.asList(outerMapper).iterator(), new TableIdent(null, "t1"));
     }
 
     @Test

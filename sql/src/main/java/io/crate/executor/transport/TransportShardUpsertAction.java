@@ -426,7 +426,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                  Engine.Index operation) throws Exception {
         Mapping update = operation.parsedDoc().dynamicMappingsUpdate();
         if (update != null) {
-            validateMapping(update.root().iterator());
+            validateMapping(update.root().iterator(), TableIdent.fromIndexName(request.shardId().getIndexName()));
             mappingUpdatedAction.updateMappingOnMaster(
                 request.shardId().getIndex(), request.type(), update);
 
@@ -440,11 +440,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @VisibleForTesting
-    static void validateMapping(Iterator<Mapper> mappers) {
+    static void validateMapping(Iterator<Mapper> mappers, TableIdent tableIdent) {
         while (mappers.hasNext()) {
             Mapper mapper = mappers.next();
-            AnalyzedColumnDefinition.validateName(mapper.simpleName());
-            validateMapping(mapper.iterator());
+            AnalyzedColumnDefinition.validateName(mapper.simpleName(), tableIdent);
+            validateMapping(mapper.iterator(), tableIdent);
         }
 
     }

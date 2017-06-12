@@ -49,7 +49,7 @@ public class Fields {
     public Field get(Path key) {
         Collection<Field> fieldList = fieldsMap.get(key.outputName());
         if (fieldList.size() > 1) {
-            throw new AmbiguousColumnAliasException(key.outputName());
+            throw new AmbiguousColumnAliasException(key.outputName(), fieldList);
         }
         if (fieldList.isEmpty()) {
             return null;

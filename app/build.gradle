@@ -36,6 +36,7 @@ dependencies {
     compile project(':blob')
     compile project(':http')
     compile project(':udc')
+    compile project(':users')
     compile project(':azure-discovery')
     compile project(':dns-discovery')
     compile project(':es:es-discovery-ec2')

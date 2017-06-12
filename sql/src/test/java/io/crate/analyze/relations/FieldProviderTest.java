@@ -245,7 +245,7 @@ public class FieldProviderTest extends CrateUnitTest {
     @Test
     public void testAliasRelationNameResolverFail() throws Exception {
         expectedException.expect(RelationUnknownException.class);
-        expectedException.expectMessage("Cannot resolve relation '\"Bar\"'");
+        expectedException.expectMessage("Cannot resolve relation 'doc.\"Bar\"'");
         AnalyzedRelation barT = new DummyRelation("name");
         FieldProvider<Field> resolver = new FullQualifedNameFieldProvider(ImmutableMap.of(
             newQN("bar"), barT));

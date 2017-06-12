@@ -22,8 +22,7 @@
 
 package io.crate.operation.user;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.user.Privilege;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.operation.auth.UserServiceFactory;
@@ -40,6 +39,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
 @Singleton
@@ -87,14 +87,26 @@ public class UserManagerProvider implements Provider<UserManager> {
         }
 
         @Override
-        public void ensureAuthorized(AnalyzedStatement analysis, SessionContext sessionContext) {
-
+        public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
+            return CompletableFutures.failedFuture(
+                new UnsupportedFeatureException("GRANT or REVOKE privileges is only supported in enterprise version")
+            );
         }
 
         @Nullable
         @Override
         public User findUser(String userName) {
             return null;
+        }
+
+        @Override
+        public StatementAuthorizedValidator getStatementValidator(@Nullable User user) {
+            return s -> {};
+        }
+
+        @Override
+        public ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user) {
+            return t -> {};
         }
     }
 }

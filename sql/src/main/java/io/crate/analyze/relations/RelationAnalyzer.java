@@ -49,8 +49,8 @@ import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.RelationUnknownException;
+import io.crate.exceptions.RelationValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.exceptions.ValidationException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -64,7 +64,26 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
 import io.crate.planner.node.dql.join.JoinType;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.AliasedRelation;
+import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.Except;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.Intersect;
+import io.crate.sql.tree.Join;
+import io.crate.sql.tree.JoinCriteria;
+import io.crate.sql.tree.JoinOn;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.Query;
+import io.crate.sql.tree.QuerySpecification;
+import io.crate.sql.tree.Relation;
+import io.crate.sql.tree.SortItem;
+import io.crate.sql.tree.Table;
+import io.crate.sql.tree.TableFunction;
+import io.crate.sql.tree.TableSubquery;
+import io.crate.sql.tree.Union;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.util.set.Sets;
@@ -158,8 +177,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     joinCondition = expressionAnalyzer.convert(
                         ((JoinOn) joinCriteria).getExpression(), relationContext.expressionAnalysisContext());
                 } catch (RelationUnknownException e) {
-                    throw new ValidationException(String.format(Locale.ENGLISH,
-                        "missing FROM-clause entry for relation '%s'", e.qualifiedName()));
+                    throw new RelationValidationException(e.getTableIdents(),
+                        String.format(Locale.ENGLISH,
+                        "missing FROM-clause entry for relation '%s'", e.getTableIdents()));
                 }
             } else {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
@@ -481,7 +501,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private static Symbol getOneOrAmbiguous(Multimap<String, Symbol> selectList, String key) throws AmbiguousColumnAliasException {
         Collection<Symbol> symbols = selectList.get(key);
         if (symbols.size() > 1) {
-            throw new AmbiguousColumnAliasException(key);
+            throw new AmbiguousColumnAliasException(key, symbols);
         }
         if (symbols.isEmpty()) {
             return null;

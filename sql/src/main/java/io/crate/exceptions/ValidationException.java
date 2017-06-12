@@ -21,7 +21,7 @@
 
 package io.crate.exceptions;
 
-public class ValidationException extends RuntimeException implements CrateException {
+public abstract class ValidationException extends RuntimeException implements CrateException {
 
     public ValidationException() {
     }

@@ -23,5 +23,7 @@ package io.crate.exceptions;
 
 public interface CrateException {
 
+    <C, R> R accept(CrateExceptionVisitor<C, R> exceptionVisitor, C context);
+
     int errorCode();
 }

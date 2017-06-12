@@ -21,16 +21,28 @@
 
 package io.crate.exceptions;
 
+import io.crate.analyze.TableIdentsExtractor;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.TableIdent;
+
 import java.util.Locale;
 
-public class AmbiguousColumnAliasException extends ValidationException {
+public class AmbiguousColumnAliasException extends ValidationException implements TableScopeException {
 
-    public AmbiguousColumnAliasException(String alias) {
+    private final Iterable<? extends Symbol> relatedSymbols;
+
+    public AmbiguousColumnAliasException(String alias, Iterable<? extends Symbol> relatedSymbols) {
         super(String.format(Locale.ENGLISH, "Column alias \"%s\" is ambiguous", alias));
+        this.relatedSymbols = relatedSymbols;
     }
 
     @Override
     public int errorCode() {
         return 6;
+    }
+
+    @Override
+    public Iterable<TableIdent> getTableIdents() {
+        return TableIdentsExtractor.extract(relatedSymbols);
     }
 }

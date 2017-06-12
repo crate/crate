@@ -35,14 +35,12 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;

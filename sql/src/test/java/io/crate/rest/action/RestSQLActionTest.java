@@ -23,59 +23,30 @@
 package io.crate.rest.action;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AnalyzedStatement;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.operation.auth.AuthenticationProvider;
-import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
-import io.crate.operation.user.UserManagerProvider;
 import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.DummyUserManager;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.test.rest.FakeRestRequest;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
-import java.util.concurrent.CompletableFuture;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class RestSQLActionTest extends CrateUnitTest {
+
+    private static final Provider<UserManager> USER_MANAGER_PROVIDER = DummyUserManager::new;
 
     private final SQLOperations sqlOperations = mock(SQLOperations.class);
     private final RestController restController = mock(RestController.class);
     private final CrateCircuitBreakerService circuitBreakerService = mock(CrateCircuitBreakerService.class);
-    private UserManagerProvider userManagerProvider;
-    private final UserManager userManager = new UserManager() {
-        @Override
-        public CompletableFuture<Long> createUser(String userName) {
-            return null;
-        }
-        @Override
-        public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
-            return null;
-        }
-        @Override
-        public void ensureAuthorized(AnalyzedStatement analysis, SessionContext sessionContext) {
-        }
-        @Nullable
-        @Override
-        public User findUser(String userName) {
-            return new User(userName, Collections.emptySet());
-        }
-    };
-
-    @Override
-    public void setUp() throws Exception {
-        super.setUp();
-        userManagerProvider = mock(UserManagerProvider.class);
-        when(userManagerProvider.get()).thenReturn(userManager);
-    }
 
     @Test
     public void testDefaultUserIfHttpHeaderNotPresent() throws Exception {
@@ -83,7 +54,7 @@ public class RestSQLActionTest extends CrateUnitTest {
             Settings.EMPTY,
             restController,
             sqlOperations,
-            userManagerProvider,
+            USER_MANAGER_PROVIDER,
             circuitBreakerService
         );
         RestRequest request = new FakeRestRequest.Builder()
@@ -101,7 +72,7 @@ public class RestSQLActionTest extends CrateUnitTest {
             settings,
             restController,
             sqlOperations,
-            userManagerProvider,
+            USER_MANAGER_PROVIDER,
             circuitBreakerService
         );
         RestRequest request = new FakeRestRequest.Builder()
@@ -116,7 +87,7 @@ public class RestSQLActionTest extends CrateUnitTest {
             Settings.EMPTY,
             restController,
             sqlOperations,
-            userManagerProvider,
+            USER_MANAGER_PROVIDER,
             circuitBreakerService
         );
         RestRequest request = new FakeRestRequest.Builder()

@@ -275,7 +275,7 @@ public class TestingTableInfo extends DocTableInfo {
         }
 
         private void initializeGeneratedExpressions(Functions functions, Collection<Reference> columns) {
-            TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(columns);
+            TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(columns, ident);
             ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 functions, SessionContext.SYSTEM_SESSION, null, tableReferenceResolver, null);
             for (GeneratedReference generatedReferenceInfo : generatedColumns.build()) {

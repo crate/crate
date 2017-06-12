@@ -36,6 +36,9 @@ Breaking Changes (Packaging only)
 Changes
 =======
 
+ - Added support for ``GRANT`` and ``REVOKE`` privileges for accessing the
+   cluster. Currently supported privilege types: ``DQL``, ``DML`` and ``DDL``.
+
  - Added support for client certificate authentication via HBA.
 
  - Added SSL/TLS support for HTTP endpoints.

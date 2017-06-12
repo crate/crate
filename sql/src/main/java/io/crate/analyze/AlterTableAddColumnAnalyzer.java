@@ -107,7 +107,7 @@ class AlterTableAddColumnAnalyzer {
 
             AnalyzedColumnDefinition pkColumn = new AnalyzedColumnDefinition(null);
             pkColumn.ident(pkIdent);
-            pkColumn.name(pkIdent.name());
+            pkColumn.name(pkIdent.name(), tableInfo.ident());
             pkColumn.setPrimaryKeyConstraint();
 
             assert !(pkInfo.valueType() instanceof CollectionType) : "pk can't be an array";
@@ -116,7 +116,7 @@ class AlterTableAddColumnAnalyzer {
         }
 
         for (ColumnIdent columnIdent : tableInfo.partitionedBy()) {
-            tableElements.changeToPartitionedByColumn(columnIdent, true);
+            tableElements.changeToPartitionedByColumn(columnIdent, true, tableInfo.ident());
         }
     }
 

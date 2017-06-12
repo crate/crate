@@ -27,25 +27,48 @@ import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.RefReplacer;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.data.Input;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.executor.transport.TransportShardUpsertAction;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceToLiteralConverter;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.InsertFromValues;
+import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.ValuesList;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 
 class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
@@ -257,12 +280,13 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                            int numPrimaryKeys,
                            Function<List<BytesRef>, String> idFunction,
                            int bulkIdx) throws IOException {
-        if (context.tableInfo().isPartitioned()) {
+        DocTableInfo tableInfo = context.tableInfo();
+        if (tableInfo.isPartitioned()) {
             context.newPartitionMap();
         }
         BytesRef[] primaryKeyValues = new BytesRef[numPrimaryKeys];
         String routingValue = null;
-        List<ColumnIdent> primaryKey = context.tableInfo().primaryKey();
+        List<ColumnIdent> primaryKey = tableInfo.primaryKey();
         Object[] insertValues = new Object[node.values().size()];
 
         for (int i = 0, valuesSize = node.values().size(); i < valuesSize; i++) {
@@ -279,10 +303,10 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 valuesSymbol = valueNormalizer.normalizeInputForReference(valuesSymbol, column, tableRelation.tableInfo());
                 value = ((Input) valuesSymbol).value();
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
-                throw new ColumnValidationException(columnIdent.sqlFqn(), e);
+                throw new ColumnValidationException(columnIdent.sqlFqn(), tableInfo.ident(), e);
             } catch (ClassCastException e) {
                 // symbol is no Input
-                throw new ColumnValidationException(columnIdent.name(),
+                throw new ColumnValidationException(columnIdent.name(), tableInfo.ident(),
                     SymbolFormatter.format("Invalid value '%s' in insert statement", valuesSymbol));
             }
 
