@@ -23,13 +23,15 @@
 package io.crate.planner;
 
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Collections;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
@@ -40,6 +42,9 @@ public class SingleRowSubselectPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Before
     public void prepare() {
+
+        prepareRoutingForIndices(Collections.singletonList("users"));
+
         e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
     }
 
@@ -68,9 +73,9 @@ public class SingleRowSubselectPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void testSingleRowSubSelectAndDocKeysInWhereClause() throws Exception {
-        MultiPhasePlan plan = e.plan("select (select 'foo' from sys.cluster) from users where id = 10");
-        assertThat(plan.rootPlan(), instanceOf(ESGet.class));
-        assertThat(plan.dependencies().keySet(), contains(instanceOf(Collect.class)));
+        Merge plan = e.plan("select (select 'foo' from sys.cluster) from users where id = 10");
+        assertThat(plan.subPlan(), instanceOf(MultiPhasePlan.class));
+        assertThat(((MultiPhasePlan)(plan.subPlan())).rootPlan(), instanceOf(Collect.class));
     }
 
     @Test

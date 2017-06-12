@@ -23,10 +23,7 @@ package io.crate.planner.node;
 
 
 import com.google.common.collect.ImmutableList;
-import io.crate.planner.node.dql.CountPhase;
-import io.crate.planner.node.dql.FileUriCollectPhase;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -47,13 +44,15 @@ public interface ExecutionPhase extends Writeable {
 
     enum Type {
         COLLECT(RoutedCollectPhase::new),
+        PRIMARY_KEY_LOOKUP(PrimaryKeyLookupPhase::new),
         COUNT(CountPhase::new),
         FILE_URI_COLLECT(FileUriCollectPhase::new),
         MERGE(MergePhase::new),
         FETCH(FetchPhase::new),
         NESTED_LOOP(NestedLoopPhase::new),
         TABLE_FUNCTION_COLLECT(in -> {
-            throw new UnsupportedOperationException("TableFunctionCollectPhase is not streamable"); });
+            throw new UnsupportedOperationException("TableFunctionCollectPhase is not streamable"); }),
+        ;
 
         public static final List<Type> VALUES = ImmutableList.copyOf(values());
 
@@ -74,6 +73,9 @@ public interface ExecutionPhase extends Writeable {
 
     int phaseId();
 
+    /**
+     * Returns the set of node ids where this phase is executed.
+     */
     Collection<String> nodeIds();
 
     <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context);

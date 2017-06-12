@@ -18,11 +18,11 @@ import java.util.*;
 
 public class Routing implements Streamable {
 
+    /** NodeId -> (Index -> ShardList) */
     private Map<String, Map<String, List<Integer>>> locations;
     private volatile int numShards = -1;
 
-    private Routing() {
-    }
+    private Routing() {}
 
     public static Routing fromStream(StreamInput in) throws IOException {
         Routing routing = new Routing();
@@ -38,10 +38,8 @@ public class Routing implements Streamable {
 
 
     /**
-     * @return a map with the locations in the following format: <p>
-     * Map&lt;nodeName (string), <br>
-     * &nbsp;&nbsp;&nbsp;&nbsp;Map&lt;indexName (string), List&lt;ShardId (int)&gt;&gt;&gt; <br>
-     * </p>
+     * @return a map with the locations in the following format:
+     *   {@literal Map<String nodeId, Map<String indexName, List<Integer ShardId>>}
      */
     public Map<String, Map<String, List<Integer>>> locations() {
         return locations;
@@ -58,9 +56,13 @@ public class Routing implements Streamable {
     /**
      * get the number of shards in this routing for a node with given nodeId
      *
-     * @return int &gt;= 0
+     * @return {@literal int >= 0}
      */
     public int numShards(String nodeId) {
+        if (numShards != -1) {
+            // numShards have been computed already
+            return numShards;
+        }
         int count = 0;
         if (!locations.isEmpty()) {
             Map<String, List<Integer>> nodeRouting = locations.get(nodeId);
@@ -72,6 +74,7 @@ public class Routing implements Streamable {
                 }
             }
         }
+        numShards = count;
         return count;
     }
 

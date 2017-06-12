@@ -83,7 +83,7 @@ public class Symbols {
         return false;
     }
 
-    public static void toStream(Collection<? extends Symbol> symbols, StreamOutput out) throws IOException {
+    public static void toStream(List<? extends Symbol> symbols, StreamOutput out) throws IOException {
         out.writeVInt(symbols.size());
         for (Symbol symbol : symbols) {
             toStream(symbol, out);

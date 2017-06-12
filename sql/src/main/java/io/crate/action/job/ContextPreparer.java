@@ -28,6 +28,7 @@ import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import com.google.common.base.MoreObjects;
 import io.crate.Streamer;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.where.DocKeys;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.data.BatchConsumer;
@@ -46,6 +47,7 @@ import io.crate.operation.collect.sources.SystemCollectSource;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.fetch.FetchContext;
 import io.crate.operation.join.NestedLoopOperation;
+import io.crate.operation.primarykey.PrimaryKeyLookupOperation;
 import io.crate.operation.projectors.DistributingDownstreamFactory;
 import io.crate.operation.projectors.ProjectingBatchConsumer;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
@@ -56,10 +58,7 @@ import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.StreamerVisitor;
-import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.CountPhase;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.types.DataTypes;
@@ -73,6 +72,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
@@ -81,6 +81,9 @@ import java.util.BitSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
+/**
+ * Central component which registers execution contexts for all execution phases.
+ */
 @Singleton
 public class ContextPreparer extends AbstractComponent {
 
@@ -89,6 +92,7 @@ public class ContextPreparer extends AbstractComponent {
     private final Logger nlContextLogger;
     private final ClusterService clusterService;
     private final CountOperation countOperation;
+    private final PrimaryKeyLookupOperation primaryKeyLookupOperation;
     private final CircuitBreaker circuitBreaker;
     private final DistributingDownstreamFactory distributingDownstreamFactory;
     private final InnerPreparer innerPreparer;
@@ -102,6 +106,7 @@ public class ContextPreparer extends AbstractComponent {
                            NodeJobsCounter nodeJobsCounter,
                            CrateCircuitBreakerService breakerService,
                            CountOperation countOperation,
+                           PrimaryKeyLookupOperation primaryKeyLookupOperation,
                            ThreadPool threadPool,
                            DistributingDownstreamFactory distributingDownstreamFactory,
                            TransportActionProvider transportActionProvider,
@@ -114,6 +119,7 @@ public class ContextPreparer extends AbstractComponent {
         this.collectOperation = collectOperation;
         this.clusterService = clusterService;
         this.countOperation = countOperation;
+        this.primaryKeyLookupOperation = primaryKeyLookupOperation;
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         this.distributingDownstreamFactory = distributingDownstreamFactory;
         innerPreparer = new InnerPreparer();
@@ -497,6 +503,37 @@ public class ContextPreparer extends AbstractComponent {
                 consumer,
                 indexShardMap,
                 phase.whereClause()
+            ));
+            return true;
+        }
+
+        @Override
+        public Boolean visitPrimaryKeyLookupPhase(final PrimaryKeyLookupPhase phase, final PreparerContext context) {
+
+            String localNodeId = clusterService.localNode().getId();
+
+            Map<ShardId, List<DocKeys.DocKey>> shardIdMap =
+                phase.getDocKeysPerShardNode()
+                    .getOrDefault(localNodeId, Collections.emptyMap());
+
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
+
+            BatchConsumer consumer = context.getBatchConsumer(phase, Paging.PAGE_SIZE);
+            consumer = ProjectingBatchConsumer.create(
+                consumer,
+                phase.projections(),
+                phase.jobId(),
+                ramAccountingContext,
+                projectorFactory
+            );
+
+            context.registerSubContext(new PrimaryKeyLookupContext(
+                phase.phaseId(),
+                primaryKeyLookupOperation,
+                consumer,
+                phase.pkMapping(),
+                shardIdMap,
+                phase.toCollect()
             ));
             return true;
         }

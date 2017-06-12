@@ -113,9 +113,6 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         return Type.COLLECT;
     }
 
-    /**
-     * @return a set of node ids where this collect operation is executed,
-     */
     @Override
     public Set<String> nodeIds() {
         return routing.nodes();

@@ -29,12 +29,8 @@ import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
-import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.exceptions.VersionInvalidException;
 import io.crate.planner.consumer.ConsumingPlanner;
-import io.crate.planner.consumer.ESGetStatementPlanner;
 
-import java.util.Map;
 
 class SelectStatementPlanner {
 
@@ -81,14 +77,6 @@ class SelectStatementPlanner {
             context.applySoftLimit(querySpec);
             if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
                 return invokeConsumingPlanner(table, context);
-            }
-            if (querySpec.where().docKeys().isPresent() && !table.tableRelation().tableInfo().isAlias()) {
-                SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
-                Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(table.querySpec());
-                return MultiPhasePlan.createIfNeeded(ESGetStatementPlanner.convert(table, context), subQueries);
-            }
-            if (querySpec.where().hasVersions()) {
-                throw new VersionInvalidException();
             }
             Limits limits = context.getLimits(querySpec);
             if (querySpec.where().noMatch() || (querySpec.limit().isPresent() && limits.finalLimit() == 0)) {

@@ -179,6 +179,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         public ReaderAllocations buildReaderAllocations() {
             return routingBuilder.buildReaderAllocations();
         }
+
+        public ClusterService getClusterService() {
+            return clusterService;
+        }
     }
 
 

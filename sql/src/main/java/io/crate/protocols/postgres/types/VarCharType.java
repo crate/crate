@@ -43,13 +43,6 @@ class VarCharType extends PGType {
 
     @Override
     public int writeAsBinary(ByteBuf buffer, @Nonnull Object value) {
-        if (value instanceof String) {
-            // we sometimes still get String instead of BytesRef, e.g. from the ESGetTask
-            byte[] bytes = ((String) value).getBytes(StandardCharsets.UTF_8);
-            buffer.writeInt(bytes.length);
-            buffer.writeBytes(bytes);
-            return INT32_BYTE_SIZE + bytes.length;
-        }
         BytesRef bytesRef = (BytesRef) value;
         buffer.writeInt(bytesRef.length);
         buffer.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);

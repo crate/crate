@@ -33,7 +33,10 @@ import io.crate.executor.JobTask;
 import io.crate.jobs.ESJobContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.TableIdent;
 import io.crate.planner.node.dml.ESDelete;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.DocWriteResponse;
@@ -43,6 +46,7 @@ import org.elasticsearch.action.delete.TransportDeleteAction;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -73,7 +77,10 @@ public class ESDeleteTask extends JobTask {
         int resultIdx = 0;
         for (DocKeys.DocKey docKey : esDelete.docKeys()) {
             DeleteRequest request = new DeleteRequest(
-                ESGetTask.indexName(esDelete.tableInfo(), docKey.partitionValues().orElse(null)),
+                ESCommonUtils.indexName(
+                    esDelete.tableInfo().isPartitioned(),
+                    esDelete.tableInfo().ident(),
+                    docKey.partitionValues().orElse(null)),
                 Constants.DEFAULT_MAPPING_TYPE, docKey.id());
             request.routing(docKey.routing());
             if (docKey.version().isPresent()) {

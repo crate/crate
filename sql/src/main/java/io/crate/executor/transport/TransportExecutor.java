@@ -51,7 +51,6 @@ import io.crate.planner.node.ddl.*;
 import io.crate.planner.node.dml.ESDelete;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertById;
-import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
@@ -184,16 +183,6 @@ public class TransportExecutor implements Executor {
                 transportActionProvider.transportKillJobsNodeAction(),
                 nodeOperationTrees
             );
-        }
-
-        @Override
-        public Task visitGetPlan(ESGet plan, Void context) {
-            return new ESGetTask(
-                functions,
-                globalProjectionToProjectionVisitor,
-                transportActionProvider,
-                plan,
-                jobContextService);
         }
 
         @Override

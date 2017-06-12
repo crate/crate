@@ -33,6 +33,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.PrimaryKeyLookupPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.*;
@@ -40,9 +41,11 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 import static io.crate.testing.SymbolMatchers.*;
@@ -57,6 +60,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
+
+        prepareRoutingForIndices(Collections.singletonList("users"));
+
         e = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .addDocTable(TableDefinitions.PARTED_PKS_TI)
@@ -237,11 +243,12 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = e.plan(
             "insert into users (date, id, name) (select date, id, name from users where id=1)");
         Collect queryAndFetch = (Collect) merge.subPlan();
-        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) queryAndFetch.collectPhase());
+        PrimaryKeyLookupPhase collectPhase = ((PrimaryKeyLookupPhase) queryAndFetch.collectPhase());
 
-        assertThat(collectPhase.projections().size(), is(1));
-        assertThat(collectPhase.projections().get(0), instanceOf(ColumnIndexWriterProjection.class));
-        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) collectPhase.projections().get(0);
+        assertThat(collectPhase.projections().size(), is(2));
+        assertThat(collectPhase.projections().get(0), instanceOf(EvalProjection.class));
+        assertThat(collectPhase.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) collectPhase.projections().get(1);
 
         assertThat(projection.columnReferences().size(), is(3));
         assertThat(projection.columnReferences().get(0).ident().columnIdent().fqn(), is("date"));

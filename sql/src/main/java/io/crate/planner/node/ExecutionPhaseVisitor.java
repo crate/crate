@@ -66,4 +66,8 @@ public class ExecutionPhaseVisitor<C, R> {
     public R visitTableFunctionCollect(TableFunctionCollectPhase phase, C context) {
         return visitCollectPhase(phase, context);
     }
+
+    public R visitPrimaryKeyLookupPhase(PrimaryKeyLookupPhase phase, C context) {
+        return visitExecutionPhase(phase, context);
+    }
 }

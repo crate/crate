@@ -28,20 +28,40 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.AggregateMode;
+import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.executor.transport.NodeOperationTreeGenerator;
-import io.crate.metadata.*;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.ExecutionPhase;
-import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.CountPlan;
+import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.planner.projection.*;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.EvalProjection;
+import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.MergeCountProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -51,12 +71,23 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
-import static io.crate.testing.SymbolMatchers.*;
-import static io.crate.testing.TestingHelpers.isDocKey;
+import static io.crate.testing.SymbolMatchers.isFetchRef;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 
 public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -78,21 +109,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testHandlerSideRouting() throws Exception {
         // just testing the dispatching here.. making sure it is not a ESSearchNode
-        e.plan("select * from sys.cluster");
-    }
-
-    @Test
-    public void testWherePKAndMatchDoesNotResultInESGet() throws Exception {
-        Plan plan = e.plan("select * from users where id in (1, 2, 3) and match(text, 'Hello')");
-        assertThat(plan, instanceOf(QueryThenFetch.class));
-    }
-
-    @Test
-    public void testGetPlan() throws Exception {
-        ESGet esGet = e.plan("select name from users where id = 1");
-        assertThat(esGet.tableInfo().ident().name(), is("users"));
-        assertThat(esGet.docKeys().getOnlyKey(), isDocKey(1L));
-        assertThat(esGet.outputs().size(), is(1));
+        Plan plan = e.plan("select * from sys.cluster");
+        assertTrue(plan instanceof Collect);
     }
 
     @Test
@@ -101,33 +119,6 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         expectedException.expectMessage("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
         e.plan("select name from users where id = 1 and _version = 1");
     }
-
-    @Test
-    public void testGetPlanStringLiteral() throws Exception {
-        ESGet esGet = e.plan("select name from bystring where name = 'one'");
-        assertThat(esGet.tableInfo().ident().name(), is("bystring"));
-        assertThat(esGet.docKeys().getOnlyKey(), isDocKey("one"));
-        assertThat(esGet.outputs().size(), is(1));
-    }
-
-    @Test
-    public void testGetPlanPartitioned() throws Exception {
-        ESGet esGet = e.plan("select name, date from parted_pks where id = 1 and date = 0");
-        assertThat(esGet.tableInfo().ident().name(), is("parted_pks"));
-        assertThat(esGet.docKeys().getOnlyKey(), isDocKey(1, 0L));
-
-        //is(new PartitionName("parted", Arrays.asList(new BytesRef("0"))).asIndexName()));
-        assertEquals(DataTypes.STRING, esGet.outputTypes().get(0));
-        assertEquals(DataTypes.TIMESTAMP, esGet.outputTypes().get(1));
-    }
-
-    @Test
-    public void testMultiGetPlan() throws Exception {
-        ESGet esGet = e.plan("select name from users where id in (1, 2)");
-        assertThat(esGet.docKeys().size(), is(2));
-        assertThat(esGet.docKeys(), containsInAnyOrder(isDocKey(1L), isDocKey(2L)));
-    }
-
 
     @Test
     public void testGlobalAggregationPlan() throws Exception {
@@ -438,7 +429,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testHasNoResultFromQuery() {
         // TODO:
-        e.plan("select name from users where false");
+        Plan p = e.plan("select name from users where false");
+        assertTrue(p instanceof NoopPlan);
     }
 
     @Test
