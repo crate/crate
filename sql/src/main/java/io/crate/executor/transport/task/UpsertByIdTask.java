@@ -56,12 +56,20 @@ import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static java.util.Collections.singletonList;
 
 public class UpsertByIdTask extends JobTask {
@@ -194,7 +202,12 @@ public class UpsertByIdTask extends JobTask {
     }
 
     private CompletableFuture<BitSet> createAndSendRequests() {
-        Map<ShardId, ShardUpsertRequest> requestsByShard = groupRequests();
+        Map<ShardId, ShardUpsertRequest> requestsByShard;
+        try {
+            requestsByShard = groupRequests();
+        } catch (Throwable t) {
+            return failedFuture(t);
+        }
         if (requestsByShard.isEmpty()) {
             return CompletableFuture.completedFuture(new BitSet(0));
         }

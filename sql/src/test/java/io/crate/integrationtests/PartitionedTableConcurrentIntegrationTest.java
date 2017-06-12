@@ -44,7 +44,11 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -230,11 +234,11 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
 
     private void deletePartitionWhileInsertingData(final boolean useBulk) throws Exception {
         execute("create table parted (id int, name string) " +
+                "clustered into 1 shards " +
                 "partitioned by (id) " +
                 "with (number_of_replicas = 0)");
-        ensureYellow();
 
-        int numberOfDocs = 1000;
+        int numberOfDocs = 100;
         final Object[][] bulkArgs = new Object[numberOfDocs][];
         for (int i = 0; i < numberOfDocs; i++) {
             bulkArgs[i] = new Object[]{i % 2, randomAsciiOfLength(10)};
