@@ -32,7 +32,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-public class RetryListener<TReq, TResp> implements ActionListener<TResp> {
+public class RetryListener<TResp> implements ActionListener<TResp> {
 
     private final ScheduledExecutorService scheduler;
     private final ActionListener<TResp> delegate;
