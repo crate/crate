@@ -29,6 +29,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.discovery.DiscoveryModule;
 
 public class AzureConfiguration {
 
@@ -71,9 +72,9 @@ public class AzureConfiguration {
             return false;
         }
 
-        // User set discovery.type: azure
-        if (!AZURE.equalsIgnoreCase(settings.get("discovery.type"))) {
-            logger.trace("discovery.type not set to {}", AZURE);
+        // User set discovery.zen.hosts_provider: azure
+        if (!AZURE.equalsIgnoreCase(settings.get(DiscoveryModule.DISCOVERY_HOSTS_PROVIDER_SETTING.getKey()))) {
+            logger.trace("{} not set to {}", DiscoveryModule.DISCOVERY_HOSTS_PROVIDER_SETTING.getKey(), AZURE);
             return false;
         }
 
@@ -97,7 +98,7 @@ public class AzureConfiguration {
         if (!(SUBNET.equalsIgnoreCase(discoveryType) ||
               VNET.equalsIgnoreCase(discoveryType) ||
               discoveryType == null)) {
-            logger.warn("discovery.azure.method must be set to {} or {}. Ignoring value {}", VNET, SUBNET, discoveryType);
+            logger.warn("{} must be set to {} or {}. Ignoring value {}", AzureComputeService.Discovery.DISCOVERY_METHOD.getKey(), VNET, SUBNET, discoveryType);
         }
 
         logger.trace("all required properties for azure discovery are set!");
