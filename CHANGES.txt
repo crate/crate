@@ -36,6 +36,8 @@ Breaking Changes (Packaging only)
 Changes
 =======
 
+ - Updated Elasticsearch to 5.1.2
+
  - Expose new setting ``write.wait_for_active_shards`` to allow users to
    adjust the required shard copies for write operation to their needs.
 
