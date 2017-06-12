@@ -114,3 +114,261 @@ information including the different SSL modes please visit the
 
 .. _jdbc ssl documentation: https://jdbc.postgresql.org/documentation/head/ssl-client.html
 .. _psql documentation: https://www.postgresql.org/docs/current/static/app-psql.html
+
+
+
+Setting up a Keystore/Truststore With a Certificate Chain
+=========================================================
+
+In case you need to setup a Keystore or a Trustore, here are the commands
+to get you started. All the commands use a validity of 36500 days
+(about 100 years). You might want to use less.
+
+
+Generate Keystore With a Private Key
+------------------------------------
+
+The first step is to create a keystore with a private key.
+
+Command::
+
+    keytool -keystore keystore -genkey -alias server -validity 36500
+
+Output::
+
+    Enter keystore password:
+    Re-enter new password:
+    What is your first and last name?
+      [Unknown]:  CrateDB
+    What is the name of your organizational unit?
+      [Unknown]:  PSQL Netty SSL
+    What is the name of your organization?
+      [Unknown]:  crate.io
+    What is the name of your City or Locality?
+      [Unknown]:  Dornbirn
+    What is the name of your State or Province?
+      [Unknown]:  Vorarlberg
+    What is the two-letter country code for this unit?
+      [Unknown]:  AT
+    Is CN=CrateDB, OU=PSQL Netty SSL, O=crate.io, L=Dornbirn, ST=Vorarlberg, C=AT correct?
+      [no]:  yes
+
+    Enter key password for <server>
+        (RETURN if same as keystore password):
+    Re-enter new password:
+
+
+Generate a Certificate Signing Request
+--------------------------------------
+
+To establish trust for this key, we need to sign it. This is done by generating
+a certificate signing request.
+
+If you have access to a certificate authority (CA), you can skip the next
+steps and get the signed certificate from the CA using the signing request which
+we will generate with the command below. If you don't have access to a CA, then
+follow the optional steps after this step to establish your own CA.
+
+Command::
+
+    keytool -keystore keystore -certreq -alias server -keyalg rsa -file server.csr
+
+
+Output::
+
+    Enter keystore password:
+    Enter key password for <server>
+
+
+Optional: Use a Self-Signed Certificate to Act as a Certificate Authority (CA)
+------------------------------------------------------------------------------
+
+.. NOTE::
+
+   Only follow these optional steps if you want to create your own
+   Certificate Authority (CA). Otherwise, please request a signed
+   certificate from one of the CAs bundled with Java.
+
+
+Generate a Self-Signed Certificate
+..................................
+
+If you don't get your certificate signed from one of the official CAs,
+you might want to create your own CA with a self-signed certificate.
+
+Command::
+
+    openssl req -x509 -sha256 -nodes -days 36500 -newkey rsa:2048 -keyout rootCA.key -out rootCA.crt
+
+
+Output::
+
+    Generating a 2048 bit RSA private key
+    .......................................................................+++
+    .............................................................+++
+    writing new private key to 'rootCA.key'
+    -----
+    You are about to be asked to enter information that will be incorporated
+    into your certificate request.
+    What you are about to enter is what is called a Distinguished Name or a DN.
+    There are quite a few fields but you can leave some blank
+    For some fields there will be a default value,
+    If you enter '.', the field will be left blank.
+    -----
+    Country Name (2 letter code) [AU]:AT
+    State or Province Name (full name) [Some-State]:Vorarlberg
+    Locality Name (eg, city) []:Dornbirn
+    Organization Name (eg, company) [Internet Widgits Pty Ltd]:Crate.io
+    Organizational Unit Name (eg, section) []:Cryptography Department
+    Common Name (e.g. server FQDN or YOUR name) []:crate.io
+    Email Address []:info@crate.io
+
+
+Generate a Signed Cert
+......................
+
+Now you can generate a signed cert from our certificate signing request.
+
+Command::
+
+    openssl x509 -req -in server.csr -CA rootCA.crt -CAkey rootCA.key \
+        -CAcreateserial -out server.crt -sha256 -days 36500
+
+Output::
+
+    Signature ok
+    subject=/C=AT/ST=Vorarlberg/L=Dornbirn/O=crate.io/OU=PSQL Netty SSL/CN=CrateDB
+    Getting CA Private Key
+
+
+Import the CA Certificate Into the Keystore
+...........................................
+
+The CA needs to be imported to the Keystore for the certificate chain to be
+available when we import our signed certificate.
+
+Command::
+
+    keytool -import -keystore keystore -file rootCA.crt -alias theCARoot
+
+Output::
+
+    Enter keystore password:
+    Owner: EMAILADDRESS=info@crate.io, CN=crate.io, OU=Cryptography Department, O=Crate.io, L=Dornbirn, ST=Vorarlberg, C=AT
+    Issuer: EMAILADDRESS=info@crate.io, CN=crate.io, OU=Cryptography Department, O=Crate.io, L=Dornbirn, ST=Vorarlberg, C=AT
+    Serial number: f13562ec6184401e
+    Valid from: Mon Jun 12 13:09:17 CEST 2017 until: Wed May 19 13:09:17 CEST 2117
+    Certificate fingerprints:
+         MD5:  BB:A1:79:53:FE:71:EC:61:2A:19:81:E8:0E:E8:C9:81
+         SHA1: 96:66:C1:01:49:17:D1:19:FB:DB:83:86:50:3D:3D:AD:DA:F7:C6:A9
+         SHA256: 69:82:C5:24:9A:A1:AE:DF:80:29:7A:26:92:C1:A5:9F:AF:7D:03:56:CC:C3:E9:73:3B:FD:85:66:35:D6:8A:9B
+         Signature algorithm name: SHA256withRSA
+         Version: 3
+
+    Extensions:
+
+    #1: ObjectId: 2.5.29.35 Criticality=false
+    AuthorityKeyIdentifier [
+    KeyIdentifier [
+    0000: CD 29 4E 07 3D C3 7C D0   16 45 FB 0A CE 8D B4 98  .)N.=....E......
+    0010: B7 A8 4C 79                                        ..Ly
+    ]
+    [EMAILADDRESS=info@crate.io, CN=crate.io, OU=Cryptography Department, O=Crate.io, L=Dornbirn, ST=Vorarlberg, C=AT]
+    SerialNumber: [    f13562ec 6184401e]
+    ]
+
+    #2: ObjectId: 2.5.29.19 Criticality=false
+    BasicConstraints:[
+      CA:true
+      PathLen:2147483647
+    ]
+
+    #3: ObjectId: 2.5.29.14 Criticality=false
+    SubjectKeyIdentifier [
+    KeyIdentifier [
+    0000: CD 29 4E 07 3D C3 7C D0   16 45 FB 0A CE 8D B4 98  .)N.=....E......
+    0010: B7 A8 4C 79                                        ..Ly
+    ]
+    ]
+
+    Trust this certificate? [no]:  yes
+    Certificate was added to keystore
+
+
+Import CA Into Truststore
+.........................
+
+If we are using our own CA, we should also import the certificate to the
+Truststore, such that it is available for clients which want to verify
+signatures.
+
+Command::
+
+    keytool -import -keystore truststore -file rootCA.crt -alias theCARoot
+
+Output::
+
+    Enter keystore password:
+    Re-enter new password:
+    Owner: EMAILADDRESS=info@crate.io, CN=crate.io, OU=Cryptography Department, O=Crate.io, L=Dornbirn, ST=Vorarlberg, C=AT
+    Issuer: EMAILADDRESS=info@crate.io, CN=crate.io, OU=Cryptography Department, O=Crate.io, L=Dornbirn, ST=Vorarlberg, C=AT
+    Serial number: f13562ec6184401e
+    Valid from: Mon Jun 12 13:09:17 CEST 2017 until: Wed May 19 13:09:17 CEST 2117
+    Certificate fingerprints:
+         MD5:  BB:A1:79:53:FE:71:EC:61:2A:19:81:E8:0E:E8:C9:81
+         SHA1: 96:66:C1:01:49:17:D1:19:FB:DB:83:86:50:3D:3D:AD:DA:F7:C6:A9
+         SHA256: 69:82:C5:24:9A:A1:AE:DF:80:29:7A:26:92:C1:A5:9F:AF:7D:03:56:CC:C3:E9:73:3B:FD:85:66:35:D6:8A:9B
+         Signature algorithm name: SHA256withRSA
+         Version: 3
+
+    Extensions:
+
+    #1: ObjectId: 2.5.29.35 Criticality=false
+    AuthorityKeyIdentifier [
+    KeyIdentifier [
+    0000: CD 29 4E 07 3D C3 7C D0   16 45 FB 0A CE 8D B4 98  .)N.=....E......
+    0010: B7 A8 4C 79                                        ..Ly
+    ]
+    [EMAILADDRESS=info@crate.io, CN=crate.io, OU=Cryptography Department, O=Crate.io, L=Dornbirn, ST=Vorarlberg, C=AT]
+    SerialNumber: [    f13562ec 6184401e]
+    ]
+
+    #2: ObjectId: 2.5.29.19 Criticality=false
+    BasicConstraints:[
+      CA:true
+      PathLen:2147483647
+    ]
+
+    #3: ObjectId: 2.5.29.14 Criticality=false
+    SubjectKeyIdentifier [
+    KeyIdentifier [
+    0000: CD 29 4E 07 3D C3 7C D0   16 45 FB 0A CE 8D B4 98  .)N.=....E......
+    0010: B7 A8 4C 79                                        ..Ly
+    ]
+    ]
+
+    Trust this certificate? [no]:  yes
+    Certificate was added to keystore
+
+Import the Signed Certificate
+-----------------------------
+
+Now we have a signed certificate, signed by either from a official CA
+or from our own CA. Let's import it to the keystore.
+
+Command::
+
+    keytool -import -keystore keystore -file server.crt -alias server
+
+Output::
+
+    Enter keystore password:
+    Enter key password for <server>
+    Certificate reply was installed in keystore
+
+
+Configuring CrateDB
+-------------------
+
+Finally, you want to supply the keystore/truststore configuration in the
+CrateDB config, see the :SSL section:`_ssl_config`.
