@@ -318,6 +318,8 @@ Currently the defined error codes are:
     ----- ---------------------------------------------------------------------
     4010  User is not authorized to perform the SQL statement.
     ----- ---------------------------------------------------------------------
+    4011  Missing Privilege for user.
+    ----- ---------------------------------------------------------------------
     4031  Only read operations are allowed on this node.
     ----- ---------------------------------------------------------------------
     4041  Unknown table.

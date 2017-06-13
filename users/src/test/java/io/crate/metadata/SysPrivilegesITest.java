@@ -80,7 +80,6 @@ public class SysPrivilegesITest extends SQLTransportIntegrationTest {
         return sqlOperations.createSession(null, new User("normal", ImmutableSet.of(), ImmutableSet.of()), Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
-
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         Settings.Builder builder = Settings.builder()

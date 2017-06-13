@@ -26,6 +26,7 @@ import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.analyze.user.Privilege;
+import io.crate.exceptions.PermissionDeniedException;
 import io.crate.exceptions.UnauthorizedException;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -129,6 +130,24 @@ public class UserManagerService implements UserManager, ClusterStateListener {
             }
         }
         return null;
+    }
+
+    @Override
+    public void raiseMissingPrivilegeException(Privilege.Clazz clazz, @Nullable Privilege.Type type, String ident, User user) throws PermissionDeniedException {
+        if (null == type) {
+            return;
+        }
+        assert user != null : "the user must never be null";
+
+        if (!user.isSuperUser() && Privilege.Type.DCL.equals(type)) {
+            throw new PermissionDeniedException(user.name(), type);
+        }
+
+        if (user.isSuperUser()) {
+            return;
+        } else if (!user.hasPrivilege(type, clazz, ident)) {
+            throw new PermissionDeniedException(user.name(), type);
+        }
     }
 
     private static class PermissionVisitor extends AnalyzedStatementVisitor<SessionContext, Boolean> {
