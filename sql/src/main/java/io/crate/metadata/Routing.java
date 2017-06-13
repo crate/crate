@@ -39,7 +39,7 @@ public class Routing implements Streamable {
 
     /**
      * @return a map with the locations in the following format: <p>
-     * Map&lt;nodeName (string), <br>
+     * Map&lt;nodeId (string), <br>
      * &nbsp;&nbsp;&nbsp;&nbsp;Map&lt;indexName (string), List&lt;ShardId (int)&gt;&gt;&gt; <br>
      * </p>
      */

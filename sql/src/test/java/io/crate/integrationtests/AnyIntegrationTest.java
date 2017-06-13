@@ -29,7 +29,7 @@ import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-@UseJdbc
+@UseJdbc(0)
 public class AnyIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
@@ -141,5 +141,15 @@ public class AnyIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(2L));
         assertThat(response.rows()[0][0], is(3));
         assertThat(response.rows()[1][0], is(4));
+    }
+
+    @Test
+    public void testRealtimeSelect() throws Exception {
+        execute("create table t1 (id int PRIMARY KEY, name string)");
+        ensureYellow();
+        // We expect that the result is available immediately after inserting without refreshing the table.
+        execute("insert into t1 (id, name) values (2, 'sensor2'), (1, 'sensor1'), (3, 'sensor3')");
+        execute("select id from t1 where id = 1");
+        assertThat(response.rows()[0][0], is(1));
     }
 }

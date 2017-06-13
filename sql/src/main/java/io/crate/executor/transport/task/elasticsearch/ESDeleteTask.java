@@ -73,7 +73,10 @@ public class ESDeleteTask extends JobTask {
         int resultIdx = 0;
         for (DocKeys.DocKey docKey : esDelete.docKeys()) {
             DeleteRequest request = new DeleteRequest(
-                ESGetTask.indexName(esDelete.tableInfo(), docKey.partitionValues().orElse(null)),
+                ESGetTask.indexName(
+                    esDelete.tableInfo().isPartitioned(),
+                    esDelete.tableInfo().ident(),
+                    docKey.partitionValues().orElse(null)),
                 Constants.DEFAULT_MAPPING_TYPE, docKey.id());
             request.routing(docKey.routing());
             if (docKey.version().isPresent()) {

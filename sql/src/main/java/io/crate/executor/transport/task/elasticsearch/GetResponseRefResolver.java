@@ -27,7 +27,6 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.reference.ReferenceResolver;
 import org.elasticsearch.action.get.GetResponse;
@@ -43,14 +42,15 @@ import java.util.function.Consumer;
 public class GetResponseRefResolver implements ReferenceResolver<CollectExpression<GetResponse, ?>> {
 
     private final Consumer<ColumnIdent> columnConsumer;
-    private final DocTableInfo docTableInfo;
+    private final Map<ColumnIdent, Integer> pkMapping;
     private final Map<String, DocKeys.DocKey> ids2Keys;
 
-    GetResponseRefResolver(Consumer<ColumnIdent> columnConsumer,
-                           DocTableInfo docTableInfo,
-                           Map<String, DocKeys.DocKey> ids2Keys) {
+
+    public GetResponseRefResolver(Consumer<ColumnIdent> columnConsumer,
+                                  Map<ColumnIdent, Integer> pkMapping,
+                                  Map<String, DocKeys.DocKey> ids2Keys) {
         this.columnConsumer = columnConsumer;
-        this.docTableInfo = docTableInfo;
+        this.pkMapping = pkMapping;
         this.ids2Keys = ids2Keys;
     }
 
@@ -73,12 +73,10 @@ public class GetResponseRefResolver implements ReferenceResolver<CollectExpressi
                 return CollectExpression.of(GetResponse::getSource);
 
         }
-        if (docTableInfo.isPartitioned() && docTableInfo.partitionedBy().contains(columnIdent)) {
-            int pkPos = docTableInfo.primaryKey().indexOf(columnIdent);
-            if (pkPos >= 0) {
-                return CollectExpression.of(
-                    response -> ValueSymbolVisitor.VALUE.process(ids2Keys.get(response.getId()).values().get(pkPos)));
-            }
+        Integer pkPos = pkMapping.get(columnIdent);
+        if (pkPos != null) {
+            return CollectExpression.of(
+                response -> ValueSymbolVisitor.VALUE.process(ids2Keys.get(response.getId()).values().get(pkPos)));
         }
 
         return CollectExpression.of(response -> {

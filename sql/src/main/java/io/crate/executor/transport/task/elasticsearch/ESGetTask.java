@@ -36,12 +36,8 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.InputFactory;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectExpression;
@@ -209,7 +205,10 @@ public class ESGetTask extends JobTask {
             for (DocKeys.DocKey key : node.docKeys()) {
                 if (key.id() != null) {
                     MultiGetRequest.Item item = new MultiGetRequest.Item(
-                        indexName(node.tableInfo(), key.partitionValues().orElse(null)),
+                        indexName(
+                            node.tableInfo().isPartitioned(),
+                            node.tableInfo().ident(),
+                            key.partitionValues().orElse(null)),
                         Constants.DEFAULT_MAPPING_TYPE, key.id());
                     item.fetchSourceContext(fsc);
                     item.routing(key.routing());
@@ -242,7 +241,10 @@ public class ESGetTask extends JobTask {
             if (id == null) {
                 return null;
             }
-            GetRequest getRequest = new GetRequest(indexName(node.tableInfo(), docKey.partitionValues().orElse(null)),
+            GetRequest getRequest = new GetRequest(indexName(
+                node.tableInfo().isPartitioned(),
+                node.tableInfo().ident(),
+                docKey.partitionValues().orElse(null)),
                 Constants.DEFAULT_MAPPING_TYPE, id);
             getRequest.fetchSourceContext(fsc);
             getRequest.realtime(true);
@@ -297,7 +299,10 @@ public class ESGetTask extends JobTask {
         InputFactory inputFactory = new InputFactory(functions);
         Map<String, DocKeys.DocKey> docKeysById = groupDocKeysById(esGet.docKeys());
         List<ColumnIdent> columns = new ArrayList<>();
-        GetResponseRefResolver refResolver = new GetResponseRefResolver(columns::add, esGet.tableInfo(), docKeysById);
+
+        // Fixme: This class will become obsolete so just passing null for now.
+        Map<ColumnIdent, Integer>pkMapping = null;
+        GetResponseRefResolver refResolver = new GetResponseRefResolver(columns::add, pkMapping, docKeysById);
         InputFactory.Context<CollectExpression<GetResponse, ?>> ctx = inputFactory.ctxForRefs(refResolver);
         List<Symbol> outputsAndSortSymbols = Lists2.concatUnique(esGet.outputs(), esGet.sortSymbols());
         ctx.add(outputsAndSortSymbols);
@@ -340,12 +345,12 @@ public class ESGetTask extends JobTask {
         return new FetchSourceContext(false);
     }
 
-    public static String indexName(DocTableInfo tableInfo, @Nullable List<BytesRef> values) {
-        if (tableInfo.isPartitioned()) {
+    public static String indexName(boolean isPartitioned, TableIdent tableIdent, @Nullable List<BytesRef> values) {
+        if (isPartitioned) {
             assert values != null : "values must not be null";
-            return new PartitionName(tableInfo.ident(), values).asIndexName();
+            return new PartitionName(tableIdent, values).asIndexName();
         } else {
-            return tableInfo.ident().indexName();
+            return tableIdent.indexName();
         }
     }
 

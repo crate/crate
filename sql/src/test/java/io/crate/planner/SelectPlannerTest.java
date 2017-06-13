@@ -89,10 +89,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetPlan() throws Exception {
-        ESGet esGet = e.plan("select name from users where id = 1");
-        assertThat(esGet.tableInfo().ident().name(), is("users"));
-        assertThat(esGet.docKeys().getOnlyKey(), isDocKey(1L));
-        assertThat(esGet.outputs().size(), is(1));
+        Merge merge = e.plan("select name from users where id = 1");
+        PrimaryKeyLookupPlan plan = (PrimaryKeyLookupPlan) merge.subPlan();
+        PrimaryKeyLookupPhase phase = plan.primaryKeyLookupPhase();
+        assertThat(phase.docKeys().getOnlyKey(), isDocKey(1L));
+        assertThat(merge.numOutputs(), is(1));
     }
 
     @Test
@@ -104,30 +105,33 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetPlanStringLiteral() throws Exception {
-        ESGet esGet = e.plan("select name from bystring where name = 'one'");
-        assertThat(esGet.tableInfo().ident().name(), is("bystring"));
-        assertThat(esGet.docKeys().getOnlyKey(), isDocKey("one"));
-        assertThat(esGet.outputs().size(), is(1));
+        Merge merge = e.plan("select name from bystring where name = 'one'");
+        PrimaryKeyLookupPlan plan = (PrimaryKeyLookupPlan) merge.subPlan();
+        PrimaryKeyLookupPhase phase = plan.primaryKeyLookupPhase();
+        assertThat(phase.docKeys().getOnlyKey(), isDocKey("one"));
+        assertThat(merge.numOutputs(), is(1));
     }
 
     @Test
     public void testGetPlanPartitioned() throws Exception {
-        ESGet esGet = e.plan("select name, date from parted_pks where id = 1 and date = 0");
-        assertThat(esGet.tableInfo().ident().name(), is("parted_pks"));
-        assertThat(esGet.docKeys().getOnlyKey(), isDocKey(1, 0L));
+        Merge merge = e.plan("select name, date from parted_pks where id = 1 and date = 0");
+        PrimaryKeyLookupPlan plan = (PrimaryKeyLookupPlan) merge.subPlan();
+        PrimaryKeyLookupPhase phase = plan.primaryKeyLookupPhase();
+        assertThat(phase.docKeys().getOnlyKey(), isDocKey(1, 0L));
 
         //is(new PartitionName("parted", Arrays.asList(new BytesRef("0"))).asIndexName()));
-        assertEquals(DataTypes.STRING, esGet.outputTypes().get(0));
-        assertEquals(DataTypes.TIMESTAMP, esGet.outputTypes().get(1));
+        assertEquals(DataTypes.STRING, phase.outputTypes().get(0));
+        assertEquals(DataTypes.TIMESTAMP, phase.outputTypes().get(1));
     }
 
     @Test
     public void testMultiGetPlan() throws Exception {
-        ESGet esGet = e.plan("select name from users where id in (1, 2)");
-        assertThat(esGet.docKeys().size(), is(2));
-        assertThat(esGet.docKeys(), containsInAnyOrder(isDocKey(1L), isDocKey(2L)));
+        Merge merge = e.plan("select name from users where id in (1, 2)");
+        PrimaryKeyLookupPlan plan = (PrimaryKeyLookupPlan) merge.subPlan();
+        PrimaryKeyLookupPhase phase = plan.primaryKeyLookupPhase();
+        assertThat(phase.docKeys().size(), is(2));
+        assertThat(phase.docKeys(), containsInAnyOrder(isDocKey(1L), isDocKey(2L)));
     }
-
 
     @Test
     public void testGlobalAggregationPlan() throws Exception {

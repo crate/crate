@@ -26,14 +26,19 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.Function;
 import java.util.Optional;
+import java.util.function.Function;
 
 public class DocKeys implements Iterable<DocKeys.DocKey> {
 
@@ -44,9 +49,55 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
     private final List<List<Symbol>> docKeys;
     private final List<Integer> partitionIdx;
 
+    public static DocKeys fromStream(StreamInput in) throws IOException {
+        int numDocKeys = in.readVInt();
+        List<List<Symbol>> docKeys = new ArrayList<>(numDocKeys);
+        for (int i = 0; i < numDocKeys; i++) {
+            docKeys.add(Symbols.listFromStream(in));
+        }
+
+        boolean withVersions = in.readBoolean();
+
+        int clusteredByIdx = in.readInt();
+
+        int numPartitionIdx = in.readVInt();
+        List<Integer> partitionIdx = new ArrayList<>(numPartitionIdx);
+        for (int i = 0; i < numPartitionIdx; i++) {
+            partitionIdx.add(in.readInt());
+        }
+
+        return new DocKeys(docKeys, withVersions, clusteredByIdx, partitionIdx);
+    }
+
+    public void toStream(StreamOutput out) throws IOException {
+        int numDocKeys = 0;
+        if (docKeys != null) {
+            numDocKeys = docKeys.size();
+        }
+        out.writeVInt(numDocKeys);
+        for (List<Symbol> d : docKeys) {
+            Symbols.toStream(d, out);
+        }
+
+        out.writeBoolean(withVersions);
+
+        out.writeInt(clusteredByIdx);
+
+        int numPartitionIdx = 0;
+        if (partitionIdx != null) {
+            numPartitionIdx = partitionIdx.size();
+        }
+        out.writeVInt(numPartitionIdx);
+        if (partitionIdx != null) {
+            for (Integer i : partitionIdx) {
+                out.writeInt(i);
+            }
+        }
+    }
+
     public class DocKey {
 
-        private final List<Symbol> key;
+        private List<Symbol> key;
         private String id;
 
         private DocKey(int pos) {
@@ -66,7 +117,6 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             } else {
                 return id();
             }
-
         }
 
         public Optional<List<BytesRef>> partitionValues() {
