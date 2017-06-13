@@ -31,13 +31,13 @@ The general format of the ``auth.host_based.config`` setting is a map of remote
 client access entries, where the key of the map defines the order in which the
 entries are used, which permit authentication to CrateDB. Each entry may
 contain no, one, or multiple fields. Allowed fields are ``user``, ``ip`` or
-``cidr``, ``method`` and ``protocol``. The description of these fields can be
-found in :ref:`host_based_auth`.
+``cidr``, ``method``,  ``protocol`` and ``ssl``. The description of these
+fields can be found in :ref:`host_based_auth`.
 
 When a client sends an authentication request, CrateDB matches the provided
-username, IP address and protocol against these entries to determine which
-authentication method is required. If no entry matches, the client
-authentication request will be denied.
+username, IP address,  protocol and connection scheme against these entries
+to determine which authentication method is required. If no entry matches, the
+client authentication request will be denied.
 
 For HTTP connections the ``X-REAL-IP`` request header has priority over the
 actual client IP address in order to allow proxied clients to authenticate.
@@ -63,6 +63,7 @@ For example, a host based configuration can look like this:
             user: barb
             address: 172.16.0.0
             protocol: pg
+            ssl: on
           b:
             user: crate
             address: 32.0.0.0/8
@@ -75,6 +76,11 @@ For example, a host based configuration can look like this:
             address: 172.16.0.0
             method: trust
             protocol: http
+          f:
+            user: trinity
+            protocol: pg
+            address: 127.0.0.1
+            ssl: off
           z:
             method: trust
 
@@ -99,10 +105,11 @@ from any IP address ranging from ``32.0.0.0`` to ``32.255.255.255``, using the
 authentication is supported from any IP address in the range of ``32.0.0.0`` to
 ``32.255.255.255``,  using the ``trust`` authentication method.
 
-``{user: barb, address: 172.16.0.0,  protocol: pg}`` means that the user
-``barb`` can authenticate to CrateDB over the Postgres Wire Protocol from the
-``172.16.0.0`` IP Address. Since no authentication method is specified, the
-``trust`` method will be used by default.
+``{user: barb, address: 172.16.0.0, protocol: pg, ssl: on}`` means that the
+user ``barb`` can authenticate to CrateDB over the Postgres Wire Protocol from
+the ``172.16.0.0`` IP Address only if the connection is done over SSL/TLS.
+Since no authentication method is specified, the ``trust`` method will be used
+by default.
 
 The entry: ``{user: eleven, protocol: pg}`` means that the user ``eleven`` can
 authenticate to CrateDB over the Postgres Wire Protocol from any IP address,
@@ -111,6 +118,12 @@ using the ``trust`` method.
 ``{user: dustin, address: 172.16.0.0, protocol: http, method: trust}`` means
 that the user ``dustin`` can authenticate to CrateDB over HTTP protocol from
 the ``172.16.0.0`` IP Address using the ``trust`` method.
+
+``{user: trinity, address: 127.0.0.1, protocol: pg, ssl: off}`` means that the
+user ``trinity`` can authenticate to CrateDB over Postgres Wire Protocol from
+the ``127.0.0.1`` IP Address only if no SSL/TLS connection is used. Since no
+authentication method is specified, the ``trust`` method will be used by
+default.
 
 And finally the entry ``{method: trust}`` means that any existing user (or
 superuser) can authenticate to CrateDB from any IP address using the ``trust``

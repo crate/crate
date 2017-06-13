@@ -1815,7 +1815,7 @@ HBA Entries
 
 The ``auth.host_based.config.`` setting is a group setting that can have zero,
 one or multiple groups that are defined by their group key (``${order}``) and
-their fields (``user``, ``address``, ``method``, ``protocol``).
+their fields (``user``, ``address``, ``method``, ``protocol``, ``ssl``).
 
 **${order}:**
   | An identifier that is used as a natural order key when looking up the host
@@ -1858,6 +1858,23 @@ The meaning of the fields of the are as follows:
   | If no protocol is specified, then this entry will be valid for all
   | protocols that rely on host based authentication see :ref:`auth_trust`).
 
+**auth.host_based.config.${order}.ssl**
+  | *Runtime:* ``no``
+  | *Default:* ``optional``
+
+  | Specifies whether the client must use SSL/TLS to connect to the cluster.
+  | If set to ``on`` then the client must be connected through SSL/TLS
+  | otherwise is not authenticated. If set to ``off`` then the client must
+  | *not* be connected via SSL/TLS otherwise is not authenticated. Finally
+  | ``optional``, which is the value when the option is completely skipped,
+  | means that the client can be authenticated regardless of SSL/TLS is used
+  | or not.
+
+.. NOTE::
+
+  **auth.host_based.config.${order}.ssl** is available only for ``pg``
+  protocol.
+
 **Example of config groups:**
 
 .. code-block:: yaml
@@ -1873,6 +1890,7 @@ The meaning of the fields of the are as follows:
         address: 172.16.0.0/16
         method: trust
         protocol: pg
+        ssl: on
 
 .. _ssl_config:
 
