@@ -19,7 +19,6 @@
 package io.crate.metadata;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.user.Privilege;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.AbstractDiffable;
@@ -29,6 +28,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -42,6 +42,18 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
     public static final String TYPE = "users_privileges";
     public static final UsersPrivilegesMetaData PROTO = new UsersPrivilegesMetaData();
 
+    public static UsersPrivilegesMetaData copyOf(@Nullable UsersPrivilegesMetaData oldMetaData) {
+        if (oldMetaData == null) {
+            return new UsersPrivilegesMetaData();
+        }
+
+        Map<String, Set<Privilege>> userPrivileges = new HashMap<>(oldMetaData.usersPrivileges.size());
+        for (Map.Entry<String, Set<Privilege>> entry : oldMetaData.usersPrivileges.entrySet()) {
+            userPrivileges.put(entry.getKey(), new HashSet<>(entry.getValue()));
+        }
+        return new UsersPrivilegesMetaData(userPrivileges);
+    }
+
     private final Map<String, Set<Privilege>> usersPrivileges;
 
     @VisibleForTesting
@@ -54,12 +66,17 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
         this.usersPrivileges = usersPrivileges;
     }
 
+    @Nullable
     public Set<Privilege> getUserPrivileges(String userName) {
-        Set<Privilege> privileges = usersPrivileges.get(userName);
-        if (privileges == null) {
-            return ImmutableSet.of();
-        }
-        return privileges;
+        return usersPrivileges.get(userName);
+    }
+
+    public void createPrivileges(String userName, Set<Privilege> privileges) {
+        usersPrivileges.put(userName, privileges);
+    }
+
+    public void dropPrivileges(String userName) {
+        usersPrivileges.remove(userName);
     }
 
     @Override

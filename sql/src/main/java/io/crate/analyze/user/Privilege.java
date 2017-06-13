@@ -33,7 +33,8 @@ import java.util.Objects;
 public class Privilege implements Streamable {
 
     public enum State {
-        GRANT
+        GRANT,
+        REVOKE
     }
 
     public enum Type {
@@ -44,6 +45,10 @@ public class Privilege implements Streamable {
 
     public enum Clazz {
         CLUSTER
+    }
+
+    public static Privilege privilegeAsGrant(Privilege privilege) {
+        return new Privilege(State.GRANT, privilege.type, privilege.clazz, privilege.ident, privilege.grantor);
     }
 
     private State state;
@@ -85,6 +90,10 @@ public class Privilege implements Streamable {
         return grantor;
     }
 
+    /**
+     * Equality validation.
+     * <p>grantor</p> is left out by intend, this is just an information variable.
+     */
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -93,13 +102,16 @@ public class Privilege implements Streamable {
         return state == privilege.state &&
                type == privilege.type &&
                clazz == privilege.clazz &&
-               Objects.equals(ident, privilege.ident) &&
-               Objects.equals(grantor, privilege.grantor);
+               Objects.equals(ident, privilege.ident);
     }
 
+    /**
+     * Builds a hash code.
+     * <p>grantor</p> is left out by intend, this is just an information variable.
+     */
     @Override
     public int hashCode() {
-        return Objects.hash(state, type, clazz, ident, grantor);
+        return Objects.hash(state, type, clazz, ident);
     }
 
     @Override
