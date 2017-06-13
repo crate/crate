@@ -127,6 +127,31 @@
 # The Javascript language is an experimental feature and is not securely
 # sandboxed, so it is disabled by default.
 
+#////////////////////////////////  SSL ///////////////////////////////////////
+
+# To enable secured communications between client and CrateDB node(s) over
+# PostgreSQL wire protocol, set this to true
+#ssl.psql.enabled: true
+
+# The full path to the node keystore file
+#ssl.keystore_filepath: /path/to/keystore_file.jks
+
+# The password used to decrypt the keystore_file.jks
+#ssl.keystore_password: myKeyStorePasswd
+
+# The password entered at the end of the keytool -genkey command if different
+# than the keystore_password.
+#ssl.keystore_key_password: myKeyStorePasswd
+
+# Optional configuration for truststore
+
+# The full path to the node truststore file
+#ssl.truststore_filepath: /path/to/truststore_file.jks
+
+# The password used to decrypt the truststore_file.jks
+#ssl.truststore_password: myTrustStorePasswd
+
+
 ################################# Full Settings ###############################
 
 # Any element in the configuration can be replaced with environment variables

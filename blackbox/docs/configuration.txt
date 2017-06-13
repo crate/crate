@@ -1868,6 +1868,55 @@ The meaning of the fields of the are as follows:
         method: trust
         protocol: pg
 
+.. _ssl_config:
+
+Secured Communications (SSL/TLS)
+--------------------------------
+
+Secured communications via SSL allows you to encrypt traffic between CrateDB
+nodes and clients connecting to them. Connections are secured using Transport
+Layer Security (TLS).
+
+**ssl.psql.enabled**
+  | *Runtime:*  ``no``
+  | *Default:* ``false``
+
+  Set this to true to enable secured communications between CrateDB node and
+  client via SSL via PostgreSQL wire protocol.
+
+**ssl.keystore_filepath**
+  | *Runtime:* ``no``
+
+  The full path to the node keystore file.
+
+**ssl.keystore_password**
+  | *Runtime:* ``no``
+
+  The password used to decrypt the keystore file defined with
+  ```ssl.keystore_filepath``.
+
+**ssl.keystore_key_password**
+  | *Runtime:* ``no``
+
+  The password entered at the end of the ``keytool -genkey command``.
+
+.. NOTE::
+
+    Optionally trusted CA certificates can be stored separately from the
+    node's keystore into a truststore for CA certificates.
+
+**ssl.truststore_filepath**
+  | *Runtime:* ``no``
+
+  The full path to the node truststore file. If not defined, then only a
+  keystore will be used.
+
+**ssl.truststore_password**
+  | *Runtime:* ``no``
+
+  The password used to decrypt the truststore file defined with
+  ``ssl.truststore_filepath``.
+
 .. _`same-origin policy`: https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy
 .. _`cross-origin resource sharing`: https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
 .. _YAML: http://en.wikipedia.org/wiki/YAML
