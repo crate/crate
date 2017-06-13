@@ -44,7 +44,7 @@ public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
 
     SQLOperations.Session createUserSession(@Nullable String defaultSchema, Set<Option> options) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
-        return sqlOperations.createSession(defaultSchema, new User("normal", ImmutableSet.of()), options, DEFAULT_SOFT_LIMIT);
+        return sqlOperations.createSession(defaultSchema, new User("normal", ImmutableSet.of(), ImmutableSet.of()), options, DEFAULT_SOFT_LIMIT);
     }
 
     private void assertUserIsCreated(String userName) throws Exception {
