@@ -24,12 +24,11 @@ package io.crate.operation.auth;
 
 import io.crate.http.netty.HttpAuthUpstreamHandler;
 import io.crate.metadata.sys.SysUsersTableInfo;
+import io.crate.metadata.sys.SysPrivilegesTableInfo;
 import io.crate.operation.collect.sources.SysTableRegistry;
-import io.crate.operation.user.SysUsersTableInfo;
 import io.crate.operation.user.TransportCreateUserAction;
 import io.crate.operation.user.TransportDropUserAction;
 import io.crate.operation.user.TransportPrivilegesAction;
-import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
 import io.crate.operation.user.UserManagerService;
 import io.crate.plugin.PipelineRegistry;
@@ -72,6 +71,11 @@ public class UserServiceFactoryImpl implements UserServiceFactory {
         sysTableRegistry.registerSysTable(new SysUsersTableInfo(clusterService),
             () -> CompletableFuture.completedFuture(userManager.users()),
             SysUsersTableInfo.sysUsersExpressions());
+
+        sysTableRegistry.registerSysTable(new SysPrivilegesTableInfo(clusterService),
+            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(userManager.users())),
+            SysPrivilegesTableInfo.expressions());
+
         return userManager;
     }
 
