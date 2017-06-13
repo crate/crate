@@ -134,33 +134,33 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitGrantPrivilege(SqlBaseParser.GrantPrivilegeContext context) {
         List<String> usernames = identsToStrings(context.ident());
-        EnumSet<Privilege> privileges;
+        EnumSet<PrivilegeType> privilegeTypes;
 
         if (context.ALL() != null) {
-            privileges = EnumSet.allOf(Privilege.class);
+            privilegeTypes = EnumSet.allOf(PrivilegeType.class);
         } else {
-            privileges = EnumSet.noneOf(Privilege.class);
+            privilegeTypes = EnumSet.noneOf(PrivilegeType.class);
             for (int i = 0; i < context.privilege().size(); i++) {
-                privileges.add(Privilege.valueOf(context.privilege(i).getText()));
+                privilegeTypes.add(PrivilegeType.valueOf(context.privilege(i).getText()));
             }
         }
-        return new GrantPrivilege(usernames, privileges);
+        return new GrantPrivilege(usernames, privilegeTypes);
     }
 
     @Override
     public Node visitRevokePrivilege(SqlBaseParser.RevokePrivilegeContext context) {
         List<String> usernames = identsToStrings(context.ident());
-        EnumSet<Privilege> privileges;
+        EnumSet<PrivilegeType> privilegeTypes;
 
         if (context.ALL() != null) {
-            privileges = EnumSet.allOf(Privilege.class);
+            privilegeTypes = EnumSet.allOf(PrivilegeType.class);
         } else {
-            privileges = EnumSet.noneOf(Privilege.class);
+            privilegeTypes = EnumSet.noneOf(PrivilegeType.class);
             for (int i = 0; i < context.privilege().size(); i++) {
-                privileges.add(Privilege.valueOf(context.privilege(i).getText()));
+                privilegeTypes.add(PrivilegeType.valueOf(context.privilege(i).getText()));
             }
         }
-        return new RevokePrivilege(usernames, privileges);
+        return new RevokePrivilege(usernames, privilegeTypes);
     }
 
     @Override
