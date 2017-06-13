@@ -23,6 +23,7 @@
 package io.crate.operation.user;
 
 import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.user.Privilege;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;

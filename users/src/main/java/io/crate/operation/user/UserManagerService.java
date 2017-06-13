@@ -25,6 +25,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
+import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UnauthorizedException;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -65,9 +66,11 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         ImmutableSet.Builder<User> usersBuilder = new ImmutableSet.Builder<User>().add(CRATE_USER);
         if (metaData != null) {
             for (String userName : metaData.users()) {
-                Set<Privilege> privileges = privilegesMetaData == null ? ImmutableSet.of()
-                    : privilegesMetaData.getUserPrivileges(userName);
-                usersBuilder.add(new User(userName, ImmutableSet.of(), privileges));
+                Set<Privilege> privileges = null;
+                if (privilegesMetaData != null) {
+                    privileges = privilegesMetaData.getUserPrivileges(userName);
+                }
+                usersBuilder.add(new User(userName, ImmutableSet.of(), privileges == null ? ImmutableSet.of() : privileges));
             }
         }
         return usersBuilder.build();
