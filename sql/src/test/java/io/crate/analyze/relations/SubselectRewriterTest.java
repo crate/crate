@@ -23,15 +23,23 @@
 package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.analyze.symbol.Field;
+import io.crate.analyze.user.Privilege;
+import io.crate.concurrent.CompletableFutures;
+import io.crate.exceptions.PermissionDeniedException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.operation.udf.UserDefinedFunctionService;
+import io.crate.operation.user.User;
+import io.crate.operation.user.UserManager;
+import io.crate.operation.user.UserManagerProvider;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -40,10 +48,15 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.mock;
 
 public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
 
@@ -59,13 +72,17 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
                 T3.T2_INFO.ident(), T3.T2_INFO
             )
         );
+
+        UserManager userManager = new UserManagerProvider.UnsupportedUserManager();
+
         Schemas schemas = new Schemas(
             Settings.EMPTY,
             ImmutableMap.of(
                 Schemas.DEFAULT_SCHEMA_NAME,
                 new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, docTableInfoFactory)),
             clusterService,
-            new DocSchemaInfoFactory(docTableInfoFactory, functions, udfService)
+            new DocSchemaInfoFactory(docTableInfoFactory, functions, udfService),
+            ()-> userManager
         );
         analyzer = new RelationAnalyzer(clusterService, functions, schemas);
     }

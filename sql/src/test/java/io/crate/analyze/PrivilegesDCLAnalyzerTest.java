@@ -25,6 +25,7 @@ package io.crate.analyze;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.user.Privilege;
+import io.crate.exceptions.PermissionDeniedException;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
 import io.crate.sql.parser.SqlParser;
@@ -162,6 +163,8 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
                 return null;
             }
+            @Override
+            public void raiseMissingPrivilegeException(Privilege.Clazz clazz, Privilege.Type type, String ident, User user) throws PermissionDeniedException {}
         };
     }
 }

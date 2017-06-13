@@ -11,6 +11,7 @@ import io.crate.analyze.*;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.operation.udf.UserDefinedFunctionService;
+import io.crate.operation.user.UserManagerProvider;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Statement;
@@ -892,7 +893,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                 Settings.EMPTY,
                 ImmutableMap.of("doc", docSchemaInfo),
                 clusterService,
-                new DocSchemaInfoFactory(docTableInfoFactory, functions, udfService)),
+                new DocSchemaInfoFactory(docTableInfoFactory, functions, udfService), mock(UserManagerProvider.class)),
             new FulltextAnalyzerResolver(clusterService,
                 new AnalysisRegistry(
                     new Environment(Settings.builder()

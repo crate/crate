@@ -23,6 +23,7 @@
 package io.crate.metadata.table;
 
 import com.google.common.collect.Sets;
+import io.crate.analyze.user.Privilege;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
@@ -58,11 +59,17 @@ public enum Operation {
     public static final EnumSet<Operation> WRITE_DISABLED_OPERATIONS = EnumSet.of(READ, ALTER, ALTER_OPEN_CLOSE,
         ALTER_BLOCKS, SHOW_CREATE, REFRESH, OPTIMIZE, COPY_TO, CREATE_SNAPSHOT);
     public static final EnumSet<Operation> METADATA_DISABLED_OPERATIONS = EnumSet.of(READ, UPDATE, INSERT, DELETE,
-    ALTER_BLOCKS, ALTER_OPEN_CLOSE, REFRESH, SHOW_CREATE, OPTIMIZE);
+        ALTER_BLOCKS, ALTER_OPEN_CLOSE, REFRESH, SHOW_CREATE, OPTIMIZE);
+
+    public static EnumSet<Operation> SUPER_USER_ONLY = EnumSet.of(OPTIMIZE);
+    public static EnumSet<Operation> DML = EnumSet.of(INSERT, UPDATE, DELETE);
+    public static EnumSet<Operation> DDL = EnumSet.of(DROP, ALTER, ALTER_BLOCKS, ALTER_OPEN_CLOSE, CREATE_SNAPSHOT,
+        RESTORE_SNAPSHOT);
+    public static EnumSet<Operation> DQL = EnumSet.of(READ, REFRESH, COPY_TO, OPTIMIZE);
 
     private final String representation;
 
-    Operation (String representation) {
+    Operation(String representation) {
         this.representation = representation;
     }
 
@@ -105,6 +112,22 @@ public enum Operation {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 exceptionMessage, tableInfo.ident().fqn(), operation));
         }
+    }
+
+    public Privilege.Type toPrivilegeType() {
+        if (Operation.DQL.contains(this)) {
+            return Privilege.Type.DQL;
+        }
+        if (Operation.DDL.contains(this)) {
+            return Privilege.Type.DDL;
+        }
+        if (Operation.DML.contains(this)) {
+            return Privilege.Type.DML;
+        }
+        if (Operation.SUPER_USER_ONLY.contains(this)) {
+            return Privilege.Type.DCL;
+        }
+        return null;
     }
 
     @Override

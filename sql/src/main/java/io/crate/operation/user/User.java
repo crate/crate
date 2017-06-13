@@ -25,6 +25,7 @@ package io.crate.operation.user;
 import io.crate.analyze.user.Privilege;
 
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 public class User {
@@ -55,6 +56,24 @@ public class User {
 
     public Set<Privilege> privileges() {
         return privileges;
+    }
+
+    public boolean isSuperUser() {
+        return roles.contains(Role.SUPERUSER);
+    }
+
+    /**
+     * Checks if the user has a privilege that matches the given class, type and ident
+     * currently only the type is checked since Class is always CLUSTER and ident null.
+     * @param type           privilege type
+     * @param clazz          privilege class (ie. CLUSTER, TABLE, etc)
+     * @param ident          ident of the object
+     */
+    public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
+        Optional<Privilege> hasPrivilege = privileges.stream()
+            .filter(p -> p.type().equals(type))
+            .findFirst();
+        return hasPrivilege.isPresent();
     }
 
     @Override
