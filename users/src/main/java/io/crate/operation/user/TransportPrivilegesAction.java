@@ -45,7 +45,6 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.function.Supplier;
 
 @Singleton
 public class TransportPrivilegesAction extends TransportMasterNodeAction<PrivilegesRequest, PrivilegesResponse> {
@@ -58,9 +57,8 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
                                      ClusterService clusterService,
                                      ThreadPool threadPool,
                                      ActionFilters actionFilters,
-                                     IndexNameExpressionResolver indexNameExpressionResolver,
-                                     Supplier<PrivilegesRequest> request) {
-        super(settings, ACTION_NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, request);
+                                     IndexNameExpressionResolver indexNameExpressionResolver) {
+        super(settings, ACTION_NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, PrivilegesRequest::new);
     }
 
     @Override

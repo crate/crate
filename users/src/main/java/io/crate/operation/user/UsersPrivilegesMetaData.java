@@ -74,6 +74,10 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
         usersPrivileges.put(userName, privileges);
     }
 
+    void dropPrivileges(String userName) {
+        usersPrivileges.remove(userName);
+    }
+
     @Override
     public String type() {
         return TYPE;

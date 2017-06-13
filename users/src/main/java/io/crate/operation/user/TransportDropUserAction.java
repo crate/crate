@@ -116,8 +116,16 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
         // create a new instance of the metadata, to guarantee the cluster changed action.
         UsersMetaData newMetaData = UsersMetaData.newInstance(oldMetaData);
         newMetaData.remove(name);
+
         assert !newMetaData.equals(oldMetaData) : "must not be equal to guarantee the cluster change action";
         mdBuilder.putCustom(UsersMetaData.TYPE, newMetaData);
+
+        // removes all privileges for this user
+        UsersPrivilegesMetaData privilegesMetaData = UsersPrivilegesMetaData.copyOf(
+            (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE));
+        privilegesMetaData.dropPrivileges(name);
+        mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, privilegesMetaData);
+
         return 1L;
     }
 }

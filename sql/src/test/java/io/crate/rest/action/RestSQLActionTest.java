@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.user.Privilege;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.operation.user.User;
@@ -39,6 +40,7 @@ import org.elasticsearch.test.rest.FakeRestRequest;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
@@ -61,6 +63,12 @@ public class RestSQLActionTest extends CrateUnitTest {
         public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
             return null;
         }
+
+        @Override
+        public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
+            return null;
+        }
+
         @Override
         public void ensureAuthorized(AnalyzedStatement analysis, SessionContext sessionContext) {
         }
