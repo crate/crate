@@ -22,7 +22,12 @@
 package io.crate.operation.reference.sys;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.*;
+import io.crate.metadata.Functions;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -31,10 +36,11 @@ import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.sys.shard.ShardPathExpression;
-import io.crate.operation.reference.sys.shard.ShardRecoveryExpression;
 import io.crate.operation.reference.sys.shard.ShardRecoveryStateExpression;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.operation.udf.UserDefinedFunctionService;
+import io.crate.operation.user.UserManager;
+import io.crate.operation.user.UserManagerProvider;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import org.apache.lucene.util.BytesRef;
@@ -48,7 +54,12 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.EngineClosedException;
-import org.elasticsearch.index.shard.*;
+import org.elasticsearch.index.shard.DocsStats;
+import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.IndexShardState;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardPath;
 import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.junit.Before;
@@ -65,7 +76,9 @@ import static io.crate.testing.TestingHelpers.refInfo;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @SuppressWarnings("ConstantConditions")
 public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
@@ -83,11 +96,14 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         indexShard = mockIndexShard();
         functions = getFunctions();
         udfService = new UserDefinedFunctionService(clusterService);
+
+        UserManager userManager = new UserManagerProvider.UnsupportedUserManager();
         schemas = new Schemas(
             Settings.EMPTY,
             ImmutableMap.of("sys", new SysSchemaInfo(clusterService)),
             clusterService,
-            new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), functions, udfService)
+            new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), functions, udfService),
+            ()-> userManager
         );
         resolver = ShardReferenceResolver.create(
             clusterService,

@@ -35,17 +35,21 @@ public class Privilege implements Streamable {
 
     public enum State {
         GRANT,
+        DENY,
         REVOKE
     }
 
     public enum Type {
         DQL,
         DML,
-        DDL
+        DDL,
+        DCL
     }
 
     public enum Clazz {
-        CLUSTER
+        CLUSTER,
+        SCHEMA,
+        TABLE
     }
 
     public static final EnumSet<Type> GRANTABLE_TYPES = EnumSet.of(Type.DQL, Type.DML, Type.DDL);

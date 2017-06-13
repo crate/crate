@@ -25,8 +25,10 @@ package io.crate.operation.user;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.user.Privilege;
+import io.crate.exceptions.PermissionDeniedException;
 import io.crate.exceptions.UnauthorizedException;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
@@ -67,4 +69,13 @@ public interface UserManager extends UserLookup {
      * @throws UnauthorizedException if the user is not authorized to perform the statement
      */
     void ensureAuthorized(AnalyzedStatement analysis, SessionContext sessionContext);
+
+    /**
+     * Throws PermissionDeniedException if user is not authorized to perform the statement
+     * @param clazz          privilege class (ie. CLUSTER, TABLE, etc)
+     * @param type           privilege type
+     * @param user           user
+     * @throws PermissionDeniedException if the user is not authorized to perform the statement
+     */
+    void raiseMissingPrivilegeException(Privilege.Clazz clazz, @Nullable Privilege.Type type, String ident, User user) throws PermissionDeniedException;
 }

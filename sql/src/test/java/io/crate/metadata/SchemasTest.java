@@ -28,14 +28,16 @@ import io.crate.analyze.WhereClause;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.Operation;
 import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.udf.UserDefinedFunctionMetaData;
 import io.crate.operation.udf.UserDefinedFunctionsMetaData;
 import io.crate.operation.user.User;
+import io.crate.operation.user.UserManager;
+import io.crate.operation.user.UserManagerProvider;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
@@ -51,10 +53,7 @@ import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -84,6 +83,8 @@ public class SchemasTest {
     private TableIdent unauthorized = new TableIdent("sys", "checks");
 
     private User arthur = new User("arthur", ImmutableSet.of(), ImmutableSet.of());
+
+    private final UserManager userManager = new UserManagerProvider.UnsupportedUserManager();
 
     @Before
     public void setUp() throws Exception {
@@ -115,7 +116,8 @@ public class SchemasTest {
         });
         schemasWithSysTables = new Schemas(Settings.EMPTY, ImmutableMap.of(
             "sys", sysSchemaInfo
-        ), null, null);
+        ), null, null, () -> userManager);
+
     }
 
     @Test
@@ -205,6 +207,6 @@ public class SchemasTest {
     private Schemas getReferenceInfos(SchemaInfo schemaInfo) {
         Map<String, SchemaInfo> builtInSchema = new HashMap<>();
         builtInSchema.put(schemaInfo.name(), schemaInfo);
-        return new Schemas(Settings.EMPTY, builtInSchema, clusterService, mock(DocSchemaInfoFactory.class));
+        return new Schemas(Settings.EMPTY, builtInSchema, clusterService, mock(DocSchemaInfoFactory.class), () -> userManager);
     }
 }

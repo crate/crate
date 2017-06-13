@@ -51,7 +51,9 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testSysUsersTableColumns() throws Exception {
         // The sys users table contains two columns, name and superuser
-        execute("select column_name, data_type from information_schema.columns where table_name='users' and table_schema='sys'");
+        execute("select column_name, data_type from information_schema.columns where table_name='users' and table_schema='sys'",
+            null,
+            createSuperUserSession());
         assertThat(TestingHelpers.printedTable(response.rows()), is("name| string\n" +
                                                                     "superuser| boolean\n"));
     }

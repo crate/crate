@@ -24,7 +24,11 @@ package io.crate.analyze.relations;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.*;
+import io.crate.analyze.Analysis;
+import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.ParameterContext;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
@@ -32,6 +36,8 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.operation.udf.UserDefinedFunctionService;
+import io.crate.operation.user.UserManager;
+import io.crate.operation.user.UserManagerProvider;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -43,7 +49,11 @@ import org.junit.Test;
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 
 public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
 
@@ -59,13 +69,17 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
                 T3.T2_INFO.ident(), T3.T2_INFO
             )
         );
+
+        UserManager userManager = new UserManagerProvider.UnsupportedUserManager();
+
         Schemas schemas = new Schemas(
             Settings.EMPTY,
             ImmutableMap.of(
                 Schemas.DEFAULT_SCHEMA_NAME,
                 new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, docTableInfoFactory)),
             clusterService,
-            new DocSchemaInfoFactory(docTableInfoFactory, functions, udfService)
+            new DocSchemaInfoFactory(docTableInfoFactory, functions, udfService),
+            ()-> userManager
         );
         analyzer = new RelationAnalyzer(clusterService, functions, schemas);
     }
