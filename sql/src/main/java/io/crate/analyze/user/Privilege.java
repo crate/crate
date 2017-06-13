@@ -34,17 +34,21 @@ public class Privilege implements Streamable {
 
     public enum State {
         GRANT,
+        DENY,
         REVOKE
     }
 
     public enum Type {
         DQL,
         DML,
-        DDL
+        DDL,
+        DCL
     }
 
     public enum Clazz {
-        CLUSTER
+        CLUSTER,
+        SCHEMA,
+        TABLE
     }
 
     public static Privilege privilegeAsGrant(Privilege privilege) {
