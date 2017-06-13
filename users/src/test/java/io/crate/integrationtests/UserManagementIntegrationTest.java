@@ -18,50 +18,32 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.collect.ImmutableSet;
-import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLOperations;
-import io.crate.operation.user.User;
-import io.crate.operation.user.UserManagerService;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
-public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
-
-    private SQLOperations.Session createSuperUserSession() {
-        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
-        return sqlOperations.createSession(null, UserManagerService.CRATE_USER, Option.NONE, DEFAULT_SOFT_LIMIT);
-    }
-
-    private SQLOperations.Session createUserSession() {
-        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
-        return sqlOperations.createSession(null, new User("normal", ImmutableSet.of(), ImmutableSet.of()), Option.NONE, DEFAULT_SOFT_LIMIT);
-    }
+public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
 
     private void assertUserIsCreated(String userName) throws Exception {
-        SQLResponse response = execute("select count(*) from sys.users where name = ?",
-            new Object[]{userName},
-            createSuperUserSession());
+        SQLResponse response = executeAsSuperuser("select count(*) from sys.users where name = ?",
+            new Object[]{userName});
         assertThat(response.rows()[0][0], is(1L));
     }
 
     private void assertUserDoesntExist(String userName) throws Exception {
-        SQLResponse response = execute("select count(*) from sys.users where name = ?",
-            new Object[]{userName},
-            createSuperUserSession());
+        SQLResponse response = executeAsSuperuser("select count(*) from sys.users where name = ?",
+            new Object[]{userName});
         assertThat(response.rows()[0][0], is(0L));
     }
 
     @Test
     public void testCreateUser() throws Exception {
-        execute("create user trillian", null, createSuperUserSession());
+        executeAsSuperuser("create user trillian");
         assertThat(response.rowCount(), is(1L));
         assertUserIsCreated("trillian");
     }
@@ -77,30 +59,30 @@ public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSysUsersTableDefaultUser() throws Exception {
         // The sys.users table always contains the superuser crate
-        execute("select name, superuser from sys.users where name = 'crate'", null, createSuperUserSession());
+        executeAsSuperuser("select name, superuser from sys.users where name = 'crate'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("crate| true\n"));
     }
 
     @Test
     public void testSysUsersTable() throws Exception {
-        execute("create user arthur", null, createSuperUserSession());
+        executeAsSuperuser("create user arthur");
         assertUserIsCreated("arthur");
-        execute("select name, superuser from sys.users order by name limit 1", null, createSuperUserSession());
+        executeAsSuperuser("select name, superuser from sys.users order by name limit 1");
         // Every created user is not a superuser
         assertThat(TestingHelpers.printedTable(response.rows()), is("arthur| false\n"));
     }
 
     @Test
     public void testDropUser() throws Exception {
-        execute("create user ford", null, createSuperUserSession());
+        executeAsSuperuser("create user ford");
         assertUserIsCreated("ford");
-        execute("drop user ford", null, createSuperUserSession());
+        executeAsSuperuser("drop user ford");
         assertUserDoesntExist("ford");
     }
 
     @Test
     public void testDropUserIfExists() throws Exception {
-        execute("drop user if exists not_exist_if_exists", null, createSuperUserSession());
+        executeAsSuperuser("drop user if exists not_exist_if_exists");
         assertThat(response.rowCount(), is(0L));
     }
 
@@ -122,7 +104,7 @@ public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateNormalUserUnAuthorized() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("User \"normal\" is not authorized to execute statement");
-        execute("create user ford", null, createUserSession());
+        executeAsNormalUser("create user ford");
     }
 
     @Test
@@ -135,25 +117,25 @@ public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCreateExistingUserThrowsException() throws Exception {
-        execute("create user ford_exists", null, createSuperUserSession());
+        executeAsSuperuser("create user ford_exists");
         assertUserIsCreated("ford_exists");
 
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("UserAlreadyExistsException: User 'ford_exists' already exists");
-        execute("create user ford_exists", null, createSuperUserSession());
+        executeAsSuperuser("create user ford_exists");
     }
 
     @Test
     public void testDropNonExistingUserThrowsException() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("UserUnknownException: User 'not_exists' does not exist");
-        execute("drop user not_exists", null, createSuperUserSession());
+        executeAsSuperuser("drop user not_exists");
     }
 
     @Test
     public void testDropSuperUserThrowsException() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("UnsupportedFeatureException: Cannot drop a superuser 'crate'");
-        execute("drop user crate", null, createSuperUserSession());
+        executeAsSuperuser("drop user crate");
     }
 }
