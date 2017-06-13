@@ -1,14 +1,14 @@
 package io.crate.sql.tree;
 
 
-public enum Privilege {
+public enum PrivilegeType {
     DQL("DQL"),
     DML("DML"),
     DDL("DDL");
 
     private final String name;
 
-    Privilege(String name){
+    PrivilegeType(String name){
         this.name = name;
     }
 

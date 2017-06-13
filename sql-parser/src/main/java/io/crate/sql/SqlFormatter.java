@@ -611,11 +611,11 @@ public final class SqlFormatter {
             return null;
         }
 
-        private Void appendPrivilegesList(EnumSet<Privilege>privileges){
+        private Void appendPrivilegesList(EnumSet<PrivilegeType> privilegeTypes){
             int j = 0;
-            for (Privilege privilege : privileges ) {
-                builder.append(privilege.toString());
-                if (j < privileges.size() - 1) {
+            for (PrivilegeType privilegeType : privilegeTypes) {
+                builder.append(privilegeType.toString());
+                if (j < privilegeTypes.size() - 1) {
                     builder.append(", ");
                 }
                 j++;
