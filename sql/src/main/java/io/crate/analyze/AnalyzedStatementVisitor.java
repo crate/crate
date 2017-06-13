@@ -173,7 +173,7 @@ public class AnalyzedStatementVisitor<C, R> {
         return visitAnalyzedStatement(analyzedBegin, context);
     }
 
-    public R visitGrantRevokePrivilegeStatement(GrantRevokePrivilegeAnalyzedStatement analysis, C context) {
+    public R visitPrivilegesStatement(PrivilegesAnalyzedStatement analysis, C context) {
         return visitDCLStatement(analysis, context);
     }
 

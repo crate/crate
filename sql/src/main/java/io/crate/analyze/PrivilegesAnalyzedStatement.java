@@ -22,31 +22,31 @@
 
 package io.crate.analyze;
 
-import io.crate.sql.tree.Privilege;
+import io.crate.analyze.user.Privilege;
 
-import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
-public class GrantRevokePrivilegeAnalyzedStatement implements DCLStatement {
+public class PrivilegesAnalyzedStatement implements DCLStatement {
 
     private final List<String> userNames;
-    private final EnumSet<Privilege> privileges;
+    private final Set<Privilege> privileges;
 
-    public GrantRevokePrivilegeAnalyzedStatement(List<String> userNames, EnumSet<Privilege> privileges) {
+    public PrivilegesAnalyzedStatement(List<String> userNames, Set<Privilege> privileges) {
         this.userNames = userNames;
         this.privileges = privileges;
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitGrantRevokePrivilegeStatement(this, context);
+        return analyzedStatementVisitor.visitPrivilegesStatement(this, context);
     }
 
     public List<String> userNames() {
         return userNames;
     }
 
-    public EnumSet<Privilege> privileges() {
+    public Set<Privilege> privileges() {
         return privileges;
     }
 }

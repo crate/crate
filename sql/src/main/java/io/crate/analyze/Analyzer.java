@@ -73,8 +73,7 @@ public class Analyzer {
     private final CreateFunctionAnalyzer createFunctionAnalyzer;
     private final DropFunctionAnalyzer dropFunctionAnalyzer;
     private final UserManager userManager;
-    private final GrantPrivilegeAnalyzer grantPrivilegeAnalyzer;
-    private final RevokePrivilegeAnalyzer revokePrivilegeAnalyzer;
+    private final PrivilegesAnalyzer privilegesAnalyzer;
 
     @Inject
     public Analyzer(Schemas schemas,
@@ -106,7 +105,7 @@ public class Analyzer {
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas);
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas);
         this.alterBlobTableAnalyzer = new AlterBlobTableAnalyzer(schemas);
-        this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas , fulltextAnalyzerResolver, functions);
+        this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, fulltextAnalyzerResolver, functions);
         this.alterTableOpenCloseAnalyzer = new AlterTableOpenCloseAnalyzer(schemas);
         this.insertFromValuesAnalyzer = new InsertFromValuesAnalyzer(functions, schemas);
         this.insertFromSubQueryAnalyzer = new InsertFromSubQueryAnalyzer(functions, schemas, relationAnalyzer);
@@ -121,8 +120,7 @@ public class Analyzer {
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.userManager = userManagerProvider.get();
-        this.grantPrivilegeAnalyzer = new GrantPrivilegeAnalyzer(userManager);
-        this.revokePrivilegeAnalyzer = new RevokePrivilegeAnalyzer(userManager);
+        this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager);
     }
 
     public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
@@ -319,12 +317,12 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
-            return grantPrivilegeAnalyzer.analyze(node);
+            return privilegesAnalyzer.analyzeGrant(node, context.sessionContext());
         }
 
         @Override
         public AnalyzedStatement visitRevokePrivilege(RevokePrivilege node, Analysis context) {
-            return revokePrivilegeAnalyzer.analyze(node);
+            return privilegesAnalyzer.analyzeRevoke(node, context.sessionContext());
         }
 
         @Override
