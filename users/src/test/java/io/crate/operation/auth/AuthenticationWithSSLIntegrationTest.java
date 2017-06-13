@@ -19,12 +19,20 @@
 package io.crate.operation.auth;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.protocols.postgres.ssl.SslConfigSettings;
+import io.crate.settings.SharedSettings;
 import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -34,23 +42,43 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
+/**
+ * Additional tests to the SSL tests in {@link AuthenticationIntegrationTest} where SSL
+ * support is disabled. In this test we have SSL support.
+ */
 @UseJdbc(value = 1)
-public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
+public class AuthenticationWithSSLIntegrationTest extends SQLTransportIntegrationTest {
+
+    private static File trustStoreFile;
+    private static File keyStoreFile;
+
+    public AuthenticationWithSSLIntegrationTest() {
+        super(true);
+    }
+
+    @BeforeClass
+    public static void beforeIntegrationTest() throws IOException {
+        keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
+        trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
+    }
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
+            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
+            .put(SslConfigSettings.SSL_ENABLED.getKey(), true)
+            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile)
+            .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
+            .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
+            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile)
+            .put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
             .put("network.host", "127.0.0.1")
             .put("auth.host_based.enabled", true)
             .put("auth.host_based.config",
-                "a", new String[]{"user", "method", "address"}, new String[]{"crate", "trust", "127.0.0.1"})
-            .put("auth.host_based.config",
-                "b", new String[]{"user", "method", "address"}, new String[]{"cr8", "trust", "0.0.0.0/0"})
-            .put("auth.host_based.config",
-                "c", new String[]{"user", "method", "address"}, new String[]{"foo", "fake", "127.0.0.1/32"})
-            .put("auth.host_based.config",
-                "d", new String[]{"user", "method", "address"}, new String[]{"arthur", "trust", "127.0.0.1"})
+                "a",
+                new String[]{"user", "method", "address"},
+                new String[]{"crate", "trust", "127.0.0.1"})
             .put("auth.host_based.config",
                 "e",
                 new String[]{"user", HostBasedAuthentication.SSL_OPTIONS.KEY},
@@ -67,56 +95,6 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testValidCrateUser() throws Exception {
-        Properties properties = new Properties();
-        properties.setProperty("user", "crate");
-        DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties);
-    }
-
-    @Test
-    public void testInvalidUser() throws Exception {
-        expectedException.expect(PSQLException.class);
-        expectedException.expectMessage("FATAL: No valid auth.host_based entry found for host \"127.0.0.1\", user \"me\"");
-        Properties properties = new Properties();
-        properties.setProperty("user", "me");
-        Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties);
-        conn.close();
-    }
-
-    @Test
-    public void testUserInHbaThatDoesNotExist() throws Exception {
-        expectedException.expect(PSQLException.class);
-        expectedException.expectMessage("FATAL: trust authentication failed for user \"cr8\"");
-        Properties properties = new Properties();
-        properties.setProperty("user", "cr8");
-        DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties);
-    }
-
-    @Test
-    public void testInvalidAuthenticationMethod() throws Exception {
-        expectedException.expect(PSQLException.class);
-        expectedException.expectMessage("FATAL: No valid auth.host_based entry found for host \"127.0.0.1\", user \"foo\"");
-        Properties properties = new Properties();
-        properties.setProperty("user", "foo");
-        DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties);
-    }
-
-    @Test
-    public void testAuthenticationWithCreatedUser() throws Exception {
-        // create a user with the crate user
-        Properties properties = new Properties();
-        properties.setProperty("user", "crate");
-        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
-            conn.createStatement().execute("CREATE USER arthur");
-        }
-        // connection with user arthur is possible
-        properties.setProperty("user", "arthur");
-        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
-            assertThat(conn, is(notNullValue()));
-        };
-    }
-
-    @Test
     @SuppressWarnings("EmptyTryBlock")
     public void checkSslConfigOption() throws SQLException {
         Properties properties = new Properties();
@@ -127,21 +105,21 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
             conn.createStatement().execute("CREATE USER neverssluser");
         }
 
-        // We don't have SSL available in the following tests:
+        // We have SSL available in the following tests:
 
         properties.setProperty("user", "optionalssluser");
         try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}
 
-        properties.setProperty("user", "neverssluser");
-        try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}
-
         try {
-            properties.setProperty("user", "requiredssluser");
+            properties.setProperty("user", "neverssluser");
             try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}
-            fail("We were able to proceed without SSL although requireSSL=required was set.");
+            fail("User was able to use SSL although HBA config had requireSSL=never set.");
         } catch (PSQLException e) {
             assertThat(e.getMessage(), containsString("FATAL: No valid auth.host_based entry found"));
         }
+
+        properties.setProperty("user", "requiredssluser");
+        try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}
     }
 
     @After
@@ -154,5 +132,13 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
             conn.createStatement().execute("DROP USER IF EXISTS optionalssluser");
             conn.createStatement().execute("DROP USER IF EXISTS neverssluser");
         }
+    }
+
+    private static File getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) throws IOException {
+        final URL fileUrl = AuthenticationWithSSLIntegrationTest.class.getClassLoader().getResource(fileNameFromClasspath);
+        if (fileUrl == null) {
+            throw new FileNotFoundException("Resource was not found: " + fileNameFromClasspath);
+        }
+        return new File(URLDecoder.decode(fileUrl.getFile(), "UTF-8"));
     }
 }

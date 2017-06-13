@@ -43,6 +43,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -359,7 +360,9 @@ class ConnectionContext {
     private void authenticate(Channel channel, Properties properties) {
         String userName = properties.getProperty("user");
         InetAddress address = CrateNettyHttpServerTransport.getRemoteAddress(channel);
-        AuthenticationMethod authMethod = authService.resolveAuthenticationType(userName, address, HbaProtocol.POSTGRES);
+        boolean usesSSL = channel.pipeline().first() instanceof SslHandler;
+        HbaProtocol hbaProtocol = usesSSL ? HbaProtocol.POSTGRES_SSL : HbaProtocol.POSTGRES;
+        AuthenticationMethod authMethod = authService.resolveAuthenticationType(userName, address, hbaProtocol);
         if (authMethod == null) {
             String errorMessage = String.format(
                 Locale.ENGLISH,

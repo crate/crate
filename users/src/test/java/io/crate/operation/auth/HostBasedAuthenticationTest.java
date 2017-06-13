@@ -34,7 +34,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static io.crate.operation.auth.HostBasedAuthentication.Matchers.*;
+import static org.hamcrest.Matchers.*;
+import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidUser;
+import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidAddress;
+import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidProtocol;
 import static org.hamcrest.core.Is.is;
 
 
@@ -183,6 +186,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
     @Test
     public void testMatchProtocol() throws Exception {
         assertTrue(isValidProtocol("pg", HbaProtocol.POSTGRES));
+        assertTrue(isValidProtocol("pg", HbaProtocol.POSTGRES_SSL));
         assertFalse(isValidProtocol("http", HbaProtocol.POSTGRES));
         assertTrue(isValidProtocol(null, HbaProtocol.POSTGRES));
     }
@@ -221,5 +225,28 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
 
         HostBasedAuthentication authService = new HostBasedAuthentication(settings, null);
         assertThat(authService.hbaConf(), is(createHbaConf(HBA_1, HBA_2)));
+    }
+
+    @Test
+    public void testRequireSSL() {
+        Map<String, String> sslConfig;
+
+        sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
+            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.OPTIONAL.VALUE).build();
+        authService.updateHbaConfig(createHbaConf(sslConfig));
+        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES), not(Optional.empty()));
+        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES_SSL), not(Optional.empty()));
+
+        sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
+            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.REQUIRED.VALUE).build();
+        authService.updateHbaConfig(createHbaConf(sslConfig));
+        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES), is(Optional.empty()));
+        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES_SSL), not(Optional.empty()));
+
+        sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
+            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.NEVER.VALUE).build();
+        authService.updateHbaConfig(createHbaConf(sslConfig));
+        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES), not(Optional.empty()));
+        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES_SSL), is(Optional.empty()));
     }
 }
