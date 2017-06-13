@@ -40,17 +40,17 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNullAndEmptyMetaData() {
         // the users list will always contain a crate user
-        Set<User> users = UserManagerService.getUsers(null);
+        Set<User> users = UserManagerService.getUsers(null, null);
         assertThat(users, contains(CRATE_USER));
 
-        users = UserManagerService.getUsers(new UsersMetaData());
+        users = UserManagerService.getUsers(new UsersMetaData(), new UsersPrivilegesMetaData());
         assertThat(users, contains(CRATE_USER));
     }
 
     @Test
     public void testNewUser() {
-        Set<User> users = UserManagerService.getUsers(new UsersMetaData(ImmutableList.of("arthur")));
-        assertThat(users, containsInAnyOrder(new User("arthur", ImmutableSet.of()), CRATE_USER));
+        Set<User> users = UserManagerService.getUsers(new UsersMetaData(ImmutableList.of("arthur")), new UsersPrivilegesMetaData());
+        assertThat(users, containsInAnyOrder(new User("arthur", ImmutableSet.of(), ImmutableSet.of()), CRATE_USER));
     }
 
     @Test

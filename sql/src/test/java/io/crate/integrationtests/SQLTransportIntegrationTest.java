@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.google.common.base.Throwables;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
@@ -488,7 +489,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     SQLOperations.Session createSessionOnNode(String nodeName) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, nodeName);
         return sqlOperations.createSession(
-            null, new User("crate", EnumSet.of(User.Role.SUPERUSER)), Option.NONE, DEFAULT_SOFT_LIMIT);
+            null, new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of()), Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
     /**
