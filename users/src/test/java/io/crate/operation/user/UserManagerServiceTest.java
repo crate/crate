@@ -57,14 +57,14 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     public void testCreateUserStatementCheckPermissionFalse() {
         expectedException.expect(UnauthorizedException.class);
         expectedException.expectMessage(is("User \"null\" is not authorized to execute statement"));
-        UserManagerService userManagerService = new UserManagerService(null, null, clusterService);
+        UserManagerService userManagerService = new UserManagerService(null, null, null, clusterService);
         userManagerService.ensureAuthorized(new CreateUserAnalyzedStatement(""),
             new SessionContext(0, Option.NONE, "my_schema", null));
     }
 
     @Test
     public void testCreateUserStatementCheckPermissionTrue() {
-        UserManagerService userManagerService = new UserManagerService(null, null, clusterService);
+        UserManagerService userManagerService = new UserManagerService(null, null, null, clusterService);
         userManagerService.ensureAuthorized(new CreateUserAnalyzedStatement("bla"),
             new SessionContext(0, Option.NONE, "my_schema", UserManagerService.CRATE_USER));
     }
@@ -73,14 +73,14 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     public void testDropUserStatementCheckPermissionFalse() {
         expectedException.expect(UnauthorizedException.class);
         expectedException.expectMessage(is("User \"null\" is not authorized to execute statement"));
-        UserManagerService userManagerService = new UserManagerService(null, null, clusterService);
+        UserManagerService userManagerService = new UserManagerService(null, null, null, clusterService);
         userManagerService.ensureAuthorized(new DropUserAnalyzedStatement("", false),
             new SessionContext(0, Option.NONE, "my_schema", null));
     }
 
     @Test
     public void testDropUserStatementCheckPermissionTrue() {
-        UserManagerService userManagerService = new UserManagerService(null, null, clusterService);
+        UserManagerService userManagerService = new UserManagerService(null, null, null, clusterService);
         userManagerService.ensureAuthorized(new DropUserAnalyzedStatement("bla", false),
             new SessionContext(0, Option.NONE, "my_schema", UserManagerService.CRATE_USER));
     }

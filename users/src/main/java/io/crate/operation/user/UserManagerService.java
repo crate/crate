@@ -33,6 +33,7 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Set;
@@ -40,7 +41,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class UserManagerService implements UserManager, ClusterStateListener {
 
-    static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of());
+    public static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of());
 
     private static final PermissionVisitor PERMISSION_VISITOR = new PermissionVisitor();
 
@@ -51,13 +52,16 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     private final TransportCreateUserAction transportCreateUserAction;
     private final TransportDropUserAction transportDropUserAction;
+    private final TransportPrivilegesAction transportPrivilegesAction;
     private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
 
     public UserManagerService(TransportCreateUserAction transportCreateUserAction,
                               TransportDropUserAction transportDropUserAction,
+                              TransportPrivilegesAction transportPrivilegesAction,
                               ClusterService clusterService) {
         this.transportCreateUserAction = transportCreateUserAction;
         this.transportDropUserAction = transportDropUserAction;
+        this.transportPrivilegesAction = transportPrivilegesAction;
         clusterService.add(this);
     }
 
@@ -87,6 +91,13 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
         FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(WriteUserResponse::affectedRows);
         transportDropUserAction.execute(new DropUserRequest(userName, ifExists), listener);
+        return listener;
+    }
+
+    @Override
+    public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
+        FutureActionListener<PrivilegesResponse, Long> listener = new FutureActionListener<>(PrivilegesResponse::affectedRows);
+        transportPrivilegesAction.execute(new PrivilegesRequest(userNames, privileges), listener);
         return listener;
     }
 

@@ -34,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -146,6 +147,10 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             }
             @Override
             public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
+                return null;
+            }
+            @Override
+            public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
                 return null;
             }
             @Override
