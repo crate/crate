@@ -44,7 +44,7 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpUserManager() throws Exception {
-        userManagerService = new UserManagerService(null, null, clusterService);
+        userManagerService = new UserManagerService(null, null, null, clusterService);
     }
 
     @Test

@@ -40,7 +40,7 @@ import static org.mockito.Mockito.mock;
 
 public class AuthenticationMethodTest extends CrateUnitTest {
 
-    private UserManager fakeUserManager = new UserManagerService(null, null, mock(ClusterService.class)) {
+    private UserManager fakeUserManager = new UserManagerService(null, null, null,  mock(ClusterService.class)) {
 
         List<User> users = ImmutableList.of(new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of()));
 
