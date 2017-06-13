@@ -24,8 +24,10 @@ package io.crate.operation.user;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UnauthorizedException;
 
+import java.util.Collection;
 import java.util.concurrent.CompletableFuture;
 
 /**
@@ -47,6 +49,16 @@ public interface UserManager extends UserLookup {
      * @return a future which returns the number of rows when the User is dropped
      */
     CompletableFuture<Long> dropUser(String userName, boolean ifExists);
+
+
+    /**
+     * Apply given list of {@link Privilege}s for each given user
+
+     * @param userNames     List of user names all privileges should be applied for
+     * @param privileges    List of privileges to apply
+     * @return a future which returns the number of privileges which were successfully applied
+     */
+    CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges);
 
     /**
      * checks if user is allowed to execute statement
