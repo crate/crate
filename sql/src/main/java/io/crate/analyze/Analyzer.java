@@ -34,6 +34,7 @@ import io.crate.operation.user.UserManagerProvider;
 import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 
@@ -73,6 +74,7 @@ public class Analyzer {
     private final CreateFunctionAnalyzer createFunctionAnalyzer;
     private final DropFunctionAnalyzer dropFunctionAnalyzer;
     private final UserManager userManager;
+    private final PrivilegesAnalyzer privilegesAnalyzer;
 
     @Inject
     public Analyzer(Schemas schemas,
@@ -81,7 +83,7 @@ public class Analyzer {
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
                     RepositoryParamValidator repositoryParamValidator,
-                    UserManagerProvider userManagerProvider) {
+                    Provider<UserManager> userManagerProvider) {
         NumberOfShards numberOfShards = new NumberOfShards(clusterService);
         this.relationAnalyzer = new RelationAnalyzer(clusterService, functions, schemas);
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
@@ -104,7 +106,7 @@ public class Analyzer {
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas);
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas);
         this.alterBlobTableAnalyzer = new AlterBlobTableAnalyzer(schemas);
-        this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas , fulltextAnalyzerResolver, functions);
+        this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, fulltextAnalyzerResolver, functions);
         this.alterTableOpenCloseAnalyzer = new AlterTableOpenCloseAnalyzer(schemas);
         this.insertFromValuesAnalyzer = new InsertFromValuesAnalyzer(functions, schemas);
         this.insertFromSubQueryAnalyzer = new InsertFromSubQueryAnalyzer(functions, schemas, relationAnalyzer);
@@ -119,6 +121,7 @@ public class Analyzer {
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.userManager = userManagerProvider.get();
+        this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager);
     }
 
     public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
@@ -311,6 +314,16 @@ public class Analyzer {
                 node.name(),
                 node.ifExists()
             );
+        }
+
+        @Override
+        public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
+            return privilegesAnalyzer.analyzeGrant(node, context.sessionContext().user());
+        }
+
+        @Override
+        public AnalyzedStatement visitRevokePrivilege(RevokePrivilege node, Analysis context) {
+            return privilegesAnalyzer.analyzeRevoke(node, context.sessionContext().user());
         }
 
         @Override

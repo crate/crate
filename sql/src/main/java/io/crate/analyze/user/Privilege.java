@@ -28,6 +28,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.Objects;
 
 public class Privilege implements Streamable {
@@ -46,6 +47,8 @@ public class Privilege implements Streamable {
     public enum Clazz {
         CLUSTER
     }
+
+    public static final EnumSet<Type> GRANTABLE_TYPES = EnumSet.of(Type.DQL, Type.DML, Type.DDL);
 
     public static Privilege privilegeAsGrant(Privilege privilege) {
         return new Privilege(State.GRANT, privilege.type, privilege.clazz, privilege.ident, privilege.grantor);
