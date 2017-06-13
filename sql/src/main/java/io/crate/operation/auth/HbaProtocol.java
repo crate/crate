@@ -3,6 +3,7 @@ package io.crate.operation.auth;
 public enum HbaProtocol {
 
     POSTGRES("pg"),
+    POSTGRES_SSL("pg"),
     HTTP("http");
 
     private final String protocolName;

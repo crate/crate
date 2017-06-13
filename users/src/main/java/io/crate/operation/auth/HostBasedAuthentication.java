@@ -42,6 +42,19 @@ public class HostBasedAuthentication implements Authentication {
     private static final String KEY_METHOD = "method";
     private static final String KEY_PROTOCOL = "protocol";
 
+    enum SSL_OPTIONS {
+        REQUIRED("on"),
+        NEVER("off"),
+        OPTIONAL("optional");
+
+        static final String KEY = "ssl";
+        final String VALUE;
+
+        SSL_OPTIONS(String value) {
+            this.VALUE = value;
+        }
+    }
+
     /*
      * The cluster state contains the hbaConf from the setting in this format:
      {
@@ -121,6 +134,7 @@ public class HostBasedAuthentication implements Authentication {
             .filter(e -> Matchers.isValidUser(e, user))
             .filter(e -> Matchers.isValidAddress(e.getValue().get(KEY_ADDRESS), address))
             .filter(e -> Matchers.isValidProtocol(e.getValue().get(KEY_PROTOCOL), protocol))
+            .filter(e -> Matchers.isValidConnection(e.getValue().get(SSL_OPTIONS.KEY), protocol))
             .findFirst();
     }
 
@@ -147,6 +161,14 @@ public class HostBasedAuthentication implements Authentication {
 
         static boolean isValidProtocol(String hbaProtocol, HbaProtocol protocol) {
             return hbaProtocol == null || hbaProtocol.equals(protocol.toString());
+        }
+
+        static boolean isValidConnection(String hbaConnectionMode, HbaProtocol protocol) {
+            return hbaConnectionMode == null ||
+                   hbaConnectionMode.isEmpty() ||
+                   hbaConnectionMode.equals(SSL_OPTIONS.OPTIONAL.VALUE) ||
+                   (hbaConnectionMode.equals(SSL_OPTIONS.NEVER.VALUE) && protocol == HbaProtocol.POSTGRES) ||
+                   (hbaConnectionMode.equals(SSL_OPTIONS.REQUIRED.VALUE) && protocol == HbaProtocol.POSTGRES_SSL);
         }
     }
 
