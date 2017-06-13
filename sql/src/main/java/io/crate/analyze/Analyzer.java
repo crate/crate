@@ -73,6 +73,8 @@ public class Analyzer {
     private final CreateFunctionAnalyzer createFunctionAnalyzer;
     private final DropFunctionAnalyzer dropFunctionAnalyzer;
     private final UserManager userManager;
+    private final GrantPrivilegeAnalyzer grantPrivilegeAnalyzer;
+    private final RevokePrivilegeAnalyzer revokePrivilegeAnalyzer;
 
     @Inject
     public Analyzer(Schemas schemas,
@@ -119,6 +121,8 @@ public class Analyzer {
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
         this.userManager = userManagerProvider.get();
+        this.grantPrivilegeAnalyzer = new GrantPrivilegeAnalyzer(userManager);
+        this.revokePrivilegeAnalyzer = new RevokePrivilegeAnalyzer(userManager);
     }
 
     public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
@@ -311,6 +315,16 @@ public class Analyzer {
                 node.name(),
                 node.ifExists()
             );
+        }
+
+        @Override
+        public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
+            return grantPrivilegeAnalyzer.analyze(node);
+        }
+
+        @Override
+        public AnalyzedStatement visitRevokePrivilege(RevokePrivilege node, Analysis context) {
+            return revokePrivilegeAnalyzer.analyze(node);
         }
 
         @Override
