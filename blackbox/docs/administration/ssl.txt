@@ -1,0 +1,116 @@
+.. _administration_ssl:
+
+================================
+Secured Communications (SSL/TLS)
+================================
+
+.. NOTE::
+
+   *Secured Communications* is an Enterprise Edition feature.
+
+Secured communications allows you to encrypt traffic between CrateDB nodes
+and clients that use PostgreSQL Wire Protocol. Connections are secured using
+Transport Layer Security (TLS).
+
+SSL/TLS Configuration for the PostgreSQL Wire Protocol
+======================================================
+
+First of all, you need to set the boolean setting ``ssl.psql.enabled`` to
+``true`` on each of the nodes you want to enable the secured communications.
+
+Configure the KeyStore
+----------------------
+
+SSL/TLS needs a keystore. The keystore holds the node certificate(s) which
+should be signed by a certificate authority (CA). A third-party CA or your
+organization's existing CA can be used.
+
+When a client connects to a node using SSL/TLS, the client receives the
+certificate provided by the node and will determine if the node’s certificate
+is valid, trusted, and matches the hostname or IP address it is trying to
+connect to.
+
+.. NOTE::
+
+    Technically, it's possible to disable CA checks for certificates on the
+    client. It is strongly recommended however to use certificates signed by
+    an official CA or by a private CA (company PKI) that is also known to the
+    client. This will help to ensure that establishing trust is as painless
+    as possible.
+
+Once the keystore is prepared, define the absolute file path to the keystore
+``.jks`` file on the node using ``ssl.keystore_filepath`` setting.
+
+.. NOTE::
+
+    Make sure that the keystore file has the right permissions and is
+    accessible by the system user ``crate``.
+
+Also, define the password needed to decrypt the keystore by using the
+``ssl.keystore_password`` setting.
+
+Use ``ssl.keystore_key_password`` setting to define the key password used when
+creating the keystore.
+
+For a full list of the settings needed to configure SSL/TLS, refer to
+:ref:`SSL configuration reference <ssl_config>`.
+
+Configure a Separate Truststore
+-------------------------------
+
+Trusted CA certificates can be stored in a node's keystore or a separate
+truststore can be used to store them.
+
+If you want to use a separate truststore, create a node truststore and import
+the CA certificate(s) you want to trust. Once the truststore is prepared,
+define the absolute file path of the truststore ``.jks`` file on the node
+using the ``ssl.truststore_filepath`` setting.
+
+.. NOTE::
+
+    Make sure that the truststore file has the right permissions and is
+    accessible by the system user ``crate``.
+
+Also define the password needed to decrypt the keystore by using the
+``ssl.truststore_password`` setting.
+
+For a full list of the settings needed to configure SSL/TLS, refer to
+:ref:`SSL configuration reference <ssl_config>`.
+
+Connecting to a CrateDB Node Using PostgreSQL Wire Protocol With SSL/TLS
+-------------------------------------------------------------------------
+
+Connect to a CrateDB Node Using JDBC
+....................................
+
+JDBC needs to validate the CrateDB node's identity by checking that the node
+certificate is signed by a trusted authority. If the certificate is signed by
+a certificate authority (CA) that is known to the Java runtime, there is
+nothing further to do (as Java comes with copies of the most common CA's
+certificates).
+
+If you have a certificate that is signed by a CA not known to the Java
+runtime, you need to configure a truststore which contains the node's
+certificate and provide the path to the truststore file along with the
+password when starting your Java application::
+
+    java -Djavax.net.ssl.trustStore=mystore -Djavax.net.ssl.trustStorePassword=mypassword com.mycompany.MyApp
+
+In case you face any issues extra debugging information is available by adding
+``-Djavax.net.debug=ssl`` to your command line.
+
+Last but not least, the connection parameter ``ssl=true`` must be added to the
+connection URL so that the JDBC driver will try and establish an SSL
+connection.
+
+For further information, visit `jdbc ssl documentation`_.
+
+Connect to a CrateDB Node Using ``psql``
+........................................
+
+By default, ``psql`` attempts to use ssl if available on the node. For further
+information including the different SSL modes please visit the
+`psql documentation`_.
+
+.. _jdbc ssl documentation: https://jdbc.postgresql.org/documentation/head/ssl-client.html
+.. _psql documentation: https://www.postgresql.org/docs/current/static/app-psql.html

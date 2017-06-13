@@ -9,3 +9,4 @@ Database Administration
 
     hba
     auth_methods
+    ssl
