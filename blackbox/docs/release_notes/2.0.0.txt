@@ -151,7 +151,7 @@ Changes
  - Extended the subselect support. See :ref:`SELECT Reference
    <sql_reference_subselect>` for details.
 
- - Added support for host based authentication (HBA).
+ - Added support for host based authentication (HBA). 
    Please see :ref:`Host Based Authentication <administration_hba>`.
 
  - Added support for renaming tables using the `ALTER ... RENAME TO ...`
@@ -168,14 +168,13 @@ Changes
  - Added full support for ``DISTINCT`` on queries where ``GROUP BY`` is
    present.
 
- - UDC pings will send ``license.ident`` if defined from now on.
+ - UDC pings will send ``licence.ident`` if defined from now on.
 
  - Added support for ``GROUP BY`` in combination with subselect. E.g.::
 
      SELECT x, COUNT(*) FROM (SELECT x FROM t LIMIT 1) AS tt GROUP BY x;
 
- - Implemented hash sum scalar functions (MD5, SHA1).
-
+ - Implemented hash sum scalar functions (MD5, SHA1). 
    Please see :ref:`sha1 <sha1>`.
 
  - Various admin UI improvements.
@@ -198,7 +197,8 @@ Changes
  - Improved performance of blob stats computation by calculating them in an
    incremental manner.
 
- - Optimized performance of negation queries on ``NOT NULL`` columns. E.g.::
+ - Optimized performance of negation queries on ``NOT NULL`` columns.
+   E.g.:: 
 
      SELECT * FROM t WHERE not_null_col != 10
 
@@ -228,6 +228,8 @@ Fixes
 
  - Fixed that ``sys.snapshot`` queries hung instead of throwing an error if
    something went wrong.
+
+.. _version_2.0.0_upgrade_notes:
 
 Upgrade Notes
 =============
