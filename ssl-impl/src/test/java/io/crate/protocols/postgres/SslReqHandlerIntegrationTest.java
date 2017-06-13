@@ -70,5 +70,4 @@ public class SslReqHandlerIntegrationTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("select name from sys.nodes");
         assertEquals(1, response.rowCount());
     }
-
 }

@@ -67,5 +67,4 @@ public class SslReqConfiguringHandler implements SslReqHandler {
         }
         return State.DONE;
     }
-
 }

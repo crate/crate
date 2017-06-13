@@ -124,7 +124,7 @@ final class SslConfiguration {
 
     abstract static class AbstractKeyStoreSettings {
 
-        protected final Logger LOGGER = Loggers.getLogger(getClass());
+        final Logger LOGGER = Loggers.getLogger(getClass());
 
         final KeyStore keyStore;
         final String keyStorePath;
@@ -194,7 +194,6 @@ final class SslConfiguration {
             return new X509Certificate[0];
         }
 
-
         static String checkStorePath(String keystoreFilePath) throws FileNotFoundException {
 
             if (keystoreFilePath == null || keystoreFilePath.length() == 0) {
@@ -223,7 +222,6 @@ final class SslConfiguration {
         }
     }
 
-
     static class KeyStoreSettings extends AbstractKeyStoreSettings {
 
         final KeyManager[] keyManagers;
@@ -247,8 +245,7 @@ final class SslConfiguration {
 
 
         PrivateKey exportDecryptedKey()
-                throws KeyStoreException, UnrecoverableKeyException, NoSuchAlgorithmException
-        {
+                throws KeyStoreException, UnrecoverableKeyException, NoSuchAlgorithmException {
             Enumeration<String> aliases = keyStore.aliases();
             if (!aliases.hasMoreElements()) {
                 throw new KeyStoreException("No aliases found in keystore");
@@ -314,7 +311,5 @@ final class SslConfiguration {
                 return Optional.empty();
             }
         }
-
     }
-
 }

@@ -87,7 +87,6 @@ public class SslConfigurationTest extends CrateUnitTest {
         settingsBuilder.put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD_SETTING_NAME, "wrongpassword");
 
         TrustStoreSettings.tryLoad(settingsBuilder.build());
-        fail();
     }
 
     @Test
@@ -114,9 +113,9 @@ public class SslConfigurationTest extends CrateUnitTest {
         settingsBuilder.put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, KEYSTORE_KEY_PASSWORD);
 
         new KeyStoreSettings(settingsBuilder.build());
-        fail();
     }
 
+    @Test
     public void testKeyStoreLoadingFailWrongKeyPassword() throws Exception {
         expectedException.expect(UnrecoverableKeyException.class);
         expectedException.expectMessage("Cannot recover key");
@@ -128,7 +127,6 @@ public class SslConfigurationTest extends CrateUnitTest {
 
         KeyStoreSettings ks = new KeyStoreSettings(settingsBuilder.build());
         assertThat(ks.exportDecryptedKey(), is(notNullValue()));
-        fail();
     }
 
     @Test
@@ -143,7 +141,6 @@ public class SslConfigurationTest extends CrateUnitTest {
 
         KeyStoreSettings ks = new KeyStoreSettings(settingsBuilder.build());
         assertThat(ks.exportDecryptedKey(), is(notNullValue()));
-        fail();
     }
 
     @Test

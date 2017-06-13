@@ -27,6 +27,7 @@ import io.crate.protocols.postgres.ssl.SslReqHandler;
 import io.crate.protocols.postgres.ssl.SslReqHandlerLoader;
 import io.crate.protocols.postgres.ssl.SslReqRejectingHandler;
 import io.crate.settings.SharedSettings;
+import io.crate.test.integration.CrateUnitTest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -46,11 +47,9 @@ import java.io.IOException;
 import static io.crate.protocols.postgres.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
 import static io.netty.util.ReferenceCountUtil.releaseLater;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
-public class SslReqHandlerTest {
+public class SslReqHandlerTest extends CrateUnitTest {
 
     private static File trustStoreFile;
     private static File keyStoreFile;
@@ -120,8 +119,10 @@ public class SslReqHandlerTest {
         }
     }
 
-    @Test(expected = SslConfigurationException.class)
+    @Test
     public void testClassLoadingWithInvalidConfiguration() {
+        expectedException.expect(SslConfigurationException.class);
+        expectedException.expectMessage("Failed to build SSL configuration");
         // empty ssl configuration which is invalid
         Settings enterpriseEnabled = Settings.builder()
             .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
