@@ -172,4 +172,12 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitBegin(AnalyzedBegin analyzedBegin, C context) {
         return visitAnalyzedStatement(analyzedBegin, context);
     }
+
+    public R visitPrivilegesStatement(PrivilegesAnalyzedStatement analysis, C context) {
+        return visitDCLStatement(analysis, context);
+    }
+
+    public R visitDCLStatement(DCLStatement analysis, C context) {
+        return visitAnalyzedStatement(analysis, context);
+    }
 }
