@@ -20,6 +20,8 @@ package io.crate.operation.user;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.FutureActionListener;
+import io.crate.analyze.user.Privilege;
+import io.crate.metadata.UsersMetaData;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
@@ -28,7 +30,7 @@ import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserUnknownException;
-import io.crate.metadata.UsersMetaData;
+import io.crate.metadata.UsersPrivilegesMetaData;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -41,12 +43,10 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import static io.crate.metadata.UsersMetaData.PROTO;
-import static io.crate.metadata.UsersMetaData.TYPE;
 
 public class UserManagerService implements UserManager, ClusterStateListener {
 
-    public static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER));
+    public static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of());
 
     private static final PermissionVisitor PERMISSION_VISITOR = new PermissionVisitor();
 
@@ -58,7 +58,8 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     };
 
     static {
-        MetaData.registerPrototype(TYPE, PROTO);
+        MetaData.registerPrototype(UsersMetaData.TYPE, UsersMetaData.PROTO);
+        MetaData.registerPrototype(UsersPrivilegesMetaData.TYPE, UsersPrivilegesMetaData.PROTO);
     }
 
     private final TransportCreateUserAction transportCreateUserAction;
@@ -73,11 +74,14 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         clusterService.add(this);
     }
 
-    static Set<User> getUsers(@Nullable UsersMetaData metaData) {
+    static Set<User> getUsers(@Nullable UsersMetaData metaData,
+                              @Nullable UsersPrivilegesMetaData privilegesMetaData) {
         ImmutableSet.Builder<User> usersBuilder = new ImmutableSet.Builder<User>().add(CRATE_USER);
         if (metaData != null) {
             for (String userName : metaData.users()) {
-                usersBuilder.add(new User(userName, ImmutableSet.of()));
+                Set<Privilege> privileges = privilegesMetaData == null ? ImmutableSet.of()
+                    : privilegesMetaData.getUserPrivileges(userName);
+                usersBuilder.add(new User(userName, ImmutableSet.of(), privileges));
             }
         }
         return usersBuilder.build();
@@ -126,7 +130,8 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         if (!event.metaDataChanged()) {
             return;
         }
-        users = getUsers(event.state().metaData().custom(UsersMetaData.TYPE));
+        MetaData metaData = event.state().metaData();
+        users = getUsers(metaData.custom(UsersMetaData.TYPE), metaData.custom(UsersPrivilegesMetaData.TYPE));
     }
 
 

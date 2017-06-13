@@ -22,6 +22,8 @@
 
 package io.crate.operation.user;
 
+import io.crate.analyze.user.Privilege;
+
 import java.util.Objects;
 import java.util.Set;
 
@@ -35,9 +37,12 @@ public class User {
 
     private final String name;
 
-    public User(String name, Set<Role> roles) {
+    private final Set<Privilege> privileges;
+
+    public User(String name, Set<Role> roles, Set<Privilege> privileges) {
         this.roles = roles;
         this.name = name;
+        this.privileges = privileges;
     }
 
     public Set<Role> roles() {
@@ -52,17 +57,22 @@ public class User {
         return roles.contains(Role.SUPERUSER);
     }
 
+    public Set<Privilege> privileges() {
+        return privileges;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        User that = (User)o;
+        User that = (User) o;
         return Objects.equals(name, that.name) &&
-               Objects.equals(roles, that.roles);
+               Objects.equals(roles, that.roles) &&
+               Objects.equals(privileges, that.privileges);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, roles);
+        return Objects.hash(name, roles, privileges);
     }
 }
