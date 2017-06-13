@@ -24,10 +24,9 @@ package io.crate.analyze;
 
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.user.Privilege.Type;
+import io.crate.analyze.user.Privilege;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
-import io.crate.operation.user.UserManagerProvider;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -36,69 +35,74 @@ import org.junit.Test;
 
 import java.util.Collections;
 
+import static io.crate.analyze.user.Privilege.State.GRANT;
+import static io.crate.analyze.user.Privilege.State.REVOKE;
 import static io.crate.analyze.user.Privilege.Type.*;
+import static org.elasticsearch.mock.orig.Mockito.reset;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.isIn;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private static final User GRANTOR_TEST_USER = new User("test", Collections.emptySet(), Collections.emptySet());
 
     private SQLExecutor e;
-    private UserManagerProvider userManagerProvider;
     private UserManager userManager;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUpUserManagerAndProvider() throws Exception {
         super.setUp();
-        userManagerProvider = mock(UserManagerProvider.class);
         userManager = mock(UserManager.class);
 
         when(userManager.findUser(anyString())).thenAnswer(invocation -> {
             Object[] args = invocation.getArguments();
             return new User((String) args[0], Collections.emptySet(), Collections.emptySet());
         });
-        when(userManagerProvider.get()).thenReturn(userManager);
 
-        e = SQLExecutor.builder(clusterService, userManagerProvider).build();
+        e = SQLExecutor.builder(clusterService, () -> userManager).build();
     }
 
     @Test
     public void testGrantPrivilegesToUsers() {
         PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT DQL, DML TO user1, user2");
-        assertThat(analysis.userNames().size(), is(2));
         assertThat(analysis.userNames(), contains("user1", "user2"));
-        assertThat(analysis.privileges().size(), is(2));
-        verifyAnalysisContains(analysis, DQL, DML);
+        assertThat(analysis.privileges(), containsInAnyOrder(
+            privilegeOf(GRANT, DQL),
+            privilegeOf(GRANT, DML))
+        );
     }
 
     @Test
     public void testRevokePrivilegesFromUsers() {
         PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("REVOKE DQL, DML FROM user1, user2");
-        assertThat(analysis.userNames().size(), is(2));
         assertThat(analysis.userNames(), contains("user1", "user2"));
-        assertThat(analysis.privileges().size(), is(2));
-        verifyAnalysisContains(analysis, DQL, DML);
+        assertThat(analysis.privileges(), containsInAnyOrder(
+            privilegeOf(REVOKE, DQL),
+            privilegeOf(REVOKE, DML))
+        );
     }
 
     @Test
     public void testGrantRevokeAllPrivileges() {
         PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES TO user1");
         assertThat(analysis.privileges().size(), is(3));
-        verifyAnalysisContains(analysis, DDL, DML, DQL);
+        assertThat(analysis.privileges(), containsInAnyOrder(
+            privilegeOf(GRANT, DQL),
+            privilegeOf(GRANT, DML),
+            privilegeOf(GRANT, DDL))
+        );
 
         analysis = analyzePrivilegesStatement("REVOKE ALL PRIVILEGES FROM user1");
         assertThat(analysis.privileges().size(), is(3));
-        verifyAnalysisContains(analysis, DDL, DML, DQL);
-    }
-
-    private void verifyAnalysisContains(PrivilegesAnalyzedStatement analysis, Type... types) {
-        for (io.crate.analyze.user.Privilege privilege : analysis.privileges()) {
-            assertThat(privilege.type(), isIn(types));
-        }
+        assertThat(analysis.privileges(), containsInAnyOrder(
+            privilegeOf(REVOKE, DQL),
+            privilegeOf(REVOKE, DML),
+            privilegeOf(REVOKE, DDL))
+        );
     }
 
     private PrivilegesAnalyzedStatement analyzePrivilegesStatement(String statement) {
@@ -126,16 +130,23 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testGrantPrivilegeToSuperUserThrowsException() {
-        reset(userManagerProvider);
         reset(userManager);
         when(userManager.findUser(anyString())).thenReturn(
             new User("test_superuser", Collections.singleton(User.Role.SUPERUSER), Collections.emptySet())
         );
-        when(userManagerProvider.get()).thenReturn(userManager);
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot alter privileges for superuser test");
-        e = SQLExecutor.builder(clusterService, userManagerProvider).build();
+        e = SQLExecutor.builder(clusterService, () -> userManager).build();
         e.analyze("GRANT DQL TO test");
+    }
+
+    private Privilege privilegeOf(Privilege.State state, Privilege.Type type) {
+        return new Privilege(state,
+            type,
+            Privilege.Clazz.CLUSTER,
+            null,
+            GRANTOR_TEST_USER.name()
+        );
     }
 }

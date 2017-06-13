@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.user.Privilege;
 import io.crate.analyze.user.Privilege.State;
 import io.crate.operation.user.User;
@@ -48,16 +47,16 @@ public class PrivilegesAnalyzer {
         this.userManager = userManager;
     }
 
-    public PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, SessionContext sessionContext) {
+    public PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, User user) {
         validateUsernames(node.userNames());
         return new PrivilegesAnalyzedStatement(node.userNames(),
-            privilegeTypesToPrivileges(node.privileges(), sessionContext.user(), true));
+            privilegeTypesToPrivileges(node.privileges(), user, State.GRANT));
     }
 
-    public PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, SessionContext sessionContext) {
+    public PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, User user) {
         validateUsernames(node.userNames());
         return new PrivilegesAnalyzedStatement(node.userNames(),
-            privilegeTypesToPrivileges(node.privileges(), sessionContext.user(), false));
+            privilegeTypesToPrivileges(node.privileges(), user, State.REVOKE));
     }
 
     private void validateUsernames(List<String> userNames) {
@@ -75,13 +74,9 @@ public class PrivilegesAnalyzer {
 
     private Set<Privilege> privilegeTypesToPrivileges(EnumSet<PrivilegeType> privilegeTypes,
                                                       User grantor,
-                                                      boolean grant) {
+                                                      State state) {
         Set<Privilege> privileges = new HashSet<>(privilegeTypes.size());
         for (PrivilegeType type : privilegeTypes) {
-            State state = State.REVOKE;
-            if (grant) {
-                state = State.GRANT;
-            }
             Privilege privilege = new Privilege(state,
                 Privilege.Type.valueOf(type.name()),
                 Privilege.Clazz.CLUSTER,

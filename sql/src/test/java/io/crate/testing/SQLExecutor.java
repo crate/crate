@@ -47,6 +47,7 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.udf.UserDefinedFunctionService;
+import io.crate.operation.user.UserManager;
 import io.crate.operation.user.UserManagerProvider;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -57,6 +58,7 @@ import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDelet
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -95,7 +97,7 @@ public class SQLExecutor {
         private final Map<TableIdent, BlobTableInfo> blobTables = new HashMap<>();
         private final Functions functions;
         @Nullable
-        private  UserManagerProvider userManagerProvider;
+        private  Provider<UserManager> userManagerProvider;
 
         private TableStats tableStats = new TableStats();
 
@@ -103,7 +105,7 @@ public class SQLExecutor {
             this(clusterService, null);
         }
 
-        public Builder(ClusterService clusterService, @Nullable UserManagerProvider userManagerProvider) {
+        public Builder(ClusterService clusterService, @Nullable Provider<UserManager> userManagerProvider) {
             this.clusterService = clusterService;
             this.userManagerProvider = userManagerProvider;
             schemas.put("sys", new SysSchemaInfo(clusterService));
@@ -237,7 +239,7 @@ public class SQLExecutor {
         return new Builder(clusterService);
     }
 
-    public static Builder builder(ClusterService clusterService, UserManagerProvider userManagerProvider) {
+    public static Builder builder(ClusterService clusterService, Provider<UserManager> userManagerProvider) {
         return new Builder(clusterService, userManagerProvider);
     }
 
