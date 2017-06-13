@@ -83,7 +83,7 @@ public class SchemasTest {
 
     private TableIdent unauthorized = new TableIdent("sys", "checks");
 
-    private User arthur = new User("arthur", ImmutableSet.of());
+    private User arthur = new User("arthur", ImmutableSet.of(), ImmutableSet.of());
 
     @Before
     public void setUp() throws Exception {
@@ -179,7 +179,7 @@ public class SchemasTest {
     @Test
     public void testAuthorizationRequiredAuthorizedUser() throws Exception {
         TableInfo info = schemasWithSysTables.getTableInfo(authorized,
-            new User("superuser", EnumSet.of(User.Role.SUPERUSER)));
+            new User("superuser", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of()));
         assertThat(info, is(notNullValue()));
     }
 

@@ -22,6 +22,7 @@
 
 package io.crate.rest.action;
 
+import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
@@ -66,7 +67,7 @@ public class RestSQLActionTest extends CrateUnitTest {
         @Nullable
         @Override
         public User findUser(String userName) {
-            return new User(userName, Collections.emptySet());
+            return new User(userName, Collections.emptySet(), ImmutableSet.of());
         }
     };
 
