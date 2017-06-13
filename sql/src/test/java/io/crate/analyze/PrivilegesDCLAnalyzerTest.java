@@ -33,37 +33,29 @@ import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import static io.crate.analyze.user.Privilege.State.GRANT;
 import static io.crate.analyze.user.Privilege.State.REVOKE;
-import static io.crate.analyze.user.Privilege.Type.*;
-import static org.elasticsearch.mock.orig.Mockito.reset;
+import static io.crate.analyze.user.Privilege.Type.DDL;
+import static io.crate.analyze.user.Privilege.Type.DML;
+import static io.crate.analyze.user.Privilege.Type.DQL;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private static final User GRANTOR_TEST_USER = new User("test", Collections.emptySet(), Collections.emptySet());
 
     private SQLExecutor e;
-    private UserManager userManager;
 
     @Before
     public void setUpUserManagerAndProvider() throws Exception {
-        super.setUp();
-        userManager = mock(UserManager.class);
-
-        when(userManager.findUser(anyString())).thenAnswer(invocation -> {
-            Object[] args = invocation.getArguments();
-            return new User((String) args[0], Collections.emptySet(), Collections.emptySet());
-        });
-
-        e = SQLExecutor.builder(clusterService, () -> userManager).build();
+        e = SQLExecutor.builder(clusterService, () -> createUserManager(false)).build();
     }
 
     @Test
@@ -130,14 +122,10 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testGrantPrivilegeToSuperUserThrowsException() {
-        reset(userManager);
-        when(userManager.findUser(anyString())).thenReturn(
-            new User("test_superuser", Collections.singleton(User.Role.SUPERUSER), Collections.emptySet())
-        );
+        e = SQLExecutor.builder(clusterService, () -> createUserManager(true)).build();
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot alter privileges for superuser test");
-        e = SQLExecutor.builder(clusterService, () -> userManager).build();
         e.analyze("GRANT DQL TO test");
     }
 
@@ -148,5 +136,27 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             null,
             GRANTOR_TEST_USER.name()
         );
+    }
+
+    private UserManager createUserManager(final boolean isSuperUser) {
+        return new UserManager() {
+            @Override
+            public CompletableFuture<Long> createUser(String userName) {
+                return null;
+            }
+            @Override
+            public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
+                return null;
+            }
+            @Override
+            public void ensureAuthorized(AnalyzedStatement analysis, SessionContext sessionContext) {
+            }
+            @Nullable
+            @Override
+            public User findUser(String userName) {
+                Set<User.Role> roles = isSuperUser ? Collections.singleton(User.Role.SUPERUSER) : Collections.emptySet();
+                return new User(userName, roles, Collections.emptySet());
+            }
+        };
     }
 }
