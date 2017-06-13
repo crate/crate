@@ -54,7 +54,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     private SQLExecutor e;
 
     @Before
-    public void setUpUserManagerAndProvider() throws Exception {
+    public void setUpSQLExecutor() throws Exception {
         e = SQLExecutor.builder(clusterService, () -> createUserManager(false)).build();
     }
 
