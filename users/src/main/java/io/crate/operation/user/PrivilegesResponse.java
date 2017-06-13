@@ -22,53 +22,40 @@
 
 package io.crate.operation.user;
 
-import io.crate.analyze.user.Privilege;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.util.Objects;
-import java.util.Set;
+import java.io.IOException;
 
-public class User {
+public class PrivilegesResponse extends AcknowledgedResponse {
 
-    public enum Role {
-        SUPERUSER
+    private long affectedRows;
+
+    PrivilegesResponse() {
+        affectedRows = 0L;
     }
 
-    private final Set<Role> roles;
-
-    private final String name;
-
-    private final Set<Privilege> privileges;
-
-    public User(String name, Set<Role> roles, Set<Privilege> privileges) {
-        this.roles = roles;
-        this.name = name;
-        this.privileges = privileges;
+    PrivilegesResponse(boolean acknowledged, long affectedRows) {
+        super(acknowledged);
+        this.affectedRows = affectedRows;
     }
 
-    public Set<Role> roles() {
-        return roles;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public Set<Privilege> privileges() {
-        return privileges;
+    long affectedRows() {
+        return affectedRows;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        User that = (User) o;
-        return Objects.equals(name, that.name) &&
-               Objects.equals(roles, that.roles) &&
-               Objects.equals(privileges, that.privileges);
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        readAcknowledged(in);
+        affectedRows = in.readLong();
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(name, roles, privileges);
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        writeAcknowledged(out);
+        out.writeLong(affectedRows);
     }
 }

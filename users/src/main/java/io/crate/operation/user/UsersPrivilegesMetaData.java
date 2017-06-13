@@ -23,7 +23,7 @@
 package io.crate.operation.user;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableSet;
+import io.crate.analyze.user.Privilege;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -32,6 +32,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -45,6 +46,13 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
     static final String TYPE = "users_privileges";
     static final UsersPrivilegesMetaData PROTO = new UsersPrivilegesMetaData();
 
+    static UsersPrivilegesMetaData copyOf(@Nullable UsersPrivilegesMetaData oldMetaData) {
+        if (oldMetaData == null) {
+            return new UsersPrivilegesMetaData();
+        }
+        return new UsersPrivilegesMetaData(new HashMap<>(oldMetaData.usersPrivileges));
+    }
+
     private final Map<String, Set<Privilege>> usersPrivileges;
 
     @VisibleForTesting
@@ -57,12 +65,13 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
         this.usersPrivileges = usersPrivileges;
     }
 
+    @Nullable
     Set<Privilege> getUserPrivileges(String userName) {
-        Set<Privilege> privileges = usersPrivileges.get(userName);
-        if (privileges == null) {
-            return ImmutableSet.of();
-        }
-        return privileges;
+        return usersPrivileges.get(userName);
+    }
+
+    void createPrivileges(String userName, Set<Privilege> privileges) {
+        usersPrivileges.put(userName, privileges);
     }
 
     @Override
