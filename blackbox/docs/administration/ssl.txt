@@ -117,21 +117,21 @@ information including the different SSL modes please visit the
 
 
 
-Setting up a Keystore/Truststore with a certificate chain
+Setting up a Keystore/Truststore With a Certificate Chain
 =========================================================
 
-In case you need to setup a Keystore/Trustore, here are the commands
+In case you need to setup a Keystore or a Trustore, here are the commands
 to get you started. All the commands use a validity of 36500 days
 (about 100 years). You might want to use less.
 
 .. NOTE::
 
    Only follow the optional steps if you want to create your own
-   Certificate Authority. Otherwise, please request a signed certificate
-   from one of the CAs bundled with Java.
+   Certificate Authority (CA). Otherwise, please request a signed
+   certificate from one of the CAs bundled with Java.
 
 
-Generate Keystore with a Private Key
+Generate Keystore With a Private Key
 ------------------------------------
 
 The first step is to create a keystore with a private key.
@@ -168,9 +168,11 @@ Generate a Certificate Signing Request
 --------------------------------------
 
 To establish trust for this key, we need to sign it. This is done by generating
-a certificate signing request. If you have access to a certificate authority (CA),
-you can skip the next optional steps and get the signed certificate from it using
-the signing request which we will generate in the following. If you don't, then
+a certificate signing request.
+
+If you have access to a certificate authority (CA), you can skip the next
+steps and get the signed certificate from the CA using the signing request which
+we will generate with the command below. If you don't have access to a CA, then
 follow the optional steps after this step to establish your own CA.
 
 Command::
@@ -184,11 +186,11 @@ Output::
     Enter key password for <server>
 
 
-Optional: Generate a Self-Signed Certificate to act as a Certificate Authority (CA)
+Optional: Generate a Self-Signed Certificate to Act as a Certificate Authority (CA)
 -----------------------------------------------------------------------------------
 
 If you don't get your certificate signed from one of the official CAs,
-you might want to create your own CA with a self-signed certificate:
+you might want to create your own CA with a self-signed certificate.
 
 Command::
 
@@ -218,14 +220,15 @@ Output::
     Email Address []:info@crate.io
 
 
-Optional: Generate Signed Cert
-------------------------------
+Optional: Generate a Signed Cert
+--------------------------------
 
-Now it is time to generate a signed cert from our certificate signing request.
+Now you can generate a signed cert from our certificate signing request.
 
 Command::
 
-    openssl x509 -req -in server.csr -CA rootCA.crt -CAkey rootCA.key -CAcreateserial -out server.crt -sha256 -days 36500
+    openssl x509 -req -in server.csr -CA rootCA.crt -CAkey rootCA.key \
+        -CAcreateserial -out server.crt -sha256 -days 36500
 
 Output::
 
@@ -234,8 +237,8 @@ Output::
     Getting CA Private Key
 
 
-Optional: Import CA into Keystore
----------------------------------
+Optional: Import the CA Certificate Into the Keystore
+-----------------------------------------------------
 
 The CA needs to be imported to the Keystore for the certificate chain to be
 available when we import our signed certificate.
@@ -288,11 +291,11 @@ Output::
     Certificate was added to keystore
 
 
-Import Signed Certificate
--------------------------
+Import the Signed Certificate
+-----------------------------
 
-Now we have a signed certificate, signed by either from the offical CA
-or our own CA. Let's import it to the keystore.
+Now we have a signed certificate, signed by either from a official CA
+or from our own CA. Let's import it to the keystore.
 
 Command::
 
@@ -305,7 +308,7 @@ Output::
     Certificate reply was installed in keystore
 
 
-Optional: Import CA into Truststore
+Optional: Import CA Into Truststore
 -----------------------------------
 
 If we are using our own CA, we should also import the certificate to the
@@ -364,5 +367,5 @@ Output::
 Configuring CrateDB
 -------------------
 
-Finally, you want to supply the keystore/truststore configuration in the CrateDB config,
-see the :SSL section:`_ssl_config`.
+Finally, you want to supply the keystore/truststore configuration in the
+CrateDB config, see the :SSL section:`_ssl_config`.
