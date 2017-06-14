@@ -30,7 +30,6 @@ import io.crate.analyze.user.Privilege;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
-import io.crate.operation.user.UserManagerProvider;
 import io.crate.operation.user.UserManagerService;
 import io.crate.settings.SharedSettings;
 import io.crate.testing.TestingHelpers;
@@ -60,6 +59,8 @@ public class SysPrivilegesITest extends SQLTransportIntegrationTest {
         new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
         new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate")));
     private static final List<String> USERNAMES = Arrays.asList("Ford", "Arthur");
+
+    private UserManager userManager;
 
     private SQLOperations.Session createSuperUserSession() {
         return createSuperUserSession(true);
@@ -92,7 +93,9 @@ public class SysPrivilegesITest extends SQLTransportIntegrationTest {
 
     @Before
     public void setUpUsersAndPrivileges() throws Exception {
-        UserManager userManager = internalCluster().getInstance(UserManagerProvider.class, internalCluster().getNodeNames()[0]).get();
+        if (userManager == null) {
+            userManager = internalCluster().getInstance(UserManager.class, internalCluster().getNodeNames()[0]);
+        }
         for (String userName : USERNAMES) {
             userManager.createUser(userName).get(5, TimeUnit.SECONDS);
         }
@@ -101,7 +104,6 @@ public class SysPrivilegesITest extends SQLTransportIntegrationTest {
 
     @After
     public void dropUsersAndPrivileges() throws Exception {
-        UserManager userManager = internalCluster().getInstance(UserManagerProvider.class, internalCluster().getNodeNames()[0]).get();
         for (String userName : USERNAMES) {
             userManager.dropUser(userName, true).get(5, TimeUnit.SECONDS);
         }
