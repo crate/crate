@@ -25,6 +25,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
+import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.PermissionDeniedException;
 import io.crate.exceptions.UnauthorizedException;
@@ -209,6 +210,15 @@ public class UserManagerService implements UserManager, ClusterStateListener {
                                                  SessionContext sessionContext) {
             if (!isSuperUser(sessionContext.user())) {
                 throwUnauthorized(sessionContext.user());
+            }
+            return true;
+        }
+
+        @Override
+        public Boolean visitPrivilegesStatement(PrivilegesAnalyzedStatement analysis,
+                                                SessionContext context) {
+            if (!isSuperUser(context.user())) {
+                throwUnauthorized(context.user());
             }
             return true;
         }
