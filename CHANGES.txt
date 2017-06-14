@@ -31,8 +31,12 @@ Breaking Changes (Packaging only)
 Changes
 =======
 
- - Updated Elasticsearch to 5.1.2
+ - Added new HBA setting ``ssl`` which allows to control whether
+   users have to connect with ssl enabled or disabled.
 
+ - Added SSL/TLS support for PostgreSQL Wire Protocol.
+
+ - Updated Elasticsearch to 5.1.2
  - Extended the output of the  ``EXPLAIN`` statement.
 
  - Added support for joins on virtual tables.
