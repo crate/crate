@@ -124,12 +124,6 @@ In case you need to setup a Keystore or a Trustore, here are the commands
 to get you started. All the commands use a validity of 36500 days
 (about 100 years). You might want to use less.
 
-.. NOTE::
-
-   Only follow the optional steps if you want to create your own
-   Certificate Authority (CA). Otherwise, please request a signed
-   certificate from one of the CAs bundled with Java.
-
 
 Generate Keystore With a Private Key
 ------------------------------------
@@ -186,8 +180,18 @@ Output::
     Enter key password for <server>
 
 
-Optional: Generate a Self-Signed Certificate to Act as a Certificate Authority (CA)
------------------------------------------------------------------------------------
+Optional: Use a Self-Signed Certificate to Act as a Certificate Authority (CA)
+------------------------------------------------------------------------------
+
+.. NOTE::
+
+   Only follow these optional steps if you want to create your own
+   Certificate Authority (CA). Otherwise, please request a signed
+   certificate from one of the CAs bundled with Java.
+
+
+Generate a Self-Signed Certificate
+..................................
 
 If you don't get your certificate signed from one of the official CAs,
 you might want to create your own CA with a self-signed certificate.
@@ -220,8 +224,8 @@ Output::
     Email Address []:info@crate.io
 
 
-Optional: Generate a Signed Cert
---------------------------------
+Generate a Signed Cert
+......................
 
 Now you can generate a signed cert from our certificate signing request.
 
@@ -237,8 +241,8 @@ Output::
     Getting CA Private Key
 
 
-Optional: Import the CA Certificate Into the Keystore
------------------------------------------------------
+Import the CA Certificate Into the Keystore
+...........................................
 
 The CA needs to be imported to the Keystore for the certificate chain to be
 available when we import our signed certificate.
@@ -291,25 +295,8 @@ Output::
     Certificate was added to keystore
 
 
-Import the Signed Certificate
------------------------------
-
-Now we have a signed certificate, signed by either from a official CA
-or from our own CA. Let's import it to the keystore.
-
-Command::
-
-    keytool -import -keystore keystore -file server.crt -alias server
-
-Output::
-
-    Enter keystore password:
-    Enter key password for <server>
-    Certificate reply was installed in keystore
-
-
-Optional: Import CA Into Truststore
------------------------------------
+Import CA Into Truststore
+.........................
 
 If we are using our own CA, we should also import the certificate to the
 Truststore, such that it is available for clients which want to verify
@@ -362,6 +349,22 @@ Output::
 
     Trust this certificate? [no]:  yes
     Certificate was added to keystore
+
+Import the Signed Certificate
+-----------------------------
+
+Now we have a signed certificate, signed by either from a official CA
+or from our own CA. Let's import it to the keystore.
+
+Command::
+
+    keytool -import -keystore keystore -file server.crt -alias server
+
+Output::
+
+    Enter keystore password:
+    Enter key password for <server>
+    Certificate reply was installed in keystore
 
 
 Configuring CrateDB
