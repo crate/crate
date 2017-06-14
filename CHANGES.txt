@@ -29,6 +29,11 @@ Breaking Changes (Packaging only)
 Changes
 =======
 
+ - Added SSL/TLS support for PostgreSQL Wire Protocol.
+
+ - Added new HBA setting ``ssl`` which allows to control user authentication
+   based on the connection scheme used for the ``pg`` protocol.
+
  - Expose new setting ``write.wait_for_active_shards`` to allow users to
    adjust the required shard copies for write operation to their needs.
 
