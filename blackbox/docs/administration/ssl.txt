@@ -364,23 +364,5 @@ Output::
 Configuring CrateDB
 -------------------
 
-Finally, you want to supply the keystore/truststore configuration in the CrateDB config:
-
-::
-
-    ssl.psql.enabled: true
-
-    # Absolute path to keystore file generated in step one
-    ssl.keystore_filepath: /path/to/keystore
-
-    # The password we chose for the keystore in step one
-    ssl.keystore_password: myKeyStorePasswd
-
-    # The key password we chose in step one
-    ssl.keystore_key_password: myKeyStorePasswd
-
-    # Absolute path to trusstore file we generated in the last step (optional)
-    # ssl.truststore_filepath: /path/to/truststore
-
-    # Password for the trusstore we chose in the last step (optional)
-    # ssl.truststore_password: myTrustStorePasswd
+Finally, you want to supply the keystore/truststore configuration in the CrateDB config,
+see the :SSL section:`_ssl_config`.
