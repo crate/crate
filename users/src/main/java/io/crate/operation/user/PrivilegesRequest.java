@@ -25,7 +25,7 @@ package io.crate.operation.user;
 import io.crate.analyze.user.Privilege;
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.ValidateActions;
-import org.elasticsearch.action.support.master.MasterNodeRequest;
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -33,7 +33,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 
-public class PrivilegesRequest extends MasterNodeRequest<PrivilegesRequest> {
+public class PrivilegesRequest extends AcknowledgedRequest<PrivilegesRequest> {
 
     private Collection<String> userNames;
     private Collection<Privilege> privileges;

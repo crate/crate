@@ -27,17 +27,17 @@ import io.crate.analyze.user.Privilege;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -80,7 +80,7 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     @Override
     protected void masterOperation(PrivilegesRequest request, ClusterState state, ActionListener<PrivilegesResponse> listener) throws Exception {
         clusterService.submitStateUpdateTask("grant_privileges",
-            new ClusterStateUpdateTask() {
+            new AckedClusterStateUpdateTask<PrivilegesResponse>(Priority.IMMEDIATE, request, listener) {
 
                 long affectedRows = -1;
 
@@ -97,18 +97,8 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
                 }
 
                 @Override
-                public TimeValue timeout() {
-                    return request.masterNodeTimeout();
-                }
-
-                @Override
-                public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                    listener.onResponse(new PrivilegesResponse(true, affectedRows));
-                }
-
-                @Override
-                public void onFailure(String source, Exception e) {
-                    listener.onFailure(e);
+                protected PrivilegesResponse newResponse(boolean acknowledged) {
+                    return new PrivilegesResponse(acknowledged, affectedRows);
                 }
             });
 

@@ -50,7 +50,12 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
         if (oldMetaData == null) {
             return new UsersPrivilegesMetaData();
         }
-        return new UsersPrivilegesMetaData(new HashMap<>(oldMetaData.usersPrivileges));
+
+        Map<String, Set<Privilege>> userPrivileges = new HashMap<>(oldMetaData.usersPrivileges.size());
+        for (Map.Entry<String, Set<Privilege>> entry : oldMetaData.usersPrivileges.entrySet()) {
+            userPrivileges.put(entry.getKey(), new HashSet<>(entry.getValue()));
+        }
+        return new UsersPrivilegesMetaData(userPrivileges);
     }
 
     private final Map<String, Set<Privilege>> usersPrivileges;
