@@ -30,7 +30,6 @@ import org.apache.xbean.finder.ResourceFinder;
 import org.elasticsearch.bootstrap.JarHell;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.PathUtils;
@@ -41,12 +40,16 @@ import org.elasticsearch.plugins.PluginInfo;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
@@ -59,7 +62,6 @@ public class PluginLoader {
     private static final String RESOURCE_PATH = "META-INF/services/";
 
     private final Settings settings;
-    private final Map<Plugin, List<OnModuleReference>> onModuleReferences;
     private final Logger logger;
 
     @VisibleForTesting
@@ -80,30 +82,15 @@ public class PluginLoader {
 
         Collection<Class<? extends Plugin>> implementations = findImplementations();
 
-        MapBuilder<Plugin, List<OnModuleReference>> onModuleReferences = MapBuilder.newMapBuilder();
         ImmutableList.Builder<Plugin> builder = ImmutableList.builder();
         for (Class<? extends Plugin> pluginClass : implementations) {
-            Plugin plugin;
             try {
-                plugin = loadPlugin(pluginClass);
+                builder.add(loadPlugin(pluginClass));
             } catch (Throwable t) {
                 logger.error("error loading plugin:  " + pluginClass.getSimpleName(), t);
-                continue;
             }
-            try {
-                List<OnModuleReference> onModuleReferenceList = loadModuleReferences(plugin);
-                if (!onModuleReferenceList.isEmpty()) {
-                    onModuleReferences.put(plugin, onModuleReferenceList);
-                }
-            } catch (Throwable t) {
-                logger.error("error loading moduleReferences from plugin: " + plugin.name(), t);
-                continue;
-            }
-
-            builder.add(plugin);
         }
         plugins = builder.build();
-        this.onModuleReferences = onModuleReferences.immutableMap();
 
         if (logger.isInfoEnabled()) {
             logger.info("plugins loaded: {} ", plugins.stream().map(Plugin::name).collect(Collectors.toList()));
@@ -248,29 +235,6 @@ public class PluginLoader {
 
     }
 
-    private List<OnModuleReference> loadModuleReferences(Plugin plugin) {
-        List<OnModuleReference> list = new ArrayList<>();
-        for (Method method : plugin.getClass().getDeclaredMethods()) {
-            if (!method.getName().equals("onModule")) {
-                continue;
-            }
-            if (method.getParameterTypes().length == 0 || method.getParameterTypes().length > 1) {
-                logger.warn("Plugin: {} implementing onModule with no parameters or more than one parameter", plugin.name());
-                continue;
-            }
-            Class moduleClass = method.getParameterTypes()[0];
-            if (!Module.class.isAssignableFrom(moduleClass)) {
-                logger.warn("Plugin: {} implementing onModule by the type is not of Module type {}", plugin.name(), moduleClass);
-                continue;
-            }
-            method.setAccessible(true);
-            //noinspection unchecked
-            list.add(new OnModuleReference(moduleClass, method));
-        }
-
-        return list;
-    }
-
     Collection<Module> createGuiceModules() {
         List<Module> modules = new ArrayList<>();
         for (Plugin plugin : plugins) {
@@ -303,23 +267,6 @@ public class PluginLoader {
         return settings;
     }
 
-    public void processModule(Module module) {
-        for (Plugin plugin : plugins) {
-            // see if there are onModule references
-            List<OnModuleReference> references = onModuleReferences.get(plugin);
-            if (references != null) {
-                for (OnModuleReference reference : references) {
-                    if (reference.moduleClass.isAssignableFrom(module.getClass())) {
-                        try {
-                            reference.onModuleMethod.invoke(plugin, module);
-                        } catch (Exception e) {
-                            logger.warn("Plugin {}, failed to invoke custom onModule method", e, plugin.name());
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     private void checkJarHell(URL url) throws Exception {
         final List<URL> loadedJars = new ArrayList<>(Arrays.asList(JarHell.parseClassPath()));

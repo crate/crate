@@ -23,7 +23,7 @@
 package io.crate.plugin;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.module.PluginLoaderModule;
+import io.crate.collections.Lists2;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -46,7 +46,10 @@ import javax.net.ssl.TrustManagerFactory;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.security.KeyStore;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
@@ -98,33 +101,22 @@ public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPl
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
-        Collection<Class<? extends LifecycleComponent>> nodeServices = new ArrayList<>();
-        nodeServices.addAll(sqlPlugin.getGuiceServiceClasses());
-        nodeServices.addAll(pluginLoader.getGuiceServiceClasses());
-        return nodeServices;
+        return Lists2.concat(sqlPlugin.getGuiceServiceClasses(), pluginLoader.getGuiceServiceClasses());
     }
 
     @Override
     public Collection<Module> createGuiceModules() {
-        Collection<Module> modules = new ArrayList<>();
-        modules.add(new PluginLoaderModule(pluginLoader));
-        modules.addAll(pluginLoader.createGuiceModules());
-        modules.addAll(sqlPlugin.createGuiceModules());
-        return modules;
+        return Lists2.concat(pluginLoader.createGuiceModules(), sqlPlugin.createGuiceModules());
     }
 
     @Override
     public List<Class<? extends RestHandler>> getRestHandlers() {
-        List<Class<? extends RestHandler>> restHandlers = new ArrayList<>();
-        restHandlers.addAll(sqlPlugin.getRestHandlers());
-        return restHandlers;
+        return sqlPlugin.getRestHandlers();
     }
 
     @Override
     public Map<String, Mapper.TypeParser> getMappers() {
-        Map<String, Mapper.TypeParser> mappers = new HashMap<>();
-        mappers.putAll(sqlPlugin.getMappers());
-        return mappers;
+        return sqlPlugin.getMappers();
     }
 
     @Override
@@ -137,10 +129,6 @@ public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPl
         sqlPlugin.onIndexModule(indexModule);
     }
 
-
-    public void onModule(Module module) {
-        pluginLoader.processModule(module);
-    }
 
     /*
      * Initialize our own TrustStore including StartCom CA
