@@ -29,6 +29,7 @@ import io.crate.operation.user.SysUsersTableInfo;
 import io.crate.operation.user.TransportCreateUserAction;
 import io.crate.operation.user.TransportDropUserAction;
 import io.crate.operation.user.TransportPrivilegesAction;
+import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
 import io.crate.operation.user.UserManagerService;
 import io.crate.plugin.PipelineRegistry;
@@ -50,7 +51,7 @@ public class UserServiceFactoryImpl implements UserServiceFactory {
     }
 
     /**
-     *  This mus only be called once as TransportActions are registered here.
+     *  This must only be called once as TransportActions are registered here.
      */
     @Override
     public UserManager setupUserManager(Settings settings,
