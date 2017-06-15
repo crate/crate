@@ -22,15 +22,36 @@
 
 package io.crate.plugin;
 
+import io.crate.protocols.http.HttpsHandler;
+import io.crate.protocols.ssl.SslHandlerLoader;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPipeline;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 
+/**
+ * The PipelineRegistry takes care of adding handlers to the existing
+ * ES ChannelPipeline at the appropriate positions.
+ *
+ * This singleton is injected in the AuthenticationProvider (see users module)
+ * and is provided by the {@link HttpTransportPlugin}.
+ */
+@Singleton
 public final class PipelineRegistry {
 
+    private final List<ChannelPipelineItem> addBeforeList;
+    private final HttpsHandler sslHandler;
+
+    @Inject
+    public PipelineRegistry(Settings settings) {
+        this.addBeforeList = new ArrayList<>();
+        this.sslHandler = SslHandlerLoader.loadHttpsHandler(settings);
+    }
 
     /**
      * A data structure for items that can be added to the channel pipeline of the HTTP transport.
@@ -61,8 +82,6 @@ public final class PipelineRegistry {
         }
     }
 
-    private final List<ChannelPipelineItem> addBeforeList = new ArrayList<>();
-
     public void addBefore(ChannelPipelineItem item) {
         synchronized (addBeforeList) {
             addSorted(addBeforeList, item);
@@ -73,6 +92,7 @@ public final class PipelineRegistry {
         for (PipelineRegistry.ChannelPipelineItem item : addBeforeList) {
             pipeline.addBefore(item.base, item.name, item.handlerFactory.get());
         }
+        sslHandler.addToPipeline(pipeline);
     }
 
     List<ChannelPipelineItem> addBeforeList() {

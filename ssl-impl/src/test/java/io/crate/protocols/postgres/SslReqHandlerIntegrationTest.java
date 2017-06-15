@@ -56,7 +56,7 @@ public class SslReqHandlerIntegrationTest extends SQLTransportIntegrationTest {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
-            .put(SslConfigSettings.SSL_ENABLED.getKey(), true)
+            .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile)
             .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
             .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")

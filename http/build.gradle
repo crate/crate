@@ -4,6 +4,7 @@ archivesBaseName = 'crate-http-transport'
 
 dependencies {
     compile project(':es:es-transport')
+    compile project(':ssl')
     testCompile project(':integration-testing')
 }
 

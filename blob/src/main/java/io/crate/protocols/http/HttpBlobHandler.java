@@ -34,6 +34,9 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.*;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.ssl.NotSslRecordException;
+import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.stream.ChunkedFile;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.logging.Loggers;
@@ -53,7 +56,9 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
 
-    private static final String SCHEME = "http://";
+    private static final String SCHEME_HTTP = "http://";
+    private static final String SCHEME_HTTPS = "https://";
+    private static final int HTTPS_CHUNK_SIZE = 8192;
     private static final String CACHE_CONTROL_VALUE = "max-age=315360000";
     private static final String EXPIRES_VALUE = "Thu, 31 Dec 2037 23:59:59 GMT";
     private static final String BLOBS_ENDPOINT = "/_blobs";
@@ -65,6 +70,8 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     private final Matcher blobsMatcher = BLOBS_PATTERN.matcher("");
     private final BlobService blobService;
     private final BlobIndicesService blobIndicesService;
+    private String activeScheme;
+    private boolean sslEnabled;
     private HttpRequest currentMessage;
 
     private RemoteDigestBlob digestBlob;
@@ -76,6 +83,8 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         super(false);
         this.blobService = blobService;
         this.blobIndicesService = blobIndicesService;
+        this.activeScheme = SCHEME_HTTP;
+        this.sslEnabled = false;
     }
 
     private boolean possibleRedirect(HttpRequest request, String index, String digest) {
@@ -94,7 +103,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
 
             if (redirectAddress != null) {
                 LOGGER.trace("redirectAddress: {}", redirectAddress);
-                sendRedirect(SCHEME + redirectAddress);
+                sendRedirect(activeScheme + redirectAddress);
                 return true;
             }
         }
@@ -227,6 +236,11 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
             String message = cause.getMessage();
             if (message != null && message.contains("Connection reset by peer")) {
                 LOGGER.debug(message);
+            } else if (cause instanceof NotSslRecordException) {
+                // Raised when clients try to send unencrypted data over an encrypted channel
+                // This can happen when old instances of the Admin UI are running because the
+                // ports of HTTP/HTTPS are the same.
+                LOGGER.debug("Received unencrypted message from '{}'", ctx.channel().remoteAddress());
             } else {
                 LOGGER.warn(message, cause);
             }
@@ -367,14 +381,26 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     private ChannelFuture transferFile(final String digest, RandomAccessFile raf, long position, long count)
         throws IOException {
 
-        final FileRegion region = new DefaultFileRegion(raf.getChannel(), position, count);
         Channel channel = ctx.channel();
-        ChannelFuture writeFuture = channel.write(region, ctx.newProgressivePromise());
-        writeFuture.addListener(new ChannelProgressiveFutureListener() {
+        final ChannelFuture fileFuture;
+        final ChannelFuture endMarkerFuture;
+        if (sslEnabled) {
+            HttpChunkedInput httpChunkedInput =
+                new HttpChunkedInput(new ChunkedFile(raf, 0, count, HTTPS_CHUNK_SIZE));
+            fileFuture = channel.writeAndFlush(httpChunkedInput, ctx.newProgressivePromise());
+            // HttpChunkedInput also writes the end marker (LastHttpContent) for us.
+            endMarkerFuture = fileFuture;
+        } else {
+            FileRegion region = new DefaultFileRegion(raf.getChannel(), position, count);
+            fileFuture = channel.write(region, ctx.newProgressivePromise());
+            // Flushes and sets the ending marker
+            endMarkerFuture = channel.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+        }
+
+        fileFuture.addListener(new ChannelProgressiveFutureListener() {
             @Override
             public void operationProgressed(ChannelProgressiveFuture future, long progress, long total) throws Exception {
                 LOGGER.debug("transferFile digest={} progress={} total={}", digest, progress, total);
-
             }
 
             @Override
@@ -382,7 +408,8 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
                 LOGGER.trace("transferFile operationComplete");
             }
         });
-        return channel.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+
+        return endMarkerFuture;
     }
 
     private void setDefaultGetHeaders(HttpResponse response) {
@@ -454,5 +481,12 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         this.ctx = ctx;
+        if (ctx.pipeline().get(SslHandler.class) == null) {
+            this.sslEnabled = false;
+            this.activeScheme = SCHEME_HTTP;
+        } else {
+            this.sslEnabled = true;
+            this.activeScheme = SCHEME_HTTPS;
+        }
     }
 }

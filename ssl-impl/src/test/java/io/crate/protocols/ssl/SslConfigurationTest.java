@@ -162,10 +162,10 @@ public class SslConfigurationTest extends CrateUnitTest {
             trustStoreSettings.exportRootCertificates());
 
         assertEquals(2, x509Certificates.length);
-        assertThat(x509Certificates[0].getIssuerDN().getName(), containsString("CN=crate.io"));
-        assertThat(x509Certificates[0].getNotAfter().getTime(), is(4650865757000L));
-        assertThat(x509Certificates[1].getIssuerDN().getName(), containsString("CN=crate.io"));
-        assertThat(x509Certificates[1].getNotAfter().getTime(), is(4650865757000L));
+        assertThat(x509Certificates[0].getIssuerDN().getName(), containsString("CN=*.crate.io"));
+        assertThat(x509Certificates[0].getNotAfter().getTime(), is(4651463625000L));
+        assertThat(x509Certificates[1].getIssuerDN().getName(), containsString("CN=*.crate.io"));
+        assertThat(x509Certificates[1].getNotAfter().getTime(), is(4651463625000L));
     }
 
     @Test
@@ -179,15 +179,23 @@ public class SslConfigurationTest extends CrateUnitTest {
 
         X509Certificate[] x509Certificates = keyStoreSettings.exportServerCertChain();
 
-        assertEquals(2, x509Certificates.length);
-        assertThat(x509Certificates[0].getIssuerDN().getName(), containsString("CN=crate.io"));
-        assertThat(x509Certificates[1].getIssuerDN().getName(), containsString("CN=crate.io"));
-        assertThat(x509Certificates[0].getSubjectDN().getName(), containsString("CN=CrateDB"));
-        assertThat(x509Certificates[0].getSubjectDN().getName(), containsString("PSQL Netty SSL"));
-        assertThat(x509Certificates[0].getSubjectDN().getName(), containsString("L=Dornbirn"));
-        assertThat(x509Certificates[1].getSubjectDN().getName(), containsString("CN=crate.io"));
+        assertThat(x509Certificates.length, is(4));
+        assertThat(x509Certificates[0].getIssuerDN().getName(), containsString("CN=*.crate.io"));
+        assertThat(x509Certificates[1].getIssuerDN().getName(), containsString("CN=*.crate.io"));
+        assertThat(x509Certificates[2].getIssuerDN().getName(), containsString("CN=*.crate.io"));
+        assertThat(x509Certificates[3].getIssuerDN().getName(), containsString("CN=*.crate.io"));
+        assertThat(x509Certificates[0].getSubjectDN().getName(), containsString("CN=localhost"));
+        assertThat(x509Certificates[0].getSubjectDN().getName(), containsString("OU=Testing Department"));
+        assertThat(x509Certificates[0].getSubjectDN().getName(), containsString("L=San Francisco"));
+        assertThat(x509Certificates[1].getSubjectDN().getName(), containsString("CN=*.crate.io"));
         assertThat(x509Certificates[1].getSubjectDN().getName(), containsString("OU=Cryptography Department"));
         assertThat(x509Certificates[1].getSubjectDN().getName(), containsString("L=Dornbirn"));
+        assertThat(x509Certificates[2].getSubjectDN().getName(), containsString("CN=ssl.crate.io"));
+        assertThat(x509Certificates[2].getSubjectDN().getName(), containsString("OU=Cryptography Department"));
+        assertThat(x509Certificates[2].getSubjectDN().getName(), containsString("L=Berlin"));
+        assertThat(x509Certificates[3].getSubjectDN().getName(), containsString("CN=*.crate.io"));
+        assertThat(x509Certificates[3].getSubjectDN().getName(), containsString("OU=Cryptography Department"));
+        assertThat(x509Certificates[3].getSubjectDN().getName(), containsString("L=Dornbirn"));
     }
 
     @Test

@@ -44,7 +44,7 @@ class BlobHttpClient {
     public CloseableHttpResponse put(String table, String body) throws IOException {
         CloseableHttpClient httpClient = HttpClients.createDefault();
         String digest = Hex.encodeHexString(Blobs.digest(body));
-        String url = Blobs.url(address, table + "/" + digest);
+        String url = Blobs.url(false, address, table + "/" + digest);
         HttpPut httpPut = new HttpPut(url);
         httpPut.setEntity(new StringEntity(body));
         return httpClient.execute(httpPut);
