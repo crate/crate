@@ -20,13 +20,13 @@ package io.crate.operation.user;
 
 import org.elasticsearch.action.ActionRequestValidationException;
 import org.elasticsearch.action.ValidateActions;
-import org.elasticsearch.action.support.master.MasterNodeRequest;
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class CreateUserRequest extends MasterNodeRequest<CreateUserRequest> {
+public class CreateUserRequest extends AcknowledgedRequest<CreateUserRequest> {
 
     private String userName;
 

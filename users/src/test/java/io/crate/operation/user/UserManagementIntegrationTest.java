@@ -25,11 +25,8 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
-
-import java.util.Set;
 
 import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
 import static org.hamcrest.core.Is.is;
@@ -37,37 +34,33 @@ import static org.hamcrest.core.Is.is;
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
 
-    SQLOperations.Session createSuperUserSession(@Nullable String defaultSchema, Set<Option> options) {
+    private SQLOperations.Session createSuperUserSession() {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
-        return sqlOperations.createSession(defaultSchema, UserManagerService.CRATE_USER, options, DEFAULT_SOFT_LIMIT);
+        return sqlOperations.createSession(null, UserManagerService.CRATE_USER, Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
-    SQLOperations.Session createUserSession(@Nullable String defaultSchema, Set<Option> options) {
+    private SQLOperations.Session createUserSession() {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
-        return sqlOperations.createSession(defaultSchema, new User("normal", ImmutableSet.of()), options, DEFAULT_SOFT_LIMIT);
+        return sqlOperations.createSession(null, new User("normal", ImmutableSet.of()), Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
     private void assertUserIsCreated(String userName) throws Exception {
-        assertBusy(() -> {
-            SQLResponse response = execute("select count(*) from sys.users where name = ?",
-                new Object[]{userName},
-                createSuperUserSession("my_schema", Option.NONE));
-            assertThat(response.rows()[0][0], is(1L));
-        });
+        SQLResponse response = execute("select count(*) from sys.users where name = ?",
+            new Object[]{userName},
+            createSuperUserSession());
+        assertThat(response.rows()[0][0], is(1L));
     }
 
     private void assertUserDoesntExist(String userName) throws Exception {
-        assertBusy(() -> {
-            SQLResponse response = execute("select count(*) from sys.users where name = ?",
-                new Object[]{userName},
-                createSuperUserSession("my_schema", Option.NONE));
-            assertThat(response.rows()[0][0], is(0L));
-        });
+        SQLResponse response = execute("select count(*) from sys.users where name = ?",
+            new Object[]{userName},
+            createSuperUserSession());
+        assertThat(response.rows()[0][0], is(0L));
     }
 
     @Test
     public void testCreateUser() throws Exception {
-        execute("create user trillian", null, createSuperUserSession("my_schema", Option.NONE));
+        execute("create user trillian", null, createSuperUserSession());
         assertThat(response.rowCount(), is(1L));
         assertUserIsCreated("trillian");
     }
@@ -77,36 +70,36 @@ public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
         // The sys users table contains two columns, name and superuser
         execute("select column_name, data_type from information_schema.columns where table_name='users' and table_schema='sys'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("name| string\n" +
-            "superuser| boolean\n"));
+                                                                    "superuser| boolean\n"));
     }
 
     @Test
     public void testSysUsersTableDefaultUser() throws Exception {
         // The sys.users table always contains the superuser crate
-        execute("select name, superuser from sys.users where name = 'crate'", null, createSuperUserSession("my_schema", Option.NONE));
+        execute("select name, superuser from sys.users where name = 'crate'", null, createSuperUserSession());
         assertThat(TestingHelpers.printedTable(response.rows()), is("crate| true\n"));
     }
 
     @Test
     public void testSysUsersTable() throws Exception {
-        execute("create user arthur", null, createSuperUserSession("my_schema", Option.NONE));
+        execute("create user arthur", null, createSuperUserSession());
         assertUserIsCreated("arthur");
-        execute("select name, superuser from sys.users order by name limit 1", null, createSuperUserSession("my_schema", Option.NONE));
+        execute("select name, superuser from sys.users order by name limit 1", null, createSuperUserSession());
         // Every created user is not a superuser
         assertThat(TestingHelpers.printedTable(response.rows()), is("arthur| false\n"));
     }
 
     @Test
     public void testDropUser() throws Exception {
-        execute("create user ford",null, createSuperUserSession("my_schema", Option.NONE));
+        execute("create user ford", null, createSuperUserSession());
         assertUserIsCreated("ford");
-        execute("drop user ford", null, createSuperUserSession("my_schema", Option.NONE));
+        execute("drop user ford", null, createSuperUserSession());
         assertUserDoesntExist("ford");
     }
 
     @Test
     public void testDropUserIfExists() throws Exception {
-        execute("drop user if exists ford", null, createSuperUserSession("my_schema", Option.NONE));
+        execute("drop user if exists ford", null, createSuperUserSession());
         assertThat(response.rowCount(), is(0L));
     }
 
@@ -128,8 +121,7 @@ public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateNormalUserUnAuthorized() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("User \"normal\" is not authorized to execute statement");
-        execute("create user ford", null, createUserSession("my_schema", Option.NONE));
-
+        execute("create user ford", null, createUserSession());
     }
 
     @Test
