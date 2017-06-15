@@ -23,9 +23,11 @@
 package io.crate.plugin;
 
 import io.crate.ClusterIdService;
+import io.crate.metadata.CustomMetaDataUpgraderLoader;
 import io.crate.module.CrateCoreModule;
 import io.crate.rest.CrateRestFilter;
 import io.crate.rest.CrateRestMainAction;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Setting;
@@ -38,6 +40,8 @@ import org.elasticsearch.rest.RestHandler;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.UnaryOperator;
 
 public class CrateCorePlugin extends Plugin implements ActionPlugin {
 
@@ -67,6 +71,11 @@ public class CrateCorePlugin extends Plugin implements ActionPlugin {
     @Override
     public List<Class<? extends RestHandler>> getRestHandlers() {
         return Collections.singletonList(CrateRestMainAction.class);
+    }
+
+    @Override
+    public UnaryOperator<Map<String, MetaData.Custom>> getCustomMetaDataUpgrader() {
+        return new CustomMetaDataUpgraderLoader(settings);
     }
 
     @Override
