@@ -78,7 +78,7 @@ For example, a host based configuration can look like this:
             protocol: http
           f:
             user: trinity
-            protocol: pg
+            protocol: http
             address: 127.0.0.1
             ssl: off
           z:

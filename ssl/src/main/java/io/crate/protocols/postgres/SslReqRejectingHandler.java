@@ -30,7 +30,7 @@ import org.elasticsearch.common.settings.Settings;
 /**
  * Handler that processes an optional SSLRequest and rejects SSL.
  */
-public class SslReqRejectingHandler implements SslReqHandler {
+public final class SslReqRejectingHandler implements SslReqHandler {
 
     private final Logger LOGGER;
 

@@ -75,6 +75,8 @@ import java.util.Optional;
  */
 public final class SslConfiguration {
 
+    private SslConfiguration() {}
+
     public static SslContext buildSslContext(Settings settings) {
         try {
             KeyStoreSettings keyStoreSettings = new KeyStoreSettings(settings);
@@ -101,7 +103,6 @@ public final class SslConfiguration {
                 trustedCertificates = trustStoreSettings.get().exportRootCertificates(trustedCertificates);
             }
 
-
             final SslContextBuilder sslContextBuilder =
                 SslContextBuilder
                     .forServer(privateKey, keystoreCerts)
@@ -110,6 +111,7 @@ public final class SslConfiguration {
                     .clientAuth(ClientAuth.OPTIONAL)
                     .sessionCacheSize(0)
                     .sessionTimeout(0)
+                    .startTls(false)
                     .sslProvider(SslProvider.JDK);
 
             if (trustedCertificates != null && trustedCertificates.length > 0) {
@@ -181,6 +183,8 @@ public final class SslConfiguration {
         }
 
         X509Certificate[] exportServerCertChain() throws KeyStoreException {
+
+            X509Certificate[] allCerts = new X509Certificate[0];
             final Enumeration<String> aliases = keyStore.aliases();
 
             while (aliases.hasMoreElements()) {
@@ -189,12 +193,21 @@ public final class SslConfiguration {
                     LOGGER.info("Found key with alias {}", alias);
                     Certificate[] certs = keyStore.getCertificateChain(alias);
                     if (certs != null && certs.length > 0) {
-                        return Arrays.copyOf(certs, certs.length, X509Certificate[].class);
+                        X509Certificate[] newAllCerts =
+                            Arrays.copyOf(allCerts,
+                                allCerts.length + certs.length,
+                                X509Certificate[].class);
+                        //noinspection SuspiciousSystemArraycopy
+                        System.arraycopy(
+                            certs, 0,
+                            newAllCerts, allCerts.length,
+                            certs.length);
+                        allCerts = newAllCerts;
                     }
                 }
             }
 
-            return new X509Certificate[0];
+            return allCerts;
         }
 
         static String checkStorePath(String keystoreFilePath) throws FileNotFoundException {

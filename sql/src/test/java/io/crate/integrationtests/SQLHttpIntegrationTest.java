@@ -48,7 +48,18 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
 
     private HttpPost httpPost;
     private InetSocketAddress address;
-    private CloseableHttpClient httpClient = HttpClients.createDefault();
+
+    protected final CloseableHttpClient httpClient;
+    private final boolean usesSSL;
+
+    public SQLHttpIntegrationTest() {
+        this(false);
+    }
+
+    public SQLHttpIntegrationTest(boolean useSSL) {
+        this.httpClient = HttpClients.createDefault();
+        this.usesSSL = useSSL;
+    }
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
@@ -64,7 +75,9 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
         HttpServerTransport httpServerTransport = internalCluster().getInstance(HttpServerTransport.class);
         address = ((InetSocketTransportAddress) httpServerTransport.boundAddress().publishAddress())
             .address();
-        httpPost = new HttpPost(String.format(Locale.ENGLISH, "http://%s:%s/_sql?error_trace", address.getHostName(), address.getPort()));
+        httpPost = new HttpPost(String.format(Locale.ENGLISH,
+            "%s://%s:%s/_sql?error_trace",
+            usesSSL ? "https" : "http", address.getHostName(), address.getPort()));
     }
 
 
@@ -83,7 +96,7 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
 
     protected String upload(String table, String content) throws IOException {
         String digest = blobDigest(content);
-        String url = Blobs.url(address, table, digest);
+        String url = Blobs.url(usesSSL, address, table, digest);
         HttpPut httpPut = new HttpPut(url);
         httpPut.setEntity(new StringEntity(content));
 

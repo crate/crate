@@ -24,6 +24,7 @@ package io.crate.plugin;
 
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -52,7 +53,7 @@ public class PipelineRegistryTest {
 
     @Test
     public void testAddSortedToPipline() throws Exception {
-        PipelineRegistry pipelineRegistry = new PipelineRegistry();
+        PipelineRegistry pipelineRegistry = new PipelineRegistry(Settings.EMPTY);
 
         pipelineRegistry.addBefore(channelPipelineItem("c", "d"));
         pipelineRegistry.addBefore(channelPipelineItem("a", "b"));

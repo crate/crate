@@ -31,15 +31,22 @@ import org.elasticsearch.common.settings.Setting;
  */
 public class SslConfigSettings {
 
-    static final String SSL_ENABLED_SETTING_NAME = "ssl.psql.enabled";
+    private SslConfigSettings() {}
+
+    static final String SSL_HTTP_ENABLED_SETTING_NAME = "ssl.http.enabled";
+    static final String SSL_PSQL_ENABLED_SETTING_NAME = "ssl.psql.enabled";
+
     static final String SSL_TRUSTSTORE_FILEPATH_SETTING_NAME = "ssl.truststore_filepath";
     static final String SSL_TRUSTSTORE_PASSWORD_SETTING_NAME = "ssl.truststore_password";
     static final String SSL_KEYSTORE_FILEPATH_SETTING_NAME = "ssl.keystore_filepath";
     static final String SSL_KEYSTORE_PASSWORD_SETTING_NAME = "ssl.keystore_password";
     static final String SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME = "ssl.keystore_key_password";
 
-    public static final CrateSetting<Boolean> SSL_ENABLED = CrateSetting.of(
-        Setting.boolSetting(SSL_ENABLED_SETTING_NAME, false, Setting.Property.NodeScope),
+    public static final CrateSetting<Boolean> SSL_HTTP_ENABLED = CrateSetting.of(
+        Setting.boolSetting(SSL_HTTP_ENABLED_SETTING_NAME, false, Setting.Property.NodeScope),
+        DataTypes.BOOLEAN);
+    public static final CrateSetting<Boolean> SSL_PSQL_ENABLED = CrateSetting.of(
+        Setting.boolSetting(SSL_PSQL_ENABLED_SETTING_NAME, false, Setting.Property.NodeScope),
         DataTypes.BOOLEAN);
 
     public static final CrateSetting<String> SSL_TRUSTSTORE_FILEPATH = CrateSetting.of(

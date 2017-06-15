@@ -124,7 +124,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
     }
 
     protected CloseableHttpResponse put(String uri, String body) throws IOException {
-        HttpPut httpPut = new HttpPut(Blobs.url(randomNode, uri));
+        HttpPut httpPut = new HttpPut(Blobs.url(false, randomNode, uri));
         if (body != null) {
             StringEntity bodyEntity = new StringEntity(body);
             httpPut.setEntity(bodyEntity);

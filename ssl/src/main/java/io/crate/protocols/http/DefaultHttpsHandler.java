@@ -20,14 +20,12 @@
  * agreement.
  */
 
-package io.crate.protocols.ssl;
+package io.crate.protocols.http;
 
-/**
- * Exception type for SSL configuration specific exceptions.
- */
-public class SslConfigurationException extends RuntimeException {
+import io.netty.channel.ChannelPipeline;
 
-    SslConfigurationException(String msg, Exception cause) {
-        super(msg, cause);
-    }
+public final class DefaultHttpsHandler implements HttpsHandler {
+
+    @Override
+    public void addToPipeline(ChannelPipeline pipeline) {}
 }

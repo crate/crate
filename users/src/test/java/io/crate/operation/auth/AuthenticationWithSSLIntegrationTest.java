@@ -39,8 +39,6 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 
 /**
  * Additional tests to the SSL tests in {@link AuthenticationIntegrationTest} where SSL
@@ -67,7 +65,7 @@ public class AuthenticationWithSSLIntegrationTest extends SQLTransportIntegratio
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
-            .put(SslConfigSettings.SSL_ENABLED.getKey(), true)
+            .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile)
             .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
             .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")

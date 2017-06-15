@@ -49,7 +49,12 @@ import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESS
 public class HttpTransportPlugin extends Plugin implements NetworkPlugin {
 
     private static final String CRATE_HTTP_TRANSPORT_NAME = "crate";
-    private final PipelineRegistry pipelineRegistry = new PipelineRegistry();
+
+    private final PipelineRegistry pipelineRegistry;
+
+    public HttpTransportPlugin(Settings settings) {
+        this.pipelineRegistry = new PipelineRegistry(settings);
+    }
 
     public String name() {
         return "http";
