@@ -130,7 +130,12 @@ public class UnnestFunction {
 
         @Override
         public TableInfo createTableInfo(ClusterService clusterService) {
-            ColumnRegistrar columnRegistrar = new ColumnRegistrar(TABLE_IDENT, RowGranularity.DOC);
+            ColumnRegistrar columnRegistrar = new ColumnRegistrar(
+                TABLE_IDENT,
+                RowGranularity.DOC,
+                // Use custom comparators to avoid lexical ordering of the columns (col10 before column 2)
+                Comparator.comparing(o -> Integer.valueOf(o.name().substring(3))),
+                Comparator.comparing(o -> Integer.valueOf(o.ident().columnIdent().name().substring(3))));
             for (int i = 0; i < info.ident().argumentTypes().size(); i++) {
                 columnRegistrar.register(new ColumnIdent(
                     "col" + (i + 1)), ((CollectionType) info.ident().argumentTypes().get(i)).innerType());
