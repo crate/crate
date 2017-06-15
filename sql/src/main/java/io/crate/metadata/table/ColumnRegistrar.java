@@ -24,11 +24,14 @@ package io.crate.metadata.table;
 
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.ImmutableSortedSet;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,16 +48,6 @@ public class ColumnRegistrar {
         this.rowGranularity = rowGranularity;
         this.infosBuilder = ImmutableSortedMap.naturalOrder();
         this.columnsBuilder = ImmutableSortedSet.orderedBy(Reference.COMPARE_BY_COLUMN_IDENT);
-    }
-
-    public ColumnRegistrar(TableIdent tableIdent,
-                           RowGranularity rowGranularity,
-                           Comparator<ColumnIdent> infosComparator,
-                           Comparator<Reference> columnComparator) {
-        this.tableIdent = tableIdent;
-        this.rowGranularity = rowGranularity;
-        this.infosBuilder = ImmutableSortedMap.orderedBy(infosComparator);
-        this.columnsBuilder = ImmutableSortedSet.orderedBy(columnComparator);
     }
 
     public ColumnRegistrar register(String column, DataType type, @Nullable List<String> path) {
