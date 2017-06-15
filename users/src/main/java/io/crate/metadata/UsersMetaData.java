@@ -16,7 +16,7 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.operation.user;
+package io.crate.metadata;
 
 import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -32,15 +32,15 @@ public class UsersMetaData extends AbstractDiffable<MetaData.Custom> implements 
 
     public static String TYPE = "users";
 
-    static final UsersMetaData PROTO = new UsersMetaData();
+    public static final UsersMetaData PROTO = new UsersMetaData();
 
     private final List<String> users;
 
-    UsersMetaData() {
+    public UsersMetaData() {
         this.users = new ArrayList<>();
     }
 
-    UsersMetaData(List<String> users) {
+    public UsersMetaData(List<String> users) {
         this.users = users;
     }
 

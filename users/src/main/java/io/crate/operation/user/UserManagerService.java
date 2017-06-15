@@ -20,6 +20,7 @@ package io.crate.operation.user;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.FutureActionListener;
+import io.crate.metadata.UsersMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
@@ -37,12 +38,12 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import static io.crate.operation.user.UsersMetaData.PROTO;
-import static io.crate.operation.user.UsersMetaData.TYPE;
+import static io.crate.metadata.UsersMetaData.PROTO;
+import static io.crate.metadata.UsersMetaData.TYPE;
 
 public class UserManagerService implements UserManager, ClusterStateListener {
 
-    static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER));
+    public static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER));
 
     private static final PermissionVisitor PERMISSION_VISITOR = new PermissionVisitor();
 

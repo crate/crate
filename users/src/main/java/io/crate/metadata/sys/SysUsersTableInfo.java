@@ -16,7 +16,7 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.operation.user;
+package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -24,9 +24,9 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.operation.user.User;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;

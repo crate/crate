@@ -20,6 +20,7 @@ package io.crate.operation.user;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.exceptions.ConflictException;
+import io.crate.metadata.UsersMetaData;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
