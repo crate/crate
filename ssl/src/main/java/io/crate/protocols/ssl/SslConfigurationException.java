@@ -20,18 +20,18 @@
  * agreement.
  */
 
-package io.crate.protocols.postgres.ssl;
+package io.crate.protocols.ssl;
 
 /**
  * Exception type for SSL configuration specific exceptions.
  */
 public class SslConfigurationException extends RuntimeException {
 
-    SslConfigurationException(String msg) {
+    public SslConfigurationException(String msg) {
         super(msg);
     }
 
-    SslConfigurationException(String msg, Exception cause) {
+    public SslConfigurationException(String msg, Exception cause) {
         super(msg, cause);
     }
 }

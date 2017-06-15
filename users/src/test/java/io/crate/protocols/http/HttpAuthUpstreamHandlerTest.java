@@ -16,7 +16,7 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.http.netty;
+package io.crate.protocols.http;
 
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;

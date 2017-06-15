@@ -19,7 +19,7 @@
 package io.crate.operation.auth;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.protocols.postgres.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.settings.SharedSettings;
 import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.testing.UseJdbc;

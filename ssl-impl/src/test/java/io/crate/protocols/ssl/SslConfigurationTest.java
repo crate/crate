@@ -16,7 +16,7 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.protocols.postgres.ssl;
+package io.crate.protocols.ssl;
 
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.Settings;
@@ -32,8 +32,8 @@ import java.security.PrivateKey;
 import java.security.UnrecoverableKeyException;
 import java.security.cert.X509Certificate;
 
-import static io.crate.protocols.postgres.ssl.SslConfiguration.KeyStoreSettings;
-import static io.crate.protocols.postgres.ssl.SslConfiguration.TrustStoreSettings;
+import static io.crate.protocols.ssl.SslConfiguration.KeyStoreSettings;
+import static io.crate.protocols.ssl.SslConfiguration.TrustStoreSettings;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;

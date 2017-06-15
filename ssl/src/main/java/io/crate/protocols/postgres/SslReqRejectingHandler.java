@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.protocols.postgres.ssl;
+package io.crate.protocols.postgres;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelPipeline;

@@ -28,8 +28,6 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationProvider;
-import io.crate.protocols.postgres.ssl.SslReqHandler;
-import io.crate.protocols.postgres.ssl.SslReqHandlerLoader;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;

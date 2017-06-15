@@ -20,12 +20,8 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.operation.auth.AuthenticationProvider;
-import io.crate.protocols.postgres.ssl.SslConfigSettings;
-import io.crate.protocols.postgres.ssl.SslConfigurationException;
-import io.crate.protocols.postgres.ssl.SslReqConfiguringHandler;
-import io.crate.protocols.postgres.ssl.SslReqHandler;
-import io.crate.protocols.postgres.ssl.SslReqHandlerLoader;
-import io.crate.protocols.postgres.ssl.SslReqRejectingHandler;
+import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslConfigurationException;
 import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.buffer.ByteBuf;
@@ -44,7 +40,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 
-import static io.crate.protocols.postgres.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
+import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
 import static io.netty.util.ReferenceCountUtil.releaseLater;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;

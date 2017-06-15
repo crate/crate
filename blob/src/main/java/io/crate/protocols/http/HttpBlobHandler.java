@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.http.netty;
+package io.crate.protocols.http;
 
 import io.crate.blob.BlobService;
 import io.crate.blob.RemoteDigestBlob;

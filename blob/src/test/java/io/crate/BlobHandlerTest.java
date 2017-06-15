@@ -22,7 +22,7 @@
 package io.crate;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.http.netty.HttpBlobHandler;
+import io.crate.protocols.http.HttpBlobHandler;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 

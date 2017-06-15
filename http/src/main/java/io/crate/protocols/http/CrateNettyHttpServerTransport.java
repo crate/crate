@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.http.netty;
+package io.crate.protocols.http;
 
 import io.crate.plugin.PipelineRegistry;
 import io.netty.channel.Channel;

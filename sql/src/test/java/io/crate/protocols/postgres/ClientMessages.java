@@ -22,7 +22,6 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.protocols.postgres.ssl.SslReqHandler;
 import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
 import org.apache.lucene.util.BytesRef;

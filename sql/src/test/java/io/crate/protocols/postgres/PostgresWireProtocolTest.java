@@ -31,7 +31,6 @@ import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.operation.auth.HbaProtocol;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.user.User;
-import io.crate.protocols.postgres.ssl.SslReqRejectingHandler;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.netty.buffer.ByteBuf;

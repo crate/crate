@@ -26,7 +26,7 @@ import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
 import io.crate.blob.recovery.BlobRecoveryHandler;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
-import io.crate.http.netty.HttpBlobHandler;
+import io.crate.protocols.http.HttpBlobHandler;
 import io.crate.plugin.PipelineRegistry;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;

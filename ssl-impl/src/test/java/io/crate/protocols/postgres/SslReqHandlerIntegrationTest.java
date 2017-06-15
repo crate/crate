@@ -19,7 +19,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
-import io.crate.protocols.postgres.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.settings.SharedSettings;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
@@ -31,7 +31,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 
-import static io.crate.protocols.postgres.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
+import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
 
 
 @UseJdbc(value = 1)

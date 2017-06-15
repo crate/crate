@@ -54,7 +54,7 @@ import io.crate.operation.reference.sys.node.local.SysNodeExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.protocols.postgres.PostgresNetty;
-import io.crate.protocols.postgres.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.settings.CrateSetting;
 import org.elasticsearch.action.bulk.BulkModule;

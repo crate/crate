@@ -16,8 +16,9 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.protocols.postgres.ssl;
+package io.crate.protocols.ssl;
 
+import io.crate.protocols.postgres.SslReqConfiguringHandler;
 import io.crate.settings.CrateSetting;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ClientAuth;
@@ -72,9 +73,9 @@ import java.util.Optional;
  *
  * See also {@link SslReqConfiguringHandler}
  */
-final class SslConfiguration {
+public final class SslConfiguration {
 
-    static SslContext buildSslContext(Settings settings) {
+    public static SslContext buildSslContext(Settings settings) {
         try {
             KeyStoreSettings keyStoreSettings = new KeyStoreSettings(settings);
 

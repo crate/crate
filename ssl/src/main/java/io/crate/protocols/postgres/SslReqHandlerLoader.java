@@ -20,8 +20,10 @@
  * agreement.
  */
 
-package io.crate.protocols.postgres.ssl;
+package io.crate.protocols.postgres;
 
+import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslConfigurationException;
 import io.crate.settings.SharedSettings;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
@@ -35,7 +37,7 @@ import java.lang.reflect.InvocationTargetException;
 public class SslReqHandlerLoader {
 
     private static final Logger LOGGER = Loggers.getLogger(SslReqHandlerLoader.class);
-    private static final String SSL_IMPL_CLASS = "io.crate.protocols.postgres.ssl.SslReqConfiguringHandler";
+    private static final String SSL_IMPL_CLASS = "io.crate.protocols.postgres.SslReqConfiguringHandler";
 
     private SslReqHandlerLoader() {}
 

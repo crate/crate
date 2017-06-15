@@ -16,8 +16,9 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.protocols.postgres.ssl;
+package io.crate.protocols.postgres;
 
+import io.crate.protocols.ssl.SslConfiguration;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;

@@ -20,7 +20,7 @@
  * agreement.
  */
 
-package io.crate.protocols.postgres.ssl;
+package io.crate.protocols.ssl;
 
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
