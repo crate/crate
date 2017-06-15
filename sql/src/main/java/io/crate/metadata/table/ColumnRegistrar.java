@@ -28,6 +28,7 @@ import io.crate.metadata.*;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -44,6 +45,16 @@ public class ColumnRegistrar {
         this.rowGranularity = rowGranularity;
         this.infosBuilder = ImmutableSortedMap.naturalOrder();
         this.columnsBuilder = ImmutableSortedSet.orderedBy(Reference.COMPARE_BY_COLUMN_IDENT);
+    }
+
+    public ColumnRegistrar(TableIdent tableIdent,
+                           RowGranularity rowGranularity,
+                           Comparator<ColumnIdent> infosComparator,
+                           Comparator<Reference> columnComparator) {
+        this.tableIdent = tableIdent;
+        this.rowGranularity = rowGranularity;
+        this.infosBuilder = ImmutableSortedMap.orderedBy(infosComparator);
+        this.columnsBuilder = ImmutableSortedSet.orderedBy(columnComparator);
     }
 
     public ColumnRegistrar register(String column, DataType type, @Nullable List<String> path) {

@@ -21,3 +21,6 @@ Changes
 
 Fixes
 =====
+
+ - Fixed an issue that caused an exception to be thrown when using ``unnest``
+   with 10 or more columns.
