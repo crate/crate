@@ -22,6 +22,7 @@
 
 package io.crate.operation.auth;
 
+import io.crate.metadata.sys.SysUsersTableInfo;
 import io.crate.operation.collect.sources.SysTableRegistry;
 import io.crate.operation.user.*;
 import org.elasticsearch.action.support.ActionFilters;

@@ -16,7 +16,7 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.operation.user;
+package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateUnitTest;

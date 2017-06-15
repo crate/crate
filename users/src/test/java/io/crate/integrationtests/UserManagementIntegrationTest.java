@@ -16,13 +16,14 @@
  * Agreement with Crate.io.
  */
 
-package io.crate.operation.user;
+package io.crate.integrationtests;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
-import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.operation.user.User;
+import io.crate.operation.user.UserManagerService;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;

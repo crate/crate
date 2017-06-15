@@ -25,6 +25,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.exceptions.UnauthorizedException;
+import io.crate.metadata.UsersMetaData;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.junit.Test;
 

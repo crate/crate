@@ -20,6 +20,7 @@ package io.crate.operation.user;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.ConflictException;
+import io.crate.metadata.UsersMetaData;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.cluster.metadata.MetaData;

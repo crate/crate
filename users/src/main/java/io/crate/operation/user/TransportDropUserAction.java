@@ -19,6 +19,7 @@
 package io.crate.operation.user;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.metadata.UsersMetaData;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
