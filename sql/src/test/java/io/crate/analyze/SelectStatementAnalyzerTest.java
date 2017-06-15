@@ -2142,4 +2142,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(stmt.relation().querySpec().outputs(), isSQL(sqlFields));
         assertThat(stmt.relation().fields(), isSQL(sqlFields));
     }
+
+    @Test
+    public void testUnnestWithObjectColumn() {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column col1['x'] unknown");
+        analyze("select col1['x'] from unnest([{x=1}])");
+    }
 }

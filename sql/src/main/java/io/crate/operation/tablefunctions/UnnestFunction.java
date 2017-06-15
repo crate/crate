@@ -24,21 +24,37 @@ package io.crate.operation.tablefunctions;
 
 import io.crate.analyze.WhereClause;
 import io.crate.data.Bucket;
+import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
-import io.crate.metadata.*;
-import io.crate.metadata.table.ColumnRegistrar;
+import io.crate.metadata.BaseFunctionResolver;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Signature;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.data.Input;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
 public class UnnestFunction {
 
@@ -130,19 +146,22 @@ public class UnnestFunction {
 
         @Override
         public TableInfo createTableInfo(ClusterService clusterService) {
-            ColumnRegistrar columnRegistrar = new ColumnRegistrar(
-                TABLE_IDENT,
-                RowGranularity.DOC,
-                // Use custom comparators to avoid lexical ordering of the columns (col10 before column 2)
-                Comparator.comparing(o -> Integer.valueOf(o.name().substring(3))),
-                Comparator.comparing(o -> Integer.valueOf(o.ident().columnIdent().name().substring(3))));
-            for (int i = 0; i < info.ident().argumentTypes().size(); i++) {
-                columnRegistrar.register(new ColumnIdent(
-                    "col" + (i + 1)), ((CollectionType) info.ident().argumentTypes().get(i)).innerType());
-            }
+            int noElements = info.ident().argumentTypes().size();
+            Map<ColumnIdent, Reference> columnMap = new LinkedHashMap<>(noElements);
+            Collection<Reference> columns = new ArrayList<>(noElements);
 
+            for (int i = 0; i < info.ident().argumentTypes().size(); i++) {
+                ColumnIdent columnIdent = new ColumnIdent("col" + (i + 1));
+                DataType dataType = ((CollectionType) info.ident().argumentTypes().get(i)).innerType();
+                Reference reference = new Reference(
+                    new ReferenceIdent(TABLE_IDENT, columnIdent),
+                    RowGranularity.DOC, dataType);
+
+                columns.add(reference);
+                columnMap.put(columnIdent, reference);
+            }
             final String localNodeId = clusterService.localNode().getId();
-            return new StaticTableInfo(TABLE_IDENT, columnRegistrar, Collections.emptyList()) {
+            return new StaticTableInfo(TABLE_IDENT, columnMap, columns, Collections.emptyList()) {
                 @Override
                 public RowGranularity rowGranularity() {
                     return RowGranularity.DOC;
