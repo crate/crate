@@ -27,7 +27,11 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknownException;
@@ -41,7 +45,11 @@ import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.AverageAggregation;
-import io.crate.operation.operator.*;
+import io.crate.operation.operator.EqOperator;
+import io.crate.operation.operator.LikeOperator;
+import io.crate.operation.operator.LteOperator;
+import io.crate.operation.operator.OrOperator;
+import io.crate.operation.operator.RegexpMatchOperator;
 import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.MatchPredicate;
@@ -68,13 +76,31 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
-import static io.crate.testing.SymbolMatchers.*;
-import static io.crate.testing.TestingHelpers.*;
-import static org.hamcrest.Matchers.*;
+import static io.crate.testing.SymbolMatchers.isField;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
+import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.isSQL;
+import static io.crate.testing.TestingHelpers.mapToSortedString;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
 
 @SuppressWarnings("ConstantConditions")
@@ -2103,5 +2129,17 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testMatchInExplicitJoinConditionIsProhibited() throws Exception {
         expectedException.expectMessage("Cannot use MATCH predicates on columns of 2 different relations");
         analyze("select * from users u1 inner join users u2 on match((u1.name, u2.name), 'foo')");
+    }
+
+    @Test
+    public void testUnnestWithMoreThat10Columns() {
+        SelectAnalyzedStatement stmt =
+            analyze("select * from unnest(['a'], ['b'], [0], [0], [0], [0], [0], [0], [0], [0], [0])");
+
+        String sqlFields = "doc.unnest.col1, doc.unnest.col2, doc.unnest.col3, doc.unnest.col4, " +
+                           "doc.unnest.col5, doc.unnest.col6, doc.unnest.col7, doc.unnest.col8, " +
+                           "doc.unnest.col9, doc.unnest.col10, doc.unnest.col11";
+        assertThat(stmt.relation().querySpec().outputs(), isSQL(sqlFields));
+        assertThat(stmt.relation().fields(), isSQL(sqlFields));
     }
 }
