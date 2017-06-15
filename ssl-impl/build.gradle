@@ -6,6 +6,7 @@ description = 'SSL Encryption Implementation for CrateDB'
 
 dependencies {
     compile project(':ssl')
+
     testCompile project(':sql')
     testCompile project(':integration-testing')
     testCompile project(path: ':sql', configuration: 'testOutput')
@@ -15,6 +16,7 @@ dependencies {
         exclude group: 'commons-logging', module: 'commons-logging'
         exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
     }
+    testCompile project(':http')
 }
 
 task getVersion(dependsOn: [':core:getVersion']) {

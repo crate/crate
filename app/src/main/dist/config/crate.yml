@@ -129,8 +129,10 @@
 
 #////////////////////////////////  SSL ///////////////////////////////////////
 
-# To enable secured communications between client and CrateDB node(s) over
-# PostgreSQL wire protocol, set this to true
+# Enable encrypted communication for the HTTP endpoints:
+#ssl.http.enabled: true
+
+# Enable encrypted communication for the PostgreSQL wire protocol:
 #ssl.psql.enabled: true
 
 # The full path to the node keystore file

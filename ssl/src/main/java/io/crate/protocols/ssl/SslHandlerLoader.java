@@ -20,40 +20,62 @@
  * agreement.
  */
 
-package io.crate.protocols.postgres;
+package io.crate.protocols.ssl;
 
-import io.crate.protocols.ssl.SslConfigSettings;
-import io.crate.protocols.ssl.SslConfigurationException;
+import io.crate.protocols.http.HttpsHandler;
+import io.crate.protocols.http.DefaultHttpsHandler;
+import io.crate.protocols.postgres.SslReqHandler;
+import io.crate.protocols.postgres.SslReqRejectingHandler;
+import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.function.Supplier;
 
 /**
- * Loads the appropriate implementation of the SslReqHandler.
+ * Loads the appropriate implementation of the PSQL SSL and Https handlers.
  */
-public class SslReqHandlerLoader {
+public class SslHandlerLoader {
 
-    private static final Logger LOGGER = Loggers.getLogger(SslReqHandlerLoader.class);
-    private static final String SSL_IMPL_CLASS = "io.crate.protocols.postgres.SslReqConfiguringHandler";
+    private static final String PSQL_HANDLER_CLAZZ = "io.crate.protocols.postgres.SslReqConfiguringHandler";
+    private static final String HTTPS_HANDLER_CLAZZ = "io.crate.protocols.http.HttpsConfiguringHandler";
 
-    private SslReqHandlerLoader() {}
+    private SslHandlerLoader() {}
 
     /**
      * Loads the SslRequest handler. Should only be called once per application life time.
      * @throws SslConfigurationException Exception thrown if the user has supplied an invalid configuration
      */
-    public static SslReqHandler load(Settings settings) {
+    public static SslReqHandler loadSslReqHandler(Settings settings) {
+        return load(settings,
+            SslConfigSettings.SSL_PSQL_ENABLED,
+            PSQL_HANDLER_CLAZZ,
+            SslReqHandler.class,
+            () -> new SslReqRejectingHandler(settings));
+    }
+
+    public static HttpsHandler loadHttpsHandler(Settings settings) {
+        return load(settings,
+            SslConfigSettings.SSL_HTTP_ENABLED,
+            HTTPS_HANDLER_CLAZZ,
+            HttpsHandler.class,
+            DefaultHttpsHandler::new);
+    }
+
+    private static <T> T load(Settings settings,
+                              CrateSetting<Boolean> sslSetting,
+                              String clazz,
+                              Class<T> baseClazz,
+                              Supplier<T> fallback) {
         boolean enterpriseEnabled = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
-        boolean sslEnabled = SslConfigSettings.SSL_ENABLED.setting().get(settings);
+        boolean sslEnabled = sslSetting.setting().get(settings);
         if (enterpriseEnabled && sslEnabled) {
             ClassLoader classLoader = ClassLoader.getSystemClassLoader();
             try {
                 return classLoader
-                    .loadClass(SSL_IMPL_CLASS)
-                    .asSubclass(SslReqHandler.class)
+                    .loadClass(clazz)
+                    .asSubclass(baseClazz)
                     .getDeclaredConstructor(Settings.class)
                     .newInstance(settings);
             } catch (Throwable e) {
@@ -63,7 +85,7 @@ public class SslReqHandlerLoader {
                 throw new SslHandlerLoadingException(e);
             }
         }
-        return new SslReqRejectingHandler(settings);
+        return fallback.get();
     }
 
     private static void tryUnwrapSslConfigurationException(Throwable e) {

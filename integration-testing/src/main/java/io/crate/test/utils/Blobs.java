@@ -41,12 +41,13 @@ public class Blobs {
         }
     }
 
-    public static String url(InetSocketAddress address, String table, String digest) {
-        return url(address, table + "/" + digest);
+    public static String url(boolean https, InetSocketAddress address, String table, String digest) {
+        return url(https, address, table + "/" + digest);
     }
 
-    public static String url(InetSocketAddress address, String tableAndDigest) {
-        return String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s",
-            address.getHostName(), address.getPort(), tableAndDigest);
+    public static String url(boolean https, InetSocketAddress address, String tableAndDigest) {
+        String protocol = https ? "https" : "http";
+        return String.format(Locale.ENGLISH, "%s://%s:%s/_blobs/%s",
+            protocol, address.getHostName(), address.getPort(), tableAndDigest);
     }
 }

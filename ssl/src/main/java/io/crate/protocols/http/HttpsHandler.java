@@ -20,14 +20,18 @@
  * agreement.
  */
 
-package io.crate.protocols.ssl;
+package io.crate.protocols.http;
+
+import io.netty.channel.ChannelPipeline;
 
 /**
- * Exception type for SSL configuration specific exceptions.
+ * An interface for adding a handler to a Netty ChannelPipeline.
  */
-public class SslConfigurationException extends RuntimeException {
+public interface HttpsHandler {
 
-    SslConfigurationException(String msg, Exception cause) {
-        super(msg, cause);
-    }
+    /**
+     * Adds the handler to a ChannelPipeline.
+     * @param pipeline The pipeline to add a handler
+     */
+    void addToPipeline(ChannelPipeline pipeline);
 }
