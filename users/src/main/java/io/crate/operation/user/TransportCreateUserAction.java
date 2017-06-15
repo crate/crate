@@ -23,16 +23,16 @@ import io.crate.exceptions.ConflictException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -63,7 +63,7 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
     @Override
     protected void masterOperation(CreateUserRequest request, ClusterState state, ActionListener<WriteUserResponse> listener) throws Exception {
         clusterService.submitStateUpdateTask("create_user [" + request.userName() + "]",
-            new ClusterStateUpdateTask() {
+            new AckedClusterStateUpdateTask<WriteUserResponse>(Priority.URGENT, request, listener) {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     MetaData currentMetaData = currentState.metaData();
@@ -77,18 +77,8 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
                 }
 
                 @Override
-                public TimeValue timeout() {
-                    return request.masterNodeTimeout();
-                }
-
-                @Override
-                public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                    listener.onResponse(new WriteUserResponse(true));
-                }
-
-                @Override
-                public void onFailure(String source, Exception e) {
-                    listener.onFailure(e);
+                protected WriteUserResponse newResponse(boolean acknowledged) {
+                    return new WriteUserResponse(acknowledged);
                 }
             });
     }

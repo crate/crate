@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - ``CREATE USER`` and ``DROP USER`` statements will now only respond after all
+   nodes in the cluster processed the change.
+
  - Fixed an issue that caused an exception to be thrown when using ``unnest``
    with 10 or more columns.
 
