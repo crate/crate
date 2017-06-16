@@ -54,15 +54,11 @@ public class SslReqHandlerLoader {
                     .asSubclass(SslReqHandler.class)
                     .getDeclaredConstructor(Settings.class)
                     .newInstance(settings);
-            } catch (ClassNotFoundException e) {
-                // We only ignore ClassNotFoundException when the ssl-impl module is not available.
-                // All other errors should be bugs or configuration issues.
-                LOGGER.info("SSL support disabled because ssl-impl enterprise module is not available.", e);
             } catch (Throwable e) {
                 // The JVM wraps the exception of dynamically loaded classes into an InvocationTargetException
                 // which we need to unpack first to see if we have an SslConfigurationException.
                 tryUnwrapSslConfigurationException(e);
-                throw new RuntimeException("Loading SslConfiguringHandler failed although enterprise is enabled.", e);
+                throw new SslHandlerLoadingException(e);
             }
         }
         return new SslReqRejectingHandler(settings);
@@ -74,6 +70,12 @@ public class SslReqHandlerLoader {
             if (cause instanceof SslConfigurationException) {
                 throw (SslConfigurationException) cause;
             }
+        }
+    }
+
+    private static class SslHandlerLoadingException extends RuntimeException {
+        SslHandlerLoadingException(Throwable cause) {
+            super("Loading the SslConfiguringHandler failed although enterprise is enabled.", cause);
         }
     }
 }
