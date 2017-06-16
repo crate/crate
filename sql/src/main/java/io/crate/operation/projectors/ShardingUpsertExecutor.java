@@ -105,6 +105,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private final Consumer<Row> rowConsumer;
     private final BooleanSupplier backpressureTrigger;
     private final Function<Boolean, CompletableFuture<BitSet>> execute;
+    private CompletableFuture<Void> executionFuture;
 
     public ShardingUpsertExecutor(ClusterService clusterService,
                                   NodeJobsCounter nodeJobsCounter,
@@ -200,7 +201,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
 
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator batchIterator) {
-        CompletableFuture<Void> executionFuture = new CompletableFuture<>();
+        executionFuture = new CompletableFuture<>();
         new BatchIteratorBackpressureExecutor<>(batchIterator, scheduler,
             rowConsumer, execute, backpressureTrigger, pendingItemsCount, bulkSize, BACKOFF_POLICY, executionFuture).
             consumeIteratorAndExecute();
@@ -317,6 +318,11 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private void processShardResponse(ShardResponse shardResponse) {
         IntArrayList itemIndices = shardResponse.itemIndices();
         pendingItemsCount.addAndGet(-itemIndices.size());
+        Exception responseFailure = shardResponse.failure();
+        if (responseFailure != null && responseFailure instanceof InterruptedException) {
+            // abort operation completely as it's been killed
+            executionFuture.completeExceptionally(responseFailure);
+        }
         synchronized (responses) {
             ShardResponse.markResponseItemsAndFailures(shardResponse, responses);
         }
