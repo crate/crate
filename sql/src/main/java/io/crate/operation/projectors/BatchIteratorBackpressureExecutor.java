@@ -147,6 +147,10 @@ public class BatchIteratorBackpressureExecutor<R> {
      * !! THIS SHOULD ONLY BE CALLED BY THE loadNextBatch COMPLETE LISTENER !!
      */
     private void unsafeConsumeIterator(BatchIterator batchIterator) {
+        if(executionFuture.isDone()) {
+            // if the execution future was completed (most likely failed or killed) we stop consuming
+            return;
+        }
         Row row = RowBridging.toRow(batchIterator.rowData());
         try {
             while (true) {

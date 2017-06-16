@@ -44,6 +44,9 @@ Changes
 Fixes
 =====
 
+ - Fixed issue where bulk operations like `insert from dynamic queries` and 
+   ``COPY FROM`` did not stop after being killed.    
+
  - ``CREATE USER`` and ``DROP USER`` statements will now only respond after all
    nodes in the cluster processed the change.
 
