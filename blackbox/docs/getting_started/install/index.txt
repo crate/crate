@@ -1,0 +1,10 @@
+=============
+Install Crate
+=============
+
+.. toctree::
+   :maxdepth: 1
+
+   local/index
+   containers/index
+   cloud/index

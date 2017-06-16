@@ -1,0 +1,148 @@
+=======================================
+Getting Started with Crate on Softlayer
+=======================================
+
+`SoftLayer <http://softlayer.com/>`__, IBM's cloud platform, has a
+slightly different take on "the cloud". They are focusing on high
+performance (physical) hardware embedded in the best possible
+infrastructure, because "computing doesn't come out of the sky".
+However, besides their strong physical hardware that you can choose
+from, SoftLayer also offers virtual machines with a wide range of
+configuration possibilities.
+
+This combination makes SoftLayer an ideal hosting provider for your own
+Crate cluster, no matter if you just need a small cluster to play around
+or run your production cluster even across data centres.
+
+We at Crate.IO have been using `bare metal
+servers <https://www.softlayer.com/bare-metal-servers>`__ to perform
+benchmarks on Crate. When using bare metal you have the advantage that
+you can mix and match hardware. On the other hand the setup/provisioning
+is more conventional (like on-premise-hosting), since it is not possible
+to launch/terminate instances in real-time.
+
+A balanced instance configuration for a production Crate host could look
+similar like that:
+
+8x 2.0GHz cores = 32 GB memory = 100 GB local SSD storage 1000 Mbps
+public/private network interface
+
+We used `SaltStack <http://www.saltstack.com/>`__'s `Salt
+Cloud <http://docs.saltstack.com/en/latest/topics/cloud/>`__ to launch
+and provision instances for the test cluster. Salt Cloud provides an
+abstraction layer for multiple cloud hosting providers, also for
+`SoftLayer <http://docs.saltstack.com/en/latest/topics/cloud/softlayer.html>`__.
+
+Server Provisioning With Salt Cloud
+-----------------------------------
+
+Example of ``/etc/salt/cloud.profiles``:
+
+.. code-block:: yaml
+
+    softlayer:
+        provider: crate-softlayer-hw
+        domain: crate.io
+        image: CENTOS_LATEST #
+        location: ams01 # Amsterdam
+        cpu_number: 8
+        ram: 65536 # 64GB
+        disk_size: 100 # GB
+        local_disk: True
+        max_net_speed: 1000 # 1Gbps
+        hourly_billing: False
+        private_vlan:
+        minion:
+            grains:
+                role:
+                    - crate_softlayer
+
+Example of ``/etc/salt/cloud.map``:
+
+.. code-block:: yaml
+
+    softlayer:
+      - sl1
+      - sl2
+      - sl3
+
+Launching the instances defined in the cloud.map file is as easy as this
+command:
+
+.. code-block:: bash
+
+    $ salt-cloud -m /etc/salt/cloud.map -P
+
+And once the instances are running you will be able to provision them by
+running the ``highstate`` on the crate\_softlayer role that the
+instances are associated with.
+
+.. code-block:: bash
+
+    $ salt -G 'role:crate_softlayer' state.highstate
+
+The ``highstate`` is defined in the **sls** (Salt State File). Here's an
+example of our init.sls:
+
+.. code-block:: yaml
+
+    crate_repo:
+      pkgrepo.managed:
+        - name: crate
+        - humanname: Crate
+        - baseurl: https://cdn.crate.io/downloads/yum/testing/6/x86_64/
+        - enabled: 0 # 1 = testing release.
+        - gpgcheck: 1
+        - gpgkey: https://cdn.crate.io/downloads/yum/RPM-GPG-KEY-crate
+        - required_in:
+          - packages
+
+    packages:
+      pkg.installed:
+        - pkgs:
+          - java-1.8.0-openjdk
+          - wget
+          - crate
+
+    /etc/sysconfig/crate:
+      file.managed:
+        - user: crate
+        - mode: 755
+        - contents: |
+                    CRATE_MIN_MEM=16g
+                    CRATE_MAX_MEM=16g
+
+    /etc/crate/crate.yml:
+      file.managed:
+        - source: salt://softlayer/crate.yml
+        - user: root
+        - mode: 644
+
+Example of ``crate.yml``:
+
+.. TODO: switch this to yaml and fix autogen stuff
+
+.. code-block:: text
+
+    name: {{ grains['host'] }}
+    cluster:
+      name: crate-softlayer
+    path:
+      logs: /path/to/crate/logs
+      data: /path/to/crate/data
+    network:
+      tcp:
+        connect_timeout: 60s
+    discovery.zen.minimum_master_nodes: 2
+    discovery.zen.ping.unicast.hosts:
+    {%- for server, addrs in salt['mine.get']('*', 'network.ip_addrs').items() %}
+    {% if server.startswith("sl") %}  - {{ addrs[0] }}:4300{% endif -%}{% endfor %}
+
+Next Steps
+----------
+
+-  `Connect to Crate Cluster </docs/connect>`__
+-  `Import Data </docs/import>`__
+-  `Client Libraries </docs/clients>`__
+-  `Scale a Cluster </docs/scale>`__
+

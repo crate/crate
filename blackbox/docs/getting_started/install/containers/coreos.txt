@@ -1,0 +1,84 @@
+====================================
+Getting started with Crate on CoreOS
+====================================
+
+As a Linux distribution targetted at cloud and cluster based
+environments, CoreOS is a perfect fit for a Crate cluster.
+
+Pre-requisites
+--------------
+
+We assume you have a CoreOS cluster running and can access the
+``fleetctl`` tool installed on your local system or on a node in the
+CoreOS cluster.
+
+Create the Crate Service
+------------------------
+
+Create a service file called *crate@.service* with the following
+contents:
+
+.. code-block:: bash
+
+    [Unit]
+    Description=crate
+    After=docker.service
+    Requires=docker.service
+
+    [Service]
+    TimeoutSec=180
+    ExecStartPre=/usr/bin/mkdir -p /data/crate
+    ExecStartPre=/usr/bin/docker pull crate/crate
+
+    ExecStart=/usr/bin/docker run \
+        --name %p-%i \
+        --publish 4200:4200 \
+        --publish 4300:4300 \
+        --volume /data/crate:/data \
+        crate/crate \
+        /crate/bin/crate \
+        -Cnode.name=%p%i \
+
+    ExecStop=/usr/bin/docker stop %p-%i
+    ExecStop=/usr/bin/docker rm %p-%i
+
+    [X-Fleet]
+    X-Conflicts=%p@*.service
+
+The ``TimeoutSec`` setting is important because pulling a docker image
+for the first time takes some time and might cause a time out.
+
+If you're familiar with systemd service files you'll notice that the
+crate service file looks similar to a regular systemd service file. The
+only difference is the ``[X-Fleet]`` section that ensures only one
+service named *crate@x.service* is assigned per node.
+
+Submit it to the cluster using fleet (assuming a 3 node cluster):
+
+.. code-block:: bash
+
+    fleetctl submit crate@{1,2,3}.service
+
+Start the service across the cluster (assuming a 3 node cluster):
+
+.. code-block:: bash
+
+    fleetctl start crate@{1,2,3}.service
+
+Once a crate service starts a folder named */data/crate* will be created
+on each CoreOS node. The crate docker image is pulled and once finished
+the container launches.
+
+Check Status:
+
+.. code-block:: bash
+
+    fleetctl list-units
+
+Next Steps
+----------
+
+-  `Connect to Crate Cluster </docs/connect>`__
+-  `Import Data </docs/import>`__
+-  `Client Libraries </docs/clients>`__
+-  `Scale a Cluster </docs/scale>`__

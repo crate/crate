@@ -1,0 +1,96 @@
+===========================================
+Getting started with Crate on ContainerShip
+===========================================
+
+`ContainerShip <http://containership.io/>`__ allows you to configure a
+hosting stack by combining your own Docker images with their library of
+software and third party integrations. Effortlessly manage, deploy, and
+scale across any number of providers. Detach a cluster from our service
+at any time and use the open source core system on your own.
+
+Connect Hosting
+---------------
+
+First, from the *Providers -> Hosting* menu, connect your hosting
+accounts. The current options are AWS, Digital Ocean, Joyent, Packet and
+Rackspace.
+
+.. image:: containership-providers.png
+   :alt: Connect Accounts
+
+Create Cluster
+--------------
+
+Next we need to create our cluster, the VMs that our Crate cluster will
+be added to. Click on the *Infrastructure -> Clusters* menu and then the
+'Create Cluster' button in the top right of the dashboard screen. Select
+your hosting provider and the appropriate configuration options for
+region, authentication and memory/cpu.
+
+.. image:: containership-menu.png
+   :alt: Create Cluster
+
+|
+
+.. image:: containership-create-cluster.png
+   :alt: Create Cluster
+
+|
+
+ContainerShip uses the concept of 'Leaders' and 'Followers', that handle
+management of containers and applications and the actual containers and
+applications respectively. Read more about these concepts in
+`ContainerShip's
+documentation <https://docs.containership.io/docs/terminology>`__.
+
+Create Application
+------------------
+
+After a few minutes waiting for the cluster to come online, we can
+create our Application, the Crate cluster. Open your cluster admin page
+and scroll down to the green 'New Application' button. As ContainerShip
+have made Crate available in their marketplace, click the 'From
+Marketplace' button and click 'Add to Cluster' underneath Crate from the
+following screen.
+
+Choose the cluster you wish to install Crate in and set its memory and
+CPU options. You should now see Crate listed underneath the
+'Applications' section, it will be set up on the follower Hosts, so two
+nodes. Copy one of the Follower Host IP addresses, and open it in a
+browser with *:4200/admin* appended and you will see the Crate admin UI.
+
+.. image:: containership-add-crate.png
+   :alt: Add Crate
+
+Scaling
+-------
+
+There are two methods for scaling your cluster with ContainerShip, the
+number of containers per VM, or the number of VMs.
+
+To increase the number of VMs, simply click the 'Scale' button in the
+'Follower Hosts' section on the *Cluster* page and increase the number
+of hosts.
+
+To increase the number of containers per VM, open *Infrastructure ->
+Applications*, click on *Crate* and change the 'constraints.per\*host'
+tag by removing and re-adding it. This will cause an automatic
+redistribution of VMs and containers.
+
+Conclusion
+----------
+
+This is a simple 'getting started' guide to getting Crate running on
+ContainerShip and we suggest you read their
+`documentation <https://docs.containership.io/>`__ to get a further idea
+on what options are available such as using environment variables, a
+command line interface, tags available and much more.
+
+Next Steps
+----------
+
+-  `Connect to Crate Cluster </docs/connect>`__
+-  `Import Data </docs/import>`__
+-  `Client Libraries </docs/clients>`__
+-  `Scale a Cluster </docs/scale>`__
+

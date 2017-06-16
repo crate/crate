@@ -1,0 +1,14 @@
+=============
+Local Install
+=============
+
+Crate provides packages and executables that will work on any operating systems
+capable of running Java.
+
+.. toctree::
+   :maxdepth: 1
+
+   linux
+   mac
+   windows
+   tarball

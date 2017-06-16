@@ -1,0 +1,51 @@
+====================================
+Getting started with Crate on Packet
+====================================
+
+`Packet <https://www.packet.net>`__ is a bare metal provider built for
+the next generation of production workloads. Their emphasis on
+API-centered cloud deployment, fast networking, and container-ready
+hardware make them a good choice for developers and production workloads
+- and perfect for Crate clusters!
+
+Create your Crate Project
+-------------------------
+
+Packet organizes machines as projects which bundle together several
+types of deployments:
+
+-  Servers
+-  Storage
+-  Network
+
+.. image:: packet-project.png
+   :alt: Packet: Projects
+
+|
+
+To get started, create a new project called 'Crate' (or any name of your
+choosing) and deploy some machines. For production use, we recommend
+`Type-1 <https://www.packet.net/bare-metal/>`__ servers, which are
+powerful enough to handle medium to large workloads.
+
+.. image:: packet-servers.png
+   :alt: Packet: Servers
+
+|
+
+Start by choosing an operating system for your deployment. After the
+server is ready, Packet's IaaS machines behave just like any other
+machine. Make sure to deploy an SSH key to access the server and after
+the machines are ready, SSH access can be obtained by logging in with
+``ssh root@<public-ip>``. From there it's just as any other Linux
+machine and there are several ways to install Crate on the machine(s).
+Check out our guide `for installing Crate on
+Linux. </docs/install/local/linux/>`__.
+
+Next Steps
+----------
+
+-  `Connect to Crate Cluster </docs/connect>`__
+-  `Import Data </docs/import>`__
+-  `Client Libraries </docs/clients>`__
+-  `Scale a Cluster </docs/scale>`__

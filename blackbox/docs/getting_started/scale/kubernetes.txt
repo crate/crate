@@ -1,0 +1,213 @@
+==========
+Kubernetes
+==========
+
+Kubernetes is an open-source system for automating deployment, scaling,
+and management of containerized applications that builds on 15 years of
+experience running production workflows at Google.
+
+Thanks to `our Docker image </docs/install/containers/docker>`__,
+managing your Crate cluster with Kubernetes requires only a few steps.
+
+This guide will assume that you already have
+`kubectl <http://kubernetes.io/docs/user-guide/prereqs/>`__ and a
+`Kubernetes
+cluster <http://kubernetes.io/docs/getting-started-guides/binary_release/>`__
+ready to go. All of the commands/templates/etc. provided should be
+customized to meet your personal requirements!
+
+The Crate Template
+------------------
+
+At Crate we are proud of our community and our user
+`'cedboss' <https://github.com/cedbossneo>`__ provided us with a
+template to use for Kubernetes to deploy Crate. Building on that draft
+we developed a more mature version:
+
+.. code-block:: yaml
+
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: crate-discovery
+      labels:
+        app: crate
+    spec:
+      ports:
+      - port: 4200
+        name: crate-web
+      - port: 4300
+        name: cluster
+      type: LoadBalancer
+      selector:
+        app: crate
+    ---
+    apiVersion: "apps/v1alpha1"
+    kind: PetSet
+    metadata:
+      name: crate
+    spec:
+      serviceName: "crate-db"
+      replicas: 3
+      template:
+        metadata:
+          labels:
+            app: crate
+          annotations:
+            pod.alpha.kubernetes.io/initialized: "true"
+        spec:
+          containers:
+          - name: crate
+            image: crate:latest
+            command:
+              - /docker-entrypoint.sh
+              - -Ccluster.name=${CLUSTER_NAME}
+              - -Cdiscovery.type=srv
+              - -Cdiscovery.zen.minimum_master_nodes=2
+              - -Cgateway.recover_after_nodes=2
+              - -Cgateway.expected_nodes=${EXPECTED_NODES}
+              - -Cdiscovery.srv.query=_cluster._tcp.crate-discovery.default.svc.cluster.local
+            volumeMounts:
+                - mountPath: /data
+                  name: data
+            resources:
+              limits:
+                memory: 2Gi
+            ports:
+            - containerPort: 4200
+              name: db
+            - containerPort: 4300
+              name: cluster
+            env:
+            # Half the available memory.
+            - name: CRATE_HEAP_SIZE
+              value: "1g"
+            - name: EXPECTED_NODES
+              value: "3"
+            - name: CLUSTER_NAME
+              value: "my-crate-cluster"
+          volumes:
+            - name: data
+              hostPath:
+                emptyDir:
+                  medium: "Memory"
+
+Start Crate
+~~~~~~~~~~~
+
+This template utilizes `Kubernetes 1.3's
+PetSet <http://kubernetes.io/docs/user-guide/petset/>`__ type that
+allows to add SRV records for DNS discovery and a proper shutdown when
+scaling. While Crate would also work as a stateless pod (cattle), this
+way facilitates a couple of things like storage and shard migration on
+zero downtime upgrades. To create a cluster based on that template use:
+
+.. code-block:: bash
+
+    kubectl create -f crate-kubernetes.yml
+
+Find out the public IP and the services that have been created with
+
+.. code-block:: bash
+
+    kubectl get services
+
+Scale Crate
+~~~~~~~~~~~
+
+Next you can scale your cluster by editing the PetSet's configuration
+and setting the 'replicas' field to the desired number of pods. Be aware
+that currently this is the only mutable value:
+
+.. code-block:: bash
+
+    kubectl edit petset crate
+
+After increasing/decreasing the number of replicas (pod replicas),
+Crate's config should be adjusted (especially when scaling down or your
+cluster might disappear!) and there are three important settings in this
+context:
+
+::
+
+    discovery.zen.minimum_master_nodes=2
+    gateway.recover_after_nodes=2
+    gateway.expected_nodes=3
+
+The settings ``recover_after_nodes`` and ``expected_nodes`` are
+important for the cluster to know the intended size and if it should
+recover or rather accept the provided cluster state *on startup*.
+Therefore changing these values will require a cluster restart and a
+misconfiguration will trigger a cluster check to fail. However, the
+cluster will still continue to function properly.
+``discovery.zen.minimum_master_nodes`` on the other hand influences how
+the master nodes are elected, and a value greater than the number of
+nodes is going to disband the cluster, whereas a too small number might
+lead to a split-brain scenario - which is why it is necessary to adjust
+this number when scaling by issuing
+
+.. code-block:: sql
+
+    SET GLOBAL PERSISTENT discovery.zen.minimum_master_nodes = 5
+
+... where 5 is one more than half the actual number of nodes in the
+cluster. Now to monitor the available pods you can use ``kubectl proxy``
+which starts a web server with log outputs and a list of the available
+pods.
+
+Customize Crate
+~~~~~~~~~~~~~~~
+
+In this template, Crate is configured using the ``-C`` parameters for
+the executable. Every setting in `Crate's YAML
+config <https://crate.io/docs/reference/configuration.html>`__ is
+available there and allows for a better flexibility than passing around
+config files.
+
+Storage
+~~~~~~~
+
+Many container hosting services offer spinning disks as default storage
+media, which - for Crate - is often too slow. In addition to that,
+replication only makes sense if the data is on separate physical media
+in order to achieve high availability and to avoid potential bottlenecks
+when several clusters attach the same storage. Since the `Persistent
+Volume
+Claims <https://github.com/kubernetes/kubernetes/blob/master/examples/experimental/persistent-volume-provisioning/README.md>`__
+depend on the Kubernetes cluster (and if it runs in the cloud), the
+volume template is currently not included in our template. You can
+familiarize yourself with them
+`here <http://kubernetes.io/docs/user-guide/petset/>`__. For now, the
+volumes are explicitly stated and to customize that accordingly, the
+`volume guide <http://kubernetes.io/docs/user-guide/volumes/>`__ is very
+helpful.
+
+Manual Approach
+---------------
+
+Create a Kubernetes 'pod', or a group of containers tied together for
+administration and networking. In this case, using the Crate Docker
+image and exposing the ports that Crate uses.
+
+.. code-block:: bash
+
+    kubectl run crate-cluster --image=crate:latest --port=4200 --port=4300
+
+Expose the pod to the outside World with a specific Kubernetes service:
+
+.. code-block:: bash
+
+    kubectl expose deployment crate-cluster --type="LoadBalancer"
+
+And use the following command to get the status of the service you just
+created:
+
+.. code-block:: bash
+
+    kubectl get services crate-cluster
+
+Scale a Crate pod with:
+
+.. code-block:: bash
+
+    kubectl scale deployment crate-cluster --replicas=3

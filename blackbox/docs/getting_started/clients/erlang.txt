@@ -1,0 +1,61 @@
+===============================
+Connecting to Crate with Erlang
+===============================
+
+The Crate Erlang client is built using
+`rebar3 <https://github.com/rebar/rebar3>`__ and we recommend you use it
+in your project for compiling and testing.
+
+Add Crate to your Project
+-------------------------
+
+To add Crate as a dependency, add the following to your *rebar.config*
+file.
+
+.. code-block:: erlang
+
+    {deps,[
+      {craterl,"0.2.3"}
+    ]}.
+
+And run:
+
+.. code-block:: bash
+
+    rebar update
+
+Connect to Crate
+----------------
+
+To connect to a cluster, create a client instance in your application:
+
+.. code-block:: erlang
+
+    ClientSpec = {local, process_name}.
+    Servers = [{<<"SERVER_IP">>, 4200}, "SERVER_IP:4201"].
+    Options = [{poolsize, 1000}, {timeout, 5000}].
+    ClientRef = craterl:new(ClientSpec, Servers, Options).
+
+In the ``Servers`` tuple you can specify just one IP address in the
+Crate cluster, but including more than one will provide fallbacks if
+nodes become unavailable.
+
+It's possible to create multiple clients on one erlang node, these are
+registered using a client spec tuple, such as ``{local, process_name}``.
+The process name must be unique on each node.
+
+Want to Know More?
+------------------
+
+-  More detailed documentation on the Crate Python client is available
+   `here <https://github.com/crate/craterl/tree/master/doc>`__.
+-  The **Crate Sample App** demonstrates features of Crate and `how to
+   use them in an Erlang based
+   application <https://github.com/crate/crate-sample-apps/tree/master/erlang>`__
+   with an explanation of how the library is used
+   `here <https://github.com/crate/crate-sample-apps/blob/master/erlang/README.md>`__.
+
+Next Steps
+----------
+
+-  `Scale a Cluster </docs/scale>`__

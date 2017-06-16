@@ -1,0 +1,98 @@
+================
+Client Libraries
+================
+
+Crate is happy at the heart of any application stack, integrating with a
+multitude of languages and applications to connect and query your data.
+
+Official Client Libraries
+-------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   jdbc
+   java
+   python
+   php
+   erlang
+   odbc
+   rest
+
+Community Maintained Clients
+----------------------------
+
+Ruby
+~~~~
+
+`Christoph Klocker <https://twitter.com/corck>`__ created a `Ruby
+driver <http://rubygems.org/gems/crate_ruby>`__ and `Activerecord
+Adapter <https://rubygems.org/gems/activerecord-crate-adapter>`__.
+
+Scala
+~~~~~
+
+`Alexander Jarvis <https://github.com/alexanderjarvis>`__ created a
+`Scala driver <https://github.com/alexanderjarvis/crate-scala>`__ and
+adapter for the `Play
+framework <https://github.com/alexanderjarvis/play-crate>`__.
+
+Node.js
+~~~~~~~
+
+We have several Node and JavaScript drivers. A simple
+`connector <https://www.npmjs.com/package/crate-connect>`__ by herenow,
+`cratejs <https://www.npmjs.com/package/cratejs>`__ by herenow which
+extends it and `node-crate <https://www.npmjs.com/package/node-crate>`__
+by `megastef <https://github.com/megastef>`__ as an alternative.
+
+Loopback
+~~~~~~~~
+
+Lovely Systems created `a connector to Crate for
+Loopback <https://github.com/lovelysystems/loopback-connector-crateio>`__,
+the Node.js framework for connecting backend datasources.
+
+Mono
+~~~~
+
+`crate-mono is a Mono/.NET client
+driver <https://github.com/mfussenegger/crate-mono>`__ implementing the
+ADO.NET interface forwritten by `Mathias
+Fussenegger <https://twitter.com/mfussenegger>`__.
+
+GoLang
+~~~~~~
+
+herenow wrote `a Golang driver for
+Crate <https://github.com/herenow/go-crate>`__ that implements the Go
+sql interface package.
+
+.. raw:: html
+
+   </p>
+
+Vim
+~~~
+
+Thanks to the work of Mathias Fussenegger and `David
+Fishburn <https://github.com/dfishburn>`__, Vim users can connect to
+Crate clusters from within the editor using the
+`dbext <https://github.com/vim-scripts/dbext.vim>`__ plugin.
+
+Perl
+~~~~
+
+Mamod Mehyar created
+`DBD::Crate <https://github.com/mamod/DBD-Crate>`__, a DBI/Perl driver
+for Crate.
+
+Utilities and Data Visualization Tools
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For a full list of tools, see `Tools Overview <https://crate.io/docs/tools/>`_.
+
+Next Steps
+----------
+
+-  `Scale a Cluster <https://crate.io/docs/scale/>`_

@@ -1,0 +1,14 @@
+===========================
+Running Crate in Containers
+===========================
+
+Crate is ideal for containerized environments, creating and scaling a cluster
+takes minutes and your valuable data is always in sync and available.
+
+.. toctree::
+   :maxdepth: 1
+
+   containership
+   coreos
+   docker
+   docker_cloud

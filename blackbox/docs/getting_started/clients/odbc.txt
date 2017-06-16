@@ -1,0 +1,176 @@
+=============================
+Connecting to Crate with ODBC
+=============================
+
+The ODBC driver package is not open source but requires a proprietary
+license for production use. For evaluation purposes however, we offer a
+free trial license that you can `sign
+here <https://www.hellosign.com/s/313c319f>`__. Afterwards our team
+provides you with the ODBC driver package.
+
+Crate's ODBC driver is ready to use after three simple steps.
+
+Install ODBC Driver
+-------------------
+
+Download and run the installer on your local machine. When the assistant
+opens, follow the instructions to install the ODBC driver.
+
+Open the *ODBC Data Source Administrator (32/64-bit)* application to
+change the Crate connection settings in the *System DSN* tab. After
+selecting *Crate ODBC Driver * and clicking *Configure...*, enter the
+address(es) of your Crate cluster.
+
+**Note**: By default, the host configuration is empty. Make sure to set
+this before using the driver.
+
+.. image:: DSNCrateODBC.png
+   :alt: ODBC Data Source Administrator
+
+The Crate ODBC Driver installation is now ready to use. If you want to
+change the host, you have to edit the host configuration setting in
+*ODBC Data Source Administrator (32/64-bit)*.
+
+Usage
+-----
+
+The Crate ODBC driver is designed for use with the C programming
+language. Read the `Microsoft ODBC Programmers
+Reference <https://msdn.microsoft.com/en-us/library/ms714562(v=vs.85).aspx>`__
+for detailed information about the ODBC API.
+
+ODBC Include Files
+~~~~~~~~~~~~~~~~~~
+
+The required C definitions are added with the following header files:
+
+.. code-block:: c
+
+    #include <sql.h>
+    #include <sqltypes.h>
+    #include <sqlext.h>
+
+Allocating a Statement Handle
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+There are three handle types useful for using Crate with ODBC:
+
+-  ``SQLHENV``, **environment handle**: The first handle you must assign
+   before any other to initialize the ODBC environment. Once allocated
+   you can define the version of ODBC you require, enable connection
+   pooling and allocate connection handles with ``SQLSetEnvAttr`` and
+   ``SQLAllocHandle``.
+-  ``SQLHDBC``, **connection handle**: You need one connection handle
+   for each data source connection. Like environment handles, connection
+   handles have attributes which you can retrieve and set with
+   ``SQLSetConnectAttr`` and ``SQLGetConnectAttr``.
+-  ``SQLHSTMT``, **statement handle**: Once you have acquired a
+   connection handle and are connected to a data source, allocating
+   statement handles allow you to execute SQL or retrieve meta data. As
+   with the other handles you can set and get statement attributes with
+   ``SQLSetStmtAttr`` and ``SQLGetStmtAttr``.
+
+Before the application can execute a statement it must allocate a
+statement handle as follows:
+
+.. code-block:: c
+
+    SQLHSTMT hdlStmt;
+    SQLAllocHandle(SQL_HANDLE_STMT, hdlDbc, &hdlStmt);
+
+Setup a Connection
+~~~~~~~~~~~~~~~~~~
+
+.. code-block:: c
+
+    // Get the environment
+    SQLHENV hdlEnv;
+    SQLAllocHandle(SQL_HANDLE_ENV, SQL_NULL_HANDLE, &hdlEnv);
+    SQLSetEnvAttr(hdlEnv, SQL_ATTR_ODBC_VERSION, (void*)SQL_OV_ODBC3, 0);
+
+    // Set up a connection to the database
+    SQLHDBC hdlDbc;
+    SQLRETURN rc;
+
+    SQLAllocHandle(SQL_HANDLE_DBC, hdlEnv, &hdlDbc);
+    const char *dsnName = "Crate ODBC Driver 32-bit";
+    SQLConnect(hdlDbc, (SQLCHAR*)dsnName, SQL_NTS, NULL, 0, NULL, 0);
+
+Execute Queries
+~~~~~~~~~~~~~~~
+
+The following query creates a table called ``customers``.
+
+.. code-block:: c
+
+    // Create a table into which we can store data
+    rc = SQLExecDirect(hdlStmt, (SQLCHAR*)"CREATE TABLE customers "
+          "(CustID int, CustName string, Phone_Number string)",
+          SQL_NTS);
+    if (rc != SQL_SUCCESS)
+      PrintError(SQL_HANDLE_STMT, hdlStmt);
+
+Bulk Inserts
+~~~~~~~~~~~~
+
+Using the ``SQLBindParameter`` function allows you to specify and issue
+bulk operations. Similar to prepared statement these operations are
+executed as one statement.
+
+.. code-block:: c
+
+    // Create the prepared statement
+    rc = SQLPrepare(hdlStmt, (SQLTCHAR*)"INSERT INTO customers (CustID, "
+        "CustName,  Phone_Number) VALUES(?,?,?)", SQL_NTS);
+
+    // This is the data to be inserted into the database.
+    char custNames[][50] = { "Allen, Anna", "Brown, Bill", "Chu, Cindy",
+        "Dodd, Don" };
+    SQLINTEGER custIDs[] = { 100, 101, 102, 103 };
+    char phoneNums[][15] = { "1-617-555-1234", "1-781-555-1212",
+        "1-508-555-4321", "1-617-555-4444" };
+
+    // Bind the data arrays to the parameters in the prepared SQL statement
+    SQLBindParameter(hdlStmt, 1, SQL_PARAM_INPUT, SQL_C_LONG, SQL_INTEGER,
+        0, 0, (SQLPOINTER)custIDs, sizeof(*custIDs), NULL);
+    SQLBindParameter(hdlStmt, 2, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_VARCHAR,
+        50, 0, (SQLPOINTER)custNames, sizeof(custNames[0]), NULL);
+    SQLBindParameter(hdlStmt, 3, SQL_PARAM_INPUT, SQL_C_CHAR, SQL_CHAR,
+        15, 0, (SQLPOINTER)phoneNums, sizeof(phoneNums[0]), NULL);
+
+
+    // Tell the ODBC driver how many rows there are in the array
+    SQLSetStmtAttr(hdlStmt, SQL_ATTR_PARAMSET_SIZE, (SQLPOINTER)4, 0);
+
+    rc = SQLExecute(hdlStmt);
+    if (rc != SQL_SUCCESS)
+      PrintError(SQL_HANDLE_STMT, hdlStmt);
+
+Debugging
+~~~~~~~~~
+
+For debugging, printing the SQL statements is often useful.
+``SQLGetDiagRec`` returns the current values of multiple fields in a
+diagnostic record that contains error, warning, and status information.
+
+.. code-block:: c
+
+    static void PrintError(SQLSMALLINT siType, SQLHANDLE shHandle)
+    {
+        SQLINTEGER siError;
+        SQLSMALLINT siAvail;
+        SQLCHAR szError[1024], szState[256];
+        SQLGetDiagRec(siType, shHandle, 1, szState, &siError, szError, sizeof(szError), &siAvail);
+        printf("ERROR: %s\n", szError);
+    }
+
+Want to Know More?
+~~~~~~~~~~~~~~~~~~
+
+`Contact us </contact>`__ for further information, or read more about
+the `Crate enterprise offering <https://crate.io/enterprise/odbc>`__.
+
+Next Steps
+~~~~~~~~~~
+
+-  `Scale a Cluster </docs/scale>`__

@@ -1,0 +1,14 @@
+==============================
+Running Crate on Cloud Hosting
+==============================
+
+Crate provides packages and executables that will work on any operating systems
+capable of running Java.
+
+.. toctree::
+   :maxdepth: 1
+
+   aws
+   azure
+   softlayer
+   packet
