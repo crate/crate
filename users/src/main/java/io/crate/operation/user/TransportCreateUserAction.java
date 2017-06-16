@@ -21,6 +21,7 @@ package io.crate.operation.user;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.exceptions.ConflictException;
 import io.crate.metadata.UsersMetaData;
+import io.crate.metadata.UsersPrivilegesMetaData;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -31,7 +32,6 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -69,11 +69,7 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     MetaData currentMetaData = currentState.metaData();
                     MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
-                    UsersMetaData users = putUser(
-                        currentMetaData.custom(UsersMetaData.TYPE),
-                        request.userName()
-                    );
-                    mdBuilder.putCustom(UsersMetaData.TYPE, users);
+                    putUser(mdBuilder, request.userName());
                     return ClusterState.builder(currentState).metaData(mdBuilder).build();
                 }
 
@@ -90,18 +86,21 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
     }
 
     @VisibleForTesting
-    static UsersMetaData putUser(@Nullable UsersMetaData oldMetaData,
-                                 String name) {
-        if (oldMetaData == null) {
-            return new UsersMetaData(Collections.singletonList(name));
-        }
-        if (oldMetaData.contains(name)) {
+    static void putUser(MetaData.Builder mdBuilder, String name) {
+        UsersMetaData oldMetaData = (UsersMetaData) mdBuilder.getCustom(UsersMetaData.TYPE);
+        if (oldMetaData != null && oldMetaData.contains(name)) {
             throw new ConflictException("User already exists");
         }
         // create a new instance of the metadata, to guarantee the cluster changed action.
         UsersMetaData newMetaData = UsersMetaData.newInstance(oldMetaData);
         newMetaData.add(name);
         assert !newMetaData.equals(oldMetaData) : "must not be equal to guarantee the cluster change action";
-        return newMetaData;
+        mdBuilder.putCustom(UsersMetaData.TYPE, newMetaData);
+
+        // create empty privileges for this user
+        UsersPrivilegesMetaData privilegesMetaData = UsersPrivilegesMetaData.copyOf(
+            (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE));
+        privilegesMetaData.createPrivileges(name, Collections.emptySet());
+        mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, privilegesMetaData);
     }
 }

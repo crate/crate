@@ -49,6 +49,13 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
+    public void testNewUserHasNoPrivilegesByDefault() throws Exception {
+        executeAsSuperuser("create user ford");
+        executeAsSuperuser("select * from sys.privileges where grantee = ?", new Object[]{"ford"});
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
     public void testSuperUserGrantsPrivilege() throws Exception {
         executeAsSuperuser("create user chandler");
 

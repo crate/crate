@@ -21,11 +21,13 @@ package io.crate.operation.user;
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.ConflictException;
 import io.crate.metadata.UsersMetaData;
+import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.Matchers.contains;
@@ -36,23 +38,36 @@ public class TransportUserActionTest extends CrateUnitTest {
 
     @Test
     public void testCreateFirstUser() throws Exception {
-        UsersMetaData metaData = TransportCreateUserAction.putUser(null, "root");
+        MetaData.Builder mdBuilder = new MetaData.Builder();
+        TransportCreateUserAction.putUser(mdBuilder, "root");
+        UsersMetaData metaData = (UsersMetaData) mdBuilder.getCustom(UsersMetaData.TYPE);
         assertThat(metaData.users().size(), is(1));
         assertThat(metaData.users().get(0), is("root"));
+    }
+
+    @Test
+    public void testEmptyPrivilegesAreCreatedForNewUsers() throws Exception {
+        MetaData.Builder mdBuilder = new MetaData.Builder();
+        TransportCreateUserAction.putUser(mdBuilder, "root");
+        UsersPrivilegesMetaData metaData = (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE);
+        assertThat(metaData.getUserPrivileges("root"), is(Collections.emptySet()));
     }
 
     @Test
     public void testCreateUserAlreadyExists() throws Exception {
         expectedException.expect(ConflictException.class);
         expectedException.expectMessage("User already exists");
-        UsersMetaData oldMetaData = new UsersMetaData(ImmutableList.of("root"));
-        TransportCreateUserAction.putUser(oldMetaData, "root");
+        MetaData.Builder mdBuilder = new MetaData.Builder()
+            .putCustom(UsersMetaData.TYPE, new UsersMetaData(ImmutableList.of("root")));
+        TransportCreateUserAction.putUser(mdBuilder, "root");
     }
 
     @Test
     public void testCreateUser() throws Exception {
-        UsersMetaData oldMetaData = new UsersMetaData(ImmutableList.of("Trillian"));
-        UsersMetaData newMetaData = TransportCreateUserAction.putUser(oldMetaData, "Arthur");
+        MetaData.Builder mdBuilder = new MetaData.Builder()
+            .putCustom(UsersMetaData.TYPE, new UsersMetaData(ImmutableList.of("Trillian")));
+        TransportCreateUserAction.putUser(mdBuilder, "Arthur");
+        UsersMetaData newMetaData = (UsersMetaData) mdBuilder.getCustom(UsersMetaData.TYPE);
         assertThat(newMetaData.users(), containsInAnyOrder("Trillian", "Arthur"));
     }
 
