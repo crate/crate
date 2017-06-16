@@ -21,6 +21,7 @@ package io.crate.integrationtests;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
+import io.crate.analyze.user.Privilege;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManagerService;
 import io.crate.testing.SQLResponse;
@@ -32,6 +33,9 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
 
     private SQLOperations.Session superUserSession;
     private SQLOperations.Session normalUserSession;
+    private SQLOperations.Session ddlUserSession;
+    private SQLOperations.Session dmlUserSession;
+    private SQLOperations.Session dqlUserSession;
 
     protected SQLOperations.Session createSuperUserSession() {
         return createSuperUserSession(null);
@@ -45,10 +49,35 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
     protected SQLOperations.Session createUserSession() {
         return createUserSession(null);
     }
+    protected SQLOperations.Session createDDLUserSession() {
+        return createDDLUserSession(null);
+    }
+    protected SQLOperations.Session createDMLUserSession() {
+        return createDMLUserSession(null);
+    }
+    protected SQLOperations.Session createDQLUserSession() {
+        return createDQLUserSession(null);
+    }
 
     SQLOperations.Session createUserSession(String node) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
         return sqlOperations.createSession(null, new User("normal", ImmutableSet.of(), ImmutableSet.of()), Option.NONE, DEFAULT_SOFT_LIMIT);
+    }
+
+
+    SQLOperations.Session createDDLUserSession(String node) {
+        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
+        return sqlOperations.createSession(null, new User("ddlUser", ImmutableSet.of(), ImmutableSet.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.CLUSTER, null, "crate"))), Option.NONE, DEFAULT_SOFT_LIMIT);
+    }
+
+    SQLOperations.Session createDMLUserSession(String node) {
+        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
+        return sqlOperations.createSession(null, new User("dmlUser", ImmutableSet.of(), ImmutableSet.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate"))), Option.NONE, DEFAULT_SOFT_LIMIT);
+    }
+
+    SQLOperations.Session createDQLUserSession(String node) {
+        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
+        return sqlOperations.createSession(null, new User("dqlUser", ImmutableSet.of(), ImmutableSet.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"))), Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
     @Before
@@ -59,6 +88,11 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
     public void createSessions() {
         superUserSession = createSuperUserSession();
         normalUserSession = createUserSession();
+
+        ddlUserSession = createDDLUserSession();
+        dmlUserSession = createDMLUserSession();
+        dqlUserSession = createDQLUserSession();
+
     }
 
     public SQLResponse executeAsSuperuser(String stmt) {
@@ -71,5 +105,14 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
 
     public SQLResponse executeAsNormalUser(String stmt) {
         return execute(stmt, null, normalUserSession);
+    }
+    public SQLResponse executeAsDDLUser(String stmt) {
+        return execute(stmt, null, ddlUserSession);
+    }
+    public SQLResponse executeAsDQLUser(String stmt) {
+        return execute(stmt, null, dqlUserSession);
+    }
+    public SQLResponse executeAsDMLUser(String stmt) {
+        return execute(stmt, null, dmlUserSession);
     }
 }

@@ -22,7 +22,9 @@
 package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.analyze.user.Privilege;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.operation.user.UserManager;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
@@ -43,7 +45,8 @@ class CreateAnalyzerStatementAnalyzer
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
-    public CreateAnalyzerAnalyzedStatement analyze(Node node, Analysis analysis) {
+    public CreateAnalyzerAnalyzedStatement analyze(Node node, Analysis analysis, UserManager userManager) {
+        userManager.raiseMissingPrivilegeException(Privilege.Clazz.SCHEMA, Privilege.Type.DDL, null, analysis.sessionContext().user());
         return super.process(node, new Context(analysis));
     }
 

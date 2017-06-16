@@ -21,7 +21,10 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.analyze.user.Privilege;
+import io.crate.operation.user.UserManager;
 import io.crate.sql.tree.KillStatement;
 
 import java.util.UUID;
@@ -32,7 +35,11 @@ public class KillAnalyzer {
     }
 
 
-    public static KillAnalyzedStatement analyze(KillStatement killStatement, ParameterContext parameterContext) {
+    public static KillAnalyzedStatement analyze(KillStatement killStatement,
+                                                ParameterContext parameterContext,
+                                                SessionContext sessionContext,
+                                                UserManager userManager) {
+        userManager.raiseMissingPrivilegeException(Privilege.Clazz.SCHEMA, Privilege.Type.DCL, sessionContext.defaultSchema(), sessionContext.user());
         if (killStatement.jobId().isPresent()) {
             UUID jobId;
             try {

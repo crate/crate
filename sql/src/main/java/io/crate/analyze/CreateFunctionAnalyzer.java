@@ -26,6 +26,8 @@
 
 package io.crate.analyze;
 
+import io.crate.analyze.user.Privilege;
+import io.crate.operation.user.UserManager;
 import io.crate.sql.tree.CreateFunction;
 
 import java.util.List;
@@ -34,8 +36,8 @@ import static io.crate.analyze.FunctionArgumentDefinition.toFunctionArgumentDefi
 
 public class CreateFunctionAnalyzer {
 
-    public CreateFunctionAnalyzedStatement analyze(CreateFunction node, Analysis context) {
-
+    public CreateFunctionAnalyzedStatement analyze(CreateFunction node, Analysis context, UserManager userManager) {
+        userManager.raiseMissingPrivilegeException(Privilege.Clazz.SCHEMA, Privilege.Type.DDL, null, context.sessionContext().user());
         List<String> parts = node.name().getParts();
         return new CreateFunctionAnalyzedStatement(
             resolveSchemaName(parts, context.sessionContext().defaultSchema()),

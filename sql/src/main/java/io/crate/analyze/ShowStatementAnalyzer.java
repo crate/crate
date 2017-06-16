@@ -22,9 +22,12 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.user.Privilege;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.metadata.Schemas;
+import io.crate.operation.user.UserManager;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.*;
@@ -60,8 +63,9 @@ class ShowStatementAnalyzer {
         return (Query) SqlParser.createStatement("select 'read uncommitted' as transaction_isolation from sys.cluster");
     }
 
-    AnalyzedStatement analyzeShowTransaction(Analysis analysis) {
+    AnalyzedStatement analyzeShowTransaction(Analysis analysis, UserManager userManager) {
         Query query = rewriteShowTransaction();
+        userManager.raiseMissingPrivilegeException(Privilege.Clazz.CLUSTER, Privilege.Type.DQL, null, analysis.sessionContext().user());
         Analysis newAnalysis = analyzer.boundAnalyze(query, analysis.sessionContext(), ParameterContext.EMPTY);
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
@@ -96,7 +100,8 @@ class ShowStatementAnalyzer {
         );
     }
 
-    public AnalyzedStatement analyze(ShowSchemas node, Analysis analysis) {
+    public AnalyzedStatement analyze(ShowSchemas node, Analysis analysis, UserManager userManager) {
+        userManager.raiseMissingPrivilegeException(Privilege.Clazz.CLUSTER, Privilege.Type.DQL, null, analysis.sessionContext().user());
         Tuple<Query, ParameterContext> tuple = rewriteShow(node);
         Analysis newAnalysis = analyzer.boundAnalyze(tuple.v1(), analysis.sessionContext(), tuple.v2());
         analysis.rootRelation(newAnalysis.rootRelation());
@@ -145,14 +150,16 @@ class ShowStatementAnalyzer {
         );
     }
 
-    public AnalyzedStatement analyze(ShowColumns node, Analysis analysis) {
+    public AnalyzedStatement analyze(ShowColumns node, Analysis analysis, UserManager userManager) {
+        userManager.raiseMissingPrivilegeException(Privilege.Clazz.TABLE, Privilege.Type.DQL, null, analysis.sessionContext().user());
         Tuple<Query, ParameterContext> tuple = rewriteShow(node);
         Analysis newAnalysis = analyzer.boundAnalyze(tuple.v1(), analysis.sessionContext(), tuple.v2());
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }
 
-    public AnalyzedStatement analyze(ShowTables node, Analysis analysis) {
+    public AnalyzedStatement analyze(ShowTables node, Analysis analysis, UserManager userManager) {
+        userManager.raiseMissingPrivilegeException(Privilege.Clazz.SCHEMA, Privilege.Type.DQL, null, analysis.sessionContext().user());
         Tuple<Query, ParameterContext> tuple = rewriteShow(node);
         Analysis newAnalysis = analyzer.boundAnalyze(tuple.v1(), analysis.sessionContext(), tuple.v2());
         analysis.rootRelation(newAnalysis.rootRelation());
