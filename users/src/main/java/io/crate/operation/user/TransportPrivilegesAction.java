@@ -38,9 +38,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Set;
 
 @Singleton
@@ -85,11 +83,7 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     MetaData currentMetaData = currentState.metaData();
                     MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
-                    affectedRows = applyPrivileges(
-                        mdBuilder,
-                        currentMetaData.custom(UsersPrivilegesMetaData.TYPE),
-                        request
-                    );
+                    affectedRows = applyPrivileges(mdBuilder, request);
                     return ClusterState.builder(currentState).metaData(mdBuilder).build();
                 }
 
@@ -103,27 +97,20 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
 
     @VisibleForTesting
     static long applyPrivileges(MetaData.Builder mdBuilder,
-                                @Nullable UsersPrivilegesMetaData oldMetaData,
                                 PrivilegesRequest request) {
         // create a new instance of the metadata, to guarantee the cluster changed action.
-        UsersPrivilegesMetaData newMetaData = UsersPrivilegesMetaData.copyOf(oldMetaData);
+        UsersPrivilegesMetaData newMetaData = UsersPrivilegesMetaData.copyOf(
+            (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE));
 
         long affectedRows = 0L;
         Collection<Privilege> privileges = request.privileges();
 
         for (String userName : request.userNames()) {
+            // privileges set is expected, it must be created on user creation
             Set<Privilege> userPrivileges = newMetaData.getUserPrivileges(userName);
-            boolean create = false;
-            if (userPrivileges == null) {
-                create = true;
-                userPrivileges = new HashSet<>();
-            }
+            assert userPrivileges != null : "privileges must not be null for user=" + userName;
             for (Privilege privilege : privileges) {
                 affectedRows += applyPrivilege(userPrivileges, privilege);
-            }
-            // no need to create empty privileges for a user
-            if (create && userPrivileges.size() > 0) {
-                newMetaData.createPrivileges(userName, userPrivileges);
             }
         }
 

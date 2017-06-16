@@ -26,6 +26,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -48,7 +49,10 @@ public class UsersMetaData extends AbstractDiffable<MetaData.Custom> implements 
         this.users = users;
     }
 
-    public static UsersMetaData newInstance(UsersMetaData instance) {
+    public static UsersMetaData newInstance(@Nullable UsersMetaData instance) {
+        if (instance == null) {
+            return new UsersMetaData();
+        }
         return new UsersMetaData(new ArrayList<>(instance.users));
     }
 
