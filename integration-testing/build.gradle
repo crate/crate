@@ -5,7 +5,7 @@ archivesBaseName = 'crate-testing'
 dependencies {
     compile "org.codehaus.jackson:jackson-mapper-asl:${versions.jacksonasl}"
     compile "org.apache.commons:commons-lang3:${versions.commonslang3}"
-    compile "org.codehaus.groovy:groovy-all:2.4.4:indy"
+    compile "org.codehaus.groovy:groovy-all:2.4.10:indy"
 
     compile project(':es:es-testing')
 }
