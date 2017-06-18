@@ -194,12 +194,12 @@ task jacocoReport(type: JacocoReport) {
     reports {
         xml {
             enabled true
-            destination "${buildDir}/reports/jacoco/test/jacocoTestReport.xml"
+            destination file(project.buildDir.path + '/reports/jacoco/test/jacocoTestReport.xml')
         }
         csv.enabled false
         html {
             enabled true
-            destination "${buildDir}/reports/jacoco/jacocoHtml"
+            destination file(project.buildDir.path + '/reports/jacoco/jacocoHtml')
         }
     }
 }
@@ -275,5 +275,5 @@ idea {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '3.5'
+    gradleVersion = '4.0'
 }

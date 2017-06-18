@@ -42,8 +42,8 @@ findbugs {
 
 tasks.withType(FindBugs) {
     reports {
-        xml.enabled true
-        html.enabled false
+        xml.enabled = true
+        html.enabled = false
     }
 }
 
@@ -107,9 +107,12 @@ test {
     // ES testing framework adds the resources target build paths to the classpath of the tests,
     // but if the src/[main|test]/resources directories of a project are empty, then these dirs
     // are missing from the target build directory which causes all tests to fail.
-    // To prevent this case we always create the target build resource directories upfront.
+    // The groovy target build paths have the same problem.
+    // To prevent this case we always create the target build resource and groovy directories upfront.
     doFirst {
-        new File(project.buildDir.path + '/resources/main').mkdirs()
-        new File(project.buildDir.path + '/resources/test').mkdirs()
+        file(project.buildDir.path + '/resources/main').mkdirs()
+        file(project.buildDir.path + '/resources/test').mkdirs()
+        file(project.buildDir.path + '/classes/groovy/main').mkdirs()
+        file(project.buildDir.path + '/classes/groovy/test').mkdirs()
     }
 }
