@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport.task;
 
-import com.carrotsearch.hppc.IntArrayList;
 import io.crate.action.FutureActionListener;
 import io.crate.action.LimitedExponentialBackoff;
 import io.crate.data.BatchConsumer;
@@ -226,7 +225,9 @@ public class UpsertByIdTask extends JobTask {
                 public void onResponse(ShardResponse shardResponse) {
                     Throwable failure = shardResponse.failure();
                     if (failure == null) {
-                        processShardResponse(responses, shardResponse);
+                        synchronized (responses) {
+                            ShardResponse.markResponseItemsAndFailures(shardResponse, responses);
+                        }
                     } else {
                         lastFailure.set(failure);
                     }
@@ -318,18 +319,6 @@ public class UpsertByIdTask extends JobTask {
                 new ShardUpsertRequest.Item(item.id(), item.updateAssignments(), item.insertValues(), item.version()));
         }
         return requestsByShard;
-    }
-
-    private void processShardResponse(final BitSet responses, ShardResponse shardResponse) {
-        IntArrayList itemIndices = shardResponse.itemIndices();
-        List<ShardResponse.Failure> failures = shardResponse.failures();
-        synchronized (this) {
-            for (int i = 0; i < itemIndices.size(); i++) {
-                int location = itemIndices.get(i);
-                ShardResponse.Failure failure = failures.get(i);
-                responses.set(location, failure == null);
-            }
-        }
     }
 
     private CompletableFuture<BulkCreateIndicesResponse> createPendingIndices(Collection<String> indices) {
