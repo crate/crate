@@ -44,14 +44,19 @@ Changes
 Fixes
 =====
 
+ - Added proper handling when memory requirements of a ``JOIN`` query exceeds
+   the available memory. Instead of having OutOfMemoryException thrown which
+   led to killed nodes in the cluster, the issue is detected and the query is
+   killed without affecting the cluster.
+
  - Fixed an issue that could cause ``DELETE`` statements to fail instead of
    "not matching" if there was a ``_version`` column in the ``WHERE`` clause.
 
  - Fixed an error handling issue that could lead to the termination of a node
    in very rare cases. (Usually if a user invoked the `KILL` statement)
 
- - Fixed issue where bulk operations like `insert from dynamic queries` and 
-   ``COPY FROM`` did not stop after being killed.    
+ - Fixed issue where bulk operations like `insert from dynamic queries` and
+   ``COPY FROM`` did not stop after being killed.
 
  - ``CREATE USER`` and ``DROP USER`` statements will now only respond after all
    nodes in the cluster processed the change.

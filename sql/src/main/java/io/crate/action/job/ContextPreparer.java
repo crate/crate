@@ -21,7 +21,14 @@
 
 package io.crate.action.job;
 
-import com.carrotsearch.hppc.*;
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.IntCollection;
+import com.carrotsearch.hppc.IntContainer;
+import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
+import com.carrotsearch.hppc.LongObjectHashMap;
+import com.carrotsearch.hppc.LongObjectMap;
 import com.carrotsearch.hppc.cursors.IntCursor;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
@@ -30,22 +37,32 @@ import io.crate.Streamer;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.RowAccounting;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.executor.transport.distributed.SingleBucketBuilder;
-import io.crate.jobs.*;
+import io.crate.jobs.CountContext;
+import io.crate.jobs.ExecutionSubContext;
+import io.crate.jobs.JobExecutionContext;
+import io.crate.jobs.NestedLoopContext;
+import io.crate.jobs.PageDownstreamContext;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.Routing;
-import io.crate.operation.*;
+import io.crate.operation.InputFactory;
+import io.crate.operation.NodeJobsCounter;
+import io.crate.operation.NodeOperation;
+import io.crate.operation.Paging;
+import io.crate.operation.RowFilter;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.collect.sources.SystemCollectSource;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.fetch.FetchContext;
 import io.crate.operation.join.NestedLoopOperation;
+import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.projectors.DistributingDownstreamFactory;
 import io.crate.operation.projectors.ProjectingBatchConsumer;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
@@ -64,8 +81,8 @@ import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.component.AbstractComponent;
@@ -76,8 +93,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
@@ -527,7 +549,13 @@ public class ContextPreparer extends AbstractComponent {
                 phase.phaseId(),
                 phase.name(),
                 consumer,
-                PagingIterators.create(phase.numUpstreams(), false, phase.orderByPositions()),
+                PagingIterator.create(
+                    phase.numUpstreams(),
+                    false,
+                    phase.orderByPositions(),
+                    () -> new RowAccounting(
+                        phase.inputTypes(),
+                        RamAccountingContext.forExecutionPhase(circuitBreaker, phase))),
                 DataTypes.getStreamers(phase.inputTypes()),
                 ramAccountingContext,
                 phase.numUpstreams()
@@ -658,7 +686,13 @@ public class ContextPreparer extends AbstractComponent {
                 mergePhase.phaseId(),
                 mergePhase.name(),
                 batchConsumer,
-                PagingIterators.create(mergePhase.numUpstreams(), true, mergePhase.orderByPositions()),
+                PagingIterator.create(
+                    mergePhase.numUpstreams(),
+                    true,
+                    mergePhase.orderByPositions(),
+                    () -> new RowAccounting(
+                        mergePhase.inputTypes(),
+                        RamAccountingContext.forExecutionPhase(circuitBreaker, mergePhase))),
                 StreamerVisitor.streamersFromOutputs(mergePhase),
                 ramAccountingContext,
                 mergePhase.numUpstreams()
