@@ -44,6 +44,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an error handling issue that could lead to the termination of a node
+   in very rare cases. (Usually if a user invoked the `KILL` statement)
+
  - Fixed issue where bulk operations like `insert from dynamic queries` and 
    ``COPY FROM`` did not stop after being killed.    
 

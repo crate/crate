@@ -23,7 +23,11 @@
 package io.crate.operation.merge;
 
 import io.crate.concurrent.CompletableFutures;
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.Columns;
+import io.crate.data.Row;
+import io.crate.data.RowBridging;
+import io.crate.data.RowColumns;
 import io.crate.exceptions.Exceptions;
 
 import javax.annotation.Nonnull;
@@ -140,7 +144,6 @@ public class BatchPagingIterator<Key> implements BatchIterator {
 
     @Override
     public boolean allLoaded() {
-        raiseIfClosedOrKilled();
         return isUpstreamExhausted.getAsBoolean();
     }
 
