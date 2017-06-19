@@ -21,7 +21,14 @@
 
 package io.crate.operation.merge;
 
+import io.crate.breaker.RowAccounting;
+import io.crate.data.Row;
+import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.planner.PositionalOrderBy;
+import org.elasticsearch.common.inject.internal.Nullable;
+
 import java.util.Iterator;
+import java.util.function.Supplier;
 
 public interface PagingIterator<TKey, TRow> extends Iterator<TRow> {
 
@@ -45,4 +52,30 @@ public interface PagingIterator<TKey, TRow> extends Iterator<TRow> {
      * @return an iterable that will iterate through the already emitted items and emit them again in the same order as before
      */
     Iterable<TRow> repeat();
+
+    /**
+     * Returns the suitable {@link PagingIterator} according to the use case.
+     * If requiresRepeat is true then the PagingIterator is wrapped with {@link RamAccountingPageIterator}
+     * which calculates the memory usage and applies CircuitBreaker logic.
+     */
+    static PagingIterator<Integer, Row> create(int numUpstreams,
+                                               boolean requiresRepeat,
+                                               @Nullable PositionalOrderBy orderBy,
+                                               Supplier<RowAccounting> rowAccountingSupplier) {
+        PagingIterator<Integer, Row> pagingIterator;
+        if (numUpstreams == 1 || orderBy == null) {
+            if (requiresRepeat) {
+                pagingIterator = PassThroughPagingIterator.repeatable();
+            } else {
+                pagingIterator = PassThroughPagingIterator.oneShot();
+            }
+        } else {
+            pagingIterator = new SortedPagingIterator<>(OrderingByPosition.rowOrdering(orderBy), requiresRepeat);
+        }
+
+        if (requiresRepeat) {
+            return new RamAccountingPageIterator(pagingIterator, rowAccountingSupplier.get());
+        }
+        return pagingIterator;
+    }
 }
