@@ -39,7 +39,7 @@ public class KillAnalyzer {
                                                 ParameterContext parameterContext,
                                                 SessionContext sessionContext,
                                                 UserManager userManager) {
-        userManager.raiseMissingPrivilegeException(Privilege.Clazz.SCHEMA, Privilege.Type.DCL, sessionContext.defaultSchema(), sessionContext.user());
+        userManager.raiseMissingPrivilegeException(Privilege.Clazz.SCHEMA, Privilege.Type.DDL, sessionContext.defaultSchema(), sessionContext.user());
         if (killStatement.jobId().isPresent()) {
             UUID jobId;
             try {

@@ -40,7 +40,6 @@ import static org.hamcrest.core.Is.is;
 
 public class PrivilegesValidationIntegrationTest extends BaseUsersIntegrationTest {
 
-
     private final DummyLang dummyLang = new DummyLang();
 
     @Before
