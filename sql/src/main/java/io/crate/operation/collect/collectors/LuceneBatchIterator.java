@@ -192,7 +192,6 @@ public class LuceneBatchIterator implements BatchIterator {
 
     @Override
     public boolean allLoaded() {
-        raiseIfClosedOrKilled();
         return true;
     }
 

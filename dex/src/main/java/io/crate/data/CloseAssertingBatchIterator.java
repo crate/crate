@@ -71,7 +71,6 @@ public class CloseAssertingBatchIterator implements BatchIterator {
 
     @Override
     public boolean allLoaded() {
-        raiseIfClosedOrKilled();
         return delegate.allLoaded();
     }
 

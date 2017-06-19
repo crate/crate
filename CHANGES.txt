@@ -22,5 +22,8 @@ Changes
 Fixes
 =====
 
+ - Fixed an error handling issue that could lead to the termination of a node
+   in very rare cases. (Usually if a user invoked the ``KILL`` statement)
+
  - Fixed an issue that caused an exception to be thrown when using ``unnest``
    with 10 or more columns.
