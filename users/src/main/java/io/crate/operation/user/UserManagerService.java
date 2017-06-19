@@ -137,11 +137,17 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     }
 
     @Override
-    public void raiseMissingPrivilegeException(Privilege.Clazz clazz, @Nullable Privilege.Type type, String ident, User user) throws PermissionDeniedException {
+    public void raiseMissingPrivilegeException(Privilege.Clazz clazz, @Nullable Privilege.Type type, String ident, @Nullable User user) throws PermissionDeniedException {
         if (null == type) {
             return;
         }
-        assert user != null : "the user must never be null";
+
+        if (null == user) {
+            // this can occur when the hba setting is not there,
+            // in this case there is no authentication and everyone
+            // can access the cluster
+            return;
+        }
 
         if (!user.isSuperUser() && Privilege.Type.DCL.equals(type)) {
             throw new PermissionDeniedException(user.name(), type);
