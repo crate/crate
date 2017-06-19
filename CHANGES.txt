@@ -22,6 +22,11 @@ Changes
 Fixes
 =====
 
+ - Added proper handling when memory requirements of a ``JOIN`` query exceeds
+   the available memory. Instead of having OutOfMemoryException thrown which
+   led to killed nodes in the cluster, the issue is detected and the query is
+   killed without affecting the cluster.
+
  - Fixed an issue that could cause ``DELETE`` statements to fail instead of
    "not matching" if there was a ``_version`` column in the ``WHERE`` clause.
 

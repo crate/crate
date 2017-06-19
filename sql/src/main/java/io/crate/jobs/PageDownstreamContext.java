@@ -155,7 +155,12 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     }
 
     private void mergeAndTriggerConsumer() {
-        mergeBuckets();
+        try {
+            mergeBuckets();
+        } catch (Throwable t) {
+            innerKill(t);
+            return;
+        }
         if (allUpstreamsExhausted()) {
             pagingIterator.finish();
         }
