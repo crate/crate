@@ -59,7 +59,7 @@ class RowCountReceiver extends BaseResultReceiver {
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
-        Messages.sendErrorResponse(channel, SQLExceptions.createSQLActionException(throwable));
-        super.fail(throwable);
+        Messages.sendErrorResponse(channel, SQLExceptions.createSQLActionException(throwable))
+            .addListener(f -> super.fail(throwable));
     }
 }

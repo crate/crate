@@ -181,7 +181,7 @@ public class Messages {
             METHOD_NAME_CLIENT_AUTH, ERROR_CODE_INVALID_AUTHORIZATION_SPECIFICATION);
     }
 
-    static void sendErrorResponse(Channel channel, Throwable throwable) {
+    static ChannelFuture sendErrorResponse(Channel channel, Throwable throwable) {
         final String message = SQLExceptions.messageOf(throwable);
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
         byte[] lineNumber = null;
@@ -210,7 +210,7 @@ public class Messages {
             // internal_error
             errorCode = ERROR_CODE_INTERNAL_ERROR;
         }
-        sendErrorResponse(channel, message, msg, SEVERITY_ERROR, lineNumber, fileName, methodName, errorCode);
+        return sendErrorResponse(channel, message, msg, SEVERITY_ERROR, lineNumber, fileName, methodName, errorCode);
     }
 
     /**
@@ -221,7 +221,14 @@ public class Messages {
      * <p>
      * See https://www.postgresql.org/docs/9.2/static/protocol-error-fields.html for a list of error codes
      */
-    private static void sendErrorResponse(Channel channel, String message, byte[] msg, byte[] severity, byte[] lineNumber, byte[] fileName, byte[] methodName, byte[] errorCode) {
+    private static ChannelFuture sendErrorResponse(Channel channel,
+                                                   String message,
+                                                   byte[] msg,
+                                                   byte[] severity,
+                                                   byte[] lineNumber,
+                                                   byte[] fileName,
+                                                   byte[] methodName,
+                                                   byte[] errorCode) {
         int length = 4 +
             1 + (severity.length + 1) +
             1 + (msg.length + 1) +
@@ -256,6 +263,7 @@ public class Messages {
         if (LOGGER.isTraceEnabled()) {
             channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentErrorResponse msg={}", message));
         }
+        return channelFuture;
     }
 
     /**
