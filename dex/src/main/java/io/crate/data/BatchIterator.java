@@ -124,7 +124,6 @@ public interface BatchIterator extends Killable {
 
     /**
      * @return true if no more batches can be loaded
-     * @throws IllegalStateException if the cursor is closed
      */
     boolean allLoaded();
 }

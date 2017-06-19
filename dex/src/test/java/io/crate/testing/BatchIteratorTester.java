@@ -22,19 +22,33 @@
 
 package io.crate.testing;
 
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.BatchRowVisitor;
+import io.crate.data.Columns;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.RowBridging;
 import io.crate.exceptions.Exceptions;
 import junit.framework.TestCase;
 import org.hamcrest.Matchers;
 
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.fail;
 
 /**
@@ -90,6 +104,18 @@ public class BatchIteratorTester {
         testMoveNextAfterMoveNextReturnedFalse(it.get());
         testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(it.get());
         testColumnsBehaviour(it.get());
+        testAllLoadedNeverRaises(it);
+    }
+
+    private void testAllLoadedNeverRaises(Supplier<BatchIterator> batchIterator) {
+        BatchIterator bi = batchIterator.get();
+        bi.allLoaded();
+        bi.close();
+        bi.allLoaded();
+
+        bi = batchIterator.get();
+        bi.kill(new InterruptedException("KILLED"));
+        bi.allLoaded();
     }
 
     private void testMoveToStartAndReConsumptionMatchesRowsOnFirstConsumption(BatchIterator it) throws Exception {
@@ -184,7 +210,6 @@ public class BatchIteratorTester {
 
         expectFailure(it::moveNext, IllegalStateException.class, "moveNext must fail after close");
         expectFailure(it::moveToStart, IllegalStateException.class, "moveToStart must fail after close");
-        expectFailure(it::allLoaded, IllegalStateException.class, "allLoaded must fail after close");
     }
 
     private void testProperConsumption(BatchIterator it, List<Object[]> expectedResult) throws Exception {

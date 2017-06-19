@@ -179,7 +179,6 @@ public class AsyncOperationBatchIterator implements BatchIterator {
 
     @Override
     public boolean allLoaded() {
-        raiseIfClosedOrKilled();
         return sourceExhausted;
     }
 
