@@ -189,6 +189,11 @@ public class UserPriviligeValidationTest extends CrateDummyClusterServiceUnitTes
         schemasWithSysTables.getTableInfo(authorized, Operation.DROP, allUser);
     }
 
+    @Test
+    public void testReadOperationDoesntThrowExceptionForNullUser() throws Exception {
+        schemas.getTableInfo(T3.T1_INFO.ident(), Operation.READ, null);
+    }
+
     private Schemas getReferenceInfos(SchemaInfo schemaInfo) {
         Map<String, SchemaInfo> builtInSchema = new HashMap<>();
         builtInSchema.put(schemaInfo.name(), schemaInfo);
