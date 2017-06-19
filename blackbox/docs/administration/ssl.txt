@@ -132,7 +132,7 @@ The first step is to create a keystore with a private key.
 
 Command::
 
-    keytool -keystore keystore -genkey -alias server -validity 36500
+    keytool -keystore keystore -genkey -keyalg RSA -alias server -validity 36500
 
 Output::
 

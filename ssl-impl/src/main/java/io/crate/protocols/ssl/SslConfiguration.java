@@ -85,7 +85,9 @@ public final class SslConfiguration {
                 trustManagers = trustStoreSettings.get().trustManagers;
             }
 
-            SSLContext sslContext = SSLContext.getInstance("TLS");
+            // Use the newest SSL standard which is (at the time of writing) TLSv1.2
+            // If we just specify "TLS" here, it depends on the JVM implementation which version we'll get.
+            SSLContext sslContext = SSLContext.getInstance("TLSv1.2");
             sslContext.init(keyStoreSettings.keyManagers, trustManagers, null);
             SSLContext.setDefault(sslContext);
 
