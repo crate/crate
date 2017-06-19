@@ -109,7 +109,7 @@ public class UserManagerProvider implements Provider<UserManager> {
         }
 
         @Override
-        public void raiseMissingPrivilegeException(Privilege.Clazz clazz, Privilege.Type type, String ident, User user) throws PermissionDeniedException {
+        public void raiseMissingPrivilegeException(Privilege.Clazz clazz, Privilege.Type type, String ident, @Nullable User user) throws PermissionDeniedException {
 
         }
     }

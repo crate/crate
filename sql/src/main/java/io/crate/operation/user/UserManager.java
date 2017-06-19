@@ -85,6 +85,6 @@ public interface UserManager {
      * @param user           user
      * @throws PermissionDeniedException if the user is not authorized to perform the statement
      */
-    void raiseMissingPrivilegeException(Privilege.Clazz clazz, @Nullable Privilege.Type type, String ident, User user) throws PermissionDeniedException;
+    void raiseMissingPrivilegeException(Privilege.Clazz clazz, @Nullable Privilege.Type type, String ident, @Nullable User user) throws PermissionDeniedException;
 
 }
