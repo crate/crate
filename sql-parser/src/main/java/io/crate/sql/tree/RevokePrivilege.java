@@ -49,4 +49,12 @@ public class RevokePrivilege extends Statement {
                ", userNames=" + userNames +
                '}';
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DCL;
+    }
+
+    @Override
+    public String clazz() { return "CLUSTER";}
 }

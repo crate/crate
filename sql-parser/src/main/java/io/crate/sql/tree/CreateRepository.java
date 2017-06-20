@@ -81,4 +81,12 @@ public class CreateRepository extends Statement {
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCreateRepository(this, context);
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DDL;
+    }
+
+    @Override
+    public String clazz() { return "CLUSTER";}
 }

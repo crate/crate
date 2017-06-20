@@ -104,4 +104,15 @@ public class SetStatement extends Statement {
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitSetStatement(this, context);
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        if (Scope.GLOBAL.equals(scope)) {
+            return PrivilegeType.DCL;
+        }
+        return PrivilegeType.DQL;
+    }
+
+    @Override
+    public String clazz() { return "CLUSTER";}
 }

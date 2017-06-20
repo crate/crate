@@ -61,6 +61,12 @@ public class KillStatement extends Statement {
     }
 
     @Override
+    public PrivilegeType privilegeType() { return PrivilegeType.DCL;}
+
+    @Override
+    public String clazz() { return "SCHEMA";}
+
+    @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitKillStatement(this, context);
     }

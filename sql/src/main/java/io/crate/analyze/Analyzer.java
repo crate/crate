@@ -25,6 +25,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.repositories.RepositoryParamValidator;
+import io.crate.analyze.user.Privilege;
 import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
@@ -127,6 +128,10 @@ public class Analyzer {
         Analysis analysis = new Analysis(sessionContext, parameterContext, ParamTypeHints.EMPTY);
         AnalyzedStatement analyzedStatement = analyzedStatement(statement, analysis);
         userManager.ensureAuthorized(analyzedStatement, sessionContext);
+        userManager.raiseMissingPrivilegeException(Privilege.classFromString(statement.clazz()),
+            Privilege.convertPrivilegeType(statement.privilegeType()),
+            sessionContext.defaultSchema(),
+            sessionContext.user());
         analysis.analyzedStatement(analyzedStatement);
         return analysis;
     }
@@ -187,7 +192,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitCreateTable(CreateTable node, Analysis analysis) {
-            return createTableStatementAnalyzer.analyze(node, analysis.parameterContext(), analysis.sessionContext(), userManager);
+            return createTableStatementAnalyzer.analyze(node, analysis.parameterContext(), analysis.sessionContext());
         }
 
         public AnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis analysis) {
@@ -198,26 +203,26 @@ public class Analyzer {
         }
 
         public AnalyzedStatement visitShowSchemas(ShowSchemas node, Analysis analysis) {
-            return showStatementAnalyzer.analyze(node, analysis, userManager);
+            return showStatementAnalyzer.analyze(node, analysis);
         }
 
         @Override
         public AnalyzedStatement visitShowTransaction(ShowTransaction showTransaction, Analysis context) {
-            return showStatementAnalyzer.analyzeShowTransaction(context, userManager);
+            return showStatementAnalyzer.analyzeShowTransaction(context);
         }
 
         public AnalyzedStatement visitShowTables(ShowTables node, Analysis analysis) {
-            return showStatementAnalyzer.analyze(node, analysis, userManager);
+            return showStatementAnalyzer.analyze(node, analysis);
         }
 
         @Override
         protected AnalyzedStatement visitShowColumns(ShowColumns node, Analysis context) {
-            return showStatementAnalyzer.analyze(node, context, userManager);
+            return showStatementAnalyzer.analyze(node, context);
         }
 
         @Override
         public AnalyzedStatement visitCreateAnalyzer(CreateAnalyzer node, Analysis context) {
-            return createAnalyzerStatementAnalyzer.analyze(node, context, userManager);
+            return createAnalyzerStatementAnalyzer.analyze(node, context);
         }
 
         @Override
@@ -269,17 +274,17 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitSetStatement(SetStatement node, Analysis context) {
-            return SetStatementAnalyzer.analyze(node, context.sessionContext(), userManager);
+            return SetStatementAnalyzer.analyze(node);
         }
 
         @Override
         public AnalyzedStatement visitResetStatement(ResetStatement node, Analysis context) {
-            return SetStatementAnalyzer.analyze(node, context.sessionContext(), userManager);
+            return SetStatementAnalyzer.analyze(node);
         }
 
         @Override
         public AnalyzedStatement visitKillStatement(KillStatement node, Analysis context) {
-            return KillAnalyzer.analyze(node, context.parameterContext(), context.sessionContext(), userManager);
+            return KillAnalyzer.analyze(node, context.parameterContext());
         }
 
         @Override
@@ -294,12 +299,12 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitCreateFunction(CreateFunction node, Analysis context) {
-            return createFunctionAnalyzer.analyze(node, context, userManager);
+            return createFunctionAnalyzer.analyze(node, context);
         }
 
         @Override
         public AnalyzedStatement visitDropFunction(DropFunction node, Analysis context) {
-            return dropFunctionAnalyzer.analyze(node, context, userManager);
+            return dropFunctionAnalyzer.analyze(node, context);
         }
 
         @Override

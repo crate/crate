@@ -23,13 +23,11 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.analyze.user.Privilege;
 import io.crate.data.Row;
 import io.crate.metadata.*;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
-import io.crate.operation.user.UserManager;
 import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 
@@ -82,9 +80,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
     public CreateTableAnalyzedStatement analyze(CreateTable createTable,
                                                 ParameterContext parameterContext,
-                                                SessionContext sessionContext,
-                                                UserManager userManager) {
-        userManager.raiseMissingPrivilegeException(Privilege.Clazz.SCHEMA, Privilege.Type.DDL, sessionContext.defaultSchema(), sessionContext.user());
+                                                SessionContext sessionContext) {
         CreateTableAnalyzedStatement statement = new CreateTableAnalyzedStatement();
         Row parameters = parameterContext.parameters();
 

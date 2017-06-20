@@ -110,4 +110,12 @@ public class CreateFunction extends Statement {
             ", definition=" + definition +
             '}';
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DDL;
+    }
+
+    @Override
+    public String clazz() { return "SCHEMA";}
 }

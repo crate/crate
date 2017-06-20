@@ -43,4 +43,12 @@ public class ShowTransaction extends Statement {
     public String toString() {
         return "SHOW TRANSACTION";
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DQL;
+    }
+
+    @Override
+    public String clazz() { return "CLUSTER";}
 }

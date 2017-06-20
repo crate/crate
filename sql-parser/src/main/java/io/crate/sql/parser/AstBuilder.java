@@ -137,7 +137,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         EnumSet<PrivilegeType> privilegeTypes;
 
         if (context.ALL() != null) {
-            privilegeTypes = EnumSet.allOf(PrivilegeType.class);
+            privilegeTypes = EnumSet.of(PrivilegeType.DDL, PrivilegeType.DML, PrivilegeType.DQL);
         } else {
             privilegeTypes = EnumSet.noneOf(PrivilegeType.class);
             for (int i = 0; i < context.privilege().size(); i++) {
@@ -153,7 +153,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         EnumSet<PrivilegeType> privilegeTypes;
 
         if (context.ALL() != null) {
-            privilegeTypes = EnumSet.allOf(PrivilegeType.class);
+            privilegeTypes = EnumSet.of(PrivilegeType.DDL, PrivilegeType.DML, PrivilegeType.DQL);
         } else {
             privilegeTypes = EnumSet.noneOf(PrivilegeType.class);
             for (int i = 0; i < context.privilege().size(); i++) {

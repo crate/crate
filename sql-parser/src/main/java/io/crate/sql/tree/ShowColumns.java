@@ -95,4 +95,12 @@ public class ShowColumns extends Statement {
             .add("where", where)
             .toString();
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DQL;
+    }
+
+    @Override
+    public String clazz() { return "TABLE";}
 }

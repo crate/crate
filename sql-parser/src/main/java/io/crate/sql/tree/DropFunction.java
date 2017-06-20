@@ -85,4 +85,12 @@ public class DropFunction extends Statement {
             ", arguments=" + arguments +
             '}';
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DDL;
+    }
+
+    @Override
+    public String clazz() { return "SCHEMA";}
 }

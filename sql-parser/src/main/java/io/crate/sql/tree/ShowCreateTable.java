@@ -62,4 +62,12 @@ public class ShowCreateTable extends Statement {
     public Table table() {
         return table;
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DQL;
+    }
+
+    @Override
+    public String clazz() { return "TABLE";}
 }

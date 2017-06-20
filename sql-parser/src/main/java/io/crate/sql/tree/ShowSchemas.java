@@ -71,4 +71,12 @@ public class ShowSchemas extends Statement {
             .toString();
     }
 
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DQL;
+    }
+
+    @Override
+    public String clazz() { return "CLUSTER";}
+
 }

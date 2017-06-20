@@ -127,7 +127,6 @@ public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
             conn.createStatement().execute("CREATE USER optionalssluser");
             conn.createStatement().execute("CREATE USER neverssluser");
             conn.createStatement().execute("GRANT DQL to optionalssluser, requiredssluser, neverssluser");
-
         }
 
         // We don't have SSL available in the following tests:

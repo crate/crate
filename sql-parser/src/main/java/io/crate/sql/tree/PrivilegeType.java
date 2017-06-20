@@ -4,7 +4,8 @@ package io.crate.sql.tree;
 public enum PrivilegeType {
     DQL("DQL"),
     DML("DML"),
-    DDL("DDL");
+    DDL("DDL"),
+    DCL("DCL");
 
     private final String name;
 

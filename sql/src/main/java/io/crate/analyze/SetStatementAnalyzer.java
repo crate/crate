@@ -23,12 +23,9 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.analyze.user.Privilege;
 import io.crate.data.Row;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.user.UserManager;
 import io.crate.sql.tree.*;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
@@ -39,13 +36,11 @@ class SetStatementAnalyzer {
 
     private static final Logger logger = Loggers.getLogger(SetStatementAnalyzer.class);
 
-    public static SetAnalyzedStatement analyze(SetStatement node, SessionContext context, UserManager userManager) {
+    public static SetAnalyzedStatement analyze(SetStatement node) {
         boolean isPersistent = node.settingType().equals(SetStatement.SettingType.PERSISTENT);
         Map<String, List<Expression>> settings = new HashMap<>();
 
-
         if (!SetStatement.Scope.GLOBAL.equals(node.scope())) {
-            userManager.raiseMissingPrivilegeException(Privilege.Clazz.CLUSTER, Privilege.Type.DQL, null, context.user());
             Assignment assignment = node.assignments().get(0);
             // parser does not allow using the parameter expressions as setting names in the SET statements,
             // therefore it is fine to convert the expression to string here.
@@ -58,7 +53,6 @@ class SetStatementAnalyzer {
             settings.put(settingName, assignment.expressions());
             return new SetAnalyzedStatement(node.scope(), settings, isPersistent);
         } else {
-            userManager.raiseMissingPrivilegeException(Privilege.Clazz.CLUSTER, Privilege.Type.DCL, null, context.user());
             for (Assignment assignment : node.assignments()) {
                 for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
                     CrateSettings.checkIfRuntimeSetting(setting);
@@ -70,8 +64,7 @@ class SetStatementAnalyzer {
         }
     }
 
-    public static ResetAnalyzedStatement analyze(ResetStatement node, SessionContext context, UserManager userManager) {
-        userManager.raiseMissingPrivilegeException(Privilege.Clazz.CLUSTER, Privilege.Type.DCL, null, context.user());
+    public static ResetAnalyzedStatement analyze(ResetStatement node) {
         Set<String> settingsToRemove = Sets.newHashSet();
         for (Expression expression : node.columns()) {
             String settingsName = ExpressionToStringVisitor.convert(expression, Row.EMPTY);

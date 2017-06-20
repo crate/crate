@@ -33,9 +33,6 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
 
     private SQLOperations.Session superUserSession;
     private SQLOperations.Session normalUserSession;
-    private SQLOperations.Session ddlUserSession;
-    private SQLOperations.Session dmlUserSession;
-    private SQLOperations.Session dqlUserSession;
 
     protected SQLOperations.Session createSuperUserSession() {
         return createSuperUserSession(null);
@@ -49,14 +46,8 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
     protected SQLOperations.Session createUserSession() {
         return createUserSession(null);
     }
-    protected SQLOperations.Session createDDLUserSession() {
-        return createDDLUserSession(null);
-    }
-    protected SQLOperations.Session createDMLUserSession() {
-        return createDMLUserSession(null);
-    }
-    protected SQLOperations.Session createDQLUserSession() {
-        return createDQLUserSession(null);
+    protected SQLOperations.Session createUserWithPrivlegeSession(String userName, Privilege.Type type) {
+        return createUserWithPrivlegeSession(null, userName, type);
     }
 
     SQLOperations.Session createUserSession(String node) {
@@ -65,19 +56,9 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
     }
 
 
-    SQLOperations.Session createDDLUserSession(String node) {
+    SQLOperations.Session createUserWithPrivlegeSession(String node, String userName, Privilege.Type type) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
-        return sqlOperations.createSession(null, new User("ddlUser", ImmutableSet.of(), ImmutableSet.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.CLUSTER, null, "crate"))), Option.NONE, DEFAULT_SOFT_LIMIT);
-    }
-
-    SQLOperations.Session createDMLUserSession(String node) {
-        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
-        return sqlOperations.createSession(null, new User("dmlUser", ImmutableSet.of(), ImmutableSet.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate"))), Option.NONE, DEFAULT_SOFT_LIMIT);
-    }
-
-    SQLOperations.Session createDQLUserSession(String node) {
-        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
-        return sqlOperations.createSession(null, new User("dqlUser", ImmutableSet.of(), ImmutableSet.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"))), Option.NONE, DEFAULT_SOFT_LIMIT);
+        return sqlOperations.createSession(null, new User(userName, ImmutableSet.of(), ImmutableSet.of(new Privilege(Privilege.State.GRANT, type, Privilege.Clazz.CLUSTER, null, "crate"))), Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
     @Before
@@ -88,11 +69,6 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
     public void createSessions() {
         superUserSession = createSuperUserSession();
         normalUserSession = createUserSession();
-
-        ddlUserSession = createDDLUserSession();
-        dmlUserSession = createDMLUserSession();
-        dqlUserSession = createDQLUserSession();
-
     }
 
     public SQLResponse executeAsSuperuser(String stmt) {
@@ -107,12 +83,12 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
         return execute(stmt, null, normalUserSession);
     }
     public SQLResponse executeAsDDLUser(String stmt) {
-        return execute(stmt, null, ddlUserSession);
+        return execute(stmt, null, createUserWithPrivlegeSession("ddlUser", Privilege.Type.DDL));
     }
     public SQLResponse executeAsDQLUser(String stmt) {
-        return execute(stmt, null, dqlUserSession);
+        return execute(stmt, null, createUserWithPrivlegeSession("dqlUser", Privilege.Type.DQL));
     }
     public SQLResponse executeAsDMLUser(String stmt) {
-        return execute(stmt, null, dmlUserSession);
+        return execute(stmt, null, createUserWithPrivlegeSession("dmlUser", Privilege.Type.DML));
     }
 }

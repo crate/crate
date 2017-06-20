@@ -27,4 +27,12 @@ public abstract class Statement
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitStatement(this, context);
     }
+
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DQL;
+    }
+
+    public String clazz() {
+        return "CLUSTER";
+    }
 }

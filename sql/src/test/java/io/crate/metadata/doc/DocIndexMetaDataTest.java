@@ -911,7 +911,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
         Analysis analysis = new Analysis(SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY, ParamTypeHints.EMPTY);
         CreateTableAnalyzedStatement analyzedStatement = analyzer.analyze(
-            (CreateTable) statement, analysis.parameterContext(), analysis.sessionContext(), new UserManagerProvider.UnsupportedUserManager());
+            (CreateTable) statement, analysis.parameterContext(), analysis.sessionContext());
 
         Settings.Builder settingsBuilder = Settings.builder()
             .put("index.number_of_shards", 1)

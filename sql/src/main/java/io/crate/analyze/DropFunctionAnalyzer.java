@@ -26,8 +26,6 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.user.Privilege;
-import io.crate.operation.user.UserManager;
 import io.crate.sql.tree.DropFunction;
 
 import java.util.List;
@@ -36,8 +34,7 @@ import static java.util.stream.Collectors.toList;
 
 class DropFunctionAnalyzer {
 
-    public DropFunctionAnalyzedStatement analyze(DropFunction node, Analysis context, UserManager userManager) {
-        userManager.raiseMissingPrivilegeException(Privilege.Clazz.SCHEMA, Privilege.Type.DDL, null, context.sessionContext().user());
+    public DropFunctionAnalyzedStatement analyze(DropFunction node, Analysis context) {
         List<String> parts = node.name().getParts();
 
         return new DropFunctionAnalyzedStatement(

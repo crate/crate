@@ -22,6 +22,7 @@
 
 package io.crate.analyze.user;
 
+import io.crate.sql.tree.PrivilegeType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -29,6 +30,8 @@ import org.elasticsearch.common.io.stream.Streamable;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Objects;
+
+import static io.crate.analyze.user.Privilege.Clazz.TABLE;
 
 public class Privilege implements Streamable {
 
@@ -49,6 +52,30 @@ public class Privilege implements Streamable {
         CLUSTER,
         SCHEMA,
         TABLE
+    }
+
+    public  static Type convertPrivilegeType(PrivilegeType type){
+        if (PrivilegeType.DCL.equals(type)){
+            return Type.DCL;
+        }
+        if (PrivilegeType.DDL.equals(type)){
+            return Type.DDL;
+        }
+        if (PrivilegeType.DML.equals(type)){
+            return Type.DML;
+        }
+        return Type.DQL;
+    }
+
+    public static Clazz classFromString(String clazz){
+        if ("CLUSTER".equals(clazz)){
+            return Clazz.CLUSTER;
+        }
+        if ("SCHEMA".equals(clazz)){
+            return Clazz.SCHEMA;
+        }
+
+        return Clazz.TABLE;
     }
 
     public static Privilege privilegeAsGrant(Privilege privilege) {

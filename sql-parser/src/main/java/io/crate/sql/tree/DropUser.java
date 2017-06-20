@@ -70,4 +70,12 @@ public class DropUser extends Statement {
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDropUser(this, context);
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DCL;
+    }
+
+    @Override
+    public String clazz() { return "CLUSTER";}
 }

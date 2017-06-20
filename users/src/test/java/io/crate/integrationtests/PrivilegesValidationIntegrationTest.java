@@ -57,8 +57,6 @@ public class PrivilegesValidationIntegrationTest extends BaseUsersIntegrationTes
         expectedException.expectMessage(
             "Missing 'DCL' Privilege for user 'normal'");
         executeAsNormalUser("set global persistent license.ident to lala");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("name| string\n" +
-            "superuser| boolean\n"));
     }
 
     @Test
@@ -66,9 +64,7 @@ public class PrivilegesValidationIntegrationTest extends BaseUsersIntegrationTes
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(
             "Missing 'DQL' Privilege for user 'normal'");
-        executeAsNormalUser("set session license.ident to lala");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("name| string\n" +
-            "superuser| boolean\n"));
+        executeAsNormalUser("set session search_path to doc");
     }
 
     @Test
@@ -79,15 +75,15 @@ public class PrivilegesValidationIntegrationTest extends BaseUsersIntegrationTes
 
     //create table test
     @Test
-    public void testSuperUserCreateTableThrowException() throws Exception {
+    public void testSuperUserCreateTableDoesntThrowException() throws Exception {
         executeAsSuperuser("create table t1(x long)");
         executeAsSuperuser("drop table t1");
     }
 
     @Test
-    public void testDDLUserCreateTableThrowException() throws Exception {
+    public void testDDLUserCreateTableDoesntThrowException() throws Exception {
         executeAsDDLUser("create table t1(x long)");
-        executeAsDDLUser("drop table t1");
+        executeAsSuperuser("drop table t1");
     }
 
     //udf test
@@ -113,13 +109,12 @@ public class PrivilegesValidationIntegrationTest extends BaseUsersIntegrationTes
 
     //show create table test
     @Test
-    public void testDMLUserShowCreateTableThrowException() throws Exception {
+    public void testDMLUserShowCreateTableThrowsException() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(
             "Missing 'DQL' Privilege for user 'dmlUser'");
         executeAsSuperuser("create table t1(x long)");
         executeAsDMLUser("show create table doc.t1");
-        executeAsSuperuser("drop table t1");
     }
 
     @Test
@@ -131,20 +126,18 @@ public class PrivilegesValidationIntegrationTest extends BaseUsersIntegrationTes
 
     //show columns test
     @Test
-    public void testDMLUserShowColumnsThrowException() throws Exception {
+    public void testDMLUserShowColumnsThrowsException() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(
             "Missing 'DQL' Privilege for user 'dmlUser'");
         executeAsSuperuser("create table t1(x long)");
         executeAsDMLUser("show columns in doc.t1");
-        executeAsSuperuser("drop table t1");
     }
 
     @Test
     public void testDMLUserShowColumnsDoesntThrowException() throws Exception {
         executeAsSuperuser("create table t1(x long)");
         executeAsDQLUser("show columns in doc.t1");
-        executeAsSuperuser("drop table t1");
     }
 
     private class DummyFunction<InputType> extends Scalar<BytesRef, InputType> {
