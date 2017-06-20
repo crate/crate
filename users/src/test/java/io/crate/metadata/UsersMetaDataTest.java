@@ -31,6 +31,8 @@ import org.junit.Test;
 
 import java.io.IOException;
 
+import static org.hamcrest.Matchers.nullValue;
+
 public class UsersMetaDataTest extends CrateUnitTest {
 
     @Test
@@ -40,7 +42,7 @@ public class UsersMetaDataTest extends CrateUnitTest {
         users.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        UsersMetaData users2 = (UsersMetaData)new UsersMetaData().readFrom(in);
+        UsersMetaData users2 = (UsersMetaData) new UsersMetaData().readFrom(in);
         assertEquals(users, users2);
     }
 
@@ -57,7 +59,10 @@ public class UsersMetaDataTest extends CrateUnitTest {
 
         XContentParser parser = JsonXContent.jsonXContent.createParser(builder.bytes());
         parser.nextToken(); // start object
-        UsersMetaData users2 = (UsersMetaData)new UsersMetaData().fromXContent(parser);
+        UsersMetaData users2 = (UsersMetaData) new UsersMetaData().fromXContent(parser);
         assertEquals(users, users2);
+
+        // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
+        assertThat(parser.nextToken(), nullValue());
     }
 }
