@@ -119,9 +119,9 @@ using the ``trust`` method.
 that the user ``dustin`` can authenticate to CrateDB over HTTP protocol from
 the ``172.16.0.0`` IP Address using the ``trust`` method.
 
-``{user: trinity, address: 127.0.0.1, protocol: pg, ssl: off}`` means that the
-user ``trinity`` can authenticate to CrateDB over Postgres Wire Protocol from
-the ``127.0.0.1`` IP Address only if no SSL/TLS connection is used. Since no
+``{user: trinity, address: 127.0.0.1, protocol: http, ssl: off}`` means that
+the user ``trinity`` can authenticate to CrateDB over HTTP from the
+``127.0.0.1`` IP Address only if no SSL/TLS connection is used. Since no
 authentication method is specified, the ``trust`` method will be used by
 default.
 
