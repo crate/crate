@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - Improved the resiliency of queries on `sys.nodes`: If a node disconnects
+   during the execution of a query it will no longer fail.
+
  - Added proper handling when memory requirements of a ``JOIN`` query exceeds
    the available memory. Instead of having OutOfMemoryException thrown which
    led to killed nodes in the cluster, the issue is detected and the query is
