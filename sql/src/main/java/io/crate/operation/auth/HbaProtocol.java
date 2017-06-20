@@ -2,14 +2,21 @@ package io.crate.operation.auth;
 
 public enum HbaProtocol {
 
-    POSTGRES("pg"),
-    POSTGRES_SSL("pg"),
-    HTTP("http");
+    POSTGRES("pg", false),
+    POSTGRES_SSL("pg", true),
+    HTTP("http", false),
+    HTTPS("http", true);
 
     private final String protocolName;
+    private final boolean usesSsl;
 
-    HbaProtocol(String protocolName) {
+    HbaProtocol(String protocolName, boolean usesSsl) {
         this.protocolName = protocolName;
+        this.usesSsl = usesSsl;
+    }
+
+    public boolean isSslProtocol() {
+        return this.usesSsl;
     }
 
     @Override

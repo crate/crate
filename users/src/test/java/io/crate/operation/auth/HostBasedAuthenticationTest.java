@@ -213,7 +213,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
     }
 
     @Test
-    public void testRequireSSL() {
+    public void testPSQLSslOption() {
         Map<String, String> sslConfig;
 
         sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
@@ -233,5 +233,32 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         authService.updateHbaConfig(createHbaConf(sslConfig));
         assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES), not(Optional.empty()));
         assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES_SSL), is(Optional.empty()));
+    }
+
+    @Test
+    public void testHttpSSLOption() {
+        Map<String, String> baseConfig = new HashMap<>();
+        baseConfig.putAll(HBA_1);
+        baseConfig.put(HostBasedAuthentication.KEY_PROTOCOL, "http");
+
+        Map<String, String> sslConfig;
+
+        sslConfig = ImmutableMap.<String, String>builder().putAll(baseConfig)
+            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.OPTIONAL.VALUE).build();
+        authService.updateHbaConfig(createHbaConf(sslConfig));
+        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.HTTP), not(Optional.empty()));
+        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.HTTPS), not(Optional.empty()));
+
+        sslConfig = ImmutableMap.<String, String>builder().putAll(baseConfig)
+            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.REQUIRED.VALUE).build();
+        authService.updateHbaConfig(createHbaConf(sslConfig));
+        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.HTTP), is(Optional.empty()));
+        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.HTTPS), not(Optional.empty()));
+
+        sslConfig = ImmutableMap.<String, String>builder().putAll(baseConfig)
+            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.NEVER.VALUE).build();
+        authService.updateHbaConfig(createHbaConf(sslConfig));
+        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.HTTP), not(Optional.empty()));
+        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.HTTPS), is(Optional.empty()));
     }
 }

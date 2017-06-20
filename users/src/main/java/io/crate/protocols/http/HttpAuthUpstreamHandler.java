@@ -29,6 +29,7 @@ import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.*;
+import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.InetAddresses;
@@ -70,7 +71,9 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest request) {
         String username = userFromRequest(request);
         InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
-        AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, address, HbaProtocol.HTTP);
+        boolean usesSSL = ctx.channel().pipeline().first() instanceof SslHandler;
+        HbaProtocol hbaProtocol = usesSSL ? HbaProtocol.HTTPS : HbaProtocol.HTTP;
+        AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, address, hbaProtocol);
         if (authMethod == null) {
             String errorMessage = String.format(
                 Locale.ENGLISH,
