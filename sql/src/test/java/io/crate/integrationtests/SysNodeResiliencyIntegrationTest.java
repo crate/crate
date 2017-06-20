@@ -31,7 +31,9 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2, transportClientRatio = 0)
 public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTest {
@@ -58,15 +60,21 @@ public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTes
             new NetworkDisruption.TwoPartitions(n1, n2), new NetworkDisruption.NetworkUnresponsive());
         setDisruptionScheme(partition);
         partition.startDisrupting();
+        try {
 
-        execute("select version, hostname, id, name from sys.nodes where name = ?",
-                 new Object[]{n2},
-                 createSessionOnNode(n1));
+            execute("select version, hostname, id, name from sys.nodes where name = ?",
+                new Object[]{n2},
+                createSessionOnNode(n1));
 
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(nullValue()));
-        assertThat(response.rows()[0][1], is(nullValue()));
-        assertThat(response.rows()[0][2], is(notNullValue()));
-        assertThat(response.rows()[0][3], is(n2));
+            assertThat(response.rowCount(), is(1L));
+            assertThat(response.rows()[0][0], is(nullValue()));
+            assertThat(response.rows()[0][1], is(nullValue()));
+            assertThat(response.rows()[0][2], is(notNullValue()));
+            assertThat(response.rows()[0][3], is(n2));
+        } finally {
+            partition.stopDisrupting();
+            internalCluster().clearDisruptionScheme(true);
+            waitNoPendingTasksOnAll();
+        }
     }
 }
