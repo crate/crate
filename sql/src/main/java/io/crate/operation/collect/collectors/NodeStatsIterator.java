@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.data.*;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.NodeStatsRequest;
 import io.crate.executor.transport.NodeStatsResponse;
 import io.crate.executor.transport.TransportNodeStatsAction;
@@ -40,6 +41,7 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 
 import javax.annotation.Nonnull;
@@ -138,9 +140,10 @@ public class NodeStatsIterator implements BatchIterator {
                 }
 
                 @Override
-                public void onFailure(Throwable t) {
-                    if (t instanceof ReceiveTimeoutTransportException) {
-                        rows.add(new NodeStatsContext(nodeId, node.name()));
+                public void onFailure(Throwable e) {
+                    Throwable t = SQLExceptions.unwrap(e);
+                    if (isTimeoutOrNodeNotReachable(t)) {
+                        rows.add(new NodeStatsContext(nodeId, node.getName()));
                         if (remainingNodesToCollect.decrementAndGet() == 0) {
                             nodeStatsContextsFuture.complete(rows);
                         }
@@ -151,6 +154,11 @@ public class NodeStatsIterator implements BatchIterator {
             }, TimeValue.timeValueMillis(3000L));
         }
         return nodeStatsContextsFuture;
+    }
+
+    private static boolean isTimeoutOrNodeNotReachable(Throwable t) {
+        return t instanceof ReceiveTimeoutTransportException
+            || t instanceof ConnectTransportException;
     }
 
     @Override
