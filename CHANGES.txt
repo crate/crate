@@ -44,6 +44,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that could cause ``DELETE`` statements to fail instead of
+   "not matching" if there was a ``_version`` column in the ``WHERE`` clause.
+
  - Fixed an error handling issue that could lead to the termination of a node
    in very rare cases. (Usually if a user invoked the `KILL` statement)
 
