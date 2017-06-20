@@ -36,18 +36,34 @@ import io.crate.executor.task.ExplainTask;
 import io.crate.executor.task.NoopTask;
 import io.crate.executor.task.SetSessionTask;
 import io.crate.executor.transport.executionphases.ExecutionPhasesTask;
-import io.crate.executor.transport.task.*;
-import io.crate.executor.transport.task.elasticsearch.*;
+import io.crate.executor.transport.task.DropTableTask;
+import io.crate.executor.transport.task.KillJobTask;
+import io.crate.executor.transport.task.KillTask;
+import io.crate.executor.transport.task.ShowCreateTableTask;
+import io.crate.executor.transport.task.UpsertByIdTask;
+import io.crate.executor.transport.task.elasticsearch.CreateAnalyzerTask;
+import io.crate.executor.transport.task.elasticsearch.ESClusterUpdateSettingsTask;
+import io.crate.executor.transport.task.elasticsearch.ESDeletePartitionTask;
+import io.crate.executor.transport.task.elasticsearch.ESDeleteTask;
+import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.operation.InputFactory;
-import io.crate.operation.NodeOperationTree;
 import io.crate.operation.NodeJobsCounter;
+import io.crate.operation.NodeOperationTree;
 import io.crate.operation.collect.sources.SystemCollectSource;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.planner.*;
-import io.crate.planner.node.ddl.*;
+import io.crate.planner.Merge;
+import io.crate.planner.MultiPhasePlan;
+import io.crate.planner.NoopPlan;
+import io.crate.planner.Plan;
+import io.crate.planner.PlanVisitor;
+import io.crate.planner.node.ddl.CreateAnalyzerPlan;
+import io.crate.planner.node.ddl.DropTablePlan;
+import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
+import io.crate.planner.node.ddl.ESDeletePartition;
+import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.planner.node.dml.ESDelete;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertById;
@@ -59,8 +75,8 @@ import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.statement.SetSessionPlan;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
@@ -234,7 +250,7 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Task visitESDelete(ESDelete plan, Void context) {
-            return new ESDeleteTask(plan, transportActionProvider.transportDeleteAction(), jobContextService);
+            return new ESDeleteTask(plan, transportActionProvider.transportDeleteAction());
         }
 
         @Override
