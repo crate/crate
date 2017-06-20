@@ -15,8 +15,23 @@ Transport Layer Security (TLS).
 SSL/TLS Configuration for the PostgreSQL Wire Protocol
 ======================================================
 
-First of all, you need to set the boolean setting ``ssl.psql.enabled`` to
-``true`` on each of the nodes you want to enable the secured communications.
+To enable SSL a ``keystore``, an optional ``truststore`` and a few
+configuration changes are necessary.
+
+Skip to :ref:`ssl_generate_keystore` for a step-by-step instruction on how to
+create a ``keystore``.
+
+Once the ``keystore`` (and optional ``truststore``) is created, continue with
+the following steps. All configuration changes must be made in the
+``crate.yml`` file for *each* node that should have secure communications
+enabled.
+
+ - Set ``ssl.psql.enabled`` to ``true``.
+ - :ref:`ssl_configure_keystore`
+ - (Optional) :ref:`ssl_configure_truststore`
+
+
+.. _ssl_configure_keystore:
 
 Configure the KeyStore
 ----------------------
@@ -38,6 +53,9 @@ connect to.
     client. This will help to ensure that establishing trust is as painless
     as possible.
 
+
+See :ref:`ssl_generate_keystore` for information about how to create a keystore.
+
 Once the keystore is prepared, define the absolute file path to the keystore
 ``.jks`` file on the node using ``ssl.keystore_filepath`` setting.
 
@@ -54,6 +72,9 @@ creating the keystore.
 
 For a full list of the settings needed to configure SSL/TLS, refer to
 :ref:`SSL configuration reference <ssl_config>`.
+
+
+.. _ssl_configure_truststore:
 
 Configure a Separate Truststore
 -------------------------------
@@ -76,6 +97,7 @@ Also define the password needed to decrypt the keystore by using the
 
 For a full list of the settings needed to configure SSL/TLS, refer to
 :ref:`SSL configuration reference <ssl_config>`.
+
 
 Connecting to a CrateDB Node Using PostgreSQL Wire Protocol With SSL/TLS
 -------------------------------------------------------------------------
@@ -124,6 +146,7 @@ In case you need to setup a Keystore or a Trustore, here are the commands
 to get you started. All the commands use a validity of 36500 days
 (about 100 years). You might want to use less.
 
+.. _ssl_generate_keystore:
 
 Generate Keystore With a Private Key
 ------------------------------------
