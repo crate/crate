@@ -31,6 +31,7 @@ import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import java.net.InetAddress;
 import java.util.Collections;
@@ -233,7 +234,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
     }
 
     @Test
-    public void testRequireSSL() {
+    public void testPSQLSslOption() {
         Map<String, String> sslConfig;
 
         sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
@@ -265,5 +266,38 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         assertThat(
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslHandler)),
             is(Optional.empty()));
+    }
+
+    @Test
+    public void testHttpSSLOption() throws Exception {
+        Map<String, String> baseConfig = new HashMap<>();
+        baseConfig.putAll(HBA_1);
+        baseConfig.put(HostBasedAuthentication.KEY_PROTOCOL, "http");
+
+        SslHandler sslHandler = Mockito.mock(SslHandler.class);
+        ConnectionProperties sslConnProperties =
+            new ConnectionProperties(LOCALHOST, Protocol.HTTP, sslHandler);
+        ConnectionProperties noSslConnProperties =
+            new ConnectionProperties(LOCALHOST, Protocol.HTTP, null);
+
+        Map<String, String> sslConfig;
+
+        sslConfig = ImmutableMap.<String, String>builder().putAll(baseConfig)
+            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.OPTIONAL.VALUE).build();
+        authService.updateHbaConfig(createHbaConf(sslConfig));
+        assertThat(authService.getEntry("crate", noSslConnProperties), not(Optional.empty()));
+        assertThat(authService.getEntry("crate", sslConnProperties), not(Optional.empty()));
+
+        sslConfig = ImmutableMap.<String, String>builder().putAll(baseConfig)
+            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.REQUIRED.VALUE).build();
+        authService.updateHbaConfig(createHbaConf(sslConfig));
+        assertThat(authService.getEntry("crate", noSslConnProperties), is(Optional.empty()));
+        assertThat(authService.getEntry("crate", sslConnProperties), not(Optional.empty()));
+
+        sslConfig = ImmutableMap.<String, String>builder().putAll(baseConfig)
+            .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.NEVER.VALUE).build();
+        authService.updateHbaConfig(createHbaConf(sslConfig));
+        assertThat(authService.getEntry("crate", noSslConnProperties), not(Optional.empty()));
+        assertThat(authService.getEntry("crate", sslConnProperties), is(Optional.empty()));
     }
 }

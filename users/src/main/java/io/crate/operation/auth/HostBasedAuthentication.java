@@ -37,11 +37,11 @@ import java.util.function.Supplier;
 
 public class HostBasedAuthentication implements Authentication {
 
-    private static final String DEFAULT_AUTH_METHOD = "trust";
-    private static final String KEY_USER = "user";
-    private static final String KEY_ADDRESS = "address";
-    private static final String KEY_METHOD = "method";
-    private static final String KEY_PROTOCOL = "protocol";
+    public static final String DEFAULT_AUTH_METHOD = "trust";
+    public static final String KEY_USER = "user";
+    public static final String KEY_ADDRESS = "address";
+    public static final String KEY_METHOD = "method";
+    public static final String KEY_PROTOCOL = "protocol";
 
     enum SSL_OPTIONS {
         REQUIRED("on"),
