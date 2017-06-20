@@ -46,8 +46,6 @@ import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -237,23 +235,11 @@ class PostgresWireProtocol {
         }
 
         @Override
-        public void accept(Object o, Throwable t) {
-            if (t == null) {
-                onSuccess(o);
-            } else {
-                onFailure(t);
-            }
-        }
-
-        private void onSuccess(@Nullable Object result) {
+        public void accept(Object result, Throwable t) {
             if (result == null || result.equals(Boolean.FALSE)) {
                 // only send ReadyForQuery if query was not interrupted
                 Messages.sendReadyForQuery(channel);
             }
-        }
-
-        private void onFailure(@Nonnull Throwable t) {
-            Messages.sendReadyForQuery(channel);
         }
     }
 
