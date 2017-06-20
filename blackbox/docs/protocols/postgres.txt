@@ -38,14 +38,33 @@ CrateDB emulates PostgreSQL server version ``9.5``
 Start-Up
 --------
 
-The connection handshake is implemented without authentication support. CrateDB
-will always respond with ``AuthenticationOK`` and any SSLRequests are answered
-with ``N`` to indicate that it does not support SSL.
+SSL Support
+...........
+
+SSL support is only available in the `Enterprise Edition`_. If enterprise is
+disabled, any ``SSLRequests`` are always answered with ``N``, indicating to a
+client that SSL is not available.
+
+
+Authentication
+..............
+
+If the `Enterprise Edition`_ is enabled, authentication methods can be
+configured using :doc:`/administration/hba`.
+
+If the enterprise functionality is not enabled there won't be any
+authentication and any "start up" requests will be answered with
+``AuthenticationOK``.
+
+
+Database selection
+..................
 
 Since CrateDB uses schemas instead of databases, the ``database`` parameter
 sets the default schema name for future queries. If no schema is specified, the
 schema ``doc``will be used as default. Additionally, the only supported charset
 is ``UTF8``.
+
 
 Simple Query
 ------------
@@ -188,3 +207,4 @@ Connection failover and load balancing is supported as described here:
 .. _Extended Query: https://www.postgresql.org/docs/current/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
 .. _PostgreSQL JDBC connection failover: https://jdbc.postgresql.org/documentation/head/connect.html#connection-failover
 .. _pgjdbc: https://github.com/pgjdbc/pgjdbc
+.. _Enterprise Edition: https://crate.io/enterprise-edition/
