@@ -36,6 +36,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import static org.hamcrest.Matchers.nullValue;
+
 public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
 
     private Map<String, Set<Privilege>> usersPrivileges;
@@ -78,5 +80,8 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
         parser.nextToken(); // start object
         UsersPrivilegesMetaData usersPrivilegesMetaData2 = (UsersPrivilegesMetaData)new UsersPrivilegesMetaData().fromXContent(parser);
         assertEquals(usersPrivilegesMetaData, usersPrivilegesMetaData2);
+
+        // a metadata custom must consume its surrounded END_OBJECT token, no token must be left
+        assertThat(parser.nextToken(), nullValue());
     }
 }
