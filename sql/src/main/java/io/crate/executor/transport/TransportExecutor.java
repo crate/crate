@@ -241,7 +241,7 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Task visitESDelete(ESDelete plan, Void context) {
-            return new ESDeleteTask(plan, transportActionProvider.transportDeleteAction(), jobContextService);
+            return new ESDeleteTask(plan, transportActionProvider.transportDeleteAction());
         }
 
         @Override

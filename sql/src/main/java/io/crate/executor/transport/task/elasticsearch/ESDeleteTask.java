@@ -30,16 +30,11 @@ import io.crate.data.Row1;
 import io.crate.data.RowsBatchIterator;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.JobTask;
-import io.crate.jobs.ESJobContext;
-import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
 import io.crate.planner.node.dml.ESDelete;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.delete.TransportDeleteAction;
-import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import java.util.ArrayList;
@@ -49,26 +44,23 @@ import java.util.concurrent.CompletableFuture;
 
 public class ESDeleteTask extends JobTask {
 
-    protected final List<CompletableFuture<Long>> results;
-    private final ESDelete esDelete;
-    private final JobContextService jobContextService;
-    protected JobExecutionContext.Builder builder;
+    private final List<CompletableFuture<Long>> results;
+    private final TransportDeleteAction deleteAction;
+    private final List<DeleteRequest> requests;
+    private final List<DeleteResponseListener> listeners;
 
-    public ESDeleteTask(ESDelete esDelete,
-                        TransportDeleteAction transport,
-                        JobContextService jobContextService) {
+    public ESDeleteTask(ESDelete esDelete, TransportDeleteAction deleteAction) {
         super(esDelete.jobId());
-        this.esDelete = esDelete;
-        this.jobContextService = jobContextService;
 
         results = new ArrayList<>(esDelete.getBulkSize());
+        this.deleteAction = deleteAction;
         for (int i = 0; i < esDelete.getBulkSize(); i++) {
             CompletableFuture<Long> result = new CompletableFuture<>();
             results.add(result);
         }
 
-        List<DeleteRequest> requests = new ArrayList<>(esDelete.docKeys().size());
-        List<ActionListener> listeners = new ArrayList<>(esDelete.docKeys().size());
+        requests = new ArrayList<>(esDelete.docKeys().size());
+        listeners = new ArrayList<>(esDelete.docKeys().size());
         int resultIdx = 0;
         for (DocKeys.DocKey docKey : esDelete.docKeys()) {
             DeleteRequest request = new DeleteRequest(
@@ -84,36 +76,25 @@ public class ESDeleteTask extends JobTask {
             listeners.add(new DeleteResponseListener(result));
             resultIdx++;
         }
-
         for (int i = 0; i < results.size(); i++) {
             if (!esDelete.getItemToBulkIdx().values().contains(i)) {
                 results.get(i).complete(0L);
             }
         }
-        createContextBuilder("delete", requests, listeners, transport);
     }
 
-    private void createContextBuilder(String operationName,
-                                      List<? extends ActionRequest> requests,
-                                      List<? extends ActionListener> listeners,
-                                      TransportAction transportAction) {
-        ESJobContext esJobContext = new ESJobContext(esDelete.executionPhaseId(), operationName,
-            requests, listeners, results, transportAction);
-        builder = jobContextService.newBuilder(jobId());
-        builder.addSubContext(esJobContext);
-    }
-
-    private void startContext() throws Throwable {
-        assert builder != null : "Context must be created first";
-        JobExecutionContext ctx = jobContextService.createContext(builder);
-        ctx.start();
+    private void sendRequests() {
+        assert requests.size() == listeners.size() : "number of requests and listeners must match";
+        for (int i = 0; i < requests.size(); i++) {
+            deleteAction.execute(requests.get(i), listeners.get(i));
+        }
     }
 
     @Override
     public void execute(final BatchConsumer consumer, Row parameters) {
         CompletableFuture<Long> result = results.get(0);
         try {
-            startContext();
+            sendRequests();
         } catch (Throwable throwable) {
             consumer.accept(null, throwable);
             return;
@@ -127,6 +108,15 @@ public class ESDeleteTask extends JobTask {
         });
     }
 
+    @Override
+    public final List<CompletableFuture<Long>> executeBulk() {
+        try {
+            sendRequests();
+        } catch (Throwable throwable) {
+            return Collections.singletonList(CompletableFutures.failedFuture(throwable));
+        }
+        return results;
+    }
 
     private static class DeleteResponseListener implements ActionListener<DeleteResponse> {
 
@@ -155,15 +145,5 @@ public class ESDeleteTask extends JobTask {
                 result.completeExceptionally(e);
             }
         }
-    }
-
-    @Override
-    public final List<CompletableFuture<Long>> executeBulk() {
-        try {
-            startContext();
-        } catch (Throwable throwable) {
-		return Collections.singletonList(CompletableFutures.failedFuture(throwable));
-        }
-        return results;
     }
 }
