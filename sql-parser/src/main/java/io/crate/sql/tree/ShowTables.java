@@ -82,5 +82,18 @@ public class ShowTables extends Statement {
             .add("whereExpression", whereExpression.toString())
             .toString();
     }
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DQL;
+    }
 
+    @Override
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.SCHEMA;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return schema.toString();
+    }
 }

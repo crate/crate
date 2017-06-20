@@ -35,7 +35,6 @@ import static io.crate.analyze.FunctionArgumentDefinition.toFunctionArgumentDefi
 public class CreateFunctionAnalyzer {
 
     public CreateFunctionAnalyzedStatement analyze(CreateFunction node, Analysis context) {
-
         List<String> parts = node.name().getParts();
         return new CreateFunctionAnalyzedStatement(
             resolveSchemaName(parts, context.sessionContext().defaultSchema()),

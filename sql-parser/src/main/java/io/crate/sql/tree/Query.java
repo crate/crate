@@ -112,4 +112,19 @@ public class Query extends Statement {
     public int hashCode() {
         return Objects.hashCode(with, queryBody, orderBy, limit, offset);
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DQL;
+    }
+
+    @Override
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.TABLE;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return null;
+    }
 }

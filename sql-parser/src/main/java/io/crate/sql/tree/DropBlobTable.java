@@ -77,4 +77,19 @@ public class DropBlobTable extends Statement {
     public int hashCode() {
         return Objects.hashCode(table, ignoreNonExistentTable);
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DDL;
+    }
+
+    @Override
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.SCHEMA;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return table.getName().getParts().get(0);
+    }
 }

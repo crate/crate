@@ -66,4 +66,19 @@ public class Explain
             .add("statement", statement)
             .toString();
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DQL;
+    }
+
+    @Override
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.CLUSTER;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return null;
+    }
 }

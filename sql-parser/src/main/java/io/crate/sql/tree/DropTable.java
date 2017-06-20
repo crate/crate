@@ -75,4 +75,19 @@ public class DropTable extends Statement {
             .add("dropIfExists", dropIfExists)
             .toString();
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DDL;
+    }
+
+    @Override
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.TABLE;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return table.getName().toString();
+    }
 }

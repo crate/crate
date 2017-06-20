@@ -21,10 +21,15 @@
 
 package io.crate.sql.tree;
 
-public abstract class Statement
-    extends Node {
+public abstract class Statement extends Node {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitStatement(this, context);
     }
+
+    abstract public PrivilegeType privilegeType();
+
+    abstract public PrivilegeClazz privilegeClazz();
+
+    abstract public String privilegeIdent();
 }

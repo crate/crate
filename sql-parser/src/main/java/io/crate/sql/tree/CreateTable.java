@@ -102,4 +102,19 @@ public class CreateTable extends Statement {
             .add("ifNotExists", ifNotExists)
             .add("properties", properties).toString();
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DDL;
+    }
+
+    @Override
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.SCHEMA;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return name.getName().getParts().get(0);
+    }
 }

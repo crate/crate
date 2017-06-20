@@ -62,4 +62,19 @@ public class ShowCreateTable extends Statement {
     public Table table() {
         return table;
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DQL;
+    }
+
+    @Override
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.TABLE;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return table.getName().toString();
+    }
 }

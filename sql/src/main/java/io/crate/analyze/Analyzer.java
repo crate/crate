@@ -25,12 +25,12 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.repositories.RepositoryParamValidator;
+import io.crate.analyze.user.Privilege;
 import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.operation.user.UserManager;
-import io.crate.operation.user.UserManagerProvider;
 import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -128,6 +128,12 @@ public class Analyzer {
         Analysis analysis = new Analysis(sessionContext, parameterContext, ParamTypeHints.EMPTY);
         AnalyzedStatement analyzedStatement = analyzedStatement(statement, analysis);
         userManager.ensureAuthorized(analyzedStatement, sessionContext);
+        if (!PrivilegeClazz.TABLE.equals(statement.privilegeClazz())) {
+            userManager.raiseMissingPrivilegeException(Privilege.convertPrivilegeClazz(statement.privilegeClazz()),
+                Privilege.convertPrivilegeType(statement.privilegeType()),
+                sessionContext.defaultSchema(),
+                sessionContext.user());
+        }
         analysis.analyzedStatement(analyzedStatement);
         return analysis;
     }

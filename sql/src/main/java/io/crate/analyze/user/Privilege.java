@@ -22,6 +22,8 @@
 
 package io.crate.analyze.user;
 
+import io.crate.sql.tree.PrivilegeClazz;
+import io.crate.sql.tree.PrivilegeType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -29,6 +31,8 @@ import org.elasticsearch.common.io.stream.Streamable;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Objects;
+
+import static io.crate.analyze.user.Privilege.Clazz.TABLE;
 
 public class Privilege implements Streamable {
 
@@ -49,6 +53,32 @@ public class Privilege implements Streamable {
         CLUSTER,
         SCHEMA,
         TABLE
+    }
+
+    public  static Type convertPrivilegeType(PrivilegeType type){
+        switch (type) {
+            case DQL:
+                return Type.DQL;
+            case DML:
+                return Type.DML;
+            case DDL:
+                return Type.DDL;
+            case DCL:
+                return Type.DCL;
+        }
+        throw new IllegalArgumentException("Unsupported privilege type: " + type.toString());
+    }
+
+    public static Clazz convertPrivilegeClazz(PrivilegeClazz clazz){
+        switch(clazz){
+            case CLUSTER:
+                return Clazz.CLUSTER;
+            case SCHEMA:
+                return Clazz.SCHEMA;
+            case TABLE:
+                return Clazz.TABLE;
+        }
+        throw new IllegalArgumentException("Unsupported privilege class: " + clazz.toString());
     }
 
     public static Privilege privilegeAsGrant(Privilege privilege) {

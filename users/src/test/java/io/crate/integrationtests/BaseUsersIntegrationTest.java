@@ -21,6 +21,7 @@ package io.crate.integrationtests;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
+import io.crate.analyze.user.Privilege;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManagerService;
 import io.crate.testing.SQLResponse;
@@ -45,10 +46,19 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
     protected SQLOperations.Session createUserSession() {
         return createUserSession(null);
     }
+    protected SQLOperations.Session createUserWithPrivlegeSession(String userName, Privilege.Type type) {
+        return createUserWithPrivlegeSession(null, userName, type);
+    }
 
     SQLOperations.Session createUserSession(String node) {
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
         return sqlOperations.createSession(null, new User("normal", ImmutableSet.of(), ImmutableSet.of()), Option.NONE, DEFAULT_SOFT_LIMIT);
+    }
+
+
+    SQLOperations.Session createUserWithPrivlegeSession(String node, String userName, Privilege.Type type) {
+        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
+        return sqlOperations.createSession(null, new User(userName, ImmutableSet.of(), ImmutableSet.of(new Privilege(Privilege.State.GRANT, type, Privilege.Clazz.CLUSTER, null, "crate"))), Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
     @Before
@@ -71,5 +81,14 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
 
     public SQLResponse executeAsNormalUser(String stmt) {
         return execute(stmt, null, normalUserSession);
+    }
+    public SQLResponse executeAsDDLUser(String stmt) {
+        return execute(stmt, null, createUserWithPrivlegeSession("ddlUser", Privilege.Type.DDL));
+    }
+    public SQLResponse executeAsDQLUser(String stmt) {
+        return execute(stmt, null, createUserWithPrivlegeSession("dqlUser", Privilege.Type.DQL));
+    }
+    public SQLResponse executeAsDMLUser(String stmt) {
+        return execute(stmt, null, createUserWithPrivlegeSession("dmlUser", Privilege.Type.DML));
     }
 }

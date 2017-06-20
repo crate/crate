@@ -66,4 +66,19 @@ public class ResetStatement extends Statement {
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitResetStatement(this, context);
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DCL;
+    }
+
+    @Override
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.CLUSTER;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return null;
+    }
 }

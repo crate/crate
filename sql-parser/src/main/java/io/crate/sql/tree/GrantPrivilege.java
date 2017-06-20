@@ -49,4 +49,19 @@ public class GrantPrivilege extends Statement {
                ", userNames=" + userNames +
                '}';
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DCL;
+    }
+
+    @Override
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.CLUSTER;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return null;
+    }
 }

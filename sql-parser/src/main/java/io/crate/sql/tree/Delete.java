@@ -78,4 +78,19 @@ public class Delete extends Statement {
 
         return true;
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DML;
+    }
+
+    @Override
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.TABLE;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return relation.toString();
+    }
 }

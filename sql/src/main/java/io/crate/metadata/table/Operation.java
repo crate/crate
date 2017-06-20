@@ -65,7 +65,7 @@ public enum Operation {
     public static EnumSet<Operation> DML = EnumSet.of(INSERT, UPDATE, DELETE);
     public static EnumSet<Operation> DDL = EnumSet.of(DROP, ALTER, ALTER_BLOCKS, ALTER_OPEN_CLOSE, CREATE_SNAPSHOT,
         RESTORE_SNAPSHOT);
-    public static EnumSet<Operation> DQL = EnumSet.of(READ, REFRESH, COPY_TO, OPTIMIZE);
+    public static EnumSet<Operation> DQL = EnumSet.of(READ, REFRESH, COPY_TO, OPTIMIZE, SHOW_CREATE);
 
     private final String representation;
 

@@ -75,4 +75,19 @@ public abstract class Insert extends Statement {
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitInsert(this, context);
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DML;
+    }
+
+    @Override
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.TABLE;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return table.getName().getParts().get(0);
+    }
 }

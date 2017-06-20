@@ -87,4 +87,19 @@ public class CreateAnalyzer extends Statement {
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCreateAnalyzer(this, context);
     }
+
+    @Override
+    public PrivilegeType privilegeType() {
+        return PrivilegeType.DDL;
+    }
+
+    @Override
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.SCHEMA;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return ident;
+    }
 }
