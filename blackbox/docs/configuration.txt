@@ -1901,12 +1901,19 @@ Secured communications via SSL allows you to encrypt traffic between CrateDB
 nodes and clients connecting to them. Connections are secured using Transport
 Layer Security (TLS).
 
+**ssl.http.enabled**
+  | *Runtime:*  ``no``
+  | *Default:* ``false``
+
+  Set this to true to enable secure communication between the CrateDB node
+  and the client through SSL via the HTTPS protocol.
+
 **ssl.psql.enabled**
   | *Runtime:*  ``no``
   | *Default:* ``false``
 
-  Set this to true to enable secured communications between CrateDB node and
-  client via SSL via PostgreSQL wire protocol.
+  Set this to true to enable secure communication between the CrateDB node
+  and the client through SSL via the PostgreSQL wire protocol.
 
 **ssl.keystore_filepath**
   | *Runtime:* ``no``
