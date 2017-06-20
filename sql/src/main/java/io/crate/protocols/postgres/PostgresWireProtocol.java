@@ -31,7 +31,7 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.protocols.http.CrateNettyHttpServerTransport;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
-import io.crate.operation.auth.HbaProtocol;
+import io.crate.operation.auth.Protocol;
 import io.crate.operation.user.User;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -363,9 +363,11 @@ class PostgresWireProtocol {
     private void authenticate(Channel channel, Properties properties) {
         String userName = properties.getProperty("user");
         InetAddress address = CrateNettyHttpServerTransport.getRemoteAddress(channel);
-        boolean usesSSL = channel.pipeline().first() instanceof SslHandler;
-        HbaProtocol hbaProtocol = usesSSL ? HbaProtocol.POSTGRES_SSL : HbaProtocol.POSTGRES;
-        AuthenticationMethod authMethod = authService.resolveAuthenticationType(userName, address, hbaProtocol);
+
+        SslHandler sslHandler = channel.pipeline().get(SslHandler.class);
+        ConnectionProperties connProperties = new ConnectionProperties(address, Protocol.POSTGRES, sslHandler);
+
+        AuthenticationMethod authMethod = authService.resolveAuthenticationType(userName, connProperties);
         if (authMethod == null) {
             String errorMessage = String.format(
                 Locale.ENGLISH,
@@ -375,7 +377,7 @@ class PostgresWireProtocol {
             Messages.sendAuthenticationError(channel, errorMessage);
         } else {
             try {
-                User user = authMethod.authenticate(userName);
+                User user = authMethod.authenticate(userName, connProperties);
                 if (user != null && LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".",
                         user.name(), authMethod.name());

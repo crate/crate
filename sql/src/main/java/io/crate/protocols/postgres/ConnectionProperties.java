@@ -20,16 +20,35 @@
  * agreement.
  */
 
-package io.crate.operation.auth;
+package io.crate.protocols.postgres;
 
-import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.operation.auth.Protocol;
+import io.netty.handler.ssl.SslHandler;
 
 import javax.annotation.Nullable;
+import java.net.InetAddress;
 
-public interface Authentication {
+public class ConnectionProperties {
 
-    boolean enabled();
+    private final InetAddress address;
+    private final Protocol protocol;
+    private final boolean hasSSL;
 
-    @Nullable
-    AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties);
+    public ConnectionProperties(InetAddress address, Protocol protocol, @Nullable SslHandler sslHandler) {
+        this.address = address;
+        this.protocol = protocol;
+        this.hasSSL = sslHandler != null;
+    }
+
+    public boolean hasSSL() {
+        return hasSSL;
+    }
+
+    public InetAddress address() {
+        return address;
+    }
+
+    public Protocol protocol() {
+        return protocol;
+    }
 }

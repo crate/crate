@@ -20,6 +20,7 @@ package io.crate.operation.auth;
 
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserLookup;
+import io.crate.protocols.postgres.ConnectionProperties;
 
 
 public class TrustAuthentication implements AuthenticationMethod {
@@ -32,7 +33,7 @@ public class TrustAuthentication implements AuthenticationMethod {
     }
 
     @Override
-    public User authenticate(String userName) {
+    public User authenticate(String userName, ConnectionProperties connectionProperties) {
         User user = userLookup.findUser(userName);
         if (user == null) {
             throw new RuntimeException("trust authentication failed for user \"" + userName + "\"");

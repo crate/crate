@@ -22,13 +22,20 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.AuthenticationProvider;
-import io.crate.operation.auth.HbaProtocol;
+import io.crate.operation.auth.Protocol;
 import io.crate.operation.user.User;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.HttpContent;
+import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpUtil;
+import io.netty.handler.codec.http.HttpVersion;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.InetAddresses;
@@ -70,16 +77,17 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest request) {
         String username = userFromRequest(request);
         InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
-        AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, address, HbaProtocol.HTTP);
+        ConnectionProperties connectionProperties = new ConnectionProperties(address, Protocol.HTTP, null);
+        AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, connectionProperties);
         if (authMethod == null) {
             String errorMessage = String.format(
                 Locale.ENGLISH,
                 "No valid auth.host_based.config entry found for host \"%s\", user \"%s\", protocol \"%s\"",
-                address.getHostAddress(), username, HbaProtocol.HTTP.toString());
+                address.getHostAddress(), username, Protocol.HTTP.toString());
             sendUnauthorized(ctx.channel(), errorMessage);
         } else {
             try {
-                User user = authMethod.authenticate(username);
+                User user = authMethod.authenticate(username, connectionProperties);
                 if (user != null && LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".", username, authMethod.name());
                 }

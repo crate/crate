@@ -28,7 +28,6 @@ import io.crate.executor.Executor;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.AuthenticationProvider;
-import io.crate.operation.auth.HbaProtocol;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.user.User;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -43,7 +42,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
-import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -53,7 +51,11 @@ import java.util.Map;
 import static io.netty.util.ReferenceCountUtil.releaseLater;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
@@ -174,11 +176,11 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         }
 
         @Override
-        public AuthenticationMethod resolveAuthenticationType(String user, InetAddress address, HbaProtocol protocol) {
+        public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties) {
             return new AuthenticationMethod() {
                 @Nullable
                 @Override
-                public User authenticate(String userName) {
+                public User authenticate(String userName, ConnectionProperties connectionProperties) {
                     return TestAuthentication.this.user;
                 }
 

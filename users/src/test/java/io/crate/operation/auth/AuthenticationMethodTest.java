@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
 import io.crate.operation.user.UserManagerService;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Test;
@@ -53,9 +54,10 @@ public class AuthenticationMethodTest extends CrateUnitTest {
         TrustAuthentication trustAuth = new TrustAuthentication(fakeUserManager);
         assertThat(trustAuth.name(), is("trust"));
 
-        assertThat(trustAuth.authenticate("crate").name(), is("crate"));
+        ConnectionProperties connectionProperties = new ConnectionProperties(null, Protocol.POSTGRES, null);
+        assertThat(trustAuth.authenticate("crate", connectionProperties).name(), is("crate"));
 
         expectedException.expectMessage("trust authentication failed for user \"cr8\"");
-        trustAuth.authenticate("cr8");
+        trustAuth.authenticate("cr8", connectionProperties);
     }
 }
