@@ -19,7 +19,13 @@
 package io.crate.operation.auth;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.test.integration.CrateUnitTest;
+import io.netty.buffer.ByteBufAllocator;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslHandler;
+import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
@@ -63,14 +69,23 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         .build();
 
     private static final InetAddress LOCALHOST = InetAddresses.forString("127.0.0.1");
+
     private HostBasedAuthentication authService;
+    private SslHandler sslHandler;
 
     @Before
-    private void setUpTest() {
+    private void setUpTest() throws Exception {
         Settings settings = Settings.builder()
             .put(AuthenticationProvider.AUTH_HOST_BASED_ENABLED_SETTING.getKey(), true)
             .build();
         authService = new HostBasedAuthentication(settings, null);
+
+        SelfSignedCertificate ssc = new SelfSignedCertificate();
+        sslHandler = SslContextBuilder
+            .forServer(ssc.certificate(), ssc.privateKey())
+            .trustManager(InsecureTrustManagerFactory.INSTANCE)
+            .startTls(false)
+            .build().newHandler(ByteBufAllocator.DEFAULT);
     }
 
     @SafeVarargs
@@ -100,23 +115,25 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
     public void testMissingUserOrAddress() throws Exception {
         authService.updateHbaConfig(Collections.emptyMap());
         AuthenticationMethod method;
-        method = authService.resolveAuthenticationType(null, LOCALHOST, HbaProtocol.POSTGRES);
+        method = authService.resolveAuthenticationType(null, new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
         assertNull(method);
-        method = authService.resolveAuthenticationType("crate", null, HbaProtocol.POSTGRES);
+        method = authService.resolveAuthenticationType("crate", new ConnectionProperties(null, Protocol.POSTGRES, null));
         assertNull(method);
     }
 
     @Test
     public void testEmptyHbaConf() throws Exception {
         authService.updateHbaConfig(Collections.emptyMap());
-        AuthenticationMethod method = authService.resolveAuthenticationType("crate", LOCALHOST, HbaProtocol.POSTGRES);
+        AuthenticationMethod method =
+            authService.resolveAuthenticationType("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
         assertNull(method);
     }
 
     @Test
     public void testResolveAuthMethod() throws Exception {
         authService.updateHbaConfig(createHbaConf(HBA_1));
-        AuthenticationMethod method = authService.resolveAuthenticationType("crate", LOCALHOST, HbaProtocol.POSTGRES);
+        AuthenticationMethod method =
+            authService.resolveAuthenticationType("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
         assertThat(method, instanceOf(TrustAuthentication.class));
     }
 
@@ -125,13 +142,14 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         authService.updateHbaConfig(createHbaConf(HBA_1));
         Optional entry;
 
-        entry = authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES);
+        entry = authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
         assertThat(entry.isPresent(), is(true));
 
-        entry = authService.getEntry("cr8", LOCALHOST, HbaProtocol.POSTGRES);
+        entry = authService.getEntry("cr8", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
         assertThat(entry.isPresent(), is(false));
 
-        entry = authService.getEntry("crate", InetAddresses.forString("10.0.0.1"), HbaProtocol.POSTGRES);
+        entry = authService.getEntry("crate",
+            new ConnectionProperties(InetAddresses.forString("10.0.0.1"), Protocol.POSTGRES, null));
         assertThat(entry.isPresent(), is(false));
     }
 
@@ -140,15 +158,18 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         authService.updateHbaConfig(createHbaConf(HBA_2, HBA_3));
         Optional<Map.Entry<String, Map<String, String>>> entry;
 
-        entry = authService.getEntry("crate", InetAddresses.forString("123.45.67.89"), HbaProtocol.POSTGRES);
+        entry = authService.getEntry("crate",
+            new ConnectionProperties(InetAddresses.forString("123.45.67.89"), Protocol.POSTGRES, null));
         assertTrue(entry.isPresent());
         assertThat(entry.get().getValue().get("method"), is("fake"));
 
-        entry = authService.getEntry("cr8", InetAddresses.forString("127.0.0.1"), HbaProtocol.POSTGRES);
+        entry = authService.getEntry("cr8",
+            new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, null));
         assertTrue(entry.isPresent());
         assertThat(entry.get().getValue().get("method"), is("md5"));
 
-        entry = authService.getEntry("cr8", InetAddresses.forString("123.45.67.89"), HbaProtocol.POSTGRES);
+        entry = authService.getEntry("cr8",
+            new ConnectionProperties(InetAddresses.forString("123.45.67.89"), Protocol.POSTGRES, null));
         assertThat(entry.isPresent(), is(false));
     }
 
@@ -170,10 +191,9 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
 
     @Test
     public void testMatchProtocol() throws Exception {
-        assertTrue(isValidProtocol("pg", HbaProtocol.POSTGRES));
-        assertTrue(isValidProtocol("pg", HbaProtocol.POSTGRES_SSL));
-        assertFalse(isValidProtocol("http", HbaProtocol.POSTGRES));
-        assertTrue(isValidProtocol(null, HbaProtocol.POSTGRES));
+        assertTrue(isValidProtocol("pg", Protocol.POSTGRES));
+        assertFalse(isValidProtocol("http", Protocol.POSTGRES));
+        assertTrue(isValidProtocol(null, Protocol.POSTGRES));
     }
 
     @Test
@@ -219,19 +239,31 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
             .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.OPTIONAL.VALUE).build();
         authService.updateHbaConfig(createHbaConf(sslConfig));
-        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES), not(Optional.empty()));
-        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES_SSL), not(Optional.empty()));
+        assertThat(
+            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
+            not(Optional.empty()));
+        assertThat(
+            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslHandler)),
+            not(Optional.empty()));
 
         sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
             .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.REQUIRED.VALUE).build();
         authService.updateHbaConfig(createHbaConf(sslConfig));
-        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES), is(Optional.empty()));
-        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES_SSL), not(Optional.empty()));
+        assertThat(
+            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
+            is(Optional.empty()));
+        assertThat(
+            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslHandler)),
+                not(Optional.empty()));
 
         sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
             .put(HostBasedAuthentication.SSL_OPTIONS.KEY, HostBasedAuthentication.SSL_OPTIONS.NEVER.VALUE).build();
         authService.updateHbaConfig(createHbaConf(sslConfig));
-        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES), not(Optional.empty()));
-        assertThat(authService.getEntry("crate", LOCALHOST, HbaProtocol.POSTGRES_SSL), is(Optional.empty()));
+        assertThat(
+            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
+            not(Optional.empty()));
+        assertThat(
+            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslHandler)),
+            is(Optional.empty()));
     }
 }

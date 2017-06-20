@@ -21,6 +21,7 @@ package io.crate.operation.auth;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.crate.operation.user.UserLookup;
+import io.crate.protocols.postgres.ConnectionProperties;
 import org.elasticsearch.common.network.Cidrs;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
@@ -101,9 +102,9 @@ public class HostBasedAuthentication implements Authentication {
 
     @Override
     @Nullable
-    public AuthenticationMethod resolveAuthenticationType(String user, InetAddress address, HbaProtocol protocol) {
+    public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connProperties) {
         assert hbaConf != null : "hba configuration is missing";
-        Optional<Map.Entry<String, Map<String, String>>> entry = getEntry(user, address, protocol);
+        Optional<Map.Entry<String, Map<String, String>>> entry = getEntry(user, connProperties);
         if (entry.isPresent()) {
             String methodName = entry.get()
                 .getValue()
@@ -122,15 +123,15 @@ public class HostBasedAuthentication implements Authentication {
     }
 
     @VisibleForTesting
-    Optional<Map.Entry<String, Map<String, String>>> getEntry(String user, InetAddress address, HbaProtocol protocol) {
-        if (user == null || address == null || protocol == null) {
+    Optional<Map.Entry<String, Map<String, String>>> getEntry(String user, ConnectionProperties connectionProperties) {
+        if (user == null || connectionProperties == null) {
             return Optional.empty();
         }
         return hbaConf.entrySet().stream()
             .filter(e -> Matchers.isValidUser(e, user))
-            .filter(e -> Matchers.isValidAddress(e.getValue().get(KEY_ADDRESS), address))
-            .filter(e -> Matchers.isValidProtocol(e.getValue().get(KEY_PROTOCOL), protocol))
-            .filter(e -> Matchers.isValidConnection(e.getValue().get(SSL_OPTIONS.KEY), protocol))
+            .filter(e -> Matchers.isValidAddress(e.getValue().get(KEY_ADDRESS), connectionProperties.address()))
+            .filter(e -> Matchers.isValidProtocol(e.getValue().get(KEY_PROTOCOL), connectionProperties.protocol()))
+            .filter(e -> Matchers.isValidConnection(e.getValue().get(SSL_OPTIONS.KEY), connectionProperties))
             .findFirst();
     }
 
@@ -155,16 +156,16 @@ public class HostBasedAuthentication implements Authentication {
             return minAndMax[0] <= addressAsInt && addressAsInt < minAndMax[1];
         }
 
-        static boolean isValidProtocol(String hbaProtocol, HbaProtocol protocol) {
+        static boolean isValidProtocol(String hbaProtocol, Protocol protocol) {
             return hbaProtocol == null || hbaProtocol.equals(protocol.toString());
         }
 
-        static boolean isValidConnection(String hbaConnectionMode, HbaProtocol protocol) {
+        static boolean isValidConnection(String hbaConnectionMode, ConnectionProperties connectionProperties) {
             return hbaConnectionMode == null ||
                    hbaConnectionMode.isEmpty() ||
                    hbaConnectionMode.equals(SSL_OPTIONS.OPTIONAL.VALUE) ||
-                   (hbaConnectionMode.equals(SSL_OPTIONS.NEVER.VALUE) && protocol == HbaProtocol.POSTGRES) ||
-                   (hbaConnectionMode.equals(SSL_OPTIONS.REQUIRED.VALUE) && protocol == HbaProtocol.POSTGRES_SSL);
+                   (hbaConnectionMode.equals(SSL_OPTIONS.NEVER.VALUE) && !connectionProperties.hasSSL()) ||
+                   (hbaConnectionMode.equals(SSL_OPTIONS.REQUIRED.VALUE) && connectionProperties.hasSSL());
         }
     }
 

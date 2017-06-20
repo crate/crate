@@ -23,17 +23,19 @@
 package io.crate.operation.auth;
 
 import io.crate.operation.user.User;
+import io.crate.protocols.postgres.ConnectionProperties;
 
 import javax.annotation.Nullable;
 
 public interface AuthenticationMethod {
+
     /**
      * @param userName the userName sent with the startup message
      * @return the user or null; null should be handled as if it's a "guest" user
      * @throws RuntimeException if the authentication failed
      */
     @Nullable
-    User authenticate(String userName);
+    User authenticate(String userName, ConnectionProperties connProperties);
 
     /**
      * @return unique name of the authentication method

@@ -26,6 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManagerProvider;
 import io.crate.plugin.PipelineRegistry;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.inject.Inject;
@@ -34,7 +35,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-import java.net.InetAddress;
 import java.util.function.Function;
 
 
@@ -64,7 +64,7 @@ public class AuthenticationProvider implements Provider<Authentication> {
 
         private final AuthenticationMethod alwaysOk = new AuthenticationMethod() {
             @Override
-            public User authenticate(String userName) {
+            public User authenticate(String userName, ConnectionProperties connectionProperties) {
                 return null;
             }
 
@@ -80,7 +80,7 @@ public class AuthenticationProvider implements Provider<Authentication> {
         }
 
         @Override
-        public AuthenticationMethod resolveAuthenticationType(String user, InetAddress address, HbaProtocol protocol) {
+        public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties) {
             return alwaysOk;
         }
     };
