@@ -77,5 +77,12 @@ public class DropUser extends Statement {
     }
 
     @Override
-    public String clazz() { return "CLUSTER";}
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.CLUSTER;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return null;
+    }
 }

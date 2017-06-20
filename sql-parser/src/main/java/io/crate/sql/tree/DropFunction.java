@@ -92,5 +92,12 @@ public class DropFunction extends Statement {
     }
 
     @Override
-    public String clazz() { return "SCHEMA";}
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.SCHEMA;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return name.getParts().get(0);
+    }
 }

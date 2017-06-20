@@ -82,5 +82,12 @@ public class DropTable extends Statement {
     }
 
     @Override
-    public String clazz() { return "TABLE";}
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.TABLE;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return table.getName().toString();
+    }
 }

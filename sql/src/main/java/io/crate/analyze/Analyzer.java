@@ -128,10 +128,12 @@ public class Analyzer {
         Analysis analysis = new Analysis(sessionContext, parameterContext, ParamTypeHints.EMPTY);
         AnalyzedStatement analyzedStatement = analyzedStatement(statement, analysis);
         userManager.ensureAuthorized(analyzedStatement, sessionContext);
-        userManager.raiseMissingPrivilegeException(Privilege.classFromString(statement.clazz()),
-            Privilege.convertPrivilegeType(statement.privilegeType()),
-            sessionContext.defaultSchema(),
-            sessionContext.user());
+        if (!PrivilegeClazz.TABLE.equals(statement.privilegeClazz())) {
+            userManager.raiseMissingPrivilegeException(Privilege.convertPrivilegeClazz(statement.privilegeClazz()),
+                Privilege.convertPrivilegeType(statement.privilegeType()),
+                sessionContext.defaultSchema(),
+                sessionContext.user());
+        }
         analysis.analyzedStatement(analyzedStatement);
         return analysis;
     }

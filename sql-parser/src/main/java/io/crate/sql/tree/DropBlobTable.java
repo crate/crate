@@ -84,5 +84,12 @@ public class DropBlobTable extends Statement {
     }
 
     @Override
-    public String clazz() { return "SCHEMA";}
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.SCHEMA;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return table.getName().getParts().get(0);
+    }
 }

@@ -73,5 +73,12 @@ public class Explain
     }
 
     @Override
-    public String clazz() { return "CLUSTER";}
+    public PrivilegeClazz privilegeClazz() {
+        return PrivilegeClazz.CLUSTER;
+    }
+
+    @Override
+    public String privilegeIdent() {
+        return null;
+    }
 }
