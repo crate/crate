@@ -18,6 +18,7 @@
 
 package io.crate.metadata;
 
+import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -26,7 +27,10 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Objects;
 
 public class UsersMetaData extends AbstractDiffable<MetaData.Custom> implements MetaData.Custom {
 
@@ -103,6 +107,11 @@ public class UsersMetaData extends AbstractDiffable<MetaData.Custom> implements 
                 while ((token = parser.nextToken()) != XContentParser.Token.END_ARRAY && token != null) {
                     users.add(parser.text());
                 }
+            }
+            if (parser.nextToken() != XContentParser.Token.END_OBJECT) {
+                // each custom metadata is packed inside an object.
+                // each custom must move the parser to the end otherwise possible following customs won't be read
+                throw new ElasticsearchParseException("failed to parse users, expected an object token at the end");
             }
         }
         return new UsersMetaData(users);
