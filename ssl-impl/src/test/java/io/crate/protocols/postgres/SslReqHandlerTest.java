@@ -72,8 +72,8 @@ public class SslReqHandlerTest extends CrateUnitTest {
 
     @Test
     public void testSslReqConfiguringHandler() {
-        ConnectionContext ctx =
-            new ConnectionContext(
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
                 new SslReqConfiguringHandler(
                     Settings.EMPTY,
                     // use a simple ssl context

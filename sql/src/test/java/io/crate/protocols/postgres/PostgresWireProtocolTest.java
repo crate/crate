@@ -56,7 +56,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.mockito.Mockito.*;
 
-public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
+public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLOperations sqlOperations;
     private List<SQLOperations.Session> sessions = new ArrayList<>();
@@ -92,8 +92,8 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHandleEmptySimpleQuery() throws Exception {
-        ConnectionContext ctx =
-            new ConnectionContext(
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
                 new SslReqRejectingHandler(Settings.EMPTY),
                 mock(SQLOperations.class),
                 AuthenticationProvider.NOOP_AUTH);
@@ -121,8 +121,8 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
         SQLOperations sqlOperations = mock(SQLOperations.class);
         SQLOperations.Session session = mock(SQLOperations.Session.class);
         when(sqlOperations.createSession(any(SessionContext.class))).thenReturn(session);
-        ConnectionContext ctx =
-            new ConnectionContext(
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
                 new SslReqRejectingHandler(Settings.EMPTY),
                 sqlOperations,
                 new TestAuthentication(null));
@@ -140,8 +140,8 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBindMessageCanBeReadIfTypeForParamsIsUnknown() throws Exception {
-        ConnectionContext ctx =
-            new ConnectionContext(
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
                 new SslReqRejectingHandler(Settings.EMPTY),
                 sqlOperations,
                 new TestAuthentication(null));
@@ -193,8 +193,8 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSslReqRejectingHandler() {
-        ConnectionContext ctx =
-            new ConnectionContext(
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
                 new SslReqRejectingHandler(Settings.EMPTY),
                 mock(SQLOperations.class),
                 AuthenticationProvider.NOOP_AUTH);

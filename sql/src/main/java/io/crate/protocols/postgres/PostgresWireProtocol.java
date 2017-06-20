@@ -51,16 +51,21 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Properties;
 import java.util.function.BiConsumer;
 
-import static io.crate.protocols.postgres.ConnectionContext.State.PRE_STARTUP;
-import static io.crate.protocols.postgres.ConnectionContext.State.STARTUP_HEADER;
 import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
+import static io.crate.protocols.postgres.PostgresWireProtocol.State.PRE_STARTUP;
+import static io.crate.protocols.postgres.PostgresWireProtocol.State.STARTUP_HEADER;
 
 
 /**
- * ConnectionContext for the Postgres wire protocol.<br />
+ * Netty Handler/FrameDecoder for the Postgres wire protocol.<br />
  * This class handles the message flow and dispatching
  * <p>
  * <p>
@@ -158,9 +163,9 @@ import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
  * See https://www.postgresql.org/docs/current/static/protocol-flow.html for a more detailed description of the message flow
  */
 
-class ConnectionContext {
+class PostgresWireProtocol {
 
-    private static final Logger LOGGER = Loggers.getLogger(ConnectionContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(PostgresWireProtocol.class);
 
     final MessageDecoder decoder;
     final MessageHandler handler;
@@ -172,7 +177,6 @@ class ConnectionContext {
     private byte msgType;
     private SQLOperations.Session session;
     private boolean ignoreTillSync = false;
-    private SessionContext sessionContext;
 
     enum State {
         PRE_STARTUP,
@@ -184,7 +188,7 @@ class ConnectionContext {
 
     private State state = PRE_STARTUP;
 
-    ConnectionContext(SslReqHandler sslReqHandler, SQLOperations sqlOperations, Authentication authService) {
+    PostgresWireProtocol(SslReqHandler sslReqHandler, SQLOperations sqlOperations, Authentication authService) {
         this.sqlOperations = sqlOperations;
         this.sslReqHandler = sslReqHandler;
         this.authService = authService;
@@ -279,11 +283,11 @@ class ConnectionContext {
                     throw new IllegalStateException("Decoder should've processed the headers");
 
                 case STARTUP_BODY:
-                    state = ConnectionContext.State.MSG_HEADER;
+                    state = PostgresWireProtocol.State.MSG_HEADER;
                     handleStartupBody(buffer, channel);
                     return;
                 case MSG_BODY:
-                    state = ConnectionContext.State.MSG_HEADER;
+                    state = PostgresWireProtocol.State.MSG_HEADER;
                     LOGGER.trace("msg={} msgLength={} readableBytes={}", ((char) msgType), msgLength, buffer.readableBytes());
 
                     if (ignoreTillSync && msgType != 'S') {
@@ -377,7 +381,7 @@ class ConnectionContext {
                     LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".",
                         user.name(), authMethod.name());
                 }
-                sessionContext = new SessionContext(properties, user);
+                SessionContext sessionContext = new SessionContext(properties, user);
                 session = sqlOperations.createSession(sessionContext);
                 Messages.sendAuthenticationOK(channel)
                     .addListener(f -> sendReadyForQuery(channel));

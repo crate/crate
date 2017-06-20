@@ -137,10 +137,10 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                 @Override
                 protected void initChannel(Channel ch) throws Exception {
                     ChannelPipeline pipeline = ch.pipeline();
-                    ConnectionContext connectionContext =
-                        new ConnectionContext(sslReqHandler, sqlOperations, authentication);
-                    pipeline.addLast("frame-decoder", connectionContext.decoder);
-                    pipeline.addLast("handler", connectionContext.handler);
+                    PostgresWireProtocol postgresWireProtocol =
+                        new PostgresWireProtocol(sslReqHandler, sqlOperations, authentication);
+                    pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);
+                    pipeline.addLast("handler", postgresWireProtocol.handler);
                 }
             });
 

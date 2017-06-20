@@ -33,7 +33,7 @@ import java.util.List;
 /**
  * Class to encode postgres client messages and write them onto a buffer.
  *
- * For more information about the messages see {@link Messages} and {@link ConnectionContext} or refer to
+ * For more information about the messages see {@link Messages} and {@link PostgresWireProtocol} or refer to
  * the PostgreSQL protocol documentation.
  */
 class ClientMessages {
