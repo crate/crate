@@ -141,7 +141,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         } else {
             privilegeTypes = EnumSet.noneOf(PrivilegeType.class);
             for (int i = 0; i < context.privilege().size(); i++) {
-                privilegeTypes.add(PrivilegeType.valueOf(context.privilege(i).getText()));
+                privilegeTypes.add(getPrivilegeType(context.privilege(i).getStart()));
             }
         }
         return new GrantPrivilege(usernames, privilegeTypes);
@@ -157,7 +157,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         } else {
             privilegeTypes = EnumSet.noneOf(PrivilegeType.class);
             for (int i = 0; i < context.privilege().size(); i++) {
-                privilegeTypes.add(PrivilegeType.valueOf(context.privilege(i).getText()));
+                privilegeTypes.add(getPrivilegeType(context.privilege(i).getStart()));
             }
         }
         return new RevokePrivilege(usernames, privilegeTypes);
@@ -1293,6 +1293,18 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             return null;
         }
         return identsToStrings(columnAliasesContext.ident());
+    }
+
+    private static PrivilegeType getPrivilegeType(Token privilege){
+        switch (privilege.getType()) {
+            case SqlBaseLexer.DQL:
+                return PrivilegeType.DQL;
+            case SqlBaseLexer.DDL:
+                return PrivilegeType.DDL;
+            case SqlBaseLexer.DML:
+                return PrivilegeType.DML;
+        }
+        throw new IllegalArgumentException("Unsupported privilege: " + privilege.getText());
     }
 
     private static ArithmeticExpression.Type getArithmeticBinaryOperator(Token operator) {

@@ -389,6 +389,8 @@ public class TestStatementBuilder {
         printStatement("grant ALL PRIVILEGES to wolfie, anna");
         printStatement("grant ALL to wolfie, anna");
         printStatement("grant ALL to anna");
+        printStatement("grant dml to anna");
+        printStatement("grant ddl, dql to anna");
     }
 
     @Test
@@ -400,6 +402,8 @@ public class TestStatementBuilder {
         printStatement("revoke ALL from wolfie");
         printStatement("revoke ALL PRIVILEGES from wolfie, anna, herald");
         printStatement("revoke ALL from wolfie, anna, herald");
+        printStatement("revoke dml from anna");
+        printStatement("revoke ddl, dql from anna");
     }
 
     @Test
