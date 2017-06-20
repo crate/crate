@@ -122,7 +122,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
             nodeJobsCounter.increment(localNodeId);
 
             Function<ShardResponse, BitSet> transformResponseFunction = response -> {
-                currentRequest = requestFactory.get();
                 nodeJobsCounter.decrement(localNodeId);
                 processShardResponse(response);
                 return responses;
@@ -148,6 +147,9 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
                     BACKOFF_POLICY
                 )
             );
+            // The current bulk was submitted to the transport action for execution, so we'll continue to collect and
+            // accumulate data for the next bulk in a new request object
+            currentRequest = requestFactory.get();
             return listener;
         };
     }

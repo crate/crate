@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that could cause ``DELETE`` by query  and ``UPDATE`` 
+   statements to fail on datasets larger than 10_000 rows.
+
  - Improved the resiliency of queries on `sys.nodes`: If a node disconnects
    during the execution of a query it will no longer fail.
 
