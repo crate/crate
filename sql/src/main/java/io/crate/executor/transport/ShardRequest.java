@@ -155,6 +155,16 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
                '}';
     }
 
+    /**
+     * The description is used when creating transport, replication and search tasks and it defaults to `toString`.
+     * Overriding here to return the parent `toString` to avoid using the local, expensive (printing all items)
+     * `toString`.
+     */
+    @Override
+    public String getDescription() {
+        return super.toString();
+    }
+
     protected abstract I readItem(StreamInput input) throws IOException;
 
     /**
