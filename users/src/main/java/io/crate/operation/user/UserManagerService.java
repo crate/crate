@@ -20,16 +20,16 @@ package io.crate.operation.user;
 
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.FutureActionListener;
-import io.crate.metadata.UsersMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.exceptions.UnauthorizedException;
+import io.crate.metadata.UsersMetaData;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 

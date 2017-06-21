@@ -19,22 +19,21 @@
 package io.crate.operation.auth;
 
 import io.crate.operation.user.User;
-import io.crate.operation.user.UserManager;
+import io.crate.operation.user.UserLookup;
 
 
 public class TrustAuthentication implements AuthenticationMethod {
 
     static final String NAME = "trust";
+    private final UserLookup userLookup;
 
-    private final UserManager userManager;
-
-    public TrustAuthentication(UserManager userManager) {
-        this.userManager = userManager;
+    public TrustAuthentication(UserLookup userLookup) {
+        this.userLookup = userLookup;
     }
 
     @Override
     public User authenticate(String userName) {
-        User user = userManager.findUser(userName);
+        User user = userLookup.findUser(userName);
         if (user == null) {
             throw new RuntimeException("trust authentication failed for user \"" + userName + "\"");
         }

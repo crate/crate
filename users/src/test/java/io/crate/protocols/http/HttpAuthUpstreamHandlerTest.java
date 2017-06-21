@@ -19,57 +19,35 @@
 package io.crate.protocols.http;
 
 import io.crate.operation.auth.Authentication;
-import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.AuthenticationProvider;
-import io.crate.operation.auth.HbaProtocol;
-import io.crate.operation.user.User;
+import io.crate.operation.auth.HostBasedAuthentication;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
-import io.netty.handler.codec.http.*;
+import io.netty.handler.codec.http.DefaultFullHttpRequest;
+import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.DefaultHttpRequest;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpRequest;
+import io.netty.handler.codec.http.HttpResponse;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
-import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 
 import static org.hamcrest.core.Is.is;
 
 public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
 
-    private final AuthenticationMethod denyAll = new AuthenticationMethod() {
+    private final Settings settings = Settings.builder()
+        .put("auth.host_based.enabled", true)
+        .put("auth.host_based.config.0.user", "crate")
+        .build();
 
-        @Override
-        public User authenticate(String userName) {
-            throw new RuntimeException("denied");
-        }
-
-        @Override
-        public String name() {
-            return "denyAll";
-        }
-    };
-
-    private final Authentication authService = new Authentication() {
-        @Override
-        public boolean enabled() {
-            return true;
-        }
-
-        @Nullable
-        @Override
-        public AuthenticationMethod resolveAuthenticationType(String user, InetAddress address, HbaProtocol protocol) {
-            // we want to test two things:
-            // 1) the user "null" does not have a hba entry,
-            //    therefore this method does not return an authentication method
-            // 2) all other users have an entry, but they are always denied
-            if ("null".equals(user)) {
-                return null;
-            }
-            return denyAll;
-        }
-    };
+    // UserLookup always returns null, so there are no users (even no default crate super user)
+    private final Authentication authService = new HostBasedAuthentication(settings, userName -> null);
 
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
         assertThat(resp.status(), is(HttpResponseStatus.UNAUTHORIZED));
@@ -131,7 +109,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
-        request.headers().add("X-User", "null");
+        request.headers().add("X-User", "Arthur");
         request.headers().add("X-Real-Ip", "10.1.0.100");
 
         ch.writeInbound(request);
@@ -139,7 +117,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
 
         assertUnauthorized(
             ch.readOutbound(),
-            "No valid auth.host_based.config entry found for host \"10.1.0.100\", user \"null\", protocol \"http\"\n");
+            "No valid auth.host_based.config entry found for host \"10.1.0.100\", user \"Arthur\", protocol \"http\"\n");
     }
 
     @Test
@@ -152,6 +130,6 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         ch.writeInbound(request);
 
         assertFalse(handler.authorized());
-        assertUnauthorized(ch.readOutbound(), "denied\n");
+        assertUnauthorized(ch.readOutbound(), "trust authentication failed for user \"crate\"\n");
     }
 }
