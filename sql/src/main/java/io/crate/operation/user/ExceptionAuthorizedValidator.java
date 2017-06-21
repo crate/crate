@@ -19,23 +19,15 @@
  * software solely pursuant to the terms of the relevant commercial
  * agreement.
  */
-package io.crate.exceptions;
 
-import io.crate.analyze.user.Privilege;
+package io.crate.operation.user;
 
-import java.util.Locale;
+import io.crate.exceptions.MissingPrivilegeException;
 
-public class PermissionDeniedException extends UnauthorizedException {
+public interface ExceptionAuthorizedValidator {
 
-    private static final String MESSAGE_TMPL = "Missing '%s' privilege for user '%s'";
-
-    public PermissionDeniedException(String userName, Privilege.Type type) {
-        super(String.format(Locale.ENGLISH, MESSAGE_TMPL, type, userName));
-    }
-
-    @Override
-    public int errorCode() {
-        return 1;
-    }
-
+    /**
+     * Ensures that the given exception is allowed to be thrown for the given user
+     */
+    void ensureExceptionAuthorized(Throwable t) throws MissingPrivilegeException;
 }

@@ -20,20 +20,20 @@ package io.crate.operation.user;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import io.crate.action.sql.Option;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.CreateUserAnalyzedStatement;
-import io.crate.analyze.DropUserAnalyzedStatement;
-import io.crate.exceptions.UnauthorizedException;
+import com.google.common.collect.Lists;
+import io.crate.exceptions.UserUnknownException;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.Set;
 
 import static io.crate.operation.user.UserManagerService.CRATE_USER;
+import static io.crate.operation.user.UserManagerService.NOOP_EXCEPTION_VALIDATOR;
+import static io.crate.operation.user.UserManagerService.NOOP_STATEMENT_VALIDATOR;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -64,30 +64,46 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testCreateUserStatementCheckPermissionFalse() {
-        expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage(is("User \"null\" is not authorized to execute statement"));
-        userManagerService.ensureAuthorized(new CreateUserAnalyzedStatement(""),
-            new SessionContext(0, Option.NONE, "my_schema", null));
+    public void testGetNoopStatementValidatorForNullUser() throws Exception {
+        StatementAuthorizedValidator validator = userManagerService.getStatementValidator(null);
+        assertThat(validator, is(NOOP_STATEMENT_VALIDATOR));
     }
 
     @Test
-    public void testCreateUserStatementCheckPermissionTrue() {
-        userManagerService.ensureAuthorized(new CreateUserAnalyzedStatement("bla"),
-            new SessionContext(0, Option.NONE, "my_schema", UserManagerService.CRATE_USER));
+    public void testGetNoopStatementValidatorForSuperUser() throws Exception {
+        StatementAuthorizedValidator validator = userManagerService.getStatementValidator(CRATE_USER);
+        assertThat(validator, is(NOOP_STATEMENT_VALIDATOR));
     }
 
     @Test
-    public void testDropUserStatementCheckPermissionFalse() {
-        expectedException.expect(UnauthorizedException.class);
-        expectedException.expectMessage(is("User \"null\" is not authorized to execute statement"));
-        userManagerService.ensureAuthorized(new DropUserAnalyzedStatement("", false),
-            new SessionContext(0, Option.NONE, "my_schema", null));
+    public void testGetNoopExceptionValidatorForNullUser() throws Exception {
+        ExceptionAuthorizedValidator validator = userManagerService.getExceptionValidator(null);
+        assertThat(validator, is(NOOP_EXCEPTION_VALIDATOR));
     }
 
     @Test
-    public void testDropUserStatementCheckPermissionTrue() {
-        userManagerService.ensureAuthorized(new DropUserAnalyzedStatement("bla", false),
-            new SessionContext(0, Option.NONE, "my_schema", UserManagerService.CRATE_USER));
+    public void testGetNoopExceptionValidatorForSuperUser() throws Exception {
+        ExceptionAuthorizedValidator validator = userManagerService.getExceptionValidator(CRATE_USER);
+        assertThat(validator, is(NOOP_EXCEPTION_VALIDATOR));
+    }
+
+    @Test
+    public void testValidateExistingUserName() {
+        // must not throw an exception, user is found
+        UserManagerService.validateUsernames(Lists.newArrayList("ford"), s -> new User(s, Collections.emptySet(), Collections.emptySet()));
+    }
+
+    @Test
+    public void testValidateNonExistingUserNameThrowsException() {
+        expectedException.expect(UserUnknownException.class);
+        expectedException.expectMessage("User 'ford' does not exist");
+        UserManagerService.validateUsernames(Lists.newArrayList("ford"), s -> null);
+    }
+
+    @Test
+    public void testValidateSuperUserThrowsException() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot alter privileges for superuser 'crate'");
+        UserManagerService.validateUsernames(Lists.newArrayList(CRATE_USER.name()), s -> CRATE_USER);
     }
 }

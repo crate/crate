@@ -38,8 +38,6 @@ import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.sys.shard.ShardPathExpression;
 import io.crate.operation.reference.sys.shard.ShardRecoveryStateExpression;
 import io.crate.operation.udf.UserDefinedFunctionService;
-import io.crate.operation.user.UserManager;
-import io.crate.operation.user.UserManagerProvider;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
@@ -96,14 +94,11 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         indexShard = mockIndexShard();
         functions = getFunctions();
         udfService = new UserDefinedFunctionService(clusterService);
-
-        UserManager userManager = new UserManagerProvider.UnsupportedUserManager();
         schemas = new Schemas(
             Settings.EMPTY,
             ImmutableMap.of("sys", new SysSchemaInfo(clusterService)),
             clusterService,
-            new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), functions, udfService),
-            ()-> userManager
+            new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()), functions, udfService)
         );
         resolver = ShardReferenceResolver.create(
             clusterService,

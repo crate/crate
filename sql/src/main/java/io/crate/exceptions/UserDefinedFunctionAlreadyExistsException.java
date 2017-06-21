@@ -26,17 +26,25 @@ import io.crate.operation.udf.UserDefinedFunctionMetaData;
 
 import java.util.Locale;
 
-public class UserDefinedFunctionAlreadyExistsException extends ConflictException {
+public class UserDefinedFunctionAlreadyExistsException extends ConflictException implements SchemaScopeException {
+
+    private String schema;
 
     public UserDefinedFunctionAlreadyExistsException(UserDefinedFunctionMetaData udfMetaData) {
         super(String.format(Locale.ENGLISH, "User defined Function '%s.%s' already exists.",
             udfMetaData.schema(),
             udfMetaData.specificName())
         );
+        this.schema = udfMetaData.schema();
     }
 
     @Override
     public int errorCode() {
         return 8;
+    }
+
+    @Override
+    public String getSchemaName() {
+        return schema;
     }
 }

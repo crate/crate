@@ -25,7 +25,6 @@ package io.crate.metadata;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
-import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnauthorizedException;
@@ -40,14 +39,12 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.udf.UserDefinedFunctionMetaData;
 import io.crate.operation.udf.UserDefinedFunctionsMetaData;
 import io.crate.operation.user.User;
-import io.crate.operation.user.UserManager;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
@@ -70,7 +67,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     private final DocSchemaInfoFactory docSchemaInfoFactory;
     private final Map<String, SchemaInfo> schemas = new ConcurrentHashMap<>();
     private final Map<String, SchemaInfo> builtInSchemas;
-    private Provider<UserManager> userManagerProvider;
 
     private final DefaultTemplateService defaultTemplateService;
 
@@ -78,20 +74,18 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     public Schemas(Settings settings,
                    Map<String, SchemaInfo> builtInSchemas,
                    ClusterService clusterService,
-                   DocSchemaInfoFactory docSchemaInfoFactory,
-                   Provider<UserManager> userManagerProvider) {
+                   DocSchemaInfoFactory docSchemaInfoFactory) {
         super(settings);
         this.clusterService = clusterService;
         this.docSchemaInfoFactory = docSchemaInfoFactory;
         schemas.putAll(builtInSchemas);
         this.builtInSchemas = builtInSchemas;
-        this.userManagerProvider = userManagerProvider;
         this.defaultTemplateService = new DefaultTemplateService(settings, clusterService);
     }
 
     /**
      * @param ident the table ident to get a TableInfo for
-     * @param user  the authenticated user
+     * @param user the authenticated user
      * @return an instance of TableInfo for the given ident, guaranteed to be not null
      * @throws io.crate.exceptions.SchemaUnknownException if schema given in <code>ident</code>
      *                                                    does not exist
@@ -115,9 +109,9 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     }
 
     /**
-     * @param ident     the table ident to get a TableInfo for
+     * @param ident the table ident to get a TableInfo for
      * @param operation The opreation planned to be performed on the table
-     * @param user      the authenticated user
+     * @param user the authenticated user
      * @return an instance of TableInfo for the given ident, guaranteed to be not null and to support the operation
      * required on it.
      * @throws io.crate.exceptions.SchemaUnknownException if schema given in <code>ident</code>
@@ -128,7 +122,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     public <T extends TableInfo> T getTableInfo(TableIdent ident, Operation operation, User user) {
         TableInfo tableInfo = getTableInfo(ident, user);
         Operation.blockedRaiseException(tableInfo, operation);
-        userManagerProvider.get().raiseMissingPrivilegeException(Privilege.Clazz.TABLE, operation.toPrivilegeType(), ident.toString(), user);
         return (T) tableInfo;
     }
 

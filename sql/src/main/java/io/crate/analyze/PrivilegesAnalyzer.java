@@ -25,11 +25,10 @@ package io.crate.analyze;
 import io.crate.analyze.user.Privilege;
 import io.crate.analyze.user.Privilege.State;
 import io.crate.operation.user.User;
-import io.crate.operation.user.UserManager;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.RevokePrivilege;
-import org.elasticsearch.ResourceNotFoundException;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -42,14 +41,9 @@ import java.util.Set;
  */
 class PrivilegesAnalyzer {
 
-    private final UserManager userManager;
+    PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, @Nullable User user) {
+        ensureUserManagementEnabled(user);
 
-    PrivilegesAnalyzer(UserManager userManager) {
-        this.userManager = userManager;
-    }
-
-    PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, User user) {
-        validateUsernames(node.userNames());
         Collection<Privilege.Type> privilegeTypes;
         if (node.all()) {
             privilegeTypes = Privilege.GRANTABLE_TYPES;
@@ -60,8 +54,8 @@ class PrivilegesAnalyzer {
             privilegeTypesToPrivileges(privilegeTypes, user, State.GRANT));
     }
 
-    PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, User user) {
-        validateUsernames(node.userNames());
+    PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, @Nullable User user) {
+        ensureUserManagementEnabled(user);
         Collection<Privilege.Type> privilegeTypes;
         if (node.all()) {
             privilegeTypes = Privilege.GRANTABLE_TYPES;
@@ -72,16 +66,9 @@ class PrivilegesAnalyzer {
             privilegeTypesToPrivileges(privilegeTypes, user, State.REVOKE));
     }
 
-    private void validateUsernames(List<String> userNames) {
-        for (String userName : userNames) {
-            User user = userManager.findUser(userName);
-            if (user == null) {
-                throw new ResourceNotFoundException(String.format(
-                    Locale.ENGLISH, "User %s does not exists", userName));
-            } else if (user.roles().contains(User.Role.SUPERUSER)) {
-                throw new IllegalArgumentException(String.format(
-                    Locale.ENGLISH, "Cannot alter privileges for superuser %s", userName));
-            }
+    private void ensureUserManagementEnabled(@Nullable User user) {
+        if (user == null) {
+            throw new UnsupportedOperationException("User management is not enabled");
         }
     }
 

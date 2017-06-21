@@ -36,8 +36,6 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.operation.udf.UserDefinedFunctionService;
-import io.crate.operation.user.UserManager;
-import io.crate.operation.user.UserManagerProvider;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -69,17 +67,13 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
                 T3.T2_INFO.ident(), T3.T2_INFO
             )
         );
-
-        UserManager userManager = new UserManagerProvider.UnsupportedUserManager();
-
         Schemas schemas = new Schemas(
             Settings.EMPTY,
             ImmutableMap.of(
                 Schemas.DEFAULT_SCHEMA_NAME,
                 new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, docTableInfoFactory)),
             clusterService,
-            new DocSchemaInfoFactory(docTableInfoFactory, functions, udfService),
-            ()-> userManager
+            new DocSchemaInfoFactory(docTableInfoFactory, functions, udfService)
         );
         analyzer = new RelationAnalyzer(clusterService, functions, schemas);
     }

@@ -23,14 +23,22 @@ package io.crate.exceptions;
 
 import java.util.Locale;
 
-public class InvalidSchemaNameException extends ValidationException {
+public class InvalidSchemaNameException extends ValidationException implements SchemaScopeException {
+
+    private final String schemaName;
 
     public InvalidSchemaNameException(String schemaName) {
         super(String.format(Locale.ENGLISH, "schema name \"%s\" is invalid.", schemaName));
+        this.schemaName = schemaName;
     }
 
     @Override
     public int errorCode() {
         return 2;
+    }
+
+    @Override
+    public String getSchemaName() {
+        return schemaName;
     }
 }

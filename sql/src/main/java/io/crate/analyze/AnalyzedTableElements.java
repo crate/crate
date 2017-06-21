@@ -32,6 +32,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -213,8 +214,8 @@ public class AnalyzedTableElements {
             column.validate();
             addCopyToInfo(column);
         }
-        validateIndexDefinitions();
-        validatePrimaryKeys();
+        validateIndexDefinitions(tableIdent);
+        validatePrimaryKeys(tableIdent);
     }
 
     private void validateGeneratedColumns(TableIdent tableIdent,
@@ -228,7 +229,7 @@ public class AnalyzedTableElements {
         }
         tableReferences.addAll(existingColumns);
 
-        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences);
+        TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences, tableIdent);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions, sessionContext, parameterContext, tableReferenceResolver, null);
         SymbolPrinter printer = new SymbolPrinter(functions);
@@ -300,22 +301,22 @@ public class AnalyzedTableElements {
         }
     }
 
-    private void validatePrimaryKeys() {
+    private void validatePrimaryKeys(TableIdent tableIdent) {
         for (String additionalPrimaryKey : additionalPrimaryKeys) {
             ColumnIdent columnIdent = ColumnIdent.fromPath(additionalPrimaryKey);
             if (!columnIdents.contains(columnIdent)) {
-                throw new ColumnUnknownException(columnIdent.sqlFqn());
+                throw new ColumnUnknownException(columnIdent.sqlFqn(), tableIdent);
             }
         }
         // will collect both column constraint and additional defined once and check for duplicates
         primaryKeys();
     }
 
-    private void validateIndexDefinitions() {
+    private void validateIndexDefinitions(TableIdent tableIdent) {
         for (Map.Entry<String, Set<String>> entry : copyToMap.entrySet()) {
             ColumnIdent columnIdent = ColumnIdent.fromPath(entry.getKey());
             if (!columnIdents.contains(columnIdent)) {
-                throw new ColumnUnknownException(columnIdent.sqlFqn());
+                throw new ColumnUnknownException(columnIdent.sqlFqn(), tableIdent);
             }
             if (!columnTypes.get(columnIdent).equalsIgnoreCase("string")) {
                 throw new IllegalArgumentException("INDEX definition only support 'string' typed source columns");
@@ -373,7 +374,7 @@ public class AnalyzedTableElements {
         return result;
     }
 
-    void changeToPartitionedByColumn(ColumnIdent partitionedByIdent, boolean skipIfNotFound) {
+    void changeToPartitionedByColumn(ColumnIdent partitionedByIdent, boolean skipIfNotFound, TableIdent tableIdent) {
         Preconditions.checkArgument(!partitionedByIdent.name().startsWith("_"),
             "Cannot use system columns in PARTITIONED BY clause");
 
@@ -389,7 +390,7 @@ public class AnalyzedTableElements {
             if (skipIfNotFound) {
                 return;
             }
-            throw new ColumnUnknownException(partitionedByIdent.sqlFqn());
+            throw new ColumnUnknownException(partitionedByIdent.sqlFqn(), tableIdent);
         }
         DataType columnType = DataTypes.ofMappingNameSafe(columnDefinition.dataType());
         if (!DataTypes.isPrimitive(columnType)) {

@@ -27,7 +27,7 @@ import org.elasticsearch.snapshots.Snapshot;
 
 import java.util.Locale;
 
-public class CreateSnapshotException extends UnhandledServerException {
+public class CreateSnapshotException extends UnhandledServerException implements ClusterScopeException {
 
     public CreateSnapshotException(Snapshot snapshot, String message) {
         super(String.format(Locale.ENGLISH, "Error creating snapshot '%s.%s': %s",
@@ -37,5 +37,10 @@ public class CreateSnapshotException extends UnhandledServerException {
     @Override
     public int errorCode() {
         return 4;
+    }
+
+    @Override
+    public <C, R> R accept(CrateExceptionVisitor<C, R> exceptionVisitor, C context) {
+        return exceptionVisitor.visitClusterScopeException(this, context);
     }
 }

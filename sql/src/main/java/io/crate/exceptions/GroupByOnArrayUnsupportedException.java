@@ -21,7 +21,10 @@
 
 package io.crate.exceptions;
 
-public class GroupByOnArrayUnsupportedException extends ValidationException {
+/**
+ * This exception can be in the <p>anonymous</p> scope as it can only be thrown when executed with proper authorization.
+ */
+public class GroupByOnArrayUnsupportedException extends ValidationException implements UnscopedException {
 
     public GroupByOnArrayUnsupportedException(String columnName) {
         super("Column \"" + columnName + "\" has a value that is an array. Group by doesn't work on Arrays");

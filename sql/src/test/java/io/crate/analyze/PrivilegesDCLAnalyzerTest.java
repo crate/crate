@@ -25,13 +25,13 @@ package io.crate.analyze;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.user.Privilege;
-import io.crate.exceptions.PermissionDeniedException;
+import io.crate.operation.user.ExceptionAuthorizedValidator;
+import io.crate.operation.user.StatementAuthorizedValidator;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.ResourceNotFoundException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -103,33 +103,24 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     private PrivilegesAnalyzedStatement analyzePrivilegesStatement(String statement) {
         return (PrivilegesAnalyzedStatement) e.analyzer.boundAnalyze(
             SqlParser.createStatement(statement),
-            new SessionContext(0, Option.NONE, null, GRANTOR_TEST_USER), null
+            new SessionContext(0, Option.NONE, null, GRANTOR_TEST_USER, s -> {}, t -> {}), null
         ).analyzedStatement();
     }
 
     @Test
-    public void testGrantToUnknownUserThrowsException() {
-        expectedException.expect(ResourceNotFoundException.class);
-        expectedException.expectMessage("User test does not exists");
+    public void testGrantWithoutUserManagementEnabledThrowsException() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("User management is not enabled");
         e = SQLExecutor.builder(clusterService).build();
         e.analyze("GRANT DQL TO test");
     }
 
     @Test
-    public void testRevokeFromUnknownUserThrowsException() {
-        expectedException.expect(ResourceNotFoundException.class);
-        expectedException.expectMessage("User test does not exists");
+    public void testRevokeWithoutUserManagementEnabledThrowsException() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("User management is not enabled");
         e = SQLExecutor.builder(clusterService).build();
         e.analyze("REVOKE DQL FROM test");
-    }
-
-    @Test
-    public void testGrantPrivilegeToSuperUserThrowsException() {
-        e = SQLExecutor.builder(clusterService, () -> createUserManager(true)).build();
-
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot alter privileges for superuser test");
-        e.analyze("GRANT DQL TO test");
     }
 
     private Privilege privilegeOf(Privilege.State state, Privilege.Type type) {
@@ -151,9 +142,6 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
                 return null;
             }
-            @Override
-            public void ensureAuthorized(AnalyzedStatement analysis, SessionContext sessionContext) {
-            }
             @Nullable
             @Override
             public User findUser(String userName) {
@@ -164,8 +152,16 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
                 return null;
             }
+
             @Override
-            public void raiseMissingPrivilegeException(Privilege.Clazz clazz, Privilege.Type type, String ident, User user) throws PermissionDeniedException {}
+            public StatementAuthorizedValidator getStatementValidator(@Nullable User user) {
+                return s -> {};
+            }
+
+            @Override
+            public ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user) {
+                return t -> {};
+            }
         };
     }
 }

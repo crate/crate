@@ -24,7 +24,7 @@ package io.crate.exceptions;
 
 import java.util.Locale;
 
-public class UserUnknownException extends ResourceUnknownException {
+public class UserUnknownException extends ResourceUnknownException implements UnscopedException {
 
     public UserUnknownException(String userName) {
         super(String.format(

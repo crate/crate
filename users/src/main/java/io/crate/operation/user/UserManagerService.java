@@ -18,17 +18,10 @@
 
 package io.crate.operation.user;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.FutureActionListener;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AnalyzedStatement;
-import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.CreateUserAnalyzedStatement;
-import io.crate.analyze.DropUserAnalyzedStatement;
-import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.analyze.user.Privilege;
-import io.crate.exceptions.PermissionDeniedException;
-import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserUnknownException;
 import io.crate.metadata.UsersMetaData;
@@ -37,8 +30,8 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.Nullable;
 
+import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Locale;
@@ -51,7 +44,17 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     public static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of());
 
-    private static final PermissionVisitor PERMISSION_VISITOR = new PermissionVisitor();
+    static {
+        MetaData.registerPrototype(UsersMetaData.TYPE, UsersMetaData.PROTO);
+        MetaData.registerPrototype(UsersPrivilegesMetaData.TYPE, UsersPrivilegesMetaData.PROTO);
+    }
+
+    @VisibleForTesting
+    static final StatementAuthorizedValidator NOOP_STATEMENT_VALIDATOR = s -> {
+    };
+    @VisibleForTesting
+    static final ExceptionAuthorizedValidator NOOP_EXCEPTION_VALIDATOR = t -> {
+    };
 
     private static final Consumer<User> ENSURE_DROP_USER_NOT_SUPERUSER = user -> {
         if (user != null && user.isSuperUser()) {
@@ -59,11 +62,6 @@ public class UserManagerService implements UserManager, ClusterStateListener {
                 Locale.ENGLISH, "Cannot drop a superuser '%s'", user.name()));
         }
     };
-
-    static {
-        MetaData.registerPrototype(UsersMetaData.TYPE, UsersMetaData.PROTO);
-        MetaData.registerPrototype(UsersPrivilegesMetaData.TYPE, UsersPrivilegesMetaData.PROTO);
-    }
 
     private final TransportCreateUserAction transportCreateUserAction;
     private final TransportDropUserAction transportDropUserAction;
@@ -89,7 +87,8 @@ public class UserManagerService implements UserManager, ClusterStateListener {
                 if (privilegesMetaData != null) {
                     privileges = privilegesMetaData.getUserPrivileges(userName);
                 }
-                usersBuilder.add(new User(userName, ImmutableSet.of(), privileges == null ? ImmutableSet.of() : privileges));
+                usersBuilder.add(new User(userName, ImmutableSet.of(),
+                    privileges == null ? ImmutableSet.of() : privileges));
             }
         }
         return usersBuilder.build();
@@ -111,6 +110,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
         ENSURE_DROP_USER_NOT_SUPERUSER.accept(findUser(userName));
         FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
+            //noinspection PointlessBooleanExpression
             if (r.doesUserExist() == false) {
                 if (ifExists) {
                     return 0L;
@@ -125,6 +125,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     @Override
     public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
+        validateUsernames(userNames, this);
         FutureActionListener<PrivilegesResponse, Long> listener = new FutureActionListener<>(PrivilegesResponse::affectedRows);
         transportPrivilegesAction.execute(new PrivilegesRequest(userNames, privileges), listener);
         return listener;
@@ -135,9 +136,31 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     }
 
     @Override
-    public void ensureAuthorized(AnalyzedStatement analyzedStatement,
-                                 SessionContext sessionContext) {
-        PERMISSION_VISITOR.process(analyzedStatement, sessionContext);
+    public StatementAuthorizedValidator getStatementValidator(@Nullable User user) {
+        if (authorizedValidationRequired(user)) {
+            return new StatementPrivilegeValidator(user);
+        }
+        return NOOP_STATEMENT_VALIDATOR;
+    }
+
+    @Override
+    public ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user) {
+        if (authorizedValidationRequired(user)) {
+            return new ExceptionPrivilegeValidator(user);
+        }
+        return NOOP_EXCEPTION_VALIDATOR;
+    }
+
+    @SuppressWarnings({"SimplifiableIfStatement", "PointlessBooleanExpression"})
+    private boolean authorizedValidationRequired(@Nullable User user) {
+        if (user == null) {
+            // this can occur when the hba setting is not there,
+            // in this case there is no authentication and everyone
+            // can access the cluster
+            return false;
+        }
+
+        return user.isSuperUser() == false;
     }
 
     @Override
@@ -152,7 +175,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     @Nullable
     public User findUser(String userName) {
-        for (User user: users()) {
+        for (User user : users()) {
             if (userName.equals(user.name())) {
                 return user;
             }
@@ -160,73 +183,16 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         return null;
     }
 
-    @Override
-    public void raiseMissingPrivilegeException(Privilege.Clazz clazz, @Nullable Privilege.Type type, String ident, @Nullable User user) throws PermissionDeniedException {
-        if (null == type) {
-            return;
-        }
-
-        if (null == user) {
-            // this can occur when the hba setting is not there,
-            // in this case there is no authentication and everyone
-            // can access the cluster
-            return;
-        }
-
-        if (!user.isSuperUser() && Privilege.Type.DCL.equals(type)) {
-            throw new PermissionDeniedException(user.name(), type);
-        }
-
-        if (user.isSuperUser()) {
-            return;
-        } else if (!user.hasPrivilege(type, clazz, ident)) {
-            throw new PermissionDeniedException(user.name(), type);
-        }
-    }
-
-    private static class PermissionVisitor extends AnalyzedStatementVisitor<SessionContext, Boolean> {
-
-        boolean isSuperUser(@Nullable User user) {
-            return user != null && user.isSuperUser();
-        }
-
-        private void throwUnauthorized(@Nullable User user) {
-            String userName = user != null ? user.name() : null;
-            throw new UnauthorizedException(
-                String.format(Locale.ENGLISH, "User \"%s\" is not authorized to execute statement", userName));
-        }
-
-        @Override
-        protected Boolean visitAnalyzedStatement(AnalyzedStatement analyzedStatement,
-                                                 SessionContext sessionContext) {
-            return true;
-        }
-
-        @Override
-        protected Boolean visitCreateUserStatement(CreateUserAnalyzedStatement analysis,
-                                                   SessionContext sessionContext) {
-            if (!isSuperUser(sessionContext.user())) {
-                throwUnauthorized(sessionContext.user());
+    @VisibleForTesting
+    static void validateUsernames(Collection<String> userNames, UserLookup userLookup) {
+        for (String userName : userNames) {
+            User user = userLookup.findUser(userName);
+            if (user == null) {
+                throw new UserUnknownException(userName);
+            } else if (user.isSuperUser()) {
+                throw new UnsupportedOperationException(String.format(
+                    Locale.ENGLISH, "Cannot alter privileges for superuser '%s'", userName));
             }
-            return true;
-        }
-
-        @Override
-        protected Boolean visitDropUserStatement(DropUserAnalyzedStatement analysis,
-                                                 SessionContext sessionContext) {
-            if (!isSuperUser(sessionContext.user())) {
-                throwUnauthorized(sessionContext.user());
-            }
-            return true;
-        }
-
-        @Override
-        public Boolean visitPrivilegesStatement(PrivilegesAnalyzedStatement analysis,
-                                                SessionContext context) {
-            if (!isSuperUser(context.user())) {
-                throwUnauthorized(context.user());
-            }
-            return true;
         }
     }
 }

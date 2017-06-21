@@ -22,11 +22,7 @@
 
 package io.crate.operation.user;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.user.Privilege;
-import io.crate.exceptions.PermissionDeniedException;
-import io.crate.exceptions.UnauthorizedException;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -63,20 +59,14 @@ public interface UserManager extends UserLookup {
     CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges);
 
     /**
-     * checks if user is allowed to execute statement
-     * @param analysis          analysed statement
-     * @param sessionContext    current session context
-     * @throws UnauthorizedException if the user is not authorized to perform the statement
+     * Look up a statement authorization validator for the given user.
+     * All statements will be validated by this before planning/executing.
      */
-    void ensureAuthorized(AnalyzedStatement analysis, SessionContext sessionContext);
+    StatementAuthorizedValidator getStatementValidator(@Nullable User user);
 
     /**
-     * Throws PermissionDeniedException if user is not authorized to perform the statement
-     * @param clazz          privilege class (ie. CLUSTER, TABLE, etc)
-     * @param type           privilege type
-     * @param user           user
-     * @throws PermissionDeniedException if the user is not authorized to perform the statement
+     * Look up a exception authorization validator for the given user.
+     * All exceptions will be validated by this before sending them to the client.
      */
-    void raiseMissingPrivilegeException(Privilege.Clazz clazz, @Nullable Privilege.Type type, String ident, @Nullable User user) throws PermissionDeniedException;
-
+    ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user);
 }

@@ -122,7 +122,7 @@ abstract class AbstractInsertAnalyzer {
     private Reference addColumn(ColumnIdent column, AbstractInsertAnalyzedStatement context, int i) {
         Preconditions.checkArgument(!column.name().startsWith("_"), "Inserting system columns is not allowed");
         if (ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply(column.name())) {
-            throw new InvalidColumnNameException(column.name());
+            throw new InvalidColumnNameException(column.name(), context.tableInfo().ident());
         }
 
         // set primary key column if found

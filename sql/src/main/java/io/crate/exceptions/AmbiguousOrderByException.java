@@ -22,13 +22,23 @@
 
 package io.crate.exceptions;
 
+import io.crate.analyze.TableIdentsExtractor;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.TableIdent;
 
 import java.util.Locale;
 
-public class AmbiguousOrderByException extends ValidationException {
+public class AmbiguousOrderByException extends ValidationException implements TableScopeException {
+
+    private final Symbol orderBySymbol;
 
     public AmbiguousOrderByException(Symbol orderBy) {
         super(String.format(Locale.ENGLISH, "Order by \"%s\" is ambiguous", orderBy));
+        this.orderBySymbol = orderBy;
+    }
+
+    @Override
+    public Iterable<TableIdent> getTableIdents() {
+        return TableIdentsExtractor.extract(orderBySymbol);
     }
 }

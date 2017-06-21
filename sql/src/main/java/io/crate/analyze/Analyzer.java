@@ -29,12 +29,51 @@ import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
-import io.crate.operation.user.UserManager;
-import io.crate.operation.user.UserManagerProvider;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.AlterBlobTable;
+import io.crate.sql.tree.AlterTable;
+import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.AlterTableOpenClose;
+import io.crate.sql.tree.AlterTableRename;
+import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.BeginStatement;
+import io.crate.sql.tree.CopyFrom;
+import io.crate.sql.tree.CopyTo;
+import io.crate.sql.tree.CreateAnalyzer;
+import io.crate.sql.tree.CreateBlobTable;
+import io.crate.sql.tree.CreateFunction;
+import io.crate.sql.tree.CreateRepository;
+import io.crate.sql.tree.CreateSnapshot;
+import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.Delete;
+import io.crate.sql.tree.DropBlobTable;
+import io.crate.sql.tree.DropFunction;
+import io.crate.sql.tree.DropRepository;
+import io.crate.sql.tree.DropSnapshot;
+import io.crate.sql.tree.DropTable;
+import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.Explain;
+import io.crate.sql.tree.GrantPrivilege;
+import io.crate.sql.tree.InsertFromSubquery;
+import io.crate.sql.tree.InsertFromValues;
+import io.crate.sql.tree.KillStatement;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.OptimizeStatement;
+import io.crate.sql.tree.Query;
+import io.crate.sql.tree.RefreshStatement;
+import io.crate.sql.tree.ResetStatement;
+import io.crate.sql.tree.RestoreSnapshot;
+import io.crate.sql.tree.RevokePrivilege;
+import io.crate.sql.tree.SetStatement;
+import io.crate.sql.tree.ShowColumns;
+import io.crate.sql.tree.ShowCreateTable;
+import io.crate.sql.tree.ShowSchemas;
+import io.crate.sql.tree.ShowTables;
+import io.crate.sql.tree.ShowTransaction;
+import io.crate.sql.tree.Statement;
+import io.crate.sql.tree.Update;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 
@@ -73,7 +112,6 @@ public class Analyzer {
     private final UnboundAnalyzer unboundAnalyzer;
     private final CreateFunctionAnalyzer createFunctionAnalyzer;
     private final DropFunctionAnalyzer dropFunctionAnalyzer;
-    private final UserManager userManager;
     private final PrivilegesAnalyzer privilegesAnalyzer;
 
     @Inject
@@ -82,8 +120,7 @@ public class Analyzer {
                     ClusterService clusterService,
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
-                    RepositoryParamValidator repositoryParamValidator,
-                    Provider<UserManager> userManagerProvider) {
+                    RepositoryParamValidator repositoryParamValidator) {
         NumberOfShards numberOfShards = new NumberOfShards(clusterService);
         this.relationAnalyzer = new RelationAnalyzer(clusterService, functions, schemas);
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
@@ -120,14 +157,13 @@ public class Analyzer {
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
-        this.userManager = userManagerProvider.get();
-        this.privilegesAnalyzer = new PrivilegesAnalyzer(userManager);
+        this.privilegesAnalyzer = new PrivilegesAnalyzer();
     }
 
     public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
         Analysis analysis = new Analysis(sessionContext, parameterContext, ParamTypeHints.EMPTY);
         AnalyzedStatement analyzedStatement = analyzedStatement(statement, analysis);
-        userManager.ensureAuthorized(analyzedStatement, sessionContext);
+        sessionContext.ensureStatementAuthorized(analyzedStatement);
         analysis.analyzedStatement(analyzedStatement);
         return analysis;
     }

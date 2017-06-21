@@ -95,8 +95,8 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     public void testGrantPrivilegeToSuperuserThrowsException() {
         String superuserName = UserManagerService.CRATE_USER.name();
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("SQLParseException: Cannot alter privileges for superuser " +
-                                        superuserName);
-        execute("grant DQL to " + superuserName);
+        expectedException.expectMessage("UnsupportedFeatureException: Cannot alter privileges for superuser '" +
+                                        superuserName + "'");
+        executeAsSuperuser("grant DQL to " + superuserName);
     }
 }

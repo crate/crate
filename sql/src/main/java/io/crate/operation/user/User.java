@@ -23,7 +23,6 @@
 package io.crate.operation.user;
 
 import io.crate.analyze.user.Privilege;
-
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -74,6 +73,17 @@ public class User {
             .filter(p -> p.type().equals(type))
             .findFirst();
         return hasPrivilege.isPresent();
+    }
+
+    /**
+     * Checks if the user has any privilege that matches the given class, type and ident
+     * currently we check for any privilege, since Class is always CLUSTER and ident null.
+     *
+     * @param clazz privilege class (ie. CLUSTER, TABLE, etc)
+     * @param ident ident of the object
+     */
+    public boolean hasAnyPrivilege(Privilege.Clazz clazz, String ident) {
+        return privileges().size() > 0;
     }
 
     @Override

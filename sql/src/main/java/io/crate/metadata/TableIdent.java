@@ -28,6 +28,7 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.sql.Identifiers;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -45,7 +46,11 @@ public class TableIdent {
     private final String name;
 
     public static TableIdent of(Table tableNode, String defaultSchema) {
-        List<String> parts = tableNode.getName().getParts();
+        return of(tableNode.getName(), defaultSchema);
+    }
+
+    public static TableIdent of(QualifiedName name, String defaultSchema) {
+        List<String> parts = name.getParts();
         Preconditions.checkArgument(parts.size() < 3,
             "Table with more then 2 QualifiedName parts is not supported. only <schema>.<tableName> works.");
         if (parts.size() == 2) {
@@ -105,7 +110,7 @@ public class TableIdent {
             throw new InvalidSchemaNameException(schema);
         }
         if (!isValidTableOrSchemaName(name)) {
-            throw new InvalidTableNameException(name);
+            throw new InvalidTableNameException(this);
         }
     }
 
