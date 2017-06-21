@@ -28,11 +28,11 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.protocols.http.CrateNettyHttpServerTransport;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.Protocol;
 import io.crate.operation.user.User;
+import io.crate.protocols.http.CrateNettyHttpServerTransport;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
@@ -42,10 +42,10 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.ByteToMessageDecoder;
-import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -56,6 +56,7 @@ import java.util.Locale;
 import java.util.Properties;
 import java.util.function.BiConsumer;
 
+import static io.crate.protocols.SSL.getSession;
 import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
 import static io.crate.protocols.postgres.PostgresWireProtocol.State.PRE_STARTUP;
 import static io.crate.protocols.postgres.PostgresWireProtocol.State.STARTUP_HEADER;
@@ -350,8 +351,8 @@ class PostgresWireProtocol {
         String userName = properties.getProperty("user");
         InetAddress address = CrateNettyHttpServerTransport.getRemoteAddress(channel);
 
-        SslHandler sslHandler = channel.pipeline().get(SslHandler.class);
-        ConnectionProperties connProperties = new ConnectionProperties(address, Protocol.POSTGRES, sslHandler);
+        SSLSession sslSession = getSession(channel);
+        ConnectionProperties connProperties = new ConnectionProperties(address, Protocol.POSTGRES, sslSession);
 
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(userName, connProperties);
         if (authMethod == null) {

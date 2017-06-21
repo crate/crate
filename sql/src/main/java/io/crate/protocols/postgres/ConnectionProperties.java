@@ -23,21 +23,31 @@
 package io.crate.protocols.postgres;
 
 import io.crate.operation.auth.Protocol;
-import io.netty.handler.ssl.SslHandler;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
+import java.security.cert.Certificate;
 
 public class ConnectionProperties {
+
+    private final static Logger LOGGER = Loggers.getLogger(ConnectionProperties.class);
 
     private final InetAddress address;
     private final Protocol protocol;
     private final boolean hasSSL;
 
-    public ConnectionProperties(InetAddress address, Protocol protocol, @Nullable SslHandler sslHandler) {
+    @Nullable
+    private final SSLSession sslSession;
+
+    public ConnectionProperties(InetAddress address, Protocol protocol, @Nullable SSLSession sslSession) {
         this.address = address;
         this.protocol = protocol;
-        this.hasSSL = sslHandler != null;
+        this.hasSSL = sslSession != null;
+        this.sslSession = sslSession;
     }
 
     public boolean hasSSL() {
@@ -50,5 +60,17 @@ public class ConnectionProperties {
 
     public Protocol protocol() {
         return protocol;
+    }
+
+    public Certificate clientCert() {
+        // This logic isn't in the constructor to prevent logging in case of SSL without (expected) client-certificate auth
+        if (sslSession != null) {
+            try {
+                return sslSession.getPeerCertificates()[0];
+            } catch (ArrayIndexOutOfBoundsException | SSLPeerUnverifiedException e) {
+                LOGGER.debug("Client certificate not available", e);
+            }
+        }
+        return null;
     }
 }

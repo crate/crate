@@ -77,6 +77,7 @@ public class HostBasedAuthentication implements Authentication {
         enabled = AuthenticationProvider.AUTH_HOST_BASED_ENABLED_SETTING.setting().get(settings);
         hbaConf = convertHbaSettingsToHbaConf(AuthenticationProvider.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings));
         authMethodRegistry.put(TrustAuthentication.NAME, () -> new TrustAuthentication(userLookup));
+        authMethodRegistry.put(ClientCertAuth.NAME, () -> new ClientCertAuth(userLookup));
     }
 
     void updateHbaConfig(Map<String, Map<String, String>> hbaMap) {

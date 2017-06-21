@@ -1847,9 +1847,11 @@ The meaning of the fields of the are as follows:
 **auth.host_based.config.${order}.method**
   | *Runtime:* ``no``
 
-  | The authentication method to use when a connection matches this entry. At
-  | the moment only the ``trust`` method is available. If no method is
-  | specified, the ``trust`` method is used by default (see :ref:`auth_trust`).
+  | The authentication method to use when a connection matches this entry. 
+  | Valid values are ``trust`` and ``cert``. If no method is
+  | specified, the ``trust`` method is used by default.
+  | See :ref:`auth_trust` and :ref:`auth_cert` for more information about the 
+  | methods.
 
 **auth.host_based.config.${order}.protocol**
   | *Runtime:* ``no``

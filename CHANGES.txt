@@ -36,6 +36,8 @@ Breaking Changes (Packaging only)
 Changes
 =======
 
+ - Added support for client certificate authentication via HBA.
+
  - Added SSL/TLS support for HTTP endpoints.
 
  - Added new HBA setting ``ssl`` which allows to control whether

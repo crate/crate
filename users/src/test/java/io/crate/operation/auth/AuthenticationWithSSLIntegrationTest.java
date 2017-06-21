@@ -89,6 +89,8 @@ public class AuthenticationWithSSLIntegrationTest extends SQLTransportIntegratio
                 "g",
                 new String[]{"user", HostBasedAuthentication.SSL_OPTIONS.KEY},
                 new String[]{"neverssluser", HostBasedAuthentication.SSL_OPTIONS.NEVER.VALUE})
+            .put("auth.host_based.config.h.user", "localhost") // cert used in tests has CN=localhost, username needs to match
+            .put("auth.host_based.config.h.method", "cert")
             .build();
     }
 
@@ -120,6 +122,37 @@ public class AuthenticationWithSSLIntegrationTest extends SQLTransportIntegratio
         try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}
     }
 
+    @Test
+    public void testClientCertAuthWithValidCert() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty("user", "crate");
+        try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
+            conn.createStatement().execute("CREATE USER localhost");
+        }
+
+        try {
+            System.setProperty("javax.net.ssl.trustStore", keyStoreFile.getAbsolutePath());
+            System.setProperty("javax.net.ssl.trustStorePassword", "keystorePassword");
+            properties.setProperty("user", "localhost");
+            properties.setProperty("ssl", "true");
+            try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
+            }
+        } finally {
+            System.clearProperty("javax.net.ssl.trustStore");
+            System.clearProperty("javax.net.ssl.trustStorePassword");
+        }
+    }
+
+    @Test
+    public void testClientCertAuthWithoutCert() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty("user", "localhost");
+        properties.setProperty("ssl", "true");
+        expectedException.expectMessage("Client certificate authentication failed for user \"localhost\"");
+        try (Connection ignored = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {}
+    }
+
+
     @After
     public void dropUsers() throws SQLException {
         Properties properties = new Properties();
@@ -129,6 +162,7 @@ public class AuthenticationWithSSLIntegrationTest extends SQLTransportIntegratio
             conn.createStatement().execute("DROP USER IF EXISTS requiredsslruser");
             conn.createStatement().execute("DROP USER IF EXISTS optionalssluser");
             conn.createStatement().execute("DROP USER IF EXISTS neverssluser");
+            conn.createStatement().execute("DROP USER IF EXISTS localhost");
         }
     }
 

@@ -33,7 +33,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
+import java.security.cert.Certificate;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,6 +47,7 @@ import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidUs
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.when;
 
 
 public class HostBasedAuthenticationTest extends CrateUnitTest {
@@ -72,7 +75,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
     private static final InetAddress LOCALHOST = InetAddresses.forString("127.0.0.1");
 
     private HostBasedAuthentication authService;
-    private SslHandler sslHandler;
+    private SSLSession sslSession;
 
     @Before
     private void setUpTest() throws Exception {
@@ -82,11 +85,12 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         authService = new HostBasedAuthentication(settings, null);
 
         SelfSignedCertificate ssc = new SelfSignedCertificate();
-        sslHandler = SslContextBuilder
+        SslHandler sslHandler = SslContextBuilder
             .forServer(ssc.certificate(), ssc.privateKey())
             .trustManager(InsecureTrustManagerFactory.INSTANCE)
             .startTls(false)
             .build().newHandler(ByteBufAllocator.DEFAULT);
+        sslSession = sslHandler.engine().getSession();
     }
 
     @SafeVarargs
@@ -244,7 +248,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
             not(Optional.empty()));
         assertThat(
-            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslHandler)),
+            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslSession)),
             not(Optional.empty()));
 
         sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
@@ -254,7 +258,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
             is(Optional.empty()));
         assertThat(
-            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslHandler)),
+            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslSession)),
                 not(Optional.empty()));
 
         sslConfig = ImmutableMap.<String, String>builder().putAll(HBA_1)
@@ -264,7 +268,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
             not(Optional.empty()));
         assertThat(
-            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslHandler)),
+            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslSession)),
             is(Optional.empty()));
     }
 
@@ -274,9 +278,10 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         baseConfig.putAll(HBA_1);
         baseConfig.put(HostBasedAuthentication.KEY_PROTOCOL, "http");
 
-        SslHandler sslHandler = Mockito.mock(SslHandler.class);
+        SSLSession sslSession = Mockito.mock(SSLSession.class);
+        when(sslSession.getPeerCertificates()).thenReturn(new Certificate[0]);
         ConnectionProperties sslConnProperties =
-            new ConnectionProperties(LOCALHOST, Protocol.HTTP, sslHandler);
+            new ConnectionProperties(LOCALHOST, Protocol.HTTP, sslSession);
         ConnectionProperties noSslConnProperties =
             new ConnectionProperties(LOCALHOST, Protocol.HTTP, null);
 

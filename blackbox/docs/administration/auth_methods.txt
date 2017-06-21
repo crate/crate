@@ -39,3 +39,30 @@ setting like this:
     auth:
       host_based:
         http_default_user: dustin
+
+
+.. _auth_cert:
+
+Client Certificate Authentication Method
+========================================
+
+When the ``cert`` authentication method is used, the client has to connect to
+CrateDB using SSL with a valid client certificate. 
+
+If connecting via HTTP where the username is optional, the ``common name`` will
+be used as username. In case a username is already provided, it has to match
+the ``common name`` of the certificate. Otherwise the authentication will fail.
+See :ref:`auth_trust` on how to provide a username via HTTP.
+
+The rule that the ``common name`` must match the provided username always
+applies to the postgres wire protocol, as there the username isn't optional.
+
+Please consult the relevant client documentations for instructions on how to
+connect using SSL with client certificate.
+
+
+.. seealso::
+
+  :ref:`administration_hba`
+
+  :doc:`/administration/ssl`

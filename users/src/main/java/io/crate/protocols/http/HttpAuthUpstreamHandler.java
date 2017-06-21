@@ -36,7 +36,6 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.InetAddresses;
@@ -47,6 +46,7 @@ import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
+import static io.crate.protocols.SSL.getSession;
 import static io.netty.buffer.Unpooled.copiedBuffer;
 
 
@@ -76,11 +76,12 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         }
     }
 
+
     private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest request) {
         String username = userFromRequest(request);
         InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
-        SslHandler sslHandler = ctx.channel().pipeline().get(SslHandler.class);
-        ConnectionProperties connectionProperties = new ConnectionProperties(address, Protocol.HTTP, sslHandler);
+        ConnectionProperties connectionProperties =
+            new ConnectionProperties(address, Protocol.HTTP, getSession(ctx.channel()));
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, connectionProperties);
         if (authMethod == null) {
             String errorMessage = String.format(
