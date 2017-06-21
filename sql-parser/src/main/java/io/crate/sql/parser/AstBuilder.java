@@ -34,7 +34,6 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -134,33 +133,25 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitGrantPrivilege(SqlBaseParser.GrantPrivilegeContext context) {
         List<String> usernames = identsToStrings(context.ident());
-        EnumSet<PrivilegeType> privilegeTypes;
 
         if (context.ALL() != null) {
-            privilegeTypes = EnumSet.allOf(PrivilegeType.class);
+            return new GrantPrivilege(usernames);
         } else {
-            privilegeTypes = EnumSet.noneOf(PrivilegeType.class);
-            for (int i = 0; i < context.privilege().size(); i++) {
-                privilegeTypes.add(getPrivilegeType(context.privilege(i).getStart()));
-            }
+            List<String> privilegeTypes = identsToStrings(context.privilegeTypes().ident());
+            return new GrantPrivilege(usernames, privilegeTypes);
         }
-        return new GrantPrivilege(usernames, privilegeTypes);
     }
 
     @Override
     public Node visitRevokePrivilege(SqlBaseParser.RevokePrivilegeContext context) {
         List<String> usernames = identsToStrings(context.ident());
-        EnumSet<PrivilegeType> privilegeTypes;
 
         if (context.ALL() != null) {
-            privilegeTypes = EnumSet.allOf(PrivilegeType.class);
+            return new RevokePrivilege(usernames);
         } else {
-            privilegeTypes = EnumSet.noneOf(PrivilegeType.class);
-            for (int i = 0; i < context.privilege().size(); i++) {
-                privilegeTypes.add(getPrivilegeType(context.privilege(i).getStart()));
-            }
+            List<String> privilegeTypes = identsToStrings(context.privilegeTypes().ident());
+            return new RevokePrivilege(usernames, privilegeTypes);
         }
-        return new RevokePrivilege(usernames, privilegeTypes);
     }
 
     @Override
@@ -732,11 +723,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return literal.getValue();
     }
 
-    private String getPrivilege(SqlBaseParser.PrivilegeContext privilege) {
-        StringLiteral literal = (StringLiteral) visit(privilege);
-        return literal.getValue();
-    }
-
     private Optional<String> getIdentTextIfPresent(SqlBaseParser.IdentContext ident) {
         return Optional.ofNullable(ident).map(this::getIdentText);
     }
@@ -1293,18 +1279,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
             return null;
         }
         return identsToStrings(columnAliasesContext.ident());
-    }
-
-    private static PrivilegeType getPrivilegeType(Token privilege){
-        switch (privilege.getType()) {
-            case SqlBaseLexer.DQL:
-                return PrivilegeType.DQL;
-            case SqlBaseLexer.DDL:
-                return PrivilegeType.DDL;
-            case SqlBaseLexer.DML:
-                return PrivilegeType.DML;
-        }
-        throw new IllegalArgumentException("Unsupported privilege: " + privilege.getText());
     }
 
     private static ArithmeticExpression.Type getArithmeticBinaryOperator(Token operator) {

@@ -71,10 +71,8 @@ statement
     | DROP FUNCTION (IF EXISTS)? name=qname
         '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
     | DROP USER (IF EXISTS)? name=ident                                              #dropUser
-    | GRANT (privilege (',' privilege)* | ALL (PRIVILEGES)?)
-     TO (ident (',' ident)* )                                                        #grantPrivilege
-    | REVOKE (privilege (',' privilege)* | ALL (PRIVILEGES)?)
-     FROM (ident (',' ident)* )                                                      #revokePrivilege
+    | GRANT ( privilegeTypes | ALL (PRIVILEGES)? ) TO ( ident (',' ident)* )         #grantPrivilege
+    | REVOKE ( privilegeTypes | ALL (PRIVILEGES)? ) FROM ( ident (',' ident)* )      #revokePrivilege
     | createStmt                                                                     #create
     ;
 
@@ -182,6 +180,10 @@ aliasedColumns
 
 expr
     : booleanExpression
+    ;
+
+privilegeTypes
+    : ident (',' ident)*
     ;
 
 booleanExpression
@@ -390,12 +392,6 @@ columns
     : '(' primaryExpression (',' primaryExpression)* ')'
     ;
 
-privilege
-    : DQL
-    | DML
-    | DDL
-    ;
-
 assignment
     : primaryExpression EQ expr
     ;
@@ -576,7 +572,7 @@ nonReserved
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
     | ISOLATION | TRANSACTION | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME | USER
-    | PRIVILEGES | DQL | DDL | DML
+    | PRIVILEGES
     ;
 
 SELECT: 'SELECT';
@@ -778,9 +774,6 @@ READ: 'READ';
 USER: 'USER';
 GRANT: 'GRANT';
 REVOKE: 'REVOKE';
-DML: 'DML';
-DQL: 'DQL';
-DDL: 'DDL';
 PRIVILEGES: 'PRIVILEGES';
 
 

@@ -342,7 +342,11 @@ public final class SqlFormatter {
         @Override
         public Void visitGrantPrivilege(GrantPrivilege node, Integer indent) {
             builder.append("GRANT ");
-            appendPrivilegesList(node.privileges());
+            if (node.privileges().isEmpty()) {
+                builder.append(" ALL ");
+            } else {
+                appendPrivilegesList(node.privileges());
+            }
             builder.append(" TO ");
             appendUsersList(node.userNames());
             return null;
@@ -351,7 +355,11 @@ public final class SqlFormatter {
         @Override
         public Void visitRevokePrivilege(RevokePrivilege node, Integer indent) {
             builder.append("REVOKE ");
-            appendPrivilegesList(node.privileges());
+            if (node.privileges().isEmpty()) {
+                builder.append(" ALL ");
+            } else {
+                appendPrivilegesList(node.privileges());
+            }
             builder.append(" FROM ");
             appendUsersList(node.userNames());
             return null;
@@ -611,10 +619,10 @@ public final class SqlFormatter {
             return null;
         }
 
-        private Void appendPrivilegesList(EnumSet<PrivilegeType> privilegeTypes){
+        private Void appendPrivilegesList(List<String> privilegeTypes){
             int j = 0;
-            for (PrivilegeType privilegeType : privilegeTypes) {
-                builder.append(privilegeType.toString());
+            for (String privilegeType : privilegeTypes) {
+                builder.append(privilegeType);
                 if (j < privilegeTypes.size() - 1) {
                     builder.append(", ");
                 }
