@@ -123,6 +123,34 @@ its within the corresponding range. Example::
     ... );
     CREATE OK, 1 row affected (... sec)
 
+Special Floating Point Values
+-----------------------------
+
+CrateDB conforms to the `IEEE 754`_ standard concerning special values for
+floating point types (``float``, ``double``). This means that it also
+supports  ``NaN``, ``Infinity``, ``-Infinity`` (negative infinity), and ``-0``
+(signed zero).
+
+::
+
+    cr> SELECT 0.0 / 0.0, 1.0 / 0.0, 1.0 / -0.0;
+    +-------------+-------------+---------------+
+    | (0.0 / 0.0) | (1.0 / 0.0) | (1.0 / - 0.0) |
+    +-------------+-------------+---------------+
+    | NaN         | Infinity    | -Infinity     |
+    +-------------+-------------+---------------+
+    SELECT 1 row in set (... sec)
+
+These special numeric values can also be inserted into a column of type
+``float`` or ``double`` using a ``string`` literal.
+
+::
+
+    cr> INSERT INTO my_table3 (fourth_column, fifth_column)
+    ... VALUES ('NaN', 'Infinity');
+    INSERT OK, 1 row affected (... sec)
+
+
 ``ip``
 ======
 
@@ -776,3 +804,4 @@ Trying to cast a ``string`` to ``integer``, will fail with ``cast`` if
 .. _Quadtree: https://en.wikipedia.org/wiki/Quadtree
 .. _Trie: https://en.wikipedia.org/wiki/Trie
 .. _Tries: https://en.wikipedia.org/wiki/Trie
+.. _IEEE 754: http://ieeexplore.ieee.org/document/30711/?arnumber=30711&filter=AND(p_Publication_Number:2355)
