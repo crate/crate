@@ -56,18 +56,29 @@ import static org.hamcrest.core.Is.is;
 
 public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private final TableIdent testAliasTableIdent = new TableIdent(null, "alias");
-    private final DocTableInfo testAliasTableInfo = new TestingTableInfo.Builder(
-        testAliasTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+    private static final TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(null, "alias");
+    private static final DocTableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
+        TEST_ALIAS_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("bla", DataTypes.STRING, null)
         .isAlias(true).build();
 
-    private final TableIdent nestedClusteredTableIdent = new TableIdent(null, "nested_clustered");
-    private final DocTableInfo nestedClusteredTableInfo = new TestingTableInfo.Builder(
-        nestedClusteredTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+    private static final TableIdent NESTED_CLUSTERED_TABLE_IDENT = new TableIdent(null, "nested_clustered");
+    private static final DocTableInfo NESTED_CLUSTERED_TABLE_INFO = new TestingTableInfo.Builder(
+        NESTED_CLUSTERED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("o", DataTypes.OBJECT, null)
         .add("o", DataTypes.STRING, Arrays.asList("c"))
         .clusteredBy("o.c")
+        .build();
+
+    private static final TableIdent THREE_PK_TABLE_IDENT = new TableIdent(null, "three_pk");
+    private static final DocTableInfo THREE_PK_TABLE_INFO = new TestingTableInfo.Builder(
+        THREE_PK_TABLE_IDENT, new Routing(ImmutableMap.of()))
+        .add("a", DataTypes.INTEGER)
+        .add("b", DataTypes.INTEGER)
+        .add("c", DataTypes.INTEGER)
+        .addPrimaryKey("a")
+        .addPrimaryKey("b")
+        .addPrimaryKey("c")
         .build();
 
     private SQLExecutor e;
@@ -76,8 +87,9 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void prepare() {
         SQLExecutor.Builder executorBuilder = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .addDocTable(testAliasTableInfo)
-            .addDocTable(nestedClusteredTableInfo);
+            .addDocTable(TEST_ALIAS_TABLE_INFO)
+            .addDocTable(NESTED_CLUSTERED_TABLE_INFO)
+            .addDocTable(THREE_PK_TABLE_INFO);
 
         TableIdent notNullColumnTableIdent = new TableIdent(null, "not_null_column");
         TestingTableInfo.Builder notNullColumnTable = new TestingTableInfo.Builder(
@@ -1141,5 +1153,12 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void testInsertArrayLiteralWithOnlyNullValues() throws Exception {
         InsertFromValuesAnalyzedStatement stmt = e.analyze("insert into users (id, tags) values (1, [null, null])");
         assertThat(stmt.sourceMaps().get(0), is(new Object[]{1L, new Object[]{null, null}}));
+    }
+
+    @Test
+    public void testIdGenerationDoesNotDependOnPrimaryKeyInsertOrder() throws Exception {
+        InsertFromValuesAnalyzedStatement stmt1 = e.analyze("insert into three_pk (a, b, c) values (1, 2, 3)");
+        InsertFromValuesAnalyzedStatement stmt2 = e.analyze("insert into three_pk (c, b, a) values (3, 2, 1)");
+        assertThat(stmt1.ids().get(0), is(stmt2.ids().get(0)));
     }
 }

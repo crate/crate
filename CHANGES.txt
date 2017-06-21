@@ -44,6 +44,12 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that resulted in rows could not be queried by primary keys
+   when the order of the primary key columns on insert differs from the order of
+   the primary keys on the table definition.
+   Note: If records are already inserted by using a different primary key column
+   order, they must be re-inserted, otherwise queries will still fail.
+
  - Fixed an issue that could cause ``DELETE`` by query  and ``UPDATE`` 
    statements to fail on datasets larger than 10_000 rows.
 
