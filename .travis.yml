@@ -26,15 +26,7 @@ before_install:
   - ulimit -n 65536
 
 script:
-  - ./gradlew -s test
-  - ./gradlew -s itest
-  - ./gradlew -s forbiddenApisMain
-  - ./gradlew -s pmdMain
-  - ./blackbox/.venv/bin/sphinx-build -n -W -c docs/ -b html -E blackbox/docs/ docs/out/html
-
-after_success:
-  - ./gradlew jacocoReport
-  - bash <(curl -s https://codecov.io/bash)
+  - ./gradlew -s :sql:test
 
 
 branches:
@@ -44,11 +36,7 @@ branches:
 
 addons:
   apt:
-    sources:
-        - deadsnakes
     packages:
-        - python3.4
-        - python3.4-dev
         - oracle-java8-installer # use newer java8 then default travis oraclejdk8
   coverity_scan:
     project:
