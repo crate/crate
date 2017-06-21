@@ -27,10 +27,10 @@ import io.crate.analyze.user.Privilege.State;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
 import io.crate.sql.tree.GrantPrivilege;
-import io.crate.sql.tree.PrivilegeType;
 import io.crate.sql.tree.RevokePrivilege;
 
-import java.util.EnumSet;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -39,24 +39,36 @@ import java.util.Set;
 /**
  * Analyzer for privileges related statements (ie GRANT/REVOKE statements)
  */
-public class PrivilegesAnalyzer {
+class PrivilegesAnalyzer {
 
     private final UserManager userManager;
 
-    public PrivilegesAnalyzer(UserManager userManager) {
+    PrivilegesAnalyzer(UserManager userManager) {
         this.userManager = userManager;
     }
 
-    public PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, User user) {
+    PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, User user) {
         validateUsernames(node.userNames());
+        Collection<Privilege.Type> privilegeTypes;
+        if (node.all()) {
+            privilegeTypes = Privilege.GRANTABLE_TYPES;
+        } else {
+            privilegeTypes = parsePrivilegeTypes(node.privileges());
+        }
         return new PrivilegesAnalyzedStatement(node.userNames(),
-            privilegeTypesToPrivileges(node.privileges(), user, State.GRANT));
+            privilegeTypesToPrivileges(privilegeTypes, user, State.GRANT));
     }
 
-    public PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, User user) {
+    PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, User user) {
         validateUsernames(node.userNames());
+        Collection<Privilege.Type> privilegeTypes;
+        if (node.all()) {
+            privilegeTypes = Privilege.GRANTABLE_TYPES;
+        } else {
+            privilegeTypes = parsePrivilegeTypes(node.privileges());
+        }
         return new PrivilegesAnalyzedStatement(node.userNames(),
-            privilegeTypesToPrivileges(node.privileges(), user, State.REVOKE));
+            privilegeTypesToPrivileges(privilegeTypes, user, State.REVOKE));
     }
 
     private void validateUsernames(List<String> userNames) {
@@ -72,13 +84,32 @@ public class PrivilegesAnalyzer {
         }
     }
 
-    private Set<Privilege> privilegeTypesToPrivileges(EnumSet<PrivilegeType> privilegeTypes,
+    private List<Privilege.Type> parsePrivilegeTypes(List<String> privilegeTypeNames) {
+        List<Privilege.Type> privilegeTypes = new ArrayList<>(privilegeTypeNames.size());
+        for (String typeName : privilegeTypeNames) {
+            Privilege.Type privilegeType;
+            try {
+                privilegeType = Privilege.Type.valueOf(typeName.toUpperCase(Locale.ENGLISH));
+            } catch (IllegalArgumentException e) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Unknown privilege type '%s'", typeName));
+            }
+            if (Privilege.GRANTABLE_TYPES.contains(privilegeType) == false) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "Unknown privilege type '%s'", typeName));
+            }
+            privilegeTypes.add(privilegeType);
+        }
+        return privilegeTypes;
+    }
+
+    private Set<Privilege> privilegeTypesToPrivileges(Collection<Privilege.Type> privilegeTypes,
                                                       User grantor,
                                                       State state) {
         Set<Privilege> privileges = new HashSet<>(privilegeTypes.size());
-        for (PrivilegeType type : privilegeTypes) {
+        for (Privilege.Type privilegeType : privilegeTypes) {
             Privilege privilege = new Privilege(state,
-                Privilege.Type.valueOf(type.name()),
+                privilegeType,
                 Privilege.Clazz.CLUSTER,
                 null,
                 grantor.name()
