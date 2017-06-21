@@ -13,6 +13,11 @@ and a client. This applies to connections using HTTP (i.e. Admin UI, Crash, Rest
 as well as connections using the PostgreSQL Wire Protocol (i.e. JDBC, psql).
 Connections are secured using Transport Layer Security (TLS).
 
+Note that once SSL is enabled for HTTP connections, only connections using
+HTTPS are allowed. This is in contrast to the PostgreSQL Wire Protocol which
+still allows non-encrypted connections when SSL is enabled. If you want to
+enforce SSL usage, please have a look at :ref:`administration_hba`.
+
 SSL/TLS Configuration
 =====================
 
