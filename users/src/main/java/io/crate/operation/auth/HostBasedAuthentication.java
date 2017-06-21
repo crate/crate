@@ -75,7 +75,7 @@ public class HostBasedAuthentication implements Authentication {
     HostBasedAuthentication(Settings settings, UserManager userManager) {
         enabled = AuthenticationProvider.AUTH_HOST_BASED_ENABLED_SETTING.setting().get(settings);
         hbaConf = convertHbaSettingsToHbaConf(AuthenticationProvider.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings));
-        registerAuthMethod(TrustAuthentication.NAME, () -> new TrustAuthentication(userManager));
+        authMethodRegistry.put(TrustAuthentication.NAME, () -> new TrustAuthentication(userManager));
     }
 
     void updateHbaConfig(Map<String, Map<String, String>> hbaMap) {
@@ -92,10 +92,6 @@ public class HostBasedAuthentication implements Authentication {
             hostBasedConf.put(entry.getKey(), entry.getValue().getAsMap());
         }
         return hostBasedConf.build();
-    }
-
-    void registerAuthMethod(String name, Supplier<AuthenticationMethod> supplier) {
-        authMethodRegistry.put(name, supplier);
     }
 
     @Override

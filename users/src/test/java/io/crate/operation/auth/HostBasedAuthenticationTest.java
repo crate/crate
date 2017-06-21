@@ -19,7 +19,6 @@
 package io.crate.operation.auth;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.operation.user.User;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.elasticsearch.common.network.InetAddresses;
@@ -27,17 +26,17 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.hamcrest.Matchers.*;
-import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidUser;
 import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidAddress;
 import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidProtocol;
+import static io.crate.operation.auth.HostBasedAuthentication.Matchers.isValidUser;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 
 
@@ -116,23 +115,9 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
 
     @Test
     public void testResolveAuthMethod() throws Exception {
-        AuthenticationMethod noopAuthMethod = new AuthenticationMethod() {
-
-            @Nullable
-            @Override
-            public User authenticate(String userName) {
-                return null;
-            }
-
-            @Override
-            public String name() {
-                return "trust";
-            }
-        };
-        authService.registerAuthMethod(noopAuthMethod.name(), () -> noopAuthMethod);
         authService.updateHbaConfig(createHbaConf(HBA_1));
         AuthenticationMethod method = authService.resolveAuthenticationType("crate", LOCALHOST, HbaProtocol.POSTGRES);
-        assertThat(method, is(noopAuthMethod));
+        assertThat(method, instanceOf(TrustAuthentication.class));
     }
 
     @Test
