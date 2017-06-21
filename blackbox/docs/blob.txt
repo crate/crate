@@ -15,7 +15,7 @@ Creating a table for blobs
 Before adding blobs a ``blob table`` must be created. Lets use the
 crate shell ``crash`` to issue the SQL statement::
 
-    sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=1)"
+    sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=0)"
     CREATE OK, 1 row affected (... sec)
 
 Now crate is configured to allow blobs to be management under the
@@ -176,7 +176,7 @@ Blob tables can be deleted similar to normal tables (again using the crate shell
 
 .. Hidden: Re-create the blob table so information_schema will show it::
 
-    sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=1)"
+    sh$ crash -c "create blob table myblobs clustered into 3 shards with (number_of_replicas=0)"
     CREATE OK, 1 row affected (... sec)
 
 
