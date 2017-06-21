@@ -22,6 +22,12 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that resulted in rows could not be queried by primary keys
+   when the order of the primary key columns on insert differs from the order of
+   the primary keys on the table definition.
+   Note: If records are already inserted by using a different primary key column
+   order, they must be re-inserted, otherwise queries will still fail.
+
  - Improved the resiliency of queries on `sys.nodes`: If a node disconnects
    during the execution of a query it will no longer fail.
 

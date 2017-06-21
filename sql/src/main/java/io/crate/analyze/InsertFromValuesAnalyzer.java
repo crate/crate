@@ -262,7 +262,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         if (context.tableInfo().isPartitioned()) {
             context.newPartitionMap();
         }
-        List<BytesRef> primaryKeyValues = new ArrayList<>(numPrimaryKeys);
+        BytesRef[] primaryKeyValues = new BytesRef[numPrimaryKeys];
         String routingValue = null;
         List<ColumnIdent> primaryKey = context.tableInfo().primaryKey();
         Object[] insertValues = new Object[node.values().size()];
@@ -363,22 +363,24 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         routingValue = ctx.routingValue;
 
         context.sourceMaps().add(insertValues);
-        String id = idFunction.apply(primaryKeyValues);
+        String id = idFunction.apply(Arrays.asList(primaryKeyValues));
         context.addIdAndRouting(id, routingValue);
         if (bulkIdx >= 0) {
             context.bulkIndices().add(bulkIdx);
         }
     }
 
-    private void addPrimaryKeyValue(int index, Object value, List<BytesRef> primaryKeyValues) {
+    /**
+     * Sets a primary key value at the correct index of the given array structure.
+     * Values could be applied in an unordered way, so given the correct column index of the defined primary key
+     * definition is very important here.
+     */
+    private void addPrimaryKeyValue(int index, Object value, BytesRef[] primaryKeyValues) {
         if (value == null) {
             throw new IllegalArgumentException("Primary key value must not be NULL");
         }
-        if (primaryKeyValues.size() > index) {
-            primaryKeyValues.add(index, BytesRefs.toBytesRef(value));
-        } else {
-            primaryKeyValues.add(BytesRefs.toBytesRef(value));
-        }
+        assert primaryKeyValues.length > index : "Index of primary key value is greater than the array holding the values";
+        primaryKeyValues[index] = BytesRefs.toBytesRef(value);
     }
 
     private String extractRoutingValue(ColumnIdent columnIdent, Object columnValue, InsertFromValuesAnalyzedStatement context) {
@@ -432,7 +434,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         private final InsertFromValuesAnalyzedStatement analyzedStatement;
         private final ReferenceToLiteralConverter.Context referenceToLiteralContext;
         private final TransactionContext transactionContext;
-        private final List<BytesRef> primaryKeyValues;
+        private final BytesRef[] primaryKeyValues;
         private final EvaluatingNormalizer normalizer;
 
         private Object[] insertValues;
@@ -445,7 +447,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                            EvaluatingNormalizer normalizer,
                                            TransactionContext transactionContext,
                                            ReferenceToLiteralConverter.Context referenceToLiteralContext,
-                                           List<BytesRef> primaryKeyValues,
+                                           BytesRef[] primaryKeyValues,
                                            Object[] insertValues,
                                            @Nullable String routingValue) {
             this.tableRelation = tableRelation;
