@@ -28,11 +28,11 @@ task getVersion(dependsOn: 'classes') {
             main = 'io.crate.Version'
             standardOutput = stdout
         }
-        ext.gitTag = "git describe".execute().in.text.trim()
+        ext.gitTag = "git describe".execute().text.trim()
         ext.version = stdout.toString().trim().split(" ")[1].replace(',', '').trim()
 
         ext.buildDate = new Date().format('yyyyMMddHHmm')
-        ext.buildShortHash = "git rev-parse --short HEAD".execute().in.text.trim()
+        ext.buildShortHash = "git rev-parse --short HEAD".execute().text.trim()
         if (gradle.taskGraph.hasTask(':app:release')) {
             assert gitTag == version, "Version mismatch gitTag: " + gitTag + " does not match crate version: " + version
         } else {
