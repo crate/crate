@@ -27,6 +27,7 @@ import io.crate.analyze.user.Privilege.State;
 import io.crate.operation.user.User;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.RevokePrivilege;
+import io.crate.sql.tree.DenyPrivilege;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -55,7 +56,20 @@ class PrivilegesAnalyzer {
             privilegeTypesToPrivileges(privilegeTypes, user, State.GRANT));
     }
 
-    PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, @Nullable User user) {
+    PrivilegesAnalyzedStatement analyzeDeny(DenyPrivilege node, User user) {
+        ensureUserManagementEnabled(user);
+
+        Collection<Privilege.Type> privilegeTypes;
+        if (node.all()) {
+            privilegeTypes = Arrays.asList(Privilege.Type.values());
+        } else {
+            privilegeTypes = parsePrivilegeTypes(node.privileges());
+        }
+        return new PrivilegesAnalyzedStatement(node.userNames(),
+            privilegeTypesToPrivileges(privilegeTypes, user, State.DENY));
+    }
+
+    PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, User user) {
         ensureUserManagementEnabled(user);
         Collection<Privilege.Type> privilegeTypes;
         if (node.all()) {
