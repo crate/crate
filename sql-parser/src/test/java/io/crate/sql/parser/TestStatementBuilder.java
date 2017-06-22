@@ -392,6 +392,19 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testDenyPrivilegeStmtBuilder() {
+        printStatement("deny DML To \"Günter\"");
+        printStatement("deny DQL, DDL to root");
+        printStatement("deny DQL, DDL to root, wolfie, anna");
+        printStatement("deny ALL PRIVILEGES to wolfie");
+        printStatement("deny ALL PRIVILEGES to wolfie, anna");
+        printStatement("deny ALL to wolfie, anna");
+        printStatement("deny ALL to anna");
+        printStatement("deny dml to anna");
+        printStatement("deny ddl, dql to anna");
+    }
+
+    @Test
     public void testRevokePrivilegeStmtBuilder() {
         printStatement("revoke DML from \"Günter\"");
         printStatement("revoke DQL, DDL from root");
@@ -1063,6 +1076,7 @@ public class TestStatementBuilder {
             statement instanceof CreateUser ||
             statement instanceof DropUser ||
             statement instanceof GrantPrivilege ||
+            statement instanceof DenyPrivilege ||
             statement instanceof RevokePrivilege) {
             println(SqlFormatter.formatSql(statement));
             println("");

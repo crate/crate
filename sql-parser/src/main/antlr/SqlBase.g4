@@ -72,6 +72,7 @@ statement
         '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
     | DROP USER (IF EXISTS)? name=ident                                              #dropUser
     | GRANT ( privilegeTypes | ALL (PRIVILEGES)? ) TO ( ident (',' ident)* )         #grantPrivilege
+    | DENY ( privilegeTypes | ALL (PRIVILEGES)? ) TO ( ident (',' ident)* )          #denyPrivilege
     | REVOKE ( privilegeTypes | ALL (PRIVILEGES)? ) FROM ( ident (',' ident)* )      #revokePrivilege
     | createStmt                                                                     #create
     ;
@@ -773,6 +774,7 @@ READ: 'READ';
 
 USER: 'USER';
 GRANT: 'GRANT';
+DENY: 'DENY';
 REVOKE: 'REVOKE';
 PRIVILEGES: 'PRIVILEGES';
 
