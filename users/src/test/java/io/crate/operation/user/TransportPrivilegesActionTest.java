@@ -22,18 +22,14 @@ import io.crate.analyze.user.Privilege;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.core.Is.is;
 
 public class TransportPrivilegesActionTest extends CrateUnitTest {
 
@@ -41,60 +37,27 @@ public class TransportPrivilegesActionTest extends CrateUnitTest {
         new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
     private static final Privilege GRANT_DML =
         new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate");
-
+    private static final Privilege DENY_DQL =
+        new Privilege(Privilege.State.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
     private static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(GRANT_DQL, GRANT_DML));
-    private static final List<String> USERNAMES = Arrays.asList("Ford", "Arthur");
 
-    private MetaData.Builder mdBuilder;
-
-    @Before
-    public void setUpDefaultUsersPrivilegesMetaData() {
-        mdBuilder = MetaData.builder();
+    @Test
+    public void testApplyPrivilegesCreatesNewPrivilegesInstance() {
+        // given
+        MetaData.Builder mdBuilder = MetaData.builder();
         Map<String, Set<Privilege>> usersPrivileges = new HashMap<>();
-        for (String userName : USERNAMES) {
-            usersPrivileges.put(userName, new HashSet<>(PRIVILEGES));
-        }
-        mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, new UsersPrivilegesMetaData(usersPrivileges));
-    }
+        usersPrivileges.put("Ford", new HashSet<>(PRIVILEGES));
+        UsersPrivilegesMetaData initialPrivilegesMetadata = new UsersPrivilegesMetaData(usersPrivileges);
+        mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, initialPrivilegesMetadata);
+        PrivilegesRequest denyPrivilegeRequest =
+            new PrivilegesRequest(Collections.singletonList("Ford"), Collections.singletonList(DENY_DQL));
 
-    @Test
-    public void testApplyPrivilegesSameExists() throws Exception {
-        PrivilegesRequest request = new PrivilegesRequest(USERNAMES, PRIVILEGES);
+        //when
+        TransportPrivilegesAction.applyPrivileges(mdBuilder, denyPrivilegeRequest);
 
-        long rowCount = TransportPrivilegesAction.applyPrivileges(mdBuilder, request);
-        assertThat(rowCount, is(0L));
-    }
-
-    @Test
-    public void testRevokeWithoutGrant() throws Exception {
-        PrivilegesRequest request = new PrivilegesRequest(Arrays.asList("Arthur"), Arrays.asList(
-            new Privilege(Privilege.State.REVOKE, Privilege.Type.DCL, Privilege.Clazz.CLUSTER, null, "crate")));
-
-        long rowCount = TransportPrivilegesAction.applyPrivileges(mdBuilder, request);
-        assertThat(rowCount, is(0L));
-        UsersPrivilegesMetaData privilegesMetaData = (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE);
-        assertThat(privilegesMetaData.getUserPrivileges("Arthur"), is(PRIVILEGES));
-    }
-
-    @Test
-    public void testRevokeWithGrant() throws Exception {
-        PrivilegesRequest request = new PrivilegesRequest(Arrays.asList("Arthur"), Arrays.asList(
-            new Privilege(Privilege.State.REVOKE, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate")));
-
-        long rowCount = TransportPrivilegesAction.applyPrivileges(mdBuilder, request);
-        assertThat(rowCount, is(1L));
-        UsersPrivilegesMetaData privilegesMetaData = (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE);
-        assertThat(privilegesMetaData.getUserPrivileges("Arthur"), contains(GRANT_DQL));
-    }
-
-    @Test
-    public void testRevokeWithGrantOfDifferentGrantor() throws Exception {
-        PrivilegesRequest request = new PrivilegesRequest(Arrays.asList("Arthur"), Arrays.asList(
-            new Privilege(Privilege.State.REVOKE, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "hoschi")));
-
-        long rowCount = TransportPrivilegesAction.applyPrivileges(mdBuilder, request);
-        assertThat(rowCount, is(1L));
-        UsersPrivilegesMetaData privilegesMetaData = (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE);
-        assertThat(privilegesMetaData.getUserPrivileges("Arthur"), contains(GRANT_DQL));
+        // then
+        UsersPrivilegesMetaData newPrivilegesMetadata =
+            (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE);
+        assertNotSame(newPrivilegesMetadata, initialPrivilegesMetadata);
     }
 }

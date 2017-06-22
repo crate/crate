@@ -98,6 +98,21 @@ public class Privilege implements Streamable {
     }
 
     /**
+     * Checks if both the current and the provided privilege point to the same object.
+     */
+    public boolean onSameObject(Privilege other) {
+        if (this == other){
+            return true;
+        }
+        if (other == null || getClass() != other.getClass()) {
+            return false;
+        }
+        return type == other.type &&
+               clazz == other.clazz &&
+               Objects.equals(ident, other.ident);
+    }
+
+    /**
      * Equality validation.
      * <p>grantor</p> is left out by intend, this is just an information variable.
      */
