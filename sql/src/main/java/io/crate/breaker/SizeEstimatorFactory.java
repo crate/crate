@@ -30,6 +30,8 @@ public class SizeEstimatorFactory {
     @SuppressWarnings("unchecked")
     public static <T> SizeEstimator<T> create(DataType type) {
         switch (type.id()) {
+            case UndefinedType.ID:
+                return (SizeEstimator<T>) new ConstSizeEstimator(0);
             case StringType.ID:
             case IpType.ID:
                 return (SizeEstimator<T>) new BytesRefSizeEstimator();
