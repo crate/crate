@@ -51,6 +51,9 @@ Changes
 Fixes
 =====
 
+ - Fixed a bug in the memory accounting of the circuit breaker for HTTP
+   results when querying for columns of undefined type.
+
  - Fixed issue that caused an exception when querying the `_id` column using all
    defined primary keys inside the ``WHERE`` clause over the HTTP API.
 

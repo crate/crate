@@ -65,4 +65,10 @@ public class SizeEstimatorFactoryTest {
         SizeEstimator<Object> estimator = SizeEstimatorFactory.create(DataTypes.GEO_SHAPE);
         assertThat(estimator.estimateSize(Collections.emptyMap()), is(120L));
     }
+
+    @Test
+    public void testSizeEstimationForNull() throws Exception {
+        SizeEstimator<Object> estimator = SizeEstimatorFactory.create(DataTypes.UNDEFINED);
+        assertThat(estimator.estimateSize(Collections.emptyMap()), is(0L));
+    }
 }
