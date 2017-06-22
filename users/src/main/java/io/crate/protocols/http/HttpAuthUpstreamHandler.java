@@ -58,7 +58,8 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     private boolean authorized;
 
     public HttpAuthUpstreamHandler(Settings settings, Authentication authService) {
-        super();
+        // do not auto-release reference counted messages which are just in transit here
+        super(false);
         this.settings = settings;
         this.authService = authService;
     }
@@ -105,6 +106,8 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         if (authorized) {
             ctx.fireChannelRead(msg);
         } else {
+            // We won't forward the message downstream, thus we have to release
+            msg.release();
             sendUnauthorized(ctx.channel(), null);
         }
     }
