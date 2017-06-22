@@ -28,6 +28,7 @@ import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -57,7 +58,8 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
     }
 
     public SQLHttpIntegrationTest(boolean useSSL) {
-        this.httpClient = HttpClients.createDefault();
+        this.httpClient = HttpClients.custom()
+            .setSSLHostnameVerifier(new NoopHostnameVerifier()).build();
         this.usesSSL = useSSL;
     }
 

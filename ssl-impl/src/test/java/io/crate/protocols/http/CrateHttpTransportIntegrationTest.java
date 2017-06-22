@@ -68,8 +68,8 @@ public class CrateHttpTransportIntegrationTest extends SQLHttpIntegrationTest {
 
     @AfterClass
     public static void afterIntegrationTest() {
-        System.setProperty("javax.net.ssl.trustStore", "");
-        System.setProperty("javax.net.ssl.trustStorePassword", "");
+        System.clearProperty("javax.net.ssl.trustStore");
+        System.clearProperty("javax.net.ssl.trustStorePassword");
     }
 
     @Override
