@@ -102,6 +102,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
             .add("d", DataTypes.DOUBLE)
             .add("d_array", new ArrayType(DataTypes.DOUBLE))
             .add("y_array", new ArrayType(DataTypes.LONG))
+            .add("o_array", new ArrayType(DataTypes.OBJECT))
             .add("shape", DataTypes.GEO_SHAPE)
             .add("point", DataTypes.GEO_POINT)
             .build();
@@ -142,6 +143,12 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                         .field("type", "array")
                         .startObject("inner")
                             .field("type", "integer")
+                        .endObject()
+                    .endObject()
+                    .startObject("o_array")
+                        .field("type", "array")
+                        .startObject("inner")
+                            .field("type", "object")
                         .endObject()
                     .endObject()
                 .endObject()
@@ -502,6 +509,14 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         assertThat(query, instanceOf(TermQuery.class));
         assertThat(query.toString(), is("name:foo"));
         query = convert("_doc = {\"name\"='foo'}");
+        assertThat(query, instanceOf(GenericFunctionQuery.class));
+    }
+
+    @Test
+    public void testIsNullOnObjectArray() throws Exception {
+        Query query = convert("o_array IS NULL");
+        assertThat(query, instanceOf(GenericFunctionQuery.class));
+        query = convert("o_array IS NOT NULL");
         assertThat(query, instanceOf(GenericFunctionQuery.class));
     }
 
