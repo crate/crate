@@ -45,6 +45,9 @@ dependencies {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
 
+    // include it in classpath to be able to launch Crate from within intellij with SSL enabled
+    runtime project(':ssl-impl') 
+
     testCompile project(':integration-testing')
 
     compileNotTransitive project(':core')
