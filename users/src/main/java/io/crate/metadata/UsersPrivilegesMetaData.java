@@ -20,6 +20,7 @@ package io.crate.metadata;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.user.Privilege;
+import io.crate.analyze.user.Privilege.State;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -30,9 +31,11 @@ import org.elasticsearch.common.xcontent.XContentParser;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -64,6 +67,62 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
     @VisibleForTesting
     public UsersPrivilegesMetaData(Map<String, Set<Privilege>> usersPrivileges) {
         this.usersPrivileges = usersPrivileges;
+    }
+
+    /**
+     * Applies the provided privileges to the specified users.
+     *
+     * NOTE: the provided privileges collection will be mutated
+     *
+     * @return the number of affected privileges (doesn't count no-ops eg. granting a privilege a user already has)
+     */
+    public long applyPrivileges(Collection<String> userNames, Iterable<Privilege> newPrivileges) {
+        long affectedPrivileges = 0L;
+        for (String userName : userNames) {
+            affectedPrivileges += applyPrivilegesToUser(userName, newPrivileges);
+        }
+        return affectedPrivileges;
+    }
+
+    private long applyPrivilegesToUser(String userName, Iterable<Privilege> newPrivileges) {
+        Set<Privilege> userPrivileges = usersPrivileges.get(userName);
+        // privileges set is expected, it must be created on user creation
+        assert userPrivileges != null : "privileges must not be null for user=" + userName;
+
+        long affectedCount = 0L;
+        for (Privilege newPrivilege : newPrivileges) {
+            Iterator<Privilege> iterator = userPrivileges.iterator();
+            boolean userHadPrivilegeOnSameObject = false;
+            while (iterator.hasNext()) {
+                Privilege userPrivilege = iterator.next();
+                if (userPrivilege.onSameObject(newPrivilege)) {
+                    userHadPrivilegeOnSameObject = true;
+                    if (newPrivilege.state().equals(State.REVOKE)) {
+                        iterator.remove();
+                        affectedCount++;
+                        break;
+                    } else {
+                        // we only want to process a new GRANT/DENY privilege if the user doesn't already have it
+                        if (userPrivilege.equals(newPrivilege) == false) {
+                            iterator.remove();
+                            userPrivileges.add(newPrivilege);
+                            affectedCount++;
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (userHadPrivilegeOnSameObject == false) {
+                // revoking a privilege that was not granted is a no-op
+                if (newPrivilege.state().equals(State.REVOKE) == false) {
+                    affectedCount++;
+                    userPrivileges.add(newPrivilege);
+                }
+            }
+        }
+
+        return affectedCount;
     }
 
     @Nullable
@@ -178,7 +237,7 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
 
     private void privilegeFromXContent(XContentParser parser, Set<Privilege> privileges) throws IOException {
         XContentParser.Token currentToken;
-        Privilege.State state = null;
+        State state = null;
         Privilege.Type type = null;
         Privilege.Clazz clazz = null;
         String ident = null;
@@ -193,7 +252,7 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
                             throw new ElasticsearchParseException(
                                 "failed to parse privilege, 'state' value is not a number [{}]", currentToken);
                         }
-                        state = Privilege.State.values()[parser.intValue()];
+                        state = State.values()[parser.intValue()];
                         break;
                     case "type":
                         if (currentToken != XContentParser.Token.VALUE_NUMBER) {
