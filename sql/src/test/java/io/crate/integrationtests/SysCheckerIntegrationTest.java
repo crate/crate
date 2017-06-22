@@ -63,12 +63,18 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testMinimumMasterNodesCheckWithCorrectSetting() {
-        Settings settings = builder().put("discovery.zen.minimum_master_nodes", 2).build();
+        Settings settings = builder().put("discovery.zen.minimum_master_nodes", 1).build();
         internalCluster().startNode(settings);
         internalCluster().startNode(settings);
         internalCluster().ensureAtLeastNumDataNodes(2);
-        SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
-        assertThat(TestingHelpers.printedTable(response.rows()), is("3| true\n"));
+        execute("set global transient discovery.zen.minimum_master_nodes = 2");
+
+        try {
+            SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
+            assertThat(TestingHelpers.printedTable(response.rows()), is("3| true\n"));
+        } finally {
+            execute("reset global discovery.zen.minimum_master_nodes");
+        }
     }
 
     @Test
