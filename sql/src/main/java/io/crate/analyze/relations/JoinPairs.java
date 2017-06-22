@@ -171,42 +171,34 @@ public final class JoinPairs {
         return outputs;
     }
 
-    public enum RelationInclusion {
-        /**
-         * join condition of the join pair actually includes both relations
-         */
-        BOTH_INCLUDED,
-
-        /**
-         * join condition of the join pair doesn't include both relations
-         */
-        FOREIGN_INCLUDED,
-
-        /**
-         * join condition of the join pair includes relations not already part of the join tree
-         */
-        NOT_INCLUDED
-    }
 
     /**
-     * See {@link RelationInclusion} for result description
+     * Returns true if join condition contains both relations of the join pair and also
+     * doesn't contain any relation that's not already part of the join tree.
      */
-    public static RelationInclusion determineRelationInclusion(List<JoinPair> currentPermutationJoinPairs,
-                                                               JoinPair joinPair,
-                                                               QualifiedName rel1,
-                                                               QualifiedName rel2) {
+    public static boolean joinConditionIncludesRelations(List<JoinPair> currentPermutationJoinPairs,
+                                                         JoinPair joinPair) {
+        boolean rel1Included = false;
+        boolean rel2Included = false;
+
         for (Field f : JoinPairs.extractFieldsFromJoinConditions(Collections.singletonList(joinPair))) {
             QualifiedName relationName = f.relation().getQualifiedName();
+            if (relationName.equals(joinPair.left())) {
+                rel1Included = true;
+            }
+            if (relationName.equals(joinPair.right())) {
+                rel2Included = true;
+            }
 
             // Join condition contains relations not included in existing join pairs
             if (currentPermutationJoinPairs.stream().noneMatch(jp -> jp.containsRelation(relationName))) {
-                return RelationInclusion.FOREIGN_INCLUDED;
+                return false;
             }
 
-            if (relationName.equals(rel1) && relationName.equals(rel2)) {
-                return RelationInclusion.BOTH_INCLUDED;
+            if (rel1Included && rel2Included) {
+                return true;
             }
         }
-        return RelationInclusion.NOT_INCLUDED;
+        return false;
     }
 }
