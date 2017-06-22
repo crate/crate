@@ -22,6 +22,7 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -141,16 +142,10 @@ public class ManyTableConsumer implements Consumer {
                         currentPermutationJoinPairs.add(JoinPair.crossJoin(a, b));
                     }
                 } else {
-                    switch (JoinPairs.determineRelationInclusion(currentPermutationJoinPairs, joinPair, a, b)) {
-                        case BOTH_INCLUDED:
-                            // relations are directly joined
-                            joinPushDowns += 1;
-                            currentPermutationJoinPairs.add(JoinPair.crossJoin(a, b));
-                            break;
-                        case FOREIGN_INCLUDED:
-                            // join condition includes a relation that is not part of the current join tree permutation
-                            continue outerloop;
+                    if (JoinPairs.joinConditionIncludesRelations(currentPermutationJoinPairs, joinPair)) {
+                        joinPushDowns += 1;
                     }
+                    currentPermutationJoinPairs.add(JoinPair.crossJoin(a, b));
                 }
             }
             if (joinPushDowns == relations.size() - 1) {
@@ -243,12 +238,15 @@ public class ManyTableConsumer implements Consumer {
         Optional<RemainingOrderBy> remainingOrderBy = mss.remainingOrderBy();
         List<JoinPair> joinPairs = mss.joinPairs();
         List<TwoTableJoin> twoTableJoinList = new ArrayList<>(orderedRelationNames.size());
-
+        Set<QualifiedName> currentTreeRelationNames = new HashSet<>(orderedRelationNames.size());
+        Map<Set<QualifiedName>, Symbol> joinConditionsMap = buildJoinConditionsMap(joinPairs);
+        currentTreeRelationNames.add(leftName);
         QualifiedName rightName;
         QueriedRelation rightRelation;
         while (it.hasNext()) {
             rightName = it.next();
             rightRelation = (QueriedRelation) mss.sources().get(rightName);
+            currentTreeRelationNames.add(rightName);
 
             // process where clause
             Set<QualifiedName> names = Sets.newHashSet(leftName, rightName);
@@ -267,6 +265,20 @@ public class ManyTableConsumer implements Consumer {
 
             // get explicit join definition
             JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(leftName, rightName, joinPairs, true);
+
+            // Search the joinConditionsMap to find if a join condition
+            // can be applied at the current status of the join tree
+            List<Symbol> joinConditions = new ArrayList<>();
+            for (Iterator<Map.Entry<Set<QualifiedName>, Symbol>> joinConditionEntryIterator =
+                 joinConditionsMap.entrySet().iterator(); joinConditionEntryIterator.hasNext();) {
+
+                Map.Entry<Set<QualifiedName>, Symbol> entry = joinConditionEntryIterator.next();
+                if (currentTreeRelationNames.containsAll(entry.getKey())) {
+                    joinConditions.add(entry.getValue());
+                    joinConditionEntryIterator.remove();
+                }
+            }
+            joinPair.condition(joinConditions.isEmpty()? null : AndOperator.join(joinConditions));
 
             JoinPairs.removeOrderByOnOuterRelation(leftName, rightName, leftQuerySpec, rightRelation.querySpec(), joinPair);
 
@@ -315,6 +327,7 @@ public class ManyTableConsumer implements Consumer {
                 rewriteOrderByNames(remainingOrderBy, leftName, rightName, join.getQualifiedName(), replaceFunction);
                 rootQuerySpec = rootQuerySpec.copyAndReplace(replaceFunction);
                 leftQuerySpec = newQuerySpec.copyAndReplace(replaceFunction);
+                rewriteJoinConditionNames(joinConditionsMap, replaceFunction);
             }
             leftRelation = join;
             leftName = join.getQualifiedName();
@@ -359,6 +372,11 @@ public class ManyTableConsumer implements Consumer {
             }
         }
         return newMap;
+    }
+
+    private static void rewriteJoinConditionNames(Map<Set<QualifiedName>, Symbol> joinConditionsMap,
+                                                  Function<? super Symbol, ? extends Symbol> replaceFunction) {
+        joinConditionsMap.replaceAll((qualifiedNames, symbol) -> replaceFunction.apply(symbol));
     }
 
     private static void rewriteOrderByNames(Optional<RemainingOrderBy> remainingOrderBy,
@@ -493,5 +511,28 @@ public class ManyTableConsumer implements Consumer {
             context.add(field.relation().getQualifiedName());
             return null;
         }
+    }
+
+    /*
+     * Builds a Map structure out of all the join conditions where every entry
+     * represents the join condition (entry.value()) that can be applied on a set of relations (entry.key())
+     *
+     * The resulting Map is used to apply as many join conditions and as early as possible during
+     * the construction of the join tree.
+     */
+    @VisibleForTesting
+    static Map<Set<QualifiedName>, Symbol> buildJoinConditionsMap(List<JoinPair> joinPairs) {
+        Map<Set<QualifiedName>, Symbol> conditionsMap = new HashMap<>();
+        for (JoinPair joinPair : joinPairs) {
+            Symbol condition = joinPair.condition();
+            if (condition != null) {
+                Map<Set<QualifiedName>, Symbol> splitted = QuerySplitter.split(joinPair.condition());
+                for (Map.Entry<Set<QualifiedName>, Symbol> entry : splitted.entrySet()) {
+                    conditionsMap.merge(entry.getKey(), entry.getValue(),
+                                        (a, b) -> AndOperator.join(Arrays.asList(a, b)));
+                }
+            }
+        }
+        return conditionsMap;
     }
 }
