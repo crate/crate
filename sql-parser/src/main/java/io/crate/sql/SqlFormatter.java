@@ -353,6 +353,19 @@ public final class SqlFormatter {
         }
 
         @Override
+        public Void visitDenyPrivilege(DenyPrivilege node, Integer context) {
+            builder.append("DENY ");
+            if(node.privileges().isEmpty()) {
+                builder.append(" ALL ");
+            } else {
+                appendPrivilegesList(node.privileges());
+            }
+            builder.append(" TO ");
+            appendUsersList(node.userNames());
+            return null;
+        }
+
+        @Override
         public Void visitRevokePrivilege(RevokePrivilege node, Integer indent) {
             builder.append("REVOKE ");
             if (node.privileges().isEmpty()) {
