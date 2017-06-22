@@ -322,6 +322,11 @@ public class Analyzer {
         }
 
         @Override
+        public AnalyzedStatement visitDenyPrivilege(DenyPrivilege node, Analysis context) {
+            return privilegesAnalyzer.analyzeDeny(node, context.sessionContext().user());
+        }
+
+        @Override
         public AnalyzedStatement visitRevokePrivilege(RevokePrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeRevoke(node, context.sessionContext().user());
         }

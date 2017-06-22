@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import static io.crate.analyze.user.Privilege.State.DENY;
 import static io.crate.analyze.user.Privilege.State.GRANT;
 import static io.crate.analyze.user.Privilege.State.REVOKE;
 import static io.crate.analyze.user.Privilege.Type.DDL;
@@ -72,6 +73,16 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
+    public void testDenyPrivilegesToUsers() {
+        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("DENY DQL, DML TO user1, user2");
+        assertThat(analysis.userNames(), contains("user1", "user2"));
+        assertThat(analysis.privileges(), containsInAnyOrder(
+            privilegeOf(DENY, DQL),
+            privilegeOf(DENY, DML))
+        );
+    }
+
+    @Test
     public void testRevokePrivilegesFromUsers() {
         PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("REVOKE DQL, DML FROM user1, user2");
         assertThat(analysis.userNames(), contains("user1", "user2"));
@@ -82,13 +93,21 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
-    public void testGrantRevokeAllPrivileges() {
+    public void testGrantDenyRevokeAllPrivileges() {
         PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES TO user1");
         assertThat(analysis.privileges().size(), is(3));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL),
             privilegeOf(GRANT, DML),
             privilegeOf(GRANT, DDL))
+        );
+
+        analysis = analyzePrivilegesStatement("DENY ALL PRIVILEGES TO user1");
+        assertThat(analysis.privileges().size(), is(3));
+        assertThat(analysis.privileges(), containsInAnyOrder(
+            privilegeOf(DENY, DQL),
+            privilegeOf(DENY, DML),
+            privilegeOf(DENY, DDL))
         );
 
         analysis = analyzePrivilegesStatement("REVOKE ALL PRIVILEGES FROM user1");
@@ -113,6 +132,14 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         expectedException.expectMessage("User test does not exists");
         e = SQLExecutor.builder(clusterService).build();
         e.analyze("GRANT DQL TO test");
+    }
+
+    @Test
+    public void testDenyToUnknownUserThrowsException() {
+        expectedException.expect(ResourceNotFoundException.class);
+        expectedException.expectMessage("User test does not exists");
+        e = SQLExecutor.builder(clusterService).build();
+        e.analyze("DENY DQL TO test");
     }
 
     @Test
@@ -147,25 +174,31 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             public CompletableFuture<Long> createUser(String userName) {
                 return null;
             }
+
             @Override
             public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
                 return null;
             }
+
             @Override
             public void ensureAuthorized(AnalyzedStatement analysis, SessionContext sessionContext) {
             }
+
             @Nullable
             @Override
             public User findUser(String userName) {
                 Set<User.Role> roles = isSuperUser ? Collections.singleton(User.Role.SUPERUSER) : Collections.emptySet();
                 return new User(userName, roles, Collections.emptySet());
             }
+
             @Override
             public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
                 return null;
             }
+
             @Override
-            public void raiseMissingPrivilegeException(Privilege.Clazz clazz, Privilege.Type type, String ident, User user) throws PermissionDeniedException {}
+            public void raiseMissingPrivilegeException(Privilege.Clazz clazz, Privilege.Type type, String ident, User user) throws PermissionDeniedException {
+            }
         };
     }
 }

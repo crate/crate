@@ -133,8 +133,8 @@ information regarding the existing privileges. E.g.::
     +---------+---------+---------+-------+-------+------+
     | class   | grantee | grantor | ident | state | type |
     +---------+---------+---------+-------+-------+------+
-    | CLUSTER | will    | crate   |  NULL | GRANT | DQL  |
     | CLUSTER | will    | crate   |  NULL | GRANT | DML  |
+    | CLUSTER | will    | crate   |  NULL | GRANT | DQL  |
     +---------+---------+---------+-------+-------+------+
     SELECT 2 rows in set (... sec)
 

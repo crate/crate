@@ -26,6 +26,7 @@ import io.crate.analyze.user.Privilege;
 import io.crate.analyze.user.Privilege.State;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
+import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.RevokePrivilege;
 import org.elasticsearch.ResourceNotFoundException;
@@ -58,6 +59,18 @@ class PrivilegesAnalyzer {
         }
         return new PrivilegesAnalyzedStatement(node.userNames(),
             privilegeTypesToPrivileges(privilegeTypes, user, State.GRANT));
+    }
+
+    PrivilegesAnalyzedStatement analyzeDeny(DenyPrivilege node, User user) {
+        validateUsernames(node.userNames());
+        Collection<Privilege.Type> privilegeTypes;
+        if (node.all()) {
+            privilegeTypes = Privilege.GRANTABLE_TYPES;
+        } else {
+            privilegeTypes = parsePrivilegeTypes(node.privileges());
+        }
+        return new PrivilegesAnalyzedStatement(node.userNames(),
+            privilegeTypesToPrivileges(privilegeTypes, user, State.DENY));
     }
 
     PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, User user) {
