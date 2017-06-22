@@ -21,6 +21,8 @@ Changes
 Fixes
 =====
 
+ - Fixed wrong results when querying ``IS NULL`` on an array of objects.
+
  - Fixed issue that caused an exception when querying the `_id` column using all
    defined primary keys inside the ``WHERE`` clause over the HTTP API.
 

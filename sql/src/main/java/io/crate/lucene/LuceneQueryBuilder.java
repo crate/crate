@@ -590,7 +590,7 @@ public class LuceneQueryBuilder {
                 String columnName = reference.ident().columnIdent().fqn();
                 MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
                 if (fieldType == null) {
-                    if (reference.valueType().equals(DataTypes.OBJECT)) {
+                    if (CollectionType.unnest(reference.valueType()).equals(DataTypes.OBJECT)) {
                         // object column has no mappedFieldType, but may exist. Need to use generic fallback
                         return null;
                     }
