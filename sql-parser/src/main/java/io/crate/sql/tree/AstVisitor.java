@@ -317,6 +317,10 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
+    public R visitDenyPrivilege(DenyPrivilege node, C context) {
+        return visitStatement(node, context);
+    }
+
     public R visitRevokePrivilege(RevokePrivilege node, C context) {
         return visitStatement(node, context);
     }
