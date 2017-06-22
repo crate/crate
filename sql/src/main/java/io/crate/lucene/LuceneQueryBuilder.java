@@ -549,8 +549,8 @@ public class LuceneQueryBuilder {
                 for (Reference reference : ctx.references()) {
                     String columnName = reference.ident().columnIdent().fqn();
                     MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-                    if (fieldType == null) {
-                        // probably an object column, fallback to genericFunctionFilter
+                    if (fieldType == null || reference.valueType().equals(DataTypes.OBJECT_ARRAY)) {
+                        // probably an object or object_array column, fallback to genericFunctionFilter
                         return null;
                     }
                     builder.add(fieldType.rangeQuery(null, null, true, true), BooleanClause.Occur.MUST);
@@ -581,8 +581,8 @@ public class LuceneQueryBuilder {
 
                 String columnName = reference.ident().columnIdent().fqn();
                 MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-                if (fieldType == null) {
-                    if (reference.valueType().equals(DataTypes.OBJECT)) {
+                if (fieldType == null || reference.valueType().equals(DataTypes.OBJECT_ARRAY)) {
+                    if (CollectionType.unnest(reference.valueType()).equals(DataTypes.OBJECT)) {
                         // object column has no mappedFieldType, but may exist. Need to use generic fallback
                         return null;
                     }
