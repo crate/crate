@@ -143,6 +143,18 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitDenyPrivilege(SqlBaseParser.DenyPrivilegeContext context) {
+        List<String> usernames = identsToStrings(context.ident());
+
+        if (context.ALL() != null) {
+            return new DenyPrivilege(usernames);
+        } else {
+            List<String> privilegeTypes = identsToStrings(context.privilegeTypes().ident());
+            return new DenyPrivilege(usernames, privilegeTypes);
+        }
+    }
+
+    @Override
     public Node visitRevokePrivilege(SqlBaseParser.RevokePrivilegeContext context) {
         List<String> usernames = identsToStrings(context.ident());
 
