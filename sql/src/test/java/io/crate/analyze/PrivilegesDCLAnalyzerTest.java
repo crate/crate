@@ -31,6 +31,7 @@ import io.crate.operation.user.UserManager;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.ResourceNotFoundException;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -108,7 +109,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testGrantToUnknownUserThrowsException() {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(ResourceNotFoundException.class);
         expectedException.expectMessage("User test does not exists");
         e = SQLExecutor.builder(clusterService).build();
         e.analyze("GRANT DQL TO test");
@@ -116,7 +117,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testRevokeFromUnknownUserThrowsException() {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(ResourceNotFoundException.class);
         expectedException.expectMessage("User test does not exists");
         e = SQLExecutor.builder(clusterService).build();
         e.analyze("REVOKE DQL FROM test");

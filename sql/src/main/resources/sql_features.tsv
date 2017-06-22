@@ -84,9 +84,9 @@ E071	Basic query expressions	2	UNION ALL table operator	NO
 E071	Basic query expressions	3	EXCEPT DISTINCT table operator	NO		
 E071	Basic query expressions	5	Columns combined via table operators need not have exactly the same data type	NO		
 E071	Basic query expressions	6	Table operators in subqueries	NO		
-E081	Basic Privileges			NO		
-E081	Basic Privileges	1	SELECT privilege	NO		
-E081	Basic Privileges	2	DELETE privilege	NO		
+E081	Basic Privileges			YES		
+E081	Basic Privileges	1	SELECT privilege	YES		
+E081	Basic Privileges	2	DELETE privilege	YES		
 E081	Basic Privileges	3	INSERT privilege at the table level	NO		
 E081	Basic Privileges	4	UPDATE privilege at the table level	NO		
 E081	Basic Privileges	5	UPDATE privilege at the column level	NO		
@@ -155,8 +155,8 @@ F031	Basic schema manipulation	16	DROP VIEW statement: RESTRICT clause	NO
 F031	Basic schema manipulation	19	REVOKE statement: RESTRICT clause	NO		
 F032	CASCADE drop behavior			NO		
 F033	ALTER TABLE statement: DROP COLUMN clause			NO		
-F034	Extended REVOKE statement			NO		
-F034	Extended REVOKE statement	1	REVOKE statement performed by other than the owner of a schema object	NO		
+F034	Extended REVOKE statement			YES		
+F034	Extended REVOKE statement	1	REVOKE statement performed by other than the owner of a schema object	YES		
 F034	Extended REVOKE statement	2	REVOKE statement: GRANT OPTION FOR clause	NO		
 F034	Extended REVOKE statement	3	REVOKE statement to revoke a privilege that the grantee has WITH GRANT OPTION	NO		
 F041	Basic joined table			NO		
