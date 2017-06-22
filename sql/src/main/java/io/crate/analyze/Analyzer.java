@@ -46,6 +46,7 @@ import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.Delete;
+import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropRepository;
@@ -355,6 +356,11 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeGrant(node, context.sessionContext().user());
+        }
+
+        @Override
+        public AnalyzedStatement visitDenyPrivilege(DenyPrivilege node, Analysis context) {
+            return privilegesAnalyzer.analyzeDeny(node, context.sessionContext().user());
         }
 
         @Override
