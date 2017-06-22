@@ -46,7 +46,9 @@ dependencies {
     }
 
     // include it in classpath to be able to launch Crate from within intellij with SSL enabled
-    runtime project(':ssl-impl') 
+    runtime project(':ssl-impl')
+    // include it in classpath to be able to launch Crate from within intellij with HBA support
+    runtime project(':users')
 
     testCompile project(':integration-testing')
 
