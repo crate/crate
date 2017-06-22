@@ -132,40 +132,8 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
         UsersPrivilegesMetaData newMetaData = UsersPrivilegesMetaData.copyOf(
             (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE));
 
-        long affectedRows = 0L;
-        Collection<Privilege> privileges = request.privileges();
-
-        for (String userName : request.userNames()) {
-            // privileges set is expected, it must be created on user creation
-            Set<Privilege> userPrivileges = newMetaData.getUserPrivileges(userName);
-            assert userPrivileges != null : "privileges must not be null for user=" + userName;
-            for (Privilege privilege : privileges) {
-                affectedRows += applyPrivilege(userPrivileges, privilege);
-            }
-        }
-
+        long affectedRows = newMetaData.applyPrivileges(request.userNames(), request.privileges());
         mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, newMetaData);
         return affectedRows;
-    }
-
-    private static long applyPrivilege(Set<Privilege> privileges, Privilege privilege) {
-        if (privileges.contains(privilege)) {
-            return 0L;
-        }
-
-        switch (privilege.state()) {
-            case GRANT:
-                privileges.add(privilege);
-                return 1L;
-            case REVOKE:
-                Privilege grantPrivilege = Privilege.privilegeAsGrant(privilege);
-                if (privileges.contains(grantPrivilege)) {
-                    privileges.remove(grantPrivilege);
-                    return 1L;
-                }
-                return 0L;
-            default:
-                return 0L;
-        }
     }
 }

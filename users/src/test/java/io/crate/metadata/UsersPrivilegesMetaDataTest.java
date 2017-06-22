@@ -18,7 +18,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.user.Privilege;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -32,31 +31,52 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.Is.is;
 
 public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
 
-    private Map<String, Set<Privilege>> usersPrivileges;
+    private static final Privilege GRANT_DQL =
+        new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
+    private static final Privilege GRANT_DML =
+        new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate");
+    private static final Privilege REVOKE_DQL =
+        new Privilege(Privilege.State.REVOKE, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
+    private static final Privilege REVOKE_DML =
+        new Privilege(Privilege.State.REVOKE, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate");
+    private static final Privilege DENY_DQL =
+        new Privilege(Privilege.State.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
+
+    private static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(GRANT_DQL, GRANT_DML));
+    private static final List<String> USERNAMES = Arrays.asList("Ford", "Arthur");
+    private static final String USER_WITHOUT_PRIVILEGES = "noPrivilegesUser";
+    private static final String USER_WITH_DENIED_DQL = "userWithDeniedDQL";
+    private UsersPrivilegesMetaData usersPrivilegesMetaData;
 
     @Before
     public void setUpPrivileges() {
-        usersPrivileges = new HashMap<>();
-        usersPrivileges.put("Arthur", ImmutableSet.<Privilege>builder()
-            .add(new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"))
-            .add(new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate"))
-            .build());
-        usersPrivileges.put("Ford", ImmutableSet.<Privilege>builder()
-            .add(new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.CLUSTER, null, "crate"))
-            .build());
+        Map<String, Set<Privilege>> usersPrivileges = new HashMap<>();
+        for (String userName : USERNAMES) {
+            usersPrivileges.put(userName, new HashSet<>(PRIVILEGES));
+        }
+        usersPrivileges.put(USER_WITHOUT_PRIVILEGES, new HashSet<>());
+        usersPrivileges.put(USER_WITH_DENIED_DQL, new HashSet<>(Arrays.asList(DENY_DQL)));
+
+        usersPrivilegesMetaData = new UsersPrivilegesMetaData(usersPrivileges);
     }
 
     @Test
     public void testStreaming() throws IOException {
-        UsersPrivilegesMetaData usersPrivilegesMetaData = new UsersPrivilegesMetaData(usersPrivileges);
         BytesStreamOutput out = new BytesStreamOutput();
         usersPrivilegesMetaData.writeTo(out);
 
@@ -72,16 +92,94 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
         // reflects the logic used to process custom metadata in the cluster state
         builder.startObject();
 
-        UsersPrivilegesMetaData usersPrivilegesMetaData = new UsersPrivilegesMetaData(usersPrivileges);
         usersPrivilegesMetaData.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
         XContentParser parser = JsonXContent.jsonXContent.createParser(builder.bytes());
         parser.nextToken(); // start object
-        UsersPrivilegesMetaData usersPrivilegesMetaData2 = (UsersPrivilegesMetaData)new UsersPrivilegesMetaData().fromXContent(parser);
+        UsersPrivilegesMetaData usersPrivilegesMetaData2 = (UsersPrivilegesMetaData) new UsersPrivilegesMetaData().fromXContent(parser);
         assertEquals(usersPrivilegesMetaData, usersPrivilegesMetaData2);
 
         // a metadata custom must consume its surrounded END_OBJECT token, no token must be left
         assertThat(parser.nextToken(), nullValue());
     }
+
+    @Test
+    public void testApplyPrivilegesSameExists() throws Exception {
+        long rowCount = usersPrivilegesMetaData.applyPrivileges(USERNAMES, new HashSet<>(PRIVILEGES));
+        assertThat(rowCount, is(0L));
+    }
+
+    @Test
+    public void testRevokeWithoutGrant() throws Exception {
+        long rowCount = usersPrivilegesMetaData.applyPrivileges(
+            Collections.singletonList(USER_WITHOUT_PRIVILEGES),
+            Collections.singletonList(REVOKE_DML)
+        );
+        assertThat(rowCount, is(0L));
+        assertThat(usersPrivilegesMetaData.getUserPrivileges(USER_WITHOUT_PRIVILEGES), empty());
+    }
+
+    @Test
+    public void testRevokeWithGrant() throws Exception {
+        long rowCount = usersPrivilegesMetaData.applyPrivileges(
+            Collections.singletonList("Arthur"),
+            Collections.singletonList(REVOKE_DML)
+        );
+
+        assertThat(rowCount, is(1L));
+        assertThat(usersPrivilegesMetaData.getUserPrivileges("Arthur"), contains(GRANT_DQL));
+    }
+
+
+    @Test
+    public void testRevokeWithGrantOfDifferentGrantor() throws Exception {
+        long rowCount = usersPrivilegesMetaData.applyPrivileges(
+            Collections.singletonList("Arthur"),
+            Collections.singletonList(new Privilege(Privilege.State.REVOKE, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "hoschi"))
+        );
+
+        assertThat(rowCount, is(1L));
+        assertThat(usersPrivilegesMetaData.getUserPrivileges("Arthur"), contains(GRANT_DQL));
+    }
+
+    @Test
+    public void testDenyGrantedPrivilegeForUsers() throws Exception {
+        long rowCount = usersPrivilegesMetaData.applyPrivileges(
+            USERNAMES,
+            Collections.singletonList(DENY_DQL)
+        );
+        assertThat(rowCount, is(2L));
+    }
+
+    @Test
+    public void testDenyUngrantedPrivilegeStoresTheDeny() throws Exception {
+        long rowCount = usersPrivilegesMetaData.applyPrivileges(
+            Collections.singletonList(USER_WITHOUT_PRIVILEGES),
+            Collections.singletonList(DENY_DQL)
+        );
+        assertThat(rowCount, is(1L));
+        assertThat(usersPrivilegesMetaData.getUserPrivileges(USER_WITHOUT_PRIVILEGES), contains(DENY_DQL));
+    }
+
+    @Test
+    public void testRevokeDenyPrivilegeRemovesIt() throws Exception {
+        long rowCount = usersPrivilegesMetaData.applyPrivileges(
+            Collections.singletonList(USER_WITH_DENIED_DQL),
+            Collections.singletonList(REVOKE_DQL)
+        );
+        assertThat(rowCount, is(1L));
+        assertThat(usersPrivilegesMetaData.getUserPrivileges(USER_WITH_DENIED_DQL), empty());
+    }
+
+    @Test
+    public void testDenyExistingDeniedPrivilegeIsNoOp() {
+        long rowCount = usersPrivilegesMetaData.applyPrivileges(
+            Collections.singletonList(USER_WITH_DENIED_DQL),
+            new HashSet<>(Arrays.asList(DENY_DQL))
+        );
+        assertThat(rowCount, is(0L));
+        assertThat(usersPrivilegesMetaData.getUserPrivileges(USER_WITH_DENIED_DQL), contains(DENY_DQL));
+    }
+
 }
