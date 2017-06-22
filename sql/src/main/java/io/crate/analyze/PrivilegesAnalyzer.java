@@ -28,6 +28,7 @@ import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
 import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.RevokePrivilege;
+import org.elasticsearch.ResourceNotFoundException;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -75,7 +76,7 @@ class PrivilegesAnalyzer {
         for (String userName : userNames) {
             User user = userManager.findUser(userName);
             if (user == null) {
-                throw new IllegalArgumentException(String.format(
+                throw new ResourceNotFoundException(String.format(
                     Locale.ENGLISH, "User %s does not exists", userName));
             } else if (user.roles().contains(User.Role.SUPERUSER)) {
                 throw new IllegalArgumentException(String.format(

@@ -116,5 +116,4 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
             "UnauthorizedException: User \"null\" is not authorized to access table \"sys.users\"");
         execute("select * from sys.users");
     }
-
 }
