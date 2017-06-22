@@ -22,14 +22,21 @@
 
 package io.crate.operation.tablefunctions;
 
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.operation.AbstractFunctionModule;
+import io.crate.data.Bucket;
+import org.junit.Test;
 
-public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImplementation> {
+import static org.hamcrest.Matchers.is;
 
-    @Override
-    public void configureFunctions() {
-        UnnestFunction.register(this);
-        EmptyRowTableFunction.register(this);
+public class EmptyRowTableFunctionTest extends AbstractTableFunctionsTest {
+
+    @Test
+    public void testEmptyRowReturnsEmptyResult() {
+        assertExecute("empty_row()", "\n");
+    }
+
+    @Test
+    public void testEmptyRowReturnsOneRow() {
+        Bucket result = execute("empty_row()");
+        assertThat(result.size(), is(1));
     }
 }

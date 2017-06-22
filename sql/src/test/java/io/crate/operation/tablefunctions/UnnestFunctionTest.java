@@ -22,51 +22,9 @@
 
 package io.crate.operation.tablefunctions;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.data.Bucket;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.Functions;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.data.Input;
-import io.crate.sql.tree.QualifiedName;
-import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.SqlExpressions;
-import org.junit.Before;
 import org.junit.Test;
 
-import java.util.stream.Collectors;
-
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-
-public class UnnestFunctionTest extends CrateUnitTest {
-
-    private SqlExpressions sqlExpressions;
-    private Functions functions;
-
-    @Before
-    public void prepareFunctions() throws Exception {
-        sqlExpressions = new SqlExpressions(ImmutableMap.of(QualifiedName.of("t"), mock(DocTableRelation.class)));
-        functions = sqlExpressions.getInstance(Functions.class);
-    }
-
-    private Bucket execute(String expr) {
-        Symbol functionSymbol = sqlExpressions.asSymbol(expr);
-        functionSymbol = sqlExpressions.normalize(functionSymbol);
-        Function function = (Function) functionSymbol;
-        FunctionIdent ident = function.info().ident();
-        TableFunctionImplementation tableFunction = (TableFunctionImplementation)
-            functions.getBuiltin(ident.name(), ident.argumentTypes());
-        return tableFunction.execute(function.arguments().stream().map(a -> (Input) a).collect(Collectors.toList()));
-    }
-
-    private void assertExecute(String expr, String expected) {
-        assertThat(printedTable(execute(expr)), is(expected));
-    }
+public class UnnestFunctionTest extends AbstractTableFunctionsTest {
 
     @Test
     public void test1Col1Row() throws Exception {

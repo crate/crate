@@ -31,8 +31,8 @@ SELECT retrieves rows from a table. The general processing of SELECT is as
 follows:
 
 - The FROM item points to the table where the data should be retrieved from. If
-  no FROM item is specified, the query is executed against
-  :ref:`sys.cluster <sys-cluster>`.
+  no FROM item is specified, the query is executed against a virtual table with
+  no columns.
 
 - If the WHERE clause is specified, all rows that do not satisfy the condition
   are eliminated from the output. (See WHERE Clause below.)

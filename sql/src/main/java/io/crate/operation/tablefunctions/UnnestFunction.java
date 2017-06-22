@@ -58,7 +58,7 @@ import java.util.NoSuchElementException;
 
 public class UnnestFunction {
 
-    private final static String NAME = "unnest";
+    private static final String NAME = "unnest";
     private static final TableIdent TABLE_IDENT = new TableIdent(null, NAME);
 
     static class UnnestTableFunctionImplementation implements TableFunctionImplementation {

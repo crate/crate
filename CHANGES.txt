@@ -15,6 +15,11 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+ - ``SELECT`` statements without any ``FROM`` items are no longer executed 
+   against the ``sys.cluster`` table, but against a virtual table with no 
+   columns. Queries including ``sys.cluster`` columns but no explicit ``FROM`` 
+   item will now result in a ``ColumnUnknownException``.
+
  - onModule() method had been removed from io.crate.Plugin interface,
    so createGuiceModules() must be used instead.
 

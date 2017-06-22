@@ -837,9 +837,10 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testNoFromResultsInSysClusterQuery() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select 'bar', name");
-        assertThat(analysis.relation().querySpec(), isSQL("SELECT 'bar', sys.cluster.name"));
+    public void testSelectColumnWitoutFromResultsInColumnUnknownException() throws Exception {
+        expectedException.expect(ColumnUnknownException.class);
+        expectedException.expectMessage("Column name unknown");
+        analyze("select 'bar', name");
     }
 
     @Test
