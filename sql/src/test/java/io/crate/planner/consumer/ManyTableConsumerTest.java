@@ -26,9 +26,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.*;
+import io.crate.analyze.Analysis;
+import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.ParameterContext;
+import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.TwoTableJoin;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
@@ -40,7 +45,12 @@ import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.contains;
@@ -50,6 +60,7 @@ import static org.hamcrest.core.Is.is;
 public class ManyTableConsumerTest extends CrateUnitTest {
 
     private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private final SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
 
     private MultiSourceSelect analyze(String statement) {
         Analysis analysis = e.analyzer.boundAnalyze(
@@ -207,8 +218,6 @@ public class ManyTableConsumerTest extends CrateUnitTest {
         new QualifiedName(T3.T3_INFO.ident().name()), T3.TR_3,
         new QualifiedName(T3.T4_INFO.ident().name()), T3.TR_4);
 
-    private static final SqlExpressions expressions = new SqlExpressions(sources);
-
     @Test
     public void testReordering4TableSortOnWhereAndJoinConditionsThatDontMatchThePair() throws Exception {
         List<QualifiedName> relations = ImmutableList.of(
@@ -224,14 +233,14 @@ public class ManyTableConsumerTest extends CrateUnitTest {
             relations,
             Collections.emptySet(),
             joinPairs,
-            ImmutableList.of(T3.T4)), contains(T3.T4, T3.T1, T3.T3, T3.T2));
+            ImmutableList.of(T3.T4)), contains(T3.T4, T3.T1, T3.T2, T3.T3));
     }
 
     @Test
     public void test4TableSortOnWhereAndJoinConditionsThatDontMatchThePair() throws Exception {
         MultiSourceSelect mss = analyze("select *" +
                                         " from t1" +
-                                        " join t2 on t1.a=t2.b" +
+                                        " join t2 on t1.a=t2.b and (t2.b=10 or t1.a=20) " +
                                         " join t3 on t2.b=t3.c" +
                                         " join users on t1.i=users.id" +
                                         " join users_multi_pk on t3.z=users_multi_pk.id" +
@@ -247,10 +256,31 @@ public class ManyTableConsumerTest extends CrateUnitTest {
         TwoTableJoin tt2 = (TwoTableJoin) tt1.left().relation();
         assertThat(tt2.toString(), is("join.join.doc.t3.doc.t1.doc.t2"));
         assertThat(tt2.joinPair().condition(),
-                   isSQL("((RELCOL(join.doc.t3.doc.t1, 2) = RELCOL(doc.t2, 0)) AND (RELCOL(doc.t2, 0) = RELCOL(join.doc.t3.doc.t1, 0)))"));
+                   isSQL("((RELCOL(doc.t2, 0) = RELCOL(join.doc.t3.doc.t1, 0)) AND " +
+                         "((RELCOL(join.doc.t3.doc.t1, 2) = RELCOL(doc.t2, 0)) AND " +
+                         "((RELCOL(doc.t2, 0) = '10') OR (RELCOL(join.doc.t3.doc.t1, 2) = '20'))))"));
 
         TwoTableJoin tt3 = (TwoTableJoin) tt2.left().relation();
         assertThat(tt3.toString(), is("join.doc.t3.doc.t1"));
         assertThat(tt3.joinPair().condition(), nullValue());
+    }
+
+    @Test
+    public void testBuildingOfJoinConditionsMap() {
+        List<JoinPair> joinPairs = ImmutableList.of(
+            new JoinPair(T3.T1, T3.T2, JoinType.INNER, expressions.asSymbol("t1.a=t2.b")),
+            new JoinPair(T3.T2, T3.T3, JoinType.INNER, expressions.asSymbol("t2.b=t1.a and t2.b=t3.c")),
+            new JoinPair(T3.T4, T3.T3, JoinType.INNER,
+                        expressions.asSymbol("t4.id=t3.z and (t2.b=t3.c or t4.id=t1.x)")));
+
+
+        Map<Set<QualifiedName>, Symbol> joinConditions = ManyTableConsumer.buildJoinConditionsMap(joinPairs);
+        assertThat(joinConditions.size(), is(4));
+        assertThat(joinConditions.get(ImmutableSet.of(T3.T1, T3.T2)),
+                   isSQL("((doc.t1.a = doc.t2.b) AND (doc.t2.b = doc.t1.a))"));
+        assertThat(joinConditions.get(ImmutableSet.of(T3.T2, T3.T3)), isSQL("(doc.t2.b = doc.t3.c)"));
+        assertThat(joinConditions.get(ImmutableSet.of(T3.T3, T3.T4)), isSQL("(doc.t4.id = doc.t3.z)"));
+        assertThat(joinConditions.get(ImmutableSet.of(T3.T1, T3.T2, T3.T3, T3.T4)),
+                   isSQL("((doc.t2.b = doc.t3.c) OR (doc.t4.id = doc.t1.x))"));
     }
 }

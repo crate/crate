@@ -22,6 +22,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that caused an Exception to be thrown on ``JOIN`` queries
+   with 4 or more tables when an ``ORDER BY`` is also applied.
+
  - Fixed an issue that resulted in rows could not be queried by primary keys
    when the order of the primary key columns on insert differs from the order of
    the primary keys on the table definition.
