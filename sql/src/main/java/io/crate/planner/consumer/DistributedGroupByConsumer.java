@@ -22,6 +22,7 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
@@ -98,7 +99,9 @@ class DistributedGroupByConsumer implements Consumer {
                 RowGranularity.SHARD);
 
             Planner.Context plannerContext = context.plannerContext();
-            Routing routing = plannerContext.allocateRouting(tableInfo, querySpec.where(), null);
+            SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
+            Routing routing = plannerContext.allocateRouting(tableInfo, querySpec.where(), null,
+                sessionContext);
             RoutedCollectPhase collectPhase = new RoutedCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
@@ -108,7 +111,9 @@ class DistributedGroupByConsumer implements Consumer {
                 splitPoints.toCollect(),
                 ImmutableList.<Projection>of(groupProjection),
                 querySpec.where(),
-                DistributionInfo.DEFAULT_MODULO
+                DistributionInfo.DEFAULT_MODULO,
+                sessionContext.user()
+
             );
             // end: Map/Collect side
 

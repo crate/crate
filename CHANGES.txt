@@ -42,6 +42,9 @@ Breaking Changes (Packaging only)
 Changes
 =======
 
+ - Added support for ``GRANT``, ``DENY`` and ``REVOKE`` privileges for
+   accessing the tables and schemas.
+
  - Queries which contain a correlated subquery will now result in an error
    stating that correlated subqueries are not supported, instead of a more
    confusing error indicating that a relation is unknown.

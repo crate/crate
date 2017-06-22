@@ -58,7 +58,7 @@ import static org.hamcrest.CoreMatchers.is;
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, randomDynamicTemplates = false)
 public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegrationTest {
 
-    private class DummyFunction<InputType> extends Scalar<BytesRef, InputType>  {
+    public static class DummyFunction<InputType> extends Scalar<BytesRef, InputType>  {
 
         private final FunctionInfo info;
         private final UserDefinedFunctionMetaData metaData;
@@ -80,7 +80,7 @@ public class UserDefinedFunctionsIntegrationTest extends SQLTransportIntegration
         }
     }
 
-    private class DummyLang implements UDFLanguage {
+    public static class DummyLang implements UDFLanguage {
 
         @Override
         public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException {

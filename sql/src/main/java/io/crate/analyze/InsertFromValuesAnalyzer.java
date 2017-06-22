@@ -107,8 +107,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
     public AnalyzedStatement analyze(InsertFromValues node, Analysis analysis) {
         DocTableInfo tableInfo = schemas.getTableInfo(
             TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()),
-            Operation.INSERT,
-            analysis.sessionContext().user()
+            Operation.INSERT
         );
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);

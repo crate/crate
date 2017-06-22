@@ -19,7 +19,6 @@
 package io.crate.operation.user;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.analyze.user.Privilege;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import org.elasticsearch.action.ActionListener;
@@ -43,10 +42,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 @Singleton
-public class TransportPrivilegesAction extends TransportMasterNodeAction<PrivilegesRequest, PrivilegesResponse> {
+public class TransportPrivilegesAction extends TransportMasterNodeAction<PrivilegesRequest, ApplyPrivilegesResponse> {
 
     private static final String ACTION_NAME = "crate/sql/grant_privileges";
 
@@ -67,8 +65,8 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     }
 
     @Override
-    protected PrivilegesResponse newResponse() {
-        return new PrivilegesResponse();
+    protected ApplyPrivilegesResponse newResponse() {
+        return new ApplyPrivilegesResponse();
     }
 
     @Override
@@ -77,9 +75,9 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     }
 
     @Override
-    protected void masterOperation(PrivilegesRequest request, ClusterState state, ActionListener<PrivilegesResponse> listener) throws Exception {
+    protected void masterOperation(PrivilegesRequest request, ClusterState state, ActionListener<ApplyPrivilegesResponse> listener) throws Exception {
         clusterService.submitStateUpdateTask("grant_privileges",
-            new AckedClusterStateUpdateTask<PrivilegesResponse>(Priority.IMMEDIATE, request, listener) {
+            new AckedClusterStateUpdateTask<ApplyPrivilegesResponse>(Priority.IMMEDIATE, request, listener) {
 
                 long affectedRows = -1;
                 List<String> unknownUserNames = null;
@@ -96,8 +94,8 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
                 }
 
                 @Override
-                protected PrivilegesResponse newResponse(boolean acknowledged) {
-                    return new PrivilegesResponse(acknowledged, affectedRows, unknownUserNames);
+                protected ApplyPrivilegesResponse newResponse(boolean acknowledged) {
+                    return new ApplyPrivilegesResponse(acknowledged, affectedRows, unknownUserNames);
                 }
             });
 
@@ -132,40 +130,8 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
         UsersPrivilegesMetaData newMetaData = UsersPrivilegesMetaData.copyOf(
             (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE));
 
-        long affectedRows = 0L;
-        Collection<Privilege> privileges = request.privileges();
-
-        for (String userName : request.userNames()) {
-            // privileges set is expected, it must be created on user creation
-            Set<Privilege> userPrivileges = newMetaData.getUserPrivileges(userName);
-            assert userPrivileges != null : "privileges must not be null for user=" + userName;
-            for (Privilege privilege : privileges) {
-                affectedRows += applyPrivilege(userPrivileges, privilege);
-            }
-        }
-
+        long affectedRows = newMetaData.applyPrivileges(request.userNames(), request.privileges());
         mdBuilder.putCustom(UsersPrivilegesMetaData.TYPE, newMetaData);
         return affectedRows;
-    }
-
-    private static long applyPrivilege(Set<Privilege> privileges, Privilege privilege) {
-        if (privileges.contains(privilege)) {
-            return 0L;
-        }
-
-        switch (privilege.state()) {
-            case GRANT:
-                privileges.add(privilege);
-                return 1L;
-            case REVOKE:
-                Privilege grantPrivilege = Privilege.privilegeAsGrant(privilege);
-                if (privileges.contains(grantPrivilege)) {
-                    privileges.remove(grantPrivilege);
-                    return 1L;
-                }
-                return 0L;
-            default:
-                return 0L;
-        }
     }
 }

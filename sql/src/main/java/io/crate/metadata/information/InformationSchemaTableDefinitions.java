@@ -22,6 +22,7 @@
 
 package io.crate.metadata.information;
 
+import io.crate.analyze.user.Privilege;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.collect.sources.InformationSchemaIterables;
 import io.crate.operation.reference.StaticTableDefinition;
@@ -36,32 +37,39 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 @Singleton
 public class InformationSchemaTableDefinitions {
 
-    private final Map<TableIdent, StaticTableDefinition<?>> tableDefinitions = new HashMap<>();
+    private final Map<TableIdent, StaticTableDefinition<?>> tableDefinitions;
 
     @Inject
     public InformationSchemaTableDefinitions(InformationSchemaIterables informationSchemaIterables) {
+        tableDefinitions = new HashMap<>(7);
         tableDefinitions.put(InformationSchemataTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(informationSchemaIterables.schemas()),
+            informationSchemaIterables::schemas,
+            (user, s) -> user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, s.name()),
             InformationSchemataTableInfo.expressions()
         ));
         tableDefinitions.put(InformationTablesTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(informationSchemaIterables.tables()),
+            informationSchemaIterables::tables,
+            (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.ident().fqn()),
             InformationTablesTableInfo.expressions()
         ));
         tableDefinitions.put(InformationPartitionsTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(informationSchemaIterables.partitions()),
+            informationSchemaIterables::partitions,
+            (user, p) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, p.name().tableIdent().fqn()),
             InformationPartitionsTableInfo.expressions()
         ));
         tableDefinitions.put(InformationColumnsTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(informationSchemaIterables.columns()),
+            informationSchemaIterables::columns,
+            (user, c) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, c.tableInfo.ident().fqn()),
             InformationColumnsTableInfo.expression()
         ));
         tableDefinitions.put(InformationTableConstraintsTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(informationSchemaIterables.constraints()),
+            informationSchemaIterables::constraints,
+            (user, t) -> user.hasAnyPrivilege(Privilege.Clazz.TABLE, t.ident().fqn()),
             InformationTableConstraintsTableInfo.expressions()
         ));
         tableDefinitions.put(InformationRoutinesTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(informationSchemaIterables.routines()),
+            informationSchemaIterables::routines,
+            (user, r) -> user.hasAnyPrivilege(Privilege.Clazz.SCHEMA, r.schema()),
             InformationRoutinesTableInfo.expressions()
         ));
         tableDefinitions.put(InformationSqlFeaturesTableInfo.IDENT, new StaticTableDefinition<>(

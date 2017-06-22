@@ -95,8 +95,7 @@ class CreateSnapshotAnalyzer {
                 DocTableInfo docTableInfo;
                 try {
                     docTableInfo = schemas.getTableInfo(
-                        TableIdent.of(table, analysis.sessionContext().defaultSchema()), Operation.CREATE_SNAPSHOT,
-                        analysis.sessionContext().user());
+                        TableIdent.of(table, analysis.sessionContext().defaultSchema()), Operation.CREATE_SNAPSHOT);
                 } catch (ResourceUnknownException e) {
                     if (ignoreUnavailable) {
                         LOGGER.info("ignoring: {}", e.getMessage());

@@ -21,10 +21,13 @@
 
 package io.crate.metadata.table;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.*;
-import io.crate.operation.user.User;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.action.sql.SessionContext;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -59,15 +62,11 @@ public interface TableInfo extends Iterable<Reference> {
      * <p>
      * 2. The underlying clusterState might change between calls.
      */
-    Routing getRouting(WhereClause whereClause, @Nullable String preference);
+    Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext);
 
     List<ColumnIdent> primaryKey();
 
     Map<String, Object> tableParameters();
 
     Set<Operation> supportedOperations();
-
-    default Set<User.Role> requiredUserRoles() {
-        return ImmutableSet.of();
-    }
 }

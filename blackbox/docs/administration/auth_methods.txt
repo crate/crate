@@ -41,6 +41,19 @@ setting like this:
         http_default_user: dustin
 
 
+
+.. note::
+
+   When the Enterprise Edition, and the User Management are enabled,
+   the user of the Admin UI needs to be granted the following privileges:
+   ``DQL`` on ``sys.shards``, ``sys.nodes``, ``sys.node_checks``,
+   ``sys.checks``, ``sys.cluster``, and ``sys.jobs_log`` tables.
+   As well as ``DQL`` on the ``doc`` schema.
+
+   These ``DQL`` privileges are required by the Admin UI to display the
+   cluster health, monitoring,  and checks, to list the available nodes
+   in the cluster and to list the tables.
+
 .. _auth_cert:
 
 Client Certificate Authentication Method

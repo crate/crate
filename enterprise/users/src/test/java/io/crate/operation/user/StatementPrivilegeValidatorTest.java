@@ -80,10 +80,10 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
                 return true;
             }
         };
-        userManager = new UserManagerService(null, null, null, mock(SysTableRegistry.class), clusterService);
+        userManager = new UserManagerService(null, null, null, null, null, mock(SysTableRegistry.class), clusterService);
 
         TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
-        e = SQLExecutor.builder(clusterService, () -> userManager)
+        e = SQLExecutor.builder(clusterService)
             .addBlobTable(TableDefinitions.createBlobTable(myBlobsIdent, clusterService))
             .enableDefaultTables()
             .build();

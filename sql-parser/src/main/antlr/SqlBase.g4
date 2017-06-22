@@ -71,8 +71,15 @@ statement
     | DROP FUNCTION (IF EXISTS)? name=qname
         '(' (functionArgument (',' functionArgument)*)? ')'                          #dropFunction
     | DROP USER (IF EXISTS)? name=ident                                              #dropUser
-    | GRANT ( privilegeTypes | ALL (PRIVILEGES)? ) TO ( ident (',' ident)* )         #grantPrivilege
-    | REVOKE ( privilegeTypes | ALL (PRIVILEGES)? ) FROM ( ident (',' ident)* )      #revokePrivilege
+    | GRANT ( privilegeTypes | ALL (PRIVILEGES)? )
+      (ON clazz  ( qname (',' qname)* ))?
+      TO userNames                                                                   #grantPrivilege
+    | DENY ( privilegeTypes | ALL (PRIVILEGES)? )
+      (ON clazz  ( qname (',' qname)* ))?
+      TO userNames                                                                   #denyPrivilege
+    | REVOKE ( privilegeTypes | ALL (PRIVILEGES)? )
+      (ON clazz   ( qname (',' qname)* ))?
+      FROM userNames                                                                 #revokePrivilege
     | createStmt                                                                     #create
     ;
 
@@ -563,6 +570,15 @@ on
     : ON
     ;
 
+userNames
+    : ( ident (',' ident)* )
+    ;
+
+clazz
+    : SCHEMA
+    | TABLE
+    ;
+
 nonReserved
     : ALIAS | ANALYZER | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
     | COLUMNS | COPY | CURRENT | DATE | DAY | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
@@ -573,7 +589,8 @@ nonReserved
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
-    | ISOLATION | TRANSACTION | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME | PRIVILEGES
+    | ISOLATION | TRANSACTION | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME 
+    | PRIVILEGES | SCHEMA
     ;
 
 SELECT: 'SELECT';
@@ -776,8 +793,10 @@ READ: 'READ';
 
 USER: 'USER';
 GRANT: 'GRANT';
+DENY: 'DENY';
 REVOKE: 'REVOKE';
 PRIVILEGES: 'PRIVILEGES';
+SCHEMA: 'SCHEMA';
 
 
 EQ  : '=';

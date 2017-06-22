@@ -21,6 +21,10 @@ package io.crate.operation.user;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.information.InformationSchemaInfo;
+
+import javax.annotation.Nullable;
 
 class Privileges {
 
@@ -29,11 +33,15 @@ class Privileges {
      */
     static void ensureUserHasPrivilege(Privilege.Type type,
                                        Privilege.Clazz clazz,
-                                       String ident,
+                                       @Nullable String ident,
                                        User user) throws MissingPrivilegeException {
         assert user != null : "User must not be null when trying to validate privileges";
         assert type != null : "Privilege type must not be null";
 
+        // information_schema should not be protected
+        if (isInformationSchema(clazz, ident)) {
+            return;
+        }
         //noinspection PointlessBooleanExpression
         if (user.hasPrivilege(type, clazz, ident) == false) {
             throw new MissingPrivilegeException(user.name(), type);
@@ -45,12 +53,31 @@ class Privileges {
      */
     @VisibleForTesting
     static void ensureUserHasPrivilege(Privilege.Clazz clazz,
-                                       String ident,
+                                       @Nullable String ident,
                                        User user) throws MissingPrivilegeException {
         assert user != null : "User must not be null when trying to validate privileges";
+
+        // information_schema should not be protected
+        if (isInformationSchema(clazz, ident)) {
+            return;
+        }
         //noinspection PointlessBooleanExpression
         if (user.hasAnyPrivilege(clazz, ident) == false) {
             throw new MissingPrivilegeException(user.name());
         }
+    }
+
+    private static boolean isInformationSchema(Privilege.Clazz clazz, @Nullable String ident) {
+        if (Privilege.Clazz.CLUSTER.equals(clazz)) {
+            return false;
+        }
+        assert ident != null : "ident must not be null if privilege class is not 'CLUSTER'";
+        String schemaName;
+        if (Privilege.Clazz.TABLE.equals(clazz)) {
+            schemaName = TableIdent.fromIndexName(ident).schema();
+        } else {
+            schemaName = ident;
+        }
+        return InformationSchemaInfo.NAME.equals(schemaName);
     }
 }

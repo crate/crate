@@ -20,9 +20,13 @@ package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
@@ -33,7 +37,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
 import java.util.Map;
-import java.util.Set;
 
 public class SysUsersTableInfo extends StaticTableInfo {
 
@@ -62,13 +65,8 @@ public class SysUsersTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
         return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().getId());
-    }
-
-    @Override
-    public Set<User.Role> requiredUserRoles() {
-        return ImmutableSet.of(User.Role.SUPERUSER);
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<User>> sysUsersExpressions() {
@@ -82,7 +80,7 @@ public class SysUsersTableInfo extends StaticTableInfo {
             .put(SysUsersTableInfo.Columns.SUPERUSER, () -> new RowContextCollectorExpression<User, Boolean>() {
                 @Override
                 public Boolean value() {
-                    return row.roles().contains(User.Role.SUPERUSER);
+                    return row.isSuperUser();
                 }
             })
             .build();

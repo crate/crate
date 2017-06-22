@@ -35,6 +35,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
+import io.crate.operation.user.User;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
@@ -67,7 +68,8 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             toCollect,
             ImmutableList.<Projection>of(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_MODULO
+            DistributionInfo.DEFAULT_MODULO,
+            new User("not_streamed", Collections.emptySet(), Collections.emptySet())
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -83,6 +85,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
         assertThat(cn.phaseId(), is(cn2.phaseId()));
         assertThat(cn.maxRowGranularity(), is(cn2.maxRowGranularity()));
         assertThat(cn.distributionInfo(), is(cn2.distributionInfo()));
+        assertThat(cn2.user(), nullValue());
     }
 
     @Test
@@ -97,7 +100,8 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             Collections.singletonList(toInt10),
             Collections.emptyList(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_SAME_NODE
+            DistributionInfo.DEFAULT_SAME_NODE,
+            null
         );
         collect.orderBy(new OrderBy(Collections.singletonList(toInt10), new boolean[]{false}, new Boolean[]{null}));
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions(), ReplaceMode.COPY);

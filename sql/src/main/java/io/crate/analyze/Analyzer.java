@@ -46,6 +46,7 @@ import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.CreateUser;
 import io.crate.sql.tree.Delete;
+import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropBlobTable;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropRepository;
@@ -157,7 +158,7 @@ public class Analyzer {
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
-        this.privilegesAnalyzer = new PrivilegesAnalyzer();
+        this.privilegesAnalyzer = new PrivilegesAnalyzer(schemas);
     }
 
     public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
@@ -264,13 +265,12 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDropBlobTable(DropBlobTable node, Analysis context) {
-            return dropBlobTableAnalyzer.analyze(node, context.sessionContext().user());
+            return dropBlobTableAnalyzer.analyze(node);
         }
 
         @Override
         public AnalyzedStatement visitAlterBlobTable(AlterBlobTable node, Analysis context) {
-            return alterBlobTableAnalyzer.analyze(node, context.parameterContext().parameters(),
-                context.sessionContext().user());
+            return alterBlobTableAnalyzer.analyze(node, context.parameterContext().parameters());
         }
 
         @Override
@@ -355,6 +355,11 @@ public class Analyzer {
         @Override
         public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
             return privilegesAnalyzer.analyzeGrant(node, context.sessionContext().user());
+        }
+
+        @Override
+        public AnalyzedStatement visitDenyPrivilege(DenyPrivilege node, Analysis context) {
+            return privilegesAnalyzer.analyzeDeny(node, context.sessionContext().user());
         }
 
         @Override

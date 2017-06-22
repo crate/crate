@@ -21,6 +21,7 @@
 
 package io.crate.planner.node.dql;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTableRelation;
@@ -36,6 +37,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Paging;
+import io.crate.operation.user.User;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhaseVisitor;
@@ -68,6 +70,9 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     @Nullable
     private OrderBy orderBy = null;
 
+    @Nullable
+    private User user = null;
+
     public RoutedCollectPhase(UUID jobId,
                               int executionNodeId,
                               String name,
@@ -76,7 +81,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                               List<Symbol> toCollect,
                               List<Projection> projections,
                               WhereClause whereClause,
-                              DistributionInfo distributionInfo) {
+                              DistributionInfo distributionInfo,
+                              @Nullable User user) {
         super(jobId, executionNodeId, name, projections);
         assert toCollect.stream().noneMatch(st -> SymbolVisitors.any(s -> s instanceof Field, st))
             : "toCollect must not contain any fields: " + toCollect;
@@ -89,6 +95,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         this.maxRowGranularity = maxRowGranularity;
         this.toCollect = toCollect;
         this.distributionInfo = distributionInfo;
+        this.user = user;
         this.outputTypes = extractOutputTypes(toCollect, projections);
     }
 
@@ -209,6 +216,14 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         return maxRowGranularity;
     }
 
+    /**
+     * Returns the user of the current session. Can be null and will not be streamed.
+     */
+    @Nullable
+    public User user() {
+        return user;
+    }
+
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitRoutedCollectPhase(this, context);
@@ -275,7 +290,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                 newToCollect,
                 projections,
                 newWhereClause,
-                distributionInfo
+                distributionInfo,
+                user
             );
             result.orderBy(orderBy);
         }
@@ -288,13 +304,14 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                                                      List<Projection> projections) {
         TableInfo tableInfo = table.tableRelation().tableInfo();
         WhereClause where = table.querySpec().where();
+        SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
         if (table.tableRelation() instanceof TableFunctionRelation) {
             TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) table.tableRelation();
             plannerContext.normalizer().normalizeInplace(tableFunctionRelation.function().arguments(), plannerContext.transactionContext());
             return new TableFunctionCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
-                plannerContext.allocateRouting(tableInfo, where, null),
+                plannerContext.allocateRouting(tableInfo, where, null, sessionContext),
                 tableFunctionRelation,
                 projections,
                 toCollect,
@@ -305,12 +322,13 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             "collect",
-            plannerContext.allocateRouting(tableInfo, where, null),
+            plannerContext.allocateRouting(tableInfo, where, null, sessionContext),
             tableInfo.rowGranularity(),
             toCollect,
             projections,
             where,
-            DistributionInfo.DEFAULT_BROADCAST
+            DistributionInfo.DEFAULT_BROADCAST,
+            sessionContext.user()
         );
     }
 }

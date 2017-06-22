@@ -73,17 +73,23 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     private final TransportCreateUserAction transportCreateUserAction;
     private final TransportDropUserAction transportDropUserAction;
     private final TransportPrivilegesAction transportPrivilegesAction;
+    private final TransportTransferTablePrivilegesAction transportTransferTablePrivilegesAction;
+    private final TransportDropTablePrivilegesAction transportDropTablePrivilegesAction;
     private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
 
     @Inject
     public UserManagerService(TransportCreateUserAction transportCreateUserAction,
                               TransportDropUserAction transportDropUserAction,
                               TransportPrivilegesAction transportPrivilegesAction,
+                              TransportTransferTablePrivilegesAction transportTransferTablePrivilegesAction,
+                              TransportDropTablePrivilegesAction transportDropTablePrivilegesAction,
                               SysTableRegistry sysTableRegistry,
                               ClusterService clusterService) {
         this.transportCreateUserAction = transportCreateUserAction;
         this.transportDropUserAction = transportDropUserAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
+        this.transportTransferTablePrivilegesAction = transportTransferTablePrivilegesAction;
+        this.transportDropTablePrivilegesAction = transportDropTablePrivilegesAction;
         clusterService.addListener(this);
         sysTableRegistry.registerSysTable(new SysUsersTableInfo(clusterService),
             () -> CompletableFuture.completedFuture(users()),
@@ -142,7 +148,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     @Override
     public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
         userNames.forEach(s -> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER.accept(findUser(s)));
-        FutureActionListener<PrivilegesResponse, Long> listener = new FutureActionListener<>(r -> {
+        FutureActionListener<ApplyPrivilegesResponse, Long> listener = new FutureActionListener<>(r -> {
             //noinspection PointlessBooleanExpression
             if (r.unknownUserNames().isEmpty() == false) {
                 throw new UserUnknownException(r.unknownUserNames());
@@ -150,6 +156,22 @@ public class UserManagerService implements UserManager, ClusterStateListener {
             return r.affectedRows();
         });
         transportPrivilegesAction.execute(new PrivilegesRequest(userNames, privileges), listener);
+        return listener;
+    }
+
+    @Override
+    public CompletableFuture<Long> transferTablePrivileges(String sourceIdent, String targetIdent) {
+        FutureActionListener<PrivilegesResponse, Long> listener =
+            new FutureActionListener<>(PrivilegesResponse::affectedRows);
+        transportTransferTablePrivilegesAction.execute(new TransferTablePrivilegesRequest(sourceIdent, targetIdent), listener);
+        return listener;
+    }
+
+    @Override
+    public CompletableFuture<Long> dropTablePrivileges(String tableIdent) {
+        FutureActionListener<PrivilegesResponse, Long> listener =
+            new FutureActionListener<>(PrivilegesResponse::affectedRows);
+        transportDropTablePrivilegesAction.execute(new DropTablePrivilegesRequest(tableIdent), listener);
         return listener;
     }
 

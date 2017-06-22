@@ -48,7 +48,6 @@ public interface UserManager extends UserLookup {
      */
     CompletableFuture<Long> dropUser(String userName, boolean ifExists);
 
-
     /**
      * Apply given list of {@link Privilege}s for each given user
 
@@ -57,6 +56,20 @@ public interface UserManager extends UserLookup {
      * @return a future which returns the number of privileges which were successfully applied
      */
     CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges);
+
+    /**
+     * Transfers the existing table privileges of the provided {@param sourceIdent} table to the table identified by
+     * {@param targetIdent}
+     *
+     * @return a future which returns the number of privileges which were successfully transferred
+     */
+    CompletableFuture<Long> transferTablePrivileges(String sourceIdent, String targetIdent);
+
+    /**
+     * Removes all privileges from all users for the provided {@param tableIdent}
+     * @return a future which returns the number of privileges which were removed
+     */
+    CompletableFuture<Long> dropTablePrivileges(String tableIdent);
 
     /**
      * Look up a statement authorization validator for the given user.

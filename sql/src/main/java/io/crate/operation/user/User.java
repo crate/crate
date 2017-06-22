@@ -23,8 +23,9 @@
 package io.crate.operation.user;
 
 import io.crate.analyze.user.Privilege;
+
+import javax.annotation.Nullable;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 public class User {
@@ -45,14 +46,11 @@ public class User {
         this.privileges = privileges;
     }
 
-    public Set<Role> roles() {
-        return roles;
-    }
-
     public String name() {
         return name;
     }
 
+    @SuppressWarnings("WeakerAccess")
     public boolean isSuperUser() {
         return roles.contains(Role.SUPERUSER);
     }
@@ -68,11 +66,8 @@ public class User {
      * @param clazz          privilege class (ie. CLUSTER, TABLE, etc)
      * @param ident          ident of the object
      */
-    public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, String ident) {
-        Optional<Privilege> hasPrivilege = privileges.stream()
-            .filter(p -> p.type().equals(type))
-            .findFirst();
-        return hasPrivilege.isPresent();
+    public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
+        return isSuperUser() || Privilege.matchPrivilege(privileges, type, clazz, ident);
     }
 
     /**
@@ -82,8 +77,8 @@ public class User {
      * @param clazz privilege class (ie. CLUSTER, TABLE, etc)
      * @param ident ident of the object
      */
-    public boolean hasAnyPrivilege(Privilege.Clazz clazz, String ident) {
-        return privileges().size() > 0;
+    public boolean hasAnyPrivilege(Privilege.Clazz clazz, @Nullable String ident) {
+        return isSuperUser() || Privilege.matchPrivilege(privileges, clazz, ident);
     }
 
     @Override

@@ -49,7 +49,7 @@ class AlterTableAnalyzer {
     public AlterTableAnalyzedStatement analyze(AlterTable node, Row parameters, SessionContext sessionContext) {
         Table table = node.table();
         DocTableInfo docTableInfo = schemas.getTableInfo(TableIdent.of(table, sessionContext.defaultSchema()),
-            Operation.ALTER_BLOCKS, sessionContext.user());
+            Operation.ALTER_BLOCKS);
         PartitionName partitionName = createPartitionName(table.partitionProperties(), docTableInfo, parameters);
         TableParameterInfo tableParameterInfo = getTableParameterInfo(table, docTableInfo, partitionName);
         TableParameter tableParameter = getTableParameter(node, parameters, tableParameterInfo);
@@ -59,7 +59,7 @@ class AlterTableAnalyzer {
 
     AlterTableRenameAnalyzedStatement analyzeRename(AlterTableRename node, SessionContext sessionContext) {
         TableIdent tableIdent = TableIdent.of(node.table(), sessionContext.defaultSchema());
-        DocTableInfo tableInfo = schemas.getTableInfo(tableIdent, sessionContext.user());
+        DocTableInfo tableInfo = schemas.getTableInfo(tableIdent);
         if (!node.table().partitionProperties().isEmpty()) {
             throw new UnsupportedOperationException("Renaming a single partition is not supported");
         }

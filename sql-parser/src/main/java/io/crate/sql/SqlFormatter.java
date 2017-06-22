@@ -23,9 +23,68 @@
 package io.crate.sql;
 
 import com.google.common.collect.Iterables;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.AliasedRelation;
+import io.crate.sql.tree.AllColumns;
+import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.ClusteredBy;
+import io.crate.sql.tree.CollectionColumnType;
+import io.crate.sql.tree.ColumnConstraint;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.CopyFrom;
+import io.crate.sql.tree.CrateTableOption;
+import io.crate.sql.tree.CreateFunction;
+import io.crate.sql.tree.CreateSnapshot;
+import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.DenyPrivilege;
+import io.crate.sql.tree.DropRepository;
+import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.Explain;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.FunctionArgument;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.GrantPrivilege;
+import io.crate.sql.tree.IndexColumnConstraint;
+import io.crate.sql.tree.IndexDefinition;
+import io.crate.sql.tree.Join;
+import io.crate.sql.tree.JoinCriteria;
+import io.crate.sql.tree.JoinOn;
+import io.crate.sql.tree.JoinUsing;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.NaturalJoin;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.NotNullColumnConstraint;
+import io.crate.sql.tree.ObjectColumnType;
+import io.crate.sql.tree.PartitionedBy;
+import io.crate.sql.tree.PrimaryKeyColumnConstraint;
+import io.crate.sql.tree.PrimaryKeyConstraint;
+import io.crate.sql.tree.PrivilegeStatement;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.Query;
+import io.crate.sql.tree.QuerySpecification;
+import io.crate.sql.tree.RefreshStatement;
+import io.crate.sql.tree.Relation;
+import io.crate.sql.tree.RevokePrivilege;
+import io.crate.sql.tree.Select;
+import io.crate.sql.tree.SelectItem;
+import io.crate.sql.tree.SingleColumn;
+import io.crate.sql.tree.SortItem;
+import io.crate.sql.tree.StringLiteral;
+import io.crate.sql.tree.Table;
+import io.crate.sql.tree.TableFunction;
+import io.crate.sql.tree.TableSubquery;
+import io.crate.sql.tree.With;
+import io.crate.sql.tree.WithQuery;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -342,26 +401,21 @@ public final class SqlFormatter {
         @Override
         public Void visitGrantPrivilege(GrantPrivilege node, Integer indent) {
             builder.append("GRANT ");
-            if (node.privileges().isEmpty()) {
-                builder.append(" ALL ");
-            } else {
-                appendPrivilegesList(node.privileges());
-            }
-            builder.append(" TO ");
-            appendUsersList(node.userNames());
+            appendPrivilegeStatement(node);
+            return null;
+        }
+
+        @Override
+        public Void visitDenyPrivilege(DenyPrivilege node, Integer context) {
+            builder.append("DENY ");
+            appendPrivilegeStatement(node);
             return null;
         }
 
         @Override
         public Void visitRevokePrivilege(RevokePrivilege node, Integer indent) {
             builder.append("REVOKE ");
-            if (node.privileges().isEmpty()) {
-                builder.append(" ALL ");
-            } else {
-                appendPrivilegesList(node.privileges());
-            }
-            builder.append(" FROM ");
-            appendUsersList(node.userNames());
+            appendPrivilegeStatement(node);
             return null;
         }
 
@@ -631,14 +685,42 @@ public final class SqlFormatter {
             return null;
         }
 
-        private Void appendUsersList(List<String> userNames){
+        private void appendUsersList(List<String> userNames){
             for (int i = 0; i < userNames.size(); i++) {
                 builder.append(quoteIdentifierIfNeeded(userNames.get(i)));
                 if (i < userNames.size() - 1) {
                     builder.append(", ");
                 }
             }
-            return null;
+        }
+
+        private void appendTableOrSchemaNames(List<QualifiedName> tableOrSchemaNames) {
+            for (int i = 0; i < tableOrSchemaNames.size(); i++) {
+                builder.append(quoteIdentifierIfNeeded(tableOrSchemaNames.get(i).toString()));
+                if (i < tableOrSchemaNames.size() - 1) {
+                    builder.append(", ");
+                }
+            }
+        }
+
+        private void appendPrivilegeStatement(PrivilegeStatement node) {
+            if (node.privileges().isEmpty()) {
+                builder.append(" ALL ");
+            } else {
+                appendPrivilegesList(node.privileges());
+            }
+
+            if (node.clazz() != "CLUSTER") {
+                builder.append(" ON " + node.clazz() + " ");
+                appendTableOrSchemaNames(node.privilegeIdents());
+            }
+
+            if (node instanceof RevokePrivilege) {
+                builder.append(" FROM ");
+            } else {
+                builder.append(" TO ");
+            }
+            appendUsersList(node.userNames());
         }
 
         private String quoteIdentifierIfNeeded(String identifier) {

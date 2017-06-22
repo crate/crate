@@ -83,7 +83,8 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             Collections.singletonList(shardId),
             ImmutableList.of(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_BROADCAST
+            DistributionInfo.DEFAULT_BROADCAST,
+            null
         );
         collectPhase.orderBy(new OrderBy(Collections.singletonList(shardId), new boolean[]{false}, new Boolean[]{null}));
 
@@ -109,7 +110,8 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             ImmutableList.of(),
             ImmutableList.of(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_BROADCAST);
+            DistributionInfo.DEFAULT_BROADCAST,
+            null);
 
         // No read isolation
         List<String> noReadIsolationIterable = new ArrayList<>();

@@ -392,6 +392,67 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testGrantOnSchemaPrivilegeStmtBuilder() {
+        printStatement("grant DML ON SCHEMA my_schema To \"Günter\"");
+        printStatement("grant DQL, DDL ON SCHEMA my_schema to root");
+        printStatement("grant DQL, DDL ON SCHEMA my_schema to root, wolfie, anna");
+        printStatement("grant ALL PRIVILEGES ON SCHEMA my_schema to wolfie");
+        printStatement("grant ALL PRIVILEGES ON SCHEMA my_schema to wolfie, anna");
+        printStatement("grant ALL ON SCHEMA my_schema to wolfie, anna");
+        printStatement("grant ALL ON SCHEMA my_schema to anna");
+        printStatement("grant ALL ON SCHEMA my_schema, banana, tree to anna, nyan, cat");
+    }
+
+    @Test
+    public void testGrantOnTablePrivilegeStmtBuilder() {
+        printStatement("grant DML ON TABLE my_schema.t To \"Günter\"");
+        printStatement("grant DQL, DDL ON TABLE my_schema.t to root");
+        printStatement("grant DQL, DDL ON TABLE my_schema.t to root, wolfie, anna");
+        printStatement("grant ALL PRIVILEGES ON TABLE my_schema.t to wolfie");
+        printStatement("grant ALL PRIVILEGES ON TABLE my_schema.t to wolfie, anna");
+        printStatement("grant ALL ON TABLE my_schema.t to wolfie, anna");
+        printStatement("grant ALL ON TABLE my_schema.t to anna");
+        printStatement("grant ALL ON TABLE my_schema.t, banana.b, tree to anna, nyan, cat");
+    }
+
+    @Test
+    public void testDenyPrivilegeStmtBuilder() {
+        printStatement("deny DML To \"Günter\"");
+        printStatement("deny DQL, DDL to root");
+        printStatement("deny DQL, DDL to root, wolfie, anna");
+        printStatement("deny ALL PRIVILEGES to wolfie");
+        printStatement("deny ALL PRIVILEGES to wolfie, anna");
+        printStatement("deny ALL to wolfie, anna");
+        printStatement("deny ALL to anna");
+        printStatement("deny dml to anna");
+        printStatement("deny ddl, dql to anna");
+    }
+
+    @Test
+    public void testDenyOnSchemaPrivilegeStmtBuilder() {
+        printStatement("deny DML ON SCHEMA my_schema To \"Günter\"");
+        printStatement("deny DQL, DDL ON SCHEMA my_schema to root");
+        printStatement("deny DQL, DDL ON SCHEMA my_schema to root, wolfie, anna");
+        printStatement("deny ALL PRIVILEGES ON SCHEMA my_schema to wolfie");
+        printStatement("deny ALL PRIVILEGES ON SCHEMA my_schema to wolfie, anna");
+        printStatement("deny ALL ON SCHEMA my_schema to wolfie, anna");
+        printStatement("deny ALL ON SCHEMA my_schema to anna");
+        printStatement("deny ALL ON SCHEMA my_schema, banana, tree to anna, nyan, cat");
+    }
+
+    @Test
+    public void testDenyOnTablePrivilegeStmtBuilder() {
+        printStatement("deny DML ON TABLE my_schema.t To \"Günter\"");
+        printStatement("deny DQL, DDL ON TABLE my_schema.t to root");
+        printStatement("deny DQL, DDL ON TABLE my_schema.t to root, wolfie, anna");
+        printStatement("deny ALL PRIVILEGES ON TABLE my_schema.t to wolfie");
+        printStatement("deny ALL PRIVILEGES ON TABLE my_schema.t to wolfie, anna");
+        printStatement("deny ALL ON TABLE my_schema.t to wolfie, anna");
+        printStatement("deny ALL ON TABLE my_schema.t to anna");
+        printStatement("deny ALL ON TABLE my_schema.t, banana.b, tree to anna, nyan, cat");
+    }
+
+    @Test
     public void testRevokePrivilegeStmtBuilder() {
         printStatement("revoke DML from \"Günter\"");
         printStatement("revoke DQL, DDL from root");
@@ -400,6 +461,30 @@ public class TestStatementBuilder {
         printStatement("revoke ALL from wolfie");
         printStatement("revoke ALL PRIVILEGES from wolfie, anna, herald");
         printStatement("revoke ALL from wolfie, anna, herald");
+    }
+
+    @Test
+    public void testRevokeOnSchemaPrivilegeStmtBuilder() {
+        printStatement("revoke DML ON SCHEMA my_schema from \"Günter\"");
+        printStatement("revoke DQL, DDL ON SCHEMA my_schema from root");
+        printStatement("revoke DQL, DDL ON SCHEMA my_schema from root, wolfie, anna");
+        printStatement("revoke ALL PRIVILEGES ON SCHEMA my_schema from wolfie");
+        printStatement("revoke ALL ON SCHEMA my_schema from wolfie");
+        printStatement("revoke ALL PRIVILEGES ON SCHEMA my_schema from wolfie, anna, herald");
+        printStatement("revoke ALL ON SCHEMA my_schema from wolfie, anna, herald");
+        printStatement("revoke ALL ON SCHEMA my_schema, banana, tree from anna, nyan, cat");
+    }
+
+    @Test
+    public void testRevokeOnTablePrivilegeStmtBuilder() {
+        printStatement("revoke DML ON TABLE my_schema.t from \"Günter\"");
+        printStatement("revoke DQL, DDL ON TABLE my_schema.t from root");
+        printStatement("revoke DQL, DDL ON TABLE my_schema.t from root, wolfie, anna");
+        printStatement("revoke ALL PRIVILEGES ON TABLE my_schema.t from wolfie");
+        printStatement("revoke ALL ON TABLE my_schema.t from wolfie");
+        printStatement("revoke ALL PRIVILEGES ON TABLE my_schema.t from wolfie, anna, herald");
+        printStatement("revoke ALL ON TABLE my_schema.t from wolfie, anna, herald");
+        printStatement("revoke ALL ON TABLE my_schema.t, banana.b, tree from anna, nyan, cat");
     }
 
     @Test
@@ -1067,6 +1152,7 @@ public class TestStatementBuilder {
             statement instanceof CreateUser ||
             statement instanceof DropUser ||
             statement instanceof GrantPrivilege ||
+            statement instanceof DenyPrivilege ||
             statement instanceof RevokePrivilege) {
             println(SqlFormatter.formatSql(statement));
             println("");

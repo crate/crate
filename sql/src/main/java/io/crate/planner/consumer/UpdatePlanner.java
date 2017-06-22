@@ -166,7 +166,8 @@ public final class UpdatePlanner {
             Collections.singletonList(idReference),
             Collections.singletonList(updateProjection),
             whereClause,
-            DistributionInfo.DEFAULT_BROADCAST
+            DistributionInfo.DEFAULT_BROADCAST,
+            plannerContext.transactionContext().sessionContext().user()
         );
         Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
         return Merge.ensureOnHandler(collect, plannerContext, Collections.singletonList(MergeCountProjection.INSTANCE));
@@ -176,7 +177,7 @@ public final class UpdatePlanner {
                                                  Planner.Context plannerContext,
                                                  UpdateAnalyzedStatement.NestedAnalyzedStatement nestedStatement) {
         Routing routing = plannerContext.allocateRouting(
-            tableInfo, nestedStatement.whereClause(), Preference.PRIMARY.type());
+            tableInfo, nestedStatement.whereClause(), Preference.PRIMARY.type(), plannerContext.transactionContext().sessionContext());
 
         Reference idReference = tableInfo.getReference(DocSysColumns.ID);
         assert idReference != null : "table has no _id column";
@@ -214,7 +215,8 @@ public final class UpdatePlanner {
                 assignments.v1(),
                 assignments.v2(),
                 version);
-            Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type());
+            Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type(),
+                plannerContext.transactionContext().sessionContext());
             return createPlan(plannerContext, routing, tableInfo, idReference, updateProjection, whereClause);
         } else {
             return null;
