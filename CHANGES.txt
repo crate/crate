@@ -44,6 +44,9 @@ Changes
 Fixes
 =====
 
+ - Fixed issue that caused an exception when querying the `_id` column using all
+   defined primary keys inside the ``WHERE`` clause over the HTTP API.
+
  - Fixed wrong results when querying ``IS NULL`` on an array of objects.
 
  - Fixed an issue that caused an Exception to be thrown on ``JOIN`` queries
