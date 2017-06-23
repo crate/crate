@@ -22,6 +22,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that caused an Exception to be thrown when applying
+   aggregations on ``Generated Columns`` of a table.
+
  - Fixed a bug in the memory accounting of the circuit breaker for HTTP
    results when querying for columns of undefined type.
 

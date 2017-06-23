@@ -105,7 +105,9 @@ public class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCre
     @Override
     public Symbol visitReference(Reference ref, Context context) {
         if (ref instanceof GeneratedReference) {
-            return visitSymbol(((GeneratedReference) ref).generatedExpression(), context);
+            return MoreObjects.firstNonNull(
+                context.inputs.get(ref),
+                visitSymbol(((GeneratedReference) ref).generatedExpression(), context));
         }
         return visitSymbol(ref, context);
     }
@@ -120,5 +122,4 @@ public class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCre
         throw new AssertionError("Aggregation Symbols must not be visited with " +
                                  getClass().getCanonicalName());
     }
-
 }
