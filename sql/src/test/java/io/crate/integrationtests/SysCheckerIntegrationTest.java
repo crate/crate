@@ -57,8 +57,18 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
         internalCluster().startNode(settings);
         internalCluster().startNode(settings);
         internalCluster().ensureAtLeastNumDataNodes(2);
-        SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
-        assertThat(TestingHelpers.printedTable(response.rows()), is("3| false\n"));
+        // update discovery.zen.minimum_master_nodes again:
+        // test uses SUITE cluster-scope, so depending on the execution order of the tests there may be another node running
+        // that has "minimum_master_nodes" set to something else - if the execute then hits that particular node
+        // it would fail.
+        execute("set global transient discovery.zen.minimum_master_nodes = 1");
+
+        try {
+            SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{1});
+            assertThat(TestingHelpers.printedTable(response.rows()), is("3| false\n"));
+        } finally {
+            execute("reset global discovery.zen.minimum_master_nodes");
+        }
     }
 
     @Test
