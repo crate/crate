@@ -25,11 +25,11 @@ package io.crate.operation.auth;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
-import sun.security.x509.X500Name;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
-import java.security.Principal;
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 
@@ -48,7 +48,7 @@ public class ClientCertAuth implements AuthenticationMethod {
         Certificate clientCert = connProperties.clientCert();
         if (connProperties.hasSSL() && clientCert != null) {
             if (clientCert instanceof X509Certificate) {
-                String CN = extractCN(((X509Certificate )clientCert).getSubjectDN());
+                String CN = extractCN(((X509Certificate )clientCert).getSubjectX500Principal().getName());
                 User user = lookupUser(userName, connProperties, CN);
                 if (user != null) return user;
             }
@@ -73,15 +73,24 @@ public class ClientCertAuth implements AuthenticationMethod {
         return null;
     }
 
-    private static String extractCN(Principal subjectDN) {
-        if (subjectDN instanceof X500Name) {
-            try {
-                return ((X500Name) subjectDN).getCommonName();
-            } catch (IOException e) {
-                throw new RuntimeException("Could not extract commonName from client certificate", e);
+    private static String extractCN(String subjectDN) {
+        /*
+         * Get commonName using LdapName API
+         * The DN of X509 certificates are in rfc2253 format. Ldap uses the same format.
+         *
+         * Doesn't use X500Name because it's internal API
+         */
+        try {
+            LdapName ldapName = new LdapName(subjectDN);
+            for (Rdn rdn : ldapName.getRdns()) {
+                if ("CN".equalsIgnoreCase(rdn.getType())) {
+                    return rdn.getValue().toString();
+                }
             }
+            throw new RuntimeException("Could not extract commonName from client certificate subjectDN: " + subjectDN);
+        } catch (InvalidNameException e) {
+            throw new RuntimeException("Could not extract commonName from client certificate", e);
         }
-        throw new RuntimeException("Could not extract commonName from client certificate subjectDN: " + subjectDN);
     }
 
     @Override
