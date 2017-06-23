@@ -21,12 +21,22 @@ enforce SSL usage, please have a look at :ref:`administration_hba`.
 SSL/TLS Configuration
 =====================
 
-First of all, you need to set the boolean setting ``ssl.psql.enabled``
-(for PSQL connections) and ``ssl.http.enabled`` (for HTTPS connections)
-to ``true`` on each of the nodes you want to enable the secure
-communication.
+To enable SSL a ``keystore`` and a few configuration changes are necessary.
+These changes need to be made in the ``crate.yml`` file on *each* node that
+should have secure communications enabled.
 
-Then please proceed with the configuration of the Keystore.
+Skip to :ref:`ssl_generate_keystore` for a step-by-step instruction on how to
+create a ``keystore``.
+
+Once the ``keystore`` (and optional ``truststore``) is created, continue with
+the following steps:
+
+ - Set ``ssl.psql.enabled`` or ``ssl.http.enabled`` to ``true``.
+ - :ref:`ssl_configure_keystore`
+ - (Optional) :ref:`ssl_configure_truststore`
+
+
+.. _ssl_configure_keystore:
 
 Configure the KeyStore
 ----------------------
@@ -48,6 +58,9 @@ connect to.
     client. This will help to ensure that establishing trust is as painless
     as possible.
 
+
+See :ref:`ssl_generate_keystore` for information about how to create a keystore.
+
 Once the keystore is prepared, define the absolute file path to the keystore
 ``.jks`` file on the node using ``ssl.keystore_filepath`` setting.
 
@@ -64,6 +77,9 @@ creating the keystore.
 
 For a full list of the settings needed to configure SSL/TLS, refer to
 :ref:`SSL configuration reference <ssl_config>`.
+
+
+.. _ssl_configure_truststore:
 
 Configure a Separate Truststore
 -------------------------------
@@ -109,9 +125,9 @@ verifying that this is indeed a certificate you trust.
 Connect to a CrateDB Node Using Crash
 .....................................
 
-You can connect to a CrateDB node using a secure communication:
+You can connect to a CrateDB node using a secure communication::
 
-:: crash --hosts https://localhost:4200
+    crash --hosts https://localhost:4200
 
 To validate the provided certificates, please see the options
 ``--verify-ssl`` and ``--key-file``.
@@ -171,6 +187,8 @@ In case you need to setup a Keystore or a Trustore, here are the commands
 to get you started. All the commands use a validity of 36500 days
 (about 100 years). You might want to use less.
 
+
+.. _ssl_generate_keystore:
 
 Generate Keystore With a Private Key
 ------------------------------------
