@@ -28,35 +28,74 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.AggregateMode;
+import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolType;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.executor.transport.NodeOperationTreeGenerator;
-import io.crate.metadata.*;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.ExecutionPhase;
-import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.CountPlan;
+import io.crate.planner.node.dql.ESGet;
+import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.planner.projection.*;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.EvalProjection;
+import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.MergeCountProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
-import static io.crate.testing.SymbolMatchers.*;
+import static io.crate.testing.SymbolMatchers.isFetchRef;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.isDocKey;
 import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
 
 public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -72,7 +111,18 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .addDocTable(TableDefinitions.IGNORED_NESTED_TABLE_INFO)
             .addDocTable(TableDefinitions.TEST_MULTIPLE_PARTITIONED_TABLE_INFO)
             .addDocTable(T3.T1_INFO)
+            .addDocTable(bindGeneratedColumnTable())
             .build();
+    }
+
+    private DocTableInfo bindGeneratedColumnTable() {
+        TableIdent generatedColumnTableIdent = new TableIdent(null, "gc_table");
+        return new TestingTableInfo.Builder(
+            generatedColumnTableIdent, new Routing(Collections.EMPTY_MAP))
+            .add("revenue", DataTypes.INTEGER, null)
+            .add("cost", DataTypes.INTEGER, null)
+            .addGeneratedColumn("profit", DataTypes.INTEGER, "subtract(revenue, cost)", false)
+            .build(TestingHelpers.getFunctions());
     }
 
     @Test
@@ -609,5 +659,22 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         nodeOperation = operationTree.nodeOperations().iterator().next();
         // no paging -> can use direct response
         assertThat(nodeOperation.downstreamNodes(), contains(ExecutionPhase.DIRECT_RESPONSE));
+    }
+
+    @Test
+    public void testAggregationOnGeneratedColumns() throws Exception {
+        Merge plan = e.plan("select sum(profit) from gc_table");
+
+        List<Projection> projections = plan.mergePhase().projections();
+        assertThat(projections.size(), is(2));
+        assertThat(projections.get(0), instanceOf(AggregationProjection.class));
+        assertThat(((AggregationProjection)projections.get(0)).aggregations().get(0).inputs().get(0),
+                   isSQL("INPUT(0)"));
+
+        projections = ((Collect)plan.subPlan()).collectPhase().projections();
+        assertThat(projections.size(), is(1));
+        assertThat(projections.get(0), instanceOf(AggregationProjection.class));
+        assertThat(((AggregationProjection)projections.get(0)).aggregations().get(0).inputs().get(0),
+                   isSQL("INPUT(0)"));
     }
 }
