@@ -1,30 +1,30 @@
-.. _ref-grant:
+.. _ref-deny:
 
-=========
-``GRANT``
-=========
+========
+``DENY``
+========
 
-Grants privilege to an existing user on the whole cluster or on a specific object.
+Denies privilege to an existing user on the whole cluster or on a specific object.
 
 Synopsis
 ========
 
 .. code-block:: psql
 
-  GRANT { { DQL | DML | DDL [,...] } | ALL [ PRIVILEGES ] }
+  DENY { { DQL | DML | DDL [,...] } | ALL [ PRIVILEGES ] }
   [ON {SCHEMA | TABLE} identifier [, ...]]
   TO user_name [, ...];
 
 Description
 ===========
 
-``GRANT`` is a management statement to grant one or many privileges
-on the whole cluster or on a specific object to one or many existing users.
+``DENY`` is a management statement to deny one or many privileges
+on a specific object to one or many existing users.
 
 ``ON {SCHEMA | TABLE}`` is optional, if not specified the privilege will be
-granted on the ``CLUSTER`` level.
+denied on the ``CLUSTER`` level.
 
-For usage of the ``GRANT`` statement see :ref:`administration-privileges`.
+For usage of the ``DENY`` statement see :ref:`administration-privileges`.
 
 Parameters
 ==========

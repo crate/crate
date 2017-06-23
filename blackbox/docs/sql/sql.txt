@@ -26,6 +26,7 @@ supported by CrateDB.
     reference/create_user
     reference/constraints
     reference/delete
+    reference/deny
     reference/drop_function
     reference/drop_repository
     reference/drop_snapshot
