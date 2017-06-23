@@ -1,9 +1,9 @@
 .. highlight:: psql
 .. _administration-privileges:
 
-=======================
-Cluster Wide Privileges
-=======================
+==================
+Cluster Privileges
+==================
 
 .. note::
 
@@ -12,20 +12,17 @@ Cluster Wide Privileges
     no user privilege checks, and every statement will be executed
     without the validation of privileges.
 
-User privileges are applied on the whole cluster and propagated
-to all tables and schemas in the cluster. For example, a user with
-``DQL`` privilege can issue ``SELECT`` queries on any table and
-schema in the cluster. Similarly a user with ``DML`` privilege can
-issue ``INSERT`` statement to any table and schema in the cluster.
-There is no option to ``GRANT`` or ``REVOKE`` privileges on object
-level, such as table or schema.
+The superuser uses ``GRANT``, ``DENY`` and ``REVOKE`` statements to control
+access to the resource. The privileges are either applied on the whole cluster
+or on instances of objects such as schema, or table.
 
 .. note::
 
     Superusers are allowed to execute any statement without any privilege
     checks. Currently only ``DQL``, ``DML`` and ``DDL`` privileges can be
     granted. Any statements which are not allowed with those privileges,
-    such as ``GRANT`` and ``REVOKE``, can only be issued by a superuser.
+    such as ``GRANT``, ``DENY`` and ``REVOKE``, can only be issued by
+    a superuser.
 
 Privilege Types
 ===============
@@ -35,15 +32,15 @@ Privilege Types
 
 Granting ``Data Query Language (DQL)`` privilege to a user, indicates that this
 user is allowed to execute ``SELECT``, ``SHOW``, ``REFRESH``, ``COPY TO``,
-``SET SESSION`` statements, as well as using the available user defined
-functions.
+and ``SET SESSION`` statements, as well as using the available user defined
+functions, on the object for which the privilege applies.
 
 ``DML``
 .......
 
 Granting ``Data Manipulation Language (DML)`` privilege to a user, indicates
-that this user is allowed to execute ``INSERT``, ``COPY FROM```, ``UPDATE``
-and ``DELETE`` statements.
+that this user is allowed to execute ``INSERT``, ``COPY FROM``, ``UPDATE``
+and ``DELETE`` statements, on the object for which the privilege applies.
 
 ``DDL``
 .......
@@ -52,10 +49,50 @@ Granting ``Data Definition Language (DDL)`` privilege to a user, indicates that
 this user is allowed to execute ``CREATE TABLE``, ``DROP TABLE``,
 ``CREATE FUNCTION``, ``DROP FUNCTION``, ``CREATE REPOSITORY``,
 ``DROP REPOSITORY``, ``CREATE SNAPSHOT``, ``DROP SNAPSHOT``,
-``RESTORE SNAPSHOT``, and ``ALTER`` statements.
+``RESTORE SNAPSHOT``, and ``ALTER`` statements, on the object for which the
+privilege applies.
+
+
+Hierarchical Inheritance of Privileges
+======================================
+.. hide:
+
+    cr> CREATE user riley;
+    CREATE OK, 1 row affected (... sec)
+
+    cr> CREATE user kala;
+    CREATE OK, 1 row affected (... sec)
+
+Privileges can be managed on three different levels, namely: ``CLUSTER``, ``SCHEMA``
+and ``TABLE``.
+
+When a privilege is assigned on a certain level, the privilege will propagate down
+the hierarchy. Privileges defined on a lower level will always override those
+from a higher level. For example::
+
+    cr> GRANT DQL ON SCHEMA doc TO riley;
+    GRANT OK, 1 row affected (... sec)
+
+This statement will grant ``DQL`` privilege to user riley on all the tables
+and functions of the ``doc`` schema::
+
+    cr> DENY DQL ON TABLE doc.accounting TO riley;
+    GRANT OK, 1 row affected (... sec)
+
+This statement will deny ``DQL`` privilege to user riley on the ``doc`` schema table
+``doc.accounting``. However, user riley, will still have ``DQL`` privilege on all the
+other tables of the ``doc`` schema.
+
+.. note::
+
+    Privileges can be managed on all schemas and tables of the cluster,
+    including the ``sys`` schema.
+
+Behavior of ``GRANT``, ``DENY`` and ``REVOKE``
+==============================================
 
 ``GRANT``
-=========
+.........
 
 .. hide:
 
@@ -65,12 +102,32 @@ this user is allowed to execute ``CREATE TABLE``, ``DROP TABLE``,
     cr> CREATE user will;
     CREATE OK, 1 row affected (... sec)
 
-To grant a privilege to an existing user we use the :doc:`/sql/reference/grant`
+To grant a privilege to an existing user on the whole cluster,
+we use the :doc:`/sql/reference/grant`
 SQL statement, for example::
 
     cr> GRANT DML TO wolfgang;
     GRANT OK, 1 row affected (... sec)
 
+``DQL`` privilege can be granted on the sys schema to user wolfgang,
+like this::
+
+    cr> GRANT DQL ON SCHEMA sys TO wolfgang;
+    GRANT OK, 1 row affected (... sec)
+
+The following statement will grant all privileges on table doc.books to user
+wolfgang::
+
+    cr> GRANT ALL PRIVILEGES ON TABLE doc.books TO wolfgang;
+    GRANT OK, 3 row affected (... sec)
+
+Using "ALL PRIVILEGES" is a shortcut to grant all the currently grantable
+privileges to a user, namely ``DQL``, ``DML`` and ``DDL``.
+
+.. note::
+
+    If no schema is specified in the table ``ident``, the table will be
+    looked up in the current schema.
 
 If a user with the username specified in the SQL statement does not exist the
 statement returns an error::
@@ -78,71 +135,95 @@ statement returns an error::
     cr> GRANT DQL TO layla;
     SQLActionException[UserUnknownException: User 'layla' does not exist]
 
-To grant ``ALL PRIVILEGES`` to user will, we can use the following syntax::
+To grant ``ALL PRIVILEGES`` to user will on the cluster, we can use the
+following syntax::
 
     cr> GRANT ALL PRIVILEGES TO will;
     GRANT OK, 3 rows affected (... sec)
 
-Using "ALL PRIVILEGES" is a shortcut to grant all the currently grantable
+Using ``ALL PRIVILEGES`` is a shortcut to grant all the currently grantable
 privileges to a user, namely ``DQL``, ``DML`` and ``DDL``.
 
 Privileges can be granted to multiple users in the same statement, like so::
 
-    cr> GRANT DDL TO wolfgang, will;
+    cr> GRANT DDL ON TABLE doc.books TO wolfgang, will;
     GRANT OK, 1 row affected (... sec)
 
+``DENY``
+........
+
+To deny a privilege to an existing user on the whole cluster, use the
+:doc:`/sql/reference/deny` SQL statement, for example::
+
+    cr> DENY DDL from will;
+    DENY OK, 1 row affected (... sec)
+
+``DQL`` privilege can be denied on the sys schema to user wolfgang,
+like this::
+
+    cr> DENY DQL ON SCHEMA sys TO wolfgang;
+    DENY OK, 1 row affected (... sec)
+
+The following statement will deny ``DQL`` privilege on table doc.books to user
+wolfgang::
+
+    cr> DENY DQL ON TABLE doc.books TO wolfgang;
+    DENY OK, 1 row affected (... sec)
+
+``DENY ALL`` or ``DENY ALL PRIVILEGES`` will deny all privileges to a user,
+it can be used like this::
+
+    cr> DENY ALL TO will;
+    DENY OK, 3 row affected (... sec)
+
 ``REVOKE``
-==========
+..........
 
-To revoke a privilege that was previously granted to a user use the
-:doc:`/sql/reference/revoke` SQL statement, for example::
+To revoke a privilege that was previously granted or denied to a user
+use the :doc:`/sql/reference/revoke` SQL statement, for example the
+``DQL`` privilege that was previously denied to user wolfgang on the
+*sys* schema, can be revoked like this ::
 
-    cr> REVOKE DDL from will;
+    cr> REVOKE DQL ON SCHEMA sys FROM wolfgang;
     REVOKE OK, 1 row affected (... sec)
 
-If a user with the username specified in the SQL statement does not exist the
-statement returns an error::
+The privileges that were granted and denied to user wolfgang on doc.books
+can be revoked, like this::
 
-    cr> REVOKE DDL FROM layla;
-    SQLActionException[UserUnknownException: User 'layla' does not exist]
+    cr> REVOKE ALL ON TABLE doc.books TO wolfgang;
+    REVOKE OK, 3 row affected (... sec)
 
-``REVOKE ALL`` or ``REVOKE ALL PRIVILEGES`` will revoke all privileges
-that were previously granted to a user, it can be used like this::
+.. note::
 
-    cr> REVOKE ALL FROM wolfgang;
-    REVOKE OK, 2 rows affected (... sec)
-
-Privileges can be revoked from multiple users in the same statement,
-like so::
-
-    cr> REVOKE DDL FROM wolfgang, will;
-    REVOKE OK, 0 rows affected (... sec)
+    The ``REVOKE`` statement can remove only privileges that have been granted
+    or denied through the ``GRANT`` or ``DENY`` statements. If the privilege
+    on a specific object was not explicitly granted, the ``REVOKE`` statement
+    has no effect. The effect of the ``REVOKE`` statement will be reflected
+    in the row count.
 
 List Privileges
 ===============
 
 CrateDB exposes privileges ``sys.privileges`` system table.
 
-.. note::
-    Please note that this table can only be accessed by the superuser.
-
 By querying the ``sys.privileges`` table you can get all
 information regarding the existing privileges. E.g.::
 
-    cr> SELECT * FROM sys.privileges order by type;
-    +---------+---------+---------+-------+-------+------+
-    | class   | grantee | grantor | ident | state | type |
-    +---------+---------+---------+-------+-------+------+
-    | CLUSTER | will    | crate   |  NULL | GRANT | DML  |
-    | CLUSTER | will    | crate   |  NULL | GRANT | DQL  |
-    +---------+---------+---------+-------+-------+------+
+    cr> SELECT * FROM sys.privileges;
+    +-------------+-----------+---------+------------+-------+-----------+
+    | grantor     | grantee   | class   | state      | type  | ident     |
+    +-------------+-----------+---------+------------+-------+-----------+
+    | crate       | will      | cluster | grant      | DML   | null      |
+    | crate       | will      | cluster | grant      | DQL   | null      |
+    +-------------+-----------+---------+------------+-------+-----------+
     SELECT 2 rows in set (... sec)
 
-The column ``grantor`` shows the user who granted the privilege, the column ``grantee``
-shows the user for whom the privilege was granted. The column ``class`` identifies on
-which type of context the privilege applies. ``ident`` stands for the ident of the object
-that the privilege is set on and finally ``type`` stands for the type of privileges that
-was granted or revoked.
+The column ``grantor`` shows the user who granted or denied the privilege,
+the column ``grantee`` shows the user for whom the privilege was granted
+or denied. The column ``class`` identifies on which type of context the
+privilege applies. ``ident`` stands for the ident of the object that the
+privilege is set on and finally ``type`` stands for the type of privileges that
+was granted or denied.
 
 
 .. _Enterprise Edition: https://crate.io/enterprise/
