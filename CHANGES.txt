@@ -52,12 +52,3 @@ Changes
 
 Fixes
 =====
-
- - Fixed an issue that could cause ``DELETE`` by query  and ``UPDATE``
-   statements to fail on datasets larger than 10_000 rows.
-
- - Fixed issue where bulk operations like ``insert from dynamic queries`` and
-   ``COPY FROM`` did not stop after being killed.
-
- - ``CREATE USER`` and ``DROP USER`` statements will now only respond after all
-   nodes in the cluster processed the change.
