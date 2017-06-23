@@ -32,12 +32,17 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.ssl.util.SelfSignedCertificate;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
+import javax.net.ssl.SSLSession;
 import java.nio.charset.StandardCharsets;
+import java.security.cert.Certificate;
 
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
 
@@ -131,5 +136,17 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
 
         assertFalse(handler.authorized());
         assertUnauthorized(ch.readOutbound(), "trust authentication failed for user \"crate\"\n");
+    }
+
+    @Test
+    public void testClientCertUserHasPreferenceOverTrustAuthDefault() throws Exception {
+        SelfSignedCertificate ssc = new SelfSignedCertificate();
+        SSLSession session = mock(SSLSession.class);
+        when(session.getPeerCertificates()).thenReturn(new Certificate[] { ssc.cert() });
+
+        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        String userName = HttpAuthUpstreamHandler.userFromRequest(request, session, Settings.EMPTY);
+
+        assertThat(userName, is("example.com"));
     }
 }

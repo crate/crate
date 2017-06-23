@@ -111,5 +111,4 @@ public class CrateHttpTransportIntegrationTest extends SQLHttpIntegrationTest {
             execute("drop table if exists test");
         }
     }
-
 }

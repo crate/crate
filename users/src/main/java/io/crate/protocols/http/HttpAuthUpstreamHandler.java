@@ -24,6 +24,7 @@ import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.operation.auth.Protocol;
 import io.crate.operation.user.User;
+import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -42,8 +43,11 @@ import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
+import java.security.cert.Certificate;
 import java.util.Locale;
 
 import static io.crate.protocols.SSL.getSession;
@@ -78,10 +82,10 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
 
     private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest request) {
-        String username = userFromRequest(request);
+        SSLSession session = getSession(ctx.channel());
+        String username = userFromRequest(request, session, settings);
         InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
-        ConnectionProperties connectionProperties =
-            new ConnectionProperties(address, Protocol.HTTP, getSession(ctx.channel()));
+        ConnectionProperties connectionProperties = new ConnectionProperties(address, Protocol.HTTP, session);
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, connectionProperties);
         if (authMethod == null) {
             String errorMessage = String.format(
@@ -135,10 +139,23 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         return authorized;
     }
 
-    private String userFromRequest(HttpRequest request) {
+    @VisibleForTesting
+    static String userFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
         if (request.headers().contains(AuthenticationProvider.HTTP_HEADER_USER)) {
             return request.headers().get(AuthenticationProvider.HTTP_HEADER_USER);
         } else {
+            // prefer commonName as userName over AUTH_TRUST_HTTP_DEFAULT_HEADER user
+            if (session != null) {
+                try {
+                    Certificate certificate = session.getPeerCertificates()[0];
+                    String commonName = SSL.extractCN(certificate);
+                    if (commonName != null) {
+                        return commonName;
+                    }
+                } catch (ArrayIndexOutOfBoundsException | SSLPeerUnverifiedException ignored) {
+                    // client cert is optional
+                }
+            }
             return AuthenticationProvider.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
         }
     }

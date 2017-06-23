@@ -24,14 +24,12 @@ package io.crate.operation.auth;
 
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserLookup;
+import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
 
 import javax.annotation.Nullable;
-import javax.naming.InvalidNameException;
-import javax.naming.ldap.LdapName;
-import javax.naming.ldap.Rdn;
 import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
+import java.util.Objects;
 
 public class ClientCertAuth implements AuthenticationMethod {
 
@@ -46,51 +44,16 @@ public class ClientCertAuth implements AuthenticationMethod {
     @Override
     public User authenticate(String userName, ConnectionProperties connProperties) {
         Certificate clientCert = connProperties.clientCert();
-        if (connProperties.hasSSL() && clientCert != null) {
-            if (clientCert instanceof X509Certificate) {
-                String CN = extractCN(((X509Certificate )clientCert).getSubjectX500Principal().getName());
-                User user = lookupUser(userName, connProperties, CN);
-                if (user != null) return user;
+        if (clientCert != null) {
+            String commonName = SSL.extractCN(clientCert);
+            if (Objects.equals(userName, commonName)) {
+                User user = userLookup.findUser(userName);
+                if (user != null) {
+                    return user;
+                }
             }
         }
         throw new RuntimeException("Client certificate authentication failed for user \"" + userName + "\"");
-    }
-
-    @Nullable
-    private User lookupUser(String userName, ConnectionProperties connProperties, String CN) {
-        // userName is optional in HTTP;
-        if (connProperties.protocol() == Protocol.HTTP) {
-            if (userName == null || userName.equals("")) {
-                userName = CN;
-            }
-        }
-        if (userName.equals(CN)) {
-            User user = userLookup.findUser(userName);
-            if (user != null) {
-                return user;
-            }
-        }
-        return null;
-    }
-
-    private static String extractCN(String subjectDN) {
-        /*
-         * Get commonName using LdapName API
-         * The DN of X509 certificates are in rfc2253 format. Ldap uses the same format.
-         *
-         * Doesn't use X500Name because it's internal API
-         */
-        try {
-            LdapName ldapName = new LdapName(subjectDN);
-            for (Rdn rdn : ldapName.getRdns()) {
-                if ("CN".equalsIgnoreCase(rdn.getType())) {
-                    return rdn.getValue().toString();
-                }
-            }
-            throw new RuntimeException("Could not extract commonName from client certificate subjectDN: " + subjectDN);
-        } catch (InvalidNameException e) {
-            throw new RuntimeException("Could not extract commonName from client certificate", e);
-        }
     }
 
     @Override

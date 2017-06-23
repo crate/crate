@@ -91,15 +91,6 @@ public class ClientCertAuthTest extends CrateUnitTest {
     }
 
     @Test
-    public void testHttpUsesCNAsUserNameIfNoUsernamePresentFromHeaders() throws Exception {
-        ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> exampleUser);
-        ConnectionProperties conn = new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.HTTP, sslSession);
-
-        assertThat(clientCertAuth.authenticate("", conn), is(exampleUser));
-        assertThat(clientCertAuth.authenticate(null, conn), is(exampleUser));
-    }
-
-    @Test
     public void testHttpClientCertAuthFailsOnUserMissMatchWithCN() throws Exception {
         ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> exampleUser);
         ConnectionProperties conn = new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.HTTP, sslSession);

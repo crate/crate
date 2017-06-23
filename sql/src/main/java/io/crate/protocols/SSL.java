@@ -26,9 +26,25 @@ import io.netty.channel.Channel;
 import io.netty.handler.ssl.SslHandler;
 
 import javax.annotation.Nullable;
+import javax.naming.InvalidNameException;
+import javax.naming.ldap.LdapName;
+import javax.naming.ldap.Rdn;
 import javax.net.ssl.SSLSession;
+import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 
 public final class SSL {
+
+    /**
+     * Extract the common name from the subjectDN of a X509 Certificate
+     */
+    @Nullable
+    public static String extractCN(Certificate certificate) {
+        if (certificate instanceof X509Certificate) {
+            return extractCN(((X509Certificate) certificate).getSubjectX500Principal().getName());
+        }
+        return null;
+    }
 
     @Nullable
     public static SSLSession getSession(Channel channel) {
@@ -37,5 +53,25 @@ public final class SSL {
             return sslHandler.engine().getSession();
         }
         return null;
+    }
+
+    private static String extractCN(String subjectDN) {
+        /*
+         * Get commonName using LdapName API
+         * The DN of X509 certificates are in rfc2253 format. Ldap uses the same format.
+         *
+         * Doesn't use X500Name because it's internal API
+         */
+        try {
+            LdapName ldapName = new LdapName(subjectDN);
+            for (Rdn rdn : ldapName.getRdns()) {
+                if ("CN".equalsIgnoreCase(rdn.getType())) {
+                    return rdn.getValue().toString();
+                }
+            }
+            throw new RuntimeException("Could not extract commonName from certificate subjectDN: " + subjectDN);
+        } catch (InvalidNameException e) {
+            throw new RuntimeException("Could not extract commonName from certificate", e);
+        }
     }
 }
