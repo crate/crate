@@ -28,6 +28,7 @@ import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.NetworkPlugin;
@@ -70,7 +71,8 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin {
                                                ThreadPool threadPool,
                                                ResourceWatcherService resourceWatcherService,
                                                ScriptService scriptService,
-                                               SearchRequestParsers searchRequestParsers) {
+                                               SearchRequestParsers searchRequestParsers,
+                                               NamedXContentRegistry xContentRegistry) {
         // pipelineRegistry is returned here so that it's bound in guice and can be injected in other places
         return Collections.singletonList(pipelineRegistry);
     }
@@ -83,16 +85,16 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin {
             .build();
     }
 
-
     @Override
     public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings,
                                                                         ThreadPool threadPool,
                                                                         BigArrays bigArrays,
                                                                         CircuitBreakerService circuitBreakerService,
                                                                         NamedWriteableRegistry namedWriteableRegistry,
+                                                                        NamedXContentRegistry xContentRegistry,
                                                                         NetworkService networkService) {
         return Collections.singletonMap(
             CRATE_HTTP_TRANSPORT_NAME,
-            () -> new CrateNettyHttpServerTransport(settings, networkService, bigArrays, threadPool, pipelineRegistry));
+            () -> new CrateNettyHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, pipelineRegistry));
     }
 }

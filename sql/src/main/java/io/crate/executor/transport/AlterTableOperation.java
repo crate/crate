@@ -28,7 +28,12 @@ import io.crate.Constants;
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
-import io.crate.analyze.*;
+import io.crate.analyze.AddColumnAnalyzedStatement;
+import io.crate.analyze.AlterTableAnalyzedStatement;
+import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
+import io.crate.analyze.AlterTableRenameAnalyzedStatement;
+import io.crate.analyze.PartitionedTableParameterInfo;
+import io.crate.analyze.TableParameter;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
@@ -72,6 +77,7 @@ import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -79,7 +85,13 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
@@ -469,7 +481,8 @@ public class AlterTableOperation {
     }
 
     private Map<String, Object> parseMapping(String mappingSource) throws IOException {
-        try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(mappingSource)) {
+        // FIXME:
+        try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(NamedXContentRegistry.EMPTY, mappingSource)) {
             return parser.map();
         } catch (IOException e) {
             throw new ElasticsearchException("failed to parse mapping");

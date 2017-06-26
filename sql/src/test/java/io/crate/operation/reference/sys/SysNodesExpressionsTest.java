@@ -34,6 +34,7 @@ import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
@@ -51,12 +52,16 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.net.Inet4Address;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.refInfo;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -69,7 +74,9 @@ public class SysNodesExpressionsTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws Exception {
         Settings settings = Settings.builder()
             .put("path.home", createTempDir()).build();
-        LocalDiscovery localDiscovery = new LocalDiscovery(settings, clusterService, clusterService.getClusterSettings());
+        NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(Collections.emptyList());
+        LocalDiscovery localDiscovery = new LocalDiscovery(
+            settings, clusterService, clusterService.getClusterSettings(), namedWriteableRegistry);
         Environment environment = new Environment(settings);
         nodeEnvironment = new NodeEnvironment(settings, environment);
         MonitorService monitorService = new MonitorService(settings, nodeEnvironment, THREAD_POOL);

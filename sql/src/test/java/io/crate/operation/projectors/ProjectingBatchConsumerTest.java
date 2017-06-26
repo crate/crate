@@ -46,8 +46,8 @@ import io.crate.planner.projection.WriterProjection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchConsumer;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
@@ -104,7 +104,7 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
     }
 
     @After
-    public void after() throws Exception {
+    public void shutdownThreadPool() throws Exception {
         threadPool.shutdown();
         threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }

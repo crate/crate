@@ -48,9 +48,9 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.operation.user.UserManagerProvider;
-import io.crate.planner.TableStats;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.TableStats;
 import io.crate.sql.parser.SqlParser;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
@@ -69,7 +69,18 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static io.crate.analyze.TableDefinitions.*;
+import static io.crate.analyze.TableDefinitions.DEEPLY_NESTED_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.NESTED_PK_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.TEST_DOC_TRANSACTIONS_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.TEST_MULTIPLE_PARTITIONED_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.TEST_NESTED_PARTITIONED_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_CLUSTERED_BY_ONLY;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_MULTI_PK;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.mockito.Mockito.mock;
 
@@ -152,6 +163,7 @@ public class SQLExecutor {
                         new Environment(Settings.builder()
                             .put(Environment.PATH_HOME_SETTING.getKey(), tempDir.toString())
                             .build()),
+                        Collections.emptyMap(),
                         Collections.emptyMap(),
                         Collections.emptyMap(),
                         Collections.emptyMap(),

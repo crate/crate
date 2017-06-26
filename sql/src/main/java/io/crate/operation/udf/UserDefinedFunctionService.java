@@ -40,15 +40,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static io.crate.operation.udf.UserDefinedFunctionsMetaData.PROTO;
 
 @Singleton
 public class UserDefinedFunctionService {
-
-    static {
-        // register non plugin custom metadata
-        MetaData.registerPrototype(UserDefinedFunctionsMetaData.TYPE, PROTO);
-    }
 
     private final ClusterService clusterService;
     private Map<String, UDFLanguage> languageRegistry = new HashMap<>();

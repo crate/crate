@@ -23,17 +23,34 @@ package io.crate.operation.projectors;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.AggregateMode;
+import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.data.*;
+import io.crate.data.BatchIterator;
+import io.crate.data.Bucket;
+import io.crate.data.CollectionBucket;
+import io.crate.data.Projector;
+import io.crate.data.RowsBatchIterator;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.metadata.*;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.RowGranularity;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.projection.*;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.OrderedTopNProjection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingBatchIterators;
@@ -52,7 +69,11 @@ import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.MockitoAnnotations;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
@@ -101,7 +122,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     }
 
     @After
-    public void after() throws Exception {
+    public void shutdownThreadPool() throws Exception {
         threadPool.shutdown();
         threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }

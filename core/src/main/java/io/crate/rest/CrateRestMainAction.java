@@ -29,7 +29,11 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.rest.*;
+import org.elasticsearch.rest.BaseRestHandler;
+import org.elasticsearch.rest.BytesRestResponse;
+import org.elasticsearch.rest.RestController;
+import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.rest.RestStatus;
 
 import java.io.IOException;
 
@@ -49,14 +53,12 @@ public class CrateRestMainAction extends BaseRestHandler {
     @Inject
     public CrateRestMainAction(Settings settings,
                                RestController controller,
-                               ClusterService clusterService,
-                               CrateRestFilter crateRestFilter) {
+                               ClusterService clusterService) {
         super(settings);
         this.version = Version.CURRENT;
         this.controller = controller;
         this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
         this.clusterService = clusterService;
-        controller.registerFilter(crateRestFilter);
     }
 
     public void registerHandler() {

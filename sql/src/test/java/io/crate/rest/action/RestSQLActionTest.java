@@ -86,7 +86,7 @@ public class RestSQLActionTest extends CrateUnitTest {
             userManagerProvider,
             circuitBreakerService
         );
-        RestRequest request = new FakeRestRequest.Builder()
+        RestRequest request = new FakeRestRequest.Builder(xContentRegistry())
             .withHeaders(Collections.emptyMap())
             .build();
         assertThat(restSQLAction.userFromRequest(request).name(), is("crate"));
@@ -104,7 +104,7 @@ public class RestSQLActionTest extends CrateUnitTest {
             userManagerProvider,
             circuitBreakerService
         );
-        RestRequest request = new FakeRestRequest.Builder()
+        RestRequest request = new FakeRestRequest.Builder(xContentRegistry())
             .withHeaders(Collections.emptyMap())
             .build();
         assertThat(restSQLAction.userFromRequest(request).name(), is("trillian"));
@@ -119,7 +119,7 @@ public class RestSQLActionTest extends CrateUnitTest {
             userManagerProvider,
             circuitBreakerService
         );
-        RestRequest request = new FakeRestRequest.Builder()
+        RestRequest request = new FakeRestRequest.Builder(xContentRegistry())
             .withHeaders(Collections.singletonMap("X-User", "other"))
             .build();
         assertThat(restSQLAction.userFromRequest(request).name(), is("other"));

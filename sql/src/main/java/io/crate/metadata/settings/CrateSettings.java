@@ -265,7 +265,7 @@ public class CrateSettings implements ClusterStateListener {
             .build();
         this.settings = initialSettings;
         referenceImplementationTree = buildReferenceTree();
-        clusterService.add(this);
+        clusterService.addListener(this);
     }
 
     @Override
