@@ -31,7 +31,12 @@ import io.crate.core.collections.Sorted;
 import io.crate.data.Bucket;
 import io.crate.data.Buckets;
 import io.crate.data.Row;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
@@ -41,6 +46,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
@@ -56,11 +62,18 @@ import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 public class TestingHelpers {
@@ -375,7 +388,7 @@ public class TestingHelpers {
 
     public static Map<String, Object> jsonMap(String json) {
         try {
-            return JsonXContent.jsonXContent.createParser(json).map();
+            return JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, json).map();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

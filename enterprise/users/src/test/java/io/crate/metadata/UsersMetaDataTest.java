@@ -42,7 +42,7 @@ public class UsersMetaDataTest extends CrateUnitTest {
         users.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        UsersMetaData users2 = (UsersMetaData) new UsersMetaData().readFrom(in);
+        UsersMetaData users2 = new UsersMetaData(in);
         assertEquals(users, users2);
     }
 
@@ -57,7 +57,7 @@ public class UsersMetaDataTest extends CrateUnitTest {
         users.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(builder.bytes());
+        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
         parser.nextToken(); // start object
         UsersMetaData users2 = (UsersMetaData) new UsersMetaData().fromXContent(parser);
         assertEquals(users, users2);

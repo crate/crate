@@ -59,6 +59,7 @@ import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
@@ -99,7 +100,7 @@ public class BootstrapProxy {
     /**
      * initialize native resources
      */
-    static void initializeNatives(Path tmpFile, boolean mlockAll, boolean seccomp, boolean ctrlHandler) {
+    static void initializeNatives(Path tmpFile, boolean mlockAll, boolean systemCallFilter, boolean ctrlHandler) {
         final Logger logger = Loggers.getLogger(BootstrapProxy.class);
 
         // check if the user is running as root, and bail
@@ -107,9 +108,9 @@ public class BootstrapProxy {
             throw new RuntimeException("can not run crate as root");
         }
 
-        // enable secure computing mode
-        if (seccomp) {
-            Natives.trySeccomp(tmpFile);
+        // enable system call filter
+        if (systemCallFilter) {
+            Natives.tryInstallSystemCallFilter(tmpFile);
         }
 
         // mlockall if requested
@@ -199,11 +200,12 @@ public class BootstrapProxy {
         //}
 
         node = new CrateNode(environment) {
+
             @Override
-            protected void validateNodeBeforeAcceptingRequests(
-                final Settings settings,
-                final BoundTransportAddress boundTransportAddress) throws NodeValidationException {
-                BootstrapCheck.check(settings, boundTransportAddress);
+            protected void validateNodeBeforeAcceptingRequests(Settings settings,
+                                                               BoundTransportAddress boundTransportAddress,
+                                                               List<BootstrapCheck> bootstrapChecks) throws NodeValidationException {
+                BootstrapChecks.check(settings, boundTransportAddress, bootstrapChecks);
             }
         };
 

@@ -92,7 +92,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     }
 
     @After
-    public void after() {
+    public void afterTest() {
         functionImplementations.clear();
     }
 

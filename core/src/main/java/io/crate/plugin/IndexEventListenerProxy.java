@@ -27,10 +27,12 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -135,16 +137,16 @@ public class IndexEventListenerProxy implements IndexEventListener {
     }
 
     @Override
-    public void beforeIndexClosed(IndexService indexService) {
+    public void beforeIndexRemoved(IndexService indexService, IndicesClusterStateService.AllocatedIndices.IndexRemovalReason reason) {
         for (IndexEventListener listener : listeners) {
-            listener.beforeIndexClosed(indexService);
+            listener.beforeIndexRemoved(indexService, reason);
         }
     }
 
     @Override
-    public void afterIndexClosed(Index index, Settings indexSettings) {
+    public void afterIndexRemoved(Index index, IndexSettings indexSettings, IndicesClusterStateService.AllocatedIndices.IndexRemovalReason reason) {
         for (IndexEventListener listener : listeners) {
-            listener.afterIndexClosed(index, indexSettings);
+            listener.afterIndexRemoved(index, indexSettings, reason);
         }
     }
 
@@ -159,20 +161,6 @@ public class IndexEventListenerProxy implements IndexEventListener {
     public void afterIndexShardDeleted(ShardId shardId, Settings indexSettings) {
         for (IndexEventListener listener : listeners) {
             listener.afterIndexShardDeleted(shardId, indexSettings);
-        }
-    }
-
-    @Override
-    public void afterIndexDeleted(Index index, Settings indexSettings) {
-        for (IndexEventListener listener : listeners) {
-            listener.afterIndexDeleted(index, indexSettings);
-        }
-    }
-
-    @Override
-    public void beforeIndexDeleted(IndexService indexService) {
-        for (IndexEventListener listener : listeners) {
-            listener.beforeIndexDeleted(indexService);
         }
     }
 

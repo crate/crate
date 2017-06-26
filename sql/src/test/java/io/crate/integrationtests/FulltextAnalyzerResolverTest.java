@@ -34,9 +34,16 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
 import static org.hamcrest.collection.IsMapContaining.hasKey;
 
@@ -314,7 +321,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
             is("apostrophe, arabic_normalization, arabic_stem, asciifolding, brazilian_stem, " +
                "cjk_bigram, cjk_width, classic, common_grams, czech_stem, decimal_digit, " +
                "delimited_payload_filter, dictionary_decompounder, dutch_stem, " +
-               "edgeNGram, edge_ngram, elision, fingerprint, french_stem, german_normalization, " +
+               "edgeNGram, edge_ngram, elision, fingerprint, flatten_graph, french_stem, german_normalization, " +
                "german_stem, hindi_normalization, hunspell, " +
                "hyphenation_decompounder, indic_normalization, keep, keep_types, " +
                "keyword_marker, " +

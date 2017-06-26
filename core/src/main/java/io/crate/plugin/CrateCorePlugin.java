@@ -57,7 +57,6 @@ public class CrateCorePlugin extends Plugin {
         return Collections.singletonList(new CrateCoreModule(settings, indexEventListenerProxy));
     }
 
-
     @Override
     public UnaryOperator<Map<String, MetaData.Custom>> getCustomMetaDataUpgrader() {
         return new CustomMetaDataUpgraderLoader(settings);

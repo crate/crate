@@ -34,7 +34,7 @@ public class SQLBulkArgsParseElementTest extends CrateUnitTest {
         SQLXContentSourceContext context = new SQLXContentSourceContext();
         String json = "{\"bulk_args\":" + bulk_args + "}";
         BytesArray bytes = new BytesArray(json);
-        XContentParser parser = XContentFactory.xContent(bytes).createParser(bytes);
+        XContentParser parser = XContentFactory.xContent(bytes).createParser(xContentRegistry(), bytes);
         parser.nextToken();
         parser.nextToken();
         parser.nextToken();

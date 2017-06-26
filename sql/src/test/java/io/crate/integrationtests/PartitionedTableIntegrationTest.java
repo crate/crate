@@ -24,9 +24,9 @@ package io.crate.integrationtests;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.metadata.IndexMappings;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
+import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
@@ -42,6 +42,7 @@ import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -59,9 +60,20 @@ import java.io.OutputStreamWriter;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.isOneOf;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 2)
@@ -1676,7 +1688,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
         String mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
-            .createParser(mappingSource)
+            .createParser(NamedXContentRegistry.EMPTY, mappingSource)
             .map()
             .get(Constants.DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
@@ -1703,7 +1715,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         IndexTemplateMetaData metaData = templatesResponse.getIndexTemplates().get(0);
         String mappingSource = metaData.mappings().get(Constants.DEFAULT_MAPPING_TYPE).toString();
         Map mapping = (Map) XContentFactory.xContent(mappingSource)
-            .createParser(mappingSource)
+            .createParser(NamedXContentRegistry.EMPTY, mappingSource)
             .map().get(Constants.DEFAULT_MAPPING_TYPE);
         assertNotNull(((Map) mapping.get("properties")).get("name"));
         // template order must not be touched

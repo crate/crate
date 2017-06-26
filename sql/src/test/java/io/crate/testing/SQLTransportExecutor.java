@@ -24,7 +24,11 @@ package io.crate.testing;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Throwables;
-import io.crate.action.sql.*;
+import io.crate.action.sql.BaseResultReceiver;
+import io.crate.action.sql.Option;
+import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.symbol.Field;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
@@ -50,6 +54,7 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -61,8 +66,22 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
-import java.sql.*;
-import java.util.*;
+import java.sql.Array;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.action.sql.SQLOperations.Session.UNNAMED;
@@ -435,7 +454,7 @@ public class SQLTransportExecutor {
         try {
             if (json != null) {
                 byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
-                XContentParser parser = JsonXContent.jsonXContent.createParser(bytes);
+                XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, bytes);
                 if (bytes.length >= 1 && bytes[0] == '[') {
                     parser.nextToken();
                     return recursiveListToArray(parser.list());

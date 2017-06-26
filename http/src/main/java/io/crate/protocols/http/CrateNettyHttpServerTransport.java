@@ -29,6 +29,7 @@ import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -44,8 +45,9 @@ public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
                                          NetworkService networkService,
                                          BigArrays bigArrays,
                                          ThreadPool threadPool,
+                                         NamedXContentRegistry namedXContentRegistry,
                                          PipelineRegistry pipelineRegistry) {
-        super(settings, networkService, bigArrays, threadPool);
+        super(settings, networkService, bigArrays, threadPool, namedXContentRegistry);
         this.pipelineRegistry = pipelineRegistry;
     }
 

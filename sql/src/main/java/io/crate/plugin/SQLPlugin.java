@@ -53,17 +53,23 @@ import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.node.local.SysNodeExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
+import io.crate.operation.udf.UserDefinedFunctionsMetaData;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.settings.CrateSetting;
 import org.elasticsearch.action.bulk.BulkModule;
+import org.elasticsearch.cluster.NamedDiff;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
+import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.ArrayTypeParser;
 import org.elasticsearch.index.mapper.Mapper;
@@ -187,5 +193,32 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     @Override
     public Collection<AllocationDecider> createAllocationDeciders(Settings settings, ClusterSettings clusterSettings) {
         return ImmutableList.of(new DecommissionAllocationDecider(settings, clusterSettings));
+    }
+
+    @Override
+    public List<NamedWriteableRegistry.Entry> getNamedWriteables() {
+        List<NamedWriteableRegistry.Entry> entries = new ArrayList<>();
+        entries.add(new NamedWriteableRegistry.Entry(
+            MetaData.Custom.class,
+            UserDefinedFunctionsMetaData.TYPE,
+            UserDefinedFunctionsMetaData::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            UserDefinedFunctionsMetaData.TYPE,
+            UserDefinedFunctionsMetaData::readDiffFrom
+        ));
+        return entries;
+    }
+
+    @Override
+    public List<NamedXContentRegistry.Entry> getNamedXContent() {
+        List<NamedXContentRegistry.Entry> entries = new ArrayList<>();
+        entries.add(new NamedXContentRegistry.Entry(
+            UserDefinedFunctionsMetaData.class,
+            new ParseField(UserDefinedFunctionsMetaData.TYPE),
+            UserDefinedFunctionsMetaData::fromXContent
+        ));
+        return entries;
     }
 }

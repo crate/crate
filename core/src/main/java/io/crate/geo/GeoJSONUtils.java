@@ -37,6 +37,7 @@ import io.crate.core.collections.ForEach;
 import io.crate.types.GeoPointType;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -138,7 +139,8 @@ public class GeoJSONUtils {
 
     private static Shape geoJSONString2Shape(String geoJSON) {
         try {
-            XContentParser parser = JsonXContent.jsonXContent.createParser(geoJSON);
+            // FIXME: use real NamedXContentRegistry?
+            XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, geoJSON);
             parser.nextToken();
             return ShapeBuilder.parse(parser).build();
         } catch (Throwable t) {
