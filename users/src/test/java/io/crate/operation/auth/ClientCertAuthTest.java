@@ -66,7 +66,7 @@ public class ClientCertAuthTest extends CrateUnitTest {
     public void testLookupValidUserWithCertWithDifferentCN() throws Exception {
         ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> new User("arthur", Collections.emptySet()));
 
-        expectedException.expectMessage("Client certificate authentication failed for user \"arthur\"");
+        expectedException.expectMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur\"");
         clientCertAuth.authenticate("arthur", sslConnWithCert);
     }
 
@@ -95,7 +95,7 @@ public class ClientCertAuthTest extends CrateUnitTest {
         ClientCertAuth clientCertAuth = new ClientCertAuth(userName -> exampleUser);
         ConnectionProperties conn = new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.HTTP, sslSession);
 
-        expectedException.expectMessage("Client certificate authentication failed for user \"arthur_is_wrong\"");
+        expectedException.expectMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur_is_wrong\"");
         clientCertAuth.authenticate("arthur_is_wrong", conn);
     }
 }

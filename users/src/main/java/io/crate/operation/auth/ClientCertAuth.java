@@ -51,6 +51,9 @@ public class ClientCertAuth implements AuthenticationMethod {
                 if (user != null) {
                     return user;
                 }
+            } else {
+                throw new RuntimeException(
+                    "Common name \"" + commonName + "\" in client certificate doesn't match username \"" + userName + "\"");
             }
         }
         throw new RuntimeException("Client certificate authentication failed for user \"" + userName + "\"");
