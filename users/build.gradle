@@ -7,7 +7,7 @@ description = 'User Management for CrateDB'
 dependencies {
     compile project(':sql')
     testCompile project(':integration-testing')
-    testCompile project(':ssl-impl')
+    testCompile project(':enterprise:ssl-impl')
     testCompile project(path: ':sql', configuration: 'testOutput')
     testCompile project(path: ':dex', configuration: 'testOutput')
     testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
