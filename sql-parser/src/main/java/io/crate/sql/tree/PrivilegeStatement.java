@@ -30,18 +30,24 @@ public abstract class PrivilegeStatement extends Statement {
 
     protected final List<String> userNames;
     protected final List<String> privilegeTypes;
+    private final List<QualifiedName> tableOrSchemaNames;
+    private final String clazz;
     protected final boolean all;
 
-    public PrivilegeStatement(List<String> userNames) {
+    public PrivilegeStatement(List<String> userNames, String clazz, List<QualifiedName> tableOrSchemaNames) {
         this.userNames = userNames;
         privilegeTypes = Collections.emptyList();
         all = true;
+        this.clazz = clazz;
+        this.tableOrSchemaNames = tableOrSchemaNames;
     }
 
-    public PrivilegeStatement(List<String> userNames, List<String> privilegeTypes) {
+    public PrivilegeStatement(List<String> userNames, List<String> privilegeTypes, String clazz, List<QualifiedName> tableOrSchemaNames) {
         this.userNames = userNames;
         this.privilegeTypes = privilegeTypes;
         this.all = false;
+        this.clazz = clazz;
+        this.tableOrSchemaNames = tableOrSchemaNames;
     }
 
     public List<String> privileges() {
@@ -54,6 +60,14 @@ public abstract class PrivilegeStatement extends Statement {
 
     public boolean all() {
         return all;
+    }
+
+    public List<QualifiedName> privilegeIdents() {
+        return tableOrSchemaNames;
+    }
+
+    public String clazz() {
+        return clazz;
     }
 
     @Override

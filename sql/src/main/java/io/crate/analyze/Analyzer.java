@@ -158,7 +158,7 @@ public class Analyzer {
         this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
         this.createFunctionAnalyzer = new CreateFunctionAnalyzer();
         this.dropFunctionAnalyzer = new DropFunctionAnalyzer();
-        this.privilegesAnalyzer = new PrivilegesAnalyzer();
+        this.privilegesAnalyzer = new PrivilegesAnalyzer(schemas);
     }
 
     public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {

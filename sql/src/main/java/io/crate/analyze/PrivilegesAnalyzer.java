@@ -24,10 +24,13 @@ package io.crate.analyze;
 
 import io.crate.analyze.user.Privilege;
 import io.crate.analyze.user.Privilege.State;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.user.User;
-import io.crate.sql.tree.GrantPrivilege;
-import io.crate.sql.tree.RevokePrivilege;
 import io.crate.sql.tree.DenyPrivilege;
+import io.crate.sql.tree.GrantPrivilege;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.RevokePrivilege;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -42,22 +45,37 @@ import java.util.Set;
  */
 class PrivilegesAnalyzer {
 
-    static PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, @Nullable User user) {
-        ensureUserManagementEnabled(user);
-        return new PrivilegesAnalyzedStatement(node.userNames(),
-            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.GRANT));
+    private final Schemas schemas;
+
+    PrivilegesAnalyzer(Schemas schemas) {
+        this.schemas = schemas;
     }
 
-    static PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, @Nullable User user) {
+    PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, @Nullable User user) {
         ensureUserManagementEnabled(user);
+        validatePrivilegeIdents(Privilege.Clazz.valueOf(node.clazz()), node.privilegeIdents());
+
         return new PrivilegesAnalyzedStatement(node.userNames(),
-            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.REVOKE));
+            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.GRANT, node.privilegeIdents(),
+                Privilege.Clazz.valueOf(node.clazz())));
     }
 
-    static PrivilegesAnalyzedStatement analyzeDeny(DenyPrivilege node, @Nullable User user) {
+    PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, @Nullable User user) {
         ensureUserManagementEnabled(user);
+        validatePrivilegeIdents(Privilege.Clazz.valueOf(node.clazz()), node.privilegeIdents());
+
         return new PrivilegesAnalyzedStatement(node.userNames(),
-            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.DENY));
+            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.REVOKE, node.privilegeIdents(),
+                Privilege.Clazz.valueOf(node.clazz())));
+    }
+
+    PrivilegesAnalyzedStatement analyzeDeny(DenyPrivilege node, @Nullable User user) {
+        ensureUserManagementEnabled(user);
+        validatePrivilegeIdents(Privilege.Clazz.valueOf(node.clazz()), node.privilegeIdents());
+
+        return new PrivilegesAnalyzedStatement(node.userNames(),
+            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.DENY, node.privilegeIdents(),
+                Privilege.Clazz.valueOf(node.clazz())));
     }
 
     private static void ensureUserManagementEnabled(@Nullable User user) {
@@ -74,6 +92,24 @@ class PrivilegesAnalyzer {
             privilegeTypes = parsePrivilegeTypes(typeNames);
         }
         return privilegeTypes;
+    }
+
+    private void validateTableNames(List<QualifiedName> tableNames) {
+        tableNames.forEach(t -> schemas.getTableInfo(TableIdent.fromIndexName(t.toString()), null));
+    }
+
+    private void validateSchemaNames(List<QualifiedName> schemaNames) {
+        schemaNames.forEach(s ->
+            schemas.validateSchemaName(s.toString())
+        );
+    }
+
+    private void validatePrivilegeIdents(Privilege.Clazz clazz, List<QualifiedName> idents) {
+        if (Privilege.Clazz.SCHEMA.equals(clazz)) {
+            validateSchemaNames(idents);
+        } else if (Privilege.Clazz.TABLE.equals(clazz)) {
+            validateTableNames(idents);
+        }
     }
 
     private static List<Privilege.Type> parsePrivilegeTypes(List<String> privilegeTypeNames) {
@@ -97,17 +133,35 @@ class PrivilegesAnalyzer {
     }
 
     private static Set<Privilege> privilegeTypesToPrivileges(Collection<Privilege.Type> privilegeTypes,
-                                                      User grantor,
-                                                      State state) {
+                                                             User grantor,
+                                                             State state,
+                                                             List<QualifiedName> tableOrSchemaNames,
+                                                             Privilege.Clazz clazz) {
         Set<Privilege> privileges = new HashSet<>(privilegeTypes.size());
-        for (Privilege.Type privilegeType : privilegeTypes) {
-            Privilege privilege = new Privilege(state,
-                privilegeType,
-                Privilege.Clazz.CLUSTER,
-                null,
-                grantor.name()
-            );
-            privileges.add(privilege);
+        if (Privilege.Clazz.CLUSTER.equals(clazz)) {
+            for (Privilege.Type privilegeType : privilegeTypes) {
+                Privilege privilege = new Privilege(state,
+                    privilegeType,
+                    Privilege.Clazz.CLUSTER,
+                    null,
+                    grantor.name()
+                );
+
+                privileges.add(privilege);
+            }
+        } else {
+            for (Privilege.Type privilegeType : privilegeTypes) {
+                for (QualifiedName name : tableOrSchemaNames) {
+                    Privilege privilege = new Privilege(state,
+                        privilegeType,
+                        clazz,
+                        name.toString(),
+                        grantor.name()
+                    );
+
+                    privileges.add(privilege);
+                }
+            }
         }
         return privileges;
     }
