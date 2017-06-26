@@ -34,12 +34,7 @@ public class ForEachTest extends CrateUnitTest {
 
     private void assertForEachCalledOnAllElements(Object elements, int expected) {
         final AtomicInteger sum = new AtomicInteger(0);
-        ForEach.forEach(elements, new ForEach.Acceptor() {
-            @Override
-            public void accept(Object value) {
-                sum.getAndAdd((int) value);
-            }
-        });
+        ForEach.forEach(elements, input -> sum.getAndAdd((int) input));
         assertThat(sum.get(), is(expected));
     }
 

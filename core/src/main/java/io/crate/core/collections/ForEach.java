@@ -24,29 +24,26 @@ package io.crate.core.collections;
 
 import java.lang.reflect.Array;
 import java.util.Collection;
+import java.util.function.Consumer;
 
 public class ForEach {
 
-    public static interface Acceptor {
-        public void accept(Object value);
-    }
-
     /**
-     * apply an acceptor to all elements of a collection, a primitive or non-primitive array
+     * Invoke a consumer for each elements of a collection or an array
      *
      * @param arrayOrCollection a collection, a primitive or non-primitive array
-     * @param fun               called for every element of <code>arrayOrCollection</code> as Object
+     * @param consumer          called for every element of <code>arrayOrCollection</code> as Object
      */
-    public static void forEach(Object arrayOrCollection, Acceptor fun) {
+    public static void forEach(Object arrayOrCollection, Consumer<Object> consumer) {
         if (arrayOrCollection.getClass().isArray()) {
             int arrayLength = Array.getLength(arrayOrCollection);
             for (int i = 0; i < arrayLength; i++) {
                 Object elem = Array.get(arrayOrCollection, i);
-                fun.accept(elem);
+                consumer.accept(elem);
             }
         } else if (arrayOrCollection instanceof Collection) {
             for (Object elem : ((Collection) arrayOrCollection)) {
-                fun.accept(elem);
+                consumer.accept(elem);
             }
         } else {
             throw new AssertionError("argument is neither an array nor a collection");

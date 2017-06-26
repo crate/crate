@@ -24,11 +24,15 @@ package io.crate.geo;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
-import org.locationtech.spatial4j.exception.InvalidShapeException;
-import org.locationtech.spatial4j.shape.Shape;
-import org.locationtech.spatial4j.shape.ShapeCollection;
-import com.vividsolutions.jts.geom.*;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryCollection;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.MultiLineString;
+import com.vividsolutions.jts.geom.MultiPoint;
+import com.vividsolutions.jts.geom.MultiPolygon;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 import io.crate.core.collections.ForEach;
 import io.crate.types.GeoPointType;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
@@ -36,9 +40,18 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.exception.InvalidShapeException;
+import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.ShapeCollection;
 
 import java.lang.reflect.Array;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class GeoJSONUtils {
 
@@ -151,14 +164,11 @@ public class GeoJSONUtils {
                 throw new IllegalArgumentException(invalidGeoJSON("geometries field missing"));
             }
 
-            ForEach.forEach(geometries, new ForEach.Acceptor() {
-                @Override
-                public void accept(Object input) {
-                    if (!(input instanceof Map)) {
-                        throw new IllegalArgumentException(invalidGeoJSON("invalid GeometryCollection"));
-                    } else {
-                        validateGeoJson((Map) input);
-                    }
+            ForEach.forEach(geometries, input -> {
+                if (!(input instanceof Map)) {
+                    throw new IllegalArgumentException(invalidGeoJSON("invalid GeometryCollection"));
+                } else {
+                    validateGeoJson((Map) input);
                 }
             });
         } else {
@@ -189,15 +199,12 @@ public class GeoJSONUtils {
     }
 
     private static void validateCoordinates(Object coordinates, final int depth) {
-        ForEach.forEach(coordinates, new ForEach.Acceptor() {
-            @Override
-            public void accept(Object input) {
-                if (depth > 1) {
-                    validateCoordinates(input, depth - 1);
-                } else {
-                    // at coordinate level
-                    validateCoordinate(input);
-                }
+        ForEach.forEach(coordinates, input -> {
+            if (depth > 1) {
+                validateCoordinates(input, depth - 1);
+            } else {
+                // at coordinate level
+                validateCoordinate(input);
             }
         });
     }
