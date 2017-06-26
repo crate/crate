@@ -18,14 +18,15 @@
 
 package io.crate.protocols.http;
 
+import io.crate.enterprise.loader.EnterpriseLoader;
 import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.protocols.ssl.SslConfigurationException;
-import io.crate.protocols.ssl.SslHandlerLoader;
 import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.channel.Channel;
 import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
@@ -42,6 +43,9 @@ import java.net.InetAddress;
 
 import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.AdditionalMatchers.aryEq;
 
 public class CrateHttpTransportTest extends CrateUnitTest {
@@ -62,21 +66,21 @@ public class CrateHttpTransportTest extends CrateUnitTest {
                 .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false)
                 .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
                 .build();
-            assertThat(SslHandlerLoader.loadHttpsHandler(settings), instanceOf(DefaultHttpsHandler.class));
+            assertThat(PipelineRegistry.loadSslContext(settings), is(nullValue()));
         }
         {
             Settings settings = Settings.builder()
                 .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
                 .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), false)
                 .build();
-            assertThat(SslHandlerLoader.loadHttpsHandler(settings), instanceOf(DefaultHttpsHandler.class));
+            assertThat(PipelineRegistry.loadSslContext(settings), is(nullValue()));
         }
         {
             Settings settings = Settings.builder()
                 .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false)
                 .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), false)
                 .build();
-            assertThat(SslHandlerLoader.loadHttpsHandler(settings), instanceOf(DefaultHttpsHandler.class));
+            assertThat(PipelineRegistry.loadSslContext(settings), is(nullValue()));
         }
     }
 
@@ -89,7 +93,7 @@ public class CrateHttpTransportTest extends CrateUnitTest {
             .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
             .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
             .build();
-        SslHandlerLoader.loadHttpsHandler(enterpriseEnabled);
+        PipelineRegistry.loadSslContext(enterpriseEnabled);
     }
 
     @Test
@@ -103,7 +107,7 @@ public class CrateHttpTransportTest extends CrateUnitTest {
             .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
             .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
             .build();
-        assertThat(SslHandlerLoader.loadHttpsHandler(enterpriseEnabled), instanceOf(HttpsConfiguringHandler.class));
+        assertThat(PipelineRegistry.loadSslContext(enterpriseEnabled), instanceOf(SslContext.class));
     }
 
     @Test

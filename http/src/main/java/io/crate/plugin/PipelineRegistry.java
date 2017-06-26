@@ -22,7 +22,11 @@
 
 package io.crate.plugin;
 
-import io.crate.protocols.ssl.SslHandlerLoader;
+import com.google.common.annotations.VisibleForTesting;
+import io.crate.enterprise.loader.EnterpriseLoader;
+import io.crate.enterprise.loader.LoadableValue;
+import io.crate.enterprise.loader.StringLoadable;
+import io.crate.protocols.ssl.SslConfigSettings;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
@@ -45,13 +49,15 @@ import java.util.function.Supplier;
 @Singleton
 public final class PipelineRegistry {
 
+    private static final LoadableValue<SslContext, Object> SSL_CONTEXT_LOADABLE = new SslContextLoadable();
+
+    private final Settings settings;
     private final List<ChannelPipelineItem> addBeforeList;
-    private final SslContext sslContext;
 
     @Inject
     public PipelineRegistry(Settings settings) {
+        this.settings = settings;
         this.addBeforeList = new ArrayList<>();
-        this.sslContext = SslHandlerLoader.loadHttpsHandler(settings).get();
     }
 
     /**
@@ -93,6 +99,7 @@ public final class PipelineRegistry {
         for (PipelineRegistry.ChannelPipelineItem item : addBeforeList) {
             pipeline.addBefore(item.base, item.name, item.handlerFactory.get());
         }
+        SslContext sslContext = loadSslContext(settings);
         if (sslContext != null) {
             SslHandler sslHandler = sslContext.newHandler(pipeline.channel().alloc());
             pipeline.addFirst(sslHandler);
@@ -160,6 +167,42 @@ public final class PipelineRegistry {
             }
 
             pipelineItems.add(item);
+        }
+    }
+
+    @VisibleForTesting
+    public static SslContext loadSslContext(Settings settings) {
+        return EnterpriseLoader.loadValue(
+            settings, SslConfigSettings.SSL_HTTP_ENABLED, SSL_CONTEXT_LOADABLE, settings);
+    }
+
+    private static class SslContextLoadable
+            extends StringLoadable<Object>
+            implements LoadableValue<SslContext, Object> {
+
+        @Override
+        public Class<Object> getBaseClass() {
+            return Object.class;
+        }
+
+        @Override
+        public String getFQClassName() {
+            return "io.crate.protocols.ssl.SslConfiguration";
+        }
+
+        @Override
+        public String methodName() {
+            return "buildSslContext";
+        }
+
+        @Override
+        public Class<?>[] getMethodParams() {
+            return new Class[] { Settings.class };
+        }
+
+        @Override
+        public Class<SslContext> getReturnType() {
+            return SslContext.class;
         }
     }
 }

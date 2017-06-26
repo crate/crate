@@ -22,7 +22,6 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.protocols.ssl.SslConfigurationException;
-import io.crate.protocols.ssl.SslHandlerLoader;
 import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.buffer.ByteBuf;
@@ -98,21 +97,21 @@ public class SslReqHandlerTest extends CrateUnitTest {
                 .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false)
                 .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
                 .build();
-            assertThat(SslHandlerLoader.loadSslReqHandler(settings), instanceOf(SslReqRejectingHandler.class));
+            assertThat(PostgresNetty.loadSslReqHandler(settings), instanceOf(SslReqRejectingHandler.class));
         }
         {
             Settings settings = Settings.builder()
                 .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
                 .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), false)
                 .build();
-            assertThat(SslHandlerLoader.loadSslReqHandler(settings), instanceOf(SslReqRejectingHandler.class));
+            assertThat(PostgresNetty.loadSslReqHandler(settings), instanceOf(SslReqRejectingHandler.class));
         }
         {
             Settings settings = Settings.builder()
                 .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false)
                 .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), false)
                 .build();
-            assertThat(SslHandlerLoader.loadSslReqHandler(settings), instanceOf(SslReqRejectingHandler.class));
+            assertThat(PostgresNetty.loadSslReqHandler(settings), instanceOf(SslReqRejectingHandler.class));
         }
     }
 
@@ -125,7 +124,7 @@ public class SslReqHandlerTest extends CrateUnitTest {
             .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
             .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
             .build();
-        SslHandlerLoader.loadSslReqHandler(enterpriseEnabled);
+        PostgresNetty.loadSslReqHandler(enterpriseEnabled);
     }
 
     @Test
@@ -139,7 +138,7 @@ public class SslReqHandlerTest extends CrateUnitTest {
             .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
             .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
             .build();
-        assertThat(SslHandlerLoader.loadSslReqHandler(enterpriseEnabled), instanceOf(SslReqConfiguringHandler.class));
+        assertThat(PostgresNetty.loadSslReqHandler(enterpriseEnabled), instanceOf(SslReqConfiguringHandler.class));
     }
 
     private static void sendSslRequest(EmbeddedChannel channel) {
