@@ -42,12 +42,7 @@ import java.util.function.Consumer;
 
 public class UserManagerService implements UserManager, ClusterStateListener {
 
-    public static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of());
-
-    static {
-        MetaData.registerPrototype(UsersMetaData.TYPE, UsersMetaData.PROTO);
-        MetaData.registerPrototype(UsersPrivilegesMetaData.TYPE, UsersPrivilegesMetaData.PROTO);
-    }
+    public final static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of());
 
     @VisibleForTesting
     static final StatementAuthorizedValidator NOOP_STATEMENT_VALIDATOR = s -> {
@@ -82,7 +77,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         this.transportCreateUserAction = transportCreateUserAction;
         this.transportDropUserAction = transportDropUserAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
-        clusterService.add(this);
+        clusterService.addListener(this);
     }
 
     static Set<User> getUsers(@Nullable UsersMetaData metaData,

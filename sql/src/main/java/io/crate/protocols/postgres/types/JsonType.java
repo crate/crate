@@ -25,6 +25,7 @@ package io.crate.protocols.postgres.types;
 import com.google.common.base.Throwables;
 import io.netty.buffer.ByteBuf;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -84,7 +85,7 @@ class JsonType extends PGType {
     @Override
     Object decodeUTF8Text(byte[] bytes) {
         try {
-            XContentParser parser = JsonXContent.jsonXContent.createParser(bytes);
+            XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, bytes);
             if (bytes.length > 1 && bytes[0] == '[') {
                 parser.nextToken();
                 return parser.list();

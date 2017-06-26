@@ -186,6 +186,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         return new MapperService(
             indexSettings,
             indexAnalyzers,
+            xContentRegistry(),
             new SimilarityService(indexSettings, Collections.emptyMap()),
             indicesModule.getMapperRegistry(),
             () -> null

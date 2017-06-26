@@ -28,7 +28,8 @@ package io.crate.operation.udf;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.types.DataType;
-import org.elasticsearch.cluster.AbstractDiffable;
+import org.elasticsearch.cluster.AbstractNamedDiffable;
+import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -36,24 +37,18 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Objects;
 
-public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Custom> implements MetaData.Custom {
+public class UserDefinedFunctionsMetaData extends AbstractNamedDiffable<MetaData.Custom> implements MetaData.Custom {
 
     public static final String TYPE = "user_defined_functions";
 
-    static final UserDefinedFunctionsMetaData PROTO = new UserDefinedFunctionsMetaData();
-
-    static {
-        // register non plugin custom metadata
-        MetaData.registerPrototype(TYPE, PROTO);
-    }
-
     private final List<UserDefinedFunctionMetaData> functionsMetaData;
-
-    private UserDefinedFunctionsMetaData() {
-        this.functionsMetaData = new ArrayList<>();
-    }
 
     private UserDefinedFunctionsMetaData(List<UserDefinedFunctionMetaData> functions) {
         this.functionsMetaData = functions;
@@ -66,6 +61,10 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
     @VisibleForTesting
     public static UserDefinedFunctionsMetaData of(UserDefinedFunctionMetaData... functions) {
         return new UserDefinedFunctionsMetaData(Arrays.asList(functions));
+    }
+
+    public static NamedDiff<MetaData.Custom> readDiffFrom(StreamInput in) throws IOException {
+        return readDiffFrom(MetaData.Custom.class, TYPE, in);
     }
 
     public void add(UserDefinedFunctionMetaData function) {
@@ -109,14 +108,13 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
         }
     }
 
-    @Override
-    public MetaData.Custom readFrom(StreamInput in) throws IOException {
+    public UserDefinedFunctionsMetaData(StreamInput in) throws IOException {
         int size = in.readVInt();
         List<UserDefinedFunctionMetaData> functions = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
             functions.add(UserDefinedFunctionMetaData.fromStream(in));
         }
-        return new UserDefinedFunctionsMetaData(functions);
+        this.functionsMetaData = functions;
     }
 
     @Override
@@ -129,13 +127,7 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
         return builder;
     }
 
-    @Override
-    public String type() {
-        return TYPE;
-    }
-
-    @Override
-    public MetaData.Custom fromXContent(XContentParser parser) throws IOException {
+    public static UserDefinedFunctionsMetaData fromXContent(XContentParser parser) throws IOException {
         List<UserDefinedFunctionMetaData> functions = new ArrayList<>();
         if (parser.nextToken() == XContentParser.Token.FIELD_NAME && Objects.equals(parser.currentName(), "functions")) {
             if ((parser.nextToken()) == XContentParser.Token.START_ARRAY) {
@@ -160,5 +152,10 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
 
         UserDefinedFunctionsMetaData that = (UserDefinedFunctionsMetaData) o;
         return functionsMetaData.equals(that.functionsMetaData);
+    }
+
+    @Override
+    public String getWriteableName() {
+        return TYPE;
     }
 }

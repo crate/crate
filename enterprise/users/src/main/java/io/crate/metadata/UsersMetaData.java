@@ -19,7 +19,7 @@
 package io.crate.metadata;
 
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.cluster.AbstractDiffable;
+import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -33,11 +33,9 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 
-public class UsersMetaData extends AbstractDiffable<MetaData.Custom> implements MetaData.Custom {
+public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implements MetaData.Custom {
 
-    public static String TYPE = "users";
-
-    public static final UsersMetaData PROTO = new UsersMetaData();
+    public static final String TYPE = "users";
 
     private final List<String> users;
 
@@ -72,14 +70,12 @@ public class UsersMetaData extends AbstractDiffable<MetaData.Custom> implements 
         return users;
     }
 
-    @Override
-    public MetaData.Custom readFrom(StreamInput in) throws IOException {
+    public UsersMetaData(StreamInput in) throws IOException {
         int numUsers = in.readVInt();
-        ArrayList<String> users = new ArrayList<>(numUsers);
+        users = new ArrayList<>(numUsers);
         for (int i = 0; i < numUsers; i++) {
             users.add(in.readString());
         }
-        return new UsersMetaData(users);
     }
 
     @Override
@@ -97,13 +93,7 @@ public class UsersMetaData extends AbstractDiffable<MetaData.Custom> implements 
         return builder;
     }
 
-    @Override
-    public String type() {
-        return TYPE;
-    }
-
-    @Override
-    public MetaData.Custom fromXContent(XContentParser parser) throws IOException {
+    public static UsersMetaData fromXContent(XContentParser parser) throws IOException {
         List<String> users = new ArrayList<>();
         if (parser.nextToken() == XContentParser.Token.FIELD_NAME && parser.currentName().equals("users")) {
             if (parser.nextToken() == XContentParser.Token.START_ARRAY) {
@@ -138,5 +128,10 @@ public class UsersMetaData extends AbstractDiffable<MetaData.Custom> implements 
     @Override
     public int hashCode() {
         return Objects.hash(users);
+    }
+
+    @Override
+    public String getWriteableName() {
+        return TYPE;
     }
 }

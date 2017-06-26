@@ -40,8 +40,6 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestFilter;
-import org.elasticsearch.rest.RestFilterChain;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
@@ -59,6 +57,7 @@ import static java.nio.file.Files.readAttributes;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.HEAD;
+import static org.elasticsearch.rest.RestRequest.Method.POST;
 import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
 import static org.elasticsearch.rest.RestStatus.FORBIDDEN;
 import static org.elasticsearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
@@ -96,20 +95,19 @@ public class CrateRestMainAction implements RestHandler {
     private final Settings settings;
     private final RestController controller;
     private final Path siteDirectory;
-    private final boolean esApiEnabled;
 
     @Inject
     public CrateRestMainAction(Settings settings,
                                Environment environment,
                                RestController controller,
                                ClusterService clusterService) {
-        this.esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
         this.settings = settings;
         this.controller = controller;
         this.version = Version.CURRENT;
         this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
         this.clusterService = clusterService;
         siteDirectory = environment.libFile().resolve("site");
+        Boolean esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
         Logger logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
         logger.info("Elasticsearch HTTP REST API {}enabled", esApiEnabled ? "" : "not ");
     }
@@ -119,29 +117,17 @@ public class CrateRestMainAction implements RestHandler {
         controller.registerHandler(HEAD, PATH, this);
         controller.registerHandler(GET, "/admin", (req, channel, client) -> redirectToRoot(channel));
         controller.registerHandler(GET, "/_plugin/crate-admin", (req, channel, client) -> redirectToRoot(channel));
-        controller.registerHandler(GET, "/index.html", this::serveSite);
-        controller.registerHandler(GET, "/static/{file}", this::serveSite);
-        controller.registerFilter(new RestFilter() {
-            @Override
-            public void process(RestRequest request, RestChannel channel, NodeClient client, RestFilterChain filterChain) throws Exception {
-                String rawPath = request.rawPath();
-                if (esApiEnabled || endpointAllowed(rawPath)) {
-                    if (rawPath.startsWith("/static/")) {
-                        serveSite(request, channel, client);
-                    } else {
-                        filterChain.continueProcessing(request, channel, client);
-                    }
-                } else {
-                    channel.sendResponse(new BytesRestResponse(
-                        BAD_REQUEST,
-                        String.format(Locale.ENGLISH,
-                            "No handler found for uri [%s] and method [%s]",
-                            request.uri(),
-                            request.method())
-                    ));
-                }
-            }
-        });
+        controller.registerHandler(GET, "/index.html", (req, channel, client) -> serveSite(siteDirectory, req, channel));
+
+        // FIXME: RestWrapper is only used if a Handler is registered, and wildcards are bound by separators
+        // This adds support for /static/{7-levels-deep-paths} - We should probably add an assertion to the downloadAdminUI task
+        // to make sure the adminUI doesn't use deeper paths
+        String staticPath = "/static";
+        for (int i = 97; i < 97 + 8; i++) {
+            controller.registerHandler(GET, staticPath, (req, channel, client) -> serveSite(siteDirectory, req, channel));
+            controller.registerHandler(POST, staticPath, (req, channel, client) -> serveSite(siteDirectory, req, channel));
+            staticPath += "/{" + i + '}';
+        }
     }
 
     private static boolean endpointAllowed(String rawPath) {
@@ -176,7 +162,7 @@ public class CrateRestMainAction implements RestHandler {
         channel.sendResponse(resp);
     }
 
-    private void serveSite(RestRequest request, RestChannel channel, NodeClient client) throws IOException {
+    private static void serveSite(Path siteDirectory, RestRequest request, RestChannel channel) throws IOException {
         if (request.method() != RestRequest.Method.GET) {
             channel.sendResponse(new BytesRestResponse(FORBIDDEN, "GET is the only allowed method"));
             return;
@@ -223,7 +209,7 @@ public class CrateRestMainAction implements RestHandler {
 
     private void serveJSONOrSite(RestRequest request, RestChannel channel, NodeClient client) throws IOException {
         if (shouldServeFromRoot(request)) {
-            serveSite(request, channel, client);
+            serveSite(siteDirectory, request, channel);
         } else {
             serveJSON(request, channel, client);
         }
@@ -320,6 +306,32 @@ public class CrateRestMainAction implements RestHandler {
     @Override
     public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
         serveJSONOrSite(request, channel, client);
+    }
+
+    public static class RestFilter implements RestHandler {
+        private final RestHandler delegate;
+        private final Boolean esApiEnabled;
+
+        public RestFilter(Settings settings, RestHandler delegate) {
+            this.esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
+            String rawPath = request.rawPath();
+            if (esApiEnabled || endpointAllowed(rawPath)) {
+                delegate.handleRequest(request, channel, client);
+            } else {
+                channel.sendResponse(new BytesRestResponse(
+                    BAD_REQUEST,
+                    String.format(Locale.ENGLISH,
+                        "No handler found for uri [%s] and method [%s]",
+                        request.uri(),
+                        request.method())
+                ));
+            }
+        }
     }
 }
 
