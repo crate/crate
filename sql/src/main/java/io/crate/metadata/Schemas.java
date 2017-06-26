@@ -100,8 +100,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      */
     public <T extends TableInfo> T getTableInfo(TableIdent ident, @Nullable User user) {
         SchemaInfo schemaInfo = getSchemaInfo(ident);
-        TableInfo info;
-        info = schemaInfo.getTableInfo(ident.name());
+        TableInfo info = schemaInfo.getTableInfo(ident.name());
         if (info == null) {
             throw new TableUnknownException(ident);
         }
@@ -136,6 +135,12 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             throw new SchemaUnknownException(schemaName);
         }
         return schemaInfo;
+    }
+
+    public void validateSchemaName(String schemaName) {
+        if (schemas.get(schemaName) == null) {
+            throw new SchemaUnknownException(schemaName);
+        }
     }
 
     @Nonnull
