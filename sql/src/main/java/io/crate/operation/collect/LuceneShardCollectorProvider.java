@@ -52,11 +52,13 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import java.util.function.Supplier;
+
 public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
     private static final Logger LOGGER = Loggers.getLogger(LuceneShardCollectorProvider.class);
 
-    private final String localNodeId;
+    private final Supplier<String> localNodeId;
     private final LuceneQueryBuilder luceneQueryBuilder;
     private final IndexShard indexShard;
     private final DocInputFactory docInputFactory;
@@ -75,7 +77,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             functions, threadPool, settings, transportActionProvider, indexShard);
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.indexShard = indexShard;
-        this.localNodeId = clusterService.localNode().getId();
+        this.localNodeId = () -> clusterService.localNode().getId();
         fieldTypeLookup = indexShard.mapperService()::fullName;
         this.docInputFactory = new DocInputFactory(functions,
             fieldTypeLookup,
@@ -148,7 +150,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             }
             throw t;
         }
-        int batchSize = collectPhase.shardQueueSize(localNodeId);
+        int batchSize = collectPhase.shardQueueSize(localNodeId.get());
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("[{}][{}] creating LuceneOrderedDocCollector. Expected number of rows to be collected: {}",
                 sharedShardContext.indexShard().routingEntry().currentNodeId(),

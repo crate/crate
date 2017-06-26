@@ -150,7 +150,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     @Override
     protected void doStart() {
         // add listener here to avoid guice proxy errors if the ClusterService could not be build
-        clusterService.add(this);
+        clusterService.addListener(this);
     }
 
     @Override
@@ -253,7 +253,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
     @Override
     protected void doStop() {
-        clusterService.remove(this);
+        clusterService.removeListener(this);
     }
 
     @Override

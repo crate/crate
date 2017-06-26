@@ -37,7 +37,12 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
@@ -100,7 +105,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
 
         execute("select * from information_schema.routines");
-        assertEquals(119L, response.rowCount());
+        assertEquals(120L, response.rowCount());
     }
 
     @Test

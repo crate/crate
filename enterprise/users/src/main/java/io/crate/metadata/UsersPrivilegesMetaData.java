@@ -21,7 +21,7 @@ package io.crate.metadata;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.user.Privilege;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.cluster.AbstractDiffable;
+import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -37,10 +37,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> implements MetaData.Custom {
+public class UsersPrivilegesMetaData extends AbstractNamedDiffable<MetaData.Custom> implements MetaData.Custom {
 
     public static final String TYPE = "users_privileges";
-    public static final UsersPrivilegesMetaData PROTO = new UsersPrivilegesMetaData();
 
     public static UsersPrivilegesMetaData copyOf(@Nullable UsersPrivilegesMetaData oldMetaData) {
         if (oldMetaData == null) {
@@ -80,11 +79,6 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
     }
 
     @Override
-    public String type() {
-        return TYPE;
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -97,10 +91,9 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
         return Objects.hash(usersPrivileges);
     }
 
-    @Override
-    public MetaData.Custom readFrom(StreamInput in) throws IOException {
+    public UsersPrivilegesMetaData(StreamInput in) throws IOException {
         int numUsersPrivileges = in.readVInt();
-        Map<String, Set<Privilege>> usersPrivileges = new HashMap<>(numUsersPrivileges);
+        usersPrivileges = new HashMap<>(numUsersPrivileges);
         for (int i = 0; i < numUsersPrivileges; i++) {
             String userName = in.readString();
             int numPrivileges = in.readVInt();
@@ -110,8 +103,6 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
             }
             usersPrivileges.put(userName, privileges);
         }
-
-        return new UsersPrivilegesMetaData(usersPrivileges);
     }
 
     @Override
@@ -139,8 +130,7 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
         return builder;
     }
 
-    @Override
-    public MetaData.Custom fromXContent(XContentParser parser) throws IOException {
+    public static UsersPrivilegesMetaData fromXContent(XContentParser parser) throws IOException {
         UsersPrivilegesMetaData metaData = new UsersPrivilegesMetaData();
         while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
             String userName = parser.currentName();
@@ -174,7 +164,7 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
             .endObject();
     }
 
-    private void privilegeFromXContent(XContentParser parser, Set<Privilege> privileges) throws IOException {
+    private static void privilegeFromXContent(XContentParser parser, Set<Privilege> privileges) throws IOException {
         XContentParser.Token currentToken;
         Privilege.State state = null;
         Privilege.Type type = null;
@@ -231,5 +221,10 @@ public class UsersPrivilegesMetaData extends AbstractDiffable<MetaData.Custom> i
             }
         }
         privileges.add(new Privilege(state, type, clazz, ident, grantor));
+    }
+
+    @Override
+    public String getWriteableName() {
+        return TYPE;
     }
 }
