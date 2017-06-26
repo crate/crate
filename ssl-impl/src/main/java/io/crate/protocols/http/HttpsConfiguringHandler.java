@@ -19,12 +19,12 @@
 package io.crate.protocols.http;
 
 import io.crate.protocols.ssl.SslConfiguration;
-import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslHandler;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+
+import java.util.function.Supplier;
 
 /**
  * Takes care of initializing the {@link SslContext}
@@ -47,9 +47,7 @@ public class HttpsConfiguringHandler implements HttpsHandler {
     }
 
     @Override
-    public void addToPipeline(ChannelPipeline pipeline) {
-        SslHandler sslHandler = sslContext.newHandler(pipeline.channel().alloc());
-        // ssl handler must come first in the pipeline
-        pipeline.addFirst(sslHandler);
+    public SslContext get() {
+        return sslContext;
     }
 }

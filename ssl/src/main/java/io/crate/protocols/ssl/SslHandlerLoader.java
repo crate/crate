@@ -22,8 +22,8 @@
 
 package io.crate.protocols.ssl;
 
-import io.crate.protocols.http.HttpsHandler;
 import io.crate.protocols.http.DefaultHttpsHandler;
+import io.crate.protocols.http.HttpsHandler;
 import io.crate.protocols.postgres.SslReqHandler;
 import io.crate.protocols.postgres.SslReqRejectingHandler;
 import io.crate.settings.CrateSetting;
