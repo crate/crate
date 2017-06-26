@@ -28,7 +28,6 @@ import io.crate.protocols.postgres.SslReqHandler;
 import io.crate.protocols.postgres.SslReqRejectingHandler;
 import io.crate.settings.CrateSetting;
 import io.crate.settings.SharedSettings;
-import io.netty.handler.ssl.SslContext;
 import org.elasticsearch.common.settings.Settings;
 
 import java.lang.reflect.InvocationTargetException;

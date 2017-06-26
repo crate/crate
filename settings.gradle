@@ -25,4 +25,5 @@ include 'es',
         'users',
         'ssl',
         'ssl-impl',
+        'enterprise',
         'http'

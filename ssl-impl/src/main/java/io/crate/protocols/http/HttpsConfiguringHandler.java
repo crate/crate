@@ -24,8 +24,6 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.function.Supplier;
-
 /**
  * Takes care of initializing the {@link SslContext}
  * and adding its handler to the pipeline.
