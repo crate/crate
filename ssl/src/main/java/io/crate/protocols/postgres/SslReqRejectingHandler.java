@@ -36,7 +36,7 @@ public final class SslReqRejectingHandler implements SslReqHandler {
 
     public SslReqRejectingHandler(Settings settings) {
         LOGGER = Loggers.getLogger(SslReqRejectingHandler.class, settings);
-        LOGGER.info("SSL support is disabled.");
+        LOGGER.info("PG SSL support is disabled.");
     }
 
     @Override

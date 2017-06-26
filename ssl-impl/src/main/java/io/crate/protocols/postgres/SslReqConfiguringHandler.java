@@ -41,10 +41,10 @@ public class SslReqConfiguringHandler implements SslReqHandler {
     }
 
     public SslReqConfiguringHandler(Settings settings, SslContext sslContext) {
-        this.LOGGER = Loggers.getLogger(SslReqRejectingHandler.class, settings);
+        this.LOGGER = Loggers.getLogger(SslReqConfiguringHandler.class, settings);
         this.sslContext = sslContext;
         assert this.sslContext != null : "Supplied context must never be null";
-        LOGGER.info("SSL support is enabled.");
+        LOGGER.info("PG SSL support is enabled.");
     }
 
     @Override

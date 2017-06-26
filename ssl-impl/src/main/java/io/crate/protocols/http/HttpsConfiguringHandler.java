@@ -22,6 +22,8 @@ import io.crate.protocols.ssl.SslConfiguration;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 /**
@@ -31,6 +33,7 @@ import org.elasticsearch.common.settings.Settings;
 @SuppressWarnings("unused")
 public class HttpsConfiguringHandler implements HttpsHandler {
 
+    private final Logger LOGGER;
     private final SslContext sslContext;
 
     public HttpsConfiguringHandler(Settings settings) {
@@ -38,6 +41,8 @@ public class HttpsConfiguringHandler implements HttpsHandler {
     }
 
     private HttpsConfiguringHandler(Settings settings, SslContext sslContext) {
+        this.LOGGER = Loggers.getLogger(HttpsConfiguringHandler.class, settings);
+        LOGGER.info("HTTP SSL support is enabled.");
         this.sslContext = sslContext;
     }
 

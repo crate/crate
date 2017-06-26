@@ -60,7 +60,7 @@ public class SslHandlerLoader {
             SslConfigSettings.SSL_HTTP_ENABLED,
             HTTPS_HANDLER_CLAZZ,
             HttpsHandler.class,
-            DefaultHttpsHandler::new);
+            () -> new DefaultHttpsHandler(settings));
     }
 
     private static <T> T load(Settings settings,

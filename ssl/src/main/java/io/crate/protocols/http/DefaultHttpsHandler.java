@@ -23,8 +23,18 @@
 package io.crate.protocols.http;
 
 import io.netty.channel.ChannelPipeline;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 
 public final class DefaultHttpsHandler implements HttpsHandler {
+
+    private final Logger LOGGER;
+
+    public DefaultHttpsHandler(Settings settings) {
+        LOGGER = Loggers.getLogger(DefaultHttpsHandler.class, settings);
+        LOGGER.info("HTTP SSL support is disabled.");
+    }
 
     @Override
     public void addToPipeline(ChannelPipeline pipeline) {}
