@@ -22,10 +22,11 @@
 
 package io.crate.plugin;
 
-import io.crate.protocols.http.HttpsHandler;
 import io.crate.protocols.ssl.SslHandlerLoader;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPipeline;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslHandler;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -45,12 +46,12 @@ import java.util.function.Supplier;
 public final class PipelineRegistry {
 
     private final List<ChannelPipelineItem> addBeforeList;
-    private final HttpsHandler sslHandler;
+    private final SslContext sslContext;
 
     @Inject
     public PipelineRegistry(Settings settings) {
         this.addBeforeList = new ArrayList<>();
-        this.sslHandler = SslHandlerLoader.loadHttpsHandler(settings);
+        this.sslContext = SslHandlerLoader.loadHttpsHandler(settings).get();
     }
 
     /**
@@ -92,7 +93,10 @@ public final class PipelineRegistry {
         for (PipelineRegistry.ChannelPipelineItem item : addBeforeList) {
             pipeline.addBefore(item.base, item.name, item.handlerFactory.get());
         }
-        sslHandler.addToPipeline(pipeline);
+        if (sslContext != null) {
+            SslHandler sslHandler = sslContext.newHandler(pipeline.channel().alloc());
+            pipeline.addFirst(sslHandler);
+        }
     }
 
     List<ChannelPipelineItem> addBeforeList() {

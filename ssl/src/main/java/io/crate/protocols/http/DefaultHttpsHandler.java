@@ -22,7 +22,7 @@
 
 package io.crate.protocols.http;
 
-import io.netty.channel.ChannelPipeline;
+import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -37,5 +37,7 @@ public final class DefaultHttpsHandler implements HttpsHandler {
     }
 
     @Override
-    public void addToPipeline(ChannelPipeline pipeline) {}
+    public SslContext get() {
+        return null;
+    }
 }

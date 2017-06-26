@@ -22,16 +22,13 @@
 
 package io.crate.protocols.http;
 
-import io.netty.channel.ChannelPipeline;
+import io.netty.handler.ssl.SslContext;
+
+import java.util.function.Supplier;
 
 /**
- * An interface for adding a handler to a Netty ChannelPipeline.
+ * An interface for returning an SslContext for a Netty ChannelPipeline.
  */
-public interface HttpsHandler {
+public interface HttpsHandler extends Supplier<SslContext> {
 
-    /**
-     * Adds the handler to a ChannelPipeline.
-     * @param pipeline The pipeline to add a handler
-     */
-    void addToPipeline(ChannelPipeline pipeline);
 }
