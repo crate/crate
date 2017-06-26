@@ -63,6 +63,17 @@ Hierarchical Inheritance of Privileges
     cr> CREATE user kala;
     CREATE OK, 1 row affected (... sec)
 
+    cr> create table if not exists doc.accounting (
+    ...   first_column integer primary key,
+    ...   second_column string,
+    ...   third_column timestamp,
+    ...   fourth_column object(strict) as (
+    ...     key string,
+    ...     value string
+    ...   )
+    ... ) clustered by (first_column) into 5 shards;
+    CREATE OK, 1 row affected (... sec)
+
 Privileges can be managed on three different levels, namely: ``CLUSTER``, ``SCHEMA``
 and ``TABLE``.
 
@@ -77,7 +88,7 @@ This statement will grant ``DQL`` privilege to user riley on all the tables
 and functions of the ``doc`` schema::
 
     cr> DENY DQL ON TABLE doc.accounting TO riley;
-    GRANT OK, 1 row affected (... sec)
+    DENY OK, 1 row affected (... sec)
 
 This statement will deny ``DQL`` privilege to user riley on the ``doc`` schema table
 ``doc.accounting``. However, user riley, will still have ``DQL`` privilege on all the
@@ -102,6 +113,17 @@ Behavior of ``GRANT``, ``DENY`` and ``REVOKE``
     cr> CREATE user will;
     CREATE OK, 1 row affected (... sec)
 
+    cr> create table if not exists doc.books (
+    ...   first_column integer primary key,
+    ...   second_column string,
+    ...   third_column timestamp,
+    ...   fourth_column object(strict) as (
+    ...     key string,
+    ...     value string
+    ...   )
+    ... ) clustered by (first_column) into 5 shards;
+    CREATE OK, 1 row affected (... sec)
+
 To grant a privilege to an existing user on the whole cluster,
 we use the :doc:`/sql/reference/grant`
 SQL statement, for example::
@@ -119,7 +141,7 @@ The following statement will grant all privileges on table doc.books to user
 wolfgang::
 
     cr> GRANT ALL PRIVILEGES ON TABLE doc.books TO wolfgang;
-    GRANT OK, 3 row affected (... sec)
+    GRANT OK, 3 rows affected (... sec)
 
 Using "ALL PRIVILEGES" is a shortcut to grant all the currently grantable
 privileges to a user, namely ``DQL``, ``DML`` and ``DDL``.
@@ -155,7 +177,7 @@ Privileges can be granted to multiple users in the same statement, like so::
 To deny a privilege to an existing user on the whole cluster, use the
 :doc:`/sql/reference/deny` SQL statement, for example::
 
-    cr> DENY DDL from will;
+    cr> DENY DDL TO will;
     DENY OK, 1 row affected (... sec)
 
 ``DQL`` privilege can be denied on the sys schema to user wolfgang,
@@ -171,10 +193,10 @@ wolfgang::
     DENY OK, 1 row affected (... sec)
 
 ``DENY ALL`` or ``DENY ALL PRIVILEGES`` will deny all privileges to a user,
-it can be used like this::
+on the cluster it can be used like this::
 
     cr> DENY ALL TO will;
-    DENY OK, 3 row affected (... sec)
+    DENY OK, 2 rows affected (... sec)
 
 ``REVOKE``
 ..........
@@ -188,10 +210,16 @@ use the :doc:`/sql/reference/revoke` SQL statement, for example the
     REVOKE OK, 1 row affected (... sec)
 
 The privileges that were granted and denied to user wolfgang on doc.books
-can be revoked, like this::
+can be revoked like this::
 
-    cr> REVOKE ALL ON TABLE doc.books TO wolfgang;
-    REVOKE OK, 3 row affected (... sec)
+    cr> REVOKE ALL ON TABLE doc.books FROM wolfgang;
+    REVOKE OK, 3 rows affected (... sec)
+
+The privileges that were granted to user will on the cluster can be revoked
+like this::
+
+    cr> REVOKE ALL FROM will;
+    REVOKE OK, 3 rows affected (... sec)
 
 .. note::
 
@@ -209,14 +237,16 @@ CrateDB exposes privileges ``sys.privileges`` system table.
 By querying the ``sys.privileges`` table you can get all
 information regarding the existing privileges. E.g.::
 
-    cr> SELECT * FROM sys.privileges;
-    +-------------+-----------+---------+------------+-------+-----------+
-    | grantor     | grantee   | class   | state      | type  | ident     |
-    +-------------+-----------+---------+------------+-------+-----------+
-    | crate       | will      | cluster | grant      | DML   | null      |
-    | crate       | will      | cluster | grant      | DQL   | null      |
-    +-------------+-----------+---------+------------+-------+-----------+
-    SELECT 2 rows in set (... sec)
+    cr> SELECT * FROM sys.privileges order by grantee, class, ident;
+    +---------+----------+---------+----------------+-------+------+
+    | class   | grantee  | grantor | ident          | state | type |
+    +---------+----------+---------+----------------+-------+------+
+    | SCHEMA  | riley    | crate   | doc            | GRANT | DQL  |
+    | TABLE   | riley    | crate   | doc.accounting | DENY  | DQL  |
+    | TABLE   | will     | crate   | doc.books      | GRANT | DDL  |
+    | CLUSTER | wolfgang | crate   | NULL           | GRANT | DML  |
+    +---------+----------+---------+----------------+-------+------+
+    SELECT 4 rows in set (... sec)
 
 The column ``grantor`` shows the user who granted or denied the privilege,
 the column ``grantee`` shows the user for whom the privilege was granted
@@ -227,3 +257,23 @@ was granted or denied.
 
 
 .. _Enterprise Edition: https://crate.io/enterprise/
+
+.. hide:
+
+    cr> DROP user riley;
+    DROP OK, 1 row affected (... sec)
+
+    cr> DROP user kala;
+    DROP OK, 1 row affected (... sec)
+
+    cr> DROP TABLE IF EXISTS doc.accounting;
+    DROP OK, 1 row affected (... sec)
+
+    cr> DROP user wolfgang;
+    DROP OK, 1 row affected (... sec)
+
+    cr> DROP user will;
+    DROP OK, 1 row affected (... sec)
+
+    cr> DROP TABLE IF EXISTS doc.books;
+    DROP OK, 1 row affected (... sec)
