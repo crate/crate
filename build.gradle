@@ -185,7 +185,7 @@ task jacocoReport(type: JacocoReport) {
     executionData fileTree(project.rootDir.absolutePath).include('**/build/jacoco/*.exec')
 
     jacocoProjects().each {
-        evaluationDependsOn(it.name)
+        evaluationDependsOn(it.path)
         if (it.plugins.withType(JavaPlugin) && it.tasks.withType(Test)) {
             sourceSets it.sourceSets.main
         }

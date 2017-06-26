@@ -24,6 +24,6 @@ include 'es',
         'lang-js',
         'users',
         'ssl',
-        'ssl-impl',
         'enterprise',
+        'enterprise:ssl-impl',
         'http'
