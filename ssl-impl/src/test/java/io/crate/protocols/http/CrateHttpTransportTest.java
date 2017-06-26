@@ -27,6 +27,7 @@ import io.crate.test.integration.CrateUnitTest;
 import io.netty.channel.Channel;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.ssl.SslHandler;
+import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -119,9 +120,9 @@ public class CrateHttpTransportTest extends CrateUnitTest {
 
         NetworkService networkService = Mockito.mock(NetworkService.class);
         Mockito.when(networkService.resolveBindHostAddresses(aryEq(new String[0])))
-            .thenReturn(new InetAddress[]{ InetAddress.getLocalHost() });
+            .thenReturn(new InetAddress[]{ InetAddresses.forString("127.0.0.1") });
         Mockito.when(networkService.resolvePublishHostAddresses(aryEq(new String[0])))
-            .thenReturn(InetAddress.getLocalHost());
+            .thenReturn(InetAddresses.forString("127.0.0.1"));
 
         CrateNettyHttpServerTransport transport =
             new CrateNettyHttpServerTransport(
