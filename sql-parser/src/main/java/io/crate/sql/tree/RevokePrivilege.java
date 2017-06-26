@@ -2,14 +2,15 @@ package io.crate.sql.tree;
 
 import java.util.List;
 
+
 public class RevokePrivilege extends PrivilegeStatement {
 
-    public RevokePrivilege(List<String> userNames) {
-        super(userNames);
+    public RevokePrivilege(List<String> userNames, String clazz, List<QualifiedName> tableOrSchemaNames) {
+        super(userNames, clazz, tableOrSchemaNames);
     }
 
-    public RevokePrivilege(List<String> userNames, List<String> privilegeTypes) {
-        super(userNames, privilegeTypes);
+    public RevokePrivilege(List<String> userNames, List<String> privilegeTypes, String clazz, List<QualifiedName> tableOrSchemaNames) {
+        super(userNames, privilegeTypes, clazz, tableOrSchemaNames);
     }
 
     @Override

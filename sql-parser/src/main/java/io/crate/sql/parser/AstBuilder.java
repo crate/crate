@@ -28,12 +28,144 @@ import com.google.common.collect.Multimap;
 import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
 import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.AddColumnDefinition;
+import io.crate.sql.tree.AliasedRelation;
+import io.crate.sql.tree.AllColumns;
+import io.crate.sql.tree.AlterBlobTable;
+import io.crate.sql.tree.AlterTable;
+import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.AlterTableOpenClose;
+import io.crate.sql.tree.AlterTableRename;
+import io.crate.sql.tree.AnalyzerElement;
+import io.crate.sql.tree.ArithmeticExpression;
+import io.crate.sql.tree.ArrayComparisonExpression;
+import io.crate.sql.tree.ArrayLikePredicate;
+import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.BeginStatement;
+import io.crate.sql.tree.BetweenPredicate;
+import io.crate.sql.tree.BooleanLiteral;
+import io.crate.sql.tree.Cast;
+import io.crate.sql.tree.CharFilters;
+import io.crate.sql.tree.ClusteredBy;
+import io.crate.sql.tree.CollectionColumnType;
+import io.crate.sql.tree.ColumnConstraint;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.ComparisonExpression;
+import io.crate.sql.tree.CopyFrom;
+import io.crate.sql.tree.CopyTo;
+import io.crate.sql.tree.CrateTableOption;
+import io.crate.sql.tree.CreateAnalyzer;
+import io.crate.sql.tree.CreateBlobTable;
+import io.crate.sql.tree.CreateFunction;
+import io.crate.sql.tree.CreateRepository;
+import io.crate.sql.tree.CreateSnapshot;
+import io.crate.sql.tree.CreateTable;
+import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.CurrentTime;
+import io.crate.sql.tree.DateLiteral;
+import io.crate.sql.tree.Delete;
+import io.crate.sql.tree.DenyPrivilege;
+import io.crate.sql.tree.DoubleLiteral;
+import io.crate.sql.tree.DropBlobTable;
+import io.crate.sql.tree.DropFunction;
+import io.crate.sql.tree.DropRepository;
+import io.crate.sql.tree.DropSnapshot;
+import io.crate.sql.tree.DropTable;
+import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.Except;
+import io.crate.sql.tree.ExistsPredicate;
+import io.crate.sql.tree.Explain;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Extract;
+import io.crate.sql.tree.FunctionArgument;
+import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.GenericProperties;
+import io.crate.sql.tree.GenericProperty;
+import io.crate.sql.tree.GrantPrivilege;
+import io.crate.sql.tree.IfExpression;
+import io.crate.sql.tree.InListExpression;
+import io.crate.sql.tree.InPredicate;
+import io.crate.sql.tree.IndexColumnConstraint;
+import io.crate.sql.tree.IndexDefinition;
+import io.crate.sql.tree.InsertFromSubquery;
+import io.crate.sql.tree.InsertFromValues;
+import io.crate.sql.tree.Intersect;
+import io.crate.sql.tree.IsNotNullPredicate;
+import io.crate.sql.tree.IsNullPredicate;
+import io.crate.sql.tree.Join;
+import io.crate.sql.tree.JoinCriteria;
+import io.crate.sql.tree.JoinOn;
+import io.crate.sql.tree.JoinUsing;
+import io.crate.sql.tree.KillStatement;
+import io.crate.sql.tree.LikePredicate;
+import io.crate.sql.tree.LogicalBinaryExpression;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.MatchPredicate;
+import io.crate.sql.tree.MatchPredicateColumnIdent;
+import io.crate.sql.tree.NamedProperties;
+import io.crate.sql.tree.NaturalJoin;
+import io.crate.sql.tree.NegativeExpression;
+import io.crate.sql.tree.Node;
+import io.crate.sql.tree.NotExpression;
+import io.crate.sql.tree.NotNullColumnConstraint;
+import io.crate.sql.tree.NullLiteral;
+import io.crate.sql.tree.ObjectColumnType;
+import io.crate.sql.tree.ObjectLiteral;
+import io.crate.sql.tree.OptimizeStatement;
+import io.crate.sql.tree.ParameterExpression;
+import io.crate.sql.tree.PartitionedBy;
+import io.crate.sql.tree.PrimaryKeyColumnConstraint;
+import io.crate.sql.tree.PrimaryKeyConstraint;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.QualifiedNameReference;
+import io.crate.sql.tree.Query;
+import io.crate.sql.tree.QueryBody;
+import io.crate.sql.tree.QuerySpecification;
+import io.crate.sql.tree.RefreshStatement;
+import io.crate.sql.tree.Relation;
+import io.crate.sql.tree.ResetStatement;
+import io.crate.sql.tree.RestoreSnapshot;
+import io.crate.sql.tree.RevokePrivilege;
+import io.crate.sql.tree.SearchedCaseExpression;
+import io.crate.sql.tree.Select;
+import io.crate.sql.tree.SelectItem;
+import io.crate.sql.tree.SetStatement;
+import io.crate.sql.tree.ShowColumns;
+import io.crate.sql.tree.ShowCreateTable;
+import io.crate.sql.tree.ShowSchemas;
+import io.crate.sql.tree.ShowTables;
+import io.crate.sql.tree.ShowTransaction;
+import io.crate.sql.tree.SimpleCaseExpression;
+import io.crate.sql.tree.SingleColumn;
+import io.crate.sql.tree.SortItem;
+import io.crate.sql.tree.Statement;
+import io.crate.sql.tree.StringLiteral;
+import io.crate.sql.tree.SubqueryExpression;
+import io.crate.sql.tree.SubscriptExpression;
+import io.crate.sql.tree.Table;
+import io.crate.sql.tree.TableElement;
+import io.crate.sql.tree.TableFunction;
+import io.crate.sql.tree.TableSubquery;
+import io.crate.sql.tree.TimeLiteral;
+import io.crate.sql.tree.TimestampLiteral;
+import io.crate.sql.tree.TokenFilters;
+import io.crate.sql.tree.Tokenizer;
+import io.crate.sql.tree.TryCast;
+import io.crate.sql.tree.Union;
+import io.crate.sql.tree.Update;
+import io.crate.sql.tree.ValuesList;
+import io.crate.sql.tree.WhenClause;
+import io.crate.sql.tree.With;
+import io.crate.sql.tree.WithQuery;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import java.util.AbstractMap;
+import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -43,6 +175,10 @@ import static java.util.stream.Collectors.toList;
 class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     private int parameterPosition = 1;
+    private static final String CLUSTER = "CLUSTER";
+    private static final String SCHEMA = "SCHEMA";
+    private static final String TABLE = "TABLE";
+
 
     @Override
     public Node visitSingleStatement(SqlBaseParser.SingleStatementContext context) {
@@ -132,37 +268,37 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitGrantPrivilege(SqlBaseParser.GrantPrivilegeContext context) {
-        List<String> usernames = identsToStrings(context.ident());
-
+        List<String> usernames = identsToStrings(context.userNames().ident());
+        AbstractMap.SimpleEntry<String, List<QualifiedName>> clazzAndIdent = getClassAndIdentsForPrivileges((context.ON() == null), context.clazz(), context.qname());
         if (context.ALL() != null) {
-            return new GrantPrivilege(usernames);
+            return new GrantPrivilege(usernames, clazzAndIdent.getKey(), clazzAndIdent.getValue());
         } else {
             List<String> privilegeTypes = identsToStrings(context.privilegeTypes().ident());
-            return new GrantPrivilege(usernames, privilegeTypes);
+            return new GrantPrivilege(usernames, privilegeTypes, clazzAndIdent.getKey(), clazzAndIdent.getValue());
         }
     }
 
     @Override
     public Node visitDenyPrivilege(SqlBaseParser.DenyPrivilegeContext context) {
-        List<String> usernames = identsToStrings(context.ident());
-
+        List<String> usernames = identsToStrings(context.userNames().ident());
+        AbstractMap.SimpleEntry<String, List<QualifiedName>> clazzAndIdent = getClassAndIdentsForPrivileges((context.ON() == null), context.clazz(), context.qname());
         if (context.ALL() != null) {
-            return new DenyPrivilege(usernames);
+            return new DenyPrivilege(usernames, clazzAndIdent.getKey(), clazzAndIdent.getValue());
         } else {
             List<String> privilegeTypes = identsToStrings(context.privilegeTypes().ident());
-            return new DenyPrivilege(usernames, privilegeTypes);
+            return new DenyPrivilege(usernames, privilegeTypes, clazzAndIdent.getKey(), clazzAndIdent.getValue());
         }
     }
 
     @Override
     public Node visitRevokePrivilege(SqlBaseParser.RevokePrivilegeContext context) {
-        List<String> usernames = identsToStrings(context.ident());
-
+        List<String> usernames = identsToStrings(context.userNames().ident());
+        AbstractMap.SimpleEntry<String, List<QualifiedName>> clazzAndIdent = getClassAndIdentsForPrivileges((context.ON() == null), context.clazz(), context.qname());
         if (context.ALL() != null) {
-            return new RevokePrivilege(usernames);
+            return new RevokePrivilege(usernames, clazzAndIdent.getKey(), clazzAndIdent.getValue());
         } else {
             List<String> privilegeTypes = identsToStrings(context.privilegeTypes().ident());
-            return new RevokePrivilege(usernames, privilegeTypes);
+            return new RevokePrivilege(usernames, privilegeTypes, clazzAndIdent.getKey(), clazzAndIdent.getValue());
         }
     }
 
@@ -1383,6 +1519,17 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         throw new IllegalArgumentException("Unsupported ordering: " + token.getText());
     }
 
+    private static String getClazz(Token token) {
+        switch (token.getType()) {
+            case SqlBaseLexer.SCHEMA:
+                return SCHEMA;
+            case SqlBaseLexer.TABLE:
+                return TABLE;
+        }
+
+        throw new IllegalArgumentException("Unsupported privilege class: " + token.getText());
+    }
+
     private static ArrayComparisonExpression.Quantifier getComparisonQuantifier(Token symbol) {
         switch (symbol.getType()) {
             case SqlBaseLexer.ALL:
@@ -1396,10 +1543,24 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         throw new IllegalArgumentException("Unsupported quantifier: " + symbol.getText());
     }
 
+    private List<QualifiedName> getIdents(List<SqlBaseParser.QnameContext> qnames) {
+        return qnames.stream().map(this::getQualifiedName).collect(toList());
+    }
+
     private static void validateFunctionName(QualifiedName functionName) {
         if (functionName.getParts().size() > 2) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "The function name is not correct! " +
                 "name [%s] does not conform the [[schema_name .] function_name] format.", functionName));
+        }
+    }
+
+    private AbstractMap.SimpleEntry<String, List<QualifiedName>> getClassAndIdentsForPrivileges(boolean onCluster,
+                                                                                                SqlBaseParser.ClazzContext clazz,
+                                                                                                List<SqlBaseParser.QnameContext> qname) {
+        if (onCluster) {
+            return new AbstractMap.SimpleEntry<>(CLUSTER, Collections.emptyList());
+        } else {
+            return new AbstractMap.SimpleEntry<>(getClazz(clazz.getStart()), getIdents(qname));
         }
     }
 }
