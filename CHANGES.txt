@@ -15,6 +15,12 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+ - ``CURRENT_USER``, ``USER`` and ``SESSION_USER`` are now reserved words as we 
+   introduced them as system functions. These terms will not be available to 
+   be used as table, and column names and for already existing entities they 
+   will have to be quoted when referenced (otherwise the terms will be treated 
+   as function calls).
+
  - ``SELECT`` statements without any ``FROM`` items are no longer executed
    against the ``sys.cluster`` table, but against a virtual table with no
    columns. Queries including ``sys.cluster`` columns but no explicit ``FROM``

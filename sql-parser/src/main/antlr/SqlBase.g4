@@ -238,6 +238,8 @@ primaryExpression
     | name=CURRENT_TIME ('(' precision=integerLiteral')')?                           #specialDateTimeFunction
     | name=CURRENT_TIMESTAMP ('(' precision=integerLiteral')')?                      #specialDateTimeFunction
     | CURRENT_SCHEMA ('(' ')')?                                                      #currentSchema
+    | (CURRENT_USER | USER)                                                          #currentUser
+    | SESSION_USER                                                                   #sessionUser
     | SUBSTRING '(' expr FROM expr (FOR expr)? ')'                                   #substring
     | EXTRACT '(' identExpr FROM expr ')'                                            #extract
     | CAST '(' expr AS dataType ')'                                                  #cast
@@ -571,8 +573,7 @@ nonReserved
     | SHARDS | SHOW | STRICT | SYSTEM | TABLES | TABLESAMPLE | TEXT | TIME
     | TIMESTAMP | TO | TOKENIZER | TOKEN_FILTERS | TYPE | VALUES | VIEW | YEAR
     | REPOSITORY | SNAPSHOT | RESTORE | GENERATED | ALWAYS | BEGIN
-    | ISOLATION | TRANSACTION | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME | USER
-    | PRIVILEGES
+    | ISOLATION | TRANSACTION | LEVEL | LANGUAGE | OPEN | CLOSE | RENAME | PRIVILEGES
     ;
 
 SELECT: 'SELECT';
@@ -622,6 +623,8 @@ CURRENT_DATE: 'CURRENT_DATE';
 CURRENT_TIME: 'CURRENT_TIME';
 CURRENT_TIMESTAMP: 'CURRENT_TIMESTAMP';
 CURRENT_SCHEMA: 'CURRENT_SCHEMA';
+CURRENT_USER: 'CURRENT_USER';
+SESSION_USER: 'SESSION_USER';
 EXTRACT: 'EXTRACT';
 CASE: 'CASE';
 WHEN: 'WHEN';

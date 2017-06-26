@@ -1030,7 +1030,16 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitCurrentSchema(SqlBaseParser.CurrentSchemaContext context) {
         return new FunctionCall(QualifiedName.of("current_schema"), ImmutableList.of());
+    }
 
+    @Override
+    public Node visitCurrentUser(SqlBaseParser.CurrentUserContext ctx) {
+        return new FunctionCall(QualifiedName.of("current_user"), ImmutableList.of());
+    }
+
+    @Override
+    public Node visitSessionUser(SqlBaseParser.SessionUserContext ctx) {
+        return new FunctionCall(QualifiedName.of("session_user"), ImmutableList.of());
     }
 
     @Override

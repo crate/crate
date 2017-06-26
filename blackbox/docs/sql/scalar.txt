@@ -1621,9 +1621,11 @@ The default schema can be set when using the `JDBC
 <https://crate.io/docs/reference/protocols/http.html#default-schema>`_ such as
 `CrateDB PDO`_.
 
-The ``CURRENT_SCHEMA`` function has a special SQL syntax, meaning that it must
-be called without trailing parenthesis (``()``). However, CrateDB also supports
-the optional parenthesis.
+.. note::
+
+    The ``CURRENT_SCHEMA`` function has a special SQL syntax, meaning that it 
+    must be called without trailing parenthesis (``()``). However, CrateDB also 
+    supports the optional parenthesis.
 
 Synopsis::
 
@@ -1638,6 +1640,101 @@ Example::
     |            doc |
     +----------------+
     SELECT 1 row in set (... sec)
+
+.. _current_user:
+
+``CURRENT_USER``
+----------------
+
+.. NOTE::
+
+   ``CURRENT_USER`` is an Enterprise Edition feature.
+
+The ``CURRENT_USER`` system information function returns the name of the 
+current connected user or NULL if the user management module is disabled.
+
+Returns: ``string``
+
+Synopsis::
+
+    CURRENT_USER 
+
+Example::
+
+    cr> select current_user;
+    +--------------+
+    | current_user |
+    +--------------+
+    | crate        |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. _user:
+
+``USER``
+--------
+
+.. NOTE::
+
+   ``USER`` is an Enterprise Edition feature.
+
+Equivalent to `CURRENT_USER`_.
+
+Returns: ``string``
+
+Synopsis::
+
+    USER 
+
+Example::
+
+    cr> select user;
+    +--------------+
+    | current_user |
+    +--------------+
+    | crate        |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. _session_user:
+
+``SESSION_USER``
+----------------
+
+.. NOTE::
+
+   ``SESSION_USER`` is an Enterprise Edition feature.
+
+The ``SESSION_USER`` system information function returns the name of the
+current connected user or NULL if the user management module is disabled.
+
+Returns: ``string``
+
+Synopsis::
+
+    SESSION_USER
+
+Example::
+
+    cr> select session_user;
+    +--------------+
+    | session_user |
+    +--------------+
+    | crate        |
+    +--------------+
+    SELECT 1 row in set (... sec)
+
+.. note::
+
+    CrateDB doesn't currently support the switching of execution context. This
+    makes `SESSION_USER`_ functionally equivalent to `CURRENT_USER`_. We
+    provide it as it's part of the SQL standard.
+
+.. note::
+
+    The `CURRENT_USER`_, `SESSION_USER`_ and `USER`_ functions have a  
+    a special SQL syntax, meaning that they must be called without trailing 
+    parenthesis (``()``).
 
 .. rubric:: Footnotes
 

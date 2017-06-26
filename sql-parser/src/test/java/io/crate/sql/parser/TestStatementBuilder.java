@@ -512,6 +512,10 @@ public class TestStatementBuilder {
         printStatement("select current_schema()");
         printStatement("select * from information_schema.tables where table_schema = current_schema");
         printStatement("select * from information_schema.tables where table_schema = current_schema()");
+
+        printStatement("select current_user");
+        printStatement("select user");
+        printStatement("select session_user");
     }
 
     @Test

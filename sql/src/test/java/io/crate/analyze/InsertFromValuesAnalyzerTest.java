@@ -105,7 +105,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
             .add("user", DataTypes.OBJECT, null)
             .add("user", DataTypes.STRING, Arrays.asList("name"))
             .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false)
-            .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", false);
+            .addGeneratedColumn("name", DataTypes.STRING, "concat(\"user\"['name'], 'bar')", false);
         executorBuilder.addDocTable(generatedColumnTable);
 
         TableIdent generatedPkColumnTableIdent = new TableIdent(null, "generated_pk_column");
@@ -1060,7 +1060,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInsertMultipleValuesWithGeneratedColumn() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = e.analyze(
-            "INSERT INTO generated_column (ts, user) values ('1970-01-01', {name='Johnny'}), ('1989-11-09T08:30:00', {name='Egon'})");
+            "INSERT INTO generated_column (ts, \"user\") values ('1970-01-01', {name='Johnny'}), ('1989-11-09T08:30:00', {name='Egon'})");
         assertThat(analysis.columns(), hasSize(4));
         assertThat(analysis.columns(), contains(isReference("ts"), isReference("user"), isReference("day"), isReference("name")));
         assertThat(analysis.sourceMaps(), hasSize(2));
@@ -1072,7 +1072,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Test
     public void testInsertMultipleValuesWithGeneratedColumnGiven() throws Exception {
         InsertFromValuesAnalyzedStatement analysis = e.analyze(
-            "INSERT INTO generated_column (ts, user, day) values ('1970-01-01', {name='Johnny'}, '1970-01-01'), ('1989-11-09T08:30:00', {name='Egon'}, '1989-11-09')");
+            "INSERT INTO generated_column (ts, \"user\", day) values ('1970-01-01', {name='Johnny'}, '1970-01-01'), ('1989-11-09T08:30:00', {name='Egon'}, '1989-11-09')");
         assertThat(analysis.columns(), hasSize(4));
         assertThat(analysis.columns(), contains(isReference("ts"), isReference("user"), isReference("day"), isReference("name")));
         assertThat(analysis.sourceMaps(), hasSize(2));
@@ -1102,7 +1102,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
     public void testInsertMultipleValuesWithGeneratedColumnAndTooFewValuesInSecondValues() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid number of values: Got 2 columns specified but 1 values");
-        e.analyze("INSERT INTO generated_column (ts, user) values ('1970-01-01', {name='Johnny'}), ('1989-11-09T08:30:00')");
+        e.analyze("INSERT INTO generated_column (ts, username) values ('1970-01-01', {name='Johnny'}), ('1989-11-09T08:30:00')");
     }
 
     @Test

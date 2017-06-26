@@ -350,7 +350,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void textCreateTableWithCustomAnalyzerInNestedColumn() throws Exception {
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table ft_search (" +
-            "user object (strict) as (" +
+            "\"user\" object (strict) as (" +
             "name string index using fulltext with (analyzer='ft_search') " +
             ")" +
             ")");
@@ -859,20 +859,20 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableGeneratedColumnWithSubscript() throws Exception {
         CreateTableAnalyzedStatement analysis = e.analyze(
-            "create table foo (user object as (name string), name as concat(user['name'], 'foo'))");
+            "create table foo (\"user\" object as (name string), name as concat(\"user\"['name'], 'foo'))");
 
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
-        assertThat(generatedColumnsMapping.get("name"), is("concat(user['name'], 'foo')"));
+        assertThat(generatedColumnsMapping.get("name"), is("concat(\"user\"['name'], 'foo')"));
     }
 
     @Test
     public void testCreateTableGeneratedColumnParameter() throws Exception {
         CreateTableAnalyzedStatement analysis = e.analyze(
-            "create table foo (user object as (name string), name as concat(user['name'], ?))", $("foo"));
+            "create table foo (\"user\" object as (name string), name as concat(\"user\"['name'], ?))", $("foo"));
         Map<String, Object> metaMapping = ((Map) analysis.mapping().get("_meta"));
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
-        assertThat(generatedColumnsMapping.get("name"), is("concat(user['name'], 'foo')"));
+        assertThat(generatedColumnsMapping.get("name"), is("concat(\"user\"['name'], 'foo')"));
     }
 
     @Test
@@ -955,7 +955,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithDeepNestedPrimaryKeyConstraintInArrayItem() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot use column \"name\" as primary key within an array object");
-        e.analyze("create table test (arr array(object as (user object as (name string primary key), id long)))");
+        e.analyze("create table test (arr array(object as (\"user\" object as (name string primary key), id long)))");
     }
 
     @Test

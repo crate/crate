@@ -104,7 +104,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
     }
 
     @Test
-    public void testFormatFunctionWithoutBrackets() throws Exception {
+    public void testFormatFunctionsWithoutBrackets() throws Exception {
         Symbol f = sqlExpressions.asSymbol("current_schema");
         assertPrint(f, "current_schema");
     }

@@ -45,6 +45,7 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
+import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 
@@ -78,16 +79,23 @@ public class SqlExpressions {
                           SessionContext sessionContext) {
         this(sources, null, null, sessionContext);
     }
+
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
                           @Nullable Object[] parameters,
-                          SessionContext sessionContext) {
+                          SessionContext sessionContext,
+                          AbstractModule... additionalModules) {
         ModulesBuilder modulesBuilder = new ModulesBuilder()
             .add(new OperatorModule())
             .add(new AggregationImplModule())
             .add(new ScalarFunctionModule())
             .add(new TableFunctionModule())
             .add(new PredicateModule());
+        if (additionalModules != null) {
+            for (AbstractModule module : additionalModules) {
+                modulesBuilder.add(module);
+            }
+        }
         injector = modulesBuilder.createInjector();
         functions = injector.getInstance(Functions.class);
         expressionAnalyzer = new ExpressionAnalyzer(

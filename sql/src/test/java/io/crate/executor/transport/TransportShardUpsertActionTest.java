@@ -168,7 +168,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             .add("user", DataTypes.OBJECT, null)
             .add("user", DataTypes.STRING, Arrays.asList("name"))
             .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", false)
-            .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", false)
+            .addGeneratedColumn("name", DataTypes.STRING, "concat(\"user\"['name'], 'bar')", false)
             .build(functions);
 
     }

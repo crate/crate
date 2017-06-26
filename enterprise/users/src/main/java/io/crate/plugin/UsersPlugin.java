@@ -1,42 +1,47 @@
 /*
- * Licensed to Crate under one or more contributor license agreements.
- * See the NOTICE file distributed with this work for additional
- * information regarding copyright ownership.  Crate licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.  You may
- * obtain a copy of the License at
+ * This file is part of a module with proprietary Enterprise Features.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed to Crate.io Inc. ("Crate.io") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied.  See the License for the specific language governing
- * permissions and limitations under the License.
+ * Unauthorized copying of this file, via any medium is strictly prohibited.
  *
- * However, if you have executed another commercial license agreement
- * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial
- * agreement.
+ * To use this file, Crate.io must have given you permission to enable and
+ * use such Enterprise Features and you must have a valid Enterprise or
+ * Subscription Agreement with Crate.io.  If you enable or use the Enterprise
+ * Features, you represent and warrant that you have a valid Enterprise or
+ * Subscription Agreement with Crate.io.  Your use of the Enterprise Features
+ * if governed by the terms and conditions of your Enterprise or Subscription
+ * Agreement with Crate.io.
  */
 
 package io.crate.plugin;
 
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.scalar.UsersScalarFunctionModule;
+import io.crate.settings.SharedSettings;
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.ParseField;
+import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.plugins.Plugin;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 public class UsersPlugin extends Plugin {
 
-    public UsersPlugin() {
+    private final Settings settings;
+
+    public UsersPlugin(Settings settings) {
+        this.settings = settings;
     }
 
     @Override
@@ -80,5 +85,14 @@ public class UsersPlugin extends Plugin {
             UsersPrivilegesMetaData::fromXContent
         ));
         return entries;
+    }
+
+    @Override
+    public Collection<Module> createGuiceModules() {
+        if (SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
+            return Collections.singletonList(new UsersScalarFunctionModule());
+        } else {
+            return Collections.emptyList();
+        }
     }
 }

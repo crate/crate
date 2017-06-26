@@ -23,10 +23,10 @@ Defining the Data Structure
 Before starting the import you'll have to consider how your table structure
 will look. Decisions made at this point will influence the import process later.
 
-For this example we have a simple single ``user`` table with 6 columns of
+For this example we have a simple single ``users`` table with 6 columns of
 various types::
 
-  cr> CREATE TABLE user (
+  cr> CREATE TABLE users (
   ...   id INT primary key,
   ...   name STRING,
   ...   day_joined TIMESTAMP,
@@ -40,7 +40,7 @@ various types::
 
 .. hide:
 
-  cr> DROP TABLE user;
+  cr> DROP TABLE users;
   DROP OK, 1 row affected (... sec)
 
 There's nothing wrong with this method and it does the job, but it's not very
@@ -80,7 +80,7 @@ according to your availability requirements.
 
 The ``CREATE TABLE`` statement now looks like::
 
-  cr> CREATE TABLE user (
+  cr> CREATE TABLE users(
   ...   id INT primary key,
   ...   name STRING,
   ...   day_joined TIMESTAMP,
@@ -107,17 +107,17 @@ therefore also minimise the overhead during import.
 
 ::
 
-  cr> ALTER TABLE user SET (refresh_interval = 0);
+  cr> ALTER TABLE users SET (refresh_interval = 0);
   ALTER OK, -1 rows affected (... sec)
 
 .. hide:
 
-  cr> DROP TABLE user;
+  cr> DROP TABLE users;
   DROP OK, 1 row affected (... sec)
 
 It's possible to set the refresh interval in the ``CREATE TABLE`` statement::
 
-  cr> CREATE TABLE user (
+  cr> CREATE TABLE users (
   ...   id INT primary key,
   ...   name STRING,
   ...   day_joined TIMESTAMP,
@@ -136,7 +136,7 @@ It's possible to set the refresh interval in the ``CREATE TABLE`` statement::
 Once the import is finished you can set the refresh interval to a reasonable
 value (time in ms)::
 
-  cr> ALTER TABLE user SET (refresh_interval = 1000);
+  cr> ALTER TABLE users SET (refresh_interval = 1000);
   ALTER OK, -1 rows affected (... sec)
 
 .. seealso::
@@ -212,18 +212,18 @@ will return successfully, reporting ``COPY OK, 0 rows affected (... sec)``.
 
 ::
 
-  cr> COPY user FROM '/tmp/best_practice_data/users.json';
+  cr> COPY users FROM '/tmp/best_practice_data/users.json';
   COPY OK, 150 rows affected (... sec)
 
 .. hide:
 
-  cr> REFRESH TABLE user;
+  cr> REFRESH TABLE users;
   REFRESH OK, 1 row affected (... sec)
 
-  cr> delete from user;
+  cr> delete from users;
   DELETE OK, 150 rows affected (... sec)
 
-  cr> REFRESH TABLE user;
+  cr> REFRESH TABLE users;
   REFRESH OK, 1 row affected (... sec)
 
 .. note::
@@ -242,19 +242,19 @@ defaults to 10 000 if not specified.
 
 For example::
 
-  cr> COPY user FROM '/tmp/best_practice_data/users.json'
+  cr> COPY users FROM '/tmp/best_practice_data/users.json'
   ... WITH (bulk_size = 2000);
   COPY OK, 150 rows affected (... sec)
 
 .. hide:
 
-  cr> REFRESH TABLE user;
+  cr> REFRESH TABLE users;
   REFRESH OK, 1 row affected (... sec)
 
-  cr> delete from user;
+  cr> delete from users;
   DELETE OK, 150 rows affected (... sec)
 
-  cr> REFRESH TABLE user;
+  cr> REFRESH TABLE users;
   REFRESH OK, 1 row affected (... sec)
 
 In our example it will not make a difference, but if you have a more complex
@@ -274,13 +274,13 @@ CrateDB does not automatically detect compression, so you'll need to specify
 
 For example::
 
-  cr> COPY user FROM '/tmp/best_practice_data/users.json.gz'
+  cr> COPY users FROM '/tmp/best_practice_data/users.json.gz'
   ... WITH (compression = 'gzip');
   COPY OK, 150 rows affected (... sec)
 
 .. hide:
 
-  cr> REFRESH TABLE user;
+  cr> REFRESH TABLE users;
   REFRESH OK, 1 row affected (... sec)
 
 Partitioned Tables
@@ -300,12 +300,12 @@ partition column.
 
 .. hide:
 
-  cr> DROP TABLE user;
+  cr> DROP TABLE users;
   DROP OK, 1 row affected (... sec)
 
 ::
 
-  cr> CREATE TABLE user (
+  cr> CREATE TABLE users (
   ...   id INT primary key,
   ...   name STRING,
   ...   day_joined TIMESTAMP primary key,
@@ -333,7 +333,7 @@ For example: ``users_1408312800.json``
 The value of the partition column must be defined in the ``COPY FROM``
 statement using the ``PARTITION`` clause::
 
-  cr> COPY user PARTITION (day_joined=1408312800)
+  cr> COPY users PARTITION (day_joined=1408312800)
   ... FROM '/tmp/best_practice_data/users_1408312800.json';
   COPY OK, 23 rows affected (... sec)
 

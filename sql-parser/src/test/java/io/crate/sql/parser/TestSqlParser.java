@@ -271,9 +271,16 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testSpecialFunctions() throws Exception {
+    public void testCurrentSchemaFunction() throws Exception {
         assertInstanceOf("CURRENT_SCHEMA", FunctionCall.class);
         assertInstanceOf("CURRENT_SCHEMA()", FunctionCall.class);
+    }
+
+    @Test
+    public void testUserFunctions() {
+        assertInstanceOf("CURRENT_USER", FunctionCall.class);
+        assertInstanceOf("SESSION_USER", FunctionCall.class);
+        assertInstanceOf("USER", FunctionCall.class);
     }
 
     private void assertInstanceOf(String expr, Class<? extends Node> cls) {

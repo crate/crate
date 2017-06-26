@@ -873,11 +873,11 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table test_generated_column (" +
                 " ts timestamp," +
                 " day as date_trunc('day', ts)," +
-                " user object as (name string)," +
-                " name as concat(user['name'], 'bar')" +
+                " \"user\" object as (name string)," +
+                " name as concat(\"user\"['name'], 'bar')" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
-        execute("insert into test_generated_column (ts, user) values (?, ?)", new Object[][]{
+        execute("insert into test_generated_column (ts, \"user\") values (?, ?)", new Object[][]{
             new Object[]{"2015-11-18T11:11:00", MapBuilder.newMapBuilder().put("name", "foo").map()},
             new Object[]{"2015-11-18T17:41:00", null},
         });

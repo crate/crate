@@ -215,9 +215,9 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 " col1 AS ts + 1," +
                 " col2 string GENERATED ALWAYS AS ts + 1," +
                 " col3 string GENERATED ALWAYS AS (ts + 1)," +
-                " name AS concat(user['name'], 'foo')," +
+                " name AS concat(\"user\"['name'], 'foo')," +
                 " ts timestamp," +
-                " user object AS (name string)" +
+                " \"user\" object AS (name string)" +
                 ")");
         execute("show create table test_generated_column");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_generated_column\" (\n" +

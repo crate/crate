@@ -15,6 +15,10 @@ Current features:
   more
 - :ref:`Support for JavaScript in UDF <udf_lang_js>`: write user-defined
   functions in JavaScript
+- System Information Functions: 
+    - :ref:`Current user function <current_user>`
+    - :ref:`User function <user>`
+    - :ref:`Session user function <session_user>`
 
 .. _`enterprise edition`: https://crate.io/enterprise-edition/
 .. _`enterprise license`: https://crate.io/enterprise-edition/

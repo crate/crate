@@ -718,14 +718,14 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
                 " id int primary key," +
                 " ts timestamp," +
                 " day as date_trunc('day', ts)," +
-                " user object as (name string)," +
-                " name as concat(user['name'], 'bar')" +
+                " \"user\" object as (name string)," +
+                " name as concat(\"user\"['name'], 'bar')" +
                 ") with (number_of_replicas=0)");
         ensureYellow();
-        execute("insert into generated_column (id, ts, user) values (?, ?, ?)", new Object[]{
+        execute("insert into generated_column (id, ts, \"user\") values (?, ?, ?)", new Object[]{
             1, "2015-11-18T11:11:00", MapBuilder.newMapBuilder().put("name", "foo").map()});
         refresh();
-        execute("update generated_column set ts = ?, user = ? where id = ?", new Object[]{
+        execute("update generated_column set ts = ?, \"user\" = ? where id = ?", new Object[]{
             "2015-11-19T17:06:00", MapBuilder.newMapBuilder().put("name", "zoo").map(), 1});
         refresh();
         execute("select day, name from generated_column");

@@ -107,7 +107,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             nestedPartedGeneratedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
             .add("user", DataTypes.OBJECT, null)
             .add("user", DataTypes.STRING, Arrays.asList("name"))
-            .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", true);
+            .addGeneratedColumn("name", DataTypes.STRING, "concat(\"user\"['name'], 'bar')", true);
         builder.addDocTable(nestedPartedGeneratedColumnTableInfo);
 
         e = builder.build();
@@ -365,7 +365,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateColumnReferencedInGeneratedPartitionByColumnNestedParent() throws Exception {
         expectedException.expect(ColumnValidationException.class);
         expectedException.expectMessage("Updating a column which is referenced in a partitioned by generated column expression is not supported");
-        analyze("update nested_parted_generated_column set user = {name = 'Ford'}");
+        analyze("update nested_parted_generated_column set \"user\" = {name = 'Ford'}");
     }
 
     @Test
