@@ -84,3 +84,6 @@ JAVA_OPTS="$JAVA_OPTS -Djna.nosys=true"
 
 # log4j options
 JAVA_OPTS="$JAVA_OPTS -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx=true -Dlog4j.skipJansi=true"
+
+# Disable netty recycler
+JAVA_OPTS="$JAVA_OPTS -Dio.netty.noUnsafe=true -Dio.netty.noKeySetOptimization=true -Dio.netty.recycler.maxCapacityPerThread=0"
