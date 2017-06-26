@@ -23,20 +23,26 @@ package io.crate.types;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import org.locationtech.spatial4j.shape.Shape;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.geo.GeoJSONUtilsTest;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
+import org.locationtech.spatial4j.shape.Shape;
 
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 
 public class GeoShapeTypeTest extends CrateUnitTest {
 
@@ -55,7 +61,7 @@ public class GeoShapeTypeTest extends CrateUnitTest {
 
     private static Map<String, Object> parse(String json) {
         try {
-            return JsonXContent.jsonXContent.createParser(json).mapOrdered();
+            return JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, json).mapOrdered();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

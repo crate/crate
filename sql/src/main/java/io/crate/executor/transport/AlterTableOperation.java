@@ -79,6 +79,7 @@ import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -497,7 +498,7 @@ public class AlterTableOperation {
     }
 
     private static Map<String, Object> parseMapping(String mappingSource) throws IOException {
-        try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(mappingSource)) {
+        try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(NamedXContentRegistry.EMPTY, mappingSource)) {
             return parser.map();
         } catch (IOException e) {
             throw new ElasticsearchException("failed to parse mapping");
@@ -505,7 +506,7 @@ public class AlterTableOperation {
     }
 
     private static Map<String, Object> mergeTemplateMapping(IndexTemplateMetaData templateMetaData,
-                                                     Map<String, Object> newMapping) {
+                                                            Map<String, Object> newMapping) {
         Map<String, Object> mergedMapping = new HashMap<>();
         for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetaData.mappings()) {
             try {

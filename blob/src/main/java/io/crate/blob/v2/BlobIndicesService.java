@@ -35,7 +35,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.shard.*;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.shard.IndexEventListener;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.IndexShardState;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -96,7 +102,9 @@ public class BlobIndicesService extends AbstractComponent implements IndexEventL
     }
 
     @Override
-    public void afterIndexClosed(Index index, Settings indexSettings) {
+    public void afterIndexRemoved(Index index,
+                                  IndexSettings indexSettings,
+                                  IndicesClusterStateService.AllocatedIndices.IndexRemovalReason reason) {
         String indexName = index.getName();
         if (isBlobIndex(indexName)) {
             BlobIndex blobIndex = indices.remove(indexName);

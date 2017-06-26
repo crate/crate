@@ -7,8 +7,21 @@ import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.Version;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.*;
-import io.crate.metadata.*;
+import io.crate.analyze.Analysis;
+import io.crate.analyze.CreateTableAnalyzedStatement;
+import io.crate.analyze.CreateTableStatementAnalyzer;
+import io.crate.analyze.NumberOfShards;
+import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.ParameterContext;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.Functions;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexReference;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.sql.parser.SqlParser;
@@ -38,11 +51,22 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
-import static io.crate.testing.SymbolMatchers.*;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.mockito.Mockito.mock;
 
@@ -83,7 +107,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Before
-    public void before() throws Exception {
+    public void setupUdfService() throws Exception {
         functions = getFunctions();
         udfService = new UserDefinedFunctionService(clusterService);
     }
@@ -898,6 +922,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                     new Environment(Settings.builder()
                         .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir().toString())
                         .build()),
+                    Collections.emptyMap(),
                     Collections.emptyMap(),
                     Collections.emptyMap(),
                     Collections.emptyMap(),

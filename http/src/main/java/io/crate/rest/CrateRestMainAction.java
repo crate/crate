@@ -23,7 +23,6 @@
 package io.crate.rest;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.Build;
 import io.crate.Version;
 import org.apache.logging.log4j.Logger;
@@ -31,7 +30,6 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
@@ -40,29 +38,21 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.rest.BytesRestResponse;
 import org.elasticsearch.rest.RestChannel;
 import org.elasticsearch.rest.RestController;
-import org.elasticsearch.rest.RestFilter;
-import org.elasticsearch.rest.RestFilterChain;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.rest.RestRequest;
 import org.elasticsearch.rest.RestStatus;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.regex.Pattern;
 
-import static java.nio.file.Files.readAttributes;
+import static io.crate.protocols.http.StaticSite.serveSite;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.HEAD;
 import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
-import static org.elasticsearch.rest.RestStatus.FORBIDDEN;
-import static org.elasticsearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
-import static org.elasticsearch.rest.RestStatus.NOT_FOUND;
 import static org.elasticsearch.rest.RestStatus.OK;
 
 /**
@@ -96,20 +86,19 @@ public class CrateRestMainAction implements RestHandler {
     private final Settings settings;
     private final RestController controller;
     private final Path siteDirectory;
-    private final boolean esApiEnabled;
 
     @Inject
     public CrateRestMainAction(Settings settings,
                                Environment environment,
                                RestController controller,
                                ClusterService clusterService) {
-        this.esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
         this.settings = settings;
         this.controller = controller;
         this.version = Version.CURRENT;
         this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
         this.clusterService = clusterService;
         siteDirectory = environment.libFile().resolve("site");
+        Boolean esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
         Logger logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
         logger.info("Elasticsearch HTTP REST API {}enabled", esApiEnabled ? "" : "not ");
     }
@@ -119,29 +108,7 @@ public class CrateRestMainAction implements RestHandler {
         controller.registerHandler(HEAD, PATH, this);
         controller.registerHandler(GET, "/admin", (req, channel, client) -> redirectToRoot(channel));
         controller.registerHandler(GET, "/_plugin/crate-admin", (req, channel, client) -> redirectToRoot(channel));
-        controller.registerHandler(GET, "/index.html", this::serveSite);
-        controller.registerHandler(GET, "/static/{file}", this::serveSite);
-        controller.registerFilter(new RestFilter() {
-            @Override
-            public void process(RestRequest request, RestChannel channel, NodeClient client, RestFilterChain filterChain) throws Exception {
-                String rawPath = request.rawPath();
-                if (esApiEnabled || endpointAllowed(rawPath)) {
-                    if (rawPath.startsWith("/static/")) {
-                        serveSite(request, channel, client);
-                    } else {
-                        filterChain.continueProcessing(request, channel, client);
-                    }
-                } else {
-                    channel.sendResponse(new BytesRestResponse(
-                        BAD_REQUEST,
-                        String.format(Locale.ENGLISH,
-                            "No handler found for uri [%s] and method [%s]",
-                            request.uri(),
-                            request.method())
-                    ));
-                }
-            }
-        });
+        controller.registerHandler(GET, "/index.html", (req, channel, client) -> serveSite(siteDirectory, req, channel));
     }
 
     private static boolean endpointAllowed(String rawPath) {
@@ -176,54 +143,11 @@ public class CrateRestMainAction implements RestHandler {
         channel.sendResponse(resp);
     }
 
-    private void serveSite(RestRequest request, RestChannel channel, NodeClient client) throws IOException {
-        if (request.method() != RestRequest.Method.GET) {
-            channel.sendResponse(new BytesRestResponse(FORBIDDEN, "GET is the only allowed method"));
-            return;
-        }
-        String sitePath = request.rawPath();
-        while (sitePath.length() > 0 && sitePath.charAt(0) == '/') {
-            sitePath = sitePath.substring(1);
-        }
 
-        // we default to index.html, or what the plugin provides (as a unix-style path)
-        // this is a relative path under _site configured by the plugin.
-        if (sitePath.length() == 0) {
-            sitePath = "index.html";
-        }
-
-        final String separator = siteDirectory.getFileSystem().getSeparator();
-        // Convert file separators.
-        sitePath = sitePath.replace("/", separator);
-        Path file = siteDirectory.resolve(sitePath);
-
-        // return not found instead of forbidden to prevent malicious requests to find out if files exist or don't exist
-        if (!Files.exists(file) || FileSystemUtils.isHidden(file) ||
-            !file.toAbsolutePath().normalize().startsWith(siteDirectory.toAbsolutePath().normalize())) {
-            final String msg = "Requested file [" + file + "] was not found";
-            channel.sendResponse(new BytesRestResponse(NOT_FOUND, msg));
-            return;
-        }
-
-        BasicFileAttributes attributes = readAttributes(file, BasicFileAttributes.class);
-        if (!attributes.isRegularFile()) {
-            // If it's not a regular file, we send a 403
-            final String msg = "Requested file [" + file + "] is not a valid file.";
-            channel.sendResponse(new BytesRestResponse(FORBIDDEN, msg));
-            return;
-        }
-
-        try {
-            byte[] data = Files.readAllBytes(file);
-            channel.sendResponse(new BytesRestResponse(OK, guessMimeType(file.toAbsolutePath().toString()), data));
-        } catch (IOException e) {
-            channel.sendResponse(new BytesRestResponse(INTERNAL_SERVER_ERROR, e.getMessage()));
-        }
-    }
 
     private void serveJSONOrSite(RestRequest request, RestChannel channel, NodeClient client) throws IOException {
         if (shouldServeFromRoot(request)) {
-            serveSite(request, channel, client);
+            serveSite(siteDirectory, request, channel);
         } else {
             serveJSON(request, channel, client);
         }
@@ -284,42 +208,35 @@ public class CrateRestMainAction implements RestHandler {
         channel.sendResponse(new BytesRestResponse(status, builder));
     }
 
-    private static String guessMimeType(String path) {
-        int lastDot = path.lastIndexOf('.');
-        if (lastDot == -1) {
-            return "";
-        }
-        String extension = path.substring(lastDot + 1).toLowerCase(Locale.ROOT);
-        return DEFAULT_MIME_TYPES.getOrDefault(extension, "");
-    }
-
-    private static final Map<String, String> DEFAULT_MIME_TYPES = new ImmutableMap.Builder<String, String>()
-        .put("txt", "text/plain")
-        .put("css", "text/css")
-        .put("csv", "text/csv")
-        .put("htm", "text/html")
-        .put("html", "text/html")
-        .put("xml", "text/xml")
-        .put("js", "text/javascript") // Technically it should be application/javascript (RFC 4329), but IE8 struggles with that
-        .put("xhtml", "application/xhtml+xml")
-        .put("json", "application/json")
-        .put("pdf", "application/pdf")
-        .put("zip", "application/zip")
-        .put("tar", "application/x-tar")
-        .put("gif", "image/gif")
-        .put("jpeg", "image/jpeg")
-        .put("jpg", "image/jpeg")
-        .put("tiff", "image/tiff")
-        .put("tif", "image/tiff")
-        .put("png", "image/png")
-        .put("svg", "image/svg+xml")
-        .put("ico", "image/vnd.microsoft.icon")
-        .put("mp3", "audio/mpeg")
-        .build();
-
     @Override
     public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
         serveJSONOrSite(request, channel, client);
+    }
+
+    public static class RestFilter implements RestHandler {
+        private final RestHandler delegate;
+        private final Boolean esApiEnabled;
+
+        public RestFilter(Settings settings, RestHandler delegate) {
+            this.esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void handleRequest(RestRequest request, RestChannel channel, NodeClient client) throws Exception {
+            String rawPath = request.rawPath();
+            if (esApiEnabled || endpointAllowed(rawPath)) {
+                delegate.handleRequest(request, channel, client);
+            } else {
+                channel.sendResponse(new BytesRestResponse(
+                    BAD_REQUEST,
+                    String.format(Locale.ENGLISH,
+                        "No handler found for uri [%s] and method [%s]",
+                        request.uri(),
+                        request.method())
+                ));
+            }
+        }
     }
 }
 

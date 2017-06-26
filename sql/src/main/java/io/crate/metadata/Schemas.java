@@ -50,7 +50,11 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -262,12 +266,12 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     @Override
     protected void doStart() {
         // add listener here to avoid guice proxy errors if the ClusterService could not be build
-        clusterService.add(this);
+        clusterService.addListener(this);
     }
 
     @Override
     protected void doStop() {
-        clusterService.remove(this);
+        clusterService.removeListener(this);
     }
 
     @Override

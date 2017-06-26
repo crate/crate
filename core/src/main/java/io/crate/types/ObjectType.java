@@ -26,6 +26,7 @@ import io.crate.core.collections.MapComparator;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 
@@ -67,7 +68,8 @@ public class ObjectType extends DataType<Map<String, Object>>
 
     private static Map<String,Object> mapFromBytesRef(BytesRef value) {
         try {
-            XContentParser parser = JsonXContent.jsonXContent.createParser(value.bytes, value.offset, value.length);
+            XContentParser parser = JsonXContent.jsonXContent.createParser(
+                NamedXContentRegistry.EMPTY, value.bytes, value.offset, value.length);
             return parser.map();
         } catch (IOException e) {
             throw new RuntimeException(e);

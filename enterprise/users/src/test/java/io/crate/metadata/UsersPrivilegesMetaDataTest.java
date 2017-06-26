@@ -61,7 +61,7 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
         usersPrivilegesMetaData.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        UsersPrivilegesMetaData usersPrivilegesMetaData2 = (UsersPrivilegesMetaData) new UsersPrivilegesMetaData().readFrom(in);
+        UsersPrivilegesMetaData usersPrivilegesMetaData2 = new UsersPrivilegesMetaData(in);
         assertEquals(usersPrivilegesMetaData, usersPrivilegesMetaData2);
     }
 
@@ -76,9 +76,9 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
         usersPrivilegesMetaData.toXContent(builder, ToXContent.EMPTY_PARAMS);
         builder.endObject();
 
-        XContentParser parser = JsonXContent.jsonXContent.createParser(builder.bytes());
+        XContentParser parser = JsonXContent.jsonXContent.createParser(xContentRegistry(), builder.bytes());
         parser.nextToken(); // start object
-        UsersPrivilegesMetaData usersPrivilegesMetaData2 = (UsersPrivilegesMetaData)new UsersPrivilegesMetaData().fromXContent(parser);
+        UsersPrivilegesMetaData usersPrivilegesMetaData2 = UsersPrivilegesMetaData.fromXContent(parser);
         assertEquals(usersPrivilegesMetaData, usersPrivilegesMetaData2);
 
         // a metadata custom must consume its surrounded END_OBJECT token, no token must be left

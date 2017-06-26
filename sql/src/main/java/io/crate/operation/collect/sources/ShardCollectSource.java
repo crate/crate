@@ -98,6 +98,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.function.Supplier;
 
 import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 
@@ -164,7 +165,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private final ProjectorFactory sharedProjectorFactory;
     private final BlobIndicesService blobIndicesService;
 
-    private final Map<ShardId, ShardCollectorProvider> shards = new ConcurrentHashMap<>();
+    private final Map<ShardId, MemoizeSupplier<ShardCollectorProvider>> shards = new ConcurrentHashMap<>();
     private final Functions functions;
     private final LuceneQueryBuilder luceneQueryBuilder;
     private final NodeJobsCounter nodeJobsCounter;
@@ -243,23 +244,49 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         }
     }
 
+    // Could be replaced with Suppliers.memoize once we've upgraded guava so that jdk & guava suppliers are compatible
+    private static class MemoizeSupplier<T> implements Supplier<T> {
+
+        private final Supplier<T> supplier;
+        private T instance;
+
+        MemoizeSupplier(Supplier<T> supplier) {
+            this.supplier = supplier;
+        }
+
+        @Override
+        public T get() {
+            if (instance == null) {
+                instance = supplier.get();
+            }
+            return instance;
+        }
+    }
+
     private class LifecycleListener implements IndexEventListener {
 
         @Override
         public void afterIndexShardCreated(IndexShard indexShard) {
             logger.debug("creating shard in {} {} {}", ShardCollectSource.this, indexShard.shardId(), shards.size());
             assert !shards.containsKey(indexShard.shardId()) : "shard entry already exists upon add";
-            ShardCollectorProvider provider;
-            if (isBlobIndex(indexShard.shardId().getIndexName())) {
-                BlobShard blobShard = blobIndicesService.blobShardSafe(indexShard.shardId());
-                provider = new BlobShardCollectorProvider(blobShard, clusterService, nodeJobsCounter, functions,
-                    threadPool, settings, transportActionProvider);
-            } else {
-                provider = new LuceneShardCollectorProvider(
-                    schemas, luceneQueryBuilder, clusterService, nodeJobsCounter, functions,
-                    threadPool, settings, transportActionProvider, indexShard);
-            }
-            shards.put(indexShard.shardId(), provider);
+
+            /* The creation of a ShardCollectorProvider accesses the clusterState, which leads to an
+             * assertionError if accessed within a ClusterState-Update thread.
+             *
+             * So we wrap the creation in a supplier to create the providers lazy
+             */
+            MemoizeSupplier<ShardCollectorProvider> providerSupplier = new MemoizeSupplier<>(() -> {
+                if (isBlobIndex(indexShard.shardId().getIndexName())) {
+                    BlobShard blobShard = blobIndicesService.blobShardSafe(indexShard.shardId());
+                    return new BlobShardCollectorProvider(blobShard, clusterService, nodeJobsCounter, functions,
+                        threadPool, settings, transportActionProvider);
+                } else {
+                    return new LuceneShardCollectorProvider(
+                        schemas, luceneQueryBuilder, clusterService, nodeJobsCounter, functions,
+                        threadPool, settings, transportActionProvider, indexShard);
+                }
+            });
+            shards.put(indexShard.shardId(), providerSupplier);
 
         }
 
@@ -403,7 +430,11 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     }
 
     private ShardCollectorProvider getCollectorProviderSafe(ShardId shardId) {
-        ShardCollectorProvider shardCollectorProvider = shards.get(shardId);
+        MemoizeSupplier<ShardCollectorProvider> supplier = shards.get(shardId);
+        if (supplier == null) {
+            throw new ShardNotFoundException(shardId);
+        }
+        ShardCollectorProvider shardCollectorProvider = supplier.get();
         if (shardCollectorProvider == null) {
             throw new ShardNotFoundException(shardId);
         }

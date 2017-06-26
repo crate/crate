@@ -31,6 +31,7 @@ import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -41,6 +42,7 @@ import java.io.IOException;
 import java.net.InetAddress;
 
 import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
+import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.AdditionalMatchers.aryEq;
 
@@ -110,6 +112,7 @@ public class CrateHttpTransportTest extends CrateUnitTest {
     public void testPipelineConfiguration() throws Exception {
         Settings settings = Settings.builder()
             .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
+            .put(PATH_HOME_SETTING.getKey(), "/tmp")
             .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
             .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile)
             .put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
@@ -130,6 +133,7 @@ public class CrateHttpTransportTest extends CrateUnitTest {
                 networkService,
                 BigArrays.NON_RECYCLING_INSTANCE,
                 Mockito.mock(ThreadPool.class),
+                NamedXContentRegistry.EMPTY,
                 new PipelineRegistry(settings));
 
         Channel channel = new EmbeddedChannel();
