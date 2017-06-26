@@ -24,19 +24,39 @@ package io.crate.metadata.shard;
 import com.google.common.collect.ImmutableMap;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.metadata.*;
+import io.crate.metadata.MapBackedRefResolver;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.ReferenceResolver;
-import io.crate.operation.reference.partitioned.PartitionedColumnExpression;
-import io.crate.operation.reference.sys.shard.*;
+import io.crate.operation.reference.sys.shard.LiteralReferenceImplementation;
+import io.crate.operation.reference.sys.shard.ShardMinLuceneVersionExpression;
+import io.crate.operation.reference.sys.shard.ShardNumDocsExpression;
+import io.crate.operation.reference.sys.shard.ShardPartitionIdentExpression;
+import io.crate.operation.reference.sys.shard.ShardPartitionOrphanedExpression;
+import io.crate.operation.reference.sys.shard.ShardPathExpression;
+import io.crate.operation.reference.sys.shard.ShardPrimaryExpression;
+import io.crate.operation.reference.sys.shard.ShardRecoveryExpression;
+import io.crate.operation.reference.sys.shard.ShardRelocatingNodeExpression;
+import io.crate.operation.reference.sys.shard.ShardRoutingStateExpression;
+import io.crate.operation.reference.sys.shard.ShardSchemaNameExpression;
+import io.crate.operation.reference.sys.shard.ShardSizeExpression;
+import io.crate.operation.reference.sys.shard.ShardStateExpression;
+import io.crate.operation.reference.sys.shard.ShardTableNameExpression;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
+import java.util.List;
 import java.util.Locale;
 
 public class ShardReferenceResolver {
@@ -78,8 +98,8 @@ public class ShardReferenceResolver {
     }
 
     private static void addPartitions(Index index,
-                               Schemas schemas,
-                               ImmutableMap.Builder<ReferenceIdent, ReferenceImplementation> builder) {
+                                      Schemas schemas,
+                                      ImmutableMap.Builder<ReferenceIdent, ReferenceImplementation> builder) {
         PartitionName partitionName;
         try {
             partitionName = PartitionName.fromIndexOrTemplate(index.getName());
@@ -95,13 +115,14 @@ public class ShardReferenceResolver {
                 int i = 0;
                 int numPartitionedColumns = info.partitionedByColumns().size();
 
-                assert partitionName.values().size() ==
+                List<BytesRef> partitionValue = partitionName.values();
+                assert partitionValue.size() ==
                        numPartitionedColumns : "invalid number of partitioned columns";
                 for (Reference partitionedInfo : info.partitionedByColumns()) {
-                    builder.put(partitionedInfo.ident(), new PartitionedColumnExpression(
-                        partitionedInfo,
-                        partitionName.values().get(i)
-                    ));
+                    builder.put(
+                        partitionedInfo.ident(),
+                        new LiteralReferenceImplementation<>(partitionedInfo.valueType().value(partitionValue.get(i)))
+                    );
                     i++;
                 }
             } else {
