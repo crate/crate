@@ -100,7 +100,7 @@ public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testDropUserIfExists() throws Exception {
-        execute("drop user if exists ford", null, createSuperUserSession());
+        execute("drop user if exists not_exist_if_exists", null, createSuperUserSession());
         assertThat(response.rowCount(), is(0L));
     }
 
@@ -133,4 +133,27 @@ public class UserManagementIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from sys.users");
     }
 
+    @Test
+    public void testCreateExistingUserThrowsException() throws Exception {
+        execute("create user ford_exists", null, createSuperUserSession());
+        assertUserIsCreated("ford_exists");
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("UserAlreadyExistsException: User 'ford_exists' already exists");
+        execute("create user ford_exists", null, createSuperUserSession());
+    }
+
+    @Test
+    public void testDropNonExistingUserThrowsException() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("UserUnknownException: User 'not_exists' does not exist");
+        execute("drop user not_exists", null, createSuperUserSession());
+    }
+
+    @Test
+    public void testDropSuperUserThrowsException() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("UnsupportedFeatureException: Cannot drop a superuser 'crate'");
+        execute("drop user crate", null, createSuperUserSession());
+    }
 }

@@ -49,7 +49,7 @@ If a user with the username specified in the SQL statement already exists the
 statement returns an error::
 
     cr> CREATE USER "Custom User";
-    UserAlreadyExistsException ...
+    SQLActionException[UserAlreadyExistsException: User 'Custom User' already exists]
 
 ``DROP USER``
 -------------
@@ -69,7 +69,7 @@ If a user with the username specified in the SQL statement does not exist the
 statement returns an error::
 
     cr> DROP USER user_b;
-    UserDoesNotExistException ...
+    SQLActionException[UserUnknownException: User 'user_b' does not exist]
 
 It is not possible to drop the built-in superuser ``crate``.
 
@@ -83,12 +83,12 @@ CrateDB clusters is also part of that list.
 
 To list all existing users query that table::
 
-    cr> SELECT * FROM sys.users;
+    cr> SELECT * FROM sys.users order by name;
     +-------------+-----------+
     | name        | superuser |
     +-------------+-----------+
-    | crate       | TRUE      |
     | Custom User | FALSE     |
+    | crate       | TRUE      |
     | user_a      | FALSE     |
     +-------------+-----------+
     SELECT 3 rows in set (... sec)

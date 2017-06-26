@@ -19,7 +19,7 @@
 package io.crate.operation.user;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.exceptions.ConflictException;
+import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.metadata.UsersMetaData;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
@@ -58,28 +58,37 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
 
     @Override
     protected WriteUserResponse newResponse() {
-        return new WriteUserResponse();
+        return new WriteUserResponse(false);
     }
 
     @Override
     protected void masterOperation(CreateUserRequest request, ClusterState state, ActionListener<WriteUserResponse> listener) throws Exception {
         clusterService.submitStateUpdateTask("create_user [" + request.userName() + "]",
             new AckedClusterStateUpdateTask<WriteUserResponse>(Priority.URGENT, request, listener) {
+
+                private boolean alreadyExists = false;
+
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     MetaData currentMetaData = currentState.metaData();
                     MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
-                    UsersMetaData users = putUser(
-                        currentMetaData.custom(UsersMetaData.TYPE),
-                        request.userName()
-                    );
+                    UsersMetaData users;
+                    try {
+                        users = putUser(
+                            currentMetaData.custom(UsersMetaData.TYPE),
+                            request.userName()
+                        );
+                    } catch (UserAlreadyExistsException e) {
+                        alreadyExists = true;
+                        return currentState;
+                    }
                     mdBuilder.putCustom(UsersMetaData.TYPE, users);
                     return ClusterState.builder(currentState).metaData(mdBuilder).build();
                 }
 
                 @Override
                 protected WriteUserResponse newResponse(boolean acknowledged) {
-                    return new WriteUserResponse(acknowledged);
+                    return new WriteUserResponse(acknowledged, alreadyExists);
                 }
             });
     }
@@ -96,7 +105,7 @@ public class TransportCreateUserAction extends TransportMasterNodeAction<CreateU
             return new UsersMetaData(Collections.singletonList(name));
         }
         if (oldMetaData.contains(name)) {
-            throw new ConflictException("User already exists");
+            throw new UserAlreadyExistsException(name);
         }
         // create a new instance of the metadata, to guarantee the cluster changed action.
         UsersMetaData newMetaData = UsersMetaData.newInstance(oldMetaData);

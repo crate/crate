@@ -20,49 +20,18 @@
  * agreement.
  */
 
-package io.crate.operation.user;
+package io.crate.exceptions;
 
-import java.util.Objects;
-import java.util.Set;
+import java.util.Locale;
 
-public class User {
+public class UserAlreadyExistsException extends ConflictException {
 
-    public enum Role {
-        SUPERUSER
-    }
-
-    private final Set<Role> roles;
-
-    private final String name;
-
-    public User(String name, Set<Role> roles) {
-        this.roles = roles;
-        this.name = name;
-    }
-
-    public Set<Role> roles() {
-        return roles;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public boolean isSuperUser() {
-        return roles.contains(Role.SUPERUSER);
+    public UserAlreadyExistsException(String userName) {
+        super(String.format(Locale.ENGLISH, "User '%s' already exists", userName));
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        User that = (User)o;
-        return Objects.equals(name, that.name) &&
-               Objects.equals(roles, that.roles);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(name, roles);
+    public int errorCode() {
+        return 9;
     }
 }

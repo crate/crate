@@ -26,36 +26,33 @@ import java.io.IOException;
 
 public class WriteUserResponse extends AcknowledgedResponse {
 
-    private long affectedRows;
+    private boolean userDoesExist;
 
-    WriteUserResponse() {
-        affectedRows = 1L;
+    WriteUserResponse(boolean userDoesExist) {
+        this.userDoesExist = userDoesExist;
     }
 
-    WriteUserResponse(boolean acknowledged) {
-        this(acknowledged, 1L);
-    }
-
-    WriteUserResponse(boolean acknowledged, long affectedRows) {
+    WriteUserResponse(boolean acknowledged, boolean userDoesExist) {
         super(acknowledged);
-        this.affectedRows = affectedRows;
+        this.userDoesExist = userDoesExist;
     }
 
-    long affectedRows() {
-        return affectedRows;
+
+    boolean doesUserExist() {
+        return userDoesExist;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         readAcknowledged(in);
-        affectedRows = in.readLong();
+        userDoesExist = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         writeAcknowledged(out);
-        out.writeLong(affectedRows);
+        out.writeBoolean(userDoesExist);
     }
 }

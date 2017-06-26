@@ -26,6 +26,8 @@ import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.CreateUserAnalyzedStatement;
 import io.crate.analyze.DropUserAnalyzedStatement;
 import io.crate.exceptions.UnauthorizedException;
+import io.crate.exceptions.UserAlreadyExistsException;
+import io.crate.exceptions.UserUnknownException;
 import io.crate.metadata.UsersMetaData;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -37,6 +39,7 @@ import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import static io.crate.metadata.UsersMetaData.PROTO;
 import static io.crate.metadata.UsersMetaData.TYPE;
@@ -46,6 +49,13 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     public static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER));
 
     private static final PermissionVisitor PERMISSION_VISITOR = new PermissionVisitor();
+
+    private static final Consumer<User> ENSURE_DROP_USER_NOT_SUPERUSER = user -> {
+        if (user != null && user.isSuperUser()) {
+            throw new UnsupportedOperationException(String.format(
+                Locale.ENGLISH, "Cannot drop a superuser '%s'", user.name()));
+        }
+    };
 
     static {
         MetaData.registerPrototype(TYPE, PROTO);
@@ -75,14 +85,28 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     @Override
     public CompletableFuture<Long> createUser(String userName) {
-        FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> 1L);
+        FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
+            if (r.doesUserExist()) {
+                throw new UserAlreadyExistsException(userName);
+            }
+            return 1L;
+        });
         transportCreateUserAction.execute(new CreateUserRequest(userName), listener);
         return listener;
     }
 
     @Override
     public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
-        FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(WriteUserResponse::affectedRows);
+        ENSURE_DROP_USER_NOT_SUPERUSER.accept(findUser(userName));
+        FutureActionListener<WriteUserResponse, Long> listener = new FutureActionListener<>(r -> {
+            if (r.doesUserExist() == false) {
+                if (ifExists) {
+                    return 0L;
+                }
+                throw new UserUnknownException(userName);
+            }
+            return 1L;
+        });
         transportDropUserAction.execute(new DropUserRequest(userName, ifExists), listener);
         return listener;
     }
@@ -119,7 +143,7 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     private static class PermissionVisitor extends AnalyzedStatementVisitor<SessionContext, Boolean> {
 
         boolean isSuperUser(@Nullable User user) {
-            return user != null && user.roles().contains(User.Role.SUPERUSER);
+            return user != null && user.isSuperUser();
         }
 
         private void throwUnauthorized(@Nullable User user) {

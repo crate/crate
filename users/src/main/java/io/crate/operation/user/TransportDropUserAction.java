@@ -20,7 +20,6 @@ package io.crate.operation.user;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.UsersMetaData;
-import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -40,11 +39,11 @@ import org.elasticsearch.transport.TransportService;
 public class TransportDropUserAction extends TransportMasterNodeAction<DropUserRequest, WriteUserResponse> {
 
     public TransportDropUserAction(Settings settings,
-                            TransportService transportService,
-                            ClusterService clusterService,
-                            ThreadPool threadPool,
-                            ActionFilters actionFilters,
-                            IndexNameExpressionResolver indexNameExpressionResolver) {
+                                   TransportService transportService,
+                                   ClusterService clusterService,
+                                   ThreadPool threadPool,
+                                   ActionFilters actionFilters,
+                                   IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, "crate/sql/drop_user", transportService, clusterService, threadPool, actionFilters,
             indexNameExpressionResolver, DropUserRequest::new);
     }
@@ -56,7 +55,7 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
 
     @Override
     protected WriteUserResponse newResponse() {
-        return new WriteUserResponse();
+        return new WriteUserResponse(true);
     }
 
     @Override
@@ -64,24 +63,23 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
         clusterService.submitStateUpdateTask("drop_user [" + request.userName() + "]",
             new AckedClusterStateUpdateTask<WriteUserResponse>(Priority.URGENT, request, listener) {
 
-                private long affectedRows;
+                private boolean alreadyExists = true;
 
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     MetaData currentMetaData = currentState.metaData();
                     MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
-                    affectedRows = dropUser(
+                    alreadyExists = dropUser(
                         mdBuilder,
                         currentMetaData.custom(UsersMetaData.TYPE),
-                        request.userName(),
-                        request.ifExists()
+                        request.userName()
                     );
                     return ClusterState.builder(currentState).metaData(mdBuilder).build();
                 }
 
                 @Override
                 protected WriteUserResponse newResponse(boolean acknowledged) {
-                    return new WriteUserResponse(acknowledged, affectedRows);
+                    return new WriteUserResponse(acknowledged, alreadyExists);
                 }
             });
     }
@@ -92,23 +90,17 @@ public class TransportDropUserAction extends TransportMasterNodeAction<DropUserR
     }
 
     @VisibleForTesting
-    static long dropUser(MetaData.Builder mdBuilder,
-                         @Nullable UsersMetaData oldMetaData,
-                         String name,
-                         boolean ifExists) {
-        if ((oldMetaData == null || !oldMetaData.contains(name))) {
-            if (ifExists) {
-                UsersMetaData newMetaData = oldMetaData == null ? new UsersMetaData() : oldMetaData;
-                mdBuilder.putCustom(UsersMetaData.TYPE, newMetaData);
-                return 0L;
-            }
-            throw new ResourceNotFoundException("User does not exist");
+    static boolean dropUser(MetaData.Builder mdBuilder,
+                            @Nullable UsersMetaData oldMetaData,
+                            String name) {
+        if (oldMetaData == null || oldMetaData.contains(name) == false) {
+            return false;
         }
         // create a new instance of the metadata, to guarantee the cluster changed action.
         UsersMetaData newMetaData = UsersMetaData.newInstance(oldMetaData);
         newMetaData.remove(name);
         assert !newMetaData.equals(oldMetaData) : "must not be equal to guarantee the cluster change action";
         mdBuilder.putCustom(UsersMetaData.TYPE, newMetaData);
-        return 1L;
+        return true;
     }
 }

@@ -19,10 +19,9 @@
 package io.crate.operation.user;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.exceptions.ConflictException;
+import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.metadata.UsersMetaData;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.junit.Test;
 
@@ -43,8 +42,8 @@ public class TransportUserActionTest extends CrateUnitTest {
 
     @Test
     public void testCreateUserAlreadyExists() throws Exception {
-        expectedException.expect(ConflictException.class);
-        expectedException.expectMessage("User already exists");
+        expectedException.expect(UserAlreadyExistsException.class);
+        expectedException.expectMessage("User 'root' already exists");
         UsersMetaData oldMetaData = new UsersMetaData(ImmutableList.of("root"));
         TransportCreateUserAction.putUser(oldMetaData, "root");
     }
@@ -58,51 +57,26 @@ public class TransportUserActionTest extends CrateUnitTest {
 
     @Test
     public void testDropUserNoUsersAtAll() throws Exception {
-        expectedException.expect(ResourceNotFoundException.class);
-        expectedException.expectMessage("User does not exist");
-        TransportDropUserAction.dropUser(MetaData.builder(), null, "root", false);
-    }
-
-    @Test
-    public void testDropUsersIfExistsNoUsersAtAll() throws Exception {
-        MetaData.Builder builder = MetaData.builder();
-        long res = TransportDropUserAction.dropUser(builder, null, "arthur", true);
-        assertThat(users(builder).size(), is(0));
-        assertThat(res, is(0L));
+        assertThat(TransportDropUserAction.dropUser(MetaData.builder(), null, "root"), is(false));
     }
 
     @Test
     public void testDropNonExistingUser() throws Exception {
-        expectedException.expect(ResourceNotFoundException.class);
-        expectedException.expectMessage("User does not exist");
-        TransportDropUserAction.dropUser(
+        boolean res = TransportDropUserAction.dropUser(
             MetaData.builder(),
             new UsersMetaData(ImmutableList.of("arthur")),
-            "trillian",
-            false
+            "trillian"
         );
-    }
-
-    @Test
-    public void testDropIfExistsNonExistingUser() throws Exception {
-        MetaData.Builder mdBuilder = MetaData.builder();
-        long res = TransportDropUserAction.dropUser(
-            mdBuilder,
-            new UsersMetaData(ImmutableList.of("arthur")),
-            "trillian",
-            true
-        );
-        assertThat(users(mdBuilder), contains("arthur"));
-        assertThat(res, is(0L));
+        assertThat(res, is(false));
     }
 
     @Test
     public void testDropUser() throws Exception {
         UsersMetaData oldMetaData = new UsersMetaData(ImmutableList.of("ford", "arthur"));
         MetaData.Builder mdBuilder = MetaData.builder();
-        long res = TransportDropUserAction.dropUser(mdBuilder, oldMetaData, "arthur", false);
+        boolean res = TransportDropUserAction.dropUser(mdBuilder, oldMetaData, "arthur");
         assertThat(users(mdBuilder), contains("ford"));
-        assertThat(res, is(1L));
+        assertThat(res, is(true));
     }
 
     private static List<String> users(MetaData.Builder mdBuilder) {
