@@ -213,18 +213,19 @@ class PostgresWireProtocol {
 
     private Properties readStartupMessage(ByteBuf buffer) {
         Properties properties = new Properties();
-        ByteBuf channelBuffer = buffer.readBytes(msgLength);
+        ByteBuf byteBuf = buffer.readBytes(msgLength);
         while (true) {
-            String key = readCString(channelBuffer);
+            String key = readCString(byteBuf);
             if (key == null) {
                 break;
             }
-            String value = readCString(channelBuffer);
+            String value = readCString(byteBuf);
             LOGGER.trace("payload: key={} value={}", key, value);
             if (!"".equals(key) && !"".equals(value)) {
                 properties.setProperty(key, value);
             }
         }
+        byteBuf.release();
         return properties;
     }
 
@@ -277,7 +278,7 @@ class PostgresWireProtocol {
                     LOGGER.trace("msg={} msgLength={} readableBytes={}", ((char) msgType), msgLength, buffer.readableBytes());
 
                     if (ignoreTillSync && msgType != 'S') {
-                        buffer.readBytes(msgLength);
+                        buffer.skipBytes(msgLength);
                         return;
                     }
                     dispatchMessage(buffer, channel);
