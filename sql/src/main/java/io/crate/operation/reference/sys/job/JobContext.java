@@ -34,4 +34,16 @@ public class JobContext {
         this.stmt = stmt;
         this.started = started;
     }
+
+    public UUID id() {
+        return id;
+    }
+
+    public String stmt() {
+        return stmt;
+    }
+
+    public long started() {
+        return started;
+    }
 }

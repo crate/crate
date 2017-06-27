@@ -53,4 +53,40 @@ public class SummitsContext {
         this.country = country;
         this.firstAscent = firstAscent;
     }
+
+    public String mountain() {
+        return mountain;
+    }
+
+    public Integer height() {
+        return height;
+    }
+
+    public Integer prominence() {
+        return prominence;
+    }
+
+    public Double[] coordinates() {
+        return coordinates;
+    }
+
+    public String range() {
+        return range;
+    }
+
+    public String region() {
+        return region;
+    }
+
+    public String classification() {
+        return classification;
+    }
+
+    public String country() {
+        return country;
+    }
+
+    public Integer firstAscent() {
+        return firstAscent;
+    }
 }

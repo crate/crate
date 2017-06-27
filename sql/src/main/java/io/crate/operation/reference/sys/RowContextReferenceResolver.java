@@ -112,30 +112,14 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
 
     private Map<ColumnIdent, RowCollectExpressionFactory<OperationContextLog>> getSysOperationLogExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<OperationContextLog>>builder()
-            .put(SysOperationsLogTableInfo.Columns.ID, () -> new RowContextCollectorExpression<OperationContextLog, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.id());
-                }
-            })
-            .put(SysOperationsLogTableInfo.Columns.JOB_ID, () -> new RowContextCollectorExpression<OperationContextLog, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.jobId());
-                }
-            })
-            .put(SysOperationsLogTableInfo.Columns.NAME, () -> new RowContextCollectorExpression<OperationContextLog, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.name());
-                }
-            })
-            .put(SysOperationsLogTableInfo.Columns.STARTED, () -> new RowContextCollectorExpression<OperationContextLog, Long>() {
-                @Override
-                public Long value() {
-                    return row.started();
-                }
-            })
+            .put(SysOperationsLogTableInfo.Columns.ID,
+                () -> RowContextCollectorExpression.objToBytesRef(OperationContextLog::id))
+            .put(SysOperationsLogTableInfo.Columns.JOB_ID,
+                () -> RowContextCollectorExpression.objToBytesRef(OperationContextLog::jobId))
+            .put(SysOperationsLogTableInfo.Columns.NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(OperationContextLog::name))
+            .put(SysOperationsLogTableInfo.Columns.STARTED,
+                () -> RowContextCollectorExpression.forFunction(OperationContextLog::started))
             .put(SysOperationsLogTableInfo.Columns.USED_BYTES, () -> new RowContextCollectorExpression<OperationContextLog, Long>() {
                 @Override
                 public Long value() {
@@ -146,47 +130,23 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
                     return usedBytes;
                 }
             })
-            .put(SysOperationsLogTableInfo.Columns.ERROR, () -> new RowContextCollectorExpression<OperationContextLog, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.errorMessage());
-                }
-            })
-            .put(SysOperationsLogTableInfo.Columns.ENDED, () -> new RowContextCollectorExpression<OperationContextLog, Long>() {
-                @Override
-                public Long value() {
-                    return row.ended();
-                }
-            })
+            .put(SysOperationsLogTableInfo.Columns.ERROR,
+                () -> RowContextCollectorExpression.objToBytesRef(OperationContextLog::errorMessage))
+            .put(SysOperationsLogTableInfo.Columns.ENDED,
+                () -> RowContextCollectorExpression.forFunction(OperationContextLog::ended))
             .build();
     }
 
     private Map<ColumnIdent, RowCollectExpressionFactory<OperationContext>> getSysOperationExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<OperationContext>>builder()
-            .put(SysOperationsTableInfo.Columns.ID, () -> new RowContextCollectorExpression<OperationContext, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.id);
-                }
-            })
-            .put(SysOperationsTableInfo.Columns.JOB_ID, () -> new RowContextCollectorExpression<OperationContext, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.jobId);
-                }
-            })
-            .put(SysOperationsTableInfo.Columns.NAME, () -> new RowContextCollectorExpression<OperationContext, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.name);
-                }
-            })
-            .put(SysOperationsTableInfo.Columns.STARTED, () -> new RowContextCollectorExpression<OperationContext, Long>() {
-                @Override
-                public Long value() {
-                    return row.started;
-                }
-            })
+            .put(SysOperationsTableInfo.Columns.ID,
+                () -> RowContextCollectorExpression.objToBytesRef(OperationContext::id))
+            .put(SysOperationsTableInfo.Columns.JOB_ID,
+                () -> RowContextCollectorExpression.objToBytesRef(OperationContext::jobId))
+            .put(SysOperationsTableInfo.Columns.NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(OperationContext::name))
+            .put(SysOperationsTableInfo.Columns.STARTED,
+                () -> RowContextCollectorExpression.forFunction(OperationContext::started))
             .put(SysOperationsTableInfo.Columns.USED_BYTES, () -> new RowContextCollectorExpression<OperationContext, Long>() {
                 @Override
                 public Long value() {
@@ -201,274 +161,121 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
 
     private ImmutableMap<ColumnIdent, RowCollectExpressionFactory<JobContextLog>> getSysJobsLogExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<JobContextLog>>builder()
-            .put(SysJobsLogTableInfo.Columns.ID, () -> new RowContextCollectorExpression<JobContextLog, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.id().toString());
-                }
-            })
-            .put(SysJobsLogTableInfo.Columns.STMT, () -> new RowContextCollectorExpression<JobContextLog, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.statement());
-                }
-            })
-            .put(SysJobsLogTableInfo.Columns.STARTED, () -> new RowContextCollectorExpression<JobContextLog, Long>() {
-                @Override
-                public Long value() {
-                    return row.started();
-                }
-            })
-            .put(SysJobsLogTableInfo.Columns.ENDED, () -> new RowContextCollectorExpression<JobContextLog, Long>() {
-                @Override
-                public Long value() {
-                    return row.ended();
-                }
-            })
-            .put(SysJobsLogTableInfo.Columns.ERROR, () -> new RowContextCollectorExpression<JobContextLog, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    String err = row.errorMessage();
-                    if (err == null) {
-                        return null;
-                    }
-                    return new BytesRef(err);
-                }
-            })
+            .put(SysJobsLogTableInfo.Columns.ID,
+                () -> RowContextCollectorExpression.objToBytesRef(JobContextLog::id))
+            .put(SysJobsLogTableInfo.Columns.STMT,
+                () -> RowContextCollectorExpression.objToBytesRef(JobContextLog::statement))
+            .put(SysJobsLogTableInfo.Columns.STARTED,
+                () -> RowContextCollectorExpression.forFunction(JobContextLog::started))
+            .put(SysJobsLogTableInfo.Columns.ENDED,
+                () -> RowContextCollectorExpression.forFunction(JobContextLog::ended))
+            .put(SysJobsLogTableInfo.Columns.ERROR,
+                () -> RowContextCollectorExpression.objToBytesRef(JobContextLog::errorMessage))
             .build();
     }
 
     private ImmutableMap<ColumnIdent, RowCollectExpressionFactory<JobContext>> getSysJobsExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<JobContext>>builder()
-            .put(SysJobsTableInfo.Columns.ID, () -> new RowContextCollectorExpression<JobContext, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.id);
-                }
-            })
-            .put(SysJobsTableInfo.Columns.STMT, () -> new RowContextCollectorExpression<JobContext, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.stmt);
-                }
-            })
-            .put(SysJobsTableInfo.Columns.STARTED, () -> new RowContextCollectorExpression<JobContext, Long>() {
-                @Override
-                public Long value() {
-                    return row.started;
-                }
-            })
+            .put(SysJobsTableInfo.Columns.ID,
+                () -> RowContextCollectorExpression.objToBytesRef(JobContext::id))
+            .put(SysJobsTableInfo.Columns.STMT,
+                () -> RowContextCollectorExpression.objToBytesRef(JobContext::stmt))
+            .put(SysJobsTableInfo.Columns.STARTED,
+                () -> RowContextCollectorExpression.forFunction(JobContext::started))
             .build();
     }
 
     private ImmutableMap<ColumnIdent, RowCollectExpressionFactory<SysCheck>> getSysChecksExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysCheck>>builder()
-            .put(SysChecksTableInfo.Columns.ID, () -> new RowContextCollectorExpression<SysCheck, Integer>() {
-                @Override
-                public Integer value() {
-                    return row.id();
-                }
-            })
-            .put(SysChecksTableInfo.Columns.DESCRIPTION, () -> new RowContextCollectorExpression<SysCheck, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return row.description();
-                }
-            })
-            .put(SysChecksTableInfo.Columns.SEVERITY, () -> new RowContextCollectorExpression<SysCheck, Integer>() {
-                @Override
-                public Integer value() {
-                    return row.severity().value();
-                }
-            })
-            .put(SysChecksTableInfo.Columns.PASSED, () -> new RowContextCollectorExpression<SysCheck, Boolean>() {
-
-                @Override
-                public Boolean value() {
-                    return row.validate();
-                }
-            })
+            .put(SysChecksTableInfo.Columns.ID,
+                () -> RowContextCollectorExpression.forFunction(SysCheck::id))
+            .put(SysChecksTableInfo.Columns.DESCRIPTION,
+                () -> RowContextCollectorExpression.forFunction(SysCheck::description))
+            .put(SysChecksTableInfo.Columns.SEVERITY,
+                () -> RowContextCollectorExpression.forFunction((SysCheck r) -> r.severity().value()))
+            .put(SysChecksTableInfo.Columns.PASSED,
+                () -> RowContextCollectorExpression.forFunction(SysCheck::validate))
             .build();
     }
 
     private ImmutableMap<ColumnIdent, RowCollectExpressionFactory<SysNodeCheck>> getSysNodeChecksExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysNodeCheck>>builder()
-            .put(SysNodeChecksTableInfo.Columns.ID, () -> new RowContextCollectorExpression<SysNodeCheck, Integer>() {
-                @Override
-                public Integer value() {
-                    return row.id();
-                }
-            })
-            .put(SysNodeChecksTableInfo.Columns.NODE_ID, () -> new RowContextCollectorExpression<SysNodeCheck, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return row.nodeId();
-                }
-            })
-            .put(SysNodeChecksTableInfo.Columns.DESCRIPTION, () -> new RowContextCollectorExpression<SysNodeCheck, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return row.description();
-                }
-            })
-            .put(SysNodeChecksTableInfo.Columns.SEVERITY, () -> new RowContextCollectorExpression<SysNodeCheck, Integer>() {
-                @Override
-                public Integer value() {
-                    return row.severity().value();
-                }
-            })
-            .put(SysNodeChecksTableInfo.Columns.PASSED, () -> new RowContextCollectorExpression<SysNodeCheck, Boolean>() {
-                @Override
-                public Boolean value() {
-                    return row.validate();
-                }
-            })
-            .put(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED, () -> new RowContextCollectorExpression<SysNodeCheck, Boolean>() {
-                @Override
-                public Boolean value() {
-                    return row.acknowledged();
-                }
-            })
-            .put(DocSysColumns.ID, () -> new RowContextCollectorExpression<SysNodeCheck, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return row.rowId();
-                }
-            })
+            .put(SysNodeChecksTableInfo.Columns.ID,
+                () -> RowContextCollectorExpression.forFunction(SysNodeCheck::id))
+            .put(SysNodeChecksTableInfo.Columns.NODE_ID,
+                () -> RowContextCollectorExpression.forFunction(SysNodeCheck::nodeId))
+            .put(SysNodeChecksTableInfo.Columns.DESCRIPTION,
+                () -> RowContextCollectorExpression.forFunction(SysNodeCheck::description))
+            .put(SysNodeChecksTableInfo.Columns.SEVERITY,
+                () -> RowContextCollectorExpression.forFunction((SysNodeCheck x) -> x.severity().value()))
+            .put(SysNodeChecksTableInfo.Columns.PASSED,
+                () -> RowContextCollectorExpression.forFunction(SysNodeCheck::validate))
+            .put(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED,
+                () -> RowContextCollectorExpression.forFunction(SysNodeCheck::acknowledged))
+            .put(DocSysColumns.ID,
+                () -> RowContextCollectorExpression.forFunction(SysNodeCheck::rowId))
             .build();
     }
 
     private ImmutableMap<ColumnIdent, RowCollectExpressionFactory<Repository>> getSysRepositoriesExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<Repository>>builder()
-            .put(SysRepositoriesTableInfo.Columns.NAME, () -> new RowContextCollectorExpression<Repository, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.getMetadata().name());
-                }
-            })
-            .put(SysRepositoriesTableInfo.Columns.TYPE, () -> new RowContextCollectorExpression<Repository, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.getMetadata().type());
-                }
-            })
-            .put(SysRepositoriesTableInfo.Columns.SETTINGS, () -> new RowContextCollectorExpression<Repository, Map<String, Object>>() {
-                @Override
-                public Map<String, Object> value() {
-                    return row.getMetadata().settings().getAsStructuredMap();
-                }
-            })
+            .put(SysRepositoriesTableInfo.Columns.NAME,
+                () -> RowContextCollectorExpression.objToBytesRef((Repository r) -> r.getMetadata().name()))
+            .put(SysRepositoriesTableInfo.Columns.TYPE,
+                () -> RowContextCollectorExpression.objToBytesRef((Repository r) -> r.getMetadata().type()))
+            .put(SysRepositoriesTableInfo.Columns.SETTINGS,
+                () -> RowContextCollectorExpression
+                    .forFunction((Repository r) -> r.getMetadata().settings().getAsStructuredMap()))
             .build();
     }
 
     private ImmutableMap<ColumnIdent, RowCollectExpressionFactory<SysSnapshot>> getSysSnapshotsExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysSnapshot>>builder()
-            .put(SysSnapshotsTableInfo.Columns.NAME, () -> new RowContextCollectorExpression<SysSnapshot, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.name());
-                }
-            })
-            .put(SysSnapshotsTableInfo.Columns.REPOSITORY, () -> new RowContextCollectorExpression<SysSnapshot, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.repository());
-                }
-            })
-            .put(SysSnapshotsTableInfo.Columns.CONCRETE_INDICES, () -> new RowContextCollectorExpression<SysSnapshot, BytesRef[]>() {
-                @Override
-                public BytesRef[] value() {
-                    List<String> concreteIndices = row.concreteIndices();
+            .put(SysSnapshotsTableInfo.Columns.NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(SysSnapshot::name))
+            .put(SysSnapshotsTableInfo.Columns.REPOSITORY,
+                () -> RowContextCollectorExpression.objToBytesRef(SysSnapshot::repository))
+            .put(SysSnapshotsTableInfo.Columns.CONCRETE_INDICES,
+                () -> RowContextCollectorExpression.forFunction((SysSnapshot s) -> {
+                    List<String> concreteIndices = s.concreteIndices();
                     BytesRef[] indices = new BytesRef[concreteIndices.size()];
                     for (int i = 0; i < concreteIndices.size(); i++) {
                         indices[i] = BytesRefs.toBytesRef(concreteIndices.get(i));
                     }
                     return indices;
-                }
-            })
-            .put(SysSnapshotsTableInfo.Columns.STARTED, () -> new RowContextCollectorExpression<SysSnapshot, Long>() {
-                @Override
-                public Long value() {
-                    return row.started();
-                }
-            })
-            .put(SysSnapshotsTableInfo.Columns.FINISHED, () -> new RowContextCollectorExpression<SysSnapshot, Long>() {
-                @Override
-                public Long value() {
-                    return row.finished();
-                }
-            })
-            .put(SysSnapshotsTableInfo.Columns.VERSION, () -> new RowContextCollectorExpression<SysSnapshot, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.version());
-                }
-            })
-            .put(SysSnapshotsTableInfo.Columns.STATE, () -> new RowContextCollectorExpression<SysSnapshot, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return new BytesRef(row.state());
-                }
-            })
+                }))
+            .put(SysSnapshotsTableInfo.Columns.STARTED,
+                () -> RowContextCollectorExpression.forFunction(SysSnapshot::started))
+            .put(SysSnapshotsTableInfo.Columns.FINISHED,
+                () -> RowContextCollectorExpression.forFunction(SysSnapshot::finished))
+            .put(SysSnapshotsTableInfo.Columns.VERSION,
+                () -> RowContextCollectorExpression.objToBytesRef(SysSnapshot::version))
+            .put(SysSnapshotsTableInfo.Columns.STATE,
+                () -> RowContextCollectorExpression.objToBytesRef(SysSnapshot::state))
             .build();
     }
 
     private static Map<ColumnIdent, RowCollectExpressionFactory<SummitsContext>> getSummitsExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SummitsContext>>builder()
-            .put(SysSummitsTableInfo.Columns.MOUNTAIN, () -> new RowContextCollectorExpression<SummitsContext, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.mountain);
-                }
-            })
-            .put(SysSummitsTableInfo.Columns.HEIGHT, () -> new RowContextCollectorExpression<SummitsContext, Integer>() {
-                @Override
-                public Integer value() {
-                    return row.height;
-                }
-            })
-            .put(SysSummitsTableInfo.Columns.PROMINENCE, () -> new RowContextCollectorExpression<SummitsContext, Integer>() {
-                @Override
-                public Integer value() {
-                    return row.prominence;
-                }
-            })
-            .put(SysSummitsTableInfo.Columns.COORDINATES, () -> new RowContextCollectorExpression<SummitsContext, Double[]>() {
-                @Override
-                public Double[] value() {
-                    return row.coordinates;
-                }
-            })
-            .put(SysSummitsTableInfo.Columns.RANGE, () -> new RowContextCollectorExpression<SummitsContext, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.range);
-                }
-            })
-            .put(SysSummitsTableInfo.Columns.CLASSIFICATION, () -> new RowContextCollectorExpression<SummitsContext, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.classification);
-                }
-            })
-            .put(SysSummitsTableInfo.Columns.REGION, () -> new RowContextCollectorExpression<SummitsContext, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.region);
-                }
-            })
-            .put(SysSummitsTableInfo.Columns.COUNTRY, () -> new RowContextCollectorExpression<SummitsContext, BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.country);
-                }
-            })
-            .put(SysSummitsTableInfo.Columns.FIRST_ASCENT, () -> new RowContextCollectorExpression<SummitsContext, Integer>() {
-                @Override
-                public Integer value() {
-                    return row.firstAscent;
-                }
-            }).build();
+            .put(SysSummitsTableInfo.Columns.MOUNTAIN,
+                () -> RowContextCollectorExpression.objToBytesRef(SummitsContext::mountain))
+            .put(SysSummitsTableInfo.Columns.HEIGHT,
+                () -> RowContextCollectorExpression.forFunction(SummitsContext::height))
+            .put(SysSummitsTableInfo.Columns.PROMINENCE,
+                () -> RowContextCollectorExpression.forFunction(SummitsContext::prominence))
+            .put(SysSummitsTableInfo.Columns.COORDINATES,
+                () -> RowContextCollectorExpression.forFunction(SummitsContext::coordinates))
+            .put(SysSummitsTableInfo.Columns.RANGE,
+                () -> RowContextCollectorExpression.objToBytesRef(SummitsContext::range))
+            .put(SysSummitsTableInfo.Columns.CLASSIFICATION,
+                () -> RowContextCollectorExpression.objToBytesRef(SummitsContext::classification))
+            .put(SysSummitsTableInfo.Columns.REGION,
+                () -> RowContextCollectorExpression.objToBytesRef(SummitsContext::region))
+            .put(SysSummitsTableInfo.Columns.COUNTRY,
+                () -> RowContextCollectorExpression.objToBytesRef(SummitsContext::country))
+            .put(SysSummitsTableInfo.Columns.FIRST_ASCENT,
+                () -> RowContextCollectorExpression.forFunction(SummitsContext::firstAscent))
+            .build();
     }
 
     @Override
