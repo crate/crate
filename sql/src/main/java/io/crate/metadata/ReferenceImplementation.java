@@ -39,7 +39,7 @@ public interface ReferenceImplementation<T> extends Input<T> {
     }
 
 
-    static ReferenceImplementation<?> findInChildImplementations(ReferenceImplementation<?> impl, List<String> path) {
+    static ReferenceImplementation<?> getChildByPath(ReferenceImplementation<?> impl, List<String> path) {
         for (int i = 0; i < path.size(); i++) {
             impl = impl.getChildImplementation(path.get(i));
             if (impl == null) {

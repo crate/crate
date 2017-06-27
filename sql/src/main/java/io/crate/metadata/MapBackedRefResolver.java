@@ -47,6 +47,6 @@ public final class MapBackedRefResolver implements ReferenceResolver<ReferenceIm
         if (impl == null) {
             return null;
         }
-        return ReferenceImplementation.findInChildImplementations(impl, ident.columnIdent().path());
+        return ReferenceImplementation.getChildByPath(impl, ident.columnIdent().path());
     }
 }

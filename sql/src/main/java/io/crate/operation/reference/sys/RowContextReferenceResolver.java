@@ -24,13 +24,34 @@ package io.crate.operation.reference.sys;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.metadata.information.*;
+import io.crate.metadata.information.InformationColumnsTableInfo;
+import io.crate.metadata.information.InformationPartitionsTableInfo;
+import io.crate.metadata.information.InformationRoutinesTableInfo;
+import io.crate.metadata.information.InformationSchemataTableInfo;
+import io.crate.metadata.information.InformationSqlFeaturesTableInfo;
+import io.crate.metadata.information.InformationTableConstraintsTableInfo;
+import io.crate.metadata.information.InformationTablesTableInfo;
 import io.crate.metadata.pg_catalog.PgCatalogTables;
 import io.crate.metadata.pg_catalog.PgTypeTable;
-import io.crate.metadata.sys.*;
+import io.crate.metadata.sys.SysChecksTableInfo;
+import io.crate.metadata.sys.SysJobsLogTableInfo;
+import io.crate.metadata.sys.SysJobsTableInfo;
+import io.crate.metadata.sys.SysNodeChecksTableInfo;
+import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.metadata.sys.SysOperationsLogTableInfo;
+import io.crate.metadata.sys.SysOperationsTableInfo;
+import io.crate.metadata.sys.SysRepositoriesTableInfo;
+import io.crate.metadata.sys.SysShardsTableInfo;
+import io.crate.metadata.sys.SysSnapshotsTableInfo;
+import io.crate.metadata.sys.SysSummitsTableInfo;
 import io.crate.operation.collect.files.SummitsContext;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.information.InformationSchemaExpressionFactories;
@@ -488,13 +509,7 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
         if (factory == null) {
             return null;
         }
-        ReferenceImplementation referenceImplementation = factory.create();
-        for (String part : columnIdent.path()) {
-            referenceImplementation = referenceImplementation.getChildImplementation(part);
-            if (referenceImplementation == null) {
-                return null;
-            }
-        }
-        return (RowCollectExpression<?, ?>) referenceImplementation;
+        ReferenceImplementation refImpl = factory.create();
+        return (RowCollectExpression<?, ?>) ReferenceImplementation.getChildByPath(refImpl, columnIdent.path());
     }
 }
