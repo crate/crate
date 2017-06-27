@@ -73,6 +73,14 @@ def create_certs(out_dir, keystore_pw):
         '-keyout', ca_key,
         '-out', ca_crt
     ])
+    # the CA certificate should also be in the keystore for the
+    # node to be able to verify the client certificate
+    run(['keytool', '-importcert',
+         '-storepass', keystore_pw,
+         '-keystore', keystore,
+         '-file', ca_crt,
+         '-alias', 'therootca'
+    ])
     certs_and_keys = generate_for(ca_key, ca_crt, out_dir, 'node', 1)
     print(f'Importing node certificates into keystore, Use "{keystore_pw}" as pw.')
     for (cert, key) in certs_and_keys:
