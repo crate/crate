@@ -22,7 +22,7 @@ include 'es',
         'blackbox',
         'jmx-monitoring',
         'lang-js',
-        'users',
         'ssl',
+        'enterprise:users',
         'enterprise:ssl-impl',
         'http'
