@@ -21,9 +21,7 @@
 
 package io.crate.operation.reference.sys;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceImplementation;
@@ -69,8 +67,8 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.repositories.Repository;
 
-import javax.annotation.Nullable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Singleton
@@ -380,16 +378,12 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
             .put(SysSnapshotsTableInfo.Columns.CONCRETE_INDICES, () -> new RowContextCollectorExpression<SysSnapshot, BytesRef[]>() {
                 @Override
                 public BytesRef[] value() {
-                    return Lists.transform(row.concreteIndices(), new Function<String, BytesRef>() {
-                        @Nullable
-                        @Override
-                        public BytesRef apply(String input) {
-                            if (input == null) {
-                                return null;
-                            }
-                            return new BytesRef(input);
-                        }
-                    }).toArray(new BytesRef[row.concreteIndices().size()]);
+                    List<String> concreteIndices = row.concreteIndices();
+                    BytesRef[] indices = new BytesRef[concreteIndices.size()];
+                    for (int i = 0; i < concreteIndices.size(); i++) {
+                        indices[i] = BytesRefs.toBytesRef(concreteIndices.get(i));
+                    }
+                    return indices;
                 }
             })
             .put(SysSnapshotsTableInfo.Columns.STARTED, () -> new RowContextCollectorExpression<SysSnapshot, Long>() {
