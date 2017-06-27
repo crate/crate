@@ -30,16 +30,11 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Loads classes or values which are only available at runtime.
  */
 public class EnterpriseLoader {
-
-    private static final Map<Class<?>, Object> loadedInstances = new HashMap<>();
-    private static final Map<Method, Object> loadedValues = new HashMap<>();
 
     private EnterpriseLoader() {}
 
@@ -81,29 +76,22 @@ public class EnterpriseLoader {
                 instance = fallbackClazz
                     .getDeclaredConstructor(icwf.getConstructorParams())
                     .newInstance(args);
-                putCached(fallbackClazz, instance);
                 return instance;
             } catch (Throwable t) {
                 throw new ClassLoadingException("Loading the fallback failed", t);
             }
         } else {
             try {
-                T cachedInstance = getCached(loadedClass);
-                if (cachedInstance != null) {
-                    instance = cachedInstance;
-                } else {
-                    instance = loadedClass
-                        .getDeclaredConstructor(instantiableClass.getConstructorParams())
-                        .newInstance(args);
-                    putCached(loadedClass, instance);
-                }
+                instance = loadedClass
+                    .getDeclaredConstructor(instantiableClass.getConstructorParams())
+                    .newInstance(args);
                 return instance;
             } catch (Throwable t) {
                 // The JVM wraps the exception of dynamically loaded classes into an InvocationTargetException
                 // which we need to unpack first to see if we have an SslConfigurationException.
                 tryUnwrapInvocationException(t);
                 throw new ClassLoadingException(
-                    "Loading the SslConfiguringHandler failed although enterprise is enabled.", t);
+                    "Instantiating the enterprise class failed although enterprise is enabled.", t);
             }
         }
     }
@@ -120,13 +108,7 @@ public class EnterpriseLoader {
         final Object value;
         try {
             Method method = loadedClass.getMethod(methodName, loadableValue.getMethodParams());
-            Object cachedValue = getCached(method);
-            if (cachedValue != null) {
-                value = cachedValue;
-            } else {
-                value = method.invoke(null, args);
-                putCached(method, value);
-            }
+            value = method.invoke(null, args);
         } catch (Throwable t) {
             tryUnwrapInvocationException(t);
             throw new ClassLoadingException("Couldn't load the value", t);
@@ -139,32 +121,6 @@ public class EnterpriseLoader {
 
         //noinspection unchecked
         return (V) value;
-    }
-
-    private static <T> T getCached(Class<? extends T> clazz) {
-        synchronized (loadedInstances) {
-            //noinspection unchecked
-            return (T) loadedInstances.get(clazz);
-        }
-    }
-
-    private static <T> void putCached(Class<T> clazz, Object instance) {
-        synchronized (loadedInstances) {
-            loadedInstances.put(clazz, instance);
-        }
-    }
-
-    private static <T> T getCached(Method method) {
-        synchronized (loadedValues) {
-            //noinspection unchecked
-            return (T) loadedValues.get(method);
-        }
-    }
-
-    private static <T> void putCached(Method method, Object value) {
-        synchronized (loadedValues) {
-            loadedValues.put(method, value);
-        }
     }
 
     private static void tryUnwrapInvocationException(Throwable e) {

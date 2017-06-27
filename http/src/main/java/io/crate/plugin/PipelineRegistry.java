@@ -51,13 +51,13 @@ public final class PipelineRegistry {
 
     private static final LoadableValue<SslContext, Object> SSL_CONTEXT_LOADABLE = new SslContextLoadable();
 
-    private final Settings settings;
     private final List<ChannelPipelineItem> addBeforeList;
+    private final SslContext sslContext;
 
     @Inject
     public PipelineRegistry(Settings settings) {
-        this.settings = settings;
         this.addBeforeList = new ArrayList<>();
+        this.sslContext = loadSslContext(settings);
     }
 
     /**
@@ -99,7 +99,6 @@ public final class PipelineRegistry {
         for (PipelineRegistry.ChannelPipelineItem item : addBeforeList) {
             pipeline.addBefore(item.base, item.name, item.handlerFactory.get());
         }
-        SslContext sslContext = loadSslContext(settings);
         if (sslContext != null) {
             SslHandler sslHandler = sslContext.newHandler(pipeline.channel().alloc());
             pipeline.addFirst(sslHandler);
