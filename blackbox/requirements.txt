@@ -2,8 +2,8 @@ alabaster==0.7.8
 appdirs==1.4.0
 Babel==2.3.4
 colorama==0.3.7
-crash==0.20.0
-crate==0.19.4
+crash==0.21.0
+crate==0.20.0
 crate-docs-theme
 sphinx-csv-filter
 docutils==0.12

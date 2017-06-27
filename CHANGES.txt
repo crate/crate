@@ -36,6 +36,8 @@ Breaking Changes (Packaging only)
 Changes
 =======
 
+ - Upgraded Crash to 0.21.0.
+
  - Added support for ``GRANT`` and ``REVOKE`` privileges for accessing the
    cluster. Currently supported privilege types: ``DQL``, ``DML`` and ``DDL``.
 
@@ -49,6 +51,7 @@ Changes
  - Added SSL/TLS support for PostgreSQL Wire Protocol.
 
  - Updated Elasticsearch to 5.1.2
+
  - Extended the output of the  ``EXPLAIN`` statement.
 
  - Added support for joins on virtual tables.
