@@ -26,11 +26,6 @@ public abstract class RowContextCollectorExpression<TRow, TReturnValue> implemen
     protected TRow row;
 
     @Override
-    public ReferenceImplementation getChildImplementation(String name) {
-        return null;
-    }
-
-    @Override
     public void setNextRow(TRow row) {
         this.row = row;
     }

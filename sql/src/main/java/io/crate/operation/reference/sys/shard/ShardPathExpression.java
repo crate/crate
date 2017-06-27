@@ -38,9 +38,4 @@ public class ShardPathExpression implements ReferenceImplementation<BytesRef> {
     public BytesRef value() {
         return path;
     }
-
-    @Override
-    public ReferenceImplementation getChildImplementation(String name) {
-        return null;
-    }
 }

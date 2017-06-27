@@ -36,9 +36,4 @@ public class LiteralReferenceImplementation<T> implements ReferenceImplementatio
     public T value() {
         return value;
     }
-
-    @Override
-    public ReferenceImplementation getChildImplementation(String name) {
-        return null;
-    }
 }
