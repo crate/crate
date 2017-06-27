@@ -21,6 +21,11 @@
 
 package io.crate.metadata;
 
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
+
+import java.util.function.Function;
+
 public abstract class RowContextCollectorExpression<TRow, TReturnValue> implements RowCollectExpression<TRow, TReturnValue> {
 
     protected TRow row;
@@ -28,5 +33,27 @@ public abstract class RowContextCollectorExpression<TRow, TReturnValue> implemen
     @Override
     public void setNextRow(TRow row) {
         this.row = row;
+    }
+
+    public static <TRow, TReturnValue> RowCollectExpression<TRow, TReturnValue> forFunction(Function<TRow, TReturnValue> fun) {
+        return new FuncExpression<>(fun);
+    }
+
+    public static <TRow> RowCollectExpression<TRow, BytesRef> objToBytesRef(Function<TRow, Object> fun) {
+        return forFunction(fun.andThen(BytesRefs::toBytesRef));
+    }
+
+    private static class FuncExpression<TRow, TReturnVal> extends RowContextCollectorExpression<TRow, TReturnVal> {
+
+        private final Function<TRow, TReturnVal> f;
+
+        FuncExpression(Function<TRow, TReturnVal> f) {
+            this.f = f;
+        }
+
+        @Override
+        public TReturnVal value() {
+            return f.apply(row);
+        }
     }
 }

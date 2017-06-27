@@ -29,6 +29,7 @@ public class OperationContext {
     public final int id;
     public final UUID jobId;
     public final String name;
+
     public final long started;
     public long usedBytes;
 
@@ -37,6 +38,26 @@ public class OperationContext {
         this.jobId = jobId;
         this.name = name;
         this.started = started;
+    }
+
+    public int id() {
+        return id;
+    }
+
+    public UUID jobId() {
+        return jobId;
+    }
+
+    public String name() {
+        return name;
+    }
+
+    public long started() {
+        return started;
+    }
+
+    public long usedBytes() {
+        return usedBytes;
     }
 
     @Override
