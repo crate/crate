@@ -141,7 +141,7 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
         }
     }
 
-    public static class Builder implements BulkRequestBuilder<ShardDeleteRequest> {
+    public static class Builder {
 
         private final TimeValue timeout;
         private final UUID jobId;
@@ -151,11 +151,10 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
             this.jobId = jobId;
         }
 
-        @Override
-        public ShardDeleteRequest newRequest(ShardId shardId, String routing) {
+        public ShardDeleteRequest newRequest(ShardId shardId) {
             return new ShardDeleteRequest(
                 shardId,
-                routing,
+                null,
                 jobId)
                 .timeout(timeout);
         }

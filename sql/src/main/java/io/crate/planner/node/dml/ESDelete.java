@@ -33,28 +33,21 @@ import java.util.UUID;
 public class ESDelete extends UnnestablePlan {
 
     private final UUID jobId;
-    private final int executionPhaseId;
     private final DocTableInfo tableInfo;
     private final List<DocKeys.DocKey> docKeys;
     private final Map<Integer, Integer> itemToBulkIdx;
     private final int bulkSize;
 
     public ESDelete(UUID jobId,
-                    int executionPhaseId,
                     DocTableInfo tableInfo,
                     List<DocKeys.DocKey> docKeys,
                     Map<Integer, Integer> itemToBulkIdx,
                     int bulkSize) {
         this.jobId = jobId;
-        this.executionPhaseId = executionPhaseId;
         this.tableInfo = tableInfo;
         this.docKeys = docKeys;
         this.itemToBulkIdx = itemToBulkIdx;
         this.bulkSize = bulkSize;
-    }
-
-    public int executionPhaseId() {
-        return executionPhaseId;
     }
 
     public DocTableInfo tableInfo() {

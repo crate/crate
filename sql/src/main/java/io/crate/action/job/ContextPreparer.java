@@ -145,7 +145,6 @@ public class ContextPreparer extends AbstractComponent {
             clusterService,
             nodeJobsCounter,
             functions,
-            indexNameExpressionResolver,
             threadPool,
             settings,
             transportActionProvider,

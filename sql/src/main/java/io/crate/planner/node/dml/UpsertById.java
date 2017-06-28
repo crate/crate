@@ -93,10 +93,8 @@ public class UpsertById extends UnnestablePlan {
 
 
     private final UUID jobId;
-    private final boolean partitionedTable;
     private final int numBulkResponses;
     private final List<Item> items;
-    private final int executionPhaseId;
     private final List<Integer> bulkIndices;
 
     @Nullable
@@ -105,30 +103,20 @@ public class UpsertById extends UnnestablePlan {
     private final Reference[] insertColumns;
 
     public UpsertById(UUID jobId,
-                      int executionPhaseId,
-                      boolean partitionedTable,
                       int numBulkResponses,
                       List<Integer> bulkIndices,
                       @Nullable String[] updateColumns,
                       @Nullable Reference[] insertColumns) {
         this.jobId = jobId;
-        this.partitionedTable = partitionedTable;
         this.numBulkResponses = numBulkResponses;
         this.bulkIndices = bulkIndices;
         this.updateColumns = updateColumns;
         this.insertColumns = insertColumns;
         this.items = new ArrayList<>();
-        this.executionPhaseId = executionPhaseId;
     }
 
-    public UpsertById(UUID jobId,
-                      int executionPhaseId,
-                      boolean partitionedTable,
-                      int numBulkResponses,
-                      @Nullable String[] updateColumns,
-                      @Nullable Reference[] insertColumns) {
-        this(jobId, executionPhaseId, partitionedTable, numBulkResponses, new ArrayList<Integer>(),
-            updateColumns, insertColumns);
+    public static UpsertById forUpdate(UUID jobId, int numBulkResponses, @Nullable String[] updateColumns) {
+        return new UpsertById(jobId, numBulkResponses, new ArrayList<>(), updateColumns, null);
     }
 
     @Nullable
@@ -139,10 +127,6 @@ public class UpsertById extends UnnestablePlan {
     @Nullable
     public Reference[] insertColumns() {
         return insertColumns;
-    }
-
-    public boolean isPartitionedTable() {
-        return partitionedTable;
     }
 
     public int numBulkResponses() {
@@ -172,10 +156,6 @@ public class UpsertById extends UnnestablePlan {
 
     public List<Item> items() {
         return items;
-    }
-
-    public int executionPhaseId() {
-        return executionPhaseId;
     }
 
     @Override

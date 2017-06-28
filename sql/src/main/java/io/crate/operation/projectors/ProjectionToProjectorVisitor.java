@@ -35,7 +35,12 @@ import io.crate.data.Row;
 import io.crate.executor.transport.ShardDeleteRequest;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.AggregationContext;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
@@ -47,17 +52,34 @@ import io.crate.operation.projectors.fetch.TransportFetchOperation;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.SysRowUpdater;
-import io.crate.planner.projection.*;
+import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.ColumnIndexWriterProjection;
+import io.crate.planner.projection.DeleteProjection;
+import io.crate.planner.projection.EvalProjection;
+import io.crate.planner.projection.FetchProjection;
+import io.crate.planner.projection.FilterProjection;
+import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.MergeCountProjection;
+import io.crate.planner.projection.OrderedTopNProjection;
+import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.ProjectionVisitor;
+import io.crate.planner.projection.SourceIndexWriterProjection;
+import io.crate.planner.projection.SysUpdateProjection;
+import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.UpdateProjection;
+import io.crate.planner.projection.WriterProjection;
 import io.crate.types.StringType;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
-import java.util.*;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -69,7 +91,6 @@ public class ProjectionToProjectorVisitor
     private final ClusterService clusterService;
     private final NodeJobsCounter nodeJobsCounter;
     private final Functions functions;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final ThreadPool threadPool;
     private final Settings settings;
     private final TransportActionProvider transportActionProvider;
@@ -82,7 +103,6 @@ public class ProjectionToProjectorVisitor
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         NodeJobsCounter nodeJobsCounter,
                                         Functions functions,
-                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
@@ -93,7 +113,6 @@ public class ProjectionToProjectorVisitor
         this.clusterService = clusterService;
         this.nodeJobsCounter = nodeJobsCounter;
         this.functions = functions;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.threadPool = threadPool;
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
@@ -106,7 +125,6 @@ public class ProjectionToProjectorVisitor
     public ProjectionToProjectorVisitor(ClusterService clusterService,
                                         NodeJobsCounter nodeJobsCounter,
                                         Functions functions,
-                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
@@ -116,7 +134,6 @@ public class ProjectionToProjectorVisitor
         this(clusterService,
             nodeJobsCounter,
             functions,
-            indexNameExpressionResolver,
             threadPool,
             settings,
             transportActionProvider,
@@ -250,7 +267,7 @@ public class ProjectionToProjectorVisitor
         uri = sb.toString();
 
         return new FileWriterProjector(
-            ((ThreadPoolExecutor) threadPool.generic()),
+            threadPool.generic(),
             uri,
             projection.compressionType(),
             inputs,
@@ -389,7 +406,7 @@ public class ProjectionToProjectorVisitor
             resolveUidCollectExpression(projection.uidSymbol()),
             clusterService,
             nodeJobsCounter,
-            () -> builder.newRequest(shardId, null),
+            () -> builder.newRequest(shardId),
             ShardDeleteRequest.Item::new,
             transportActionProvider.transportShardDeleteAction()::execute
         );

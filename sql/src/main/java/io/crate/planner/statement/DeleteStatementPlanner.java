@@ -49,7 +49,12 @@ import io.crate.planner.projection.MergeCountProjection;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.Preference;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class DeleteStatementPlanner {
 
@@ -79,8 +84,8 @@ public final class DeleteStatementPlanner {
         }
 
         if (!docKeys.isEmpty()) {
-            return new ESDelete(context.jobId(),
-                context.nextExecutionPhaseId(),
+            return new ESDelete(
+                context.jobId(),
                 tableRelation.tableInfo(),
                 docKeys,
                 itemToBulkIdx,

@@ -408,7 +408,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         }
     }
 
-    public static class Builder implements BulkRequestBuilder<ShardUpsertRequest> {
+    public static class Builder {
 
         private final TimeValue timeout;
         private final boolean overwriteDuplicates;
@@ -455,7 +455,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             this.validateGeneratedColumns = validateGeneratedColumns;
         }
 
-        @Override
         public ShardUpsertRequest newRequest(ShardId shardId, String routing) {
             return new ShardUpsertRequest(
                 shardId,

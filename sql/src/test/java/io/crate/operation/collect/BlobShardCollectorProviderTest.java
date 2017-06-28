@@ -100,8 +100,7 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
                 BlobIndicesService blobIndicesService = internalCluster().getDataNodeInstance(BlobIndicesService.class);
                 BlobShard blobShard = blobIndicesService.blobShard(new ShardId(".blob_b1", indexUUID, 0));
                 assertNotNull(blobShard);
-                collectorProvider = new BlobShardCollectorProvider(blobShard, null, null, null,
-                    null, null, null, null);
+                collectorProvider = new BlobShardCollectorProvider(blobShard, null, null, null, null, null, null);
                 assertNotNull(collectorProvider);
             } catch (Exception e) {
                 fail("Exception shouldn't be thrown: " + e.getMessage());

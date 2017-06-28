@@ -140,7 +140,6 @@ public class TransportExecutor implements Executor {
             clusterService,
             nodeJobsCounter,
             functions,
-            indexNameExpressionResolver,
             threadPool,
             settings,
             transportActionProvider,

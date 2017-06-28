@@ -23,13 +23,41 @@
 package io.crate.planner;
 
 import com.google.common.base.Preconditions;
-import io.crate.analyze.*;
+import io.crate.analyze.Analysis;
+import io.crate.analyze.AnalyzedBegin;
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.analyze.CopyFromAnalyzedStatement;
+import io.crate.analyze.CopyToAnalyzedStatement;
+import io.crate.analyze.CreateAnalyzerAnalyzedStatement;
+import io.crate.analyze.CreateTableAnalyzedStatement;
+import io.crate.analyze.DDLStatement;
+import io.crate.analyze.DeleteAnalyzedStatement;
+import io.crate.analyze.DropBlobTableAnalyzedStatement;
+import io.crate.analyze.DropTableAnalyzedStatement;
+import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.ExplainAnalyzedStatement;
+import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
+import io.crate.analyze.InsertFromValuesAnalyzedStatement;
+import io.crate.analyze.KillAnalyzedStatement;
+import io.crate.analyze.QuerySpec;
+import io.crate.analyze.ResetAnalyzedStatement;
+import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.SetAnalyzedStatement;
+import io.crate.analyze.ShowCreateTableAnalyzedStatement;
+import io.crate.analyze.UpdateAnalyzedStatement;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.metadata.*;
+import io.crate.metadata.Functions;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.Routing;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.projectors.TopN;
@@ -60,7 +88,14 @@ import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
@@ -360,8 +395,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
         UpsertById upsertById = new UpsertById(
             context.jobId(),
-            context.nextExecutionPhaseId(),
-            analysis.tableInfo().isPartitioned(),
             analysis.numBulkResponses(),
             analysis.bulkIndices(),
             onDuplicateKeyAssignmentsColumns,

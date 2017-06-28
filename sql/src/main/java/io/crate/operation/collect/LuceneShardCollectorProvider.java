@@ -67,13 +67,12 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         ClusterService clusterService,
                                         NodeJobsCounter nodeJobsCounter,
                                         Functions functions,
-                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                         ThreadPool threadPool,
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
                                         IndexShard indexShard) {
         super(clusterService, nodeJobsCounter, ShardReferenceResolver.create(clusterService, schemas, indexShard),
-            functions, indexNameExpressionResolver, threadPool, settings, transportActionProvider, indexShard);
+            functions, threadPool, settings, transportActionProvider, indexShard);
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.indexShard = indexShard;
         this.localNodeId = clusterService.localNode().getId();

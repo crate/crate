@@ -42,7 +42,6 @@ import io.crate.operation.reference.ReferenceResolver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.Projections;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
@@ -62,7 +61,6 @@ public abstract class ShardCollectorProvider {
                            NodeJobsCounter nodeJobsCounter,
                            ReferenceResolver<ReferenceImplementation<?>> shardResolver,
                            Functions functions,
-                           IndexNameExpressionResolver indexNameExpressionResolver,
                            ThreadPool threadPool,
                            Settings settings,
                            TransportActionProvider transportActionProvider,
@@ -79,7 +77,6 @@ public abstract class ShardCollectorProvider {
             clusterService,
             nodeJobsCounter,
             functions,
-            indexNameExpressionResolver,
             threadPool,
             settings,
             transportActionProvider,

@@ -30,17 +30,33 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
-import io.crate.data.*;
-import io.crate.exceptions.TableUnknownException;
+import io.crate.data.AsyncCompositeBatchIterator;
+import io.crate.data.BatchConsumer;
+import io.crate.data.BatchIterator;
+import io.crate.data.Buckets;
+import io.crate.data.CompositeBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowsBatchIterator;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.*;
+import io.crate.metadata.Functions;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
-import io.crate.operation.collect.*;
+import io.crate.operation.collect.BatchIteratorCollectorBridge;
+import io.crate.operation.collect.BlobShardCollectorProvider;
+import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.LuceneShardCollectorProvider;
+import io.crate.operation.collect.RemoteCollectorFactory;
+import io.crate.operation.collect.RowsCollector;
+import io.crate.operation.collect.ShardCollectorProvider;
 import io.crate.operation.collect.collectors.CompositeCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.collect.collectors.OrderedLuceneBatchIteratorFactory;
@@ -56,7 +72,6 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projections;
 import io.crate.plugin.IndexEventListenerProxy;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -69,7 +84,11 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.shard.*;
+import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import org.elasticsearch.index.shard.IndexEventListener;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -134,7 +153,6 @@ import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 public class ShardCollectSource extends AbstractComponent implements CollectSource {
 
     private final Schemas schemas;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final IndicesService indicesService;
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
@@ -154,7 +172,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     @Inject
     public ShardCollectSource(Settings settings,
                               Schemas schemas,
-                              IndexNameExpressionResolver indexNameExpressionResolver,
                               IndicesService indicesService,
                               Functions functions,
                               ClusterService clusterService,
@@ -170,7 +187,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         super(settings);
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.schemas = schemas;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.nodeJobsCounter = nodeJobsCounter;
@@ -193,7 +209,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             clusterService,
             nodeJobsCounter,
             functions,
-            indexNameExpressionResolver,
             threadPool,
             settings,
             transportActionProvider,
@@ -238,11 +253,11 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             if (isBlobIndex(indexShard.shardId().getIndexName())) {
                 BlobShard blobShard = blobIndicesService.blobShardSafe(indexShard.shardId());
                 provider = new BlobShardCollectorProvider(blobShard, clusterService, nodeJobsCounter, functions,
-                    indexNameExpressionResolver, threadPool, settings, transportActionProvider);
+                    threadPool, settings, transportActionProvider);
             } else {
                 provider = new LuceneShardCollectorProvider(
                     schemas, luceneQueryBuilder, clusterService, nodeJobsCounter, functions,
-                    indexNameExpressionResolver, threadPool, settings, transportActionProvider, indexShard);
+                    threadPool, settings, transportActionProvider, indexShard);
             }
             shards.put(indexShard.shardId(), provider);
 

@@ -47,7 +47,6 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
@@ -87,7 +86,6 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
             mock(ClusterService.class),
             new NodeJobsCounter(),
             functions,
-            new IndexNameExpressionResolver(Settings.EMPTY),
             threadPool,
             Settings.EMPTY,
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),

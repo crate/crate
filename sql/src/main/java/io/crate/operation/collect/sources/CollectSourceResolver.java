@@ -48,7 +48,6 @@ import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.TableFunctionCollectPhase;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -74,7 +73,6 @@ public class CollectSourceResolver {
     @Inject
     public CollectSourceResolver(ClusterService clusterService,
                                  NodeJobsCounter nodeJobsCounter,
-                                 IndexNameExpressionResolver indexNameExpressionResolver,
                                  Functions functions,
                                  Settings settings,
                                  ThreadPool threadPool,
@@ -95,7 +93,6 @@ public class CollectSourceResolver {
             clusterService,
             nodeJobsCounter,
             functions,
-            indexNameExpressionResolver,
             threadPool,
             settings,
             transportActionProvider,
