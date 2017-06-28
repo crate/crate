@@ -20,6 +20,7 @@ package io.crate.operation.user;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.user.Privilege;
+import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
@@ -38,7 +39,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 
 @Singleton
@@ -78,21 +82,47 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
             new AckedClusterStateUpdateTask<PrivilegesResponse>(Priority.IMMEDIATE, request, listener) {
 
                 long affectedRows = -1;
+                List<String> unknownUserNames = null;
 
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     MetaData currentMetaData = currentState.metaData();
                     MetaData.Builder mdBuilder = MetaData.builder(currentMetaData);
-                    affectedRows = applyPrivileges(mdBuilder, request);
+                    unknownUserNames = validateUserNames(currentMetaData, request.userNames());
+                    if (unknownUserNames.isEmpty()) {
+                        affectedRows = applyPrivileges(mdBuilder, request);
+                    }
                     return ClusterState.builder(currentState).metaData(mdBuilder).build();
                 }
 
                 @Override
                 protected PrivilegesResponse newResponse(boolean acknowledged) {
-                    return new PrivilegesResponse(acknowledged, affectedRows);
+                    return new PrivilegesResponse(acknowledged, affectedRows, unknownUserNames);
                 }
             });
 
+    }
+
+    @VisibleForTesting
+    static List<String> validateUserNames(MetaData metaData, Collection<String> userNames) {
+        UsersMetaData usersMetaData = metaData.custom(UsersMetaData.TYPE);
+        if (usersMetaData == null) {
+            return new ArrayList<>(userNames);
+        }
+        List<String> unknownUserNames = null;
+        for (String userName : userNames) {
+            //noinspection PointlessBooleanExpression
+            if (usersMetaData.users().contains(userName) == false) {
+                if (unknownUserNames == null) {
+                    unknownUserNames = new ArrayList<>();
+                }
+                unknownUserNames.add(userName);
+            }
+        }
+        if (unknownUserNames == null) {
+            return Collections.emptyList();
+        }
+        return unknownUserNames;
     }
 
     @VisibleForTesting

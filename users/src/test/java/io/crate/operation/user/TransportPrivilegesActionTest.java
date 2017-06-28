@@ -18,7 +18,9 @@
 
 package io.crate.operation.user;
 
+import com.google.common.collect.Lists;
 import io.crate.analyze.user.Privilege;
+import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -26,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -67,7 +70,7 @@ public class TransportPrivilegesActionTest extends CrateUnitTest {
 
     @Test
     public void testRevokeWithoutGrant() throws Exception {
-        PrivilegesRequest request = new PrivilegesRequest(Arrays.asList("Arthur"), Arrays.asList(
+        PrivilegesRequest request = new PrivilegesRequest(Collections.singletonList("Arthur"), Collections.singletonList(
             new Privilege(Privilege.State.REVOKE, Privilege.Type.DCL, Privilege.Clazz.CLUSTER, null, "crate")));
 
         long rowCount = TransportPrivilegesAction.applyPrivileges(mdBuilder, request);
@@ -78,7 +81,7 @@ public class TransportPrivilegesActionTest extends CrateUnitTest {
 
     @Test
     public void testRevokeWithGrant() throws Exception {
-        PrivilegesRequest request = new PrivilegesRequest(Arrays.asList("Arthur"), Arrays.asList(
+        PrivilegesRequest request = new PrivilegesRequest(Collections.singletonList("Arthur"), Collections.singletonList(
             new Privilege(Privilege.State.REVOKE, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate")));
 
         long rowCount = TransportPrivilegesAction.applyPrivileges(mdBuilder, request);
@@ -89,12 +92,39 @@ public class TransportPrivilegesActionTest extends CrateUnitTest {
 
     @Test
     public void testRevokeWithGrantOfDifferentGrantor() throws Exception {
-        PrivilegesRequest request = new PrivilegesRequest(Arrays.asList("Arthur"), Arrays.asList(
+        PrivilegesRequest request = new PrivilegesRequest(Collections.singletonList("Arthur"), Collections.singletonList(
             new Privilege(Privilege.State.REVOKE, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "hoschi")));
 
         long rowCount = TransportPrivilegesAction.applyPrivileges(mdBuilder, request);
         assertThat(rowCount, is(1L));
         UsersPrivilegesMetaData privilegesMetaData = (UsersPrivilegesMetaData) mdBuilder.getCustom(UsersPrivilegesMetaData.TYPE);
         assertThat(privilegesMetaData.getUserPrivileges("Arthur"), contains(GRANT_DQL));
+    }
+
+    @Test
+    public void testValidateUserNamesEmptyUsers() throws Exception {
+        List<String> userNames = Lists.newArrayList("ford", "arthur");
+        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(MetaData.EMPTY_META_DATA, userNames);
+        assertThat(unknownUserNames, is(userNames));
+    }
+
+    @Test
+    public void testValidateUserNamesMissingUser() throws Exception {
+        MetaData metaData = MetaData.builder()
+            .putCustom(UsersMetaData.TYPE, new UsersMetaData(Collections.singletonList("ford")))
+            .build();
+        List<String> userNames = Lists.newArrayList("ford", "arthur");
+        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metaData, userNames);
+        assertThat(unknownUserNames, contains("arthur"));
+    }
+
+    @Test
+    public void testValidateUserNamesAllExists() throws Exception {
+        List<String> userNames = Lists.newArrayList("ford", "arthur");
+        MetaData metaData = MetaData.builder()
+            .putCustom(UsersMetaData.TYPE, new UsersMetaData(userNames))
+            .build();
+        List<String> unknownUserNames = TransportPrivilegesAction.validateUserNames(metaData, userNames);
+        assertThat(unknownUserNames.size(), is(0));
     }
 }

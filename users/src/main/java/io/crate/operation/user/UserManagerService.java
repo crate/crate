@@ -63,6 +63,13 @@ public class UserManagerService implements UserManager, ClusterStateListener {
         }
     };
 
+    private static final Consumer<User> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER = user -> {
+        if (user != null && user.isSuperUser()) {
+            throw new UnsupportedOperationException(String.format(
+                Locale.ENGLISH, "Cannot alter privileges for superuser '%s'", user.name()));
+        }
+    };
+
     private final TransportCreateUserAction transportCreateUserAction;
     private final TransportDropUserAction transportDropUserAction;
     private final TransportPrivilegesAction transportPrivilegesAction;
@@ -125,8 +132,14 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     @Override
     public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
-        validateUsernames(userNames, this);
-        FutureActionListener<PrivilegesResponse, Long> listener = new FutureActionListener<>(PrivilegesResponse::affectedRows);
+        userNames.forEach(s -> ENSURE_PRIVILEGE_USER_NOT_SUPERUSER.accept(findUser(s)));
+        FutureActionListener<PrivilegesResponse, Long> listener = new FutureActionListener<>(r -> {
+            //noinspection PointlessBooleanExpression
+            if (r.unknownUserNames().isEmpty() == false) {
+                throw new UserUnknownException(r.unknownUserNames());
+            }
+            return r.affectedRows();
+        });
         transportPrivilegesAction.execute(new PrivilegesRequest(userNames, privileges), listener);
         return listener;
     }
@@ -181,18 +194,5 @@ public class UserManagerService implements UserManager, ClusterStateListener {
             }
         }
         return null;
-    }
-
-    @VisibleForTesting
-    static void validateUsernames(Collection<String> userNames, UserLookup userLookup) {
-        for (String userName : userNames) {
-            User user = userLookup.findUser(userName);
-            if (user == null) {
-                throw new UserUnknownException(userName);
-            } else if (user.isSuperUser()) {
-                throw new UnsupportedOperationException(String.format(
-                    Locale.ENGLISH, "Cannot alter privileges for superuser '%s'", userName));
-            }
-        }
     }
 }

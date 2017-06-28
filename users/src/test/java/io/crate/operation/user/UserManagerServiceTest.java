@@ -20,15 +20,12 @@ package io.crate.operation.user;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import io.crate.exceptions.UserUnknownException;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.Set;
 
 import static io.crate.operation.user.UserManagerService.CRATE_USER;
@@ -85,25 +82,5 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     public void testGetNoopExceptionValidatorForSuperUser() throws Exception {
         ExceptionAuthorizedValidator validator = userManagerService.getExceptionValidator(CRATE_USER);
         assertThat(validator, is(NOOP_EXCEPTION_VALIDATOR));
-    }
-
-    @Test
-    public void testValidateExistingUserName() {
-        // must not throw an exception, user is found
-        UserManagerService.validateUsernames(Lists.newArrayList("ford"), s -> new User(s, Collections.emptySet(), Collections.emptySet()));
-    }
-
-    @Test
-    public void testValidateNonExistingUserNameThrowsException() {
-        expectedException.expect(UserUnknownException.class);
-        expectedException.expectMessage("User 'ford' does not exist");
-        UserManagerService.validateUsernames(Lists.newArrayList("ford"), s -> null);
-    }
-
-    @Test
-    public void testValidateSuperUserThrowsException() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot alter privileges for superuser 'crate'");
-        UserManagerService.validateUsernames(Lists.newArrayList(CRATE_USER.name()), s -> CRATE_USER);
     }
 }

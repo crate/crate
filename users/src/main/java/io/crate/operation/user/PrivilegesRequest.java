@@ -34,15 +34,15 @@ public class PrivilegesRequest extends AcknowledgedRequest<PrivilegesRequest> {
     private Collection<String> userNames;
     private Collection<Privilege> privileges;
 
-    public PrivilegesRequest() {
+    PrivilegesRequest() {
     }
 
-    public PrivilegesRequest(Collection<String> userNames, Collection<Privilege> privileges) {
+    PrivilegesRequest(Collection<String> userNames, Collection<Privilege> privileges) {
         this.userNames = userNames;
         this.privileges = privileges;
     }
 
-    public Collection<String> userNames() {
+    Collection<String> userNames() {
         return userNames;
     }
 

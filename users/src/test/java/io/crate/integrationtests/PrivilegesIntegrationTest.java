@@ -99,4 +99,18 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
                                         superuserName + "'");
         executeAsSuperuser("grant DQL to " + superuserName);
     }
+
+    @Test
+    public void testApplyPrivilegesToUnknownUserThrowsException() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("UserUnknownException: User 'unknown_user' does not exist");
+        executeAsSuperuser("grant DQL to unknown_user");
+    }
+
+    @Test
+    public void testApplyPrivilegesToMultipleUnknownUsersThrowsException() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("UserUnknownException: Users 'unknown_user, also_unknown' do not exist");
+        executeAsSuperuser("grant DQL to unknown_user, also_unknown");
+    }
 }

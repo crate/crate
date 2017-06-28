@@ -22,17 +22,31 @@
 
 package io.crate.exceptions;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 
 public class UserUnknownException extends ResourceUnknownException implements UnscopedException {
 
     public UserUnknownException(String userName) {
-        super(String.format(
-            Locale.ENGLISH, "User '%s' does not exist", userName));
+        super(getMessage(Collections.singletonList(userName)));
+    }
+
+    public UserUnknownException(List<String> userNames) {
+        super(getMessage(userNames));
     }
 
     @Override
     public int errorCode() {
         return 36370;  // <-- will be added to 4040, results in 40410
+    }
+
+    private static String getMessage(List<String> userNames) {
+        //noinspection PointlessBooleanExpression
+        assert userNames.isEmpty() == false : "At least one username must be provided";
+        if (userNames.size() == 1) {
+            return String.format(Locale.ENGLISH, "User '%s' does not exist", userNames.get(0));
+        }
+        return String.format(Locale.ENGLISH, "Users '%s' do not exist", String.join(", ", userNames));
     }
 }
