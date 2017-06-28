@@ -442,7 +442,7 @@ task downloadPlugins(
         dependsOn: ['downloadAdminUI',
                     ':es:es-repository-hdfs:jar',
                     ':azure-discovery:jar',
-                    ':jmx-monitoring:jar',
+                    ':enterprise:jmx-monitoring:jar',
                     ':lang-js:jar']) {
     doLast {
         // copy es-repository-hdfs plugin
@@ -468,7 +468,7 @@ task downloadPlugins(
             into 'adminui'
         }
         copy {
-            from(project(':jmx-monitoring').tasks.jar.archivePath)
+            from(project(':enterprise:jmx-monitoring').tasks.jar.archivePath)
             into 'plugins/jmx-monitoring'
         }
 
