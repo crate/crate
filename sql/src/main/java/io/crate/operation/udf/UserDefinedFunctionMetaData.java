@@ -44,11 +44,11 @@ public class UserDefinedFunctionMetaData implements Streamable, ToXContent {
     private String name;
     private String schema;
     private List<FunctionArgumentDefinition> arguments;
-    DataType returnType;
+    private DataType returnType;
     private List<DataType> argumentTypes;
-    String language;
-    String definition;
-    String specificName;
+    private String language;
+    private String definition;
+    private String specificName;
 
     public UserDefinedFunctionMetaData(String schema,
                                        String name,
