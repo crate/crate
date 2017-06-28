@@ -58,7 +58,7 @@ public class PrivilegesMetaDataUpgrader implements CustomMetaDataUpgrader {
                     privilegesMetaData.createPrivileges(userName, userPrivileges);
 
                     // add GRANT privileges for all available types on the CLUSTER class
-                    for (Privilege.Type privilegeType : Privilege.GRANTABLE_TYPES) {
+                    for (Privilege.Type privilegeType : Privilege.Type.values()) {
                         userPrivileges.add(
                             new Privilege(
                                 Privilege.State.GRANT,

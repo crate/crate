@@ -71,7 +71,7 @@ public class TransportPrivilegesActionTest extends CrateUnitTest {
     @Test
     public void testRevokeWithoutGrant() throws Exception {
         PrivilegesRequest request = new PrivilegesRequest(Collections.singletonList("Arthur"), Collections.singletonList(
-            new Privilege(Privilege.State.REVOKE, Privilege.Type.DCL, Privilege.Clazz.CLUSTER, null, "crate")));
+            new Privilege(Privilege.State.REVOKE, Privilege.Type.DDL, Privilege.Clazz.CLUSTER, null, "crate")));
 
         long rowCount = TransportPrivilegesAction.applyPrivileges(mdBuilder, request);
         assertThat(rowCount, is(0L));

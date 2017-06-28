@@ -30,6 +30,7 @@ import io.crate.sql.tree.RevokePrivilege;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -46,7 +47,7 @@ class PrivilegesAnalyzer {
 
         Collection<Privilege.Type> privilegeTypes;
         if (node.all()) {
-            privilegeTypes = Privilege.GRANTABLE_TYPES;
+            privilegeTypes = Arrays.asList(Privilege.Type.values());
         } else {
             privilegeTypes = parsePrivilegeTypes(node.privileges());
         }
@@ -58,7 +59,7 @@ class PrivilegesAnalyzer {
         ensureUserManagementEnabled(user);
         Collection<Privilege.Type> privilegeTypes;
         if (node.all()) {
-            privilegeTypes = Privilege.GRANTABLE_TYPES;
+            privilegeTypes = Arrays.asList(Privilege.Type.values());
         } else {
             privilegeTypes = parsePrivilegeTypes(node.privileges());
         }
@@ -82,7 +83,8 @@ class PrivilegesAnalyzer {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Unknown privilege type '%s'", typeName));
             }
-            if (Privilege.GRANTABLE_TYPES.contains(privilegeType) == false) {
+            //noinspection PointlessBooleanExpression
+            if (Arrays.asList(Privilege.Type.values()).contains(privilegeType) == false) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Unknown privilege type '%s'", typeName));
             }

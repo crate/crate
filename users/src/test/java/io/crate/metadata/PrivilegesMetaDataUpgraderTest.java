@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -77,7 +78,7 @@ public class PrivilegesMetaDataUpgraderTest extends CrateUnitTest {
         Set<Privilege> userPrivileges = privilegesMetaData.getUserPrivileges("Arthur");
         assertThat(userPrivileges, notNullValue());
         Set<Privilege.Type> privilegeTypes = userPrivileges.stream().map(Privilege::type).collect(Collectors.toSet());
-        assertThat(privilegeTypes, is(Privilege.GRANTABLE_TYPES));
+        assertThat(privilegeTypes, containsInAnyOrder(Privilege.Type.values()));
     }
 
     @Test
