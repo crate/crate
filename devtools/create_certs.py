@@ -27,7 +27,19 @@ def create_key_and_csr(key, csr):
     ])
 
 
-def create_crt(csr, crt, root_ca_crt, root_ca_key):
+def create_crt(csr, crt, root_ca_crt, root_ca_key, out_dir):
+    cn = splitext(basename(csr))[0]
+    ssl_ext_template = f"""authorityKeyIdentifier=keyid,issuer
+basicConstraints=CA:FALSE
+keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+subjectAltName = @alt_names
+
+[alt_names]
+DNS.1 = {cn}
+"""
+    with open(join(out_dir, 'ssl.ext'),'w') as f:
+        f.write(ssl_ext_template)
+
     run(['openssl', 'x509', '-req',
          '-in', csr,
          '-CA', root_ca_crt,
@@ -35,7 +47,9 @@ def create_crt(csr, crt, root_ca_crt, root_ca_key):
          '-CAcreateserial',
          '-out', crt,
          '-sha256',
-         '-days', '365'])
+         '-days', '365',
+         '-extfile', join(out_dir, 'ssl.ext')
+    ])
 
 
 def generate_for(root_ca_key, root_ca_crt, out_dir, entity, num_default):
@@ -52,7 +66,7 @@ def generate_for(root_ca_key, root_ca_crt, out_dir, entity, num_default):
         certs_and_keys.append((crt, key))
         print(f'Creating {entity} key, csr and cert for {name}')
         create_key_and_csr(key, csr)
-        create_crt(csr, crt, root_ca_crt, root_ca_key)
+        create_crt(csr, crt, root_ca_crt, root_ca_key, out_dir)
     print('')
     print('')
     return certs_and_keys

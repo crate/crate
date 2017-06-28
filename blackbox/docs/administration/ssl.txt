@@ -298,6 +298,20 @@ Output::
 Generate a Signed Cert
 ......................
 
+In order that the server can prove itself to have a valid and trusted domain it
+is required that the server certificate contains `subjectAltName`_.
+
+Create a file called ``ssl.ext`` with the following content. In section
+``[alt_names]`` list valid domain names of the server::
+
+    authorityKeyIdentifier=keyid,issuer
+    basicConstraints=CA:FALSE
+    keyUsage = digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment
+    subjectAltName = @alt_names
+
+    [alt_names]
+    DNS.1 = www.example.com
+
 Now you can generate a signed cert from our certificate signing request.
 
 Command::
@@ -311,6 +325,7 @@ Output::
     subject=/C=DE/ST=Berlin/L=Berlin/O=Crate.io GmbH/OU=Cryptography Department/CN=ssl.crate.io
     Getting CA Private Key
 
+.. _subjectAltName: http://wiki.cacert.org/FAQ/subjectAltName
 
 Import the CA Certificate Into the Keystore
 ...........................................
