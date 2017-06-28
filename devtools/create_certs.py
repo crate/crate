@@ -58,31 +58,8 @@ def generate_for(root_ca_key, root_ca_crt, out_dir, entity, num_default):
     return certs_and_keys
 
 
-def create_certs(out_dir, keystore_pw):
-    keystore = join(out_dir, 'keystore.jks')
-    keystorep12 = join(out_dir, 'keystore.p12')
-    ca_key = join(out_dir, 'rootCA.key')
-    ca_crt = join(out_dir, 'rootCA.crt')
-    print(f'Generating rootCA key: {ca_key}')
-    print(f'Generating rootCA certificate: {ca_crt}')
-    run([
-        'openssl', 'req', '-x509', '-sha256', '-nodes',
-        '-days', '365',
-        '-subj', f'/C=AT/ST=Dummy State/L=Dummy Country/O=Dummy Company/CN=myCA',
-        '-newkey', 'rsa:2048',
-        '-keyout', ca_key,
-        '-out', ca_crt
-    ])
-    # the CA certificate should also be in the keystore for the
-    # node to be able to verify the client certificate
-    run(['keytool', '-importcert',
-         '-storepass', keystore_pw,
-         '-keystore', keystore,
-         '-file', ca_crt,
-         '-alias', 'therootca'
-    ])
-    certs_and_keys = generate_for(ca_key, ca_crt, out_dir, 'node', 1)
-    print(f'Importing node certificates into keystore, Use "{keystore_pw}" as pw.')
+def import_into_keystores(certs_and_keys, entity, keystore_pw, ca_crt, keystore, keystorep12):
+    print(f'Importing {entity} certificates into keystore, Use "{keystore_pw}" as pw.')
     for (cert, key) in certs_and_keys:
         run([
             'openssl', 'pkcs12', '-export',
@@ -104,13 +81,39 @@ def create_certs(out_dir, keystore_pw):
             '-srcstorepass', keystore_pw,
             '-alias', splitext(cert)[0]
         ])
+
+
+def create_certs(out_dir, keystore_pw):
+    ca_key = join(out_dir, 'rootCA.key')
+    ca_crt = join(out_dir, 'rootCA.crt')
+    print(f'Generating rootCA key: {ca_key}')
+    print(f'Generating rootCA certificate: {ca_crt}')
+    run([
+        'openssl', 'req', '-x509', '-sha256', '-nodes',
+        '-days', '365',
+        '-subj', f'/C=AT/ST=Dummy State/L=Dummy Country/O=Dummy Company/CN=myCA',
+        '-newkey', 'rsa:2048',
+        '-keyout', ca_key,
+        '-out', ca_crt
+    ])
+
+    certs_and_keys = generate_for(ca_key, ca_crt, out_dir, 'node', 1)
+    keystore = join(out_dir, 'keystore.jks')
+    keystore_p12 = join(out_dir, 'keystore.p12')
+    import_into_keystores(certs_and_keys, 'node', keystore_pw, ca_crt, keystore, keystore_p12)
+    # the CA certificate should also be in the keystore for the
+    # node to be able to verify the client certificate
+    run(['keytool', '-importcert',
+         '-storepass', keystore_pw,
+         '-keystore', keystore,
+         '-file', ca_crt,
+         '-alias', 'therootca'
+    ])
+
     certs_and_keys = generate_for(ca_key, ca_crt, out_dir, 'client', 1)
-    for (cert, key) in certs_and_keys:
-        run(['keytool', '-importcert',
-             '-storepass', keystore_pw,
-             '-keystore', keystore,
-             '-file', cert,
-             '-alias', splitext(cert)[0]])
+    keystore_client = join(out_dir, 'keystore_client.jks')
+    keystore_client_p12 = join(out_dir, 'keystore_client.p12')
+    import_into_keystores(certs_and_keys, 'client', keystore_pw, ca_crt, keystore_client, keystore_client_p12)
 
 
 def main():
