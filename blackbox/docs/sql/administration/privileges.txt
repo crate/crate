@@ -129,12 +129,12 @@ CrateDB exposes privileges ``sys.privileges`` system table.
 By querying the ``sys.privileges`` table you can get all
 information regarding the existing privileges. E.g.::
 
-    cr> SELECT * FROM sys.privileges;
+    cr> SELECT * FROM sys.privileges order by type;
     +---------+---------+---------+-------+-------+------+
     | class   | grantee | grantor | ident | state | type |
     +---------+---------+---------+-------+-------+------+
-    | CLUSTER | will    | crate   |  NULL | GRANT | DQL  |
     | CLUSTER | will    | crate   |  NULL | GRANT | DML  |
+    | CLUSTER | will    | crate   |  NULL | GRANT | DQL  |
     +---------+---------+---------+-------+-------+------+
     SELECT 2 rows in set (... sec)
 
