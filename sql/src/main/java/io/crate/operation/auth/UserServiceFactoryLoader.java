@@ -22,6 +22,9 @@
 
 package io.crate.operation.auth;
 
+import io.crate.enterprise.loader.EnterpriseLoader;
+import io.crate.enterprise.loader.InstantiableClass;
+import io.crate.enterprise.loader.StringLoadable;
 import io.crate.settings.SharedSettings;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
@@ -32,19 +35,30 @@ import java.util.ServiceLoader;
 
 public final class UserServiceFactoryLoader {
 
+    private static final InstantiableClass<UserServiceFactory> FACTORY_CLASS = new UserServiceFactoryLoadable();
+
     @Nullable
     public static UserServiceFactory load(Settings settings) {
-        if (!SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
-            return null;
+        return EnterpriseLoader.instantiateClass(settings, null, FACTORY_CLASS);
+    }
+
+    private static class UserServiceFactoryLoadable
+            extends StringLoadable<UserServiceFactory>
+            implements InstantiableClass<UserServiceFactory> {
+
+        @Override
+        public Class<UserServiceFactory> getBaseClass() {
+            return UserServiceFactory.class;
         }
-        Iterator<UserServiceFactory> authIterator = ServiceLoader.load(UserServiceFactory.class).iterator();
-        UserServiceFactory factory = null;
-        while (authIterator.hasNext()) {
-            if (factory != null) {
-                throw new ServiceConfigurationError("UserManagerFactory found twice");
-            }
-            factory = authIterator.next();
+
+        @Override
+        public Class<?>[] getConstructorParams() {
+            return new Class[] {};
         }
-        return factory;
+
+        @Override
+        public String getFQClassName() {
+            return "io.crate.operation.auth.UserServiceFactoryImpl";
+        }
     }
 }

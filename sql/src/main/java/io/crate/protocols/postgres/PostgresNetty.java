@@ -26,9 +26,13 @@ import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
+import io.crate.enterprise.loader.EnterpriseLoader;
+import io.crate.enterprise.loader.InstantiableClass;
+import io.crate.enterprise.loader.LoadableClass;
+import io.crate.enterprise.loader.StringLoadable;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationProvider;
-import io.crate.protocols.ssl.SslHandlerLoader;
+import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
@@ -82,6 +86,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         "psql.port", "5432-5532",
         Function.identity(), Setting.Property.NodeScope), DataTypes.STRING);
 
+    private static final InstantiableClass<SslReqHandler> SSL_REQ_LOADABLE = new SslReqHandlerLoadable();
+
     private final SQLOperations sqlOperations;
     private final NetworkService networkService;
 
@@ -128,7 +134,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             Netty4Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, "postgres-netty-worker"));
         Authentication authentication = authProvider.get();
         Boolean reuseAddress = Netty4Transport.TCP_REUSE_ADDRESS.get(settings);
-        final SslReqHandler sslReqHandler = SslHandlerLoader.loadSslReqHandler(settings);
+        final SslReqHandler sslReqHandler = loadSslReqHandler(settings);
         bootstrap = new ServerBootstrap()
             .channel(NioServerSocketChannel.class)
             .group(boss, worker)
@@ -253,4 +259,36 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     public Collection<InetSocketTransportAddress> boundAddresses() {
         return Collections.unmodifiableCollection(boundAddresses);
     }
+
+    @VisibleForTesting
+    public static SslReqHandler loadSslReqHandler(Settings settings) {
+        return EnterpriseLoader.instantiateClass(
+            settings, SslConfigSettings.SSL_PSQL_ENABLED, SSL_REQ_LOADABLE, settings);
+    }
+
+    private static class SslReqHandlerLoadable
+            extends StringLoadable<SslReqHandler>
+            implements InstantiableClass.WithFallback<SslReqHandler> {
+
+        @Override
+        public Class<SslReqHandler> getBaseClass() {
+            return SslReqHandler.class;
+        }
+
+        @Override
+        public Class<?>[] getConstructorParams() {
+            return new Class[] { Settings.class };
+        }
+
+        @Override
+        public String getFQClassName() {
+            return "io.crate.protocols.postgres.SslReqConfiguringHandler";
+        }
+
+        @Override
+        public Class<? extends SslReqHandler> getFallback() {
+            return SslReqRejectingHandler.class;
+        }
+    }
+
 }

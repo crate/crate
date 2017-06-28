@@ -1,0 +1,34 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+archivesBaseName = 'users'
+group = 'io.crate'
+description = 'User Management for CrateDB'
+
+dependencies {
+    compile project(':sql')
+    testCompile project(':integration-testing')
+    testCompile project(':enterprise:ssl-impl')
+    testCompile project(path: ':sql', configuration: 'testOutput')
+    testCompile project(path: ':dex', configuration: 'testOutput')
+    testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+    testCompile('io.crate:crate-jdbc:2.1.5') {
+        exclude group: 'net.java.dev.jna', module: 'jna'
+        exclude group: 'commons-logging', module: 'commons-logging'
+        exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
+    }
+}
+
+task getVersion(dependsOn: [':core:getVersion']) {
+    doFirst {
+        project.version = project(':core').getVersion.version
+    }
+}
+
+jar {
+    doLast {
+        manifest {
+            attributes("Implementation-Title": description, "Implementation-Version": project.version)
+        }
+    }
+}
+jar.dependsOn('getVersion')
