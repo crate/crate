@@ -28,7 +28,8 @@ package io.crate.operation.udf;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.types.DataType;
-import org.elasticsearch.cluster.AbstractDiffable;
+import org.elasticsearch.cluster.AbstractNamedDiffable;
+import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -43,7 +44,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Objects;
 
-public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Custom> implements MetaData.Custom {
+public class UserDefinedFunctionsMetaData extends AbstractNamedDiffable<MetaData.Custom> implements MetaData.Custom {
 
     public static final String TYPE = "user_defined_functions";
 
@@ -60,6 +61,10 @@ public class UserDefinedFunctionsMetaData extends AbstractDiffable<MetaData.Cust
     @VisibleForTesting
     public static UserDefinedFunctionsMetaData of(UserDefinedFunctionMetaData... functions) {
         return new UserDefinedFunctionsMetaData(Arrays.asList(functions));
+    }
+
+    public static NamedDiff<MetaData.Custom> readDiffFrom(StreamInput in) throws IOException {
+        return readDiffFrom(MetaData.Custom.class, TYPE, in);
     }
 
     public void add(UserDefinedFunctionMetaData function) {

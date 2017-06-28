@@ -95,8 +95,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         // FIXME:
         XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, builder.bytes());
         parser.nextToken(); // start object
-        UserDefinedFunctionsMetaData functions2 =
-            (UserDefinedFunctionsMetaData) UserDefinedFunctionsMetaData.of().fromXContent(parser);
+        UserDefinedFunctionsMetaData functions2 = UserDefinedFunctionsMetaData.fromXContent(parser);
         assertEquals(functions, functions2);
     }
 
@@ -114,8 +113,7 @@ public class UserDefinedFunctionsMetaDataTest extends CrateUnitTest {
         XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, builder.bytes());
         parser.nextToken(); // start object
         parser.nextToken(); // field name
-        UserDefinedFunctionsMetaData functions2 =
-            (UserDefinedFunctionsMetaData) UserDefinedFunctionsMetaData.of().fromXContent(parser);
+        UserDefinedFunctionsMetaData functions2 = UserDefinedFunctionsMetaData.fromXContent(parser);
         assertEquals(functions, functions2);
     }
 

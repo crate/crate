@@ -59,6 +59,8 @@ import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.settings.CrateSetting;
 import org.elasticsearch.action.bulk.BulkModule;
+import org.elasticsearch.cluster.NamedDiff;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -197,10 +199,15 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
     public List<NamedWriteableRegistry.Entry> getNamedWriteables() {
         List<NamedWriteableRegistry.Entry> entries = new ArrayList<>();
         entries.add(new NamedWriteableRegistry.Entry(
-            UserDefinedFunctionsMetaData.class,
+            MetaData.Custom.class,
             UserDefinedFunctionsMetaData.TYPE,
             UserDefinedFunctionsMetaData::new
-            ));
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            UserDefinedFunctionsMetaData.TYPE,
+            UserDefinedFunctionsMetaData::readDiffFrom
+        ));
         return entries;
     }
 
