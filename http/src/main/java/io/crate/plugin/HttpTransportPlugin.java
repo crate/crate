@@ -22,7 +22,6 @@
 package io.crate.plugin;
 
 import io.crate.protocols.http.CrateNettyHttpServerTransport;
-import io.crate.rest.CrateRestFilter;
 import io.crate.rest.CrateRestMainAction;
 import io.crate.rest.CrateRestModule;
 import org.elasticsearch.client.Client;
@@ -50,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import static io.crate.rest.CrateRestMainAction.ES_API_ENABLED_SETTING;
 import static org.elasticsearch.common.network.NetworkModule.HTTP_TYPE_KEY;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 
@@ -87,7 +87,7 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin, Action
 
     @Override
     public List<Setting<?>> getSettings() {
-        return Collections.singletonList(CrateRestFilter.ES_API_ENABLED_SETTING);
+        return Collections.singletonList(ES_API_ENABLED_SETTING);
     }
 
     @Override

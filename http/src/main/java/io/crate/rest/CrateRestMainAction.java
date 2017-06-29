@@ -23,13 +23,17 @@
 package io.crate.rest;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import io.crate.Build;
 import io.crate.Version;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.FileSystemUtils;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.env.Environment;
@@ -48,12 +52,14 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import static java.nio.file.Files.readAttributes;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.HEAD;
+import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
 import static org.elasticsearch.rest.RestStatus.FORBIDDEN;
 import static org.elasticsearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.elasticsearch.rest.RestStatus.NOT_FOUND;
@@ -71,7 +77,22 @@ import static org.elasticsearch.rest.RestStatus.OK;
 public class CrateRestMainAction implements RestHandler {
 
     public static final String PATH = "/";
+    public static final Setting<Boolean> ES_API_ENABLED_SETTING = Setting.boolSetting(
+        "es.api.enabled", false, Setting.Property.NodeScope);
+
     private static final Pattern USER_AGENT_BROWSER_PATTERN = Pattern.compile("(Mozilla|Chrome|Safari|Opera|Android|AppleWebKit)+?[/\\s][\\d.]+");
+    // handle possible (wrong) URL '//' too
+    // as some http clients create wrong requests to the ``root`` path '/' with '//'
+    // we do handle arbitrary numbers of '/' in the path
+    private static final Pattern MAIN_PATTERN = Pattern.compile(String.format(Locale.ENGLISH, "^%s+$", PATH));
+    private static final Set<String> SUPPORTED_ENDPOINTS = ImmutableSet.of(
+        "/index.html",
+        "/static",
+        "/admin",
+        "/_sql",
+        "/_plugin",
+        "/_blobs"
+    );
 
     private final Version version;
     private final ClusterName clusterName;
@@ -79,19 +100,22 @@ public class CrateRestMainAction implements RestHandler {
     private final Settings settings;
     private final RestController controller;
     private final Path siteDirectory;
+    private final boolean esApiEnabled;
 
     @Inject
     public CrateRestMainAction(Settings settings,
                                Environment environment,
                                RestController controller,
-                               ClusterService clusterService,
-                               CrateRestFilter crateRestFilter) {
+                               ClusterService clusterService) {
+        this.esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
         this.settings = settings;
         this.controller = controller;
         this.version = Version.CURRENT;
         this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
         this.clusterService = clusterService;
         siteDirectory = environment.libFile().resolve("site");
+        Logger logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
+        logger.info("Elasticsearch HTTP REST API {}enabled", esApiEnabled ? "" : "not ");
     }
 
     void registerHandler() {
@@ -104,13 +128,36 @@ public class CrateRestMainAction implements RestHandler {
         controller.registerFilter(new RestFilter() {
             @Override
             public void process(RestRequest request, RestChannel channel, NodeClient client, RestFilterChain filterChain) throws Exception {
-                if (request.rawPath().startsWith("/static/")) {
-                    serveSite(request, channel, client);
+                String rawPath = request.rawPath();
+                if (esApiEnabled || endpointAllowed(rawPath)) {
+                    if (rawPath.startsWith("/static/")) {
+                        serveSite(request, channel, client);
+                    } else {
+                        filterChain.continueProcessing(request, channel, client);
+                    }
                 } else {
-                    filterChain.continueProcessing(request, channel, client);
+                    channel.sendResponse(new BytesRestResponse(
+                        BAD_REQUEST,
+                        String.format(Locale.ENGLISH,
+                            "No handler found for uri [%s] and method [%s]",
+                            request.uri(),
+                            request.method())
+                    ));
                 }
             }
         });
+    }
+
+    private static boolean endpointAllowed(String rawPath) {
+        if (MAIN_PATTERN.matcher(rawPath).matches()) {
+            return true;
+        }
+        for (String supported : SUPPORTED_ENDPOINTS) {
+            if (rawPath.startsWith(supported)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void redirectToRoot(RestChannel channel) {

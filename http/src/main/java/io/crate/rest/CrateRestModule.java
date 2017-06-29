@@ -35,13 +35,15 @@ import org.elasticsearch.rest.action.RestMainAction;
 
 import java.util.concurrent.CompletableFuture;
 
+import static io.crate.rest.CrateRestMainAction.ES_API_ENABLED_SETTING;
+
 public class CrateRestModule extends AbstractModule {
 
     private final Logger logger;
 
     public CrateRestModule(Settings settings) {
         logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
-        if (CrateRestFilter.ES_API_ENABLED_SETTING.get(settings)) {
+        if (ES_API_ENABLED_SETTING.get(settings)) {
             logger.warn("The Elasticsearch API is currently enabled, which makes it possible to request user data.");
         }
     }
