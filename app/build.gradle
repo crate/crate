@@ -302,6 +302,7 @@ installDist {
 ext {
     downloadDir = new File(buildDir, 'downloads')
     crash_version = '0.20.0'
+    adminui_version = '1.3.1'
 }
 
 def rootDir = project.parent.projectDir
@@ -367,6 +368,9 @@ distributions {
                 from('plugins') {
                     includeEmptyDirs = true
                 }
+            }
+            into('lib/site') {
+                from ('adminui/_site')
             }
             into('bin') {
                 from("${downloadDir}/crash_standalone") {
@@ -436,7 +440,7 @@ collectOSSModules.outputs.file ('oss_modules')
 
 
 task downloadPlugins(
-        dependsOn: [':admin-ui:downloadPlugin',
+        dependsOn: ['downloadAdminUI',
                     ':es:es-repository-hdfs:jar',
                     ':azure-discovery:jar',
                     ':jmx-monitoring:jar',
@@ -460,13 +464,10 @@ task downloadPlugins(
             into 'plugins/crate-azure-discovery'
         }
 
-        // copy crate-admin plugin
         copy {
-            from(project(':admin-ui').buildDir.path + '/crate-admin')
-            from(project(':admin-ui').buildDir.path + '/libs')
-            into 'plugins/crate-admin'
+            from("${buildDir}/crate-admin/")
+            into 'adminui'
         }
-
         copy {
             from(project(':jmx-monitoring').tasks.jar.archivePath)
             into 'plugins/jmx-monitoring'
@@ -492,6 +493,18 @@ task downloadCrash {
                 "crash_standalone")
     }
 }
+
+task downloadAdminUI {
+    doLast {
+        def dest = download(
+            downloadDir, 
+            "https://cdn.crate.io/downloads/releases/crate-admin-${adminui_version}.tar.gz",
+            "crate-admin-${adminui_version}.tar.gz"
+        )
+        extractTopfolder(dest, "${buildDir}/crate-admin/_site")
+    }
+}
+
 
 processResources.dependsOn(downloadPlugins, downloadCrash, collectEnterpriseModules, collectOSSModules)
 
@@ -531,3 +544,20 @@ sourceSets {
 clean.dependsOn(['cleanDownloadPlugins',
                  'cleanCollectEnterpriseModules',
                  'cleanCollectOSSModules'])
+
+
+def extractTopfolder(File src, String trg) {
+    copy {
+        includeEmptyDirs = false
+            FileTree ft
+            if (src.name.endsWith('.tar.gz')) {
+                ft = tarTree(src)
+            }
+        from(ft) {
+            eachFile {
+                details -> details.path = details.path.substring(details.relativePath.segments[0].length())
+            }
+        }
+        into trg
+    }
+}

@@ -20,16 +20,16 @@
  * agreement.
  */
 
-package io.crate.rest.action.admin;
+package io.crate.rest;
 
-import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
-import static io.crate.rest.action.admin.AdminUIStaticFileRequestFilter.isAcceptJson;
-import static io.crate.rest.action.admin.AdminUIStaticFileRequestFilter.isBrowser;
-import static org.hamcrest.core.Is.is;
+import static io.crate.rest.CrateRestMainAction.isAcceptJson;
+import static io.crate.rest.CrateRestMainAction.isBrowser;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
-public class AdminUIStaticFileRequestFilterTest extends CrateUnitTest {
+public class CrateRestMainActionTest {
 
     @Test
     public void testIsBrowser() {

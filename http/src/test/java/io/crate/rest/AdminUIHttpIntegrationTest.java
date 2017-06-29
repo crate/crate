@@ -1,6 +1,28 @@
-package io.crate.rest.action.admin;
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
 
-import io.crate.plugin.AdminUIPlugin;
+package io.crate.rest;
+
+import io.crate.plugin.HttpTransportPlugin;
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -25,7 +47,12 @@ import java.net.URI;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
 import static org.elasticsearch.common.network.NetworkModule.HTTP_DEFAULT_TYPE_SETTING;
@@ -49,7 +76,7 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
     @SuppressWarnings("unchecked")
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(AdminUIPlugin.class, Netty4Plugin.class);
+        return Arrays.asList(HttpTransportPlugin.class, Netty4Plugin.class);
     }
 
     @Before
@@ -58,7 +85,7 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
         Iterator<HttpServerTransport> httpTransports = transports.iterator();
         address = ((InetSocketTransportAddress) httpTransports.next().boundAddress().publishAddress()).address();
         // place index file
-        final Path indexDirectory = internalCluster().getInstance(Environment.class).pluginsFile().resolve("crate-admin").resolve("_site");
+        final Path indexDirectory = internalCluster().getInstance(Environment.class).libFile().resolve("site");
         Files.createDirectories(indexDirectory);
         final Path indexFile = indexDirectory.resolve("index.html");
         Files.write(indexFile, Collections.singletonList("<h1>Crate Admin</h1>"), Charset.forName("UTF-8"));
