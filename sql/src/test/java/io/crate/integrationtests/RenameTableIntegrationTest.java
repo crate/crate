@@ -115,6 +115,14 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         // also inserting must work (no old blocks traces)
         execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");
+
+        refresh();
+        execute("select * from tp1");
+        assertThat(response.rowCount(), is(2L));
+        execute("drop table tp1");
+
+        execute("select * from tp2");
+        assertThat(response.rowCount(), is(2L));
     }
 
     @Test
