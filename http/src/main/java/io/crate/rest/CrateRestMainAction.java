@@ -81,10 +81,6 @@ public class CrateRestMainAction implements RestHandler {
         "es.api.enabled", false, Setting.Property.NodeScope);
 
     private static final Pattern USER_AGENT_BROWSER_PATTERN = Pattern.compile("(Mozilla|Chrome|Safari|Opera|Android|AppleWebKit)+?[/\\s][\\d.]+");
-    // handle possible (wrong) URL '//' too
-    // as some http clients create wrong requests to the ``root`` path '/' with '//'
-    // we do handle arbitrary numbers of '/' in the path
-    private static final Pattern MAIN_PATTERN = Pattern.compile(String.format(Locale.ENGLISH, "^%s+$", PATH));
     private static final Set<String> SUPPORTED_ENDPOINTS = ImmutableSet.of(
         "/index.html",
         "/static",
@@ -149,9 +145,7 @@ public class CrateRestMainAction implements RestHandler {
     }
 
     private static boolean endpointAllowed(String rawPath) {
-        if (MAIN_PATTERN.matcher(rawPath).matches()) {
-            return true;
-        }
+        if (isRoot(rawPath)) return true;
         for (String supported : SUPPORTED_ENDPOINTS) {
             if (rawPath.startsWith(supported)) {
                 return true;
@@ -159,6 +153,19 @@ public class CrateRestMainAction implements RestHandler {
         }
         return false;
     }
+
+    // handle possible (wrong) URL '//' too
+    // as some http clients create wrong requests to the ``root`` path '/' with '//'
+    // we do handle arbitrary numbers of '/' in the path
+    private static boolean isRoot(String rawPath) {
+        for (int i = 0; i < rawPath.length(); i++) {
+            if (rawPath.charAt(i) != '/') {
+                return false;
+            }
+        }
+        return true;
+    }
+
 
     private static void redirectToRoot(RestChannel channel) {
         BytesRestResponse resp = new BytesRestResponse(RestStatus.TEMPORARY_REDIRECT, "");
