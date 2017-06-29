@@ -22,8 +22,8 @@
 
 package io.crate.rest;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.crate.Build;
 import io.crate.Version;
 import org.apache.logging.log4j.Logger;
@@ -50,9 +50,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 import static java.nio.file.Files.readAttributes;
@@ -81,13 +81,13 @@ public class CrateRestMainAction implements RestHandler {
         "es.api.enabled", false, Setting.Property.NodeScope);
 
     private static final Pattern USER_AGENT_BROWSER_PATTERN = Pattern.compile("(Mozilla|Chrome|Safari|Opera|Android|AppleWebKit)+?[/\\s][\\d.]+");
-    private static final Set<String> SUPPORTED_ENDPOINTS = ImmutableSet.of(
+    private static final List<String> SUPPORTED_ENDPOINTS = ImmutableList.of(
+        "/_sql",
+        "/_blobs",
         "/index.html",
         "/static",
         "/admin",
-        "/_sql",
-        "/_plugin",
-        "/_blobs"
+        "/_plugin"
     );
 
     private final Version version;
@@ -145,9 +145,12 @@ public class CrateRestMainAction implements RestHandler {
     }
 
     private static boolean endpointAllowed(String rawPath) {
-        if (isRoot(rawPath)) return true;
-        for (String supported : SUPPORTED_ENDPOINTS) {
-            if (rawPath.startsWith(supported)) {
+        return isRoot(rawPath) || isSupportedEndpoint(rawPath);
+    }
+
+    private static boolean isSupportedEndpoint(String rawPath) {
+        for (int i = 0; i < SUPPORTED_ENDPOINTS.size(); i++) {
+            if (rawPath.startsWith(SUPPORTED_ENDPOINTS.get(i))) {
                 return true;
             }
         }
