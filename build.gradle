@@ -261,6 +261,7 @@ idea {
             withXml { provider ->
                 def node = provider.asNode()
                 node.append(new XmlParser().parse(file("idea/codeStyle.xml")))
+                node.append(new XmlParser().parse(file("idea/codeInspection.xml")))
                 def copyrightManager = node.component.find { it.'@name' == 'CopyrightManager' }
                 copyrightManager.@default = "CrateASL2"
                 def aslCopyright = copyrightManager.copyright.find {
