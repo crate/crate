@@ -305,7 +305,7 @@ ext {
 }
 
 def rootDir = project.parent.projectDir
-def libs = project.configurations.runtime
+def libs = project.configurations.runtime.filter{ !it.path.startsWith("$rootDir/enterprise/") }
 
 // For releases choose the file under the release_notes structure
 // and for all other builds choose CHANGES.txt which contains the unreleased changes
@@ -349,7 +349,6 @@ distributions {
             }
             into("lib") {
                 from libs
-                exclude 'jmx-*.jar'
                 exclude 'crate-*.jar'
                 exclude 'es.jar'
                 exclude 'es-*.jar'
@@ -357,7 +356,7 @@ distributions {
             into("lib") {
                 from jar
             }
-            into("lib") {
+            into("lib/enterprise") {
                 from("enterprise")
             }
             into("lib") {
@@ -469,7 +468,7 @@ task downloadPlugins(
         }
         copy {
             from(project(':enterprise:jmx-monitoring').tasks.jar.archivePath)
-            into 'plugins/jmx-monitoring'
+            into 'plugins/enterprise/jmx-monitoring'
         }
 
         copy {

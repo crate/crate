@@ -60,6 +60,7 @@ public class PluginLoader {
         "path.crate_plugins", Setting.Property.NodeScope);
 
     private static final String RESOURCE_PATH = "META-INF/services/";
+    private static final String ENTERPRISE_FOLDER_NAME = "enterprise";
 
     private final Settings settings;
     private final Logger logger;
@@ -102,13 +103,25 @@ public class PluginLoader {
             return Collections.emptyList();
         }
 
-        File[] plugins = pluginsPath.toFile().listFiles();
+        final File[] plugins = pluginsPath.toFile()
+            .listFiles(file -> !file.getName().equals(ENTERPRISE_FOLDER_NAME));
+
         if (plugins == null) {
             return Collections.emptyList();
         }
 
+        final File[] allPlugins;
+        File enterprisePluginDir = new File(pluginsPath.toFile(), ENTERPRISE_FOLDER_NAME);
+        File[] enterpriseFiles = enterprisePluginDir.listFiles();
+        if (enterpriseFiles != null) {
+            allPlugins = Arrays.copyOf(plugins, plugins.length + enterpriseFiles.length);
+            System.arraycopy(enterpriseFiles, 0, allPlugins, plugins.length, enterpriseFiles.length);
+        } else {
+            allPlugins = plugins;
+        }
+
         Collection<Class<? extends Plugin>> allImplementations = new ArrayList<>();
-        for (File plugin : plugins) {
+        for (File plugin : allPlugins) {
             if (!plugin.canRead()) {
                 logger.debug("[{}] is not readable.", plugin.getAbsolutePath());
                 continue;
