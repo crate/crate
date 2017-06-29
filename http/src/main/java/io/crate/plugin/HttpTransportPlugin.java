@@ -22,16 +22,23 @@
 package io.crate.plugin;
 
 import io.crate.protocols.http.CrateNettyHttpServerTransport;
+import io.crate.rest.CrateRestFilter;
+import io.crate.rest.CrateRestMainAction;
+import io.crate.rest.CrateRestModule;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.search.SearchRequestParsers;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -39,6 +46,7 @@ import org.elasticsearch.watcher.ResourceWatcherService;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -46,14 +54,16 @@ import static org.elasticsearch.common.network.NetworkModule.HTTP_TYPE_KEY;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 
 
-public class HttpTransportPlugin extends Plugin implements NetworkPlugin {
+public class HttpTransportPlugin extends Plugin implements NetworkPlugin, ActionPlugin {
 
     private static final String CRATE_HTTP_TRANSPORT_NAME = "crate";
 
     private final PipelineRegistry pipelineRegistry;
+    private final Settings settings;
 
     public HttpTransportPlugin(Settings settings) {
         this.pipelineRegistry = new PipelineRegistry(settings);
+        this.settings = settings;
     }
 
     public String name() {
@@ -76,13 +86,22 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin {
     }
 
     @Override
+    public List<Setting<?>> getSettings() {
+        return Collections.singletonList(CrateRestFilter.ES_API_ENABLED_SETTING);
+    }
+
+    @Override
+    public Collection<Module> createGuiceModules() {
+        return Collections.singletonList(new CrateRestModule(settings));
+    }
+
+    @Override
     public Settings additionalSettings() {
         return Settings.builder()
             .put(HTTP_TYPE_KEY, CRATE_HTTP_TRANSPORT_NAME)
             .put(SETTING_HTTP_COMPRESSION.getKey(), false)
             .build();
     }
-
 
     @Override
     public Map<String, Supplier<HttpServerTransport>> getHttpTransports(Settings settings,
@@ -94,5 +113,10 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin {
         return Collections.singletonMap(
             CRATE_HTTP_TRANSPORT_NAME,
             () -> new CrateNettyHttpServerTransport(settings, networkService, bigArrays, threadPool, pipelineRegistry));
+    }
+
+    @Override
+    public List<Class<? extends RestHandler>> getRestHandlers() {
+        return Collections.singletonList(CrateRestMainAction.class);
     }
 }
