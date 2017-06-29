@@ -29,7 +29,6 @@ import io.crate.blob.v2.BlobShard;
 import io.crate.plugin.BlobPlugin;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.plugin.HttpTransportPlugin;
-import io.crate.rest.CrateRestFilter;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -47,6 +46,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import static io.crate.rest.CrateRestMainAction.ES_API_ENABLED_SETTING;
 import static org.elasticsearch.common.network.NetworkModule.HTTP_ENABLED;
 import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 import static org.hamcrest.Matchers.empty;
@@ -70,7 +70,7 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put(HTTP_ENABLED.getKey(), true)
-            .put(CrateRestFilter.ES_API_ENABLED_SETTING.getKey(), true)
+            .put(ES_API_ENABLED_SETTING.getKey(), true)
             .put(SETTING_HTTP_COMPRESSION.getKey(), false)
             .build();
     }
