@@ -55,3 +55,7 @@ Changes
 
 Fixes
 =====
+
+ - Fixed an issue on ``RENAME`` a partitioned table which would result in data
+   loss if a new table is created with the old name of the renamed table and
+   afterwards dropped. Issue: https://github.com/crate/crate/issues/5823

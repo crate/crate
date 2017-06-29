@@ -79,27 +79,18 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
      * @return the name of the template to create or <code>null</code>
      * if no template is created
      */
-    public
     @Nullable
-    String templateName() {
+    public String templateName() {
         if (isPartitioned()) {
             return PartitionName.templateName(tableIdent().schema(), tableIdent().name());
         }
         return null;
     }
 
-    /**
-     * template prefix to match against index names to which
-     * this template should be applied
-     *
-     * @return a template prefix for matching index names or null
-     * if no template is created
-     */
-    public
     @Nullable
-    String templatePrefix() {
+    public String templatePrefix() {
         if (isPartitioned()) {
-            return templateName() + "*";
+            return PartitionName.templatePrefix(tableIdent().schema(), tableIdent().name());
         }
         return null;
     }

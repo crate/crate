@@ -243,4 +243,11 @@ public class PartitionName {
             return DOT_JOINER.join(schemaName, PARTITIONED_TABLE_PREFIX, tableName, "");
         }
     }
+
+    /**
+     * return the template prefix to match against index names for the given schema and table name
+     */
+    public static String templatePrefix(@Nullable String schemaName, String tableName) {
+        return templateName(schemaName, tableName) + "*";
+    }
 }

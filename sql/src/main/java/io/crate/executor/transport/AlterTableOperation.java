@@ -23,12 +23,18 @@
 package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
-import io.crate.analyze.*;
+import io.crate.analyze.AddColumnAnalyzedStatement;
+import io.crate.analyze.AlterTableAnalyzedStatement;
+import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
+import io.crate.analyze.AlterTableRenameAnalyzedStatement;
+import io.crate.analyze.PartitionedTableParameterInfo;
+import io.crate.analyze.TableParameter;
 import io.crate.concurrent.CompletableFutures;
 import io.crate.concurrent.MultiBiConsumer;
 import io.crate.data.Row;
@@ -68,6 +74,7 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -79,7 +86,13 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
@@ -356,12 +369,37 @@ public class AlterTableOperation {
     }
 
     private CompletableFuture<Long> renameTemplate(TableIdent sourceIdent, TableIdent targetIdent) {
+        Tuple<PutIndexTemplateRequest, DeleteIndexTemplateRequest> requests = null;
+
+        try {
+            requests = prepareRenameTemplateRequests(clusterService.state().metaData(), sourceIdent, targetIdent);
+        } catch (Exception e) {
+            return CompletableFutures.failedFuture(e);
+        }
+
+        List<CompletableFuture<Long>> results = new ArrayList<>(2);
+        FutureActionListener<PutIndexTemplateResponse, Long> addListener = new FutureActionListener<>(r -> -1L);
+        transportPutIndexTemplateAction.execute(requests.v1(), addListener);
+        results.add(addListener);
+        FutureActionListener<DeleteIndexTemplateResponse, Long> deleteListener = new FutureActionListener<>(r -> -1L);
+        transportDeleteIndexTemplateAction.execute(requests.v2(), deleteListener);
+        results.add(deleteListener);
+
+        final CompletableFuture<Long> result = new CompletableFuture<>();
+        applyMultiFutureCallback(result, results);
+        return result;
+    }
+
+    @VisibleForTesting
+    static Tuple<PutIndexTemplateRequest, DeleteIndexTemplateRequest> prepareRenameTemplateRequests(MetaData metaData,
+                                                                                                    TableIdent sourceIdent,
+                                                                                                    TableIdent targetIdent) {
         String sourceTemplate = PartitionName.templateName(sourceIdent.schema(), sourceIdent.name());
         String targetTemplate = PartitionName.templateName(targetIdent.schema(), targetIdent.name());
-        IndexTemplateMetaData indexTemplateMetaData =
-            clusterService.state().metaData().templates().get(sourceTemplate);
+        String targetTemplatePrefix = PartitionName.templatePrefix(targetIdent.schema(), targetIdent.name());
+        IndexTemplateMetaData indexTemplateMetaData = metaData.templates().get(sourceTemplate);
         if (indexTemplateMetaData == null) {
-            return CompletableFutures.failedFuture(new RuntimeException("Template for partitioned table is missing"));
+            throw new RuntimeException("Template for partitioned table is missing");
         }
 
         PutIndexTemplateRequest addRequest = new PutIndexTemplateRequest(targetTemplate)
@@ -369,7 +407,7 @@ public class AlterTableOperation {
             .mapping(Constants.DEFAULT_MAPPING_TYPE, mergeTemplateMapping(indexTemplateMetaData, Collections.emptyMap()))
             .order(indexTemplateMetaData.order())
             .settings(indexTemplateMetaData.settings())
-            .template(indexTemplateMetaData.template())
+            .template(targetTemplatePrefix)
             .alias(new Alias(targetIdent.indexName()));
         for (ObjectObjectCursor<String, AliasMetaData> container : indexTemplateMetaData.aliases()) {
             Alias alias = new Alias(container.key);
@@ -377,17 +415,7 @@ public class AlterTableOperation {
         }
         DeleteIndexTemplateRequest deleteRequest = new DeleteIndexTemplateRequest(sourceTemplate);
 
-        List<CompletableFuture<Long>> results = new ArrayList<>(2);
-        FutureActionListener<PutIndexTemplateResponse, Long> addListener = new FutureActionListener<>(r -> -1L);
-        transportPutIndexTemplateAction.execute(addRequest, addListener);
-        results.add(addListener);
-        FutureActionListener<DeleteIndexTemplateResponse, Long> deleteListener = new FutureActionListener<>(r -> -1L);
-        transportDeleteIndexTemplateAction.execute(deleteRequest, deleteListener);
-        results.add(deleteListener);
-
-        final CompletableFuture<Long> result = new CompletableFuture<>();
-        applyMultiFutureCallback(result, results);
-        return result;
+        return new Tuple<>(addRequest, deleteRequest);
     }
 
     private CompletableFuture<Long> updateTemplate(TableParameter tableParameter, TableIdent tableIdent) {
@@ -468,7 +496,7 @@ public class AlterTableOperation {
         return listener;
     }
 
-    private Map<String, Object> parseMapping(String mappingSource) throws IOException {
+    private static Map<String, Object> parseMapping(String mappingSource) throws IOException {
         try (XContentParser parser = XContentFactory.xContent(mappingSource).createParser(mappingSource)) {
             return parser.map();
         } catch (IOException e) {
@@ -476,7 +504,7 @@ public class AlterTableOperation {
         }
     }
 
-    private Map<String, Object> mergeTemplateMapping(IndexTemplateMetaData templateMetaData,
+    private static Map<String, Object> mergeTemplateMapping(IndexTemplateMetaData templateMetaData,
                                                      Map<String, Object> newMapping) {
         Map<String, Object> mergedMapping = new HashMap<>();
         for (ObjectObjectCursor<String, CompressedXContent> cursor : templateMetaData.mappings()) {
