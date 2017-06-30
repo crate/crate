@@ -443,7 +443,7 @@ task downloadPlugins(
                     ':es:es-repository-hdfs:jar',
                     ':azure-discovery:jar',
                     ':enterprise:jmx-monitoring:jar',
-                    ':lang-js:jar']) {
+                    ':enterprise:lang-js:jar']) {
     doLast {
         // copy es-repository-hdfs plugin
         copy {
@@ -473,9 +473,9 @@ task downloadPlugins(
         }
 
         copy {
-            from(project(':lang-js').tasks.jar.archivePath)
-            from(project(':lang-js').buildDir.path + '/tmp/plugin-descriptor.properties')
-            into 'plugins/lang-js'
+            from(project(':enterprise:lang-js').tasks.jar.archivePath)
+            from(project(':enterprise:lang-js').buildDir.path + '/tmp/plugin-descriptor.properties')
+            into 'plugins/enterprise/lang-js'
         }
     }
 }
