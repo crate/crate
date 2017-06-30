@@ -528,4 +528,23 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         expectedException.expectMessage("queryTerm must be a literal");
         convert("match(name, name)");
     }
+
+    @Test
+    public void testRangeQueryForId() throws Exception {
+        Query query = convert("_id > 'foo'");
+        assertThat(query, instanceOf(TermRangeQuery.class));
+    }
+
+    @Test
+    public void testRangeQueryForUid() throws Exception {
+        Query query = convert("_uid > 'foo'");
+        assertThat(query, instanceOf(TermRangeQuery.class));
+    }
+
+    @Test
+    public void testRangeQueryOnDocThrowsException() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: op_>(object, object)");
+        convert("_doc > {\"name\"='foo'}");
+    }
 }
