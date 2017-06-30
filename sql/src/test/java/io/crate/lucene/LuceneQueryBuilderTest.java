@@ -543,6 +543,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     public void testRangeQueryForId() throws Exception {
         Query query = convert("_id > 'foo'");
         assertThat(query, instanceOf(TermRangeQuery.class));
+        assertThat(query.toString(), is("_uid:{default#foo TO *}"));
     }
 
     @Test
