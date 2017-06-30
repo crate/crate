@@ -240,4 +240,16 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         assertThat(printedTable(execute("select p from t where x is null").rows()), is("1\n"));
         assertThat(printedTable(execute("select p from t where obj is null").rows()), is("1\n"));
     }
+
+    @Test
+    public void testWhereNotIdInFunction() throws Exception {
+        execute("create table t (dummy string) clustered into 2 shards with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into t (dummy) values ('yalla')");
+        refresh();
+
+        execute("select dummy from t where substr(_id, 1, 1) != '{'");
+        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rows()[0][0], is("yalla"));
+    }
 }

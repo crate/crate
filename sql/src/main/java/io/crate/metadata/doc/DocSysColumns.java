@@ -2,6 +2,7 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
+import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -54,7 +55,8 @@ public class DocSysColumns {
         .build();
 
     private static Reference newInfo(TableIdent table, ColumnIdent column, DataType dataType) {
-        return new Reference(new ReferenceIdent(table, column), RowGranularity.DOC, dataType);
+        return new Reference(new ReferenceIdent(table, column), RowGranularity.DOC, dataType, ColumnPolicy.STRICT,
+            Reference.IndexType.NOT_ANALYZED, false);
     }
 
     /**
