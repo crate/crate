@@ -37,8 +37,6 @@ public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
 
     public static final String TYPE = "users";
 
-    public static final UsersMetaData PROTO = new UsersMetaData();
-
     private final List<String> users;
 
     public UsersMetaData() {
@@ -95,7 +93,7 @@ public class UsersMetaData extends AbstractNamedDiffable<MetaData.Custom> implem
         return builder;
     }
 
-    public static MetaData.Custom fromXContent(XContentParser parser) throws IOException {
+    public static UsersMetaData fromXContent(XContentParser parser) throws IOException {
         List<String> users = new ArrayList<>();
         if (parser.nextToken() == XContentParser.Token.FIELD_NAME && parser.currentName().equals("users")) {
             if (parser.nextToken() == XContentParser.Token.START_ARRAY) {

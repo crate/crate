@@ -17,3 +17,18 @@ dependencies {
         exclude group: 'org.slf4j', module: 'jcl-over-slf4j'
     }
 }
+
+task writePropertiesFile {
+    doLast {
+        copy {
+            from "src/main/resources/"
+            into "${buildDir}/tmp"
+            include "plugin-descriptor.properties"
+            expand(version: project.version,
+                    esVersion: versions.elasticsearch,
+                    jmvCompatibility: project.targetCompatibility,
+                    name: project.name)
+        }
+    }
+}
+jar.dependsOn('writePropertiesFile')

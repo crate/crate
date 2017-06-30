@@ -19,15 +19,19 @@
 package io.crate.operation.auth;
 
 import io.crate.integrationtests.SQLTransportIntegrationTest;
+import io.crate.plugin.UsersPlugin;
 import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.Plugin;
 import org.junit.After;
 import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Properties;
 
 import static org.hamcrest.Matchers.containsString;
@@ -36,6 +40,13 @@ import static org.hamcrest.Matchers.notNullValue;
 
 @UseJdbc(value = 1)
 public class AuthenticationIntegrationTest extends SQLTransportIntegrationTest {
+
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        ArrayList<Class<? extends Plugin>> plugins = new ArrayList<>(super.nodePlugins());
+        plugins.add(UsersPlugin.class);
+        return plugins;
+    }
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {

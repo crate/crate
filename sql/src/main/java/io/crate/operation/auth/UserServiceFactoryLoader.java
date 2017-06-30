@@ -22,13 +22,17 @@
 
 package io.crate.operation.auth;
 
+import io.crate.plugin.EnterpriseLoader;
 import io.crate.settings.SharedSettings;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.Iterator;
-import java.util.ServiceConfigurationError;
-import java.util.ServiceLoader;
+import java.io.IOException;
+import java.nio.file.Path;
+
+import static org.elasticsearch.common.Strings.cleanPath;
+import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 
 public final class UserServiceFactoryLoader {
 
@@ -37,14 +41,13 @@ public final class UserServiceFactoryLoader {
         if (!SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
             return null;
         }
-        Iterator<UserServiceFactory> authIterator = ServiceLoader.load(UserServiceFactory.class).iterator();
-        UserServiceFactory factory = null;
-        while (authIterator.hasNext()) {
-            if (factory != null) {
-                throw new ServiceConfigurationError("UserManagerFactory found twice");
-            }
-            factory = authIterator.next();
+        Path crateHomeDir = PathUtils.get(cleanPath(PATH_HOME_SETTING.get(settings)));
+        Path esPlugins = crateHomeDir.resolve("lib").resolve("enterprise").resolve("es-plugins");
+
+        try {
+            return EnterpriseLoader.loadSingle(esPlugins, UserServiceFactory.class);
+        } catch (IOException e) {
+            return null;
         }
-        return factory;
     }
 }
