@@ -26,6 +26,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.analyze.PrivilegesAnalyzedStatement;
 import io.crate.concurrent.CompletableFutures;
+import io.crate.data.Row;
 import io.crate.operation.user.UserManager;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -33,6 +34,7 @@ import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 
 /**
  * Visitor that dispatches requests based on Analysis class to different DCL actions.
@@ -40,7 +42,7 @@ import java.util.concurrent.CompletableFuture;
  * Its methods return a future returning a Long containing the response rowCount.
  */
 @Singleton
-public class DCLStatementDispatcher {
+public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row, CompletableFuture<Long>> {
 
     private static final InnerVisitor INNER_VISITOR = new InnerVisitor();
 
@@ -51,7 +53,8 @@ public class DCLStatementDispatcher {
         this.userManager = userManagerProvider.get();
     }
 
-    public CompletableFuture<Long> dispatch(AnalyzedStatement analyzedStatement) {
+    @Override
+    public CompletableFuture<Long> apply(AnalyzedStatement analyzedStatement, Row row) {
         return INNER_VISITOR.process(analyzedStatement, userManager);
     }
 

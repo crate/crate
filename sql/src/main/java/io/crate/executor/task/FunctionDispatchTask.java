@@ -21,7 +21,6 @@
 
 package io.crate.executor.task;
 
-import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
@@ -29,33 +28,30 @@ import io.crate.data.Row1;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
 
-import javax.annotation.Nullable;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
-public class DDLTask extends JobTask {
+/**
+ * Generic task that delegates the work to {@link #function} on execute;
+ */
+public class FunctionDispatchTask extends JobTask {
 
-    private final AnalyzedStatement analyzedStatement;
-    private DDLStatementDispatcher ddlStatementDispatcher;
 
-    public DDLTask(UUID jobId, DDLStatementDispatcher ddlStatementDispatcher, AnalyzedStatement analyzedStatement) {
+    private final BiFunction<? super AnalyzedStatement, ? super Row, CompletableFuture<Long>> function;
+    private final AnalyzedStatement statement;
+
+    public FunctionDispatchTask(UUID jobId,
+                                BiFunction<? super AnalyzedStatement, ? super Row, CompletableFuture<Long>> function,
+                                AnalyzedStatement statement) {
         super(jobId);
-        this.ddlStatementDispatcher = ddlStatementDispatcher;
-        this.analyzedStatement = analyzedStatement;
+        this.function = function;
+        this.statement = statement;
     }
 
     @Override
     public void execute(final BatchConsumer consumer, Row parameters) {
-        CompletableFuture<Long> future = ddlStatementDispatcher.dispatch(analyzedStatement, parameters);
-
-        OneRowActionListener<Long> responseOneRowActionListener = new OneRowActionListener<>(consumer, new Function<Long, Row>() {
-            @Nullable
-            @Override
-            public Row apply(@Nullable Long input) {
-                return new Row1(input == null ? -1 : input);
-            }
-        });
-        future.whenComplete(responseOneRowActionListener);
+        CompletableFuture<Long> rowCount = function.apply(statement, parameters);
+        rowCount.whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }
