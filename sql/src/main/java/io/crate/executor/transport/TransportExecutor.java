@@ -32,9 +32,8 @@ import io.crate.data.CollectingBatchConsumer;
 import io.crate.data.Row;
 import io.crate.executor.Executor;
 import io.crate.executor.Task;
-import io.crate.executor.task.DCLTask;
-import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.ExplainTask;
+import io.crate.executor.task.FunctionDispatchTask;
 import io.crate.executor.task.NoopTask;
 import io.crate.executor.task.SetSessionTask;
 import io.crate.executor.transport.executionphases.ExecutionPhasesTask;
@@ -102,7 +101,7 @@ public class TransportExecutor implements Executor {
     private final Functions functions;
     private final TaskCollectingVisitor plan2TaskVisitor;
     private final DCLStatementDispatcher dclStatementDispatcher;
-    private DDLStatementDispatcher ddlAnalysisDispatcherProvider;
+    private final DDLStatementDispatcher ddlAnalysisDispatcherProvider;
 
     private final ClusterService clusterService;
     private final JobContextService jobContextService;
@@ -239,12 +238,12 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Task visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, Void context) {
-            return new DDLTask(genericDDLPlan.jobId(), ddlAnalysisDispatcherProvider, genericDDLPlan.statement());
+            return new FunctionDispatchTask(genericDDLPlan.jobId(), ddlAnalysisDispatcherProvider, genericDDLPlan.statement());
         }
 
         @Override
         public Task visitGenericDCLPlan(GenericDCLPlan genericDCLPlan, Void context) {
-            return new DCLTask(genericDCLPlan.jobId(), dclStatementDispatcher, genericDCLPlan.statement());
+            return new FunctionDispatchTask(genericDCLPlan.jobId(), dclStatementDispatcher, genericDCLPlan.statement());
         }
 
         @Override

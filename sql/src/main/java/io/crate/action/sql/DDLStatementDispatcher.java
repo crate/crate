@@ -22,7 +22,28 @@
 package io.crate.action.sql;
 
 import io.crate.action.FutureActionListener;
-import io.crate.analyze.*;
+import io.crate.analyze.AddColumnAnalyzedStatement;
+import io.crate.analyze.AlterBlobTableAnalyzedStatement;
+import io.crate.analyze.AlterTableAnalyzedStatement;
+import io.crate.analyze.AlterTableOpenCloseAnalyzedStatement;
+import io.crate.analyze.AlterTableRenameAnalyzedStatement;
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.analyze.CreateBlobTableAnalyzedStatement;
+import io.crate.analyze.CreateFunctionAnalyzedStatement;
+import io.crate.analyze.CreateRepositoryAnalyzedStatement;
+import io.crate.analyze.CreateSnapshotAnalyzedStatement;
+import io.crate.analyze.CreateTableAnalyzedStatement;
+import io.crate.analyze.CreateUserAnalyzedStatement;
+import io.crate.analyze.DropBlobTableAnalyzedStatement;
+import io.crate.analyze.DropFunctionAnalyzedStatement;
+import io.crate.analyze.DropRepositoryAnalyzedStatement;
+import io.crate.analyze.DropSnapshotAnalyzedStatement;
+import io.crate.analyze.DropUserAnalyzedStatement;
+import io.crate.analyze.OptimizeSettings;
+import io.crate.analyze.OptimizeTableAnalyzedStatement;
+import io.crate.analyze.RefreshTableAnalyzedStatement;
+import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.blob.v2.BlobAdminClient;
 import io.crate.data.Row;
 import io.crate.executor.transport.AlterTableOperation;
@@ -48,6 +69,7 @@ import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
 
 /**
  * visitor that dispatches requests based on Analysis class to different actions.
@@ -56,7 +78,7 @@ import java.util.concurrent.CompletableFuture;
  * If the future returns <code>null</code>, no row count shall be created.
  */
 @Singleton
-public class DDLStatementDispatcher {
+public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row, CompletableFuture<Long>> {
 
     private final Provider<BlobAdminClient> blobAdminClient;
     private final TableCreator tableCreator;
@@ -95,7 +117,8 @@ public class DDLStatementDispatcher {
         this.userManager = userManagerProvider.get();
     }
 
-    public CompletableFuture<Long> dispatch(AnalyzedStatement analyzedStatement, Row parameters) {
+    @Override
+    public CompletableFuture<Long> apply(AnalyzedStatement analyzedStatement, Row parameters) {
         return innerVisitor.process(analyzedStatement, parameters);
     }
 
