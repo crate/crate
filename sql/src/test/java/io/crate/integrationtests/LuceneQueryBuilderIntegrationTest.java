@@ -118,7 +118,7 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("insert into t (dummy) values ('yalla')");
         refresh();
 
-        execute("select dummy from t where substr(_raw, 1, 1) = '{'");
+        execute("select dummy from t where substr(_uid, 1, 1) != '{'");
         assertThat(response.rowCount(), is(1L));
         assertThat(((String) response.rows()[0][0]), is("yalla"));
     }
