@@ -8,6 +8,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.GteOperator;
 import io.crate.operation.operator.any.AnyEqOperator;
@@ -91,6 +92,8 @@ public abstract class WhereClauseValidator {
                 validateSysReference(context, VERSION_ALLOWED_COMPARISONS, VERSION_ERROR);
             } else if (columnName.equalsIgnoreCase(_SCORE)) {
                 validateSysReference(context, SCORE_ALLOWED_COMPARISONS, SCORE_ERROR);
+            } else if (columnName.equalsIgnoreCase(DocSysColumns.RAW.name())) {
+                throw new UnsupportedOperationException("The _raw column is not searchable and cannot be used inside a query");
             }
         }
 

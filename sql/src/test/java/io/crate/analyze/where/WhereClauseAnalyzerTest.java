@@ -56,8 +56,13 @@ import java.util.Map;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.TestingHelpers.*;
-import static org.hamcrest.Matchers.*;
+import static io.crate.testing.TestingHelpers.isDocKey;
+import static io.crate.testing.TestingHelpers.isNullDocKey;
+import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 
 @SuppressWarnings("unchecked")
 public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -724,5 +729,21 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(whereClause.partitions().size(), is(2));
         assertThat(whereClause.partitions().get(0), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName()));
         assertThat(whereClause.partitions().get(1), is(new PartitionName("generated_col", Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()));
+    }
+
+    @Test
+    public void testRawNotAllowedInQuery() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("The _raw column is not searchable and cannot be used inside a query");
+        analyzeSelectWhere("select * from users where _raw = 'foo'");
+    }
+
+    @Test
+    public void testVersionOnlySupportedWithEqualOperator() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Filtering \"_version\" in WHERE clause only works using" +
+                                        " the \"=\" operator, checking for a numeric value");
+        analyzeSelectWhere("select * from users where _version > 1");
+
     }
 }
