@@ -56,6 +56,9 @@ Changes
 Fixes
 =====
 
+ - Throw proper exception when using the ``_raw`` column inside the where clause
+   instead of silently ignoring it.
+
  - Fixed support for range queries on the ``_id`` and ``_uid`` columns, range
    queries on these columns weren't working at all since v2.0.0.
    Issue: https://github.com/crate/crate/issues/5845
