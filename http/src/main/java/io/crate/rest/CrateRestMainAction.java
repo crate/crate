@@ -26,9 +26,13 @@ import com.google.common.collect.ImmutableList;
 import io.crate.Build;
 import io.crate.Version;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
@@ -53,6 +57,7 @@ import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 import static org.elasticsearch.rest.RestRequest.Method.HEAD;
 import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
+import static org.elasticsearch.rest.RestStatus.INTERNAL_SERVER_ERROR;
 import static org.elasticsearch.rest.RestStatus.OK;
 
 /**
@@ -82,21 +87,16 @@ public class CrateRestMainAction implements RestHandler {
 
     private final Version version;
     private final ClusterName clusterName;
-    private final ClusterService clusterService;
     private final Settings settings;
     private final RestController controller;
     private final Path siteDirectory;
 
     @Inject
-    public CrateRestMainAction(Settings settings,
-                               Environment environment,
-                               RestController controller,
-                               ClusterService clusterService) {
+    public CrateRestMainAction(Settings settings, Environment environment, RestController controller) {
         this.settings = settings;
         this.controller = controller;
         this.version = Version.CURRENT;
         this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
-        this.clusterService = clusterService;
         siteDirectory = environment.libFile().resolve("site");
         Boolean esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
         Logger logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
@@ -170,42 +170,60 @@ public class CrateRestMainAction implements RestHandler {
     }
 
     private void serveJSON(RestRequest request, RestChannel channel, NodeClient client) throws IOException {
-        final RestStatus status;
-        if (clusterService.state().blocks().hasGlobalBlock(RestStatus.SERVICE_UNAVAILABLE)) {
-            status = RestStatus.SERVICE_UNAVAILABLE;
-        } else {
-            status = OK;
-        }
-        if (request.method() == RestRequest.Method.HEAD) {
-            channel.sendResponse(new BytesRestResponse(status, channel.newBuilder()));
-        }
+        final XContentBuilder xContentBuilder = channel.newBuilder();
+        ActionListener<ClusterStateResponse> listener = new ActionListener<ClusterStateResponse>() {
+            @Override
+            public void onResponse(ClusterStateResponse clusterStateResponse) {
+                final RestStatus status;
+                if (clusterStateResponse.getState().blocks().hasGlobalBlock(RestStatus.SERVICE_UNAVAILABLE)) {
+                    status = RestStatus.SERVICE_UNAVAILABLE;
+                } else {
+                    status = OK;
+                }
+                channel.sendResponse(buildResponse(request.method(), xContentBuilder, status));
+            }
 
-        XContentBuilder builder = channel.newBuilder();
+            @Override
+            public void onFailure(Exception e) {
+                channel.sendResponse(new BytesRestResponse(INTERNAL_SERVER_ERROR, ExceptionsHelper.stackTrace(e)));
+            }
+        };
+        client.executeLocally(ClusterStateAction.INSTANCE, new ClusterStateRequest(), listener);
+    }
+
+    private BytesRestResponse buildResponse(RestRequest.Method method, XContentBuilder builder, RestStatus status) {
+        if (method == RestRequest.Method.HEAD) {
+            return new BytesRestResponse(status, builder);
+        }
         builder.prettyPrint().lfAtEnd();
-        builder.startObject();
-        builder.field("ok", status.equals(OK));
-        builder.field("status", status.getStatus());
+        try {
+            builder.startObject();
+            builder.field("ok", status.equals(OK));
+            builder.field("status", status.getStatus());
 
-        String nodeName = NODE_NAME_SETTING.get(settings);
-        if (nodeName != null && !nodeName.isEmpty()) {
-            builder.field("name", nodeName);
+            String nodeName = NODE_NAME_SETTING.get(settings);
+            if (nodeName != null && !nodeName.isEmpty()) {
+                builder.field("name", nodeName);
+            }
+            builder.field("cluster_name", clusterName.value());
+            builder.startObject("version")
+                .field("number", version.number())
+                .field("build_hash", Build.CURRENT.hash())
+                .field("build_timestamp", Build.CURRENT.timestamp())
+                .field("build_snapshot", version.snapshot)
+                .field("es_version", version.esVersion)
+                // We use the lucene version from lucene constants since
+                // this includes bugfix release version as well and is already in
+                // the right format. We can also be sure that the format is maitained
+                // since this is also recorded in lucene segments and has BW compat
+                .field("lucene_version", org.apache.lucene.util.Version.LATEST.toString())
+                .endObject();
+            builder.endObject();
+        } catch (IOException e) {
+            return new BytesRestResponse(
+                INTERNAL_SERVER_ERROR, "Error building response: " + ExceptionsHelper.stackTrace(e));
         }
-
-        builder.field("cluster_name", clusterName.value());
-        builder.startObject("version")
-            .field("number", version.number())
-            .field("build_hash", Build.CURRENT.hash())
-            .field("build_timestamp", Build.CURRENT.timestamp())
-            .field("build_snapshot", version.snapshot)
-            .field("es_version", version.esVersion)
-            // We use the lucene version from lucene constants since
-            // this includes bugfix release version as well and is already in
-            // the right format. We can also be sure that the format is maitained
-            // since this is also recorded in lucene segments and has BW compat
-            .field("lucene_version", org.apache.lucene.util.Version.LATEST.toString())
-            .endObject();
-        builder.endObject();
-        channel.sendResponse(new BytesRestResponse(status, builder));
+        return new BytesRestResponse(status, builder);
     }
 
     @Override
