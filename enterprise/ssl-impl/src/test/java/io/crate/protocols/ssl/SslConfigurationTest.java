@@ -35,6 +35,7 @@ import java.security.cert.X509Certificate;
 
 import static io.crate.protocols.ssl.SslConfiguration.KeyStoreSettings;
 import static io.crate.protocols.ssl.SslConfiguration.TrustStoreSettings;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
@@ -71,6 +72,8 @@ public class SslConfigurationTest extends CrateUnitTest {
         SslContext sslContext = SslConfiguration.buildSslContext(settings);
         assertThat(sslContext.isServer(), is(true));
         assertThat(sslContext.cipherSuites(), not(empty()));
+        // check that we don't offer NULL ciphers which do not encrypt
+        assertThat(sslContext.cipherSuites(), not(hasItem(containsString("NULL"))));
     }
 
     @Test

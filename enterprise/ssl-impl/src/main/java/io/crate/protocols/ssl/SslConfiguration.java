@@ -93,7 +93,7 @@ public final class SslConfiguration {
             sslContext.init(keyStoreSettings.keyManagers, trustManagers, null);
             SSLContext.setDefault(sslContext);
 
-            List<String> supportedCiphers = Arrays.asList(sslContext.createSSLEngine().getSupportedCipherSuites());
+            List<String> enabledCiphers = Arrays.asList(sslContext.createSSLEngine().getEnabledCipherSuites());
 
             final X509Certificate[] keystoreCerts = keyStoreSettings.exportServerCertChain();
             final PrivateKey privateKey = keyStoreSettings.exportDecryptedKey();
@@ -106,7 +106,7 @@ public final class SslConfiguration {
             final SslContextBuilder sslContextBuilder =
                 SslContextBuilder
                     .forServer(privateKey, keystoreCerts)
-                    .ciphers(supportedCiphers)
+                    .ciphers(enabledCiphers)
                     .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
                     .clientAuth(ClientAuth.OPTIONAL)
                     .sessionCacheSize(0)
