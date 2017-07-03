@@ -53,7 +53,7 @@ public class PipelineRegistryTest {
 
     @Test
     public void testAddSortedToPipline() throws Exception {
-        PipelineRegistry pipelineRegistry = new PipelineRegistry(Settings.EMPTY);
+        PipelineRegistry pipelineRegistry = new PipelineRegistry();
 
         pipelineRegistry.addBefore(channelPipelineItem("c", "d"));
         pipelineRegistry.addBefore(channelPipelineItem("a", "b"));

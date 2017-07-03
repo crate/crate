@@ -25,7 +25,7 @@ package io.crate.protocols.ssl;
 /**
  * Exception type for SSL configuration specific exceptions.
  */
-public class SslConfigurationException extends RuntimeException {
+class SslConfigurationException extends RuntimeException {
 
     SslConfigurationException(String msg, Exception cause) {
         super(msg, cause);

@@ -19,6 +19,7 @@
 package io.crate.protocols.ssl;
 
 import io.crate.test.integration.CrateUnitTest;
+import io.netty.handler.ssl.SslContext;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -34,7 +35,9 @@ import java.security.cert.X509Certificate;
 
 import static io.crate.protocols.ssl.SslConfiguration.KeyStoreSettings;
 import static io.crate.protocols.ssl.SslConfiguration.TrustStoreSettings;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -54,6 +57,20 @@ public class SslConfigurationTest extends CrateUnitTest {
     public static void beforeTests() throws IOException {
         trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
         keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
+    }
+
+    @Test
+    public void testSslContextCreation() {
+        Settings settings = Settings.builder()
+            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH_SETTING_NAME, trustStoreFile)
+            .put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD_SETTING_NAME, TRUSTSTORE_PASSWORD)
+            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH_SETTING_NAME, keyStoreFile)
+            .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD_SETTING_NAME, KEYSTORE_PASSWORD)
+            .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, KEYSTORE_KEY_PASSWORD)
+        .build();
+        SslContext sslContext = SslConfiguration.buildSslContext(settings);
+        assertThat(sslContext.isServer(), is(true));
+        assertThat(sslContext.cipherSuites(), not(empty()));
     }
 
     @Test

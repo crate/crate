@@ -20,10 +20,6 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.operation.auth.AuthenticationProvider;
-import io.crate.protocols.ssl.SslConfigSettings;
-import io.crate.protocols.ssl.SslConfigurationException;
-import io.crate.protocols.ssl.SslHandlerLoader;
-import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -33,31 +29,16 @@ import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
-import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.io.File;
-import java.io.IOException;
-
-import static io.crate.protocols.ssl.SslConfigurationTest.getAbsoluteFilePathFromClassPath;
 import static io.netty.util.ReferenceCountUtil.releaseLater;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
 
 public class SslReqHandlerTest extends CrateUnitTest {
 
-    private static File trustStoreFile;
-    private static File keyStoreFile;
-
     private EmbeddedChannel channel;
-
-    @BeforeClass
-    public static void beforeTests() throws IOException {
-        trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
-        keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
-    }
 
     @After
     public void dispose() {
@@ -68,15 +49,13 @@ public class SslReqHandlerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testSslReqConfiguringHandler() {
+    public void testSslReqHandler() {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
-                new SslReqConfiguringHandler(
-                    Settings.EMPTY,
-                    // use a simple ssl context
-                    getSelfSignedSslContext()),
                 mock(SQLOperations.class),
-                AuthenticationProvider.NOOP_AUTH);
+                AuthenticationProvider.NOOP_AUTH,
+                // use a simple ssl context
+                getSelfSignedSslContext());
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
@@ -89,57 +68,6 @@ public class SslReqHandlerTest extends CrateUnitTest {
 
         // ...and continue encrypted (ssl handler)
         assertThat(channel.pipeline().first(), instanceOf(SslHandler.class));
-    }
-
-    @Test
-    public void testClassLoadingFallback() {
-        {
-            Settings settings = Settings.builder()
-                .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false)
-                .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
-                .build();
-            assertThat(SslHandlerLoader.loadSslReqHandler(settings), instanceOf(SslReqRejectingHandler.class));
-        }
-        {
-            Settings settings = Settings.builder()
-                .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
-                .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), false)
-                .build();
-            assertThat(SslHandlerLoader.loadSslReqHandler(settings), instanceOf(SslReqRejectingHandler.class));
-        }
-        {
-            Settings settings = Settings.builder()
-                .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false)
-                .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), false)
-                .build();
-            assertThat(SslHandlerLoader.loadSslReqHandler(settings), instanceOf(SslReqRejectingHandler.class));
-        }
-    }
-
-    @Test
-    public void testClassLoadingWithInvalidConfiguration() {
-        expectedException.expect(SslConfigurationException.class);
-        expectedException.expectMessage("Failed to build SSL configuration");
-        // empty ssl configuration which is invalid
-        Settings enterpriseEnabled = Settings.builder()
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
-            .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
-            .build();
-        SslHandlerLoader.loadSslReqHandler(enterpriseEnabled);
-    }
-
-    @Test
-    public void testClassLoadingWithValidConfiguration() {
-        Settings enterpriseEnabled = Settings.builder()
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
-            .put(SslConfigSettings.SSL_PSQL_ENABLED.getKey(), true)
-            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile)
-            .put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
-            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile)
-            .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
-            .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
-            .build();
-        assertThat(SslHandlerLoader.loadSslReqHandler(enterpriseEnabled), instanceOf(SslReqConfiguringHandler.class));
     }
 
     private static void sendSslRequest(EmbeddedChannel channel) {

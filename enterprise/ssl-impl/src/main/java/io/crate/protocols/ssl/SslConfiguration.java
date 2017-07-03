@@ -18,7 +18,6 @@
 
 package io.crate.protocols.ssl;
 
-import io.crate.protocols.postgres.SslReqConfiguringHandler;
 import io.crate.settings.CrateSetting;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ClientAuth;
@@ -71,8 +70,9 @@ import java.util.Optional;
  * Contains the private key for data encryption and the certificate (public key) to send
  * to the remote end.
  *
- * See also {@link SslReqConfiguringHandler}
+ * See also {@link io.crate.protocols.postgres.SslReqHandler}
  */
+@SuppressWarnings("WeakerAccess")
 public final class SslConfiguration {
 
     private SslConfiguration() {}

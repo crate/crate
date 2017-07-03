@@ -65,7 +65,7 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin, Action
     private final Settings settings;
 
     public HttpTransportPlugin(Settings settings) {
-        this.pipelineRegistry = new PipelineRegistry(settings);
+        this.pipelineRegistry = new PipelineRegistry();
         this.settings = settings;
     }
 

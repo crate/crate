@@ -41,9 +41,11 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.ByteToMessageDecoder;
+import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nullable;
 import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
@@ -168,8 +170,8 @@ class PostgresWireProtocol {
     final MessageHandler handler;
     private final SQLOperations sqlOperations;
     private final Authentication authService;
+    private final SslReqHandler sslReqHandler;
 
-    private SslReqHandler sslReqHandler;
     private int msgLength;
     private byte msgType;
     private SQLOperations.Session session;
@@ -185,10 +187,10 @@ class PostgresWireProtocol {
 
     private State state = PRE_STARTUP;
 
-    PostgresWireProtocol(SslReqHandler sslReqHandler, SQLOperations sqlOperations, Authentication authService) {
+    PostgresWireProtocol(SQLOperations sqlOperations, Authentication authService, @Nullable SslContext sslContext) {
         this.sqlOperations = sqlOperations;
-        this.sslReqHandler = sslReqHandler;
         this.authService = authService;
+        this.sslReqHandler = new SslReqHandler(sslContext);
         this.decoder = new MessageDecoder();
         this.handler = new MessageHandler();
     }

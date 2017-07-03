@@ -49,12 +49,12 @@ import static org.hamcrest.Matchers.nullValue;
 
 @UseJdbc(value = 0)
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
-public class CrateHttpTransportIntegrationTest extends SQLHttpIntegrationTest {
+public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
 
     private static File trustStoreFile;
     private static File keyStoreFile;
 
-    public CrateHttpTransportIntegrationTest() {
+    public CrateHttpsTransportIntegrationTest() {
         super(true);
     }
 

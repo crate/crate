@@ -20,8 +20,7 @@ package io.crate.protocols.http;
 
 import io.crate.plugin.PipelineRegistry;
 import io.crate.protocols.ssl.SslConfigSettings;
-import io.crate.protocols.ssl.SslConfigurationException;
-import io.crate.protocols.ssl.SslHandlerLoader;
+import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.settings.SharedSettings;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.channel.Channel;
@@ -46,7 +45,7 @@ import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.AdditionalMatchers.aryEq;
 
-public class CrateHttpTransportTest extends CrateUnitTest {
+public class CrateHttpsTransportTest extends CrateUnitTest {
 
     private static File trustStoreFile;
     private static File keyStoreFile;
@@ -55,57 +54,6 @@ public class CrateHttpTransportTest extends CrateUnitTest {
     public static void beforeTests() throws IOException {
         trustStoreFile = getAbsoluteFilePathFromClassPath("truststore.jks");
         keyStoreFile = getAbsoluteFilePathFromClassPath("keystore.jks");
-    }
-
-    @Test
-    public void testClassLoadingFallback() {
-        {
-            Settings settings = Settings.builder()
-                .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false)
-                .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
-                .build();
-            assertThat(SslHandlerLoader.loadHttpsHandler(settings), instanceOf(DefaultHttpsHandler.class));
-        }
-        {
-            Settings settings = Settings.builder()
-                .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
-                .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), false)
-                .build();
-            assertThat(SslHandlerLoader.loadHttpsHandler(settings), instanceOf(DefaultHttpsHandler.class));
-        }
-        {
-            Settings settings = Settings.builder()
-                .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false)
-                .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), false)
-                .build();
-            assertThat(SslHandlerLoader.loadHttpsHandler(settings), instanceOf(DefaultHttpsHandler.class));
-        }
-    }
-
-    @Test
-    public void testClassLoadingWithInvalidConfiguration() {
-        expectedException.expect(SslConfigurationException.class);
-        expectedException.expectMessage("Failed to build SSL configuration");
-        // empty ssl configuration which is invalid
-        Settings enterpriseEnabled = Settings.builder()
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
-            .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
-            .build();
-        SslHandlerLoader.loadHttpsHandler(enterpriseEnabled);
-    }
-
-    @Test
-    public void testClassLoadingWithValidConfiguration() {
-        Settings enterpriseEnabled = Settings.builder()
-            .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), true)
-            .put(SslConfigSettings.SSL_HTTP_ENABLED.getKey(), true)
-            .put(SslConfigSettings.SSL_TRUSTSTORE_FILEPATH.getKey(), trustStoreFile)
-            .put(SslConfigSettings.SSL_TRUSTSTORE_PASSWORD.getKey(), "truststorePassword")
-            .put(SslConfigSettings.SSL_KEYSTORE_FILEPATH.getKey(), keyStoreFile)
-            .put(SslConfigSettings.SSL_KEYSTORE_PASSWORD.getKey(), "keystorePassword")
-            .put(SslConfigSettings.SSL_KEYSTORE_KEY_PASSWORD.getKey(), "serverKeyPassword")
-            .build();
-        assertThat(SslHandlerLoader.loadHttpsHandler(enterpriseEnabled), instanceOf(HttpsConfiguringHandler.class));
     }
 
     @Test
@@ -127,6 +75,9 @@ public class CrateHttpTransportTest extends CrateUnitTest {
         Mockito.when(networkService.resolvePublishHostAddresses(aryEq(new String[0])))
             .thenReturn(InetAddresses.forString("127.0.0.1"));
 
+        PipelineRegistry pipelineRegistry = new PipelineRegistry();
+        new SslContextProvider(settings, pipelineRegistry);
+
         CrateNettyHttpServerTransport transport =
             new CrateNettyHttpServerTransport(
                 settings,
@@ -134,7 +85,7 @@ public class CrateHttpTransportTest extends CrateUnitTest {
                 BigArrays.NON_RECYCLING_INSTANCE,
                 Mockito.mock(ThreadPool.class),
                 NamedXContentRegistry.EMPTY,
-                new PipelineRegistry(settings));
+                pipelineRegistry);
 
         Channel channel = new EmbeddedChannel();
         try {

@@ -28,7 +28,8 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationProvider;
-import io.crate.protocols.ssl.SslHandlerLoader;
+import io.crate.protocols.ssl.SslConfigSettings;
+import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.settings.CrateSetting;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
@@ -40,6 +41,7 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.ssl.SslContext;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -88,6 +90,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final boolean enabled;
     private final String port;
     private final AuthenticationProvider authProvider;
+    private final SslContextProvider sslContextProvider;
     private final Logger namedLogger;
 
     private ServerBootstrap bootstrap;
@@ -101,12 +104,14 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     public PostgresNetty(Settings settings,
                          SQLOperations sqlOperations,
                          NetworkService networkService,
-                         AuthenticationProvider authProvider) {
+                         AuthenticationProvider authProvider,
+                         SslContextProvider sslContextProvider) {
         super(settings);
         namedLogger = Loggers.getLogger("psql", settings);
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
         this.authProvider = authProvider;
+        this.sslContextProvider = sslContextProvider;
 
         enabled = PSQL_ENABLED_SETTING.setting().get(settings);
         port = PSQL_PORT_SETTING.setting().get(settings);
@@ -128,7 +133,12 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             Netty4Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, "postgres-netty-worker"));
         Authentication authentication = authProvider.get();
         Boolean reuseAddress = Netty4Transport.TCP_REUSE_ADDRESS.get(settings);
-        final SslReqHandler sslReqHandler = SslHandlerLoader.loadSslReqHandler(settings);
+        final SslContext sslContext;
+        if (SslConfigSettings.isPSQLSslEnabled(settings)) {
+            sslContext = sslContextProvider.get();
+        } else {
+            sslContext = null;
+        }
         bootstrap = new ServerBootstrap()
             .channel(NioServerSocketChannel.class)
             .group(boss, worker)
@@ -141,7 +151,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                 protected void initChannel(Channel ch) throws Exception {
                     ChannelPipeline pipeline = ch.pipeline();
                     PostgresWireProtocol postgresWireProtocol =
-                        new PostgresWireProtocol(sslReqHandler, sqlOperations, authentication);
+                        new PostgresWireProtocol(sqlOperations, authentication, sslContext);
                     pipeline.addLast("frame-decoder", postgresWireProtocol.decoder);
                     pipeline.addLast("handler", postgresWireProtocol.handler);
                 }

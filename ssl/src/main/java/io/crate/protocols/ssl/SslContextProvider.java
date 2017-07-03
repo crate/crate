@@ -22,71 +22,60 @@
 
 package io.crate.protocols.ssl;
 
-import io.crate.protocols.http.DefaultHttpsHandler;
-import io.crate.protocols.http.HttpsHandler;
-import io.crate.protocols.postgres.SslReqHandler;
-import io.crate.protocols.postgres.SslReqRejectingHandler;
-import io.crate.settings.CrateSetting;
-import io.crate.settings.SharedSettings;
+import io.crate.plugin.PipelineRegistry;
+import io.netty.handler.ssl.SslContext;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.function.Supplier;
 
 /**
- * Loads the appropriate implementation of the PSQL SSL and Https handlers.
+ * Registers Netty's SslContext or provides it for dependency injection.
+ * See PostgresWireProtocol
+ * See PipelineRegistry
  */
-public class SslHandlerLoader {
+@Singleton
+public class SslContextProvider implements Provider<SslContext> {
 
-    private static final String PSQL_HANDLER_CLAZZ = "io.crate.protocols.postgres.SslReqConfiguringHandler";
-    private static final String HTTPS_HANDLER_CLAZZ = "io.crate.protocols.http.HttpsConfiguringHandler";
+    private static final String SSL_CONTEXT_CLAZZ = "io.crate.protocols.ssl.SslConfiguration";
+    private static final String SSL_CONTEXT_METHOD_NAME = "buildSslContext";
 
-    private SslHandlerLoader() {}
+    private SslContext sslContext;
 
-    /**
-     * Loads the SslRequest handler. Should only be called once per application life time.
-     * @throws SslConfigurationException Exception thrown if the user has supplied an invalid configuration
-     */
-    public static SslReqHandler loadSslReqHandler(Settings settings) {
-        return load(settings,
-            SslConfigSettings.SSL_PSQL_ENABLED,
-            PSQL_HANDLER_CLAZZ,
-            SslReqHandler.class,
-            () -> new SslReqRejectingHandler(settings));
+    @SuppressWarnings("WeakerAccess")
+    @Inject
+    public SslContextProvider(Settings settings, PipelineRegistry pipelineRegistry) {
+        if (SslConfigSettings.isSslEnabled(settings)) {
+            this.sslContext = load(settings);
+            if (SslConfigSettings.isHttpsEnabled(settings)) {
+                pipelineRegistry.registerSslContext(sslContext);
+            }
+        }
     }
 
-    public static HttpsHandler loadHttpsHandler(Settings settings) {
-        return load(settings,
-            SslConfigSettings.SSL_HTTP_ENABLED,
-            HTTPS_HANDLER_CLAZZ,
-            HttpsHandler.class,
-            () -> new DefaultHttpsHandler(settings));
-    }
-
-    private static <T> T load(Settings settings,
-                              CrateSetting<Boolean> sslSetting,
-                              String clazz,
-                              Class<T> baseClazz,
-                              Supplier<T> fallback) {
-        boolean enterpriseEnabled = SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings);
-        boolean sslEnabled = sslSetting.setting().get(settings);
-        if (enterpriseEnabled && sslEnabled) {
+    private static SslContext load(Settings settings) {
             ClassLoader classLoader = ClassLoader.getSystemClassLoader();
             try {
-                return classLoader
-                    .loadClass(clazz)
-                    .asSubclass(baseClazz)
-                    .getDeclaredConstructor(Settings.class)
-                    .newInstance(settings);
+                final Object value = classLoader
+                    .loadClass(SSL_CONTEXT_CLAZZ)
+                    .getDeclaredMethod(SSL_CONTEXT_METHOD_NAME, Settings.class)
+                    .invoke(null, settings);
+                Class<SslContext> returnType = SslContext.class;
+                if (!returnType.isAssignableFrom(value.getClass())) {
+                    throw new SslHandlerLoadingException("Returned type did not match the expected type: " + returnType);
+                }
+                //noinspection unchecked
+                return (SslContext) value;
             } catch (Throwable e) {
                 // The JVM wraps the exception of dynamically loaded classes into an InvocationTargetException
                 // which we need to unpack first to see if we have an SslConfigurationException.
                 tryUnwrapSslConfigurationException(e);
                 throw new SslHandlerLoadingException(e);
             }
-        }
-        return fallback.get();
     }
+
 
     private static void tryUnwrapSslConfigurationException(Throwable e) {
         if (e instanceof InvocationTargetException) {
@@ -98,8 +87,16 @@ public class SslHandlerLoader {
     }
 
     private static class SslHandlerLoadingException extends RuntimeException {
+        SslHandlerLoadingException(String msg) {
+            super(msg);
+        }
         SslHandlerLoadingException(Throwable cause) {
             super("Loading the SslConfiguringHandler failed although enterprise is enabled.", cause);
         }
+    }
+
+    @Override
+    public SslContext get() {
+        return sslContext;
     }
 }

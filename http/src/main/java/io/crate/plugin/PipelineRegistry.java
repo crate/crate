@@ -22,14 +22,13 @@
 
 package io.crate.plugin;
 
-import io.crate.protocols.ssl.SslHandlerLoader;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslHandler;
-import org.elasticsearch.common.inject.Inject;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.logging.Loggers;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,15 +42,15 @@ import java.util.function.Supplier;
  * and is provided by the {@link HttpTransportPlugin}.
  */
 @Singleton
-public final class PipelineRegistry {
+public class PipelineRegistry {
+
+    private static final Logger LOG = Loggers.getLogger(PipelineRegistry.class);
 
     private final List<ChannelPipelineItem> addBeforeList;
-    private final SslContext sslContext;
+    private SslContext sslContext;
 
-    @Inject
-    public PipelineRegistry(Settings settings) {
+    public PipelineRegistry() {
         this.addBeforeList = new ArrayList<>();
-        this.sslContext = SslHandlerLoader.loadHttpsHandler(settings).get();
     }
 
     /**
@@ -86,6 +85,15 @@ public final class PipelineRegistry {
     public void addBefore(ChannelPipelineItem item) {
         synchronized (addBeforeList) {
             addSorted(addBeforeList, item);
+        }
+    }
+
+    public void registerSslContext(SslContext sslContext) {
+        this.sslContext = sslContext;
+        if (sslContext != null) {
+            LOG.info("HTTP SSL support is enabled.");
+        } else {
+            LOG.info("HTTP SSL support is disabled.");
         }
     }
 

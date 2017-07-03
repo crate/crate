@@ -49,7 +49,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 import static io.netty.util.ReferenceCountUtil.releaseLater;
 import static org.hamcrest.Matchers.is;
@@ -101,9 +100,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     public void testHandleEmptySimpleQuery() throws Exception {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
-                new SslReqRejectingHandler(Settings.EMPTY),
                 mock(SQLOperations.class),
-                AuthenticationProvider.NOOP_AUTH);
+                AuthenticationProvider.NOOP_AUTH,
+                null);
         EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = releaseLater(Unpooled.buffer());
@@ -130,9 +129,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         when(sqlOperations.createSession(any(String.class), any(User.class))).thenReturn(session);
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
-                new SslReqRejectingHandler(Settings.EMPTY),
                 sqlOperations,
-                new TestAuthentication(null));
+                new TestAuthentication(null),
+                null);
         EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
@@ -149,9 +148,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     public void testBindMessageCanBeReadIfTypeForParamsIsUnknown() throws Exception {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
-                new SslReqRejectingHandler(Settings.EMPTY),
                 sqlOperations,
-                new TestAuthentication(null));
+                new TestAuthentication(null),
+                null);
         EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         ByteBuf buffer = Unpooled.buffer();
@@ -199,12 +198,12 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testSslReqRejectingHandler() {
+    public void testSslRejection() {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
-                new SslReqRejectingHandler(Settings.EMPTY),
                 mock(SQLOperations.class),
-                AuthenticationProvider.NOOP_AUTH);
+                AuthenticationProvider.NOOP_AUTH,
+                null);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
