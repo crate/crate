@@ -533,6 +533,16 @@ Converts alphabetic, numeric, and symbolic Unicode characters which are not in
 the first 127 ASCII characters (the "Basic Latin" Unicode block) into their
 ASCII equivalents, if one exists.
 
+.. _flattengraph-tokenfilter:
+
+``flatten_graph``
+-----------------
+
+``type='flatten_graph'``
+
+Accepts an arbitrary "graph token stream" and flattens it into a single linear
+chain of tokens.
+
 .. _length-tokenfilter:
 
 ``length``
