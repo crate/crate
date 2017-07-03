@@ -45,8 +45,8 @@ other CrateDB containers by name.
 You can then create your first CrateDB container, like so::
 
     sh$ docker run -d --name=crate01 \
-          --net=crate -p 4201:4200 \
-          crate
+          --net=crate -p 4201:4200 --env CRATE_HEAP_SIZE=2g \
+          crate -Cnetwork.host=_site_
 
 Breaking it down, that command:
 
@@ -82,8 +82,9 @@ So, let's create a second node, called ``crate02``, and configure it to ping
 ``crate01`` for cluster discovery. Like so::
 
     sh$ docker run -d --name=crate02 \
-          --net=crate -p 4202:4200 \
-          crate -Cdiscovery.zen.ping.unicast.hosts=crate01
+          --net=crate -p 4202:4200 --env CRATE_HEAP_SIZE=2g \
+          crate -Cnetwork.host=_site_ \
+                -Cdiscovery.zen.ping.unicast.hosts=crate01
 
 Notice here how we also updated the port mapping, so that port ``4200`` on the
 container is mapped to ``4202`` on our host machine.
@@ -97,8 +98,9 @@ Success! You just created a CrateDB cluster with Docker.
 You can now add subsequent nodes, like so::
 
     sh$ docker run -d --name=crate03 \
-          --net=crate -p 4203:4200 \
-          crate -Cdiscovery.zen.ping.unicast.hosts=crate01,crate02
+          --net=crate -p 4203:4200  --env CRATE_HEAP_SIZE=2g \
+          crate -Cnetwork.host=_site_ \
+                -Cdiscovery.zen.ping.unicast.hosts=crate01,crate02
 
 .. NOTE::
 
