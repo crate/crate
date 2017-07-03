@@ -2003,9 +2003,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testFullQualifiedStarPrefix() throws Exception {
         SelectAnalyzedStatement statement = analyze("select sys.jobs.* from sys.jobs");
         List<Symbol> outputs = statement.relation().querySpec().outputs();
-        assertThat(outputs.size(), is(3));
+        assertThat(outputs.size(), is(4));
         //noinspection unchecked
-        assertThat(outputs, Matchers.contains(isReference("id"), isReference("started"), isReference("stmt")));
+        assertThat(outputs, Matchers.contains(isReference("id"), isReference("started"), isReference("stmt"), isReference("username")));
     }
 
     @Test
@@ -2019,9 +2019,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     public void testSelectStarWithTableAliasAsPrefix() throws Exception {
         SelectAnalyzedStatement statement = analyze("select t1.* from sys.jobs t1");
         List<Symbol> outputs = statement.relation().querySpec().outputs();
-        assertThat(outputs.size(), is(3));
+        assertThat(outputs.size(), is(4));
         //noinspection unchecked
-        assertThat(outputs, Matchers.contains(isReference("id"), isReference("started"), isReference("stmt")));
+        assertThat(outputs, Matchers.contains(isReference("id"), isReference("started"), isReference("stmt"), isReference("username")));
     }
 
     @Test

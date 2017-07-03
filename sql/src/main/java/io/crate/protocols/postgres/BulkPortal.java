@@ -38,7 +38,6 @@ import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
@@ -122,10 +121,10 @@ class BulkPortal extends AbstractPortal {
         try {
             plan = planner.plan(analysis, jobId, 0, maxRows);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(jobId, query, SQLExceptions.messageOf(t));
+            jobsLogs.logPreExecutionFailure(jobId, query, SQLExceptions.messageOf(t), sessionContext.user());
             throw t;
         }
-        jobsLogs.logExecutionStart(jobId, query);
+        jobsLogs.logExecutionStart(jobId, query, sessionContext.user());
         synced = true;
         return executeBulk(portalContext.getExecutor(), plan, jobId, jobsLogs);
     }

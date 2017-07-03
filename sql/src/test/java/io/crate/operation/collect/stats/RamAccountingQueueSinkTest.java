@@ -22,6 +22,7 @@
 
 package io.crate.operation.collect.stats;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.core.collections.BlockingEvictingQueue;
 import io.crate.operation.reference.sys.job.ContextLog;
@@ -120,13 +121,12 @@ public class RamAccountingQueueSinkTest extends CrateUnitTest {
     public void testRemoveExpiredLogs() {
         ConcurrentLinkedQueue<JobContextLog> q = new ConcurrentLinkedQueue<>();
         ScheduledFuture<?> task = new TimeExpiring(1_000_000L, 1_000_000L).registerTruncateTask(q, scheduler, TimeValue.timeValueSeconds(1L));
-
         q.add(new JobContextLog(new JobContext(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff01"),
-            "select 1", 1L), null, 2000L));
+            "select 1", 1L, null), null, 2000L));
         q.add(new JobContextLog(new JobContext(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff02"),
-            "select 1", 1L), null, 4000L));
+            "select 1", 1L, null), null, 4000L));
         q.add(new JobContextLog(new JobContext(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff03"),
-            "select 1", 1L), null, 7000L));
+            "select 1", 1L, null), null, 7000L));
 
         TimeExpiring.instance().removeExpiredLogs(q, 10_000L, 5_000L);
         assertThat(q.size(), is(1));

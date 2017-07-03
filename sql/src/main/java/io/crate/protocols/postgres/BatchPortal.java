@@ -132,11 +132,11 @@ class BatchPortal extends AbstractPortal {
             try {
                 plan = planner.plan(analysis.get(i), jobId, 0, 0);
             } catch (Throwable t) {
-                jobsLogs.logPreExecutionFailure(jobId, stmt, SQLExceptions.messageOf(t));
+                jobsLogs.logPreExecutionFailure(jobId, stmt, SQLExceptions.messageOf(t), sessionContext.user());
                 throw t;
             }
             ResultReceiver resultReceiver = resultReceivers.get(i);
-            jobsLogs.logExecutionStart(jobId, stmt);
+            jobsLogs.logExecutionStart(jobId, stmt, sessionContext.user());
             JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
 
             resultReceiver.completionFuture()

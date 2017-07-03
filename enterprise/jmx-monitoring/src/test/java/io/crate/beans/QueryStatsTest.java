@@ -34,13 +34,13 @@ import static org.junit.Assert.assertThat;
 public class QueryStatsTest {
 
     private final List<JobContextLog> log = ImmutableList.of(
-        new JobContextLog(new JobContext(UUID.randomUUID(), "select name", 100L), null, 150L),
-        new JobContextLog(new JobContext(UUID.randomUUID(), "select name", 300L), null, 320L),
-        new JobContextLog(new JobContext(UUID.randomUUID(), "update t1 set x = 10", 400L), null, 420L),
-        new JobContextLog(new JobContext(UUID.randomUUID(), "insert into t1 (x) values (20)", 111L), null, 130L),
-        new JobContextLog(new JobContext(UUID.randomUUID(), "delete from t1", 410L), null, 415L),
-        new JobContextLog(new JobContext(UUID.randomUUID(), "delete from t1", 110L), null, 120L),
-        new JobContextLog(new JobContext(UUID.randomUUID(), "create table t1 (x int)", 105L), null, 106L)
+        new JobContextLog(new JobContext(UUID.randomUUID(), "select name", 100L, null), null, 150L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "select name", 300L, null), null, 320L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "update t1 set x = 10", 400L, null), null, 420L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "insert into t1 (x) values (20)", 111L, null), null, 130L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "delete from t1", 410L, null), null, 415L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "delete from t1", 110L, null), null, 120L),
+        new JobContextLog(new JobContext(UUID.randomUUID(), "create table t1 (x int)", 105L, null), null, 106L)
     );
 
     @Test

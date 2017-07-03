@@ -996,14 +996,14 @@ Jobs
 ----
 
 The ``sys.jobs`` table is a constantly updated view of all jobs that are
-currently being executed in the cluster::
+currently being executed by a user in the cluster::
 
-    cr> select stmt, started from sys.jobs where stmt like 'sel% from %jobs%';
-    +-----------------------------------------------------------------------+-...-----+
-    | stmt                                                                  | started |
-    +-----------------------------------------------------------------------+-...-----+
-    | select stmt, started from sys.jobs where stmt like 'sel% from %jobs%' | ...     |
-    +-----------------------------------------------------------------------+-...-----+
+    cr> select stmt, username, started from sys.jobs where stmt like 'sel% from %jobs%';
+    +---------------------------------------------------------------------------------+----------+-...-----+
+    | stmt                                                                            | username | started |
+    +---------------------------------------------------------------------------------+----------+-...-----+
+    | select stmt, username, started from sys.jobs where stmt like 'sel% from %jobs%' | crate    | ...     |
+    +---------------------------------------------------------------------------------+----------+-...-----+
     SELECT 1 row in set (... sec)
 
 Every request that queries data or manipulates data is considered a "job" if it
@@ -1048,14 +1048,14 @@ The ``sys.jobs`` and ``sys.operations`` tables have corresponding log tables:
 After a job or operation finishes, the corresponding entry will be moved into
 the corresponding log table::
 
-    cr> select id, stmt, started, ended, error
+    cr> select id, stmt, username, started, ended, error
     ... from sys.jobs_log order by ended desc limit 2;
-    +-...+------------------------------------...-+-...-----+-...---+-------+
-    | id | stmt                                   | started | ended | error |
-    +-...+------------------------------------...-+-...-----+-...---+-------+
-    | ...| select _node['name'], ...              | ...     | ...   |  NULL |
-    | ...| select stmt, started from sys.jobs ... | ...     | ...   |  NULL |
-    +-...+------------------------------------...-+-...-----+-...---+-------+
+    +-...+----------------------------------------------...-+----------+-...-----+-...---+-------+
+    | id | stmt                                             | username | started | ended | error |
+    +-...+----------------------------------------------...-+----------+-...-----+-...---+-------+
+    | ...| select _node['name'], ...                        | crate    | ...     | ...   |  NULL |
+    | ...| select stmt, username, started from sys.jobs ... | crate    | ...     | ...   |  NULL |
+    +-...+----------------------------------------------...-+----------+-...-----+-...---+-------+
     SELECT 2 rows in set (... sec)
 
 Invalid queries are also logged in the ``sys.jobs_log`` table, i.e. queries

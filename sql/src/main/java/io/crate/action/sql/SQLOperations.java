@@ -221,7 +221,7 @@ public class SQLOperations {
                 if ("".equals(query)) {
                     statement = EMPTY_STMT;
                 } else {
-                    jobsLogs.logPreExecutionFailure(UUID.randomUUID(), query, SQLExceptions.messageOf(t));
+                    jobsLogs.logPreExecutionFailure(UUID.randomUUID(), query, SQLExceptions.messageOf(t), sessionContext.user());
                     throw SQLExceptions.createSQLActionException(t, sessionContext);
                 }
             }
@@ -247,7 +247,7 @@ public class SQLOperations {
                     portal.close();
                 }
             } catch (Throwable t) {
-                jobsLogs.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), SQLExceptions.messageOf(t));
+                jobsLogs.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), SQLExceptions.messageOf(t), sessionContext.user());
                 throw SQLExceptions.createSQLActionException(t, sessionContext);
             }
         }

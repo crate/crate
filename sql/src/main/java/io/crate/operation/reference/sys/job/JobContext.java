@@ -21,18 +21,29 @@
 
 package io.crate.operation.reference.sys.job;
 
+import io.crate.operation.user.User;
+
+import javax.annotation.Nullable;
 import java.util.UUID;
 
 public class JobContext {
 
     public final UUID id;
+    @Nullable
+    public final String username;
     public final String stmt;
     public final long started;
 
-    public JobContext(UUID id, String stmt, long started) {
+    public JobContext(UUID id, String stmt, long started, @Nullable User user) {
         this.id = id;
         this.stmt = stmt;
         this.started = started;
+
+        if (user != null) {
+            this.username = user.name();
+        } else {
+            this.username = null;
+        }
     }
 
     public UUID id() {
@@ -41,6 +52,11 @@ public class JobContext {
 
     public String stmt() {
         return stmt;
+    }
+
+    @Nullable
+    public String username() {
+        return username;
     }
 
     public long started() {

@@ -52,6 +52,11 @@ public class JobContextLog implements ContextLog {
         return jobContext.id;
     }
 
+    @Nullable
+    public String username() {
+        return jobContext.username();
+    }
+
     public String statement() {
         return jobContext.stmt;
     }
