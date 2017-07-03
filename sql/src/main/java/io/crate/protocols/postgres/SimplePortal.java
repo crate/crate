@@ -160,7 +160,7 @@ public class SimplePortal extends AbstractPortal {
         try {
             plan = planner.plan(analysis, jobId, defaultLimit, maxRows);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(jobId, query, SQLExceptions.messageOf(t));
+            jobsLogs.logPreExecutionFailure(jobId, query, SQLExceptions.messageOf(t), sessionContext.user());
             throw t;
         }
 
@@ -169,7 +169,7 @@ public class SimplePortal extends AbstractPortal {
                 resultReceiver, jobId, newJobId -> retryQuery(planner, newJobId));
         }
 
-        jobsLogs.logExecutionStart(jobId, query);
+        jobsLogs.logExecutionStart(jobId, query, sessionContext.user());
         JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
         CompletableFuture completableFuture = resultReceiver.completionFuture().whenComplete(jobsLogsUpdateListener);
 

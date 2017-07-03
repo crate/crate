@@ -23,6 +23,8 @@
 package io.crate.operation.collect.stats;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
+import io.crate.action.sql.SessionContext;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.BlockingEvictingQueue;
@@ -30,6 +32,7 @@ import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
+import io.crate.operation.user.User;
 import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -45,10 +48,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.lang.reflect.Field;
-import java.util.List;
-import java.util.Queue;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -192,7 +192,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
         JobsLogService stats = new JobsLogService(settings, clusterSettings, scheduler, breakerService);
 
-        stats.jobsLogSink.add(new JobContextLog(new JobContext(UUID.randomUUID(), "select 1", 1L), null));
+        stats.jobsLogSink.add(new JobContextLog(
+            new JobContext(UUID.randomUUID(), "select 1", 1L, null), null));
 
         clusterSettings.applySettings(Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
@@ -210,6 +211,36 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 1).build());
 
         assertThat(ImmutableList.copyOf(stats.jobsLogSink.iterator()).size(), is(1));
+    }
+
+    @Test
+    public void testExecutionStart() {
+        JobsLogs jobsLogs = new JobsLogs(() -> true);
+        User user = new User("arthur", ImmutableSet.of(), ImmutableSet.of());
+
+        JobContext jobContext = new JobContext(UUID.randomUUID(), "select 1", 1L, user);
+        jobsLogs.logExecutionStart(jobContext.id, jobContext.stmt, user);
+        List<JobContext> jobsEntries = ImmutableList.copyOf(jobsLogs.activeJobs().iterator());
+
+        assertThat(jobsEntries.size(), is(1));
+        assertThat(jobsEntries.get(0).username(), is(user.name()));
+        assertThat(jobsEntries.get(0).stmt(), is("select 1"));
+    }
+
+    @Test
+    public void testExecutionFailure() {
+        JobsLogs jobsLogs = new JobsLogs(() -> true);
+        User user = new User("arthur", ImmutableSet.of(), ImmutableSet.of());
+        Queue<JobContextLog> q = new BlockingEvictingQueue<>(1);
+
+        jobsLogs.updateJobsLog(new QueueSink<>(q, ramAccountingContext::close));
+        jobsLogs.logPreExecutionFailure(UUID.randomUUID(), "select foo", "stmt error", user);
+
+        List<JobContextLog> jobsLogEntries = ImmutableList.copyOf(jobsLogs.jobsLog().iterator());
+        assertThat(jobsLogEntries.size(), is(1));
+        assertThat(jobsLogEntries.get(0).username(), is(user.name()));
+        assertThat(jobsLogEntries.get(0).statement(), is("select foo"));
+        assertThat(jobsLogEntries.get(0).errorMessage(), is("stmt error"));
     }
 
     @Test

@@ -163,6 +163,8 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<JobContextLog>>builder()
             .put(SysJobsLogTableInfo.Columns.ID,
                 () -> RowContextCollectorExpression.objToBytesRef(JobContextLog::id))
+            .put(SysJobsTableInfo.Columns.USERNAME,
+                () -> RowContextCollectorExpression.objToBytesRef(JobContextLog::username))
             .put(SysJobsLogTableInfo.Columns.STMT,
                 () -> RowContextCollectorExpression.objToBytesRef(JobContextLog::statement))
             .put(SysJobsLogTableInfo.Columns.STARTED,
@@ -178,6 +180,8 @@ public class RowContextReferenceResolver implements ReferenceResolver<RowCollect
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<JobContext>>builder()
             .put(SysJobsTableInfo.Columns.ID,
                 () -> RowContextCollectorExpression.objToBytesRef(JobContext::id))
+            .put(SysJobsTableInfo.Columns.USERNAME,
+                () -> RowContextCollectorExpression.objToBytesRef(JobContext::username))
             .put(SysJobsTableInfo.Columns.STMT,
                 () -> RowContextCollectorExpression.objToBytesRef(JobContext::stmt))
             .put(SysJobsTableInfo.Columns.STARTED,

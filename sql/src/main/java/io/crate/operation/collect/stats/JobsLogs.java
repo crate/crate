@@ -26,6 +26,7 @@ import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
+import io.crate.operation.user.User;
 import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
@@ -91,12 +92,12 @@ public class JobsLogs {
      * <p>
      * If {@link #isEnabled()} is false this method won't do anything.
      */
-    public void logExecutionStart(UUID jobId, String statement) {
+    public void logExecutionStart(UUID jobId, String statement, @Nullable User user) {
         activeRequests.increment();
         if (!isEnabled()) {
             return;
         }
-        jobsTable.put(jobId, new JobContext(jobId, statement, System.currentTimeMillis()));
+        jobsTable.put(jobId, new JobContext(jobId, statement, System.currentTimeMillis(), user));
     }
 
     /**
@@ -116,14 +117,14 @@ public class JobsLogs {
 
     /**
      * Create a entry into `sys.jobs_log`
-     * This method can be used instead of {@link #logExecutionEnd(UUID, String)} if there was no {@link #logExecutionStart(UUID, String)}
+     * This method can be used instead of {@link #logExecutionEnd(UUID, String)} if there was no {@link #logExecutionStart(UUID, String, User)}
      * Call because an error happened during parse, analysis or plan.
      * <p>
-     * {@link #logExecutionStart(UUID, String)} is only called after a Plan has been created and execution starts.
+     * {@link #logExecutionStart(UUID, String, User)} is only called after a Plan has been created and execution starts.
      */
-    public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage) {
+    public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage, @Nullable User user) {
         LogSink<JobContextLog> jobContextLogs = jobsLog.get();
-        JobContext jobContext = new JobContext(jobId, stmt, System.currentTimeMillis());
+        JobContext jobContext = new JobContext(jobId, stmt, System.currentTimeMillis(), user);
         jobContextLogs.add(new JobContextLog(jobContext, errorMessage));
     }
 

@@ -45,6 +45,7 @@ public class SysJobsLogTableInfo extends StaticTableInfo {
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
+        public static final ColumnIdent USERNAME = new ColumnIdent("username");
         public static final ColumnIdent STMT = new ColumnIdent("stmt");
         public static final ColumnIdent STARTED = new ColumnIdent("started");
         public static final ColumnIdent ENDED = new ColumnIdent("ended");
@@ -57,6 +58,7 @@ public class SysJobsLogTableInfo extends StaticTableInfo {
     public SysJobsLogTableInfo(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
             .register(Columns.ID, DataTypes.STRING)
+            .register(Columns.USERNAME, DataTypes.STRING)
             .register(Columns.STMT, DataTypes.STRING)
             .register(Columns.STARTED, DataTypes.TIMESTAMP)
             .register(Columns.ENDED, DataTypes.TIMESTAMP)
