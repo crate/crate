@@ -42,17 +42,19 @@ def retry_sql(client, statement):
     sys.shards queries might fail if a node that has shutdown is still
     in the cluster state
     """
-    retry = 0
+    wait_time = 0
+    sleep_duration = 0.01
     last_error = None
-    while retry < 50:
+    while wait_time < 10.5:
         try:
             return client.sql(statement)
         except ProgrammingError as e:
             if ('not found in cluster state' in e.message or
                     'Node not connected' in e.message):
-                time.sleep(0.1)
+                time.sleep(sleep_duration)
                 last_error = e
-                retry += 1
+                wait_time += sleep_duration
+                sleep_duration *= 2
                 continue
             raise e
     raise last_error
