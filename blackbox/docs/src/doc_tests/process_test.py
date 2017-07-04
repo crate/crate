@@ -48,7 +48,8 @@ def retry_sql(client, statement):
         try:
             return client.sql(statement)
         except ProgrammingError as e:
-            if 'not found in cluster state' in e.message:
+            if ('not found in cluster state' in e.message or
+                    'Node not connected' in e.message):
                 time.sleep(0.1)
                 last_error = e
                 retry += 1
