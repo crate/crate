@@ -46,27 +46,27 @@ task ignoreDiskThreshold(dependsOn: unpackDistTar) {
 }
 
 task hdfsTest(type: Exec) {
-    commandLine "$projectDir/bin/hdfs-test"
+    commandLine "$projectDir/bin/test-hdfs"
 }
 
 task monitoringTest(type: Exec) {
-    commandLine "$projectDir/bin/monitoring-test"
+    commandLine "$projectDir/bin/test-jmx"
 }
 
 task sigarTest(type: Exec) {
-    commandLine "$projectDir/bin/sigar-test"
+    commandLine "$projectDir/bin/test-sigar"
 }
 
 task itest(type: Exec) {
-    commandLine "$projectDir/bin/test", '-1', '-t', '!process_test'
+    commandLine "$projectDir/bin/test-docs", '-1', '-t', '!process_test'
 }
 
 task gtest(type: Exec) {
-    commandLine "$projectDir/bin/test", '-1', '-t', 'process_test'
+    commandLine "$projectDir/bin/test-docs", '-1', '-t', 'process_test'
 }
 
 task logicTest(type: Exec) {
-    commandLine "$projectDir/bin/logic-test"
+    commandLine "$projectDir/bin/test-sqllogic"
 }
 
 task buildDocs(type: Exec, dependsOn: bootstrap) {
