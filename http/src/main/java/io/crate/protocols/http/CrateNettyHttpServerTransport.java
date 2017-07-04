@@ -30,16 +30,21 @@ import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.http.HttpServerAdapter;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.nio.file.Path;
 
 
 public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
 
     private final PipelineRegistry pipelineRegistry;
+    private final Path siteDirectory;
 
     public CrateNettyHttpServerTransport(Settings settings,
                                          NetworkService networkService,
@@ -48,7 +53,23 @@ public class CrateNettyHttpServerTransport extends Netty4HttpServerTransport {
                                          NamedXContentRegistry namedXContentRegistry,
                                          PipelineRegistry pipelineRegistry) {
         super(settings, networkService, bigArrays, threadPool, namedXContentRegistry);
+        this.siteDirectory = new Environment(settings).libFile().resolve("site");
         this.pipelineRegistry = pipelineRegistry;
+    }
+
+    @Override
+    public void httpServerAdapter(HttpServerAdapter httpServerAdapter) {
+        super.httpServerAdapter((request, channel, context) -> {
+            if (request.rawPath().startsWith("/static")) {
+                try {
+                    StaticSite.serveSite(siteDirectory, request, channel);
+                } catch (IOException e) {
+                    logger.error("Couldn't serve static file", e);
+                }
+            } else {
+                httpServerAdapter.dispatchRequest(request, channel, context);
+            }
+        });
     }
 
     @Override
