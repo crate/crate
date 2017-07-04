@@ -36,22 +36,29 @@ import java.security.MessageDigest;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class HashFunctions {
 
     private static final List<DataType> SUPPORTED_INPUT_TYPE = Collections.singletonList((DataTypes.STRING));
 
     private enum HashMethod {
-        MD5(MessageDigests.md5()),
-        SHA1(MessageDigests.sha1());
+        MD5(MessageDigests::md5),
+        SHA1(MessageDigests::sha1);
 
-        private final MessageDigest messageDigest;
+        /**
+         * Do not pass the MessageDigest in directly but resolve it during
+         * runtime to avoid concurrency issue when the hash function is
+         * used by multiple threads at the same time.
+         */
+        private final Supplier<MessageDigest> messageDigestSupplier;
 
-        HashMethod(MessageDigest method) {
-            this.messageDigest = method;
+        HashMethod(Supplier<MessageDigest> digestSupplier) {
+            this.messageDigestSupplier = digestSupplier;
         }
 
         public BytesRef digest(BytesRef input) {
+            MessageDigest messageDigest = messageDigestSupplier.get();
             byte[] digest = new byte[messageDigest.getDigestLength()];
             messageDigest.update(input.bytes, input.offset, input.length);
             try {
