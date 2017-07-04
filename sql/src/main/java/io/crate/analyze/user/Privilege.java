@@ -23,14 +23,17 @@
 package io.crate.analyze.user;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.metadata.TableIdent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 public class Privilege implements Writeable {
 
@@ -58,8 +61,59 @@ public class Privilege implements Writeable {
         public static final List<Clazz> VALUES = ImmutableList.copyOf(values());
     }
 
-    public static Privilege privilegeAsGrant(Privilege privilege) {
-        return new Privilege(State.GRANT, privilege.type, privilege.clazz, privilege.ident, privilege.grantor);
+    /**
+     * Try to match a privilege at the given collection ignoring the type.
+     * Also see {@link Privilege#matchPrivilege(Collection, Type, Clazz, String)}.
+     */
+    public static boolean matchPrivilege(Collection<Privilege> privileges,
+                                         Clazz clazz,
+                                         @Nullable String ident) {
+        return matchPrivilege(privileges, null, clazz, ident);
+    }
+
+    /**
+     * Try to match a privilege at the given collection.
+     * If none is found for the current {@link Clazz}, try to find one on the upper class.
+     * If a privilege with a {@link State#DENY} state is found, false is returned.
+     */
+    public static boolean matchPrivilege(Collection<Privilege> privileges,
+                                         @Nullable Type type,
+                                         Clazz clazz,
+                                         @Nullable String ident) {
+        boolean found = matchPrivilegeOfClass(privileges, type, clazz, ident);
+        if (found) {
+            return true;
+        }
+        switch (clazz) {
+            case SCHEMA:
+                return matchPrivilegeOfClass(privileges, type, Clazz.CLUSTER, ident);
+            case TABLE:
+                String schemaIdent = TableIdent.fromIndexName(ident).schema();
+                found = matchPrivilegeOfClass(privileges, type, Clazz.SCHEMA, schemaIdent);
+                return found != false || matchPrivilegeOfClass(privileges, type, Clazz.CLUSTER, null);
+        }
+        return false;
+    }
+
+
+    private static boolean matchPrivilegeOfClass(Collection<Privilege> privileges,
+                                                 @Nullable Type type,
+                                                 Clazz clazz,
+                                                 @Nullable String ident) {
+        Optional<Privilege> matchedPrivilege = privileges.stream()
+            .filter(p -> {
+                String pIdent = p.ident();
+                boolean matched = p.clazz().equals(clazz);
+                if (matched && pIdent != null) {
+                    matched = pIdent.equals(ident);
+                }
+                if (matched && type != null) {
+                    return p.type().equals(type);
+                }
+                return matched;
+            })
+            .findFirst();
+        return matchedPrivilege.isPresent();
     }
 
     private final State state;
@@ -110,7 +164,7 @@ public class Privilege implements Writeable {
      * Checks if both the current and the provided privilege point to the same object.
      */
     public boolean onSameObject(Privilege other) {
-        if (this == other){
+        if (this == other) {
             return true;
         }
         if (other == null || getClass() != other.getClass()) {
