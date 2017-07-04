@@ -15,10 +15,10 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
- - ``CURRENT_USER``, ``USER`` and ``SESSION_USER`` are now reserved words as we 
-   introduced them as system functions. These terms will not be available to 
-   be used as table, and column names and for already existing entities they 
-   will have to be quoted when referenced (otherwise the terms will be treated 
+ - ``CURRENT_USER``, ``USER`` and ``SESSION_USER`` are now reserved words as we
+   introduced them as system functions. These terms will not be available to
+   be used as table, and column names and for already existing entities they
+   will have to be quoted when referenced (otherwise the terms will be treated
    as function calls).
 
  - ``SELECT`` statements without any ``FROM`` items are no longer executed
@@ -42,6 +42,8 @@ Breaking Changes (Packaging only)
 Changes
 =======
 
+ - Upgraded Crash to 0.21.2
+
  - The ``recovery_after_time`` node check now fails if it would prevent the
    ``gateway.expected_nodes`` setting from having any effect.
 
@@ -55,8 +57,6 @@ Changes
      SELECT count(*) FROM t1 WHERE id > (select max(col1) from t2)
 
  - Updated Elasticsearch to 5.2.2
-
- - Upgraded Crash to 0.21.0.
 
  - Added support for ``GRANT`` and ``REVOKE`` privileges for accessing the
    cluster. Currently supported privilege types: ``DQL``, ``DML`` and ``DDL``.

@@ -27,8 +27,6 @@ First let's connect to a running node::
     +------------------------+-----------+---------+-----------+---------+
     | http://127.0.0.1:...   | crate     | ...     | TRUE      | OK      |
     +------------------------+-----------+---------+-----------+---------+
-    CONNECT OK
-    ...
 
 In this guide we want to create a database for Twitter_ tweets. Let's create
 the table ``tweets`` with all columns we need::
