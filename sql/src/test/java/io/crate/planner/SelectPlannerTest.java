@@ -471,24 +471,29 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHasNoResultFromHaving() throws Exception {
-        e.plan("select min(name) from users having 1 = 2");
-        // TODO:
+        Merge merge = e.plan("select min(name) from users having 1 = 2");
+        assertThat(merge.mergePhase().projections().get(1), instanceOf(FilterProjection.class));
+        assertThat(((FilterProjection) merge.mergePhase().projections().get(1)).query(), isSQL("false"));
     }
 
     @Test
     public void testHasNoResultFromLimit() {
-        // TODO:
-        e.plan("select count(*) from users limit 1 offset 1");
-        e.plan("select count(*) from users limit 5 offset 1");
-        e.plan("select count(*) from users limit 0");
-        e.plan("select * from users order by name limit 0");
-        e.plan("select * from users order by name limit 0 offset 0");
+        CountPlan count = e.plan("select count(*) from users limit 1 offset 1");
+        assertThat(count.mergePhase().projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(((TopNProjection) count.mergePhase().projections().get(1)).limit(), is(1));
+        assertThat(((TopNProjection) count.mergePhase().projections().get(1)).offset(), is(1));
+
+        count = e.plan("select count(*) from users limit 0");
+        assertThat(count.mergePhase().projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(((TopNProjection) count.mergePhase().projections().get(1)).limit(), is(0));
+
+        assertThat(e.plan("select * from users order by name limit 0"), instanceOf(NoopPlan.class));
+        assertThat(e.plan("select * from users order by name limit 0 offset 0"), instanceOf(NoopPlan.class));
     }
 
     @Test
     public void testHasNoResultFromQuery() {
-        // TODO:
-        e.plan("select name from users where false");
+        assertThat(e.plan("select name from users where false"), instanceOf(NoopPlan.class));
     }
 
     @Test
