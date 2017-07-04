@@ -70,6 +70,8 @@ Changes
 Fixes
 =====
 
+ - Fix thread-safety issue for scalar functions ``md5`` and ``sha1``
+
  - ``information.schema.tables`` now returns the default routing hash function
    if none is present in the table metadata.
    (Issue: https://github.com/crate/crate/issues/5857)
