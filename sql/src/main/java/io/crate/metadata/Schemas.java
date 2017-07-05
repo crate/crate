@@ -27,7 +27,6 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
-import io.crate.exceptions.UnauthorizedException;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
@@ -38,7 +37,6 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.udf.UserDefinedFunctionMetaData;
 import io.crate.operation.udf.UserDefinedFunctionsMetaData;
-import io.crate.operation.user.User;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -52,7 +50,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -89,24 +86,17 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
     /**
      * @param ident the table ident to get a TableInfo for
-     * @param user the authenticated user
      * @return an instance of TableInfo for the given ident, guaranteed to be not null
      * @throws io.crate.exceptions.SchemaUnknownException if schema given in <code>ident</code>
      *                                                    does not exist
      * @throws io.crate.exceptions.TableUnknownException  if table given in <code>ident</code> does
      *                                                    not exist in the given schema
-     * @throws io.crate.exceptions.UnauthorizedException  if given user is not authorized to access
-     *                                                    the table
      */
-    public <T extends TableInfo> T getTableInfo(TableIdent ident, @Nullable User user) {
+    public <T extends TableInfo> T getTableInfo(TableIdent ident) {
         SchemaInfo schemaInfo = getSchemaInfo(ident);
         TableInfo info = schemaInfo.getTableInfo(ident.name());
         if (info == null) {
             throw new TableUnknownException(ident);
-        }
-        if (info.requiredUserRoles().size() > 0 && (user == null || !user.roles().containsAll(info.requiredUserRoles()))) {
-            throw new UnauthorizedException(String.format(Locale.ENGLISH, "User \"%s\" is not authorized to access table \"%s\"",
-                user == null ? null : user.name(), info.ident().fqn()));
         }
         return (T) info;
     }
@@ -114,7 +104,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     /**
      * @param ident the table ident to get a TableInfo for
      * @param operation The opreation planned to be performed on the table
-     * @param user the authenticated user
      * @return an instance of TableInfo for the given ident, guaranteed to be not null and to support the operation
      * required on it.
      * @throws io.crate.exceptions.SchemaUnknownException if schema given in <code>ident</code>
@@ -122,8 +111,8 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      * @throws io.crate.exceptions.TableUnknownException  if table given in <code>ident</code> does
      *                                                    not exist in the given schema
      */
-    public <T extends TableInfo> T getTableInfo(TableIdent ident, Operation operation, User user) {
-        TableInfo tableInfo = getTableInfo(ident, user);
+    public <T extends TableInfo> T getTableInfo(TableIdent ident, Operation operation) {
+        TableInfo tableInfo = getTableInfo(ident);
         Operation.blockedRaiseException(tableInfo, operation);
         return (T) tableInfo;
     }

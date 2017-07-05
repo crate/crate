@@ -43,7 +43,7 @@ class AlterTableOpenCloseAnalyzer {
     public AlterTableOpenCloseAnalyzedStatement analyze(AlterTableOpenClose node, SessionContext sessionContext) {
         Table table = node.table();
         DocTableInfo tableInfo = schemas.getTableInfo(TableIdent.of(table, sessionContext.defaultSchema()),
-            Operation.ALTER_OPEN_CLOSE, sessionContext.user());
+            Operation.ALTER_OPEN_CLOSE);
         PartitionName partitionName = null;
         if (tableInfo.isPartitioned()) {
             partitionName = AlterTableAnalyzer.createPartitionName(table.partitionProperties(), tableInfo, null);
