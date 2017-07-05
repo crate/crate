@@ -18,8 +18,14 @@ Breaking Changes
 Changes
 =======
 
+ - The ``recovery_after_time`` node check now fails if it would prevent the
+   ``gateway.expected_nodes`` setting from having any effect.
+
 Fixes
 =====
+
+ - Fixed ``select settings['gateway']['recover_after_time'] from sys.cluster``
+   so it returns the correct value.
 
  - Fixed an issue that caused blob data to be deleted upon node shutdown.
 

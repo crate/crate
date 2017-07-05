@@ -196,8 +196,6 @@ public class CrateSettings implements ClusterStateListener {
     private static final List<String> BUILT_IN_SETTING_NAMES = BUILT_IN_SETTINGS.stream()
         .map(CrateSetting::getKey)
         .collect(Collectors.toList());
-    private static final Map<String, String> BUILT_IN_SETTINGS_DEFAULTS_MAP = BUILT_IN_SETTINGS.stream()
-        .collect(Collectors.toMap(CrateSetting::getKey, s -> s.setting().getDefaultRaw(Settings.EMPTY)));
     private static final Joiner DOT_JOINER = Joiner.on(".");
 
     public static boolean isValidSetting(String name) {
@@ -260,7 +258,9 @@ public class CrateSettings implements ClusterStateListener {
     public CrateSettings(ClusterService clusterService, Settings settings) {
         logger = Loggers.getLogger(this.getClass(), settings);
         initialSettings = Settings.builder()
-            .put(BUILT_IN_SETTINGS_DEFAULTS_MAP)
+            .put(BUILT_IN_SETTINGS
+                .stream()
+                .collect(Collectors.toMap(CrateSetting::getKey, s -> s.setting().getDefaultRaw(settings))))
             .put(settings)
             .build();
         this.settings = initialSettings;

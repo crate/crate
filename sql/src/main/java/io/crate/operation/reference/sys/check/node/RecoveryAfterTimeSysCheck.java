@@ -35,8 +35,8 @@ public class RecoveryAfterTimeSysCheck extends AbstractSysNodeCheck {
     private final Settings settings;
 
     static final int ID = 3;
-    private static final String DESCRIPTION = "The value of the cluster setting 'gateway.recover_after_time' " +
-                                              "must not be less than its default value (5m).";
+    private static final String DESCRIPTION = "If any of the \"expected nodes\" recovery settings are set, the value of 'gateway.recover_after_time' " +
+                                              "must not be zero. Otherwise the \"expected nodes\" setting wouldn't have any effect.";
 
     @Inject
     public RecoveryAfterTimeSysCheck(ClusterService clusterService, Settings settings) {
@@ -56,6 +56,6 @@ public class RecoveryAfterTimeSysCheck extends AbstractSysNodeCheck {
     protected boolean validate(TimeValue recoverAfterTime, int recoveryAfterNodes, int expectedNodes) {
         return recoveryAfterNodes <= expectedNodes &&
                (expectedNodes == GatewayService.EXPECTED_NODES_SETTING.getDefault(Settings.EMPTY) ||
-                recoverAfterTime.getSeconds() >= GatewayService.DEFAULT_RECOVER_AFTER_TIME_IF_EXPECTED_NODES_IS_SET.seconds());
+                recoverAfterTime.getMillis() > 0L);
     }
 }
