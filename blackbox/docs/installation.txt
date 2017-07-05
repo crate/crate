@@ -67,7 +67,9 @@ sandboxed container. We provide a Docker image for CrateDB for easy
 installation::
 
     sh$ docker pull crate
-    sh$ docker run -d -p 4200:4200 -p 4300:4300 crate crate -Ccluster.name=my_cluster
+    sh$ docker run -d -p 4200:4200 -p 4300:4300 crate \
+          crate -Ccluster.name=my_cluster \
+                -Cnetwork.host=_site_
 
 The images are hosted on the `Docker Hub Registry`_. There is additional
 information on how to run CrateDB in a Docker container on the `docker-crate`_

@@ -135,7 +135,8 @@ If you are running one container per machine, you can map the container ports
 to the host ports so that the host acts like a native installation. You can do
 that like so::
 
-    $ docker run -d -p 4200:4200 -p 4300:4300 crate crate
+    $ docker run -d -p 4200:4200 -p 4300:4300 crate \
+        crate -Cnetwork.host=_site_
 
 Persistent Data Directory
 -------------------------
@@ -145,7 +146,8 @@ and go, and any data inside them is lost when the container goes away. For this
 reason, it is required that you mount a persistent ``data`` directory on your
 host machine to the ``/data`` directory inside the container, like so::
 
-    $ docker run -d -v /srv/crate/data:/data crate crate
+    $ docker run -d -v /srv/crate/data:/data crate \
+        crate -Cnetwork.host=_site_
 
 Here, ``/srv/crate/data`` is an example path, and should be replaced with the
 path to your host machine ``data`` directory.
@@ -162,7 +164,9 @@ away.
 
 Here's how you would mount ``crate.yml``::
 
-    $ docker run -d -v /srv/crate/config/crate.yml:/crate/config/crate.yml crate crate
+    $ docker run -d \
+        -v /srv/crate/config/crate.yml:/crate/config/crate.yml crate \
+        crate -Cnetwork.host=_site_
 
 Here, ``/srv/crate/config/crate.yml`` is an example path, and should be
 replaced with the path to your host machine ``crate.yml`` file.
@@ -206,7 +210,8 @@ everything at once like so::
         --cpus 1.5 \
         --memory 2g \
         --env CRATE_HEAP_SIZE=1g \
-        crate crate
+        crate \
+        crate -Cnetwork.host=_site_
 
 .. _CrateDB Docker image: https://hub.docker.com/_/crate/
 .. _Docker Cloud: https://crate.io/docs/install/containers/docker-cloud/
