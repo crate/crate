@@ -21,7 +21,6 @@
 
 package io.crate.operation.count;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
 import org.elasticsearch.common.inject.ImplementedBy;
 import org.elasticsearch.index.Index;
@@ -29,12 +28,13 @@ import org.elasticsearch.index.Index;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 @ImplementedBy(InternalCountOperation.class)
 public interface CountOperation {
 
-    ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
-                                 WhereClause whereClause) throws IOException, InterruptedException;
+    CompletableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
+                                  WhereClause whereClause) throws IOException, InterruptedException;
 
     long count(Index index, int shardId, WhereClause whereClause) throws IOException, InterruptedException;
 }

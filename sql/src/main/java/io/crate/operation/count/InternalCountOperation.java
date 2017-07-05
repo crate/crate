@@ -21,8 +21,6 @@
 
 package io.crate.operation.count;
 
-import com.google.common.base.Function;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -39,17 +37,17 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.script.ScriptService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 @Singleton
 public class InternalCountOperation implements CountOperation {
@@ -61,8 +59,7 @@ public class InternalCountOperation implements CountOperation {
     private final int corePoolSize;
 
     @Inject
-    public InternalCountOperation(ScriptService scriptService, // DO NOT REMOVE, RESULTS IN WEIRD GUICE DI ERRORS
-                                  LuceneQueryBuilder queryBuilder,
+    public InternalCountOperation(LuceneQueryBuilder queryBuilder,
                                   ClusterService clusterService,
                                   ThreadPool threadPool,
                                   IndicesService indicesService) {
@@ -74,10 +71,10 @@ public class InternalCountOperation implements CountOperation {
     }
 
     @Override
-    public ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
-                                        final WhereClause whereClause) throws IOException, InterruptedException {
+    public CompletableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
+                                         final WhereClause whereClause) throws IOException, InterruptedException {
 
-        List<Callable<Long>> callableList = new ArrayList<>();
+        List<Supplier<Long>> suppliers = new ArrayList<>();
         MetaData metaData = clusterService.state().getMetaData();
         for (Map.Entry<String, ? extends Collection<Integer>> entry : indexShardMap.entrySet()) {
             String indexName = entry.getKey();
@@ -90,13 +87,19 @@ public class InternalCountOperation implements CountOperation {
             }
             final Index index = indexMetaData.getIndex();
             for (final Integer shardId : entry.getValue()) {
-                callableList.add(() -> count(index, shardId, whereClause));
+                suppliers.add(() -> {
+                    try {
+                        return count(index, shardId, whereClause);
+                    } catch (IOException | InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
             }
         }
         MergePartialCountFunction mergeFunction = new MergePartialCountFunction();
-        ListenableFuture<List<Long>> listListenableFuture = ThreadPools.runWithAvailableThreads(
-            executor, corePoolSize, callableList, mergeFunction);
-        return Futures.transform(listListenableFuture, mergeFunction);
+        CompletableFuture<List<Long>> futurePartialCounts = ThreadPools.runWithAvailableThreads(
+            executor, corePoolSize, suppliers, mergeFunction);
+        return futurePartialCounts.thenApply(mergeFunction);
     }
 
     @Override
@@ -127,7 +130,7 @@ public class InternalCountOperation implements CountOperation {
     }
 
     private static class MergePartialCountFunction implements Function<List<Long>, Long> {
-        @Nullable
+
         @Override
         public Long apply(List<Long> partialResults) {
             long result = 0L;
