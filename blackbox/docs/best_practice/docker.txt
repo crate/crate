@@ -135,7 +135,7 @@ If you are running one container per machine, you can map the container ports
 to the host ports so that the host acts like a native installation. You can do
 that like so::
 
-    $ docker run -d -p 4200:4200 -p 4300:4300 crate \
+    $ docker run -d -p 4200:4200 -p 4300:4300 -p 5432:5432 crate \
         crate -Cnetwork.host=_site_
 
 Persistent Data Directory
