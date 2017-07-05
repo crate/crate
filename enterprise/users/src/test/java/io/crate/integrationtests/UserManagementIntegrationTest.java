@@ -108,14 +108,6 @@ public class UserManagementIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testSelectUsersUnAuthorized() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(
-            "UnauthorizedException: User \"normal\" is not authorized to access table \"sys.users\"");
-        executeAsNormalUser("select * from sys.users");
-    }
-
-    @Test
     public void testCreateExistingUserThrowsException() throws Exception {
         executeAsSuperuser("create user ford_exists");
         assertUserIsCreated("ford_exists");

@@ -20,7 +20,6 @@ package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.user.Privilege;
 import io.crate.metadata.ColumnIdent;
@@ -41,7 +40,6 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class SysPrivilegesTableInfo extends StaticTableInfo {
 
@@ -91,11 +89,6 @@ public class SysPrivilegesTableInfo extends StaticTableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().getId());
-    }
-
-    @Override
-    public Set<User.Role> requiredUserRoles() {
-        return ImmutableSet.of(User.Role.SUPERUSER);
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<PrivilegeRow>> expressions() {

@@ -79,7 +79,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
     @Before
     public void prepare() {
         Schemas schemas = mock(Schemas.class);
-        when(schemas.getTableInfo(TEST_TABLE_IDENT, null)).thenReturn(userTableInfo);
+        when(schemas.getTableInfo(TEST_TABLE_IDENT)).thenReturn(userTableInfo);
         valueNormalizer = new ValueNormalizer();
     }
 

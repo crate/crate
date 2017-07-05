@@ -265,13 +265,12 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDropBlobTable(DropBlobTable node, Analysis context) {
-            return dropBlobTableAnalyzer.analyze(node, context.sessionContext().user());
+            return dropBlobTableAnalyzer.analyze(node);
         }
 
         @Override
         public AnalyzedStatement visitAlterBlobTable(AlterBlobTable node, Analysis context) {
-            return alterBlobTableAnalyzer.analyze(node, context.parameterContext().parameters(),
-                context.sessionContext().user());
+            return alterBlobTableAnalyzer.analyze(node, context.parameterContext().parameters());
         }
 
         @Override
