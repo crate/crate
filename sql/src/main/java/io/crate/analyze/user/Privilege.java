@@ -80,23 +80,34 @@ public class Privilege implements Writeable {
                                          @Nullable Type type,
                                          Clazz clazz,
                                          @Nullable String ident) {
-        boolean found = matchPrivilegeOfClass(privileges, type, clazz, ident);
-        if (found) {
-            return true;
+        Privilege foundPrivilege = matchPrivilegeOfClass(privileges, type, clazz, ident);
+        if (foundPrivilege == null) {
+            switch (clazz) {
+                case SCHEMA:
+                    foundPrivilege =  matchPrivilegeOfClass(privileges, type, Clazz.CLUSTER, ident);
+                    break;
+                case TABLE:
+                    String schemaIdent = TableIdent.fromIndexName(ident).schema();
+                    foundPrivilege = matchPrivilegeOfClass(privileges, type, Clazz.SCHEMA, schemaIdent);
+                    if (foundPrivilege == null) {
+                        foundPrivilege = matchPrivilegeOfClass(privileges, type, Clazz.CLUSTER, null);
+                    }
+            }
         }
-        switch (clazz) {
-            case SCHEMA:
-                return matchPrivilegeOfClass(privileges, type, Clazz.CLUSTER, ident);
-            case TABLE:
-                String schemaIdent = TableIdent.fromIndexName(ident).schema();
-                found = matchPrivilegeOfClass(privileges, type, Clazz.SCHEMA, schemaIdent);
-                return found != false || matchPrivilegeOfClass(privileges, type, Clazz.CLUSTER, null);
+        if (foundPrivilege == null) {
+            return false;
         }
-        return false;
+        switch (foundPrivilege.state()) {
+            case GRANT:
+                return true;
+            case DENY:
+            default:
+                return false;
+        }
     }
 
-
-    private static boolean matchPrivilegeOfClass(Collection<Privilege> privileges,
+    @Nullable
+    private static Privilege matchPrivilegeOfClass(Collection<Privilege> privileges,
                                                  @Nullable Type type,
                                                  Clazz clazz,
                                                  @Nullable String ident) {
@@ -108,12 +119,12 @@ public class Privilege implements Writeable {
                     matched = pIdent.equals(ident);
                 }
                 if (matched && type != null) {
-                    return p.type().equals(type);
+                    matched = p.type().equals(type);
                 }
                 return matched;
             })
             .findFirst();
-        return matchedPrivilege.isPresent();
+        return matchedPrivilege.orElse(null);
     }
 
     private final State state;
@@ -167,6 +178,7 @@ public class Privilege implements Writeable {
         if (this == other) {
             return true;
         }
+        //noinspection SimplifiableIfStatement
         if (other == null || getClass() != other.getClass()) {
             return false;
         }
