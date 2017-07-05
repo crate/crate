@@ -676,13 +676,6 @@ The check for the :ref:`gateway.recover_after_time
 <gateway.recover_after_time>` settings verifies that the time before recovery
 starts must not be less than default value of ``5m``.
 
-Java 7 Deprecation Warning
-..........................
-
-Starting with CrateDB 0.55.0 using Java 7 runtime environment is deprecated.
-Please update to Java 8 (>= update 20). See also `here
-<https://crate.io/docs/reference/en/latest/installation.html#java-jvm-version>`_.
-
 Routing Allocation Disk Watermark High
 ......................................
 
