@@ -406,7 +406,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         assertBusy(() -> {
             Iterable<Schemas> referenceInfosIterable = internalCluster().getInstances(Schemas.class);
             for (Schemas schemas : referenceInfosIterable) {
-                TableInfo tableInfo = schemas.getTableInfo(tableIdent, null);
+                TableInfo tableInfo = schemas.getTableInfo(tableIdent);
                 assertThat(tableInfo, Matchers.notNullValue());
                 for (String fieldName : fieldNames) {
                     ColumnIdent columnIdent = ColumnIdent.fromPath(fieldName);

@@ -44,7 +44,7 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     private static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(
         new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
         new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate")));
-    private static final List<String> USERNAMES = Arrays.asList("ford", "arthur");
+    private static final List<String> USERNAMES = Arrays.asList("ford", "arthur", "normal");
 
     private String nodeEnterpriseEnabled;
     private String nodeEnterpriseDisabled;
@@ -81,7 +81,7 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
 
         UserManager userManager = internalCluster().getInstance(UserManager.class, nodeEnterpriseEnabled);
         Long rowCount = userManager.applyPrivileges(USERNAMES, PRIVILEGES).get(5, TimeUnit.SECONDS);
-        assertThat(rowCount, is(4L));
+        assertThat(rowCount, is(6L));
     }
 
     @After
@@ -109,14 +109,20 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThat(TestingHelpers.printedTable(response.rows()), is("CLUSTER| arthur| crate| NULL| GRANT| DML\n" +
                                                                     "CLUSTER| arthur| crate| NULL| GRANT| DQL\n" +
                                                                     "CLUSTER| ford| crate| NULL| GRANT| DML\n" +
-                                                                    "CLUSTER| ford| crate| NULL| GRANT| DQL\n"));
+                                                                    "CLUSTER| ford| crate| NULL| GRANT| DQL\n" +
+                                                                    "CLUSTER| normal| crate| NULL| GRANT| DML\n" +
+                                                                    "CLUSTER| normal| crate| NULL| GRANT| DQL\n"));
     }
 
     @Test
-    public void testListingAsNonSuperUserThrowsException() throws Exception {
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("UnauthorizedException: User \"normal\" is not authorized to access table \"sys.privileges\"");
-        executeAsNormalUser("select * from sys.privileges");
+    public void testListingAsUserWithPrivilege() throws Exception {
+        executeAsSuperuser("select * from sys.privileges order by grantee, type");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("CLUSTER| arthur| crate| NULL| GRANT| DML\n" +
+                                                                    "CLUSTER| arthur| crate| NULL| GRANT| DQL\n" +
+                                                                    "CLUSTER| ford| crate| NULL| GRANT| DML\n" +
+                                                                    "CLUSTER| ford| crate| NULL| GRANT| DQL\n" +
+                                                                    "CLUSTER| normal| crate| NULL| GRANT| DML\n" +
+                                                                    "CLUSTER| normal| crate| NULL| GRANT| DQL\n"));
     }
 
     @Test

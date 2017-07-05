@@ -25,10 +25,7 @@ import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobTableInfo;
-import io.crate.operation.user.User;
 import io.crate.sql.tree.DropBlobTable;
-
-import javax.annotation.Nullable;
 
 import static io.crate.analyze.BlobTableAnalyzer.tableToIdent;
 
@@ -40,12 +37,12 @@ class DropBlobTableAnalyzer {
         this.schemas = schemas;
     }
 
-    public DropBlobTableAnalyzedStatement analyze(DropBlobTable node, @Nullable User user) {
+    public DropBlobTableAnalyzedStatement analyze(DropBlobTable node) {
         TableIdent tableIdent = tableToIdent(node.table());
         BlobTableInfo tableInfo = null;
         boolean isNoop = false;
         try {
-            tableInfo = schemas.getTableInfo(tableIdent, user);
+            tableInfo = schemas.getTableInfo(tableIdent);
         } catch (ResourceUnknownException e) {
             if (node.ignoreNonExistentTable()) {
                 isNoop = true;

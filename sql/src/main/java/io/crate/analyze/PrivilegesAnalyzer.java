@@ -96,7 +96,7 @@ class PrivilegesAnalyzer {
     }
 
     private void validateTableNames(List<QualifiedName> tableNames) {
-        tableNames.forEach(t -> schemas.getTableInfo(TableIdent.fromIndexName(t.toString()), null));
+        tableNames.forEach(t -> schemas.getTableInfo(TableIdent.fromIndexName(t.toString())));
     }
 
     private void validateSchemaNames(List<QualifiedName> schemaNames) {

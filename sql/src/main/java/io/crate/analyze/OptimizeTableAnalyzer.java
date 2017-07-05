@@ -31,7 +31,6 @@ import io.crate.metadata.settings.SettingsApplier;
 import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.user.User;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.OptimizeStatement;
 import io.crate.sql.tree.Table;
@@ -42,7 +41,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static io.crate.analyze.OptimizeSettings.*;
+import static io.crate.analyze.OptimizeSettings.FLUSH;
+import static io.crate.analyze.OptimizeSettings.MAX_NUM_SEGMENTS;
+import static io.crate.analyze.OptimizeSettings.ONLY_EXPUNGE_DELETES;
+import static io.crate.analyze.OptimizeSettings.UPGRADE_SEGMENTS;
 
 class OptimizeTableAnalyzer {
 
@@ -64,8 +66,7 @@ class OptimizeTableAnalyzer {
             stmt.tables(),
             schemas,
             analysis.parameterContext(),
-            analysis.sessionContext().defaultSchema(),
-            analysis.sessionContext().user());
+            analysis.sessionContext().defaultSchema());
 
         // validate and extract settings
         Settings.Builder builder = GenericPropertiesConverter.settingsFromProperties(
@@ -78,11 +79,10 @@ class OptimizeTableAnalyzer {
     private static Set<String> getIndexNames(List<Table> tables,
                                              Schemas schemas,
                                              ParameterContext parameterContext,
-                                             String defaultSchema,
-                                             User user) {
+                                             String defaultSchema) {
         Set<String> indexNames = new HashSet<>(tables.size());
         for (Table nodeTable : tables) {
-            TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(nodeTable, defaultSchema), Operation.OPTIMIZE, user);
+            TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(nodeTable, defaultSchema), Operation.OPTIMIZE);
             if (tableInfo instanceof BlobTableInfo) {
                 indexNames.add(((BlobTableInfo) tableInfo).concreteIndex());
             } else {

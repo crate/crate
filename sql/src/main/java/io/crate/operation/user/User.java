@@ -46,10 +46,6 @@ public class User {
         this.privileges = privileges;
     }
 
-    public Set<Role> roles() {
-        return roles;
-    }
-
     public String name() {
         return name;
     }

@@ -84,8 +84,7 @@ class RestoreSnapshotAnalyzer {
                         throw new TableAlreadyExistsException(tableIdent);
                     }
 
-                    DocTableInfo docTableInfo = schemas.getTableInfo(
-                        tableIdent, Operation.RESTORE_SNAPSHOT, analysis.sessionContext().user());
+                    DocTableInfo docTableInfo = schemas.getTableInfo(tableIdent, Operation.RESTORE_SNAPSHOT);
                     PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
                         tableIdent,
                         docTableInfo,

@@ -118,8 +118,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                              ShardUpsertRequest request,
                                                              AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
-        DocTableInfo tableInfo = schemas.getTableInfo(
-            TableIdent.fromIndexName(request.index()), Operation.INSERT, null);
+        DocTableInfo tableInfo = schemas.getTableInfo(TableIdent.fromIndexName(request.index()), Operation.INSERT);
 
         Collection<ColumnIdent> notUsedNonGeneratedColumns = ImmutableList.of();
         if (request.validateConstraints()) {

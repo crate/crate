@@ -39,8 +39,7 @@ class ShowCreateTableAnalyzer {
     public ShowCreateTableAnalyzedStatement analyze(Table table, SessionContext sessionContext) {
         DocTableInfo tableInfo = schemas.getTableInfo(
             TableIdent.of(table, sessionContext.defaultSchema()),
-            Operation.SHOW_CREATE,
-            sessionContext.user());
+            Operation.SHOW_CREATE);
         return new ShowCreateTableAnalyzedStatement(tableInfo);
     }
 }

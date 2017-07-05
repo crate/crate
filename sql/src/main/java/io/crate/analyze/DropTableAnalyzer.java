@@ -42,7 +42,7 @@ class DropTableAnalyzer {
         DocTableInfo tableInfo = null;
         boolean isNoop = false;
         try {
-            tableInfo = schemas.getTableInfo(tableIdent, Operation.DROP, sessionContext.user());
+            tableInfo = schemas.getTableInfo(tableIdent, Operation.DROP);
         } catch (ResourceUnknownException e) {
             if (node.dropIfExists()) {
                 isNoop = true;
