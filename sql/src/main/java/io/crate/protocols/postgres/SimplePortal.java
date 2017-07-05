@@ -22,7 +22,6 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.Constants;
 import io.crate.action.sql.BatchConsumerToResultReceiver;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SessionContext;
@@ -45,7 +44,6 @@ import io.crate.types.DataType;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -167,14 +165,8 @@ public class SimplePortal extends AbstractPortal {
         }
 
         if (!analysis.analyzedStatement().isWriteOperation()) {
-            resultReceiver = new ResultReceiverRetryWrapper(
-                resultReceiver,
-                this,
-                portalContext.getAnalyzer(),
-                planner,
-                portalContext.getExecutor(),
-                jobId,
-                sessionContext);
+            resultReceiver = new RetryOnFailureResultReceiver(
+                resultReceiver, jobId, newJobId -> retryQuery(planner, newJobId));
         }
 
         jobsLogs.logExecutionStart(jobId, query);
@@ -187,6 +179,17 @@ public class SimplePortal extends AbstractPortal {
         }
         synced = true;
         return completableFuture;
+    }
+
+    private void retryQuery(Planner planner, UUID jobId) {
+        Analysis analysis = portalContext
+            .getAnalyzer()
+            .boundAnalyze(statement, sessionContext, new ParameterContext(rowParams, Collections.emptyList()));
+        portalContext.getExecutor().execute(
+            planner.plan(analysis, jobId, 0, maxRows),
+            consumer,
+            rowParams
+        );
     }
 
     @Override
@@ -224,71 +227,4 @@ public class SimplePortal extends AbstractPortal {
         return analysis.rootRelation().fields();
     }
 
-    private static class ResultReceiverRetryWrapper implements ResultReceiver {
-
-        private final ResultReceiver delegate;
-        private final SimplePortal portal;
-        private final Analyzer analyzer;
-        private final Planner planner;
-        private final Executor executor;
-        private final UUID jobId;
-        private final SessionContext sessionContext;
-        int attempt = 1;
-
-        ResultReceiverRetryWrapper(ResultReceiver delegate,
-                                   SimplePortal portal,
-                                   Analyzer analyzer,
-                                   Planner planner,
-                                   Executor executor,
-                                   UUID jobId,
-                                   SessionContext sessionContext) {
-            this.delegate = delegate;
-            this.portal = portal;
-            this.analyzer = analyzer;
-            this.planner = planner;
-            this.executor = executor;
-            this.jobId = jobId;
-            this.sessionContext = sessionContext;
-        }
-
-        @Override
-        public void setNextRow(Row row) {
-            delegate.setNextRow(row);
-        }
-
-        @Override
-        public void batchFinished() {
-            delegate.batchFinished();
-        }
-
-        @Override
-        public void allFinished(boolean interrupted) {
-            delegate.allFinished(interrupted);
-        }
-
-        @Override
-        public void fail(@Nonnull Throwable t) {
-            if (attempt <= Constants.MAX_SHARD_MISSING_RETRIES && SQLExceptions.isShardFailure(t)) {
-                attempt += 1;
-                retry();
-            } else {
-                delegate.fail(t);
-            }
-        }
-
-        private void retry() {
-            UUID newJobId = UUID.randomUUID();
-            LOGGER.debug("Retrying statement due to a shard failure, attempt={}, jobId={}->{}", attempt, jobId, newJobId);
-            Analysis analysis = analyzer.boundAnalyze(portal.statement, sessionContext,
-                new ParameterContext(portal.rowParams, Collections.<Row>emptyList()));
-
-            Plan plan = planner.plan(analysis, newJobId, 0, portal.maxRows);
-            executor.execute(plan, portal.consumer, portal.rowParams);
-        }
-
-        @Override
-        public CompletableFuture<?> completionFuture() {
-            return delegate.completionFuture();
-        }
-    }
 }
