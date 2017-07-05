@@ -36,7 +36,12 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
 
 public class WhereClause extends QueryClause implements Streamable {
 
@@ -215,5 +220,13 @@ public class WhereClause extends QueryClause implements Streamable {
         }
         this.query = AndOperator.of(this.query, otherQuery);
         return this;
+    }
+
+    WhereClause copyAndReplace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
+        if (!hasQuery()) {
+            return this;
+        }
+        Symbol newQuery = replaceFunction.apply(query);
+        return new WhereClause(newQuery, docKeys.orElse(null), partitions);
     }
 }

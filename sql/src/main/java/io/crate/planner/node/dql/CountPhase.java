@@ -110,13 +110,6 @@ public class CountPhase implements UpstreamPhase {
     }
 
     public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
-        if (whereClause.hasQuery()) {
-            Symbol query = whereClause.query();
-            Symbol newQuery = replaceFunction.apply(query);
-            if (query != newQuery) {
-                whereClause =
-                    new WhereClause(newQuery, whereClause.docKeys().orElse(null), whereClause.partitions());
-            }
-        }
+        whereClause.replace(replaceFunction);
     }
 }

@@ -25,6 +25,8 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
 import org.elasticsearch.common.Nullable;
 
+import java.util.function.Function;
+
 public abstract class QueryClause {
 
     protected Symbol query;
@@ -70,5 +72,14 @@ public abstract class QueryClause {
 
     public boolean noMatch() {
         return noMatch;
+    }
+
+    public void replace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
+        if (hasQuery()) {
+            Symbol newQuery = replaceFunction.apply(query);
+            if (query != newQuery) {
+                query = newQuery;
+            }
+        }
     }
 }

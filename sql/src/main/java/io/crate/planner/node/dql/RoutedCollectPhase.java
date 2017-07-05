@@ -95,13 +95,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     @Override
     public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
         super.replaceSymbols(replaceFunction);
-        if (whereClause.hasQuery()) {
-            Symbol query = whereClause.query();
-            Symbol newQuery = replaceFunction.apply(query);
-            if (query != newQuery) {
-                whereClause = new WhereClause(newQuery, whereClause.docKeys().orElse(null), whereClause.partitions());
-            }
-        }
+        whereClause.replace(replaceFunction);
         Lists2.replaceItems(toCollect, replaceFunction);
         if (orderBy != null) {
             orderBy.replace(replaceFunction);
