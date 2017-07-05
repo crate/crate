@@ -88,4 +88,29 @@ public class PrivilegeTest extends CrateUnitTest {
         assertThat(Privilege.matchPrivilege(PRIVILEGES_TABLE_DQL, Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1"), is(true));
         assertThat(Privilege.matchPrivilege(PRIVILEGES_TABLE_DQL, Privilege.Clazz.TABLE, "doc.t1"), is(true));
     }
+
+    @Test
+    public void testMatchPrivilegeDenyResultsInNoMatch() throws Exception {
+        Collection<Privilege> privileges = Sets.newHashSet(
+            new Privilege(Privilege.State.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate")
+        );
+        assertThat(Privilege.matchPrivilege(privileges, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null), is(false));
+        assertThat(Privilege.matchPrivilege(privileges, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc"), is(false));
+        assertThat(Privilege.matchPrivilege(privileges, Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1"), is(false));
+        assertThat(Privilege.matchPrivilege(privileges, Privilege.Clazz.CLUSTER, null), is(false));
+        assertThat(Privilege.matchPrivilege(privileges, Privilege.Clazz.SCHEMA, "doc"), is(false));
+        assertThat(Privilege.matchPrivilege(privileges, Privilege.Clazz.TABLE, "doc.t1"), is(false));
+    }
+
+    @Test
+    public void testMatchPrivilegeComplexSetIncludingDeny() throws Exception {
+        Collection<Privilege> privileges = Sets.newHashSet(
+            new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
+            new Privilege(Privilege.State.DENY, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc", "crate"),
+            new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1", "crate")
+        );
+        assertThat(Privilege.matchPrivilege(privileges, Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t1"), is(true));
+        assertThat(Privilege.matchPrivilege(privileges, Privilege.Type.DQL, Privilege.Clazz.TABLE, "doc.t2"), is(false));
+        assertThat(Privilege.matchPrivilege(privileges, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "my_schema"), is(true));
+    }
 }
