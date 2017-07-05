@@ -52,6 +52,7 @@ this user is allowed to execute ``CREATE TABLE``, ``DROP TABLE``,
 ``RESTORE SNAPSHOT``, and ``ALTER`` statements, on the object for which the
 privilege applies.
 
+.. _hierarchical_privileges_inheritance:
 
 Hierarchical Inheritance of Privileges
 ======================================
