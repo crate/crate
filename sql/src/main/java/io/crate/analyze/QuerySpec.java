@@ -246,11 +246,7 @@ public class QuerySpec {
             .offset(offset)
             .hasAggregates(hasAggregates)
             .outputs(Lists2.copyAndReplace(outputs, replaceFunction));
-        if (!where.hasQuery()) {
-            newSpec.where(where);
-        } else {
-            newSpec.where(new WhereClause(replaceFunction.apply(where.query()), where.docKeys().orElse(null), where.partitions()));
-        }
+        newSpec.where(where.copyAndReplace(replaceFunction));
         if (orderBy.isPresent()) {
             newSpec.orderBy(orderBy.get().copyAndReplace(replaceFunction));
         }
@@ -268,9 +264,7 @@ public class QuerySpec {
 
     public void replace(Function<? super Symbol, ? extends Symbol> replaceFunction) {
         Lists2.replaceItems(outputs, replaceFunction);
-        if (where.hasQuery()) {
-            where = new WhereClause(replaceFunction.apply(where.query()), where.docKeys().orElse(null), where.partitions());
-        }
+        where.replace(replaceFunction);
         if (orderBy.isPresent()) {
             orderBy.get().replace(replaceFunction);
         }
