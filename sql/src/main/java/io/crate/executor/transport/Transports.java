@@ -27,7 +27,12 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.transport.*;
+import org.elasticsearch.transport.NodeNotConnectedException;
+import org.elasticsearch.transport.TransportRequest;
+import org.elasticsearch.transport.TransportRequestOptions;
+import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportResponseHandler;
+import org.elasticsearch.transport.TransportService;
 
 import java.util.Locale;
 
@@ -54,7 +59,7 @@ public class Transports {
 
         DiscoveryNode discoveryNode = clusterService.state().nodes().get(node);
         if (discoveryNode == null) {
-            listener.onFailure(new IllegalArgumentException(
+            listener.onFailure(new NodeNotConnectedException(null,
                 String.format(Locale.ENGLISH, "node \"%s\" not found in cluster state!", node)));
             return;
         }
