@@ -22,6 +22,7 @@
 package io.crate.planner.node.dql;
 
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Routing;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -31,12 +32,13 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.Set;
+import java.util.function.Function;
 
 public class CountPhase implements UpstreamPhase {
 
     private final int executionPhaseId;
     private final Routing routing;
-    private final WhereClause whereClause;
+    private WhereClause whereClause;
     private DistributionInfo distributionInfo;
 
     public CountPhase(int executionPhaseId,
@@ -105,5 +107,16 @@ public class CountPhase implements UpstreamPhase {
         routing.writeTo(out);
         whereClause.writeTo(out);
         distributionInfo.writeTo(out);
+    }
+
+    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+        if (whereClause.hasQuery()) {
+            Symbol query = whereClause.query();
+            Symbol newQuery = replaceFunction.apply(query);
+            if (query != newQuery) {
+                whereClause =
+                    new WhereClause(newQuery, whereClause.docKeys().orElse(null), whereClause.partitions());
+            }
+        }
     }
 }

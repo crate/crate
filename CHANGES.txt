@@ -36,6 +36,11 @@ Breaking Changes (Packaging only)
 Changes
 =======
 
+ - Fixed an issue that caused an exception to be thrown when using
+   ``COUNT(*)`` with subselects that return one row. E.g.::
+
+     SELECT count(*) FROM t1 WHERE id > (select max(col1) from t2)
+
  - Updated Elasticsearch to 5.2.2
 
  - Upgraded Crash to 0.21.0.

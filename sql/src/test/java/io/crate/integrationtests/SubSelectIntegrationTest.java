@@ -492,4 +492,12 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
             is("4| 40\n" +
                "6| 60\n"));
     }
+
+    @Test
+    public void testCountWithOneRowSubselect() throws Exception {
+        setup.setUpLocations();
+        execute("refresh table locations");
+        execute("select count(*) from locations where position > (select max(position) from locations) - 2");
+        assertThat(response.rows()[0][0], is(2L));
+    }
 }
