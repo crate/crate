@@ -22,20 +22,31 @@
 
 package io.crate.analyze;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.doc.TestingDocTableInfoFactory;
+import io.crate.metadata.table.TestingTableInfo;
+import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.operation.user.User;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Collections;
 
+import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.analyze.user.Privilege.Clazz.CLUSTER;
 import static io.crate.analyze.user.Privilege.Clazz.SCHEMA;
 import static io.crate.analyze.user.Privilege.Clazz.TABLE;
@@ -45,6 +56,7 @@ import static io.crate.analyze.user.Privilege.State.REVOKE;
 import static io.crate.analyze.user.Privilege.Type.DDL;
 import static io.crate.analyze.user.Privilege.Type.DML;
 import static io.crate.analyze.user.Privilege.Type.DQL;
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -53,11 +65,21 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     private static final User GRANTOR_TEST_USER = new User("test", Collections.emptySet(), Collections.emptySet());
 
+    private static final TableIdent CUSTOM_SCHEMA_IDENT = new TableIdent("my_schema", "locations");
+    private static final DocTableInfo CUSTOM_SCHEMA_INFO = TestingTableInfo.builder(CUSTOM_SCHEMA_IDENT, SHARD_ROUTING)
+        .add("id", DataTypes.INTEGER, ImmutableList.<String>of())
+        .build();
+    private static final DocTableInfoFactory CUSTOM_SCHEMA_TABLE_FACTORY = new TestingDocTableInfoFactory(
+        ImmutableMap.of(CUSTOM_SCHEMA_IDENT, CUSTOM_SCHEMA_INFO));
+
     private SQLExecutor e;
 
     @Before
     public void setUpSQLExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService).enableDefaultTables()
+            .addSchema(new DocSchemaInfo(CUSTOM_SCHEMA_IDENT.schema(), clusterService, getFunctions(),
+                new UserDefinedFunctionService(clusterService), CUSTOM_SCHEMA_TABLE_FACTORY))
+            .build();
     }
 
     @Test
@@ -94,13 +116,13 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testGrantPrivilegesToUsersOnTables() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT DQL, DML on table doc.t2, locations TO user1, user2");
+        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT DQL, DML on table t2, locations TO user1, user2");
         assertThat(analysis.userNames(), contains("user1", "user2"));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL, TABLE, "doc.t2"),
             privilegeOf(GRANT, DML, TABLE, "doc.t2"),
-            privilegeOf(GRANT, DQL, TABLE, "locations"),
-            privilegeOf(GRANT, DML, TABLE, "locations"))
+            privilegeOf(GRANT, DQL, TABLE, "doc.locations"),
+            privilegeOf(GRANT, DML, TABLE, "doc.locations"))
         );
     }
 
@@ -133,8 +155,8 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(REVOKE, DQL, TABLE, "doc.t2"),
             privilegeOf(REVOKE, DML, TABLE, "doc.t2"),
-            privilegeOf(REVOKE, DQL, TABLE, "locations"),
-            privilegeOf(REVOKE, DML, TABLE, "locations"))
+            privilegeOf(REVOKE, DQL, TABLE, "doc.locations"),
+            privilegeOf(REVOKE, DML, TABLE, "doc.locations"))
         );
     }
 
@@ -186,20 +208,20 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testGrantRevokeAllPrivilegesOnTable() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES On table doc.locations TO user1");
+        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT ALL PRIVILEGES On table my_schema.locations TO user1");
         assertThat(analysis.privileges().size(), is(3));
         assertThat(analysis.privileges(), containsInAnyOrder(
-            privilegeOf(GRANT, DQL, TABLE, "doc.locations"),
-            privilegeOf(GRANT, DML, TABLE, "doc.locations"),
-            privilegeOf(GRANT, DDL, TABLE, "doc.locations"))
+            privilegeOf(GRANT, DQL, TABLE, "my_schema.locations"),
+            privilegeOf(GRANT, DML, TABLE, "my_schema.locations"),
+            privilegeOf(GRANT, DDL, TABLE, "my_schema.locations"))
         );
 
-        analysis = analyzePrivilegesStatement("REVOKE ALL PRIVILEGES On table doc.locations FROM user1");
+        analysis = analyzePrivilegesStatement("REVOKE ALL PRIVILEGES On table my_schema.locations FROM user1");
         assertThat(analysis.privileges().size(), is(3));
         assertThat(analysis.privileges(), containsInAnyOrder(
-            privilegeOf(REVOKE, DQL, TABLE, "doc.locations"),
-            privilegeOf(REVOKE, DML, TABLE, "doc.locations"),
-            privilegeOf(REVOKE, DDL, TABLE, "doc.locations"))
+            privilegeOf(REVOKE, DQL, TABLE, "my_schema.locations"),
+            privilegeOf(REVOKE, DML, TABLE, "my_schema.locations"),
+            privilegeOf(REVOKE, DDL, TABLE, "my_schema.locations"))
         );
 
     }

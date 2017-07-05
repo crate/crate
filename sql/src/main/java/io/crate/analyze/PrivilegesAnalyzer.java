@@ -39,6 +39,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Analyzer for privileges related statements (ie GRANT/REVOKE statements)
@@ -142,20 +143,20 @@ class PrivilegesAnalyzer {
             for (Privilege.Type privilegeType : privilegeTypes) {
                 Privilege privilege = new Privilege(state,
                     privilegeType,
-                    Privilege.Clazz.CLUSTER,
+                    clazz,
                     null,
                     grantor.name()
                 );
-
                 privileges.add(privilege);
             }
         } else {
+            List<String> idents = convertQualifiedNamesToIdents(clazz, tableOrSchemaNames);
             for (Privilege.Type privilegeType : privilegeTypes) {
-                for (QualifiedName name : tableOrSchemaNames) {
+                for (String ident : idents) {
                     Privilege privilege = new Privilege(state,
                         privilegeType,
                         clazz,
-                        name.toString(),
+                        ident,
                         grantor.name()
                     );
 
@@ -164,5 +165,14 @@ class PrivilegesAnalyzer {
             }
         }
         return privileges;
+    }
+
+    private static List<String> convertQualifiedNamesToIdents(Privilege.Clazz clazz,
+                                                              List<QualifiedName> tableOrSchemaNames) {
+        if (clazz.equals(Privilege.Clazz.SCHEMA)) {
+            return tableOrSchemaNames.stream().map(QualifiedName::toString).collect(Collectors.toList());
+        }
+        return tableOrSchemaNames.stream().map(q ->
+            TableIdent.of(q, Schemas.DEFAULT_SCHEMA_NAME).fqn()).collect(Collectors.toList());
     }
 }
