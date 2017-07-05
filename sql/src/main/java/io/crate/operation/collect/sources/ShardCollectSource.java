@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect.sources;
 
+import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import io.crate.action.job.SharedShardContext;
@@ -165,7 +166,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private final ProjectorFactory sharedProjectorFactory;
     private final BlobIndicesService blobIndicesService;
 
-    private final Map<ShardId, MemoizeSupplier<ShardCollectorProvider>> shards = new ConcurrentHashMap<>();
+    private final Map<ShardId, Supplier<ShardCollectorProvider>> shards = new ConcurrentHashMap<>();
     private final Functions functions;
     private final LuceneQueryBuilder luceneQueryBuilder;
     private final NodeJobsCounter nodeJobsCounter;
@@ -244,25 +245,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         }
     }
 
-    // Could be replaced with Suppliers.memoize once we've upgraded guava so that jdk & guava suppliers are compatible
-    private static class MemoizeSupplier<T> implements Supplier<T> {
-
-        private final Supplier<T> supplier;
-        private T instance;
-
-        MemoizeSupplier(Supplier<T> supplier) {
-            this.supplier = supplier;
-        }
-
-        @Override
-        public T get() {
-            if (instance == null) {
-                instance = supplier.get();
-            }
-            return instance;
-        }
-    }
-
     private class LifecycleListener implements IndexEventListener {
 
         @Override
@@ -275,7 +257,8 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
              *
              * So we wrap the creation in a supplier to create the providers lazy
              */
-            MemoizeSupplier<ShardCollectorProvider> providerSupplier = new MemoizeSupplier<>(() -> {
+
+            Supplier<ShardCollectorProvider> providerSupplier = Suppliers.memoize(() -> {
                 if (isBlobIndex(indexShard.shardId().getIndexName())) {
                     BlobShard blobShard = blobIndicesService.blobShardSafe(indexShard.shardId());
                     return new BlobShardCollectorProvider(blobShard, clusterService, nodeJobsCounter, functions,
@@ -430,7 +413,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     }
 
     private ShardCollectorProvider getCollectorProviderSafe(ShardId shardId) {
-        MemoizeSupplier<ShardCollectorProvider> supplier = shards.get(shardId);
+        Supplier<ShardCollectorProvider> supplier = shards.get(shardId);
         if (supplier == null) {
             throw new ShardNotFoundException(shardId);
         }
