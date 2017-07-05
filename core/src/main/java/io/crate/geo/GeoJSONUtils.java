@@ -101,7 +101,7 @@ public class GeoJSONUtils {
             );
         } else {
             try {
-                return GEOJSON_CONVERTER.convert(JtsSpatialContext.GEO.getGeometryFrom(shape));
+                return GEOJSON_CONVERTER.convert(JtsSpatialContext.GEO.getShapeFactory().getGeometryFrom(shape));
             } catch (InvalidShapeException e) {
                 throw new IllegalArgumentException(
                     String.format(Locale.ENGLISH, "Cannot convert shape %s to Map", shape), e);
@@ -227,8 +227,8 @@ public class GeoJSONUtils {
             } else {
                 throw new IllegalArgumentException(invalidGeoJSON("invalid coordinate"));
             }
-            JtsSpatialContext.GEO.verifyX(x);
-            JtsSpatialContext.GEO.verifyY(y);
+            JtsSpatialContext.GEO.getShapeFactory().verifyX(x);
+            JtsSpatialContext.GEO.getShapeFactory().verifyY(y);
         } catch (InvalidShapeException | ClassCastException e) {
             throw new IllegalArgumentException(invalidGeoJSON("invalid coordinate"), e);
         }

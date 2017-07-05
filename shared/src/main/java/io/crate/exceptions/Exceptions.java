@@ -40,4 +40,35 @@ public final class Exceptions {
     private static <T extends Throwable> void rethrow(final Throwable t) throws T {
         throw (T) t;
     }
+
+    /**
+     * Retrieves the messages of a Throwable including its causes.
+     * Should only be used for user-facing or network critical use cases.
+     * Does not contain a proper stacktrace.
+     * @return a String of format ExceptionName[msg];...
+     */
+    public static String userFriendlyMessage(Throwable t) {
+        if (t == null) {
+            return "Unknown";
+        }
+        if (t.getCause() != null) {
+            StringBuilder sb = new StringBuilder();
+            while (t != null) {
+                sb.append(t.getClass().getSimpleName());
+                if (t.getMessage() != null) {
+                    sb.append("[");
+                    sb.append(t.getMessage());
+                    sb.append("]");
+                }
+                sb.append("; ");
+                t = t.getCause();
+                if (t != null) {
+                    sb.append("nested: ");
+                }
+            }
+            return sb.toString();
+        } else {
+            return t.getClass().getSimpleName() + "[" + t.getMessage() + "]";
+        }
+    }
 }

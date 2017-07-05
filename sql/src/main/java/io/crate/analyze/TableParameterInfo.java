@@ -61,6 +61,7 @@ public class TableParameterInfo {
     public static final String TRANSLOG_SYNC_INTERVAL = IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey();
     public static final String ROUTING_ALLOCATION_ENABLE = EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING.getKey();
     public static final String TOTAL_SHARDS_PER_NODE = ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING.getKey();
+    @Deprecated
     public static final String RECOVERY_INITIAL_SHARDS = PrimaryShardAllocator.INDEX_RECOVERY_INITIAL_SHARDS_SETTING.getKey();
     public static final String WARMER_ENABLED = IndexSettings.INDEX_WARMER_ENABLED_SETTING.getKey();
     public static final String UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey();

@@ -23,7 +23,6 @@
 package io.crate.executor.transport;
 
 import io.crate.exceptions.JobKilledException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -41,6 +40,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import static io.crate.exceptions.Exceptions.userFriendlyMessage;
 
 @Singleton
 public class TransportShardDeleteAction extends TransportShardAction<ShardDeleteRequest, ShardDeleteRequest.Item> {
@@ -100,7 +101,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                     shardResponse.add(location,
                         new ShardResponse.Failure(
                             item.id(),
-                            ExceptionsHelper.detailedMessage(t),
+                            userFriendlyMessage(t),
                             (t instanceof VersionConflictEngineException)));
                 }
             }

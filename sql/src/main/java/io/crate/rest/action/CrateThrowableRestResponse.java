@@ -23,16 +23,19 @@ package io.crate.rest.action;
 
 import io.crate.action.sql.SQLActionException;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.rest.*;
+import org.elasticsearch.rest.BytesRestResponse;
+import org.elasticsearch.rest.RestChannel;
+import org.elasticsearch.rest.RestRequest;
+import org.elasticsearch.rest.RestResponse;
+import org.elasticsearch.rest.RestStatus;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 
-import static org.elasticsearch.ExceptionsHelper.detailedMessage;
+import static io.crate.exceptions.Exceptions.userFriendlyMessage;
 
 
 class CrateThrowableRestResponse extends RestResponse {
@@ -60,7 +63,7 @@ class CrateThrowableRestResponse extends RestResponse {
             .startObject("error");
 
         SQLActionException sqlActionException = null;
-        builder.field("message", detailedMessage(t));
+        builder.field("message", userFriendlyMessage(t));
         if (t instanceof SQLActionException) {
             sqlActionException = (SQLActionException) t;
             builder.field("code", sqlActionException.errorCode());
@@ -72,9 +75,7 @@ class CrateThrowableRestResponse extends RestResponse {
 
         if (t != null && channel.request().paramAsBoolean("error_trace", false)
             && sqlActionException != null) {
-            StringWriter stackTrace = new StringWriter();
-            sqlActionException.printStackTrace(new PrintWriter(stackTrace));
-            builder.field("error_trace", stackTrace.toString());
+            builder.field("error_trace", ExceptionsHelper.stackTrace(t));
         }
         builder.endObject();
         return builder;

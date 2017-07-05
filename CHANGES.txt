@@ -42,6 +42,10 @@ Breaking Changes (Packaging only)
 Changes
 =======
 
+ - The table setting ``recovery.initial_shards`` has been deprecated. You may
+   set ``gateway.local.initial_shards`` per node instead. Crate will continue to
+   read the old setting but applications should be migrated to the new setting.
+
  - Fixed an issue that caused an exception to be thrown when using
    ``COUNT(*)`` with subselects that return one row. E.g.::
 

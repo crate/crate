@@ -79,6 +79,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static io.crate.exceptions.Exceptions.userFriendlyMessage;
 import static org.elasticsearch.action.support.replication.ReplicationOperation.ignoreReplicaException;
 
 @Singleton
@@ -165,7 +166,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 shardResponse.add(location,
                     new ShardResponse.Failure(
                         item.id(),
-                        ExceptionsHelper.detailedMessage(e),
+                        userFriendlyMessage(e),
                         (e instanceof VersionConflictEngineException)));
             }
         }

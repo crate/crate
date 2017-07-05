@@ -109,11 +109,11 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         Shape shape;
         if (left instanceof Double[]) {
             Double[] values = (Double[]) left;
-            shape = SpatialContext.GEO.makePoint(values[0], values[1]);
+            shape = SpatialContext.GEO.getShapeFactory().pointXY(values[0], values[1]);
         } else if (left instanceof List) { // ESSearchTask / ESGetTask returns it as list
             List values = (List) left;
             assert values.size() == 2 : "number of values must be 2";
-            shape = SpatialContext.GEO.makePoint((Double) values.get(0), (Double) values.get(1));
+            shape = SpatialContext.GEO.getShapeFactory().pointXY((Double) values.get(0), (Double) values.get(1));
         } else if (left instanceof BytesRef) {
             shape = GeoJSONUtils.wkt2Shape(BytesRefs.toString(left));
         } else {
