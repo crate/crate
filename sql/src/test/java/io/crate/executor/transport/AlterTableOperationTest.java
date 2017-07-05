@@ -27,16 +27,18 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.admin.indices.alias.Alias;
+import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.metadata.*;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.hasItem;
@@ -71,5 +73,26 @@ public class AlterTableOperationTest extends CrateUnitTest {
         assertThat(aliases, hasItem(targetIdent.name()));
 
         assertThat(requests.v2().name(), is(PartitionName.templateName(sourceIdent.schema(), sourceIdent.name())));
+    }
+
+    @Test
+    public void testPrepareAlterTableMappingRequest() throws Exception {
+        Map<String, Object> oldMapping = MapBuilder.<String, Object>newMapBuilder()
+            .put("properties", MapBuilder.<String, String>newMapBuilder().put("foo", "foo").map())
+            .put("_meta", MapBuilder.<String, String>newMapBuilder().put("meta1", "val1").map())
+            .map();
+
+        Map<String, Object> newMapping = MapBuilder.<String, Object>newMapBuilder()
+            .put("properties", MapBuilder.<String, String>newMapBuilder().put("foo", "bar").map())
+            .put("_meta", MapBuilder.<String, String>newMapBuilder()
+                .put("meta1", "v1")
+                .put("meta2", "v2")
+                .map())
+            .map();
+
+        PutMappingRequest request = AlterTableOperation.preparePutMappingRequest(oldMapping, newMapping);
+
+        assertThat(request.type(), is(Constants.DEFAULT_MAPPING_TYPE));
+        assertThat(request.source(), is("{\"_meta\":{\"meta2\":\"v2\",\"meta1\":\"v1\"},\"properties\":{\"foo\":\"bar\"}}"));
     }
 }

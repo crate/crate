@@ -468,10 +468,31 @@ public class AlterTableOperation {
         return listener;
     }
 
+    /**
+     It is important to add the _meta field explicitly to the changed mapping here since ES updates
+     the mapping and removes/overwrites the _meta field.
+     Tested with PartitionedTableIntegrationTest#testAlterPartitionedTableKeepsMetadata()
+     */
+    @VisibleForTesting
+    static PutMappingRequest preparePutMappingRequest(Map<String, Object> oldMapping, Map<String, Object> newMapping, String... indices) {
+
+        // Only merge the _meta
+        XContentHelper.update(oldMapping, newMapping, false);
+        newMapping.put("_meta", oldMapping.get("_meta"));
+
+        // update mapping of all indices
+        PutMappingRequest request = new PutMappingRequest(indices);
+        request.indicesOptions(IndicesOptions.lenientExpandOpen());
+        request.type(Constants.DEFAULT_MAPPING_TYPE);
+        request.source(newMapping);
+        return request;
+    }
+
     private CompletableFuture<Long> updateMapping(Map<String, Object> newMapping, String... indices) {
         if (newMapping.isEmpty()) {
             return CompletableFuture.completedFuture(null);
         }
+
         assert areAllMappingsEqual(clusterService.state().metaData(), indices) :
             "Trying to update mapping for indices with different existing mappings";
 
@@ -484,16 +505,8 @@ public class AlterTableOperation {
             return CompletableFutures.failedFuture(e);
         }
 
-        XContentHelper.update(mapping, newMapping, false);
-
-        // update mapping of all indices
-        PutMappingRequest request = new PutMappingRequest(indices);
-        request.indicesOptions(IndicesOptions.lenientExpandOpen());
-        request.type(Constants.DEFAULT_MAPPING_TYPE);
-        request.source(mapping);
-
         FutureActionListener<PutMappingResponse, Long> listener = new FutureActionListener<>(r -> 0L);
-        transportPutMappingAction.execute(request, listener);
+        transportPutMappingAction.execute(preparePutMappingRequest(mapping, newMapping, indices), listener);
         return listener;
     }
 
