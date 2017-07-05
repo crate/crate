@@ -15,3 +15,9 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
+Fixes
+=====
+
+ - Fixed an issue that caused an exception if a column gets added to a table
+   that has been created with CrateDB version <= 1.1.
+
