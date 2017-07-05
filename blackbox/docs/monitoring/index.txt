@@ -99,7 +99,8 @@ Here's an example Docker command::
         -Dcom.sun.management.jmxremote.authenticate=false \
         -Dcom.sun.management.jmxremote.rmi.port=<RMI_HOSTNAME> \
         -Djava.rmi.server.hostname=7979' \
-        -p 7979:7979 crate
+        -p 7979:7979 crate \
+        crate -Cnetwork.host=_site_
 
 Here, again, ``<RMI_HOSTNAME>`` is the IP address or hostname of the Docker
 host.
