@@ -23,13 +23,17 @@ package io.crate.executor.transport;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.transport.ConnectTransportException;
+import org.elasticsearch.transport.NodeNotConnectedException;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class TransportsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -40,6 +44,13 @@ public class TransportsTest extends CrateDummyClusterServiceUnitTest {
         transports.sendRequest("actionName",
             "invalid", mock(TransportRequest.class), actionListener, mock(TransportResponseHandler.class));
 
-        verify(actionListener, times(1)).onFailure(any(Exception.class));
+        verify(actionListener, times(1)).onFailure(any(ConnectTransportException.class));
+    }
+
+    @Test
+    public void testNodeNotConnectedDoesNotRequireDiscoveryNode() throws Exception {
+        // must make sure ES upgrades don't break our code
+        //noinspection ThrowableNotThrown
+        new NodeNotConnectedException(null, "msg");
     }
 }
