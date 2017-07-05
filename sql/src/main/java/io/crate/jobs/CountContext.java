@@ -21,11 +21,9 @@
 
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.data.BatchConsumer;
+import io.crate.data.BatchIterator;
 import io.crate.data.Row1;
 import io.crate.data.RowsBatchIterator;
 import io.crate.operation.count.CountOperation;
@@ -35,9 +33,9 @@ import org.elasticsearch.common.logging.Loggers;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 public class CountContext extends AbstractExecutionSubContext {
 
@@ -47,7 +45,7 @@ public class CountContext extends AbstractExecutionSubContext {
     private final BatchConsumer consumer;
     private final Map<String, List<Integer>> indexShardMap;
     private final WhereClause whereClause;
-    private ListenableFuture<Long> countFuture;
+    private CompletableFuture<Long> countFuture;
 
     public CountContext(int id,
                         CountOperation countOperation,
@@ -68,19 +66,10 @@ public class CountContext extends AbstractExecutionSubContext {
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
-        Futures.addCallback(countFuture, new FutureCallback<Long>() {
-            @Override
-            public void onSuccess(@Nullable Long result) {
-                consumer.accept(
-                    RowsBatchIterator.newInstance(Collections.singletonList(new Row1(result)), 1), null);
-                close();
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                consumer.accept(null, t);
-                close(t);
-            }
+        countFuture.whenComplete((rowCount, failure) -> {
+            BatchIterator iterator = rowCount == null ? null : RowsBatchIterator.newInstance(new Row1(rowCount));
+            consumer.accept(iterator, failure);
+            close(failure);
         });
     }
 

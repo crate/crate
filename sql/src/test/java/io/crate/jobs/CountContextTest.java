@@ -21,8 +21,6 @@
 
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.operation.count.CountOperation;
@@ -35,6 +33,7 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyMap;
@@ -48,7 +47,7 @@ public class CountContextTest extends CrateUnitTest {
     @Test
     public void testClose() throws Exception {
 
-        SettableFuture<Long> future = SettableFuture.create();
+        CompletableFuture<Long> future = new CompletableFuture<>();
 
         CountOperation countOperation = mock(CountOperation.class);
         when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(future);
@@ -56,19 +55,19 @@ public class CountContextTest extends CrateUnitTest {
         CountContext countContext = new CountContext(1, countOperation, new TestingBatchConsumer(), null, WhereClause.MATCH_ALL);
         countContext.prepare();
         countContext.start();
-        future.set(1L);
+        future.complete(1L);
         assertTrue(countContext.isClosed());
         // assure that there was no exception
         countContext.completionFuture().get();
 
         // on error
-        future = SettableFuture.create();
+        future = new CompletableFuture<>();
         when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(future);
 
         countContext = new CountContext(2, countOperation, new TestingBatchConsumer(), null, WhereClause.MATCH_ALL);
         countContext.prepare();
         countContext.start();
-        future.setException(new UnhandledServerException("dummy"));
+        future.completeExceptionally(new UnhandledServerException("dummy"));
         assertTrue(countContext.isClosed());
         expectedException.expectCause(CauseMatcher.cause(UnhandledServerException.class));
         countContext.completionFuture().get();
@@ -76,7 +75,7 @@ public class CountContextTest extends CrateUnitTest {
 
     @Test
     public void testKillOperationFuture() throws Exception {
-        ListenableFuture<Long> future = mock(ListenableFuture.class);
+        CompletableFuture<Long> future = mock(CompletableFuture.class);
         CountOperation countOperation = new FakeCountOperation(future);
 
         CountContext countContext = new CountContext(1, countOperation, new TestingBatchConsumer(), null, WhereClause.MATCH_ALL);
@@ -91,15 +90,15 @@ public class CountContextTest extends CrateUnitTest {
 
     private static class FakeCountOperation implements CountOperation {
 
-        private final ListenableFuture<Long> future;
+        private final CompletableFuture<Long> future;
 
-        public FakeCountOperation(ListenableFuture<Long> future) {
+        public FakeCountOperation(CompletableFuture<Long> future) {
             this.future = future;
         }
 
         @Override
-        public ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
-                                            WhereClause whereClause) throws IOException, InterruptedException {
+        public CompletableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
+                                             WhereClause whereClause) throws IOException, InterruptedException {
             return future;
         }
 
