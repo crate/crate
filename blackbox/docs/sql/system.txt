@@ -609,7 +609,7 @@ Example query::
   +----+---------...-+--------------------------------------------------------------...-+
   |  1 | ...         | The value of the cluster setting 'gateway.expected_nodes' mus... |
   |  2 | ...         | The value of the cluster setting 'gateway.recover_after_nodes... |
-  |  3 | ...         | The value of the cluster setting 'gateway.recover_after_time'... |
+  |  3 | ...         | If any of the "expected nodes" recovery settings are set, the... |
   |  5 | ...         | The high disk watermark is exceeded on the node. The cluster ... |
   |  6 | ...         | The low disk watermark is exceeded on the node. The cluster w... |
   +----+---------...-+--------------------------------------------------------------...-+
@@ -672,9 +672,11 @@ nodes.
 Recovery After Time
 ...................
 
-The check for the :ref:`gateway.recover_after_time
-<gateway.recover_after_time>` settings verifies that the time before recovery
-starts must not be less than default value of ``5m``.
+If :ref:`gateway.recover_after_nodes <gateway.recover_after_nodes>` is set,
+then :ref:`gateway.recover_after_time <gateway.recover_after_time>` must not be
+set to ``0s``, otherwise the ``gateway.recover_after_nodes`` setting wouldn't
+have any effect.
+
 
 Routing Allocation Disk Watermark High
 ......................................

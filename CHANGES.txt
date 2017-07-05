@@ -42,6 +42,9 @@ Breaking Changes (Packaging only)
 Changes
 =======
 
+ - The ``recovery_after_time`` node check now fails if it would prevent the
+   ``gateway.expected_nodes`` setting from having any effect.
+
  - The table setting ``recovery.initial_shards`` has been deprecated. You may
    set ``gateway.local.initial_shards`` per node instead. Crate will continue to
    read the old setting but applications should be migrated to the new setting.
@@ -73,6 +76,9 @@ Changes
 
 Fixes
 =====
+
+ - Fixed ``select settings['gateway']['recover_after_time'] from sys.cluster``
+   so it returns the correct value.
 
  - Fix thread-safety issue for scalar functions ``md5`` and ``sha1``
 

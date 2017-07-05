@@ -124,12 +124,14 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRecoveryAfterTimeCheckWithCorrectSetting() {
-        RecoveryAfterTimeSysCheck recoveryAfterNodesCheck =
-            new RecoveryAfterTimeSysCheck(clusterService, Settings.EMPTY);
+        Settings settings = Settings.builder()
+            .put(GatewayService.RECOVER_AFTER_TIME_SETTING.getKey(), TimeValue.timeValueMillis(4).toString())
+            .put(GatewayService.RECOVER_AFTER_NODES_SETTING.getKey(), 3)
+            .put(GatewayService.EXPECTED_NODES_SETTING.getKey(), 3)
+            .build();
 
-        assertThat(recoveryAfterNodesCheck.id(), is(3));
-        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(recoveryAfterNodesCheck.validate(TimeValue.timeValueMinutes(6), 1, 4), is(true));
+        RecoveryAfterTimeSysCheck recoveryAfterNodesCheck = new RecoveryAfterTimeSysCheck(clusterService, settings);
+        assertThat(recoveryAfterNodesCheck.validate(), is(true));
     }
 
     @Test
@@ -148,12 +150,15 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRecoveryAfterTimeCheckWithWrongSetting() {
-        RecoveryAfterTimeSysCheck recoveryAfterNodesCheck =
-            new RecoveryAfterTimeSysCheck(clusterService, Settings.EMPTY);
+        Settings settings = Settings.builder()
+            .put(GatewayService.RECOVER_AFTER_TIME_SETTING.getKey(), TimeValue.timeValueMillis(0).toString())
+            .put(GatewayService.RECOVER_AFTER_NODES_SETTING.getKey(), 3)
+            .put(GatewayService.EXPECTED_NODES_SETTING.getKey(), 3)
+            .build();
 
-        assertThat(recoveryAfterNodesCheck.id(), is(3));
-        assertThat(recoveryAfterNodesCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(recoveryAfterNodesCheck.validate(TimeValue.timeValueMinutes(4), 3, 3), is(false));
+        RecoveryAfterTimeSysCheck recoveryAfterNodesCheck = new RecoveryAfterTimeSysCheck(clusterService, settings);
+
+        assertThat(recoveryAfterNodesCheck.validate(), is(true));
     }
 
     @Test

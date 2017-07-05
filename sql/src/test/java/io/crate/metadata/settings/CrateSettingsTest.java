@@ -25,8 +25,6 @@ package io.crate.metadata.settings;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.collect.stats.JobsLogService;
 import io.crate.operation.reference.NestedObjectExpression;
-import io.crate.planner.TableStatsService;
-import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.settings.CrateSetting;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
@@ -43,7 +41,9 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
 
 public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -185,5 +185,27 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
         CrateSettings.NestedSettingExpression a = (CrateSettings.NestedSettingExpression) testSetting.getChildImplementation("a");
         assertThat(a.value().containsKey("method"), is(true));
         assertThat(a.value().containsKey("user"), is(true));
+    }
+
+
+    @Test
+    public void testRecoverAfterTimeDefaultValueWithExpectedNodesSet() throws Exception {
+        Settings settings = Settings.builder().put(GatewayService.EXPECTED_NODES_SETTING.getKey(), 1).build();
+        CrateSettings crateSettings = new CrateSettings(clusterService, settings);
+
+        ReferenceImplementation impl = crateSettings.referenceImplementationTree()
+            .get("gateway")
+            .getChildImplementation("recover_after_time");
+
+        assertThat(((BytesRef) impl.value()).utf8ToString(), is("5m"));
+    }
+
+    @Test
+    public void testRecoverAfterTimeDefaultValueWithoutExpectedNodesSet() throws Exception {
+        CrateSettings crateSettings = new CrateSettings(clusterService, Settings.EMPTY);
+        ReferenceImplementation impl = crateSettings.referenceImplementationTree()
+            .get("gateway")
+            .getChildImplementation("recover_after_time");
+        assertThat(((BytesRef) impl.value()).utf8ToString(), is("0ms"));
     }
 }
