@@ -21,5 +21,10 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that caused an exception to be thrown when using
+   ``COUNT(*)`` with subselects that return one row. E.g.::
+
+     SELECT count(*) FROM t1 WHERE id > (select max(col1) from t2)
+
  - Throw proper exception when using the ``_raw`` column inside the where clause
    instead of silently ignoring it.
