@@ -80,4 +80,13 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
         execute("select * from sys.checks where passed = false");
         assertThat(response.rowCount(), is(0L));
     }
+
+    @Test
+    public void testBlobMetadataIsNotInvalid() throws Exception {
+        startUpNodeWithDataDir("/indices/data_home/cratedata_upgrade_required.zip");
+        //set license.ident setting to avoid unlicensed cluster check
+        execute("set global transient 'license.ident' to 'my-key'");
+        execute("select * from information_schema.tables");
+        assertTrue(response.rowCount() > 0);
+    }
 }

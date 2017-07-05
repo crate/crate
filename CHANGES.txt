@@ -21,6 +21,10 @@ Changes
 Fixes
 =====
 
+ - ``information.schema.tables`` now returns the default routing hash function
+   if none is present in the table metadata.
+   (Issue: https://github.com/crate/crate/issues/5857)
+
  - Fixed an issue that caused an exception to be thrown when using
    ``COUNT(*)`` with subselects that return one row. E.g.::
 
