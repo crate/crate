@@ -147,11 +147,13 @@ public class DocIndexMetaData {
     }
 
     public static String getRoutingHashFunction(Map<String, Object> mappingMap) {
-        return getNested(getNested(mappingMap, "_meta", null), IndexMappings.SETTING_ROUTING_HASH_FUNCTION, null);
+        return getNested(getNested(mappingMap, "_meta", null), IndexMappings.SETTING_ROUTING_HASH_FUNCTION,
+            IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION);
     }
 
     public static String getRoutingHashFunctionPrettyName(String routingHashFunction) {
-        return IndexMappings.routingHashFunctionPrettyNameLookupMap.getOrDefault(routingHashFunction, routingHashFunction);
+        return IndexMappings.routingHashFunctionPrettyNameLookupMap.getOrDefault(routingHashFunction,
+            IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION);
     }
 
     @Nullable

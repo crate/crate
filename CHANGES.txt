@@ -70,5 +70,10 @@ Changes
 Fixes
 =====
 
+ - ``information.schema.tables`` now returns the default routing hash function
+   if none is present in the table metadata.
+   (Issue: https://github.com/crate/crate/issues/5857)
+
  - Throw proper exception when using the ``_raw`` column inside the where clause
    instead of silently ignoring it.
+
