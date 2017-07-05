@@ -25,23 +25,16 @@ package io.crate.analyze;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.user.Privilege;
-import io.crate.operation.user.ExceptionAuthorizedValidator;
-import io.crate.operation.user.StatementAuthorizedValidator;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.operation.user.User;
-import io.crate.operation.user.UserManager;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.junit.Before;
 import org.junit.Test;
 
-import javax.annotation.Nullable;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 import static io.crate.analyze.user.Privilege.Clazz.CLUSTER;
 import static io.crate.analyze.user.Privilege.Clazz.SCHEMA;
@@ -64,7 +57,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Before
     public void setUpSQLExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService, () -> createUserManager(false)).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
     }
 
     @Test
@@ -247,40 +240,5 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             ident,
             GRANTOR_TEST_USER.name()
         );
-    }
-
-    private UserManager createUserManager(final boolean isSuperUser) {
-        return new UserManager() {
-            @Override
-            public CompletableFuture<Long> createUser(String userName) {
-                return null;
-            }
-
-            @Override
-            public CompletableFuture<Long> dropUser(String userName, boolean ifExists) {
-                return null;
-            }
-            @Nullable
-            @Override
-            public User findUser(String userName) {
-                Set<User.Role> roles = isSuperUser ? Collections.singleton(User.Role.SUPERUSER) : Collections.emptySet();
-                return new User(userName, roles, Collections.emptySet());
-            }
-
-            @Override
-            public CompletableFuture<Long> applyPrivileges(Collection<String> userNames, Collection<Privilege> privileges) {
-                return null;
-            }
-
-            @Override
-            public StatementAuthorizedValidator getStatementValidator(@Nullable User user) {
-                return s -> {};
-            }
-
-            @Override
-            public ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user) {
-                return t -> {};
-            }
-        };
     }
 }
