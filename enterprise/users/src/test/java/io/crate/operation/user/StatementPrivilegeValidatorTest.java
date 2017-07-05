@@ -81,7 +81,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
         userManager = new UserManagerService(null, null, null, clusterService);
 
         TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
-        e = SQLExecutor.builder(clusterService, () -> userManager)
+        e = SQLExecutor.builder(clusterService)
             .addBlobTable(TableDefinitions.createBlobTable(myBlobsIdent, clusterService))
             .enableDefaultTables()
             .build();
