@@ -44,17 +44,9 @@ Changes
 
  - Upgraded Crash to 0.21.2
 
- - The ``recovery_after_time`` node check now fails if it would prevent the
-   ``gateway.expected_nodes`` setting from having any effect.
-
  - The table setting ``recovery.initial_shards`` has been deprecated. You may
    set ``gateway.local.initial_shards`` per node instead. Crate will continue to
    read the old setting but applications should be migrated to the new setting.
-
- - Fixed an issue that caused an exception to be thrown when using
-   ``COUNT(*)`` with subselects that return one row. E.g.::
-
-     SELECT count(*) FROM t1 WHERE id > (select max(col1) from t2)
 
  - Updated Elasticsearch to 5.2.2
 
@@ -76,7 +68,7 @@ Changes
 
 Fixes
 =====
- 
+
  - Fixed an issue that caused an exception if a column gets added to a table
    that has been created with CrateDB version <= 1.1.
 
@@ -85,17 +77,3 @@ Fixes
 
  - Corrected wrong enterprise configuration example in ``crate.yml`` from
    ``auth.host_based.http_default_user`` to ``auth.trust.http_default_user``
-
- - Fixed an issue that caused blob data to be deleted upon node shutdown.
-
- - Fixed ``select settings['gateway']['recover_after_time'] from sys.cluster``
-   so it returns the correct value.
-
- - Fix thread-safety issue for scalar functions ``md5`` and ``sha1``
-
- - ``information.schema.tables`` now returns the default routing hash function
-   if none is present in the table metadata.
-   (Issue: https://github.com/crate/crate/issues/5857)
-
- - Throw proper exception when using the ``_raw`` column inside the where clause
-   instead of silently ignoring it.
