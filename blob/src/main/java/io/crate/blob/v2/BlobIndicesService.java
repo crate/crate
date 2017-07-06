@@ -109,14 +109,6 @@ public class BlobIndicesService extends AbstractComponent implements IndexEventL
         if (isBlobIndex(indexName)) {
             BlobIndex blobIndex = indices.remove(indexName);
             assert blobIndex != null : "BlobIndex not found on afterIndexDeleted";
-
-            /*
-             * Calling delete within IndexClosed is okay because Crate doesn't support closing indices.
-             *
-             * Can't do this in the `afterIndexDeleted` event because the master-node creates test indices for which
-             * no `afterIndexDeleted´ event is created: These would then leak.
-             */
-            blobIndex.delete();
         }
     }
 
