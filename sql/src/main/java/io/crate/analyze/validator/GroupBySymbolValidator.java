@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.Locale;
 
 public class GroupBySymbolValidator {
@@ -47,35 +48,42 @@ public class GroupBySymbolValidator {
         }
     }
 
-    private static class InnerValidator extends SymbolVisitor<Void, Void> {
+    private static class InnerValidator extends SymbolVisitor<Function, Void> {
 
         @Override
-        public Void visitFunction(Function symbol, Void context) {
-            switch (symbol.info().type()) {
+        public Void visitFunction(Function function, @Nullable Function parentScalar) {
+            switch (function.info().type()) {
                 case SCALAR:
-                    visitSymbol(symbol, context);
-                    for (Symbol argument : symbol.arguments()) {
-                        process(argument, context);
+                    visitSymbol(function, parentScalar);
+                    if (parentScalar == null) {
+                        parentScalar = function;
+                    }
+                    for (Symbol argument : function.arguments()) {
+                        process(argument, parentScalar);
                     }
                     break;
                 case AGGREGATE:
                     throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
                 default:
                     throw new UnsupportedOperationException(
-                        String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", symbol.info().type()));
+                        String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", function.info().type()));
             }
             return null;
         }
 
         @Override
-        public Void visitMatchPredicate(MatchPredicate matchPredicate, Void context) {
+        public Void visitMatchPredicate(MatchPredicate matchPredicate, @Nullable Function parentScalar) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "%s predicate cannot be used in a GROUP BY clause", io.crate.operation.predicate.MatchPredicate.NAME));
         }
 
         @Override
-        protected Void visitSymbol(Symbol symbol, Void context) {
-            validateDataType(symbol);
+        protected Void visitSymbol(Symbol symbol, @Nullable Function parentScalar) {
+            if (parentScalar == null) {
+                validateDataType(symbol);
+            } else {
+                validateDataType(parentScalar);
+            }
             return null;
         }
     }

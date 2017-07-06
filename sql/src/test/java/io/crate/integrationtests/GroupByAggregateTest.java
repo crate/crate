@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.isIn;
@@ -109,7 +110,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         ensureYellow();
         refresh();
         execute("select pk2, count(pk2) from tickets group by pk2 order by pk2 limit 100");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "42| 2\n" + // assert that different partitions have been merged
             "43| 1\n" +
             "44| 1\n" +
@@ -121,7 +122,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("refresh table tickets_export");
 
         execute("select c2, c from tickets_export order by 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "42| 2\n" + // assert that different partitions have been merged
             "43| 1\n" +
             "44| 1\n" +
@@ -137,7 +138,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         String expected = "32.0| female\n34.0| male\n";
 
         assertEquals("min(age)", response.cols()[0]);
-        assertEquals(expected, TestingHelpers.printedTable(response.rows()));
+        assertEquals(expected, printedTable(response.rows()));
     }
 
     @Test
@@ -715,9 +716,9 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testAggregateNonExistingColumn() throws Exception {
         this.setup.groupBySetup();
         execute("select max(details_ignored['lol']), race from characters group by race order by race");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("NULL| Android\n" +
-                                                                    "NULL| Human\n" +
-                                                                    "NULL| Vogon\n"));
+        assertThat(printedTable(response.rows()), is("NULL| Android\n" +
+                                                     "NULL| Human\n" +
+                                                     "NULL| Vogon\n"));
     }
 
     @Test
@@ -753,7 +754,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("select avg(birthdate) from characters group by gender\n" +
                 "having avg(birthdate) = 181353600000.0");
         assertThat(response.rowCount(), is(1L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1.813536E11\n"));
+        assertThat(printedTable(response.rows()), is("1.813536E11\n"));
     }
 
     @Test
@@ -762,7 +763,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("select avg(birthdate) from characters group by gender\n" +
                 "having min(birthdate) > '1970-01-01'");
         assertThat(response.rowCount(), is(1L));
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1.813536E11\n"));
+        assertThat(printedTable(response.rows()), is("1.813536E11\n"));
     }
 
 
@@ -868,7 +869,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select count(*), name from foo group by id, name order by name desc");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "1| Trillian\n" +
             "1| Slartibardfast\n" +
             "1| Marvin\n" +
@@ -967,7 +968,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 99.6d});
         refresh();
         execute("select avg(score), url, avg(score) from twice group by url limit 10");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("99.6| https://Ä.com| 99.6\n"));
+        assertThat(printedTable(response.rows()), is("99.6| https://Ä.com| 99.6\n"));
     }
 
     @Test
@@ -1133,7 +1134,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select count(*), tenant_id from tickets group by 2 order by tenant_id limit 100");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows()), is(
             "2| 42\n" + // assert that different partitions have been merged
             "1| 43\n" +
             "1| 44\n" +
@@ -1163,9 +1164,9 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     public void testDistinctWithGroupBy() throws Exception {
         execute("select DISTINCT max(col1), min(col1) from unnest([1,1,1,2,2,2,2,3,3],[1,2,3,1,2,3,4,1,2]) " +
                 "group by col2 order by 2, 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2| 1\n" +
-                                                                    "3| 1\n" +
-                                                                    "2| 2\n"));
+        assertThat(printedTable(response.rows()), is("2| 1\n" +
+                                                     "3| 1\n" +
+                                                     "2| 2\n"));
     }
 
     @Test
@@ -1173,8 +1174,8 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("select DISTINCT max(col2), min(col2) from " +
                 "unnest([1,1,2,2,3,3,4,4,5,5,6,6],[1,2,2,1,2,1,3,4,4,3,5,6]) " +
                 "group by col1 order by 1 desc, 2 limit 2 offset 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("4| 3\n" +
-                                                                   "2| 1\n"));
+        assertThat(printedTable(response.rows()), is("4| 3\n" +
+                                                     "2| 1\n"));
     }
 
     @Test
@@ -1184,9 +1185,9 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 "unnest([1,1,1,2,2,2,2,3,3],[1,2,3,1,2,3,4,1,2]) as t2 " +
                 "where t1.col1=t2.col2 " +
                 "group by t1.col2 order by 2, 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2| 1\n" +
-                                                                    "3| 1\n" +
-                                                                    "2| 2\n"));
+        assertThat(printedTable(response.rows()), is("2| 1\n" +
+                                                     "3| 1\n" +
+                                                     "2| 2\n"));
     }
 
     @Test
@@ -1195,6 +1196,15 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 " select distinct max(col1), min(col1) from unnest([1,1,1,2,2,2,2,3,3],[1,2,3,1,2,3,4,1,2]) " +
                 " group by col2 order by 2, 1 limit 2" +
                 ") t order by 1 desc limit 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("3| 1\n"));
+        assertThat(printedTable(response.rows()), is("3| 1\n"));
+    }
+
+    @Test
+    public void testGroupByOnScalarOnArray() throws Exception {
+        execute("select regexp_matches(col1, '^\\s*(\\w+).*')[1], count(*) " +
+                "from unnest([' select foo', 'insert into ', 'select 1']) " +
+                "group by 1 order by 2 desc");
+        assertThat(printedTable(response.rows()), is("select| 2\n" +
+                                                     "insert| 1\n"));
     }
 }
