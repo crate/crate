@@ -1,3 +1,20 @@
 
 @defaultMessage File is added to a list in DeleteOnExitHook causing a memory leak since CrateDB is a long running process
 java.io.File#deleteOnExit()
+
+@defaultMessage Use different overload and specify executor explicitly
+java.util.concurrent.CompletableFuture#supplyAsync(java.util.function.Supplier)
+java.util.concurrent.CompletableFuture#runAsync(java.lang.Runnable)
+java.util.concurrent.CompletableFuture#thenApplyAsync(java.util.function.Function)
+java.util.concurrent.CompletableFuture#thenAcceptAsync(java.util.function.Consumer)
+java.util.concurrent.CompletableFuture#thenRunAsync(java.lang.Runnable)
+java.util.concurrent.CompletableFuture#thenCombineAsync(java.util.concurrent.CompletionStage, java.util.function.BiFunction)
+java.util.concurrent.CompletableFuture#thenAcceptBothAsync(java.util.concurrent.CompletionStage, java.util.function.BiConsumer)
+java.util.concurrent.CompletableFuture#runAfterBothAsync(java.util.concurrent.CompletionStage, java.lang.Runnable)
+java.util.concurrent.CompletableFuture#applyToEitherAsync(java.util.concurrent.CompletionStage, java.util.function.Function)
+java.util.concurrent.CompletableFuture#acceptEitherAsync(java.util.concurrent.CompletionStage, java.util.function.Consumer)
+java.util.concurrent.CompletableFuture#runAfterEitherAsync(java.util.concurrent.CompletionStage, java.lang.Runnable)
+java.util.concurrent.CompletableFuture#thenComposeAsync(java.util.function.Function)
+java.util.concurrent.CompletableFuture#whenCompleteAsync(java.util.function.BiConsumer)
+java.util.concurrent.CompletableFuture#handleAsync(java.util.function.BiFunction)
+
