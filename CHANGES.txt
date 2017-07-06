@@ -15,30 +15,3 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
-Changes
-=======
-
- - The ``recovery_after_time`` node check now fails if it would prevent the
-   ``gateway.expected_nodes`` setting from having any effect.
-
-Fixes
-=====
-
- - Fixed ``select settings['gateway']['recover_after_time'] from sys.cluster``
-   so it returns the correct value.
-
- - Fixed an issue that caused blob data to be deleted upon node shutdown.
-
- - Fix thread-safety issue for scalar functions ``md5`` and ``sha1``
-
- - ``information.schema.tables`` now returns the default routing hash function
-   if none is present in the table metadata.
-   (Issue: https://github.com/crate/crate/issues/5857)
-
- - Fixed an issue that caused an exception to be thrown when using
-   ``COUNT(*)`` with subselects that return one row. E.g.::
-
-     SELECT count(*) FROM t1 WHERE id > (select max(col1) from t2)
-
- - Throw proper exception when using the ``_raw`` column inside the where clause
-   instead of silently ignoring it.
