@@ -21,6 +21,7 @@
 
 package io.crate.planner.node.dql;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTableRelation;
@@ -294,13 +295,14 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                                                      List<Projection> projections) {
         TableInfo tableInfo = table.tableRelation().tableInfo();
         WhereClause where = table.querySpec().where();
+        SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
         if (table.tableRelation() instanceof TableFunctionRelation) {
             TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) table.tableRelation();
             plannerContext.normalizer().normalizeInplace(tableFunctionRelation.function().arguments(), plannerContext.transactionContext());
             return new TableFunctionCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
-                plannerContext.allocateRouting(tableInfo, where, null),
+                plannerContext.allocateRouting(tableInfo, where, null, sessionContext),
                 tableFunctionRelation,
                 projections,
                 toCollect,
@@ -311,7 +313,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             "collect",
-            plannerContext.allocateRouting(tableInfo, where, null),
+            plannerContext.allocateRouting(tableInfo, where, null, sessionContext),
             tableInfo.rowGranularity(),
             toCollect,
             projections,

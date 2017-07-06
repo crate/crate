@@ -51,6 +51,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.action.sql.SessionContext.SYSTEM_SESSION;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -182,7 +183,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     @Test
     public void testCollectWithPartitionedColumns() throws Throwable {
         TableIdent tableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
-        Routing routing = schemas.getTableInfo(tableIdent).getRouting(WhereClause.MATCH_ALL, null);
+        Routing routing = schemas.getTableInfo(tableIdent).getRouting(WhereClause.MATCH_ALL, null, SYSTEM_SESSION);
         RoutedCollectPhase collectNode = getCollectNode(
             Arrays.asList(
                 new Reference(new ReferenceIdent(tableIdent, "id"),

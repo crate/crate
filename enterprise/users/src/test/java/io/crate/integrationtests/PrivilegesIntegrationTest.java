@@ -18,11 +18,17 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLOperations;
+import io.crate.operation.user.User;
+import io.crate.operation.user.UserManager;
 import io.crate.operation.user.UserManagerService;
 import io.crate.testing.SQLResponse;
 import org.junit.Test;
 
+import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 
 public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
@@ -112,5 +118,38 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("UserUnknownException: Users 'unknown_user, also_unknown' do not exist");
         executeAsSuperuser("grant DQL to unknown_user, also_unknown");
+    }
+
+    @Test
+    public void testQuerySysShardsReturnsOnlyRowsRegardingTablesUserHasAccessOn() throws Exception {
+        executeAsSuperuser("create user normal");
+        execute("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
+        execute("insert into t1 values (1)");
+        execute("insert into t1 values (2)");
+        execute("insert into t1 values (3)");
+        execute("create table doc.t2 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        execute("create table t3 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+
+        executeAsSuperuser("grant dql on table t1 to normal");
+        executeAsSuperuser("grant dml on table t2 to normal");
+        executeAsSuperuser("grant dql on table sys.shards to normal");
+
+        UserManager userManager = internalCluster().getInstance(UserManager.class);
+        User normalUser = userManager.findUser("normal");
+        assertThat(normalUser, notNullValue());
+
+        SQLOperations.Session normalUserSession = getSessionFor(normalUser);
+
+        execute("select table_name from sys.shards order by table_name", null, normalUserSession);
+        assertThat(response.rowCount(), is(4L));
+        assertThat(response.rows()[0][0], is("t1"));
+        assertThat(response.rows()[1][0], is("t1"));
+        assertThat(response.rows()[2][0], is("t1"));
+        assertThat(response.rows()[3][0], is("t2"));
+    }
+
+    private SQLOperations.Session getSessionFor(User user) {
+        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, null);
+        return sqlOperations.createSession(null, user, Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 }

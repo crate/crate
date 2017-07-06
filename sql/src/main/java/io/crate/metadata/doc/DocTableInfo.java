@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.Version;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.PartitionedTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
@@ -221,7 +222,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public Routing getRouting(final WhereClause whereClause, @Nullable final String preference) {
+    public Routing getRouting(final WhereClause whereClause,
+                              @Nullable final String preference,
+                              SessionContext sessionContext) {
         GroupShardsIterator shardIterators;
         try {
             shardIterators = getShardIterators(whereClause, preference);

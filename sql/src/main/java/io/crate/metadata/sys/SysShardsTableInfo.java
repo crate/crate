@@ -22,12 +22,26 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.*;
+import io.crate.analyze.user.Privilege;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.*;
+import io.crate.operation.user.User;
+import io.crate.types.BooleanType;
+import io.crate.types.DataTypes;
+import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ObjectType;
+import io.crate.types.StringType;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
@@ -218,15 +232,25 @@ public class SysShardsTableInfo extends StaticTableInfo {
      * Any shards that are not yet assigned to a node will have a NEGATIVE shard id (see {@link UnassignedShard}
      */
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
         // TODO: filter on whereClause
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         ClusterState state = service.state();
         String[] concreteIndices = state.metaData().getConcreteAllIndices();
         GroupShardsIterator groupShardsIterator = state.getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
+
+        User user = sessionContext != null ? sessionContext.user() : null;
         for (final ShardIterator shardIt : groupShardsIterator) {
             final ShardRouting shardRouting = shardIt.nextOrNull();
-            processShardRouting(locations, shardRouting, shardIt.shardId());
+            ShardId shardId = shardIt.shardId();
+            if (user != null) {
+                String tableName = TableIdent.fromIndexName(shardId.getIndexName()).fqn();
+                if (user.hasAnyPrivilege(Privilege.Clazz.TABLE, tableName)) {
+                    processShardRouting(locations, shardRouting, shardId);
+                }
+            } else {
+                processShardRouting(locations, shardRouting, shardId);
+            }
         }
         return new Routing(locations);
     }

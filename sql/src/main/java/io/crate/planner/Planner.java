@@ -23,6 +23,7 @@
 package io.crate.planner;
 
 import com.google.common.base.Preconditions;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedStatement;
@@ -209,8 +210,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return executionPhaseId++;
         }
 
-        public Routing allocateRouting(TableInfo tableInfo, WhereClause where, String preference) {
-            return routingBuilder.allocateRouting(tableInfo, where, preference);
+        public Routing allocateRouting(TableInfo tableInfo,
+                                       WhereClause where,
+                                       String preference,
+                                       SessionContext sessionContext) {
+            return routingBuilder.allocateRouting(tableInfo, where, preference, sessionContext);
         }
 
         public ReaderAllocations buildReaderAllocations() {

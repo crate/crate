@@ -23,6 +23,7 @@ package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Version;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AlterBlobTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
@@ -139,7 +140,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         GroupShardsIterator shardIterators = clusterService.operationRouting().searchShards(
             clusterService.state(),
