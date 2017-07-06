@@ -29,6 +29,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -103,13 +104,13 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     public void testGrantPrivilegesToUsersOnSchemas() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT DQL, DML on schema doc, information_schema TO user1, user2");
+        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("GRANT DQL, DML on schema doc, sys TO user1, user2");
         assertThat(analysis.userNames(), contains("user1", "user2"));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(GRANT, DQL, SCHEMA, "doc"),
             privilegeOf(GRANT, DML, SCHEMA, "doc"),
-            privilegeOf(GRANT, DQL, SCHEMA, "information_schema"),
-            privilegeOf(GRANT, DML, SCHEMA, "information_schema"))
+            privilegeOf(GRANT, DQL, SCHEMA, "sys"),
+            privilegeOf(GRANT, DML, SCHEMA, "sys"))
 
         );
     }
@@ -138,13 +139,13 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testRevokePrivilegesFromUsersOnSchemas() {
-        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("REVOKE DQL, DML On schema doc, information_schema FROM user1, user2");
+        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("REVOKE DQL, DML On schema doc, sys FROM user1, user2");
         assertThat(analysis.userNames(), contains("user1", "user2"));
         assertThat(analysis.privileges(), containsInAnyOrder(
             privilegeOf(REVOKE, DQL, SCHEMA, "doc"),
             privilegeOf(REVOKE, DML, SCHEMA, "doc"),
-            privilegeOf(REVOKE, DQL, SCHEMA, "information_schema"),
-            privilegeOf(REVOKE, DML, SCHEMA, "information_schema"))
+            privilegeOf(REVOKE, DQL, SCHEMA, "sys"),
+            privilegeOf(REVOKE, DML, SCHEMA, "sys"))
         );
     }
 
@@ -253,6 +254,50 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         expectedException.expect(TableUnknownException.class);
         expectedException.expectMessage("Table 'doc.hoichi' unknown");
         analyzePrivilegesStatement("Revoke DQL on table doc.hoichi FROM user1");
+    }
+
+    @Test
+    public void testGrantOnInformationSchemaTableThrowsException() {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("GRANT/DENY/REVOKE Privileges on information_schema is not supported");
+        analyzePrivilegesStatement("GRANT DQL ON TABLE information_schema.tables TO user1");
+    }
+
+    @Test
+    public void testRevokeOnInformationSchemaTableThrowsException() {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("GRANT/DENY/REVOKE Privileges on information_schema is not supported");
+        analyzePrivilegesStatement("REVOKE DQL ON TABLE information_schema.tables FROM user1");
+    }
+
+    @Test
+    public void testDenyOnInformationSchemaTableThrowsException() {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("GRANT/DENY/REVOKE Privileges on information_schema is not supported");
+        analyzePrivilegesStatement("DENY DQL ON TABLE information_schema.tables TO user1");
+    }
+
+    @Test
+    public void testRevokeOnInformationSchemaThrowsException() {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("GRANT/DENY/REVOKE Privileges on information_schema is not supported");
+        analyzePrivilegesStatement("REVOKE DQL ON SCHEMA information_schema FROM user1");
+        analyzePrivilegesStatement("GRANT DQL ON SCHEMA information_schema TO user1");
+        analyzePrivilegesStatement("DENY DQL ON SCHEMA information_schema TO user1");
+    }
+
+    @Test
+    public void testGrantOnInformationSchemaThrowsException() {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("GRANT/DENY/REVOKE Privileges on information_schema is not supported");
+        analyzePrivilegesStatement("GRANT DQL ON SCHEMA information_schema TO user1");
+    }
+
+    @Test
+    public void testDenyOnInformationSchemaThrowsException() {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("GRANT/DENY/REVOKE Privileges on information_schema is not supported");
+        analyzePrivilegesStatement("DENY DQL ON SCHEMA information_schema TO user1");
     }
 
     private Privilege privilegeOf(Privilege.State state, Privilege.Type type, Privilege.Clazz clazz, String ident) {

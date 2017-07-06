@@ -24,8 +24,10 @@ package io.crate.analyze;
 
 import io.crate.analyze.user.Privilege;
 import io.crate.analyze.user.Privilege.State;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.operation.user.User;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.GrantPrivilege;
@@ -47,6 +49,7 @@ import java.util.stream.Collectors;
 class PrivilegesAnalyzer {
 
     private final Schemas schemas;
+    private static final String ERROR_MESSAGE = "GRANT/DENY/REVOKE Privileges on information_schema is not supported";
 
     PrivilegesAnalyzer(Schemas schemas) {
         this.schemas = schemas;
@@ -54,29 +57,32 @@ class PrivilegesAnalyzer {
 
     PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, @Nullable User user) {
         ensureUserManagementEnabled(user);
-        validatePrivilegeIdents(Privilege.Clazz.valueOf(node.clazz()), node.privilegeIdents());
+        Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
+        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents());
 
         return new PrivilegesAnalyzedStatement(node.userNames(),
-            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.GRANT, node.privilegeIdents(),
-                Privilege.Clazz.valueOf(node.clazz())));
+            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.GRANT, idents,
+                clazz));
     }
 
     PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, @Nullable User user) {
         ensureUserManagementEnabled(user);
-        validatePrivilegeIdents(Privilege.Clazz.valueOf(node.clazz()), node.privilegeIdents());
+        Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
+        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents());
 
         return new PrivilegesAnalyzedStatement(node.userNames(),
-            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.REVOKE, node.privilegeIdents(),
-                Privilege.Clazz.valueOf(node.clazz())));
+            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.REVOKE, idents,
+                clazz));
     }
 
     PrivilegesAnalyzedStatement analyzeDeny(DenyPrivilege node, @Nullable User user) {
         ensureUserManagementEnabled(user);
-        validatePrivilegeIdents(Privilege.Clazz.valueOf(node.clazz()), node.privilegeIdents());
+        Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
+        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents());
 
         return new PrivilegesAnalyzedStatement(node.userNames(),
-            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.DENY, node.privilegeIdents(),
-                Privilege.Clazz.valueOf(node.clazz())));
+            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.DENY, idents,
+                clazz));
     }
 
     private static void ensureUserManagementEnabled(@Nullable User user) {
@@ -95,22 +101,34 @@ class PrivilegesAnalyzer {
         return privilegeTypes;
     }
 
-    private void validateTableNames(List<QualifiedName> tableNames) {
-        tableNames.forEach(t -> schemas.getTableInfo(TableIdent.fromIndexName(t.toString())));
+    private void validateTableNames(List<String> tableNames) {
+        tableNames.forEach(t -> {
+            TableIdent ident = TableIdent.fromIndexName(t);
+            validateSchemaName(ident.schema());
+            schemas.getTableInfo(ident);
+        });
     }
 
-    private void validateSchemaNames(List<QualifiedName> schemaNames) {
-        schemaNames.forEach(s ->
-            schemas.validateSchemaName(s.toString())
-        );
+    private void validateSchemaNames(List<String> schemaNames) {
+        schemaNames.forEach(this::validateSchemaName);
     }
 
-    private void validatePrivilegeIdents(Privilege.Clazz clazz, List<QualifiedName> idents) {
+    private void validateSchemaName(String schemaNames) {
+        if (InformationSchemaInfo.NAME.equals(schemaNames)) {
+            throw new UnsupportedFeatureException(ERROR_MESSAGE);
+        }
+        schemas.validateSchemaName(schemaNames);
+    }
+
+    private List<String> validatePrivilegeIdents(Privilege.Clazz clazz, List<QualifiedName> tableOrSchemaNames) {
+        List<String> idents = convertQualifiedNamesToIdents(clazz, tableOrSchemaNames);
         if (Privilege.Clazz.SCHEMA.equals(clazz)) {
             validateSchemaNames(idents);
         } else if (Privilege.Clazz.TABLE.equals(clazz)) {
             validateTableNames(idents);
         }
+
+        return idents;
     }
 
     private static List<Privilege.Type> parsePrivilegeTypes(List<String> privilegeTypeNames) {
@@ -136,7 +154,7 @@ class PrivilegesAnalyzer {
     private static Set<Privilege> privilegeTypesToPrivileges(Collection<Privilege.Type> privilegeTypes,
                                                              User grantor,
                                                              State state,
-                                                             List<QualifiedName> tableOrSchemaNames,
+                                                             List<String> idents,
                                                              Privilege.Clazz clazz) {
         Set<Privilege> privileges = new HashSet<>(privilegeTypes.size());
         if (Privilege.Clazz.CLUSTER.equals(clazz)) {
@@ -150,7 +168,6 @@ class PrivilegesAnalyzer {
                 privileges.add(privilege);
             }
         } else {
-            List<String> idents = convertQualifiedNamesToIdents(clazz, tableOrSchemaNames);
             for (Privilege.Type privilegeType : privilegeTypes) {
                 for (String ident : idents) {
                     Privilege privilege = new Privilege(state,
