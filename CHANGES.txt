@@ -77,6 +77,9 @@ Changes
 Fixes
 =====
 
+ - Fixed a regression that caused queries with a ``GROUP BY`` on array-columns,
+   which are wrapped in a scalar function, to fail.
+
  - Fixed an issue that caused blob data to be deleted upon node shutdown.
 
  - Fixed ``select settings['gateway']['recover_after_time'] from sys.cluster``
