@@ -31,8 +31,13 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import static io.crate.action.sql.SessionContext.SYSTEM_SESSION;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.core.Is.is;
@@ -64,7 +69,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         assertThat(ti.primaryKey().get(0), is(new ColumnIdent("id")));
         assertThat(ti.clusteredBy(), is(new ColumnIdent("id")));
 
-        Routing routing = ti.getRouting(WhereClause.MATCH_ALL, null);
+        Routing routing = ti.getRouting(WhereClause.MATCH_ALL, null, SYSTEM_SESSION);
 
         Set<String> nodes = routing.nodes();
 
@@ -123,7 +128,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
     @Test
     public void testNodesTable() throws Exception {
         TableInfo ti = schemas.getTableInfo(new TableIdent("sys", "nodes"));
-        Routing routing = ti.getRouting(null, null);
+        Routing routing = ti.getRouting(null, null, SYSTEM_SESSION);
         assertTrue(routing.hasLocations());
         assertEquals(1, routing.nodes().size());
         for (Map<String, List<Integer>> indices : routing.locations().values()) {
@@ -138,7 +143,7 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         TableInfo ti = schemas.getTableInfo(new TableIdent("sys", "shards"));
-        Routing routing = ti.getRouting(null, null);
+        Routing routing = ti.getRouting(null, null, SYSTEM_SESSION);
 
         Set<String> tables = new HashSet<>();
         Set<String> expectedTables = Sets.newHashSet("t2", "t3");
@@ -156,6 +161,6 @@ public class SchemasITest extends SQLTransportIntegrationTest {
     @Test
     public void testClusterTable() throws Exception {
         TableInfo ti = schemas.getTableInfo(new TableIdent("sys", "cluster"));
-        assertThat(ti.getRouting(null, null).locations().size(), is(1));
+        assertThat(ti.getRouting(null, null, SYSTEM_SESSION).locations().size(), is(1));
     }
 }

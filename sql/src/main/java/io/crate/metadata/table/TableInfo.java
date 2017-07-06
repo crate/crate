@@ -27,6 +27,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.action.sql.SessionContext;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -61,7 +62,7 @@ public interface TableInfo extends Iterable<Reference> {
      * <p>
      * 2. The underlying clusterState might change between calls.
      */
-    Routing getRouting(WhereClause whereClause, @Nullable String preference);
+    Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext);
 
     List<ColumnIdent> primaryKey();
 

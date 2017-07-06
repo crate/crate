@@ -67,7 +67,7 @@ public class User {
      * @param ident          ident of the object
      */
     public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
-        return Privilege.matchPrivilege(privileges, type, clazz, ident);
+        return isSuperUser() || Privilege.matchPrivilege(privileges, type, clazz, ident);
     }
 
     /**
@@ -78,7 +78,7 @@ public class User {
      * @param ident ident of the object
      */
     public boolean hasAnyPrivilege(Privilege.Clazz clazz, @Nullable String ident) {
-        return Privilege.matchPrivilege(privileges, clazz, ident);
+        return isSuperUser() || Privilege.matchPrivilege(privileges, clazz, ident);
     }
 
     @Override

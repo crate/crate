@@ -22,6 +22,7 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
@@ -77,7 +78,7 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
         // route to random master or data node,
         // because RepositoriesService (and so snapshots info) is only available there
         return Routing.forRandomMasterOrDataNode(IDENT, clusterService);

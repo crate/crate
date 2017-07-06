@@ -23,8 +23,9 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.IndexMappings;
 import io.crate.Version;
+import io.crate.action.sql.SessionContext;
+import io.crate.metadata.IndexMappings;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobTableInfo;
@@ -61,7 +62,7 @@ class TestingBlobTableInfo extends BlobTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
         return routing;
     }
 }

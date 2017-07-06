@@ -23,6 +23,7 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Version;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.table.StaticTableInfo;
@@ -139,7 +140,7 @@ public class InformationTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
         return Routing.forTableOnSingleNode(ident(), clusterService.localNode().getId());
     }
 }

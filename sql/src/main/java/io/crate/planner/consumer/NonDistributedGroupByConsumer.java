@@ -87,7 +87,9 @@ class NonDistributedGroupByConsumer implements Consumer {
                 return null;
             }
 
-            Routing routing = context.plannerContext().allocateRouting(tableInfo, table.querySpec().where(), null);
+            Planner.Context plannerContext = context.plannerContext();
+            Routing routing = plannerContext.allocateRouting(tableInfo, table.querySpec().where(), null,
+                plannerContext.transactionContext().sessionContext());
             if (routing.hasLocations() && routing.locations().size() > 1) {
                 return null;
             }

@@ -98,7 +98,8 @@ class DistributedGroupByConsumer implements Consumer {
                 RowGranularity.SHARD);
 
             Planner.Context plannerContext = context.plannerContext();
-            Routing routing = plannerContext.allocateRouting(tableInfo, querySpec.where(), null);
+            Routing routing = plannerContext.allocateRouting(tableInfo, querySpec.where(), null,
+                plannerContext.transactionContext().sessionContext());
             RoutedCollectPhase collectPhase = new RoutedCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
