@@ -158,7 +158,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
 
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck = new RecoveryAfterTimeSysCheck(clusterService, settings);
 
-        assertThat(recoveryAfterNodesCheck.validate(), is(true));
+        assertThat(recoveryAfterNodesCheck.validate(), is(false));
     }
 
     @Test
