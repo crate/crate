@@ -77,6 +77,8 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that caused blob data to be deleted upon node shutdown.
+
  - Fixed ``select settings['gateway']['recover_after_time'] from sys.cluster``
    so it returns the correct value.
 
