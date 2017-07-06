@@ -42,6 +42,8 @@ Breaking Changes (Packaging only)
 Changes
 =======
 
+ - Fixed an issue that caused blob data to be deleted upon node shutdown.
+
  - Fixed an issue that caused an exception to be thrown when using
    ``COUNT(*)`` with subselects that return one row. E.g.::
 
