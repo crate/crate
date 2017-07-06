@@ -21,6 +21,8 @@ package io.crate.operation.user;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.information.InformationSchemaInfo;
 
 class Privileges {
 
@@ -34,6 +36,10 @@ class Privileges {
         assert user != null : "User must not be null when trying to validate privileges";
         assert type != null : "Privilege type must not be null";
 
+        // information_schema should not be protected
+        if (isInformationSchema(clazz, ident)) {
+            return;
+        }
         //noinspection PointlessBooleanExpression
         if (user.hasPrivilege(type, clazz, ident) == false) {
             throw new MissingPrivilegeException(user.name(), type);
@@ -48,9 +54,32 @@ class Privileges {
                                        String ident,
                                        User user) throws MissingPrivilegeException {
         assert user != null : "User must not be null when trying to validate privileges";
+
+        // information_schema should not be protected
+        if (isInformationSchema(clazz, ident)) {
+            return;
+        }
         //noinspection PointlessBooleanExpression
         if (user.hasAnyPrivilege(clazz, ident) == false) {
             throw new MissingPrivilegeException(user.name());
         }
+    }
+
+    static boolean isInformationSchema(Privilege.Clazz clazz, String ident) {
+        if (Privilege.Clazz.CLUSTER.equals(clazz)) {
+            return false;
+        }
+        String schemaName;
+        if (Privilege.Clazz.TABLE.equals(clazz)) {
+            schemaName = TableIdent.fromIndexName(ident).schema();
+        } else {
+            schemaName = ident;
+        }
+        if (Privilege.Clazz.CLUSTER.equals(clazz) == false &&
+            ident != null &&
+            InformationSchemaInfo.NAME.equals(schemaName)) {
+            return true;
+        }
+        return false;
     }
 }
