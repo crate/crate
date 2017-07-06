@@ -77,6 +77,9 @@ Changes
 Fixes
 =====
 
+ - Corrected wrong enterprise configuration example in ``crate.yml`` from
+   ``auth.host_based.http_default_user`` to ``auth.trust.http_default_user``
+
  - Fixed an issue that caused blob data to be deleted upon node shutdown.
 
  - Fixed ``select settings['gateway']['recover_after_time'] from sys.cluster``
@@ -90,4 +93,3 @@ Fixes
 
  - Throw proper exception when using the ``_raw`` column inside the where clause
    instead of silently ignoring it.
-

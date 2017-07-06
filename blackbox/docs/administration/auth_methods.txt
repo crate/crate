@@ -37,7 +37,7 @@ setting like this:
 .. code-block:: yaml
 
     auth:
-      host_based:
+      trust:
         http_default_user: dustin
 
 

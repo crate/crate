@@ -127,7 +127,7 @@
 # username. Since a user is always required for trust based authentication, a
 # default user (in case `X-USER` is not set) can be defined as follows:
 #auth:
-#  host_based:
+#  trust:
 #    http_default_user: dustin
 
 #///////////////////////// User Defined Functions ////////////////////////////
