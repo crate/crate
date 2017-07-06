@@ -82,6 +82,22 @@ public class BlobPathITest extends BlobIntegrationTestBase {
     }
 
     @Test
+    public void testDataIsNotDeletedOnNodeShutdown() throws Exception {
+        Path data1 = createTempDir("data1");
+        launchNodeAndInitClient(Settings.builder()
+            .put(nodeSettings(0))
+            .put("path.data", data1.toString())
+            .build()
+        );
+        blobAdminClient.createBlobTable("b1", oneShardAndZeroReplicas()).get(5, TimeUnit.SECONDS);
+
+        client.put("b1", "abcdefg");
+        assertThat(gatherDigests(data1).size(), is(1));
+        internalCluster().stopRandomDataNode();
+        assertThat(gatherDigests(data1).size(), is(1));
+    }
+
+    @Test
     public void testDataIsStoredInGlobalBlobPath() throws Exception {
         launchNodeAndInitClient(configureGlobalBlobPath());
 

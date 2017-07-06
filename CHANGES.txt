@@ -21,6 +21,8 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that caused blob data to be deleted upon node shutdown.
+
  - Fix thread-safety issue for scalar functions ``md5`` and ``sha1``
 
  - ``information.schema.tables`` now returns the default routing hash function
