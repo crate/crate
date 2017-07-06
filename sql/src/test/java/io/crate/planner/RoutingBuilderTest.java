@@ -60,8 +60,8 @@ public class RoutingBuilderTest {
                 Arrays.asList(tableInfo1.getReference(new ColumnIdent("id")), Literal.of(2))
             ));
 
-        routingBuilder.allocateRouting(tableInfo1, WhereClause.MATCH_ALL, null);
-        routingBuilder.allocateRouting(tableInfo2, whereClause, null);
+        routingBuilder.allocateRouting(tableInfo1, WhereClause.MATCH_ALL, null, null);
+        routingBuilder.allocateRouting(tableInfo2, whereClause, null, null);
 
         // 2 routing allocations with different where clause must result in 2 allocated routings
         List<RoutingBuilder.TableRouting> tableRoutings = routingBuilder.routingListByTable.get(custom);
@@ -79,7 +79,7 @@ public class RoutingBuilderTest {
         TableInfo tableInfo = TestingTableInfo.builder(
             custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
         RoutingBuilder routingBuilder = new RoutingBuilder();
-        routingBuilder.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null);
+        routingBuilder.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null, null);
 
         ReaderAllocations readerAllocations = routingBuilder.buildReaderAllocations();
 

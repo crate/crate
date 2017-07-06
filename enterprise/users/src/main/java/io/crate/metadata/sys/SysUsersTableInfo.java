@@ -20,6 +20,7 @@ package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
@@ -64,7 +65,7 @@ public class SysUsersTableInfo extends StaticTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
         return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().getId());
     }
 

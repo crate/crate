@@ -22,6 +22,7 @@
 
 package io.crate.operation.tablefunctions;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
@@ -82,7 +83,9 @@ public class EmptyRowTableFunction {
                 }
 
                 @Override
-                public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
+                public Routing getRouting(WhereClause whereClause,
+                                          @Nullable String preference,
+                                          SessionContext sessionContext) {
                     return Routing.forTableOnSingleNode(TABLE_IDENT, localNodeId);
                 }
             };

@@ -36,6 +36,9 @@ import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.action.sql.SessionContext;
+import io.crate.analyze.user.Privilege;
+import io.crate.operation.user.User;
 import io.crate.types.BooleanType;
 import io.crate.types.DataTypes;
 import io.crate.types.FloatType;
@@ -284,15 +287,25 @@ public class SysShardsTableInfo extends StaticTableInfo {
      * Any shards that are not yet assigned to a node will have a NEGATIVE shard id (see {@link UnassignedShard}
      */
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
         // TODO: filter on whereClause
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         ClusterState state = service.state();
         String[] concreteIndices = state.metaData().getConcreteAllIndices();
         GroupShardsIterator groupShardsIterator = state.getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
+
+        User user = sessionContext != null ? sessionContext.user() : null;
         for (final ShardIterator shardIt : groupShardsIterator) {
             final ShardRouting shardRouting = shardIt.nextOrNull();
-            processShardRouting(locations, shardRouting, shardIt.shardId());
+            ShardId shardId = shardIt.shardId();
+            if (user != null) {
+                String tableName = TableIdent.fromIndexName(shardId.getIndexName()).fqn();
+                if (user.hasAnyPrivilege(Privilege.Clazz.TABLE, tableName)) {
+                    processShardRouting(locations, shardRouting, shardId);
+                }
+            } else {
+                processShardRouting(locations, shardRouting, shardId);
+            }
         }
         return new Routing(locations);
     }

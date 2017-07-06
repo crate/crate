@@ -78,7 +78,7 @@ public class TestingTableInfo extends DocTableInfo {
     }
 
     @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
         return routing;
     }
 

@@ -133,7 +133,8 @@ public final class DeleteStatementPlanner {
         DeleteProjection deleteProjection = new DeleteProjection(
             new InputColumn(0, DataTypes.STRING));
 
-        Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type());
+        Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type(),
+            plannerContext.transactionContext().sessionContext());
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
