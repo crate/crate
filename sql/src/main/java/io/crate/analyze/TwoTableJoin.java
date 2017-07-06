@@ -63,9 +63,11 @@ public class TwoTableJoin implements QueriedRelation {
             right.getQualifiedName().toString());
         this.remainingOrderBy = remainingOrderBy;
         this.joinPair = joinPair;
-        fields = new Fields(querySpec.outputs().size());
-        for (int i = 0; i < querySpec.outputs().size(); i++) {
-            Symbol output = querySpec.outputs().get(i);
+
+        List<Symbol> outputs = querySpec.outputs();
+        fields = new Fields(outputs.size());
+        for (int i = 0; i < outputs.size(); i++) {
+            Symbol output = outputs.get(i);
             String name = Symbols.pathFromSymbol(output).outputName();
             Path fqPath;
             // prefix paths with origin relationName to keep them unique
