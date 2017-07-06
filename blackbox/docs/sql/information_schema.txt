@@ -9,6 +9,21 @@ The Information Schema is a special schema that contains virtual tables which
 are read-only and can be queried to get information about the state of the
 cluster.
 
+.. note::
+
+    When the user management is enabled, accessing the ``information_schema``
+    is open to all users and it does not require any privileges.
+
+    However, being able to query ``information_schema`` tables will not allow the
+    user to retrieve all the rows in the table, as it can contain information
+    related to tables over which the connected user does not have any privileges.
+    The only rows that will be returned will be the ones the user is allowed to access.
+
+    For example, if the user ``john`` has any privilege on the ``doc.books`` table
+    but no privilege at all on ``doc.locations``, when ``john`` issues a
+    ``SELECT * FROM information_schema.tables`` statement, the tables information
+    related to the ``doc.locations`` table will not be returned.
+
 Tables
 ======
 
