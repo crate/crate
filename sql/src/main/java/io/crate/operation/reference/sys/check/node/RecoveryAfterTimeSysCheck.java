@@ -56,6 +56,6 @@ public class RecoveryAfterTimeSysCheck extends AbstractSysNodeCheck {
     protected boolean validate(TimeValue recoverAfterTime, int recoveryAfterNodes, int expectedNodes) {
         return recoveryAfterNodes <= expectedNodes &&
                (expectedNodes == GatewayService.EXPECTED_NODES_SETTING.getDefault(Settings.EMPTY) ||
-                recoverAfterTime.getSeconds() >= 0L);
+                recoverAfterTime.getMillis() > 0L);
     }
 }
