@@ -42,6 +42,8 @@ Breaking Changes (Packaging only)
 Changes
 =======
 
+ - Upgraded the Admin UI to 1.3.3
+
  - Upgraded Crash to 0.21.2
 
  - The table setting ``recovery.initial_shards`` has been deprecated. You may
