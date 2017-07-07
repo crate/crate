@@ -22,7 +22,6 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
@@ -49,7 +48,7 @@ public class ShardCollectorProviderTest extends SQLTransportIntegrationTest {
                 Map<ShardId, ShardCollectorProvider> shardMap = (Map<ShardId, ShardCollectorProvider>) shards.get(shardCollectSource);
                 assertThat(shardMap.size(), is(0));
             } catch (IllegalAccessException e) {
-                Throwables.propagate(e);
+                throw new RuntimeException(e);
             }
         }
     }

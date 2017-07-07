@@ -22,7 +22,6 @@
 package io.crate.executor.transport;
 
 import com.google.common.base.Predicates;
-import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Iterables;
 import io.crate.Streamer;
@@ -163,7 +162,7 @@ public class StreamBucket implements Bucket, Streamable {
                 try {
                     current[c] = streamers[c].readValueFrom(input);
                 } catch (IOException e) {
-                    Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
             pos++;
@@ -184,7 +183,7 @@ public class StreamBucket implements Bucket, Streamable {
         try {
             return new RowIterator(bytes.streamInput(), streamers, size);
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 

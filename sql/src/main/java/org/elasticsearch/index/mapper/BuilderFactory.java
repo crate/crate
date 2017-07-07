@@ -22,7 +22,6 @@
 
 package org.elasticsearch.index.mapper;
 
-import com.google.common.base.Throwables;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
@@ -58,7 +57,7 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
                 FieldMapper.MultiFields.empty(),
                 innerMapper);
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 

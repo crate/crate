@@ -22,7 +22,6 @@
 package io.crate.operation.collect.sources;
 
 import com.google.common.base.Suppliers;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
 import io.crate.action.job.SharedShardContext;
 import io.crate.action.job.SharedShardContexts;
@@ -469,9 +468,9 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     crateCollectors.add(remoteCollectorFactory.createCollector(
                         indexName, shardId.id(), collectPhase, jobCollectContext.queryPhaseRamAccountingContext()));
                 } catch (InterruptedException e) {
-                    throw Throwables.propagate(e);
-                } catch (Throwable t) {
-                    throw new UnhandledServerException(t);
+                    throw new RuntimeException(e);
+                } catch (Exception e) {
+                    throw new UnhandledServerException(e);
                 }
             }
         }

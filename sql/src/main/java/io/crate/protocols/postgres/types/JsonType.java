@@ -22,7 +22,6 @@
 
 package io.crate.protocols.postgres.types;
 
-import com.google.common.base.Throwables;
 import io.netty.buffer.ByteBuf;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -71,7 +70,7 @@ class JsonType extends PGType {
             builder.close();
             return BytesReference.toBytes(builder.bytes());
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -92,7 +91,7 @@ class JsonType extends PGType {
             }
             return parser.map();
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 }

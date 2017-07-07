@@ -22,7 +22,6 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.base.Throwables;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
@@ -94,7 +93,7 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
                         }
                     }
                 } catch (IOException | IllegalAccessException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
         }));
@@ -110,7 +109,7 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
                 Map<String, BlobIndex> indices = (Map<String, BlobIndex>) indicesField.get(blobIndicesService);
                 consumer.accept(indices);
             } catch (IllegalAccessException e) {
-                throw Throwables.propagate(e);
+                throw new RuntimeException(e);
             }
         }
     }

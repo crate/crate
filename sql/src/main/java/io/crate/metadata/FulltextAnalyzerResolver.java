@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import io.crate.exceptions.AnalyzerInvalidException;
 import io.crate.exceptions.AnalyzerUnknownException;
@@ -215,7 +214,7 @@ public class FulltextAnalyzerResolver {
             return bso.bytes();
         } catch (IOException e) {
             // this is a memory stream so no real I/O happens and a IOException can't really happen at runtime
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 

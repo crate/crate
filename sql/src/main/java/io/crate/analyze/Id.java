@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Throwables;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.util.BytesRef;
@@ -124,7 +123,7 @@ public class Id {
             }
             return Base64.getEncoder().encodeToString(BytesReference.toBytes(out.bytes()));
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 

@@ -22,7 +22,6 @@
 
 package io.crate.jobs;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.logging.log4j.Logger;
@@ -75,7 +74,7 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
             try {
                 thread.join(500);
             } catch (InterruptedException e) {
-                Throwables.propagate(e);
+                throw new RuntimeException(e);
             }
         }
     }

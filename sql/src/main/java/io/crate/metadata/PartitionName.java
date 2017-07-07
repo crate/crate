@@ -23,7 +23,6 @@ package io.crate.metadata;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.crate.types.StringType;
 import org.apache.commons.codec.binary.Base32;
@@ -108,7 +107,7 @@ public class PartitionName {
                 StringType.INSTANCE.streamer().writeValueTo(streamOutput, value);
             }
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
         byte[] bytes = BytesReference.toBytes(streamOutput.bytes());
         String identBase32 = BASE32.encodeAsString(bytes).toLowerCase(Locale.ROOT);

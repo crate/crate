@@ -621,8 +621,8 @@ public class AlterTableOperation {
                     return false;
                 }
                 lastMapping = mapping;
-            } catch (Throwable t) {
-                Throwables.propagate(t);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
         }
         return true;

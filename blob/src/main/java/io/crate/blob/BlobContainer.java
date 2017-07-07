@@ -21,7 +21,6 @@
 
 package io.crate.blob;
 
-import com.google.common.base.Throwables;
 import io.crate.blob.exceptions.DigestNotFoundException;
 import io.crate.common.Hex;
 import org.apache.logging.log4j.Logger;
@@ -68,14 +67,14 @@ public class BlobContainer {
             createSubDirectories(this.varDirectory);
         } catch (IOException e) {
             logger.error("Could not create 'var' path {}", this.varDirectory);
-            Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
 
         try {
             Files.createDirectories(this.tmpDirectory);
         } catch (IOException e) {
             logger.error("Could not create 'tmp' path {}", this.tmpDirectory);
-            Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 

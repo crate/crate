@@ -23,7 +23,6 @@
 package io.crate.operation.collect.collectors;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import io.crate.data.Row;
 import io.crate.data.Input;
 import io.crate.operation.InputRow;
@@ -88,7 +87,7 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
             try {
                 expression.setNextReader(subReaderContext);
             } catch (IOException e) {
-                throw Throwables.propagate(e);
+                throw new RuntimeException(e);
             }
             expression.setNextDocId(subDoc);
         }
