@@ -20,23 +20,18 @@
  * agreement.
  */
 
-package io.crate.operation.user;
+package io.crate.user;
 
-import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.operation.auth.AlwaysOKAuthentication;
+import io.crate.operation.auth.Authentication;
+import io.crate.operation.user.UserManager;
+import org.elasticsearch.common.inject.AbstractModule;
 
-import java.util.concurrent.ExecutionException;
+public class UserFallbackModule extends AbstractModule {
 
-import static org.hamcrest.Matchers.containsString;
-
-public class UserManagementTest extends CrateUnitTest {
-
-
-    public void testNoopUserManagerLoaded() throws Exception {
-        expectedException.expect(ExecutionException.class);
-        expectedException.expectMessage(containsString("CREATE USER is only supported in enterprise version"));
-        UserManager defaultUserManager = new UserManagerProvider(Settings.EMPTY, null, null, null, null, null, null).get();
-        defaultUserManager.createUser("root").get();
+    @Override
+    protected void configure() {
+        bind(UserManager.class).to(StubUserManager.class);
+        bind(Authentication.class).to(AlwaysOKAuthentication.class);
     }
 }
-

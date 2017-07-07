@@ -72,6 +72,7 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     public void setUpNodesUsersAndPrivileges() throws Exception {
         nodeEnterpriseEnabled = internalCluster().startNode();
         nodeEnterpriseDisabled = internalCluster().startNode(Settings.builder()
+            .put("node.master", false) // node has no create/drop user transports
             .put(SharedSettings.ENTERPRISE_LICENSE_SETTING.getKey(), false));
         super.createSessions();
 

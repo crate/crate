@@ -20,31 +20,19 @@
  * agreement.
  */
 
-package io.crate.plugin;
+package io.crate.user;
 
+import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 
-import org.elasticsearch.common.Nullable;
+import java.util.Collection;
+import java.util.List;
 
-import java.util.Iterator;
-import java.util.ServiceConfigurationError;
-import java.util.ServiceLoader;
+public interface UserExtension {
 
-/**
- * Utility class to load classes dynamically using a serviceLoader.
- * (Classes are discovered using META-INF/services files)
- */
-public final class EnterpriseLoader {
+    List<NamedWriteableRegistry.Entry> getNamedWriteables();
+    List<NamedXContentRegistry.Entry> getNamedXContent();
 
-    @Nullable
-    public static <T> T loadSingle(Class<T> clazz) {
-        Iterator<T> it = ServiceLoader.load(clazz).iterator();
-        T instance = null;
-        while (it.hasNext()) {
-            if (instance != null) {
-                throw new ServiceConfigurationError(clazz.getSimpleName() + " found twice");
-            }
-            instance = it.next();
-        }
-        return instance;
-    }
+    Collection<Module> getModules();
 }

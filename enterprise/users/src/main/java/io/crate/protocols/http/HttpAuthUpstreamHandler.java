@@ -21,7 +21,7 @@ package io.crate.protocols.http;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
-import io.crate.operation.auth.AuthenticationProvider;
+import io.crate.operation.auth.AuthSettings;
 import io.crate.operation.auth.Protocol;
 import io.crate.operation.user.User;
 import io.crate.protocols.SSL;
@@ -141,8 +141,8 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
     @VisibleForTesting
     static String userFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
-        if (request.headers().contains(AuthenticationProvider.HTTP_HEADER_USER)) {
-            return request.headers().get(AuthenticationProvider.HTTP_HEADER_USER);
+        if (request.headers().contains(AuthSettings.HTTP_HEADER_USER)) {
+            return request.headers().get(AuthSettings.HTTP_HEADER_USER);
         } else {
             // prefer commonName as userName over AUTH_TRUST_HTTP_DEFAULT_HEADER user
             if (session != null) {
@@ -156,13 +156,13 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                     // client cert is optional
                 }
             }
-            return AuthenticationProvider.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
+            return AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
         }
     }
 
     private InetAddress addressFromRequestOrChannel(HttpRequest request, Channel channel) {
-        if (request.headers().contains(AuthenticationProvider.HTTP_HEADER_REAL_IP)) {
-            return InetAddresses.forString(request.headers().get(AuthenticationProvider.HTTP_HEADER_REAL_IP));
+        if (request.headers().contains(AuthSettings.HTTP_HEADER_REAL_IP)) {
+            return InetAddresses.forString(request.headers().get(AuthSettings.HTTP_HEADER_REAL_IP));
         } else {
             return CrateNettyHttpServerTransport.getRemoteAddress(channel);
         }

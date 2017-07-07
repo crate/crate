@@ -42,7 +42,7 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
-import io.crate.operation.auth.AuthenticationProvider;
+import io.crate.operation.auth.AuthSettings;
 import io.crate.operation.collect.CollectOperationModule;
 import io.crate.operation.collect.files.FileCollectModule;
 import io.crate.operation.operator.OperatorModule;
@@ -58,6 +58,8 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.settings.CrateSetting;
+import io.crate.user.UserFallbackModule;
+import io.crate.user.UserExtension;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -86,14 +88,21 @@ import java.util.List;
 import java.util.Map;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static io.crate.settings.SharedSettings.ENTERPRISE_LICENSE_SETTING;
 
 public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
     private final Settings settings;
+    private final UserExtension userExtension;
 
     @SuppressWarnings("WeakerAccess") // must be public for pluginLoader
     public SQLPlugin(Settings settings) {
         this.settings = settings;
+        if (ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
+            userExtension = EnterpriseLoader.loadSingle(UserExtension.class);
+        } else {
+            userExtension = null;
+        }
     }
 
     @Override
@@ -118,9 +127,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         settings.add(PostgresNetty.PSQL_PORT_SETTING.setting());
 
         // Authentication settings are node settings
-        settings.add(AuthenticationProvider.AUTH_HOST_BASED_ENABLED_SETTING.setting());
-        settings.add(AuthenticationProvider.AUTH_HOST_BASED_CONFIG_SETTING.setting());
-        settings.add(AuthenticationProvider.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting());
+        settings.add(AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.setting());
+        settings.add(AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting());
+        settings.add(AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting());
 
         // Settings for SSL (available only in the Enterprise version)
         settings.add(SslConfigSettings.SSL_HTTP_ENABLED.setting());
@@ -177,6 +186,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new SysChecksModule());
         modules.add(new SysNodeChecksModule());
         modules.add(new RepositorySettingsModule());
+        if (userExtension != null) {
+            modules.addAll(userExtension.getModules());
+        } else {
+            modules.add(new UserFallbackModule());
+        }
         return modules;
     }
 
@@ -208,6 +222,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             UserDefinedFunctionsMetaData.TYPE,
             UserDefinedFunctionsMetaData::readDiffFrom
         ));
+        if (userExtension != null) {
+            entries.addAll(userExtension.getNamedWriteables());
+        }
         return entries;
     }
 
@@ -219,6 +236,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             new ParseField(UserDefinedFunctionsMetaData.TYPE),
             UserDefinedFunctionsMetaData::fromXContent
         ));
+        if (userExtension != null) {
+            entries.addAll(userExtension.getNamedXContent());
+        }
         return entries;
     }
 }

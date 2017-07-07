@@ -27,6 +27,7 @@ import io.crate.analyze.user.Privilege;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.operation.collect.sources.SysTableRegistry;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -48,6 +49,7 @@ import static io.crate.operation.user.UserManagerService.CRATE_USER;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
 public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUnitTest {
 
@@ -78,7 +80,7 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
                 return true;
             }
         };
-        userManager = new UserManagerService(null, null, null, clusterService);
+        userManager = new UserManagerService(null, null, null, mock(SysTableRegistry.class), clusterService);
 
         TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
         e = SQLExecutor.builder(clusterService, () -> userManager)

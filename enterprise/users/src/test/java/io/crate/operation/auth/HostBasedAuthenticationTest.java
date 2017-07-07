@@ -80,7 +80,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
     @Before
     private void setUpTest() throws Exception {
         Settings settings = Settings.builder()
-            .put(AuthenticationProvider.AUTH_HOST_BASED_ENABLED_SETTING.getKey(), true)
+            .put(AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.getKey(), true)
             .build();
         authService = new HostBasedAuthentication(settings, null);
 
@@ -110,7 +110,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         assertFalse(authService.enabled());
 
         Settings settings = Settings.builder()
-            .put(AuthenticationProvider.AUTH_HOST_BASED_ENABLED_SETTING.getKey(), true)
+            .put(AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.getKey(), true)
             .build();
         authService = new HostBasedAuthentication(settings, null);
         assertTrue(authService.enabled());

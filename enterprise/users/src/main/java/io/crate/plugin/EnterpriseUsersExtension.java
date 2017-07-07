@@ -21,28 +21,20 @@ package io.crate.plugin;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
 import io.crate.scalar.UsersScalarFunctionModule;
-import io.crate.settings.SharedSettings;
+import io.crate.user.UserExtension;
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.plugins.Plugin;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
-public class UsersPlugin extends Plugin {
-
-    private final Settings settings;
-
-    public UsersPlugin(Settings settings) {
-        this.settings = settings;
-    }
+public class EnterpriseUsersExtension implements UserExtension {
 
     @Override
     public List<NamedWriteableRegistry.Entry> getNamedWriteables() {
@@ -75,12 +67,12 @@ public class UsersPlugin extends Plugin {
     public List<NamedXContentRegistry.Entry> getNamedXContent() {
         List<NamedXContentRegistry.Entry> entries = new ArrayList<>(2);
         entries.add(new NamedXContentRegistry.Entry(
-            UsersMetaData.class,
+            MetaData.Custom.class,
             new ParseField(UsersMetaData.TYPE),
             UsersMetaData::fromXContent
         ));
         entries.add(new NamedXContentRegistry.Entry(
-            UsersPrivilegesMetaData.class,
+            MetaData.Custom.class,
             new ParseField(UsersPrivilegesMetaData.TYPE),
             UsersPrivilegesMetaData::fromXContent
         ));
@@ -88,11 +80,10 @@ public class UsersPlugin extends Plugin {
     }
 
     @Override
-    public Collection<Module> createGuiceModules() {
-        if (SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
-            return Collections.singletonList(new UsersScalarFunctionModule());
-        } else {
-            return Collections.emptyList();
-        }
+    public Collection<Module> getModules() {
+        return Arrays.asList(
+            new UserManagementModule(),
+            new AuthenticationModule(),
+            new UsersScalarFunctionModule());
     }
 }

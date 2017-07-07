@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.operation.collect.sources.SysTableRegistry;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,6 +35,7 @@ import static io.crate.operation.user.UserManagerService.NOOP_STATEMENT_VALIDATO
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.mock;
 
 public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -41,7 +43,7 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpUserManager() throws Exception {
-        userManagerService = new UserManagerService(null, null, null, clusterService);
+        userManagerService = new UserManagerService(null, null, null, mock(SysTableRegistry.class), clusterService);
     }
 
     @Test
