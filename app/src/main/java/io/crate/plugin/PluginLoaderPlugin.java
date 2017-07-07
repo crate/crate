@@ -28,10 +28,12 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.plugins.ActionPlugin;
@@ -129,6 +131,15 @@ public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPl
         sqlPlugin.onIndexModule(indexModule);
     }
 
+    @Override
+    public List<NamedWriteableRegistry.Entry> getNamedWriteables() {
+        return sqlPlugin.getNamedWriteables();
+    }
+
+    @Override
+    public List<NamedXContentRegistry.Entry> getNamedXContent() {
+        return sqlPlugin.getNamedXContent();
+    }
 
     /*
      * Initialize our own TrustStore including StartCom CA

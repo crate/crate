@@ -22,29 +22,22 @@
 
 package io.crate.plugin;
 
+import io.crate.operation.user.TransportCreateUserAction;
+import io.crate.operation.user.TransportDropUserAction;
+import io.crate.operation.user.TransportPrivilegesAction;
+import io.crate.operation.user.UserLookup;
+import io.crate.operation.user.UserManager;
+import io.crate.operation.user.UserManagerService;
+import org.elasticsearch.common.inject.AbstractModule;
 
-import org.elasticsearch.common.Nullable;
+public class UserManagementModule extends AbstractModule {
 
-import java.util.Iterator;
-import java.util.ServiceConfigurationError;
-import java.util.ServiceLoader;
-
-/**
- * Utility class to load classes dynamically using a serviceLoader.
- * (Classes are discovered using META-INF/services files)
- */
-public final class EnterpriseLoader {
-
-    @Nullable
-    public static <T> T loadSingle(Class<T> clazz) {
-        Iterator<T> it = ServiceLoader.load(clazz).iterator();
-        T instance = null;
-        while (it.hasNext()) {
-            if (instance != null) {
-                throw new ServiceConfigurationError(clazz.getSimpleName() + " found twice");
-            }
-            instance = it.next();
-        }
-        return instance;
+    @Override
+    protected void configure() {
+        bind(TransportCreateUserAction.class).asEagerSingleton();
+        bind(TransportDropUserAction.class).asEagerSingleton();
+        bind(TransportPrivilegesAction.class).asEagerSingleton();
+        bind(UserManager.class).to(UserManagerService.class).asEagerSingleton();
+        bind(UserLookup.class).to(UserManagerService.class).asEagerSingleton();
     }
 }

@@ -408,11 +408,12 @@ jar {
     from fileTree(buildDir).matching { include 'META-INF/services/*' }
 }
 
-task collectEnterpriseModules(dependsOn: [':enterprise:ssl-impl:jar']) {
+task collectEnterpriseModules(dependsOn: [':enterprise:users:jar', ':enterprise:ssl-impl:jar']) {
     // this task collects the enterprise module jar into a single folder
     // named enterprise from which the files are taken for the installDist task
     doLast {
         copy {
+            from(project(':enterprise:users').tasks.jar.archivePath)
             from(project(':enterprise:ssl-impl').tasks.jar.archivePath)
             into 'enterprise'
         }
@@ -441,7 +442,6 @@ task downloadPlugins(
                     ':es:es-repository-hdfs:jar',
                     ':azure-discovery:jar',
                     ':enterprise:jmx-monitoring:jar',
-                    ':enterprise:users:jar',
                     ':enterprise:lang-js:jar']) {
     doLast {
         // copy es-repository-hdfs plugin
@@ -465,11 +465,6 @@ task downloadPlugins(
         copy {
             from("${buildDir}/crate-admin/")
             into 'adminui'
-        }
-        copy {
-            from(project(':enterprise:users').buildDir.path + '/resources/plugin-descriptor.properties')
-            from(project(':enterprise:users').tasks.jar.archivePath)
-            into 'enterprise/es-plugins/users'
         }
         copy {
             from(project(':enterprise:jmx-monitoring').tasks.jar.archivePath)

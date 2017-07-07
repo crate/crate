@@ -22,6 +22,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.crate.operation.user.UserLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.Cidrs;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
@@ -73,9 +74,10 @@ public class HostBasedAuthentication implements Authentication {
 
     private final Map<String, Supplier<AuthenticationMethod>> authMethodRegistry = new HashMap<>();
 
+    @Inject
     public HostBasedAuthentication(Settings settings, UserLookup userLookup) {
-        enabled = AuthenticationProvider.AUTH_HOST_BASED_ENABLED_SETTING.setting().get(settings);
-        hbaConf = convertHbaSettingsToHbaConf(AuthenticationProvider.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings));
+        enabled = AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.setting().get(settings);
+        hbaConf = convertHbaSettingsToHbaConf(AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings));
         authMethodRegistry.put(TrustAuthentication.NAME, () -> new TrustAuthentication(userLookup));
         authMethodRegistry.put(ClientCertAuth.NAME, () -> new ClientCertAuth(userLookup));
     }

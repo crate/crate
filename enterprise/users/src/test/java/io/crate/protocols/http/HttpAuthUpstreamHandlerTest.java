@@ -18,8 +18,8 @@
 
 package io.crate.protocols.http;
 
+import io.crate.operation.auth.AlwaysOKAuthentication;
 import io.crate.operation.auth.Authentication;
-import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.operation.auth.HostBasedAuthentication;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.buffer.Unpooled;
@@ -98,7 +98,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
 
     @Test
     public void testAuthorized() throws Exception {
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, AuthenticationProvider.NOOP_AUTH);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, new AlwaysOKAuthentication());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");

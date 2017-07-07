@@ -27,7 +27,6 @@ import com.carrotsearch.hppc.IntSet;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
 import io.crate.operation.auth.Authentication;
-import io.crate.operation.auth.AuthenticationProvider;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.settings.CrateSetting;
@@ -89,7 +88,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
     private final boolean enabled;
     private final String port;
-    private final AuthenticationProvider authProvider;
+    private final Authentication authentication;
     private final SslContextProvider sslContextProvider;
     private final Logger namedLogger;
 
@@ -104,13 +103,13 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     public PostgresNetty(Settings settings,
                          SQLOperations sqlOperations,
                          NetworkService networkService,
-                         AuthenticationProvider authProvider,
+                         Authentication authentication,
                          SslContextProvider sslContextProvider) {
         super(settings);
         namedLogger = Loggers.getLogger("psql", settings);
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
-        this.authProvider = authProvider;
+        this.authentication = authentication;
         this.sslContextProvider = sslContextProvider;
 
         enabled = PSQL_ENABLED_SETTING.setting().get(settings);
@@ -131,7 +130,6 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             Netty4Transport.NETTY_BOSS_COUNT.get(settings), daemonThreadFactory(settings, "postgres-netty-boss"));
         EventLoopGroup worker = new NioEventLoopGroup(
             Netty4Transport.WORKER_COUNT.get(settings), daemonThreadFactory(settings, "postgres-netty-worker"));
-        Authentication authentication = authProvider.get();
         Boolean reuseAddress = Netty4Transport.TCP_REUSE_ADDRESS.get(settings);
         final SslContext sslContext;
         if (SslConfigSettings.isPSQLSslEnabled(settings)) {

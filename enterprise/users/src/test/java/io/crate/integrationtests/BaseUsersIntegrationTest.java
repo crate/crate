@@ -23,13 +23,8 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManagerService;
-import io.crate.plugin.UsersPlugin;
 import io.crate.testing.SQLResponse;
-import org.elasticsearch.plugins.Plugin;
 import org.junit.Before;
-
-import java.util.ArrayList;
-import java.util.Collection;
 
 import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
 
@@ -37,13 +32,6 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
 
     private SQLOperations.Session superUserSession;
     private SQLOperations.Session normalUserSession;
-
-    @Override
-    protected Collection<Class<? extends Plugin>> nodePlugins() {
-        ArrayList<Class<? extends Plugin>> plugins = new ArrayList<>(super.nodePlugins());
-        plugins.add(UsersPlugin.class);
-        return plugins;
-    }
 
     protected SQLOperations.Session createSuperUserSession() {
         return createSuperUserSession(null);

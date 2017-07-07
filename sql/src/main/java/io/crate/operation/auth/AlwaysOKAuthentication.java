@@ -20,31 +20,32 @@
  * agreement.
  */
 
-package io.crate.plugin;
+package io.crate.operation.auth;
 
+import io.crate.operation.user.User;
+import io.crate.protocols.postgres.ConnectionProperties;
 
-import org.elasticsearch.common.Nullable;
+public class AlwaysOKAuthentication implements Authentication {
 
-import java.util.Iterator;
-import java.util.ServiceConfigurationError;
-import java.util.ServiceLoader;
-
-/**
- * Utility class to load classes dynamically using a serviceLoader.
- * (Classes are discovered using META-INF/services files)
- */
-public final class EnterpriseLoader {
-
-    @Nullable
-    public static <T> T loadSingle(Class<T> clazz) {
-        Iterator<T> it = ServiceLoader.load(clazz).iterator();
-        T instance = null;
-        while (it.hasNext()) {
-            if (instance != null) {
-                throw new ServiceConfigurationError(clazz.getSimpleName() + " found twice");
-            }
-            instance = it.next();
+    private final AuthenticationMethod alwaysOk = new AuthenticationMethod() {
+        @Override
+        public User authenticate(String userName, ConnectionProperties connectionProperties) {
+            return null;
         }
-        return instance;
+
+        @Override
+        public String name() {
+            return "alwaysOk";
+        }
+    };
+
+    @Override
+    public boolean enabled() {
+        return true;
+    }
+
+    @Override
+    public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties) {
+        return alwaysOk;
     }
 }

@@ -48,7 +48,6 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.operation.user.UserManager;
-import io.crate.operation.user.UserManagerProvider;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.TableStats;
@@ -159,14 +158,7 @@ public class SQLExecutor {
             }
             File tempDir = createTempDir();
             if (userManagerProvider == null) {
-                userManagerProvider = new UserManagerProvider(
-                    Settings.EMPTY,
-                    null,
-                    clusterService,
-                    null,
-                    null,
-                    null,
-                    null);
+                userManagerProvider = () -> null;
             }
             return new SQLExecutor(
                 functions,

@@ -26,10 +26,15 @@ import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserUnknownException;
 import io.crate.metadata.UsersMetaData;
 import io.crate.metadata.UsersPrivilegesMetaData;
+import io.crate.metadata.sys.SysPrivilegesTableInfo;
+import io.crate.metadata.sys.SysUsersTableInfo;
+import io.crate.operation.collect.sources.SysTableRegistry;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -39,7 +44,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-
+@Singleton
 public class UserManagerService implements UserManager, ClusterStateListener {
 
     public final static User CRATE_USER = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of());
@@ -70,14 +75,23 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     private final TransportPrivilegesAction transportPrivilegesAction;
     private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
 
+    @Inject
     public UserManagerService(TransportCreateUserAction transportCreateUserAction,
                               TransportDropUserAction transportDropUserAction,
                               TransportPrivilegesAction transportPrivilegesAction,
+                              SysTableRegistry sysTableRegistry,
                               ClusterService clusterService) {
         this.transportCreateUserAction = transportCreateUserAction;
         this.transportDropUserAction = transportDropUserAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
         clusterService.addListener(this);
+        sysTableRegistry.registerSysTable(new SysUsersTableInfo(clusterService),
+            () -> CompletableFuture.completedFuture(users()),
+            SysUsersTableInfo.sysUsersExpressions());
+
+        sysTableRegistry.registerSysTable(new SysPrivilegesTableInfo(clusterService),
+            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(users())),
+            SysPrivilegesTableInfo.expressions());
     }
 
     static Set<User> getUsers(@Nullable UsersMetaData metaData,

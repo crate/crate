@@ -52,7 +52,6 @@ import io.crate.executor.transport.SnapshotRestoreDDLDispatcher;
 import io.crate.executor.transport.TableCreator;
 import io.crate.operation.udf.UserDefinedFunctionDDLClient;
 import io.crate.operation.user.UserManager;
-import io.crate.operation.user.UserManagerProvider;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
 import org.elasticsearch.action.admin.indices.forcemerge.TransportForceMergeAction;
@@ -101,7 +100,7 @@ public class DDLStatementDispatcher implements BiFunction<AnalyzedStatement, Row
                                   RepositoryService repositoryService,
                                   SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
                                   UserDefinedFunctionDDLClient udfDDLClient,
-                                  UserManagerProvider userManagerProvider,
+                                  Provider<UserManager> userManagerProvider,
                                   Provider<TransportUpgradeAction> transportUpgradeActionProvider,
                                   Provider<TransportForceMergeAction> transportForceMergeActionProvider,
                                   Provider<TransportRefreshAction> transportRefreshActionProvider) {

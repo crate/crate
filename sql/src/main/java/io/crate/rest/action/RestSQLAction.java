@@ -38,7 +38,7 @@ import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.RowAccounting;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
-import io.crate.operation.auth.AuthenticationProvider;
+import io.crate.operation.auth.AuthSettings;
 import io.crate.operation.user.ExceptionAuthorizedValidator;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
@@ -145,9 +145,9 @@ public class RestSQLAction extends BaseRestHandler {
 
     @VisibleForTesting
     User userFromRequest(RestRequest request) {
-        String user = request.header(AuthenticationProvider.HTTP_HEADER_USER);
+        String user = request.header(AuthSettings.HTTP_HEADER_USER);
         if (user == null) {
-            user = AuthenticationProvider.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
+            user = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.setting().get(settings);
         }
         return userManager.findUser(user);
     }

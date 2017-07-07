@@ -24,7 +24,7 @@ package io.crate.rest.action;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.operation.auth.AuthenticationProvider;
+import io.crate.operation.auth.AuthSettings;
 import io.crate.operation.user.UserManager;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.DummyUserManager;
@@ -66,7 +66,7 @@ public class RestSQLActionTest extends CrateUnitTest {
     @Test
     public void testSettingUserIfHttpHeaderNotPresent() throws Exception {
         Settings settings = Settings.builder()
-            .put(AuthenticationProvider.AUTH_TRUST_HTTP_DEFAULT_HEADER.getKey(), "trillian")
+            .put(AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.getKey(), "trillian")
             .build();
         RestSQLAction restSQLAction = new RestSQLAction(
             settings,

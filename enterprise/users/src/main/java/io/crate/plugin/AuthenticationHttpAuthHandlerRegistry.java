@@ -20,34 +20,28 @@
  * agreement.
  */
 
-package io.crate.operation.auth;
+package io.crate.plugin;
 
-import io.crate.plugin.EnterpriseLoader;
-import io.crate.settings.SharedSettings;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.io.PathUtils;
+import io.crate.operation.auth.Authentication;
+import io.crate.protocols.http.HttpAuthUpstreamHandler;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
-import java.io.IOException;
-import java.nio.file.Path;
+@Singleton
+public class AuthenticationHttpAuthHandlerRegistry {
 
-import static org.elasticsearch.common.Strings.cleanPath;
-import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
-
-public final class UserServiceFactoryLoader {
-
-    @Nullable
-    public static UserServiceFactory load(Settings settings) {
-        if (!SharedSettings.ENTERPRISE_LICENSE_SETTING.setting().get(settings)) {
-            return null;
-        }
-        Path crateHomeDir = PathUtils.get(cleanPath(PATH_HOME_SETTING.get(settings)));
-        Path esPlugins = crateHomeDir.resolve("lib").resolve("enterprise").resolve("es-plugins");
-
-        try {
-            return EnterpriseLoader.loadSingle(esPlugins, UserServiceFactory.class);
-        } catch (IOException e) {
-            return null;
+    @Inject
+    public AuthenticationHttpAuthHandlerRegistry(Settings settings,
+                                                 PipelineRegistry pipelineRegistry,
+                                                 Authentication authentication) {
+        if (authentication.enabled()) {
+            PipelineRegistry.ChannelPipelineItem pipelineItem = new PipelineRegistry.ChannelPipelineItem(
+                "blob_handler",
+                "auth_handler",
+                () -> new HttpAuthUpstreamHandler(settings, authentication)
+            );
+            pipelineRegistry.addBefore(pipelineItem);
         }
     }
 }
