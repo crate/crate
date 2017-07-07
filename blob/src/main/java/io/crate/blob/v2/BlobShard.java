@@ -21,7 +21,6 @@
 
 package io.crate.blob.v2;
 
-import com.google.common.base.Throwables;
 import io.crate.blob.BlobContainer;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
@@ -74,7 +73,7 @@ public class BlobShard {
             });
         } catch (IOException e) {
             logger.error("Unable to compute initial blob shard size and count", e);
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -103,7 +102,7 @@ public class BlobShard {
             }
             return deleted;
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 

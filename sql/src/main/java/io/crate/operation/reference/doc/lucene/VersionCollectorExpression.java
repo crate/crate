@@ -22,7 +22,6 @@
 
 package io.crate.operation.reference.doc.lucene;
 
-import com.google.common.base.Throwables;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.NumericDocValues;
@@ -43,7 +42,7 @@ public class VersionCollectorExpression extends LuceneCollectorExpression<Long> 
         try {
             versions = reader.reader().getNumericDocValues(columnName);
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 

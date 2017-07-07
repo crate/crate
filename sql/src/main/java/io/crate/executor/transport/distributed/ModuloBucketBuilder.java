@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport.distributed;
 
-import com.google.common.base.Throwables;
 import io.crate.Streamer;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
@@ -63,7 +62,7 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
                 size++;
             }
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -81,7 +80,7 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
                 buckets[i] = builder.build();
                 builder.reset();
             } catch (IOException e) {
-                throw Throwables.propagate(e);
+                throw new RuntimeException(e);
             }
         }
         size = 0;

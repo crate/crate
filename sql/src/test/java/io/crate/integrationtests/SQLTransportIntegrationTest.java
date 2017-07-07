@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.Option;
@@ -191,7 +190,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                             Map<UUID, JobExecutionContext> contexts = (Map<UUID, JobExecutionContext>) activeContexts.get(jobContextService);
                             assertThat(contexts.size(), is(0));
                         } catch (IllegalAccessException e) {
-                            throw Throwables.propagate(e);
+                            throw new RuntimeException(e);
                         }
                     }
                     for (TransportShardUpsertAction action : internalCluster().getInstances(TransportShardUpsertAction.class)) {
@@ -199,7 +198,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                             Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperationsSb.get(action);
                             assertThat(operations.size(), is(0));
                         } catch (IllegalAccessException e) {
-                            throw Throwables.propagate(e);
+                            throw new RuntimeException(e);
                         }
                     }
                     for (TransportShardDeleteAction action : internalCluster().getInstances(TransportShardDeleteAction.class)) {
@@ -207,7 +206,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                             Multimap<UUID, KillableCallable> operations = (Multimap<UUID, KillableCallable>) activeOperationsSb.get(action);
                             assertThat(operations.size(), is(0));
                         } catch (IllegalAccessException e) {
-                            throw Throwables.propagate(e);
+                            throw new RuntimeException(e);
                         }
                     }
                 }
@@ -230,7 +229,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                     }
                     contexts.clear();
                 } catch (IllegalAccessException ex) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(ex);
                 }
             }
             throw new AssertionError(errorMessageBuilder.toString(), e);
@@ -241,17 +240,13 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         assertBusy(new Runnable() {
             @Override
             public void run() {
-                try {
-                    Iterable<IndicesService> indexServices = internalCluster().getInstances(IndicesService.class);
-                    for (IndicesService indicesService : indexServices) {
-                        for (IndexService indexService : indicesService) {
-                            for (IndexShard indexShard : indexService) {
-                                assertThat(indexShard.getActiveOperationsCount(), Matchers.equalTo(0));
-                            }
+                Iterable<IndicesService> indexServices = internalCluster().getInstances(IndicesService.class);
+                for (IndicesService indicesService : indexServices) {
+                    for (IndexService indexService : indicesService) {
+                        for (IndexShard indexShard : indexService) {
+                            assertThat(indexShard.getActiveOperationsCount(), Matchers.equalTo(0));
                         }
                     }
-                } catch (Throwable t) {
-                    throw Throwables.propagate(t);
                 }
             }
         }, 5, TimeUnit.SECONDS);

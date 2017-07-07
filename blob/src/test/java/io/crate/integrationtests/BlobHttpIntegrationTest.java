@@ -21,8 +21,6 @@
 
 package io.crate.integrationtests;
 
-
-import com.google.common.base.Throwables;
 import io.crate.blob.BlobTransferStatus;
 import io.crate.blob.BlobTransferTarget;
 import io.crate.blob.v2.BlobAdminClient;
@@ -109,7 +107,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
                     activeTransfers = (Map<UUID, BlobTransferStatus>) activeTransfersField.get(transferTarget);
                     assertThat(activeTransfers.keySet(), empty());
                 } catch (IllegalAccessException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
         });

@@ -21,7 +21,6 @@
 
 package io.crate.action.sql.query;
 
-import com.google.common.base.Throwables;
 import io.crate.data.Input;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
@@ -77,7 +76,7 @@ class FieldsVisitorInputFieldComparator extends InputFieldComparator {
         try {
             currentReader.document(doc, fieldsVisitor);
         } catch (IOException e) {
-            Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 }

@@ -23,7 +23,6 @@ package io.crate.testing;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Throwables;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
@@ -298,7 +297,7 @@ public class SQLTransportExecutor {
             try {
                 return toPGObjectJson(toJsonString(((Map) arg)));
             } catch (SQLException | IOException e) {
-                throw Throwables.propagate(e);
+                throw new RuntimeException(e);
             }
         }
         if (arg.getClass().isArray()) {
@@ -314,7 +313,7 @@ public class SQLTransportExecutor {
                 try {
                     return toPGObjectJson(toJsonString(values));
                 } catch (SQLException | IOException e) {
-                    throw Throwables.propagate(e);
+                    throw new RuntimeException(e);
                 }
             }
             List<Object> convertedValues = new ArrayList<>(values.size());
@@ -333,7 +332,7 @@ public class SQLTransportExecutor {
                  * Set a breakpoint in {@link io.crate.protocols.postgres.Messages#sendErrorResponse(Channel, Throwable)}
                  * to inspect the error
                  */
-                throw Throwables.propagate(e);
+                throw new RuntimeException(e);
             }
         }
         return arg;
@@ -465,7 +464,7 @@ public class SQLTransportExecutor {
                 return null;
             }
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 

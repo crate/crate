@@ -23,7 +23,6 @@
 package io.crate.metadata;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Throwables;
 import io.crate.Constants;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
@@ -129,7 +128,7 @@ public class DefaultTemplateService extends AbstractComponent {
 
             return builder.bytes().utf8ToString();
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 }
