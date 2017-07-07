@@ -24,14 +24,14 @@ package io.crate.operation.reference.sys.node;
 
 import org.elasticsearch.monitor.jvm.JvmStats;
 
-class NodeHeapStatsExpression extends NestedNodeStatsExpression {
+public class NodeHeapStatsExpression extends NestedNodeStatsExpression {
 
     private static final String MAX = "max";
     private static final String FREE = "free";
     private static final String USED = "used";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
-    NodeHeapStatsExpression() {
+    public NodeHeapStatsExpression() {
         childImplementations.put(FREE, new SimpleNodeStatsExpression<Long>() {
             @Override
             public Long innerValue() {

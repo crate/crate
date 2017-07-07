@@ -24,7 +24,7 @@ package io.crate.operation.reference.sys.node;
 
 import org.apache.lucene.util.BytesRef;
 
-class NodeOsInfoStatsExpression extends NestedNodeStatsExpression {
+public class NodeOsInfoStatsExpression extends NestedNodeStatsExpression {
 
     private static final String AVAILABLE_PROCESSORS = "available_processors";
     private static final String OS = "name";
@@ -32,7 +32,7 @@ class NodeOsInfoStatsExpression extends NestedNodeStatsExpression {
     private static final String VERSION = "version";
     private static final String JVM = "jvm";
 
-    NodeOsInfoStatsExpression() {
+    public NodeOsInfoStatsExpression() {
         childImplementations.put(AVAILABLE_PROCESSORS, new SimpleNodeStatsExpression<Integer>() {
             @Override
             public Integer innerValue() {

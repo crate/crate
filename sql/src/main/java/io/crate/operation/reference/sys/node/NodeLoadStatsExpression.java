@@ -23,14 +23,14 @@
 package io.crate.operation.reference.sys.node;
 
 
-class NodeLoadStatsExpression extends NestedNodeStatsExpression {
+public class NodeLoadStatsExpression extends NestedNodeStatsExpression {
 
     private static final String ONE = "1";
     private static final String FIVE = "5";
     private static final String FIFTEEN = "15";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
-    NodeLoadStatsExpression() {
+    public NodeLoadStatsExpression() {
         childImplementations.put(ONE, new LoadStatsExpression(0));
         childImplementations.put(FIVE, new LoadStatsExpression(1));
         childImplementations.put(FIFTEEN, new LoadStatsExpression(2));

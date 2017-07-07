@@ -22,24 +22,27 @@
 
 package io.crate.metadata.pg_catalog;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.protocols.postgres.types.PGType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.Map;
 
 public class PgTypeTable extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(PgCatalogSchemaInfo.NAME, "pg_type");
-    private final ClusterService clusterService;
 
     static class Columns {
         static final ColumnIdent OID = new ColumnIdent("oid");
@@ -48,14 +51,28 @@ public class PgTypeTable extends StaticTableInfo {
         static final ColumnIdent TYPELEM = new ColumnIdent("typelem");
     }
 
-    @Inject
-    public PgTypeTable(ClusterService clusterService) {
+    public static Map<ColumnIdent, RowCollectExpressionFactory<PGType>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<PGType>>builder()
+            .put(PgTypeTable.Columns.OID,
+                () -> RowContextCollectorExpression.forFunction(PGType::oid))
+            .put(PgTypeTable.Columns.TYPNAME,
+                () -> RowContextCollectorExpression.objToBytesRef(PGType::typName))
+            .put(PgTypeTable.Columns.TYPDELIM,
+                () -> RowContextCollectorExpression.objToBytesRef(PGType::typDelim))
+            .put(PgTypeTable.Columns.TYPELEM,
+                () -> RowContextCollectorExpression.forFunction(PGType::typElem))
+            .build();
+    }
+
+    private final ClusterService clusterService;
+
+    PgTypeTable(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
                 .register("oid", DataTypes.INTEGER, null)
                 .register("typname", DataTypes.STRING, null)
                 .register("typdelim", DataTypes.STRING, null)
                 .register("typelem", DataTypes.INTEGER, null),
-            Collections.<ColumnIdent>emptyList());
+            Collections.emptyList());
         this.clusterService = clusterService;
     }
 

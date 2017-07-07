@@ -22,19 +22,32 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.*;
+import io.crate.types.BooleanType;
+import io.crate.types.DataTypes;
+import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.ObjectType;
+import io.crate.types.StringType;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
@@ -43,56 +56,54 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-@Singleton
 public class SysShardsTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "shards");
-    private final ClusterService service;
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
-        public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
+        static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
         public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
-        public static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
-        public static final ColumnIdent NUM_DOCS = new ColumnIdent("num_docs");
+        static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
+        static final ColumnIdent NUM_DOCS = new ColumnIdent("num_docs");
         public static final ColumnIdent PRIMARY = new ColumnIdent("primary");
-        public static final ColumnIdent RELOCATING_NODE = new ColumnIdent("relocating_node");
+        static final ColumnIdent RELOCATING_NODE = new ColumnIdent("relocating_node");
         public static final ColumnIdent SIZE = new ColumnIdent("size");
-        public static final ColumnIdent STATE = new ColumnIdent("state");
-        public static final ColumnIdent ROUTING_STATE = new ColumnIdent("routing_state");
-        public static final ColumnIdent ORPHAN_PARTITION = new ColumnIdent("orphan_partition");
+        static final ColumnIdent STATE = new ColumnIdent("state");
+        static final ColumnIdent ROUTING_STATE = new ColumnIdent("routing_state");
+        static final ColumnIdent ORPHAN_PARTITION = new ColumnIdent("orphan_partition");
 
-        public static final ColumnIdent RECOVERY = new ColumnIdent("recovery");
-        public static final ColumnIdent RECOVERY_STAGE = new ColumnIdent("recovery", ImmutableList.of("stage"));
-        public static final ColumnIdent RECOVERY_TYPE = new ColumnIdent("recovery", ImmutableList.of("type"));
-        public static final ColumnIdent RECOVERY_TOTAL_TIME =
+        static final ColumnIdent RECOVERY = new ColumnIdent("recovery");
+        static final ColumnIdent RECOVERY_STAGE = new ColumnIdent("recovery", ImmutableList.of("stage"));
+        static final ColumnIdent RECOVERY_TYPE = new ColumnIdent("recovery", ImmutableList.of("type"));
+        static final ColumnIdent RECOVERY_TOTAL_TIME =
             new ColumnIdent("recovery", ImmutableList.of("total_time"));
 
-        public static final ColumnIdent RECOVERY_FILES = new ColumnIdent("recovery", ImmutableList.of("files"));
-        public static final ColumnIdent RECOVERY_FILES_USED =
+        static final ColumnIdent RECOVERY_FILES = new ColumnIdent("recovery", ImmutableList.of("files"));
+        static final ColumnIdent RECOVERY_FILES_USED =
             new ColumnIdent("recovery", ImmutableList.of("files", "used"));
-        public static final ColumnIdent RECOVERY_FILES_REUSED =
+        static final ColumnIdent RECOVERY_FILES_REUSED =
             new ColumnIdent("recovery", ImmutableList.of("files", "reused"));
-        public static final ColumnIdent RECOVERY_FILES_RECOVERED =
+        static final ColumnIdent RECOVERY_FILES_RECOVERED =
             new ColumnIdent("recovery", ImmutableList.of("files", "recovered"));
-        public static final ColumnIdent RECOVERY_FILES_PERCENT =
+        static final ColumnIdent RECOVERY_FILES_PERCENT =
             new ColumnIdent("recovery", ImmutableList.of("files", "percent"));
 
-        public static final ColumnIdent RECOVERY_SIZE =
+        static final ColumnIdent RECOVERY_SIZE =
             new ColumnIdent("recovery", ImmutableList.of("size"));
-        public static final ColumnIdent RECOVERY_SIZE_USED =
+        static final ColumnIdent RECOVERY_SIZE_USED =
             new ColumnIdent("recovery", ImmutableList.of("size", "used"));
-        public static final ColumnIdent RECOVERY_SIZE_REUSED =
+        static final ColumnIdent RECOVERY_SIZE_REUSED =
             new ColumnIdent("recovery", ImmutableList.of("size", "reused"));
-        public static final ColumnIdent RECOVERY_SIZE_RECOVERED =
+        static final ColumnIdent RECOVERY_SIZE_RECOVERED =
             new ColumnIdent("recovery", ImmutableList.of("size", "recovered"));
-        public static final ColumnIdent RECOVERY_SIZE_PERCENT =
+        static final ColumnIdent RECOVERY_SIZE_PERCENT =
             new ColumnIdent("recovery", ImmutableList.of("size", "percent"));
 
-        public static final ColumnIdent PATH = new ColumnIdent("path");
-        public static final ColumnIdent BLOB_PATH = new ColumnIdent("blob_path");
+        static final ColumnIdent PATH = new ColumnIdent("path");
+        static final ColumnIdent BLOB_PATH = new ColumnIdent("blob_path");
 
-        public static final ColumnIdent MIN_LUCENE_VERSION = new ColumnIdent("min_lucene_version");
+        static final ColumnIdent MIN_LUCENE_VERSION = new ColumnIdent("min_lucene_version");
     }
 
     public static class ReferenceIdents {
@@ -101,7 +112,7 @@ public class SysShardsTableInfo extends StaticTableInfo {
          * Implementations have to be registered in
          *  - {@link io.crate.metadata.shard.ShardReferenceResolver}
          *  - {@link io.crate.metadata.shard.blob.BlobShardReferenceResolver}
-         *  - {@link io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsExpressionFactories}
+         *  - {@link #unassignedShardsExpressions()}
          */
 
         public static final ReferenceIdent ID = new ReferenceIdent(IDENT, Columns.ID);
@@ -121,6 +132,61 @@ public class SysShardsTableInfo extends StaticTableInfo {
         public static final ReferenceIdent MIN_LUCENE_VERSION = new ReferenceIdent(IDENT, Columns.MIN_LUCENE_VERSION);
     }
 
+    public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>>builder()
+            .put(SysShardsTableInfo.Columns.SCHEMA_NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::schemaName))
+            .put(SysShardsTableInfo.Columns.TABLE_NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::tableName))
+            .put(SysShardsTableInfo.Columns.PARTITION_IDENT,
+                () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::partitionIdent))
+            .put(SysShardsTableInfo.Columns.ID,
+                () -> RowContextCollectorExpression.forFunction(UnassignedShard::id))
+            .put(SysShardsTableInfo.Columns.NUM_DOCS,
+                () -> RowContextCollectorExpression.forFunction(r -> 0L))
+            .put(SysShardsTableInfo.Columns.PRIMARY,
+                () -> RowContextCollectorExpression.forFunction(UnassignedShard::primary))
+            .put(SysShardsTableInfo.Columns.RELOCATING_NODE,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+            .put(SysShardsTableInfo.Columns.SIZE,
+                () -> RowContextCollectorExpression.forFunction(r -> 0L))
+            .put(SysShardsTableInfo.Columns.STATE,
+                () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::state))
+            .put(SysShardsTableInfo.Columns.ROUTING_STATE,
+                () -> RowContextCollectorExpression.objToBytesRef(UnassignedShard::state))
+            .put(SysShardsTableInfo.Columns.ORPHAN_PARTITION,
+                () -> RowContextCollectorExpression.forFunction(UnassignedShard::orphanedPartition))
+            .put(SysShardsTableInfo.Columns.RECOVERY, () -> new RowContextCollectorExpression<UnassignedShard, Object>() {
+                @Override
+                public Object value() {
+                    return null;
+                }
+
+                @Override
+                public ReferenceImplementation getChildImplementation(String name) {
+                    return this;
+                }
+            })
+            .put(SysNodesTableInfo.SYS_COL_IDENT, () -> new RowContextCollectorExpression<UnassignedShard, Object>() {
+                @Override
+                public Object value() {
+                    return null;
+                }
+
+                @Override
+                public ReferenceImplementation getChildImplementation(String name) {
+                    return this;
+                }
+            })
+            .put(SysShardsTableInfo.Columns.PATH,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+            .put(SysShardsTableInfo.Columns.BLOB_PATH,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+            .put(SysShardsTableInfo.Columns.MIN_LUCENE_VERSION,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> null))
+            .build();
+    }
+
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(
         Columns.SCHEMA_NAME,
         Columns.TABLE_NAME,
@@ -128,10 +194,10 @@ public class SysShardsTableInfo extends StaticTableInfo {
         Columns.PARTITION_IDENT
     );
 
+    private final ClusterService service;
     private final TableColumn nodesTableColumn;
 
-    @Inject
-    public SysShardsTableInfo(ClusterService service, SysNodesTableInfo sysNodesTableInfo) {
+    SysShardsTableInfo(ClusterService service, SysNodesTableInfo sysNodesTableInfo) {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.SHARD)
                 .register(Columns.SCHEMA_NAME, StringType.INSTANCE)
                 .register(Columns.TABLE_NAME, StringType.INSTANCE)

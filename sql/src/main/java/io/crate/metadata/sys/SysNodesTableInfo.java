@@ -22,20 +22,53 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
-import io.crate.types.*;
+import io.crate.monitor.ExtendedFsStats;
+import io.crate.monitor.ThreadPools;
+import io.crate.operation.reference.sys.node.NodeHeapStatsExpression;
+import io.crate.operation.reference.sys.node.NodeLoadStatsExpression;
+import io.crate.operation.reference.sys.node.NodeMemoryStatsExpression;
+import io.crate.operation.reference.sys.node.NodeNetworkStatsExpression;
+import io.crate.operation.reference.sys.node.NodeOsInfoStatsExpression;
+import io.crate.operation.reference.sys.node.NodeOsStatsExpression;
+import io.crate.operation.reference.sys.node.NodePortStatsExpression;
+import io.crate.operation.reference.sys.node.NodeProcessStatsExpression;
+import io.crate.operation.reference.sys.node.NodeStatsContext;
+import io.crate.operation.reference.sys.node.NodeStatsThreadPoolExpression;
+import io.crate.operation.reference.sys.node.NodeThreadPoolsExpression;
+import io.crate.operation.reference.sys.node.NodeVersionStatsExpression;
+import io.crate.operation.reference.sys.node.fs.NodeFsStatsExpression;
+import io.crate.operation.reference.sys.node.fs.NodeFsTotalStatsExpression;
+import io.crate.operation.reference.sys.node.fs.NodeStatsFsArrayExpression;
+import io.crate.operation.reference.sys.node.fs.NodeStatsFsDataExpression;
+import io.crate.operation.reference.sys.node.fs.NodeStatsFsDisksExpression;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
+import io.crate.types.StringType;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
+import java.util.Map;
 
 public class SysNodesTableInfo extends StaticTableInfo {
 
     public static final String SYS_COL_NAME = "_node";
-    public static final ColumnIdent SYS_COL_IDENT = new ColumnIdent(SYS_COL_NAME);
+    static final ColumnIdent SYS_COL_IDENT = new ColumnIdent(SYS_COL_NAME);
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "nodes");
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("id"));
@@ -67,111 +100,254 @@ public class SysNodesTableInfo extends StaticTableInfo {
         public static final ColumnIdent REST_URL = new ColumnIdent(SYS_COL_REST_URL);
 
         public static final ColumnIdent PORT = new ColumnIdent(SYS_COL_PORT);
-        public static final ColumnIdent PORT_HTTP = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("http"));
-        public static final ColumnIdent PORT_TRANSPORT = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("transport"));
-        public static final ColumnIdent PORT_PSQL = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("psql"));
+        static final ColumnIdent PORT_HTTP = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("http"));
+        static final ColumnIdent PORT_TRANSPORT = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("transport"));
+        static final ColumnIdent PORT_PSQL = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("psql"));
 
         public static final ColumnIdent LOAD = new ColumnIdent(SYS_COL_LOAD);
-        public static final ColumnIdent LOAD_1 = new ColumnIdent(SYS_COL_LOAD, ImmutableList.of("1"));
-        public static final ColumnIdent LOAD_5 = new ColumnIdent(SYS_COL_LOAD, ImmutableList.of("5"));
-        public static final ColumnIdent LOAD_15 = new ColumnIdent(SYS_COL_LOAD, ImmutableList.of("15"));
-        public static final ColumnIdent LOAD_PROBE_TS = new ColumnIdent(SYS_COL_LOAD, ImmutableList.of("probe_timestamp"));
+        static final ColumnIdent LOAD_1 = new ColumnIdent(SYS_COL_LOAD, ImmutableList.of("1"));
+        static final ColumnIdent LOAD_5 = new ColumnIdent(SYS_COL_LOAD, ImmutableList.of("5"));
+        static final ColumnIdent LOAD_15 = new ColumnIdent(SYS_COL_LOAD, ImmutableList.of("15"));
+        static final ColumnIdent LOAD_PROBE_TS = new ColumnIdent(SYS_COL_LOAD, ImmutableList.of("probe_timestamp"));
 
         public static final ColumnIdent MEM = new ColumnIdent(SYS_COL_MEM);
-        public static final ColumnIdent MEM_FREE = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("free"));
-        public static final ColumnIdent MEM_USED = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("used"));
-        public static final ColumnIdent MEM_FREE_PERCENT = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("free_percent"));
-        public static final ColumnIdent MEM_USED_PERCENT = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("used_percent"));
-        public static final ColumnIdent MEM_PROBE_TS = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("probe_timestamp"));
+        static final ColumnIdent MEM_FREE = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("free"));
+        static final ColumnIdent MEM_USED = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("used"));
+        static final ColumnIdent MEM_FREE_PERCENT = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("free_percent"));
+        static final ColumnIdent MEM_USED_PERCENT = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("used_percent"));
+        static final ColumnIdent MEM_PROBE_TS = new ColumnIdent(SYS_COL_MEM, ImmutableList.of("probe_timestamp"));
 
         public static final ColumnIdent HEAP = new ColumnIdent(SYS_COL_HEAP);
-        public static final ColumnIdent HEAP_FREE = new ColumnIdent(SYS_COL_HEAP, ImmutableList.of("free"));
-        public static final ColumnIdent HEAP_USED = new ColumnIdent(SYS_COL_HEAP, ImmutableList.of("used"));
-        public static final ColumnIdent HEAP_MAX = new ColumnIdent(SYS_COL_HEAP, ImmutableList.of("max"));
-        public static final ColumnIdent HEAP_PROBE_TS = new ColumnIdent(SYS_COL_HEAP, ImmutableList.of("probe_timestamp"));
+        static final ColumnIdent HEAP_FREE = new ColumnIdent(SYS_COL_HEAP, ImmutableList.of("free"));
+        static final ColumnIdent HEAP_USED = new ColumnIdent(SYS_COL_HEAP, ImmutableList.of("used"));
+        static final ColumnIdent HEAP_MAX = new ColumnIdent(SYS_COL_HEAP, ImmutableList.of("max"));
+        static final ColumnIdent HEAP_PROBE_TS = new ColumnIdent(SYS_COL_HEAP, ImmutableList.of("probe_timestamp"));
 
         public static final ColumnIdent VERSION = new ColumnIdent(SYS_COL_VERSION);
-        public static final ColumnIdent VERSION_NUMBER = new ColumnIdent(SYS_COL_VERSION, ImmutableList.of("number"));
-        public static final ColumnIdent VERSION_BUILD_HASH = new ColumnIdent(SYS_COL_VERSION, ImmutableList.of("build_hash"));
-        public static final ColumnIdent VERSION_BUILD_SNAPSHOT = new ColumnIdent(SYS_COL_VERSION, ImmutableList.of("build_snapshot"));
+        static final ColumnIdent VERSION_NUMBER = new ColumnIdent(SYS_COL_VERSION, ImmutableList.of("number"));
+        static final ColumnIdent VERSION_BUILD_HASH = new ColumnIdent(SYS_COL_VERSION, ImmutableList.of("build_hash"));
+        static final ColumnIdent VERSION_BUILD_SNAPSHOT = new ColumnIdent(SYS_COL_VERSION, ImmutableList.of("build_snapshot"));
 
         public static final ColumnIdent THREAD_POOLS = new ColumnIdent(SYS_COL_THREAD_POOLS);
-        public static final ColumnIdent THREAD_POOLS_NAME = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("name"));
-        public static final ColumnIdent THREAD_POOLS_ACTIVE = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("active"));
-        public static final ColumnIdent THREAD_POOLS_REJECTED = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("rejected"));
-        public static final ColumnIdent THREAD_POOLS_LARGEST = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("largest"));
-        public static final ColumnIdent THREAD_POOLS_COMPLETED = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("completed"));
-        public static final ColumnIdent THREAD_POOLS_THREADS = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("threads"));
-        public static final ColumnIdent THREAD_POOLS_QUEUE = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("queue"));
+        static final ColumnIdent THREAD_POOLS_NAME = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("name"));
+        static final ColumnIdent THREAD_POOLS_ACTIVE = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("active"));
+        static final ColumnIdent THREAD_POOLS_REJECTED = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("rejected"));
+        static final ColumnIdent THREAD_POOLS_LARGEST = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("largest"));
+        static final ColumnIdent THREAD_POOLS_COMPLETED = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("completed"));
+        static final ColumnIdent THREAD_POOLS_THREADS = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("threads"));
+        static final ColumnIdent THREAD_POOLS_QUEUE = new ColumnIdent(SYS_COL_THREAD_POOLS, ImmutableList.of("queue"));
 
         public static final ColumnIdent NETWORK = new ColumnIdent(SYS_COL_NETWORK);
-        public static final ColumnIdent NETWORK_PROBE_TS = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("probe_timestamp"));
-        public static final ColumnIdent NETWORK_TCP = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp"));
-        public static final ColumnIdent NETWORK_TCP_CONNECTIONS = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections"));
-        public static final ColumnIdent NETWORK_TCP_CONNECTIONS_INITIATED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "initiated"));
-        public static final ColumnIdent NETWORK_TCP_CONNECTIONS_ACCEPTED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "accepted"));
-        public static final ColumnIdent NETWORK_TCP_CONNECTIONS_CURR_ESTABLISHED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "curr_established"));
-        public static final ColumnIdent NETWORK_TCP_CONNECTIONS_DROPPED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "dropped"));
-        public static final ColumnIdent NETWORK_TCP_CONNECTIONS_EMBRYONIC_DROPPED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "embryonic_dropped"));
-        public static final ColumnIdent NETWORK_TCP_PACKETS = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets"));
-        public static final ColumnIdent NETWORK_TCP_PACKETS_SENT = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "sent"));
-        public static final ColumnIdent NETWORK_TCP_PACKETS_RECEIVED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "received"));
-        public static final ColumnIdent NETWORK_TCP_PACKETS_RETRANSMITTED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "retransmitted"));
-        public static final ColumnIdent NETWORK_TCP_PACKETS_ERRORS_RECEIVED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "errors_received"));
-        public static final ColumnIdent NETWORK_TCP_PACKETS_RST_SENT = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "rst_sent"));
+        static final ColumnIdent NETWORK_PROBE_TS = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("probe_timestamp"));
+        static final ColumnIdent NETWORK_TCP = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp"));
+        static final ColumnIdent NETWORK_TCP_CONNECTIONS = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections"));
+        static final ColumnIdent NETWORK_TCP_CONNECTIONS_INITIATED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "initiated"));
+        static final ColumnIdent NETWORK_TCP_CONNECTIONS_ACCEPTED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "accepted"));
+        static final ColumnIdent NETWORK_TCP_CONNECTIONS_CURR_ESTABLISHED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "curr_established"));
+        static final ColumnIdent NETWORK_TCP_CONNECTIONS_DROPPED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "dropped"));
+        static final ColumnIdent NETWORK_TCP_CONNECTIONS_EMBRYONIC_DROPPED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "connections", "embryonic_dropped"));
+        static final ColumnIdent NETWORK_TCP_PACKETS = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets"));
+        static final ColumnIdent NETWORK_TCP_PACKETS_SENT = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "sent"));
+        static final ColumnIdent NETWORK_TCP_PACKETS_RECEIVED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "received"));
+        static final ColumnIdent NETWORK_TCP_PACKETS_RETRANSMITTED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "retransmitted"));
+        static final ColumnIdent NETWORK_TCP_PACKETS_ERRORS_RECEIVED = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "errors_received"));
+        static final ColumnIdent NETWORK_TCP_PACKETS_RST_SENT = new ColumnIdent(SYS_COL_NETWORK, ImmutableList.of("tcp", "packets", "rst_sent"));
 
         public static final ColumnIdent OS = new ColumnIdent(SYS_COL_OS);
-        public static final ColumnIdent OS_UPTIME = new ColumnIdent(SYS_COL_OS, ImmutableList.of("uptime"));
-        public static final ColumnIdent OS_TIMESTAMP = new ColumnIdent(SYS_COL_OS, ImmutableList.of("timestamp"));
-        public static final ColumnIdent OS_PROBE_TS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("probe_timestamp"));
-        public static final ColumnIdent OS_CPU = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu"));
-        public static final ColumnIdent OS_CPU_SYSTEM = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "system"));
-        public static final ColumnIdent OS_CPU_USER = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "user"));
-        public static final ColumnIdent OS_CPU_IDLE = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "idle"));
-        public static final ColumnIdent OS_CPU_USED = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "used"));
-        public static final ColumnIdent OS_CPU_STOLEN = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "stolen"));
+        static final ColumnIdent OS_UPTIME = new ColumnIdent(SYS_COL_OS, ImmutableList.of("uptime"));
+        static final ColumnIdent OS_TIMESTAMP = new ColumnIdent(SYS_COL_OS, ImmutableList.of("timestamp"));
+        static final ColumnIdent OS_PROBE_TS = new ColumnIdent(SYS_COL_OS, ImmutableList.of("probe_timestamp"));
+        static final ColumnIdent OS_CPU = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu"));
+        static final ColumnIdent OS_CPU_SYSTEM = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "system"));
+        static final ColumnIdent OS_CPU_USER = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "user"));
+        static final ColumnIdent OS_CPU_IDLE = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "idle"));
+        static final ColumnIdent OS_CPU_USED = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "used"));
+        static final ColumnIdent OS_CPU_STOLEN = new ColumnIdent(SYS_COL_OS, ImmutableList.of("cpu", "stolen"));
 
         public static final ColumnIdent OS_INFO = new ColumnIdent(SYS_COL_OS_INFO);
-        public static final ColumnIdent OS_INFO_AVAIL_PROCESSORS = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("available_processors"));
-        public static final ColumnIdent OS_INFO_NAME = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("name"));
-        public static final ColumnIdent OS_INFO_ARCH = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("arch"));
-        public static final ColumnIdent OS_INFO_VERSION = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("version"));
+        static final ColumnIdent OS_INFO_AVAIL_PROCESSORS = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("available_processors"));
+        static final ColumnIdent OS_INFO_NAME = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("name"));
+        static final ColumnIdent OS_INFO_ARCH = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("arch"));
+        static final ColumnIdent OS_INFO_VERSION = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("version"));
         public static final ColumnIdent OS_INFO_JVM = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm"));
-        public static final ColumnIdent OS_INFO_JVM_VERSION = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "version"));
-        public static final ColumnIdent OS_INFO_JVM_NAME = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "vm_name"));
-        public static final ColumnIdent OS_INFO_JVM_VENDOR = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "vm_vendor"));
-        public static final ColumnIdent OS_INFO_JVM_VM_VERSION = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "vm_version"));
+        static final ColumnIdent OS_INFO_JVM_VERSION = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "version"));
+        static final ColumnIdent OS_INFO_JVM_NAME = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "vm_name"));
+        static final ColumnIdent OS_INFO_JVM_VENDOR = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "vm_vendor"));
+        static final ColumnIdent OS_INFO_JVM_VM_VERSION = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "vm_version"));
 
         public static final ColumnIdent PROCESS = new ColumnIdent(SYS_COL_PROCESS);
-        public static final ColumnIdent PROCESS_OPEN_FILE_DESCR = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("open_file_descriptors"));
-        public static final ColumnIdent PROCESS_MAX_OPEN_FILE_DESCR = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("max_open_file_descriptors"));
-        public static final ColumnIdent PROCESS_PROBE_TS = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("probe_timestamp"));
-        public static final ColumnIdent PROCESS_CPU = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("cpu"));
-        public static final ColumnIdent PROCESS_CPU_PERCENT = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("cpu", "percent"));
-        public static final ColumnIdent PROCESS_CPU_USER = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("cpu", "user"));
-        public static final ColumnIdent PROCESS_CPU_SYSTEM = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("cpu", "system"));
+        static final ColumnIdent PROCESS_OPEN_FILE_DESCR = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("open_file_descriptors"));
+        static final ColumnIdent PROCESS_MAX_OPEN_FILE_DESCR = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("max_open_file_descriptors"));
+        static final ColumnIdent PROCESS_PROBE_TS = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("probe_timestamp"));
+        static final ColumnIdent PROCESS_CPU = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("cpu"));
+        static final ColumnIdent PROCESS_CPU_PERCENT = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("cpu", "percent"));
+        static final ColumnIdent PROCESS_CPU_USER = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("cpu", "user"));
+        static final ColumnIdent PROCESS_CPU_SYSTEM = new ColumnIdent(SYS_COL_PROCESS, ImmutableList.of("cpu", "system"));
 
         public static final ColumnIdent FS = new ColumnIdent(SYS_COL_FS);
-        public static final ColumnIdent FS_TOTAL = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total"));
-        public static final ColumnIdent FS_TOTAL_SIZE = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total", "size"));
-        public static final ColumnIdent FS_TOTAL_USED = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total", "used"));
-        public static final ColumnIdent FS_TOTAL_AVAILABLE = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total", "available"));
-        public static final ColumnIdent FS_TOTAL_READS = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total", "reads"));
-        public static final ColumnIdent FS_TOTAL_BYTES_READ = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total", "bytes_read"));
-        public static final ColumnIdent FS_TOTAL_WRITES = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total", "writes"));
-        public static final ColumnIdent FS_TOTAL_BYTES_WRITTEN = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total", "bytes_written"));
-        public static final ColumnIdent FS_DISKS = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks"));
-        public static final ColumnIdent FS_DISKS_DEV = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "dev"));
-        public static final ColumnIdent FS_DISKS_SIZE = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "size"));
-        public static final ColumnIdent FS_DISKS_USED = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "used"));
-        public static final ColumnIdent FS_DISKS_AVAILABLE = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "available"));
-        public static final ColumnIdent FS_DISKS_READS = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "reads"));
-        public static final ColumnIdent FS_DISKS_BYTES_READ = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "bytes_read"));
-        public static final ColumnIdent FS_DISKS_WRITES = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "writes"));
-        public static final ColumnIdent FS_DISKS_BYTES_WRITTEN = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "bytes_written"));
-        public static final ColumnIdent FS_DATA = new ColumnIdent(SYS_COL_FS, ImmutableList.of("data"));
-        public static final ColumnIdent FS_DATA_DEV = new ColumnIdent(SYS_COL_FS, ImmutableList.of("data", "dev"));
-        public static final ColumnIdent FS_DATA_PATH = new ColumnIdent(SYS_COL_FS, ImmutableList.of("data", "path"));
+        static final ColumnIdent FS_TOTAL = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total"));
+        static final ColumnIdent FS_TOTAL_SIZE = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total", "size"));
+        static final ColumnIdent FS_TOTAL_USED = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total", "used"));
+        static final ColumnIdent FS_TOTAL_AVAILABLE = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total", "available"));
+        static final ColumnIdent FS_TOTAL_READS = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total", "reads"));
+        static final ColumnIdent FS_TOTAL_BYTES_READ = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total", "bytes_read"));
+        static final ColumnIdent FS_TOTAL_WRITES = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total", "writes"));
+        static final ColumnIdent FS_TOTAL_BYTES_WRITTEN = new ColumnIdent(SYS_COL_FS, ImmutableList.of("total", "bytes_written"));
+        static final ColumnIdent FS_DISKS = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks"));
+        static final ColumnIdent FS_DISKS_DEV = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "dev"));
+        static final ColumnIdent FS_DISKS_SIZE = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "size"));
+        static final ColumnIdent FS_DISKS_USED = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "used"));
+        static final ColumnIdent FS_DISKS_AVAILABLE = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "available"));
+        static final ColumnIdent FS_DISKS_READS = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "reads"));
+        static final ColumnIdent FS_DISKS_BYTES_READ = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "bytes_read"));
+        static final ColumnIdent FS_DISKS_WRITES = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "writes"));
+        static final ColumnIdent FS_DISKS_BYTES_WRITTEN = new ColumnIdent(SYS_COL_FS, ImmutableList.of("disks", "bytes_written"));
+        static final ColumnIdent FS_DATA = new ColumnIdent(SYS_COL_FS, ImmutableList.of("data"));
+        static final ColumnIdent FS_DATA_DEV = new ColumnIdent(SYS_COL_FS, ImmutableList.of("data", "dev"));
+        static final ColumnIdent FS_DATA_PATH = new ColumnIdent(SYS_COL_FS, ImmutableList.of("data", "path"));
+    }
+
+    public static Map<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>>builder()
+            .put(SysNodesTableInfo.Columns.ID,
+                () -> RowContextCollectorExpression.objToBytesRef(NodeStatsContext::id))
+            .put(SysNodesTableInfo.Columns.NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(NodeStatsContext::name))
+            .put(SysNodesTableInfo.Columns.HOSTNAME,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> r.isComplete() ? r.hostname() : null))
+            .put(SysNodesTableInfo.Columns.REST_URL,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> r.isComplete() ? r.restUrl() : null))
+            .put(SysNodesTableInfo.Columns.PORT, NodePortStatsExpression::new)
+            .put(SysNodesTableInfo.Columns.LOAD, NodeLoadStatsExpression::new)
+            .put(SysNodesTableInfo.Columns.MEM, NodeMemoryStatsExpression::new)
+            .put(SysNodesTableInfo.Columns.HEAP, NodeHeapStatsExpression::new)
+            .put(SysNodesTableInfo.Columns.VERSION, NodeVersionStatsExpression::new)
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS, NodeThreadPoolsExpression::new)
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_NAME, () -> new NodeStatsThreadPoolExpression<String>() {
+                @Override
+                protected String valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                    return input.getKey();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_ACTIVE, () -> new NodeStatsThreadPoolExpression<Integer>() {
+                @Override
+                protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                    return input.getValue().activeCount();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_REJECTED, () -> new NodeStatsThreadPoolExpression<Long>() {
+                @Override
+                protected Long valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                    return input.getValue().rejectedCount();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_LARGEST, () -> new NodeStatsThreadPoolExpression<Integer>() {
+                @Override
+                protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                    return input.getValue().largestPoolSize();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_COMPLETED, () -> new NodeStatsThreadPoolExpression<Long>() {
+                @Override
+                protected Long valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                    return input.getValue().completedTaskCount();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_THREADS, () -> new NodeStatsThreadPoolExpression<Integer>() {
+                @Override
+                protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                    return input.getValue().poolSize();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.THREAD_POOLS_QUEUE, () -> new NodeStatsThreadPoolExpression<Integer>() {
+                @Override
+                protected Integer valueForItem(Map.Entry<String, ThreadPools.ThreadPoolExecutorContext> input) {
+                    return input.getValue().queueSize();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.NETWORK, NodeNetworkStatsExpression::new)
+            .put(SysNodesTableInfo.Columns.OS, NodeOsStatsExpression::new)
+            .put(SysNodesTableInfo.Columns.OS_INFO, NodeOsInfoStatsExpression::new)
+            .put(SysNodesTableInfo.Columns.PROCESS, NodeProcessStatsExpression::new)
+            .put(SysNodesTableInfo.Columns.FS, NodeFsStatsExpression::new)
+            .put(SysNodesTableInfo.Columns.FS_TOTAL, NodeFsTotalStatsExpression::new)
+            .put(SysNodesTableInfo.Columns.FS_TOTAL_SIZE,
+                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? r.extendedFsStats().total().total() : null))
+            .put(SysNodesTableInfo.Columns.FS_TOTAL_USED,
+                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? r.extendedFsStats().total().used() : null))
+            .put(SysNodesTableInfo.Columns.FS_TOTAL_AVAILABLE,
+                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? r.extendedFsStats().total().available() : null))
+            .put(SysNodesTableInfo.Columns.FS_TOTAL_READS,
+                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? r.extendedFsStats().total().diskReads() : null))
+            .put(SysNodesTableInfo.Columns.FS_TOTAL_BYTES_READ,
+                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? r.extendedFsStats().total().diskReadSizeInBytes() : null))
+            .put(SysNodesTableInfo.Columns.FS_TOTAL_WRITES,
+                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? r.extendedFsStats().total().diskWrites() : null))
+            .put(SysNodesTableInfo.Columns.FS_TOTAL_BYTES_WRITTEN,
+                () -> RowContextCollectorExpression.forFunction(r -> r.isComplete() ? r.extendedFsStats().total().diskWriteSizeInBytes() : null))
+            .put(SysNodesTableInfo.Columns.FS_DISKS, NodeStatsFsDisksExpression::new)
+            .put(SysNodesTableInfo.Columns.FS_DISKS_DEV, () -> new NodeStatsFsArrayExpression<BytesRef>() {
+                @Override
+                protected BytesRef valueForItem(ExtendedFsStats.Info input) {
+                    return input.dev();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_SIZE, () -> new NodeStatsFsArrayExpression<Long>() {
+                @Override
+                protected Long valueForItem(ExtendedFsStats.Info input) {
+                    return input.total();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_USED, () -> new NodeStatsFsArrayExpression<Long>() {
+                @Override
+                protected Long valueForItem(ExtendedFsStats.Info input) {
+                    return input.used();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_AVAILABLE, () -> new NodeStatsFsArrayExpression<Long>() {
+                @Override
+                protected Long valueForItem(ExtendedFsStats.Info input) {
+                    return input.available();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_READS, () -> new NodeStatsFsArrayExpression<Long>() {
+                @Override
+                protected Long valueForItem(ExtendedFsStats.Info input) {
+                    return input.diskReads();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_BYTES_READ, () -> new NodeStatsFsArrayExpression<Long>() {
+                @Override
+                protected Long valueForItem(ExtendedFsStats.Info input) {
+                    return input.diskReadSizeInBytes();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_WRITES, () -> new NodeStatsFsArrayExpression<Long>() {
+                @Override
+                protected Long valueForItem(ExtendedFsStats.Info input) {
+                    return input.diskWrites();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DISKS_BYTES_WRITTEN, () -> new NodeStatsFsArrayExpression<Long>() {
+                @Override
+                protected Long valueForItem(ExtendedFsStats.Info input) {
+                    return input.diskWriteSizeInBytes();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DATA, NodeStatsFsDataExpression::new)
+            .put(SysNodesTableInfo.Columns.FS_DATA_DEV, () -> new NodeStatsFsArrayExpression<BytesRef>() {
+                @Override
+                protected BytesRef valueForItem(ExtendedFsStats.Info input) {
+                    return input.dev();
+                }
+            })
+            .put(SysNodesTableInfo.Columns.FS_DATA_PATH, () -> new NodeStatsFsArrayExpression<BytesRef>() {
+                @Override
+                protected BytesRef valueForItem(ExtendedFsStats.Info input) {
+                    return input.path();
+                }
+            })
+            .build();
     }
 
     private final TableColumn tableColumn;
@@ -295,7 +471,7 @@ public class SysNodesTableInfo extends StaticTableInfo {
         this.tableColumn = new TableColumn(SYS_COL_IDENT, columnMap);
     }
 
-    public static Reference tableColumnInfo(TableIdent tableIdent) {
+    static Reference tableColumnInfo(TableIdent tableIdent) {
         return new Reference(
             new ReferenceIdent(tableIdent, SYS_COL_IDENT),
             RowGranularity.NODE,
@@ -306,7 +482,7 @@ public class SysNodesTableInfo extends StaticTableInfo {
         );
     }
 
-    public TableColumn tableColumn() {
+    TableColumn tableColumn() {
         return tableColumn;
     }
 

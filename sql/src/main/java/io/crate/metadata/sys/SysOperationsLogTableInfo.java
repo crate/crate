@@ -21,40 +21,68 @@
 
 package io.crate.metadata.sys;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.operation.reference.sys.operation.OperationContextLog;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.Map;
 
-@Singleton
 public class SysOperationsLogTableInfo extends StaticTableInfo {
 
     private final ClusterService clusterService;
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
-        public static final ColumnIdent JOB_ID = new ColumnIdent("job_id");
+        static final ColumnIdent JOB_ID = new ColumnIdent("job_id");
         public static final ColumnIdent NAME = new ColumnIdent("name");
         public static final ColumnIdent STARTED = new ColumnIdent("started");
-        public static final ColumnIdent ENDED = new ColumnIdent("ended");
-        public static final ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
+        static final ColumnIdent ENDED = new ColumnIdent("ended");
+        static final ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
         public static final ColumnIdent ERROR = new ColumnIdent("error");
     }
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "operations_log");
 
-    @Inject
-    protected SysOperationsLogTableInfo(ClusterService clusterService) {
+    public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContextLog>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<OperationContextLog>>builder()
+            .put(SysOperationsLogTableInfo.Columns.ID,
+                () -> RowContextCollectorExpression.objToBytesRef(OperationContextLog::id))
+            .put(SysOperationsLogTableInfo.Columns.JOB_ID,
+                () -> RowContextCollectorExpression.objToBytesRef(OperationContextLog::jobId))
+            .put(SysOperationsLogTableInfo.Columns.NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(OperationContextLog::name))
+            .put(SysOperationsLogTableInfo.Columns.STARTED,
+                () -> RowContextCollectorExpression.forFunction(OperationContextLog::started))
+            .put(SysOperationsLogTableInfo.Columns.USED_BYTES, () -> new RowContextCollectorExpression<OperationContextLog, Long>() {
+                @Override
+                public Long value() {
+                    long usedBytes = row.usedBytes();
+                    if (usedBytes == 0) {
+                        return null;
+                    }
+                    return usedBytes;
+                }
+            })
+            .put(SysOperationsLogTableInfo.Columns.ERROR,
+                () -> RowContextCollectorExpression.objToBytesRef(OperationContextLog::errorMessage))
+            .put(SysOperationsLogTableInfo.Columns.ENDED,
+                () -> RowContextCollectorExpression.forFunction(OperationContextLog::ended))
+            .build();
+    }
+
+    SysOperationsLogTableInfo(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
             .register(Columns.ID, DataTypes.STRING)
             .register(Columns.JOB_ID, DataTypes.STRING)
@@ -62,7 +90,7 @@ public class SysOperationsLogTableInfo extends StaticTableInfo {
             .register(Columns.STARTED, DataTypes.TIMESTAMP)
             .register(Columns.ENDED, DataTypes.TIMESTAMP)
             .register(Columns.USED_BYTES, DataTypes.LONG)
-            .register(Columns.ERROR, DataTypes.STRING), Collections.<ColumnIdent>emptyList());
+            .register(Columns.ERROR, DataTypes.STRING), Collections.emptyList());
         this.clusterService = clusterService;
     }
 

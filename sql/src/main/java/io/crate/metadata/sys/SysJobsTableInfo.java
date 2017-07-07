@@ -22,16 +22,19 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
 
@@ -43,13 +46,25 @@ public class SysJobsTableInfo extends StaticTableInfo {
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
-        public static final ColumnIdent USERNAME = new ColumnIdent("username");
-        public static final ColumnIdent STMT = new ColumnIdent("stmt");
+        static final ColumnIdent USERNAME = new ColumnIdent("username");
+        static final ColumnIdent STMT = new ColumnIdent("stmt");
         public static final ColumnIdent STARTED = new ColumnIdent("started");
     }
 
-    @Inject
-    public SysJobsTableInfo(ClusterService service) {
+    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<JobContext>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<JobContext>>builder()
+            .put(SysJobsTableInfo.Columns.ID,
+                () -> RowContextCollectorExpression.objToBytesRef(JobContext::id))
+            .put(SysJobsTableInfo.Columns.USERNAME,
+                () -> RowContextCollectorExpression.objToBytesRef(JobContext::username))
+            .put(SysJobsTableInfo.Columns.STMT,
+                () -> RowContextCollectorExpression.objToBytesRef(JobContext::stmt))
+            .put(SysJobsTableInfo.Columns.STARTED,
+                () -> RowContextCollectorExpression.forFunction(JobContext::started))
+            .build();
+    }
+
+    SysJobsTableInfo(ClusterService service) {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
             .register(Columns.ID, DataTypes.STRING)
             .register(Columns.USERNAME, DataTypes.STRING)

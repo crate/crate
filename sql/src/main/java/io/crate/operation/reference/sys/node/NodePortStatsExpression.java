@@ -22,13 +22,13 @@
 
 package io.crate.operation.reference.sys.node;
 
-class NodePortStatsExpression extends NestedNodeStatsExpression {
+public class NodePortStatsExpression extends NestedNodeStatsExpression {
 
     private static final String HTTP = "http";
     private static final String TRANSPORT = "transport";
     private static final String PSQL = "psql";
 
-    NodePortStatsExpression() {
+    public NodePortStatsExpression() {
         childImplementations.put(HTTP, new SimpleNodeStatsExpression<Integer>() {
             @Override
             public Integer innerValue() {

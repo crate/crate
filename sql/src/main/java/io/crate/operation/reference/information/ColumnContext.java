@@ -38,4 +38,9 @@ public class ColumnContext {
         this.info = ref;
         this.ordinal = ordinal;
     }
+
+    @Nullable
+    public Short getOrdinal() {
+        return ordinal;
+    }
 }

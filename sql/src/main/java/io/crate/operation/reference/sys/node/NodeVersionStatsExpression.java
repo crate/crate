@@ -25,13 +25,13 @@ package io.crate.operation.reference.sys.node;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
-class NodeVersionStatsExpression extends NestedNodeStatsExpression {
+public class NodeVersionStatsExpression extends NestedNodeStatsExpression {
 
     private static final String NUMBER = "number";
     private static final String BUILD_HASH = "build_hash";
     private static final String BUILD_SNAPSHOT = "build_snapshot";
 
-    NodeVersionStatsExpression() {
+    public NodeVersionStatsExpression() {
         childImplementations.put(NUMBER, new SimpleNodeStatsExpression<BytesRef>() {
             @Override
             public BytesRef innerValue() {

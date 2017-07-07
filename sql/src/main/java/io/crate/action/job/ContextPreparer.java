@@ -150,7 +150,8 @@ public class ContextPreparer extends AbstractComponent {
             transportActionProvider,
             inputFactory,
             normalizer,
-            systemCollectSource::getRowUpdater
+            systemCollectSource::getRowUpdater,
+            systemCollectSource::tableDefinition
         );
     }
 

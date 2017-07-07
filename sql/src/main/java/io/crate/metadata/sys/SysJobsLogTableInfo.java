@@ -22,47 +22,64 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.List;
 
-@Singleton
 public class SysJobsLogTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "jobs_log");
-    private final ClusterService clusterService;
+    private final static List<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(Columns.ID);
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
-        public static final ColumnIdent USERNAME = new ColumnIdent("username");
-        public static final ColumnIdent STMT = new ColumnIdent("stmt");
+        static final ColumnIdent USERNAME = new ColumnIdent("username");
+        static final ColumnIdent STMT = new ColumnIdent("stmt");
         public static final ColumnIdent STARTED = new ColumnIdent("started");
-        public static final ColumnIdent ENDED = new ColumnIdent("ended");
+        static final ColumnIdent ENDED = new ColumnIdent("ended");
         public static final ColumnIdent ERROR = new ColumnIdent("error");
     }
 
-    private final static List<ColumnIdent> primaryKeys = ImmutableList.of(Columns.ID);
+    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<JobContextLog>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<JobContextLog>>builder()
+            .put(SysJobsLogTableInfo.Columns.ID,
+                () -> RowContextCollectorExpression.objToBytesRef(JobContextLog::id))
+            .put(SysJobsTableInfo.Columns.USERNAME,
+                () -> RowContextCollectorExpression.objToBytesRef(JobContextLog::username))
+            .put(SysJobsLogTableInfo.Columns.STMT,
+                () -> RowContextCollectorExpression.objToBytesRef(JobContextLog::statement))
+            .put(SysJobsLogTableInfo.Columns.STARTED,
+                () -> RowContextCollectorExpression.forFunction(JobContextLog::started))
+            .put(SysJobsLogTableInfo.Columns.ENDED,
+                () -> RowContextCollectorExpression.forFunction(JobContextLog::ended))
+            .put(SysJobsLogTableInfo.Columns.ERROR,
+                () -> RowContextCollectorExpression.objToBytesRef(JobContextLog::errorMessage))
+            .build();
+    }
 
-    @Inject
-    public SysJobsLogTableInfo(ClusterService clusterService) {
+    private final ClusterService clusterService;
+
+    SysJobsLogTableInfo(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
             .register(Columns.ID, DataTypes.STRING)
             .register(Columns.USERNAME, DataTypes.STRING)
             .register(Columns.STMT, DataTypes.STRING)
             .register(Columns.STARTED, DataTypes.TIMESTAMP)
             .register(Columns.ENDED, DataTypes.TIMESTAMP)
-            .register(Columns.ERROR, DataTypes.STRING), primaryKeys);
+            .register(Columns.ERROR, DataTypes.STRING), PRIMARY_KEYS);
         this.clusterService = clusterService;
     }
 

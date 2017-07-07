@@ -50,7 +50,7 @@ import io.crate.operation.projectors.fetch.FetchProjector;
 import io.crate.operation.projectors.fetch.FetchProjectorContext;
 import io.crate.operation.projectors.fetch.TransportFetchOperation;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
-import io.crate.operation.reference.sys.RowContextReferenceResolver;
+import io.crate.operation.reference.StaticTableDefinition;
 import io.crate.operation.reference.sys.SysRowUpdater;
 import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
@@ -97,6 +97,7 @@ public class ProjectionToProjectorVisitor
     private final InputFactory inputFactory;
     private final EvaluatingNormalizer normalizer;
     private final Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter;
+    private final Function<TableIdent, StaticTableDefinition<?>> staticTableDefinitionGetter;
     @Nullable
     private final ShardId shardId;
 
@@ -109,6 +110,7 @@ public class ProjectionToProjectorVisitor
                                         InputFactory inputFactory,
                                         EvaluatingNormalizer normalizer,
                                         Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter,
+                                        Function<TableIdent, StaticTableDefinition<?>> staticTableDefinitionGetter,
                                         @Nullable ShardId shardId) {
         this.clusterService = clusterService;
         this.nodeJobsCounter = nodeJobsCounter;
@@ -119,6 +121,7 @@ public class ProjectionToProjectorVisitor
         this.inputFactory = inputFactory;
         this.normalizer = normalizer;
         this.sysUpdaterGetter = sysUpdaterGetter;
+        this.staticTableDefinitionGetter = staticTableDefinitionGetter;
         this.shardId = shardId;
     }
 
@@ -130,7 +133,8 @@ public class ProjectionToProjectorVisitor
                                         TransportActionProvider transportActionProvider,
                                         InputFactory inputFactory,
                                         EvaluatingNormalizer normalizer,
-                                        Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter) {
+                                        Function<TableIdent, SysRowUpdater<?>> sysUpdaterGetter,
+                                        Function<TableIdent, StaticTableDefinition<?>> staticTableDefinitionGetter) {
         this(clusterService,
             nodeJobsCounter,
             functions,
@@ -140,6 +144,7 @@ public class ProjectionToProjectorVisitor
             inputFactory,
             normalizer,
             sysUpdaterGetter,
+            staticTableDefinitionGetter,
             null
         );
     }
@@ -452,23 +457,28 @@ public class ProjectionToProjectorVisitor
     public Projector visitSysUpdateProjection(SysUpdateProjection projection, Context context) {
         Map<Reference, Symbol> assignments = projection.assignments();
         assert !assignments.isEmpty() : "at least one assignement is required";
-        InputFactory.Context<RowCollectExpression<?, ?>> readCtx = inputFactory.ctxForRefs(RowContextReferenceResolver.INSTANCE);
 
         List<Input<?>> valueInputs = new ArrayList<>(assignments.size());
         List<ColumnIdent> assignmentCols = new ArrayList<>(assignments.size());
 
         TableIdent tableIdent = null;
+        InputFactory.Context<RowCollectExpression<?, ?>> readCtx = null;
 
         for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
             Reference ref = e.getKey();
             assert tableIdent == null || tableIdent.equals(ref.ident().tableIdent()) : "mixed table assignments found";
             tableIdent = ref.ident().tableIdent();
+            if (readCtx == null) {
+                StaticTableDefinition<?> tableDefinition = staticTableDefinitionGetter.apply(tableIdent);
+                readCtx = inputFactory.ctxForRefs(tableDefinition.getReferenceResolver());
+            }
             assignmentCols.add(ref.ident().columnIdent());
             Input<?> sourceInput = readCtx.add(e.getValue());
             valueInputs.add(sourceInput);
         }
 
         SysRowUpdater<?> rowUpdater = sysUpdaterGetter.apply(tableIdent);
+        assert readCtx != null : "readCtx must not be null";
         assert rowUpdater != null : "row updater needs to exist";
         Consumer<Object> rowWriter = rowUpdater.newRowWriter(assignmentCols, valueInputs, readCtx.expressions());
         return new SysUpdateProjector(rowWriter);

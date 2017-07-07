@@ -23,11 +23,21 @@
 package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.operation.collect.files.SqlFeatureContext;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
+
+import java.util.Map;
 
 
 public class InformationSqlFeaturesTableInfo extends InformationTableInfo {
@@ -53,6 +63,25 @@ public class InformationSqlFeaturesTableInfo extends InformationTableInfo {
         public static final Reference IS_SUPPORTED = createRef(Columns.IS_SUPPORTED, DataTypes.BOOLEAN);
         public static final Reference IS_VERIFIED_BY = createRef(Columns.IS_VERIFIED_BY, DataTypes.STRING);
         public static final Reference COMMENTS = createRef(Columns.COMMENTS, DataTypes.STRING);
+    }
+
+    public static Map<ColumnIdent, RowCollectExpressionFactory<SqlFeatureContext>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SqlFeatureContext>>builder()
+            .put(InformationSqlFeaturesTableInfo.Columns.FEATURE_ID,
+                () -> RowContextCollectorExpression.objToBytesRef(SqlFeatureContext::getFeatureId))
+            .put(InformationSqlFeaturesTableInfo.Columns.FEATURE_NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(SqlFeatureContext::getFeatureName))
+            .put(InformationSqlFeaturesTableInfo.Columns.SUB_FEATURE_ID,
+                () -> RowContextCollectorExpression.objToBytesRef(SqlFeatureContext::getSubFeatureId))
+            .put(InformationSqlFeaturesTableInfo.Columns.SUB_FEATURE_NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(SqlFeatureContext::getSubFeatureName))
+            .put(InformationSqlFeaturesTableInfo.Columns.IS_SUPPORTED,
+                () -> RowContextCollectorExpression.forFunction(SqlFeatureContext::isSupported))
+            .put(InformationSqlFeaturesTableInfo.Columns.IS_VERIFIED_BY,
+                () -> RowContextCollectorExpression.objToBytesRef(SqlFeatureContext::getIsVerifiedBy))
+            .put(InformationSqlFeaturesTableInfo.Columns.COMMENTS,
+                () -> RowContextCollectorExpression.objToBytesRef(SqlFeatureContext::getComments))
+            .build();
     }
 
     private static Reference createRef(ColumnIdent columnIdent, DataType dataType) {

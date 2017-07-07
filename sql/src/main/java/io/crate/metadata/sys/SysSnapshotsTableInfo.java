@@ -22,38 +22,71 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.operation.reference.sys.snapshot.SysSnapshot;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.lucene.BytesRefs;
 
 import javax.annotation.Nullable;
+import java.util.List;
 
 public class SysSnapshotsTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "snapshots");
-    private final ClusterService clusterService;
-
-    public static class Columns {
-        public static final ColumnIdent NAME = new ColumnIdent("name");
-        public static final ColumnIdent REPOSITORY = new ColumnIdent("repository");
-        public static final ColumnIdent CONCRETE_INDICES = new ColumnIdent("concrete_indices");
-        public static final ColumnIdent STARTED = new ColumnIdent("started");
-        public static final ColumnIdent FINISHED = new ColumnIdent("finished");
-        public static final ColumnIdent VERSION = new ColumnIdent("version");
-        public static final ColumnIdent STATE = new ColumnIdent("state");
-    }
-
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.NAME, Columns.REPOSITORY);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
-    public SysSnapshotsTableInfo(ClusterService clusterService) {
+    public static class Columns {
+        public static final ColumnIdent NAME = new ColumnIdent("name");
+        static final ColumnIdent REPOSITORY = new ColumnIdent("repository");
+        static final ColumnIdent CONCRETE_INDICES = new ColumnIdent("concrete_indices");
+        public static final ColumnIdent STARTED = new ColumnIdent("started");
+        static final ColumnIdent FINISHED = new ColumnIdent("finished");
+        public static final ColumnIdent VERSION = new ColumnIdent("version");
+        static final ColumnIdent STATE = new ColumnIdent("state");
+    }
+
+    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<SysSnapshot>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysSnapshot>>builder()
+            .put(SysSnapshotsTableInfo.Columns.NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(SysSnapshot::name))
+            .put(SysSnapshotsTableInfo.Columns.REPOSITORY,
+                () -> RowContextCollectorExpression.objToBytesRef(SysSnapshot::repository))
+            .put(SysSnapshotsTableInfo.Columns.CONCRETE_INDICES,
+                () -> RowContextCollectorExpression.forFunction((SysSnapshot s) -> {
+                    List<String> concreteIndices = s.concreteIndices();
+                    BytesRef[] indices = new BytesRef[concreteIndices.size()];
+                    for (int i = 0; i < concreteIndices.size(); i++) {
+                        indices[i] = BytesRefs.toBytesRef(concreteIndices.get(i));
+                    }
+                    return indices;
+                }))
+            .put(SysSnapshotsTableInfo.Columns.STARTED,
+                () -> RowContextCollectorExpression.forFunction(SysSnapshot::started))
+            .put(SysSnapshotsTableInfo.Columns.FINISHED,
+                () -> RowContextCollectorExpression.forFunction(SysSnapshot::finished))
+            .put(SysSnapshotsTableInfo.Columns.VERSION,
+                () -> RowContextCollectorExpression.objToBytesRef(SysSnapshot::version))
+            .put(SysSnapshotsTableInfo.Columns.STATE,
+                () -> RowContextCollectorExpression.objToBytesRef(SysSnapshot::state))
+            .build();
+    }
+
+    private final ClusterService clusterService;
+
+    SysSnapshotsTableInfo(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
                 .register(Columns.NAME, DataTypes.STRING)
                 .register(Columns.REPOSITORY, DataTypes.STRING)

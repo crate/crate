@@ -31,6 +31,9 @@ import io.crate.data.Row;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.metadata.*;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
+import io.crate.metadata.sys.SysShardsTableInfo;
+import io.crate.operation.reference.StaticTableReferenceResolver;
+import io.crate.metadata.sys.SysTableDefinitions;
 import io.crate.operation.reference.sys.snapshot.SysSnapshot;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.distribution.DistributionInfo;
@@ -61,6 +64,9 @@ import static org.mockito.Mockito.mock;
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
 public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
 
+    private static final StaticTableReferenceResolver<UnassignedShard> REFERENCE_RESOLVER =
+        new StaticTableReferenceResolver<>(SysShardsTableInfo.unassignedShardsExpressions());
+
     @Test
     public void testOrderBySymbolsDoNotAppearTwiceInRows() throws Exception {
         SystemCollectSource systemCollectSource = internalCluster().getDataNodeInstance(SystemCollectSource.class);
@@ -80,7 +86,8 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             DistributionInfo.DEFAULT_BROADCAST
         );
         collectPhase.orderBy(new OrderBy(Collections.singletonList(shardId), new boolean[]{false}, new Boolean[]{null}));
-        Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(collectPhase, false)
+
+        Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(collectPhase, REFERENCE_RESOLVER, false)
             .apply(Collections.singletonList(new UnassignedShard(
                 new ShardId("foo", UUIDs.randomBase64UUID(),1),
                 mock(ClusterService.class),
@@ -109,7 +116,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
         noReadIsolationIterable.add("a");
         noReadIsolationIterable.add("b");
 
-        Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(collectPhase, false)
+        Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(collectPhase, REFERENCE_RESOLVER, false)
             .apply(noReadIsolationIterable);
         assertThat(Iterables.size(rows), is(2));
 
@@ -121,7 +128,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
         readIsolationIterable.add("a");
         readIsolationIterable.add("b");
 
-        rows = systemCollectSource.toRowsIterableTransformation(collectPhase, true)
+        rows = systemCollectSource.toRowsIterableTransformation(collectPhase, REFERENCE_RESOLVER, true)
             .apply(readIsolationIterable);
         assertThat(Iterables.size(rows), is(2));
 
@@ -134,7 +141,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
         // SysSnapshots issues queries, so errors may occur. This test ensures that this errors are exposed.
         expectedException.expect(ExecutionException.class);
         expectedException.expectMessage(containsString("[my_repository] failed to find repository"));
-        Supplier<CompletableFuture<? extends Iterable<?>>> snapshotSupplier = SystemCollectSource.snapshotSupplier(
+        Supplier<CompletableFuture<? extends Iterable<SysSnapshot>>> snapshotSupplier = SysTableDefinitions.snapshotSupplier(
             new SysSnapshots(null, null) {
 
                 @Override

@@ -73,7 +73,7 @@ public class InputFactory {
         this.functions = functions;
     }
 
-    public <T extends Input<?>> Context<T> ctxForRefs(ReferenceResolver<T> referenceResolver) {
+    public <T extends Input<?>> Context<T> ctxForRefs(ReferenceResolver<? extends T> referenceResolver) {
         List<T> expressions = new ArrayList<>();
         return new Context<>(expressions, new RefVisitor<>(
             functions, new GatheringRefResolver<>(expressions::add, referenceResolver)));

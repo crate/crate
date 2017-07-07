@@ -98,7 +98,8 @@ public class CollectSourceResolver {
             transportActionProvider,
             new InputFactory(functions),
             normalizer,
-            systemCollectSource::getRowUpdater
+            systemCollectSource::getRowUpdater,
+            systemCollectSource::tableDefinition
         );
         this.shardCollectSource = shardCollectSource;
         this.fileCollectSource = new ProjectorSetupCollectSource(fileCollectSource, projectorFactory);

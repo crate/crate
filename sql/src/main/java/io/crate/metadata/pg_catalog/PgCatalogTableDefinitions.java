@@ -20,23 +20,31 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.node;
+package io.crate.metadata.pg_catalog;
 
-import com.google.common.collect.Lists;
-import io.crate.monitor.ThreadPools;
+import io.crate.metadata.TableIdent;
+import io.crate.operation.reference.StaticTableDefinition;
+import io.crate.protocols.postgres.types.PGTypes;
 
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.concurrent.CompletableFuture.completedFuture;
 
-public abstract class NodeStatsThreadPoolExpression<R>
-    extends NodeStatsArrayTypeExpression<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>, R> {
+public class PgCatalogTableDefinitions {
 
-    protected NodeStatsThreadPoolExpression() {
+    private final Map<TableIdent, StaticTableDefinition<?>> tableDefinitions;
+
+    public PgCatalogTableDefinitions() {
+        tableDefinitions = new HashMap<>(1);
+
+        tableDefinitions.put(PgTypeTable.IDENT, new StaticTableDefinition<>(
+            () -> completedFuture(PGTypes.pgTypes()),
+            PgTypeTable.expressions()
+        ));
     }
 
-    @Override
-    protected List<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>> items() {
-        return Lists.newArrayList(this.row.threadPools());
+    public StaticTableDefinition<?> get(TableIdent tableIdent) {
+        return tableDefinitions.get(tableIdent);
     }
 }

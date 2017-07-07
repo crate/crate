@@ -149,7 +149,8 @@ public class TransportExecutor implements Executor {
             transportActionProvider,
             new InputFactory(functions),
             normalizer,
-            systemCollectSource::getRowUpdater
+            systemCollectSource::getRowUpdater,
+            systemCollectSource::tableDefinition
             );
     }
 

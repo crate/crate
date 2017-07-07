@@ -23,18 +23,23 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.operation.collect.files.SummitsContext;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Map;
 
 public class SysSummitsTableInfo extends StaticTableInfo {
 
@@ -42,19 +47,42 @@ public class SysSummitsTableInfo extends StaticTableInfo {
     private static final List<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(Columns.MOUNTAIN);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
-    private final ClusterService clusterService;
-
     public static class Columns {
-        public static final ColumnIdent MOUNTAIN = new ColumnIdent("mountain");
-        public static final ColumnIdent HEIGHT = new ColumnIdent("height");
-        public static final ColumnIdent PROMINENCE = new ColumnIdent("prominence");
-        public static final ColumnIdent COORDINATES = new ColumnIdent("coordinates");
-        public static final ColumnIdent RANGE = new ColumnIdent("range");
-        public static final ColumnIdent CLASSIFICATION = new ColumnIdent("classification");
-        public static final ColumnIdent REGION = new ColumnIdent("region");
-        public static final ColumnIdent COUNTRY = new ColumnIdent("country");
-        public static final ColumnIdent FIRST_ASCENT = new ColumnIdent("first_ascent");
+        static final ColumnIdent MOUNTAIN = new ColumnIdent("mountain");
+        static final ColumnIdent HEIGHT = new ColumnIdent("height");
+        static final ColumnIdent PROMINENCE = new ColumnIdent("prominence");
+        static final ColumnIdent COORDINATES = new ColumnIdent("coordinates");
+        static final ColumnIdent RANGE = new ColumnIdent("range");
+        static final ColumnIdent CLASSIFICATION = new ColumnIdent("classification");
+        static final ColumnIdent REGION = new ColumnIdent("region");
+        static final ColumnIdent COUNTRY = new ColumnIdent("country");
+        static final ColumnIdent FIRST_ASCENT = new ColumnIdent("first_ascent");
     }
+
+    public static Map<ColumnIdent, RowCollectExpressionFactory<SummitsContext>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SummitsContext>>builder()
+            .put(SysSummitsTableInfo.Columns.MOUNTAIN,
+                () -> RowContextCollectorExpression.objToBytesRef(SummitsContext::mountain))
+            .put(SysSummitsTableInfo.Columns.HEIGHT,
+                () -> RowContextCollectorExpression.forFunction(SummitsContext::height))
+            .put(SysSummitsTableInfo.Columns.PROMINENCE,
+                () -> RowContextCollectorExpression.forFunction(SummitsContext::prominence))
+            .put(SysSummitsTableInfo.Columns.COORDINATES,
+                () -> RowContextCollectorExpression.forFunction(SummitsContext::coordinates))
+            .put(SysSummitsTableInfo.Columns.RANGE,
+                () -> RowContextCollectorExpression.objToBytesRef(SummitsContext::range))
+            .put(SysSummitsTableInfo.Columns.CLASSIFICATION,
+                () -> RowContextCollectorExpression.objToBytesRef(SummitsContext::classification))
+            .put(SysSummitsTableInfo.Columns.REGION,
+                () -> RowContextCollectorExpression.objToBytesRef(SummitsContext::region))
+            .put(SysSummitsTableInfo.Columns.COUNTRY,
+                () -> RowContextCollectorExpression.objToBytesRef(SummitsContext::country))
+            .put(SysSummitsTableInfo.Columns.FIRST_ASCENT,
+                () -> RowContextCollectorExpression.forFunction(SummitsContext::firstAscent))
+            .build();
+    }
+
+    private final ClusterService clusterService;
 
     SysSummitsTableInfo(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)

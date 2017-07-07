@@ -23,7 +23,8 @@
 package io.crate.metadata;
 
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.operation.reference.sys.RowContextReferenceResolver;
+import io.crate.operation.reference.ReferenceResolver;
+import io.crate.operation.reference.StaticTableReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Test;
@@ -42,7 +43,7 @@ public class SysNodesTableInfoTest extends CrateUnitTest {
     @Test
     public void testRegistered() {
         SysNodesTableInfo info = new SysNodesTableInfo(clusterService);
-        RowContextReferenceResolver referenceResolver = RowContextReferenceResolver.INSTANCE;
+        ReferenceResolver<?> referenceResolver = new StaticTableReferenceResolver<>(SysNodesTableInfo.expressions());
         Iterator<Reference> iter = info.iterator();
         while (iter.hasNext()) {
             assertNotNull(referenceResolver.getImplementation(iter.next()));

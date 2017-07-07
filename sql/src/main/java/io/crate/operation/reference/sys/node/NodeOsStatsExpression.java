@@ -22,14 +22,14 @@
 
 package io.crate.operation.reference.sys.node;
 
-class NodeOsStatsExpression extends NestedNodeStatsExpression {
+public class NodeOsStatsExpression extends NestedNodeStatsExpression {
 
     private static final String UPTIME = "uptime";
     private static final String TIMESTAMP = "timestamp";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
     private static final String CPU = "cpu";
 
-    NodeOsStatsExpression() {
+    public NodeOsStatsExpression() {
         childImplementations.put(UPTIME, new SimpleNodeStatsExpression<Long>() {
             @Override
             public Long innerValue() {

@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect.sources;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -29,45 +28,38 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.data.BatchConsumer;
 import io.crate.data.Row;
 import io.crate.data.RowsBatchIterator;
+import io.crate.exceptions.SchemaUnknownException;
+import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.information.*;
-import io.crate.metadata.pg_catalog.PgCatalogTables;
-import io.crate.metadata.pg_catalog.PgTypeTable;
-import io.crate.metadata.sys.*;
+import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;
+import io.crate.metadata.pg_catalog.PgCatalogTableDefinitions;
+import io.crate.metadata.sys.SysNodeChecksTableInfo;
+import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.BatchIteratorCollectorBridge;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsTransformer;
-import io.crate.operation.collect.files.SummitsIterable;
-import io.crate.operation.collect.stats.JobsLogs;
-import io.crate.operation.reference.sys.RowContextReferenceResolver;
+import io.crate.operation.reference.ReferenceResolver;
+import io.crate.operation.reference.StaticTableDefinition;
+import io.crate.metadata.information.InformationSchemaTableDefinitions;
 import io.crate.operation.reference.sys.SysRowUpdater;
-import io.crate.operation.reference.sys.check.SysCheck;
-import io.crate.operation.reference.sys.check.SysChecker;
+import io.crate.metadata.sys.SysTableDefinitions;
 import io.crate.operation.reference.sys.check.node.SysNodeChecks;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
-import io.crate.operation.reference.sys.snapshot.SysSnapshot;
-import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.repositories.RepositoriesService;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import java.util.function.Supplier;
-
-import static java.util.concurrent.CompletableFuture.completedFuture;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
@@ -78,87 +70,41 @@ public class SystemCollectSource implements CollectSource {
 
     private final Functions functions;
     private final NodeSysExpression nodeSysExpression;
-    private final Map<String, Supplier<CompletableFuture<? extends Iterable<?>>>> iterableGetters;
     private final ImmutableMap<TableIdent, SysRowUpdater<?>> rowUpdaters;
     private final ClusterService clusterService;
     private final InputFactory inputFactory;
+
+    private final InformationSchemaTableDefinitions informationSchemaTables;
+    private final SysTableDefinitions sysTables;
+    private final PgCatalogTableDefinitions pgCatalogTables;
 
     @Inject
     public SystemCollectSource(ClusterService clusterService,
                                Functions functions,
                                NodeSysExpression nodeSysExpression,
-                               JobsLogs jobsLogs,
-                               InformationSchemaIterables informationSchemaIterables,
-                               Set<SysCheck> sysChecks,
+                               InformationSchemaTableDefinitions informationSchemaTables,
+                               SysTableDefinitions sysTableDefinitions,
                                SysNodeChecks sysNodeChecks,
-                               RepositoriesService repositoriesService,
-                               SysSnapshots sysSnapshots,
-                               PgCatalogTables pgCatalogTables) {
+                               PgCatalogTableDefinitions pgCatalogTables) {
         this.clusterService = clusterService;
         inputFactory = new InputFactory(functions);
         this.functions = functions;
         this.nodeSysExpression = nodeSysExpression;
+        this.informationSchemaTables = informationSchemaTables;
+        this.sysTables = sysTableDefinitions;
+        this.pgCatalogTables = pgCatalogTables;
 
         rowUpdaters = ImmutableMap.of(SysNodeChecksTableInfo.IDENT, sysNodeChecks);
-        iterableGetters = new HashMap<>();
-        iterableGetters.put(InformationSchemataTableInfo.IDENT.fqn(),
-            () -> completedFuture(informationSchemaIterables.schemas()));
-        iterableGetters.put(InformationTablesTableInfo.IDENT.fqn(),
-            () -> completedFuture(informationSchemaIterables.tables()));
-        iterableGetters.put(InformationPartitionsTableInfo.IDENT.fqn(),
-           () -> completedFuture(informationSchemaIterables.partitions()));
-        iterableGetters.put(InformationColumnsTableInfo.IDENT.fqn(),
-           () -> completedFuture(informationSchemaIterables.columns()));
-        iterableGetters.put(InformationTableConstraintsTableInfo.IDENT.fqn(),
-           () -> completedFuture(informationSchemaIterables.constraints()));
-        iterableGetters.put(InformationRoutinesTableInfo.IDENT.fqn(),
-           () -> completedFuture(informationSchemaIterables.routines()));
-        iterableGetters.put(InformationSqlFeaturesTableInfo.IDENT.fqn(),
-           () -> completedFuture(informationSchemaIterables.features()));
-        iterableGetters.put(SysJobsTableInfo.IDENT.fqn(),
-           () -> completedFuture(jobsLogs.activeJobs()));
-        iterableGetters.put(SysJobsLogTableInfo.IDENT.fqn(),
-           () -> completedFuture(jobsLogs.jobsLog()));
-        iterableGetters.put(SysOperationsTableInfo.IDENT.fqn(),
-           () -> completedFuture(jobsLogs.activeOperations()));
-        iterableGetters.put(SysOperationsLogTableInfo.IDENT.fqn(),
-           () -> completedFuture(jobsLogs.operationsLog()));
-
-        SysChecker<SysCheck> sysChecker = new SysChecker<>(sysChecks);
-        iterableGetters.put(SysChecksTableInfo.IDENT.fqn(), sysChecker::computeResultAndGet);
-
-        iterableGetters.put(SysNodeChecksTableInfo.IDENT.fqn(),
-           () -> completedFuture(sysNodeChecks));
-        iterableGetters.put(SysRepositoriesTableInfo.IDENT.fqn(),
-           () -> completedFuture(repositoriesService.getRepositoriesList()));
-        iterableGetters.put(SysSnapshotsTableInfo.IDENT.fqn(), snapshotSupplier(sysSnapshots));
-
-        SummitsIterable summits = new SummitsIterable();
-        iterableGetters.put(SysSummitsTableInfo.IDENT.fqn(), () -> completedFuture(summits));
-
-        iterableGetters.put(PgTypeTable.IDENT.fqn(),
-           () -> completedFuture(pgCatalogTables.typesGetter()));
-    }
-
-    @VisibleForTesting
-    static Supplier<CompletableFuture<? extends Iterable<?>>> snapshotSupplier(SysSnapshots sysSnapshots) {
-        return () -> {
-            CompletableFuture<Iterable<SysSnapshot>> f = new CompletableFuture<>();
-            try {
-                f.complete(sysSnapshots.snapshotsGetter());
-            } catch (Exception e) {
-                f.completeExceptionally(e);
-            }
-            return f;
-        };
     }
 
     Function<Iterable, Iterable<? extends Row>> toRowsIterableTransformation(RoutedCollectPhase collectPhase,
+                                                                             ReferenceResolver<?> referenceResolver,
                                                                              boolean requiresRepeat) {
-        return objects -> dataIterableToRowsIterable(collectPhase, requiresRepeat, objects);
+        return objects -> dataIterableToRowsIterable(collectPhase, referenceResolver, requiresRepeat, objects);
     }
 
     private Iterable<? extends Row> dataIterableToRowsIterable(RoutedCollectPhase collectPhase,
+                                                               ReferenceResolver<?> referenceResolver,
                                                                boolean requiresRepeat,
                                                                Iterable<?> data) {
         if (requiresRepeat) {
@@ -166,7 +112,7 @@ public class SystemCollectSource implements CollectSource {
         }
         return RowsTransformer.toRowsIterable(
             inputFactory,
-            RowContextReferenceResolver.INSTANCE,
+            referenceResolver,
             collectPhase,
             data);
     }
@@ -181,19 +127,44 @@ public class SystemCollectSource implements CollectSource {
             functions, RowGranularity.DOC, ReplaceMode.COPY, new NodeSysReferenceResolver(nodeSysExpression), null);
         final RoutedCollectPhase routedCollectPhase = collectPhase.normalize(normalizer, null);
 
+        boolean requiresScroll = consumer.requiresScroll();
+
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
-        Supplier<CompletableFuture<? extends Iterable<?>>> iterableGetter = iterableGetters.get(table);
-        assert iterableGetter != null : "iterableGetter for " + table + " must exist";
-        boolean requiresScroll = consumer.requiresScroll();
+        TableIdent tableIdent = TableIdent.fromIndexName(table);
+        StaticTableDefinition<?> tableDefinition = tableDefinition(tableIdent);
+
         return BatchIteratorCollectorBridge.newInstance(
-            () -> iterableGetter.get().thenApply(dataIterable ->
+            () -> tableDefinition.getIterable().get().thenApply(dataIterable ->
                 RowsBatchIterator.newInstance(
-                    dataIterableToRowsIterable(routedCollectPhase, requiresScroll, dataIterable),
+                    dataIterableToRowsIterable(routedCollectPhase,
+                        tableDefinition.getReferenceResolver(),
+                        requiresScroll, dataIterable),
                     collectPhase.toCollect().size()
                 )),
             consumer
         );
+    }
+
+    public StaticTableDefinition<?> tableDefinition(TableIdent tableIdent) {
+        StaticTableDefinition<?> tableDefinition;
+        switch (tableIdent.schema()) {
+            case InformationSchemaInfo.NAME:
+                tableDefinition = informationSchemaTables.get(tableIdent);
+                break;
+            case SysSchemaInfo.NAME:
+                tableDefinition = sysTables.get(tableIdent);
+                break;
+            case PgCatalogSchemaInfo.NAME:
+                tableDefinition = pgCatalogTables.get(tableIdent);
+                break;
+            default:
+                throw new SchemaUnknownException(tableIdent.schema());
+        }
+        if (tableDefinition == null) {
+            throw new TableUnknownException(tableIdent);
+        }
+        return tableDefinition;
     }
 
     /**
@@ -205,9 +176,5 @@ public class SystemCollectSource implements CollectSource {
     public SysRowUpdater<?> getRowUpdater(TableIdent ident) {
         assert rowUpdaters.containsKey(ident) : "RowUpdater for " + ident.fqn() + " must exist";
         return rowUpdaters.get(ident);
-    }
-
-    public void registerIterableGetter(String fqn, Supplier<CompletableFuture<? extends Iterable<?>>> iterableSupplier) {
-        iterableGetters.put(fqn, iterableSupplier);
     }
 }

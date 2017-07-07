@@ -24,14 +24,14 @@ package io.crate.operation.reference.sys.node;
 
 import org.elasticsearch.monitor.process.ProcessStats;
 
-class NodeProcessStatsExpression extends NestedNodeStatsExpression {
+public class NodeProcessStatsExpression extends NestedNodeStatsExpression {
 
     private static final String OPEN_FILE_DESCRIPTORS = "open_file_descriptors";
     private static final String MAX_OPEN_FILE_DESCRIPTORS = "max_open_file_descriptors";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
     private static final String CPU = "cpu";
 
-    NodeProcessStatsExpression() {
+    public NodeProcessStatsExpression() {
         childImplementations.put(OPEN_FILE_DESCRIPTORS, new SimpleNodeStatsExpression<Long>() {
             @Override
             public Long innerValue() {

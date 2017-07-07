@@ -22,9 +22,12 @@
 package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Version;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.StaticTableInfo;
 import org.elasticsearch.cluster.service.ClusterService;
 
@@ -35,100 +38,18 @@ public class InformationTableInfo extends StaticTableInfo {
 
     private final ClusterService clusterService;
 
-    public static class Columns {
-        public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
-        public static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
-        public static final ColumnIdent TABLE_CATALOG = new ColumnIdent("table_catalog");
-        public static final ColumnIdent TABLE_TYPE = new ColumnIdent("table_type");
-        public static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
-        public static final ColumnIdent VALUES = new ColumnIdent("values");
-        public static final ColumnIdent NUMBER_OF_SHARDS = new ColumnIdent("number_of_shards");
-        public static final ColumnIdent NUMBER_OF_REPLICAS = new ColumnIdent("number_of_replicas");
-        public static final ColumnIdent CLUSTERED_BY = new ColumnIdent("clustered_by");
-        public static final ColumnIdent PARTITIONED_BY = new ColumnIdent("partitioned_by");
-        public static final ColumnIdent BLOBS_PATH = new ColumnIdent("blobs_path");
-        public static final ColumnIdent COLUMN_POLICY = new ColumnIdent("column_policy");
-        public static final ColumnIdent ROUTING_HASH_FUNCTION = new ColumnIdent("routing_hash_function");
-        public static final ColumnIdent TABLE_VERSION = new ColumnIdent("version");
-        public static final ColumnIdent TABLE_VERSION_CREATED = new ColumnIdent("version",
-            ImmutableList.of(Version.Property.CREATED.toString()));
-        public static final ColumnIdent TABLE_VERSION_CREATED_CRATEDB = new ColumnIdent("version",
-            ImmutableList.of(Version.Property.CREATED.toString(), Version.CRATEDB_VERSION_KEY));
-        public static final ColumnIdent TABLE_VERSION_CREATED_ES = new ColumnIdent("version",
-            ImmutableList.of(Version.Property.CREATED.toString(), Version.ES_VERSION_KEY));
-        public static final ColumnIdent TABLE_VERSION_UPGRADED = new ColumnIdent("version",
-            ImmutableList.of(Version.Property.UPGRADED.toString()));
-        public static final ColumnIdent TABLE_VERSION_UPGRADED_CRATEDB = new ColumnIdent("version",
-            ImmutableList.of(Version.Property.UPGRADED.toString(), Version.CRATEDB_VERSION_KEY));
-        public static final ColumnIdent TABLE_VERSION_UPGRADED_ES = new ColumnIdent("version",
-            ImmutableList.of(Version.Property.UPGRADED.toString(), Version.ES_VERSION_KEY));
-        public static final ColumnIdent CLOSED = new ColumnIdent("closed");
-        public static final ColumnIdent REFERENCE_GENERATION = new ColumnIdent("reference_generation");
-        public static final ColumnIdent SELF_REFERENCING_COLUMN_NAME = new ColumnIdent("self_referencing_column_name");
-        public static final ColumnIdent TABLE_SETTINGS = new ColumnIdent("settings");
-        public static final ColumnIdent TABLE_SETTINGS_BLOCKS = new ColumnIdent("settings",
-            ImmutableList.of("blocks"));
-        public static final ColumnIdent TABLE_SETTINGS_BLOCKS_READ_ONLY = new ColumnIdent("settings",
-            ImmutableList.of("blocks", "read_only"));
-        public static final ColumnIdent TABLE_SETTINGS_BLOCKS_READ = new ColumnIdent("settings",
-            ImmutableList.of("blocks", "read"));
-        public static final ColumnIdent TABLE_SETTINGS_BLOCKS_WRITE = new ColumnIdent("settings",
-            ImmutableList.of("blocks", "write"));
-        public static final ColumnIdent TABLE_SETTINGS_BLOCKS_METADATA = new ColumnIdent("settings",
-            ImmutableList.of("blocks", "metadata"));
-        public static final ColumnIdent TABLE_SETTINGS_ROUTING = new ColumnIdent("settings",
-            ImmutableList.of("routing"));
-        public static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION = new ColumnIdent("settings",
-            ImmutableList.of("routing", "allocation"));
-        public static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE = new ColumnIdent("settings",
-            ImmutableList.of("routing", "allocation", "enable"));
-        public static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = new ColumnIdent("settings",
-            ImmutableList.of("routing", "allocation", "total_shards_per_node"));
-        public static final ColumnIdent TABLE_SETTINGS_RECOVERY = new ColumnIdent("settings",
-            ImmutableList.of("recovery"));
-        public static final ColumnIdent TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = new ColumnIdent("settings",
-            ImmutableList.of("recovery", "initial_shards"));
-        public static final ColumnIdent TABLE_SETTINGS_WARMER = new ColumnIdent("settings",
-            ImmutableList.of("warmer"));
-        public static final ColumnIdent TABLE_SETTINGS_WARMER_ENABLED = new ColumnIdent("settings",
-            ImmutableList.of("warmer", "enabled"));
-
-        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG = new ColumnIdent("settings",
-            ImmutableList.of("translog"));
-        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE = new ColumnIdent("settings",
-            ImmutableList.of("translog", "flush_threshold_size"));
-        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL = new ColumnIdent("settings",
-            ImmutableList.of("translog", "sync_interval"));
-
-        public static final ColumnIdent TABLE_SETTINGS_REFRESH_INTERVAL = new ColumnIdent("settings",
-            ImmutableList.of("refresh_interval"));
-
-        public static final ColumnIdent TABLE_SETTINGS_WRITE = new ColumnIdent("settings",
-            ImmutableList.of("write"));
-
-        public static final ColumnIdent TABLE_SETTINGS_WRITE_WAIT_FOT_ACTIVE_SHARDS = new ColumnIdent("settings",
-            ImmutableList.of("write","wait_for_active_shards"));
-
-        public static final ColumnIdent TABLE_SETTINGS_UNASSIGNED = new ColumnIdent("settings",
-            ImmutableList.of("unassigned"));
-        public static final ColumnIdent TABLE_SETTINGS_UNASSIGNED_NODE_LEFT = new ColumnIdent("settings",
-            ImmutableList.of("unassigned", "node_left"));
-        public static final ColumnIdent TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = new ColumnIdent("settings",
-            ImmutableList.of("unassigned", "node_left", "delayed_timeout"));
-    }
-
-    protected InformationTableInfo(ClusterService clusterService,
-                                   TableIdent ident,
-                                   ImmutableList<ColumnIdent> primaryKeyIdentList,
-                                   Map<ColumnIdent, Reference> references) {
+    InformationTableInfo(ClusterService clusterService,
+                         TableIdent ident,
+                         ImmutableList<ColumnIdent> primaryKeyIdentList,
+                         Map<ColumnIdent, Reference> references) {
         this(clusterService, ident, primaryKeyIdentList, references, null);
     }
 
-    protected InformationTableInfo(ClusterService clusterService,
-                                   TableIdent ident,
-                                   ImmutableList<ColumnIdent> primaryKeyIdentList,
-                                   Map<ColumnIdent, Reference> references,
-                                   @Nullable ImmutableList<Reference> columns) {
+    InformationTableInfo(ClusterService clusterService,
+                         TableIdent ident,
+                         ImmutableList<ColumnIdent> primaryKeyIdentList,
+                         Map<ColumnIdent, Reference> references,
+                         @Nullable ImmutableList<Reference> columns) {
         super(ident, references, columns, primaryKeyIdentList);
         this.clusterService = clusterService;
     }

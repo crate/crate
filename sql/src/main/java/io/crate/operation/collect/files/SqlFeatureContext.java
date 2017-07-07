@@ -48,4 +48,34 @@ public class SqlFeatureContext {
         this.isVerifiedBy = isVerifiedBy;
         this.comments = comments;
     }
+
+    public String getFeatureId() {
+        return featureId;
+    }
+
+    public String getFeatureName() {
+        return featureName;
+    }
+
+    public String getSubFeatureId() {
+        return subFeatureId;
+    }
+
+    public String getSubFeatureName() {
+        return subFeatureName;
+    }
+
+    public boolean isSupported() {
+        return isSupported;
+    }
+
+    @Nullable
+    public String getIsVerifiedBy() {
+        return isVerifiedBy;
+    }
+
+    @Nullable
+    public String getComments() {
+        return comments;
+    }
 }

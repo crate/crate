@@ -22,22 +22,22 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 
-
-@Singleton
 public class SysChecksTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "checks");
@@ -48,13 +48,25 @@ public class SysChecksTableInfo extends StaticTableInfo {
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
-        public static final ColumnIdent SEVERITY = new ColumnIdent("severity");
+        static final ColumnIdent SEVERITY = new ColumnIdent("severity");
         public static final ColumnIdent DESCRIPTION = new ColumnIdent("description");
-        public static final ColumnIdent PASSED = new ColumnIdent("passed");
+        static final ColumnIdent PASSED = new ColumnIdent("passed");
     }
 
-    @Inject
-    protected SysChecksTableInfo(ClusterService clusterService) {
+    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<SysCheck>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysCheck>>builder()
+            .put(SysChecksTableInfo.Columns.ID,
+                () -> RowContextCollectorExpression.forFunction(SysCheck::id))
+            .put(SysChecksTableInfo.Columns.DESCRIPTION,
+                () -> RowContextCollectorExpression.objToBytesRef(SysCheck::description))
+            .put(SysChecksTableInfo.Columns.SEVERITY,
+                () -> RowContextCollectorExpression.forFunction((SysCheck r) -> r.severity().value()))
+            .put(SysChecksTableInfo.Columns.PASSED,
+                () -> RowContextCollectorExpression.forFunction(SysCheck::validate))
+            .build();
+    }
+
+    SysChecksTableInfo(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
                 .register(Columns.ID, DataTypes.INTEGER)
                 .register(Columns.SEVERITY, DataTypes.INTEGER)

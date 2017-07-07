@@ -22,11 +22,21 @@
 package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RoutineInfo;
+import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
+
+import java.util.Map;
 
 public class InformationRoutinesTableInfo extends InformationTableInfo {
 
@@ -34,35 +44,56 @@ public class InformationRoutinesTableInfo extends InformationTableInfo {
     public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
 
     public static class Columns {
-        public static final ColumnIdent SPECIFIC_NAME = new ColumnIdent("specific_name");
-        public static final ColumnIdent ROUTINE_NAME = new ColumnIdent("routine_name");
-        public static final ColumnIdent ROUTINE_TYPE = new ColumnIdent("routine_type");
-        public static final ColumnIdent ROUTINE_SCHEMA = new ColumnIdent("routine_schema");
-        public static final ColumnIdent ROUTINE_BODY = new ColumnIdent("routine_body");
-        public static final ColumnIdent ROUTINE_DEFINITION = new ColumnIdent("routine_definition");
-        public static final ColumnIdent DATA_TYPE = new ColumnIdent("data_type");
-        public static final ColumnIdent IS_DETERMINISTIC = new ColumnIdent("is_deterministic");
+        static final ColumnIdent SPECIFIC_NAME = new ColumnIdent("specific_name");
+        static final ColumnIdent ROUTINE_NAME = new ColumnIdent("routine_name");
+        static final ColumnIdent ROUTINE_TYPE = new ColumnIdent("routine_type");
+        static final ColumnIdent ROUTINE_SCHEMA = new ColumnIdent("routine_schema");
+        static final ColumnIdent ROUTINE_BODY = new ColumnIdent("routine_body");
+        static final ColumnIdent ROUTINE_DEFINITION = new ColumnIdent("routine_definition");
+        static final ColumnIdent DATA_TYPE = new ColumnIdent("data_type");
+        static final ColumnIdent IS_DETERMINISTIC = new ColumnIdent("is_deterministic");
     }
 
     public static class References {
-        public static final Reference ROUTINE_NAME = info(Columns.ROUTINE_NAME, DataTypes.STRING);
-        public static final Reference ROUTINE_TYPE = info(Columns.ROUTINE_TYPE, DataTypes.STRING);
-        public static final Reference ROUTINE_SCHEMA = info(Columns.ROUTINE_SCHEMA, DataTypes.STRING);
-        public static final Reference SPECIFIC_NAME = info(Columns.SPECIFIC_NAME, DataTypes.STRING);
-        public static final Reference ROUTINE_BODY = info(Columns.ROUTINE_BODY, DataTypes.STRING);
-        public static final Reference ROUTINE_DEFINITION = info(Columns.ROUTINE_DEFINITION, DataTypes.STRING);
-        public static final Reference DATA_TYPE = info(Columns.DATA_TYPE, DataTypes.STRING);
-        public static final Reference IS_DETERMINISTIC = info(Columns.IS_DETERMINISTIC, DataTypes.BOOLEAN);
+        static final Reference ROUTINE_NAME = info(Columns.ROUTINE_NAME, DataTypes.STRING);
+        static final Reference ROUTINE_TYPE = info(Columns.ROUTINE_TYPE, DataTypes.STRING);
+        static final Reference ROUTINE_SCHEMA = info(Columns.ROUTINE_SCHEMA, DataTypes.STRING);
+        static final Reference SPECIFIC_NAME = info(Columns.SPECIFIC_NAME, DataTypes.STRING);
+        static final Reference ROUTINE_BODY = info(Columns.ROUTINE_BODY, DataTypes.STRING);
+        static final Reference ROUTINE_DEFINITION = info(Columns.ROUTINE_DEFINITION, DataTypes.STRING);
+        static final Reference DATA_TYPE = info(Columns.DATA_TYPE, DataTypes.STRING);
+        static final Reference IS_DETERMINISTIC = info(Columns.IS_DETERMINISTIC, DataTypes.BOOLEAN);
+    }
+
+    public static Map<ColumnIdent, RowCollectExpressionFactory<RoutineInfo>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<RoutineInfo>>builder()
+            .put(InformationRoutinesTableInfo.Columns.ROUTINE_NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(RoutineInfo::name))
+            .put(InformationRoutinesTableInfo.Columns.ROUTINE_TYPE,
+                () -> RowContextCollectorExpression.objToBytesRef(RoutineInfo::type))
+            .put(InformationRoutinesTableInfo.Columns.ROUTINE_SCHEMA,
+                () -> RowContextCollectorExpression.objToBytesRef(RoutineInfo::schema))
+            .put(InformationRoutinesTableInfo.Columns.SPECIFIC_NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(RoutineInfo::specificName))
+            .put(InformationRoutinesTableInfo.Columns.ROUTINE_BODY,
+                () -> RowContextCollectorExpression.objToBytesRef(RoutineInfo::body))
+            .put(InformationRoutinesTableInfo.Columns.ROUTINE_DEFINITION,
+                () -> RowContextCollectorExpression.objToBytesRef(RoutineInfo::definition))
+            .put(InformationRoutinesTableInfo.Columns.DATA_TYPE,
+                () -> RowContextCollectorExpression.objToBytesRef(RoutineInfo::dataType))
+            .put(InformationRoutinesTableInfo.Columns.IS_DETERMINISTIC,
+                () -> RowContextCollectorExpression.forFunction(RoutineInfo::isDeterministic))
+            .build();
     }
 
     private static Reference info(ColumnIdent columnIdent, DataType dataType) {
         return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    protected InformationRoutinesTableInfo(ClusterService clusterService) {
+    InformationRoutinesTableInfo(ClusterService clusterService) {
         super(clusterService,
             IDENT,
-            ImmutableList.<ColumnIdent>of(),
+            ImmutableList.of(),
             ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
                 .put(Columns.ROUTINE_NAME, References.ROUTINE_NAME)
                 .put(Columns.ROUTINE_TYPE, References.ROUTINE_TYPE)

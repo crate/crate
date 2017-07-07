@@ -24,12 +24,12 @@ package io.crate.operation.reference.sys.node;
 
 import io.crate.monitor.ExtendedNetworkStats;
 
-class NodeNetworkStatsExpression extends NestedNodeStatsExpression {
+public class NodeNetworkStatsExpression extends NestedNodeStatsExpression {
 
     private static final String TCP = "tcp";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
-    NodeNetworkStatsExpression() {
+    public NodeNetworkStatsExpression() {
         childImplementations.put(PROBE_TIMESTAMP, new SimpleNodeStatsExpression<Long>() {
             @Override
             public Long innerValue() {

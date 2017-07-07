@@ -26,10 +26,11 @@ import io.crate.Build;
 import io.crate.Version;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.DummyExtendedNodeInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.reference.sys.RowContextReferenceResolver;
+import io.crate.operation.reference.StaticTableReferenceResolver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -53,12 +54,16 @@ import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.refInfo;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 
 @SuppressWarnings("unchecked")
 public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
-    private final RowContextReferenceResolver resolver = RowContextReferenceResolver.INSTANCE;
+    private final StaticTableReferenceResolver<NodeStatsContext> resolver =
+        new StaticTableReferenceResolver<>(SysNodesTableInfo.expressions());
     private final NodeStatsContext context = new NodeStatsContext(true);
 
     private CollectExpression collectExpression;

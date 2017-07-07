@@ -39,7 +39,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.RowsTransformer;
-import io.crate.operation.reference.sys.RowContextReferenceResolver;
+import io.crate.operation.reference.StaticTableReferenceResolver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.action.ActionListener;
@@ -204,10 +204,12 @@ public class NodeStatsIterator implements BatchIterator {
 
         loading = new CompletableFuture<>();
 
+        StaticTableReferenceResolver<NodeStatsContext> referenceResolver = new StaticTableReferenceResolver<>(
+            SysNodesTableInfo.expressions());
         CompletableFuture<List<NodeStatsContext>> nodeStatsContexts = getNodeStatsContexts();
         nodeStatsContexts.whenComplete((List<NodeStatsContext> result, Throwable t) -> {
             if (t == null) {
-                rows = RowsTransformer.toRowsIterable(inputFactory, RowContextReferenceResolver.INSTANCE, collectPhase,
+                rows = RowsTransformer.toRowsIterable(inputFactory,referenceResolver, collectPhase,
                     result);
                 it = rows.iterator();
                 loading.complete(rows);

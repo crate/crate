@@ -22,33 +22,49 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.repositories.Repository;
 
 import javax.annotation.Nullable;
 
 public class SysRepositoriesTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "repositories");
-    private final ClusterService clusterService;
+    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.NAME);
+    private static final RowGranularity GRANULARITY = RowGranularity.DOC;
 
     public static class Columns {
         public static final ColumnIdent NAME = new ColumnIdent("name");
         public static final ColumnIdent TYPE = new ColumnIdent("type");
-        public static final ColumnIdent SETTINGS = new ColumnIdent("settings");
+        static final ColumnIdent SETTINGS = new ColumnIdent("settings");
     }
 
-    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.NAME);
-    private static final RowGranularity GRANULARITY = RowGranularity.DOC;
+    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<Repository>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<Repository>>builder()
+            .put(SysRepositoriesTableInfo.Columns.NAME,
+                () -> RowContextCollectorExpression.objToBytesRef((Repository r) -> r.getMetadata().name()))
+            .put(SysRepositoriesTableInfo.Columns.TYPE,
+                () -> RowContextCollectorExpression.objToBytesRef((Repository r) -> r.getMetadata().type()))
+            .put(SysRepositoriesTableInfo.Columns.SETTINGS,
+                () -> RowContextCollectorExpression
+                    .forFunction((Repository r) -> r.getMetadata().settings().getAsStructuredMap()))
+            .build();
+    }
 
-    public SysRepositoriesTableInfo(ClusterService clusterService) {
+    private final ClusterService clusterService;
+
+    SysRepositoriesTableInfo(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
             .register(Columns.NAME, DataTypes.STRING)
             .register(Columns.TYPE, DataTypes.STRING)

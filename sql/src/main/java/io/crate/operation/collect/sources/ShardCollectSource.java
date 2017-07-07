@@ -47,6 +47,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
+import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.BatchIteratorCollectorBridge;
@@ -64,6 +65,7 @@ import io.crate.operation.projectors.ProjectingBatchConsumer;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.operation.reference.StaticTableReferenceResolver;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
 import io.crate.planner.consumer.OrderByPositionVisitor;
@@ -153,6 +155,9 @@ import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 @Singleton
 public class ShardCollectSource extends AbstractComponent implements CollectSource {
 
+    private static final StaticTableReferenceResolver<UnassignedShard> UNASSIGNED_SHARD_SREFERENCE_RESOLVER =
+        new StaticTableReferenceResolver<>(SysShardsTableInfo.unassignedShardsExpressions());
+
     private final Schemas schemas;
     private final IndicesService indicesService;
     private final ClusterService clusterService;
@@ -215,7 +220,8 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             transportActionProvider,
             new InputFactory(functions),
             nodeNormalizer,
-            systemCollectSource::getRowUpdater
+            systemCollectSource::getRowUpdater,
+            systemCollectSource::tableDefinition
         );
 
         indexEventListenerProxy.addLast(new LifecycleListener());
@@ -230,7 +236,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
         private Executor delegateExecutor;
 
-        public DirectFallbackExecutor(Executor delegateExecutor) {
+        DirectFallbackExecutor(Executor delegateExecutor) {
             this.delegateExecutor = delegateExecutor;
         }
 
@@ -526,7 +532,8 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             // since unassigned shards aren't really on any node we use the collectPhase which is NOT normalized here
             // because otherwise if _node was also selected it would contain something which is wrong
             for (Row row :
-                systemCollectSource.toRowsIterableTransformation(collectPhase, false).apply(unassignedShards)) {
+                systemCollectSource.toRowsIterableTransformation(collectPhase, UNASSIGNED_SHARD_SREFERENCE_RESOLVER, false)
+                    .apply(unassignedShards)) {
                 rows.add(row.materialize());
             }
         }

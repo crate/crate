@@ -82,7 +82,8 @@ public abstract class ShardCollectorProvider {
             transportActionProvider,
             inputFactory,
             shardNormalizer,
-            null,
+            t -> null,
+            t -> null,
             indexShard.shardId()
         );
     }

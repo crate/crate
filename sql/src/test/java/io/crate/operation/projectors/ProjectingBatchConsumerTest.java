@@ -96,7 +96,8 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
                 ReplaceMode.COPY,
                 r -> Literal.of(r.valueType(), r.valueType().value("1")),
                 null),
-            null,
+            t -> null,
+            t-> null,
             new ShardId("dummy", UUID.randomUUID().toString(), 0)
         );
     }

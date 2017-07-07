@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 
-class NodeThreadPoolsExpression
+public class NodeThreadPoolsExpression
     extends ArrayTypeRowContextCollectorExpression<NodeStatsContext, Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>, Object> {
 
     private static final String POOL_NAME = "name";
@@ -41,7 +41,7 @@ class NodeThreadPoolsExpression
     private static final String THREADS = "threads";
     private static final String QUEUE = "queue";
 
-    NodeThreadPoolsExpression() {
+    public NodeThreadPoolsExpression() {
     }
 
     @Override

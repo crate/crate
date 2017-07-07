@@ -21,19 +21,25 @@
 
 package io.crate.metadata.sys;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
+import java.util.Map;
 
-@Singleton
 public class SysOperationsTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "operations");
@@ -41,16 +47,34 @@ public class SysOperationsTableInfo extends StaticTableInfo {
 
     public static class Columns {
         public final static ColumnIdent ID = new ColumnIdent("id");
-        public final static ColumnIdent JOB_ID = new ColumnIdent("job_id");
+        final static ColumnIdent JOB_ID = new ColumnIdent("job_id");
         public final static ColumnIdent NAME = new ColumnIdent("name");
         public final static ColumnIdent STARTED = new ColumnIdent("started");
-        public final static ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
+        final static ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
+    }
+
+    public static Map<ColumnIdent, RowCollectExpressionFactory<OperationContext>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<OperationContext>>builder()
+            .put(SysOperationsTableInfo.Columns.ID,
+                () -> RowContextCollectorExpression.objToBytesRef(OperationContext::id))
+            .put(SysOperationsTableInfo.Columns.JOB_ID,
+                () -> RowContextCollectorExpression.objToBytesRef(OperationContext::jobId))
+            .put(SysOperationsTableInfo.Columns.NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(OperationContext::name))
+            .put(SysOperationsTableInfo.Columns.STARTED,
+                () -> RowContextCollectorExpression.forFunction(OperationContext::started))
+            .put(SysOperationsTableInfo.Columns.USED_BYTES, () -> RowContextCollectorExpression.forFunction(r -> {
+                if (r.usedBytes == 0) {
+                    return null;
+                }
+                return r.usedBytes;
+            }))
+            .build();
     }
 
     private final TableColumn nodesTableColumn;
 
-    @Inject
-    public SysOperationsTableInfo(ClusterService clusterService, SysNodesTableInfo sysNodesTableInfo) {
+    SysOperationsTableInfo(ClusterService clusterService, SysNodesTableInfo sysNodesTableInfo) {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
                 .register(Columns.ID, DataTypes.STRING)
                 .register(Columns.JOB_ID, DataTypes.STRING)

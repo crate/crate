@@ -27,7 +27,8 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.reference.sys.RowContextReferenceResolver;
+import io.crate.operation.reference.StaticTableDefinition;
+import io.crate.metadata.sys.SysTableDefinitions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -39,21 +40,22 @@ import java.util.function.Supplier;
 public class SysTableRegistry {
 
     private final SysSchemaInfo sysSchemaInfo;
-    private final SystemCollectSource systemCollectSource;
+    private final SysTableDefinitions tableDefinitions;
 
     @Inject
     public SysTableRegistry(SysSchemaInfo sysSchemaInfo,
-                            SystemCollectSource systemCollectSource) {
+                            SysTableDefinitions tableDefinitions) {
         this.sysSchemaInfo = sysSchemaInfo;
-        this.systemCollectSource = systemCollectSource;
+        this.tableDefinitions = tableDefinitions;
     }
 
-    public void registerSysTable(TableInfo tableInfo, Supplier<CompletableFuture<? extends Iterable<?>>> iterableSupplier,
-                                 Map<ColumnIdent, ? extends RowCollectExpressionFactory<?>> expressionFactories) {
+    public <R> void registerSysTable(TableInfo tableInfo,
+                                     Supplier<CompletableFuture<? extends Iterable<R>>> iterableSupplier,
+                                     Map<ColumnIdent, ? extends RowCollectExpressionFactory<R>> expressionFactories) {
         TableIdent ident = tableInfo.ident();
         sysSchemaInfo.registerSysTable(tableInfo);
-        systemCollectSource.registerIterableGetter(ident.fqn(), iterableSupplier);
-        RowContextReferenceResolver.INSTANCE.registerTableFactory(ident, expressionFactories);
+        tableDefinitions.registerTableDefinition(ident, new StaticTableDefinition<>(
+            iterableSupplier, expressionFactories));
     }
 
 }

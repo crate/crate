@@ -34,5 +34,6 @@ public class PgCatalogModule extends AbstractModule {
     protected void configure() {
         schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
         schemaBinder.addBinding(PgCatalogSchemaInfo.NAME).to(PgCatalogSchemaInfo.class).asEagerSingleton();
+        bind(PgCatalogTableDefinitions.class).asEagerSingleton();
     }
 }

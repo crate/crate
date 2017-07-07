@@ -22,109 +22,307 @@
 package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
-import io.crate.metadata.*;
+import io.crate.Version;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.metadata.doc.DocIndexMetaData;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.table.ColumnPolicy;
+import io.crate.metadata.table.ShardedTable;
+import io.crate.metadata.table.TableInfo;
+import io.crate.operation.reference.information.TablesSettingsExpression;
+import io.crate.operation.reference.information.TablesVersionExpression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.service.ClusterService;
+
+import java.util.List;
+import java.util.Map;
 
 public class InformationTablesTableInfo extends InformationTableInfo {
 
     public static final String NAME = "tables";
     public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
 
+    private static final BytesRef ZERO_REPLICAS = new BytesRef("0");
+    static final BytesRef TABLE_TYPE = new BytesRef("BASE TABLE");
+    static final BytesRef SELF_REFERENCING_COLUMN_NAME = new BytesRef("_id");
+    static final BytesRef REFERENCE_GENERATION = new BytesRef("SYSTEM GENERATED");
+
+
+    public static class Columns {
+        public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
+        static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
+        static final ColumnIdent TABLE_CATALOG = new ColumnIdent("table_catalog");
+        static final ColumnIdent TABLE_TYPE = new ColumnIdent("table_type");
+        static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
+        public static final ColumnIdent VALUES = new ColumnIdent("values");
+        static final ColumnIdent NUMBER_OF_SHARDS = new ColumnIdent("number_of_shards");
+        public static final ColumnIdent NUMBER_OF_REPLICAS = new ColumnIdent("number_of_replicas");
+        static final ColumnIdent CLUSTERED_BY = new ColumnIdent("clustered_by");
+        static final ColumnIdent PARTITIONED_BY = new ColumnIdent("partitioned_by");
+        static final ColumnIdent BLOBS_PATH = new ColumnIdent("blobs_path");
+        static final ColumnIdent COLUMN_POLICY = new ColumnIdent("column_policy");
+        static final ColumnIdent ROUTING_HASH_FUNCTION = new ColumnIdent("routing_hash_function");
+        static final ColumnIdent TABLE_VERSION = new ColumnIdent("version");
+        static final ColumnIdent TABLE_VERSION_CREATED = new ColumnIdent("version",
+            ImmutableList.of(Version.Property.CREATED.toString()));
+        static final ColumnIdent TABLE_VERSION_CREATED_CRATEDB = new ColumnIdent("version",
+            ImmutableList.of(Version.Property.CREATED.toString(), Version.CRATEDB_VERSION_KEY));
+        static final ColumnIdent TABLE_VERSION_CREATED_ES = new ColumnIdent("version",
+            ImmutableList.of(Version.Property.CREATED.toString(), Version.ES_VERSION_KEY));
+        static final ColumnIdent TABLE_VERSION_UPGRADED = new ColumnIdent("version",
+            ImmutableList.of(Version.Property.UPGRADED.toString()));
+        static final ColumnIdent TABLE_VERSION_UPGRADED_CRATEDB = new ColumnIdent("version",
+            ImmutableList.of(Version.Property.UPGRADED.toString(), Version.CRATEDB_VERSION_KEY));
+        static final ColumnIdent TABLE_VERSION_UPGRADED_ES = new ColumnIdent("version",
+            ImmutableList.of(Version.Property.UPGRADED.toString(), Version.ES_VERSION_KEY));
+        static final ColumnIdent CLOSED = new ColumnIdent("closed");
+        static final ColumnIdent REFERENCE_GENERATION = new ColumnIdent("reference_generation");
+        static final ColumnIdent SELF_REFERENCING_COLUMN_NAME = new ColumnIdent("self_referencing_column_name");
+        static final ColumnIdent TABLE_SETTINGS = new ColumnIdent("settings");
+        static final ColumnIdent TABLE_SETTINGS_BLOCKS = new ColumnIdent("settings",
+            ImmutableList.of("blocks"));
+        static final ColumnIdent TABLE_SETTINGS_BLOCKS_READ_ONLY = new ColumnIdent("settings",
+            ImmutableList.of("blocks", "read_only"));
+        static final ColumnIdent TABLE_SETTINGS_BLOCKS_READ = new ColumnIdent("settings",
+            ImmutableList.of("blocks", "read"));
+        static final ColumnIdent TABLE_SETTINGS_BLOCKS_WRITE = new ColumnIdent("settings",
+            ImmutableList.of("blocks", "write"));
+        static final ColumnIdent TABLE_SETTINGS_BLOCKS_METADATA = new ColumnIdent("settings",
+            ImmutableList.of("blocks", "metadata"));
+        static final ColumnIdent TABLE_SETTINGS_ROUTING = new ColumnIdent("settings",
+            ImmutableList.of("routing"));
+        static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION = new ColumnIdent("settings",
+            ImmutableList.of("routing", "allocation"));
+        static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE = new ColumnIdent("settings",
+            ImmutableList.of("routing", "allocation", "enable"));
+        static final ColumnIdent TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = new ColumnIdent("settings",
+            ImmutableList.of("routing", "allocation", "total_shards_per_node"));
+        static final ColumnIdent TABLE_SETTINGS_RECOVERY = new ColumnIdent("settings",
+            ImmutableList.of("recovery"));
+        static final ColumnIdent TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = new ColumnIdent("settings",
+            ImmutableList.of("recovery", "initial_shards"));
+        static final ColumnIdent TABLE_SETTINGS_WARMER = new ColumnIdent("settings",
+            ImmutableList.of("warmer"));
+        static final ColumnIdent TABLE_SETTINGS_WARMER_ENABLED = new ColumnIdent("settings",
+            ImmutableList.of("warmer", "enabled"));
+
+        static final ColumnIdent TABLE_SETTINGS_TRANSLOG = new ColumnIdent("settings",
+            ImmutableList.of("translog"));
+        static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE = new ColumnIdent("settings",
+            ImmutableList.of("translog", "flush_threshold_size"));
+        static final ColumnIdent TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL = new ColumnIdent("settings",
+            ImmutableList.of("translog", "sync_interval"));
+
+        static final ColumnIdent TABLE_SETTINGS_REFRESH_INTERVAL = new ColumnIdent("settings",
+            ImmutableList.of("refresh_interval"));
+
+        static final ColumnIdent TABLE_SETTINGS_WRITE = new ColumnIdent("settings",
+            ImmutableList.of("write"));
+
+        static final ColumnIdent TABLE_SETTINGS_WRITE_WAIT_FOT_ACTIVE_SHARDS = new ColumnIdent("settings",
+            ImmutableList.of("write", "wait_for_active_shards"));
+
+        static final ColumnIdent TABLE_SETTINGS_UNASSIGNED = new ColumnIdent("settings",
+            ImmutableList.of("unassigned"));
+        static final ColumnIdent TABLE_SETTINGS_UNASSIGNED_NODE_LEFT = new ColumnIdent("settings",
+            ImmutableList.of("unassigned", "node_left"));
+        static final ColumnIdent TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = new ColumnIdent("settings",
+            ImmutableList.of("unassigned", "node_left", "delayed_timeout"));
+    }
+
+
     public static class References {
-        public static final Reference TABLE_SCHEMA = createRef(Columns.TABLE_SCHEMA, DataTypes.STRING);
+        static final Reference TABLE_SCHEMA = createRef(Columns.TABLE_SCHEMA, DataTypes.STRING);
         public static final Reference TABLE_NAME = createRef(Columns.TABLE_NAME, DataTypes.STRING);
-        public static final Reference TABLE_CATALOG = createRef(Columns.TABLE_CATALOG, DataTypes.STRING);
-        public static final Reference TABLE_TYPE = createRef(Columns.TABLE_TYPE, DataTypes.STRING);
-        public static final Reference NUMBER_OF_SHARDS = createRef(Columns.NUMBER_OF_SHARDS, DataTypes.INTEGER);
+        static final Reference TABLE_CATALOG = createRef(Columns.TABLE_CATALOG, DataTypes.STRING);
+        static final Reference TABLE_TYPE = createRef(Columns.TABLE_TYPE, DataTypes.STRING);
+        static final Reference NUMBER_OF_SHARDS = createRef(Columns.NUMBER_OF_SHARDS, DataTypes.INTEGER);
         public static final Reference NUMBER_OF_REPLICAS = createRef(Columns.NUMBER_OF_REPLICAS, DataTypes.STRING);
-        public static final Reference CLUSTERED_BY = createRef(Columns.CLUSTERED_BY, DataTypes.STRING);
-        public static final Reference PARTITIONED_BY = createRef(Columns.PARTITIONED_BY, new ArrayType(DataTypes.STRING));
-        public static final Reference BLOBS_PATH = createRef(Columns.BLOBS_PATH, DataTypes.STRING);
-        public static final Reference COLUMN_POLICY = createRef(Columns.COLUMN_POLICY, DataTypes.STRING);
-        public static final Reference ROUTING_HASH_FUNCTION = createRef(Columns.ROUTING_HASH_FUNCTION, DataTypes.STRING);
-        public static final Reference TABLE_VERSION = createRef(Columns.TABLE_VERSION, DataTypes.OBJECT);
-        public static final Reference TABLE_VERSION_CREATED = createRef(
+        static final Reference CLUSTERED_BY = createRef(Columns.CLUSTERED_BY, DataTypes.STRING);
+        static final Reference PARTITIONED_BY = createRef(Columns.PARTITIONED_BY, new ArrayType(DataTypes.STRING));
+        static final Reference BLOBS_PATH = createRef(Columns.BLOBS_PATH, DataTypes.STRING);
+        static final Reference COLUMN_POLICY = createRef(Columns.COLUMN_POLICY, DataTypes.STRING);
+        static final Reference ROUTING_HASH_FUNCTION = createRef(Columns.ROUTING_HASH_FUNCTION, DataTypes.STRING);
+        static final Reference TABLE_VERSION = createRef(Columns.TABLE_VERSION, DataTypes.OBJECT);
+        static final Reference TABLE_VERSION_CREATED = createRef(
             Columns.TABLE_VERSION_CREATED, DataTypes.OBJECT);
-        public static final Reference TABLE_VERSION_CREATED_CRATEDB = createRef(
+        static final Reference TABLE_VERSION_CREATED_CRATEDB = createRef(
             Columns.TABLE_VERSION_CREATED_CRATEDB, DataTypes.OBJECT);
-        public static final Reference TABLE_VERSION_CREATED_ES = createRef(
+        static final Reference TABLE_VERSION_CREATED_ES = createRef(
             Columns.TABLE_VERSION_CREATED_ES, DataTypes.OBJECT);
-        public static final Reference TABLE_VERSION_UPGRADED = createRef(
+        static final Reference TABLE_VERSION_UPGRADED = createRef(
             Columns.TABLE_VERSION_UPGRADED, DataTypes.OBJECT);
-        public static final Reference TABLE_VERSION_UPGRADED_CRATEDB = createRef(
+        static final Reference TABLE_VERSION_UPGRADED_CRATEDB = createRef(
             Columns.TABLE_VERSION_UPGRADED_CRATEDB, DataTypes.OBJECT);
-        public static final Reference TABLE_VERSION_UPGRADED_ES = createRef(
+        static final Reference TABLE_VERSION_UPGRADED_ES = createRef(
             Columns.TABLE_VERSION_UPGRADED_ES, DataTypes.OBJECT);
-        public static final Reference CLOSED = createRef(Columns.CLOSED, DataTypes.BOOLEAN);
-        public static final Reference REFERENCE_GENERATION = createRef(Columns.REFERENCE_GENERATION, DataTypes.STRING);
-        public static final Reference SELF_REFERENCING_COLUMN_NAME = createRef(Columns.SELF_REFERENCING_COLUMN_NAME,
+        static final Reference CLOSED = createRef(Columns.CLOSED, DataTypes.BOOLEAN);
+        static final Reference REFERENCE_GENERATION = createRef(Columns.REFERENCE_GENERATION, DataTypes.STRING);
+        static final Reference SELF_REFERENCING_COLUMN_NAME = createRef(Columns.SELF_REFERENCING_COLUMN_NAME,
             DataTypes.STRING);
 
-        public static final Reference TABLE_SETTINGS = createRef(Columns.TABLE_SETTINGS, DataTypes.OBJECT);
+        static final Reference TABLE_SETTINGS = createRef(Columns.TABLE_SETTINGS, DataTypes.OBJECT);
 
-        public static final Reference TABLE_SETTINGS_REFRESH_INTERVAL = createRef(
+        static final Reference TABLE_SETTINGS_REFRESH_INTERVAL = createRef(
             Columns.TABLE_SETTINGS_REFRESH_INTERVAL, DataTypes.LONG);
 
-        public static final Reference TABLE_SETTINGS_WRITE = createRef(
+        static final Reference TABLE_SETTINGS_WRITE = createRef(
             Columns.TABLE_SETTINGS_WRITE, DataTypes.OBJECT);
 
-        public static final Reference TABLE_SETTINGS_WRITE_WAIT_FOT_ACTIVE_SHARDS = createRef(
+        static final Reference TABLE_SETTINGS_WRITE_WAIT_FOT_ACTIVE_SHARDS = createRef(
             Columns.TABLE_SETTINGS_WRITE_WAIT_FOT_ACTIVE_SHARDS, DataTypes.STRING);
 
-        public static final Reference TABLE_SETTINGS_BLOCKS = createRef(
+        static final Reference TABLE_SETTINGS_BLOCKS = createRef(
             Columns.TABLE_SETTINGS_BLOCKS, DataTypes.OBJECT);
-        public static final Reference TABLE_SETTINGS_BLOCKS_READ_ONLY = createRef(
+        static final Reference TABLE_SETTINGS_BLOCKS_READ_ONLY = createRef(
             Columns.TABLE_SETTINGS_BLOCKS_READ_ONLY, DataTypes.BOOLEAN);
-        public static final Reference TABLE_SETTINGS_BLOCKS_READ = createRef(
+        static final Reference TABLE_SETTINGS_BLOCKS_READ = createRef(
             Columns.TABLE_SETTINGS_BLOCKS_READ, DataTypes.BOOLEAN);
-        public static final Reference TABLE_SETTINGS_BLOCKS_WRITE = createRef(
+        static final Reference TABLE_SETTINGS_BLOCKS_WRITE = createRef(
             Columns.TABLE_SETTINGS_BLOCKS_WRITE, DataTypes.BOOLEAN);
-        public static final Reference TABLE_SETTINGS_BLOCKS_METADATA = createRef(
+        static final Reference TABLE_SETTINGS_BLOCKS_METADATA = createRef(
             Columns.TABLE_SETTINGS_BLOCKS_METADATA, DataTypes.BOOLEAN);
 
-        public static final Reference TABLE_SETTINGS_TRANSLOG = createRef(
+        static final Reference TABLE_SETTINGS_TRANSLOG = createRef(
             Columns.TABLE_SETTINGS_TRANSLOG, DataTypes.OBJECT);
-        public static final Reference TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE = createRef(
+        static final Reference TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE = createRef(
             Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE, DataTypes.LONG);
 
-        public static final Reference TABLE_SETTINGS_ROUTING = createRef(
+        static final Reference TABLE_SETTINGS_ROUTING = createRef(
             Columns.TABLE_SETTINGS_ROUTING, DataTypes.OBJECT);
-        public static final Reference TABLE_SETTINGS_ROUTING_ALLOCATION = createRef(
+        static final Reference TABLE_SETTINGS_ROUTING_ALLOCATION = createRef(
             Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, DataTypes.OBJECT);
-        public static final Reference TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE = createRef(
+        static final Reference TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE = createRef(
             Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, DataTypes.STRING);
-        public static final Reference TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = createRef(
+        static final Reference TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = createRef(
             Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, DataTypes.INTEGER);
 
-        public static final Reference TABLE_SETTINGS_RECOVERY = createRef(
+        static final Reference TABLE_SETTINGS_RECOVERY = createRef(
             Columns.TABLE_SETTINGS_RECOVERY, DataTypes.OBJECT);
-        public static final Reference TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = createRef(
+        static final Reference TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = createRef(
             Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, DataTypes.STRING);
-        public static final Reference TABLE_SETTINGS_WARMER = createRef(
+        static final Reference TABLE_SETTINGS_WARMER = createRef(
             Columns.TABLE_SETTINGS_WARMER, DataTypes.OBJECT);
-        public static final Reference TABLE_SETTINGS_WARMER_ENABLED = createRef(
+        static final Reference TABLE_SETTINGS_WARMER_ENABLED = createRef(
             Columns.TABLE_SETTINGS_WARMER_ENABLED, DataTypes.BOOLEAN);
 
-        public static final Reference TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL = createRef(
+        static final Reference TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL = createRef(
             Columns.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL, DataTypes.LONG);
 
-        public static final Reference TABLE_SETTINGS_UNASSIGNED = createRef(
+        static final Reference TABLE_SETTINGS_UNASSIGNED = createRef(
             Columns.TABLE_SETTINGS_UNASSIGNED, DataTypes.OBJECT);
-        public static final Reference TABLE_SETTINGS_UNASSIGNED_NODE_LEFT = createRef(
+        static final Reference TABLE_SETTINGS_UNASSIGNED_NODE_LEFT = createRef(
             Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, DataTypes.OBJECT);
-        public static final Reference TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = createRef(
+        static final Reference TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = createRef(
             Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, DataTypes.LONG);
+    }
+
+    public static Map<ColumnIdent, RowCollectExpressionFactory<TableInfo>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<TableInfo>>builder()
+            .put(InformationTablesTableInfo.Columns.TABLE_SCHEMA,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> r.ident().schema()))
+            .put(InformationTablesTableInfo.Columns.TABLE_NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> r.ident().name()))
+            .put(InformationTablesTableInfo.Columns.TABLE_CATALOG,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> r.ident().schema()))
+            .put(InformationTablesTableInfo.Columns.TABLE_TYPE,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> TABLE_TYPE))
+            .put(InformationTablesTableInfo.Columns.NUMBER_OF_SHARDS,
+                () -> RowContextCollectorExpression.forFunction(row -> {
+                    if (row instanceof ShardedTable) {
+                        return ((ShardedTable) row).numberOfShards();
+                    }
+                    return 1;
+                }))
+            .put(InformationTablesTableInfo.Columns.NUMBER_OF_REPLICAS,
+                () -> RowContextCollectorExpression.objToBytesRef(row -> {
+                    if (row instanceof ShardedTable) {
+                        return ((ShardedTable) row).numberOfReplicas();
+                    }
+                    return ZERO_REPLICAS;
+                }))
+            .put(InformationTablesTableInfo.Columns.CLUSTERED_BY,
+                () -> RowContextCollectorExpression.objToBytesRef(row -> {
+                    if (row instanceof ShardedTable) {
+                        ColumnIdent clusteredBy = ((ShardedTable) row).clusteredBy();
+                        if (clusteredBy == null) {
+                            return null;
+                        }
+                        return new BytesRef(clusteredBy.fqn());
+                    }
+                    return null;
+                }))
+            .put(InformationTablesTableInfo.Columns.PARTITIONED_BY,
+                () -> RowContextCollectorExpression.forFunction(row -> {
+                        if (row instanceof DocTableInfo) {
+                            List<ColumnIdent> partitionedBy = ((DocTableInfo) row).partitionedBy();
+                            if (partitionedBy == null || partitionedBy.isEmpty()) {
+                                return null;
+                            }
+
+                            BytesRef[] partitions = new BytesRef[partitionedBy.size()];
+                            for (int i = 0; i < partitions.length; i++) {
+                                partitions[i] = new BytesRef(partitionedBy.get(i).fqn());
+                            }
+                            return partitions;
+                        }
+                        return null;
+                }))
+            .put(InformationTablesTableInfo.Columns.COLUMN_POLICY,
+                () -> RowContextCollectorExpression.objToBytesRef(row -> {
+                    if (row instanceof DocTableInfo) {
+                        return new BytesRef(((DocTableInfo) row).columnPolicy().value());
+                    }
+                    return new BytesRef(ColumnPolicy.STRICT.value());
+                }))
+            .put(InformationTablesTableInfo.Columns.BLOBS_PATH,
+                () -> RowContextCollectorExpression.objToBytesRef(row -> {
+                        if (row instanceof BlobTableInfo) {
+                            return ((BlobTableInfo) row).blobsPath();
+                        }
+                        return null;
+                }))
+            .put(InformationTablesTableInfo.Columns.ROUTING_HASH_FUNCTION,
+                () -> RowContextCollectorExpression.objToBytesRef(row -> {
+                        if (row instanceof ShardedTable) {
+                            return new BytesRef(DocIndexMetaData.getRoutingHashFunctionPrettyName(
+                                ((ShardedTable) row).routingHashFunction()));
+                        }
+                        return null;
+                }))
+            .put(InformationTablesTableInfo.Columns.CLOSED,
+                () -> RowContextCollectorExpression.forFunction(row -> {
+                        if (row instanceof ShardedTable) {
+                            return ((ShardedTable) row).isClosed();
+                        }
+                        return null;
+                }))
+            .put(InformationTablesTableInfo.Columns.SELF_REFERENCING_COLUMN_NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> SELF_REFERENCING_COLUMN_NAME))
+            .put(InformationTablesTableInfo.Columns.REFERENCE_GENERATION,
+                () -> RowContextCollectorExpression.objToBytesRef(r -> REFERENCE_GENERATION))
+            .put(InformationTablesTableInfo.Columns.TABLE_VERSION, TablesVersionExpression::new)
+            .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS, TablesSettingsExpression::new
+            ).build();
     }
 
     private static Reference createRef(ColumnIdent columnIdent, DataType dataType) {
         return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    public InformationTablesTableInfo(ClusterService clusterService) {
+    InformationTablesTableInfo(ClusterService clusterService) {
         super(clusterService,
             IDENT,
             ImmutableList.of(Columns.TABLE_SCHEMA, Columns.TABLE_NAME),

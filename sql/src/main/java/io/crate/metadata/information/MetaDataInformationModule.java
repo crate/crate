@@ -33,5 +33,6 @@ public class MetaDataInformationModule extends AbstractModule {
     protected void configure() {
         schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
         schemaBinder.addBinding(InformationSchemaInfo.NAME).to(InformationSchemaInfo.class).asEagerSingleton();
+        bind(InformationSchemaTableDefinitions.class).asEagerSingleton();
     }
 }

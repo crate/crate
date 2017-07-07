@@ -22,11 +22,21 @@
 package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSortedMap;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
+
+import java.util.Map;
 
 public class InformationSchemataTableInfo extends InformationTableInfo {
 
@@ -34,18 +44,24 @@ public class InformationSchemataTableInfo extends InformationTableInfo {
     public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
 
     public static class Columns {
-        public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
+        static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
     }
 
     public static class References {
-        public static final Reference SCHEMA_NAME = info(Columns.SCHEMA_NAME, DataTypes.STRING);
+        static final Reference SCHEMA_NAME = info(Columns.SCHEMA_NAME, DataTypes.STRING);
+    }
+
+    public static Map<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SchemaInfo>>builder()
+            .put(InformationSchemataTableInfo.Columns.SCHEMA_NAME,
+                () -> RowContextCollectorExpression.objToBytesRef(SchemaInfo::name)).build();
     }
 
     private static Reference info(ColumnIdent columnIdent, DataType dataType) {
         return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    protected InformationSchemataTableInfo(ClusterService clusterService) {
+    InformationSchemataTableInfo(ClusterService clusterService) {
         super(clusterService, IDENT,
             ImmutableList.of(Columns.SCHEMA_NAME),
             ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()

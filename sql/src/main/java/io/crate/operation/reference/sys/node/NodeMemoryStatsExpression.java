@@ -24,7 +24,7 @@ package io.crate.operation.reference.sys.node;
 
 import org.elasticsearch.monitor.os.OsStats;
 
-class NodeMemoryStatsExpression extends NestedNodeStatsExpression {
+public class NodeMemoryStatsExpression extends NestedNodeStatsExpression {
 
     private static final String FREE = "free";
     private static final String USED = "used";
@@ -32,7 +32,7 @@ class NodeMemoryStatsExpression extends NestedNodeStatsExpression {
     private static final String USED_PERCENT = "used_percent";
     private static final String PROBE_TIMESTAMP = "probe_timestamp";
 
-    NodeMemoryStatsExpression() {
+    public NodeMemoryStatsExpression() {
         childImplementations.put(FREE, new SimpleNodeStatsExpression<Long>() {
             @Override
             public Long innerValue() {

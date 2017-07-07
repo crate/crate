@@ -30,9 +30,9 @@ import io.crate.operation.reference.RowCollectNestedObjectExpression;
 
 import java.util.Map;
 
-class TablesVersionExpression extends RowCollectNestedObjectExpression<TableInfo> {
+public class TablesVersionExpression extends RowCollectNestedObjectExpression<TableInfo> {
 
-    TablesVersionExpression() {
+    public TablesVersionExpression() {
         addChildImplementations();
     }
 

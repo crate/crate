@@ -20,23 +20,31 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.node;
+package io.crate.operation.reference;
 
-import com.google.common.collect.Lists;
-import io.crate.monitor.ThreadPools;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
+public class StaticTableDefinition<T> {
 
-public abstract class NodeStatsThreadPoolExpression<R>
-    extends NodeStatsArrayTypeExpression<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>, R> {
+    private final Supplier<CompletableFuture<? extends Iterable<T>>> iterable;
+    private final StaticTableReferenceResolver<T> referenceResolver;
 
-    protected NodeStatsThreadPoolExpression() {
+    public StaticTableDefinition(Supplier<CompletableFuture<? extends Iterable<T>>> iterable,
+                                 Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories) {
+        this.iterable = iterable;
+        this.referenceResolver = new StaticTableReferenceResolver<>(expressionFactories);
     }
 
-    @Override
-    protected List<Map.Entry<String, ThreadPools.ThreadPoolExecutorContext>> items() {
-        return Lists.newArrayList(this.row.threadPools());
+    public Supplier<CompletableFuture<? extends Iterable<T>>> getIterable() {
+        return iterable;
+    }
+
+    public StaticTableReferenceResolver<T> getReferenceResolver() {
+        return referenceResolver;
     }
 }

@@ -23,25 +23,26 @@
 package io.crate.metadata.sys;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Routing;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.StaticTableInfo;
+import io.crate.operation.reference.sys.check.node.SysNodeCheck;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.EnumSet;
 import java.util.Set;
 
-@Singleton
 public class SysNodeChecksTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "node_checks");
@@ -53,15 +54,33 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent("id");
-        public static final ColumnIdent NODE_ID = new ColumnIdent("node_id");
-        public static final ColumnIdent SEVERITY = new ColumnIdent("severity");
+        static final ColumnIdent NODE_ID = new ColumnIdent("node_id");
+        static final ColumnIdent SEVERITY = new ColumnIdent("severity");
         public static final ColumnIdent DESCRIPTION = new ColumnIdent("description");
-        public static final ColumnIdent PASSED = new ColumnIdent("passed");
+        static final ColumnIdent PASSED = new ColumnIdent("passed");
         public static final ColumnIdent ACKNOWLEDGED = new ColumnIdent("acknowledged");
     }
 
-    @Inject
-    protected SysNodeChecksTableInfo(ClusterService clusterService) {
+    public static ImmutableMap<ColumnIdent, RowCollectExpressionFactory<SysNodeCheck>> expressions() {
+        return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory<SysNodeCheck>>builder()
+            .put(SysNodeChecksTableInfo.Columns.ID,
+                () -> RowContextCollectorExpression.forFunction(SysNodeCheck::id))
+            .put(SysNodeChecksTableInfo.Columns.NODE_ID,
+                () -> RowContextCollectorExpression.objToBytesRef(SysNodeCheck::nodeId))
+            .put(SysNodeChecksTableInfo.Columns.DESCRIPTION,
+                () -> RowContextCollectorExpression.objToBytesRef(SysNodeCheck::description))
+            .put(SysNodeChecksTableInfo.Columns.SEVERITY,
+                () -> RowContextCollectorExpression.forFunction((SysNodeCheck x) -> x.severity().value()))
+            .put(SysNodeChecksTableInfo.Columns.PASSED,
+                () -> RowContextCollectorExpression.forFunction(SysNodeCheck::validate))
+            .put(SysNodeChecksTableInfo.Columns.ACKNOWLEDGED,
+                () -> RowContextCollectorExpression.forFunction(SysNodeCheck::acknowledged))
+            .put(DocSysColumns.ID,
+                () -> RowContextCollectorExpression.objToBytesRef(SysNodeCheck::rowId))
+            .build();
+    }
+
+    SysNodeChecksTableInfo(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
                 .register(SysNodeChecksTableInfo.Columns.ID, DataTypes.INTEGER)
                 .register(SysNodeChecksTableInfo.Columns.NODE_ID, DataTypes.STRING)

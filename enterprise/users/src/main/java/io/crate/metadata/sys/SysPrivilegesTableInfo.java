@@ -60,7 +60,7 @@ public class SysPrivilegesTableInfo extends StaticTableInfo {
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(
         Columns.GRANTEE, Columns.STATE, Columns.TYPE, Columns.CLASS, Columns.IDENT);
 
-    private static class PrivilegeRow {
+    public static class PrivilegeRow {
         private final String grantee;
         private final Privilege privilege;
 
