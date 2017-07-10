@@ -40,7 +40,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.http.HttpServer;
+import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
@@ -76,14 +76,14 @@ public class NodeStatsContextFieldResolver {
     @SuppressWarnings("unused")
     public NodeStatsContextFieldResolver(ClusterService clusterService,
                                          MonitorService monitorService,
-                                         @Nullable HttpServer httpServer,
+                                         @Nullable HttpServerTransport httpServerTransport,
                                          ThreadPool threadPool,
                                          ExtendedNodeInfo extendedNodeInfo,
                                          PostgresNetty postgresNetty) {
         this(
             clusterService::localNode,
             monitorService,
-            () -> httpServer == null ? null : httpServer.info().getAddress().publishAddress(),
+            () -> httpServerTransport == null ? null : httpServerTransport.info().getAddress().publishAddress(),
             threadPool,
             extendedNodeInfo,
             () -> {

@@ -329,7 +329,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
                "pattern_replace, persian_normalization, porter_stem, reverse, " +
                "russian_stem, scandinavian_folding, scandinavian_normalization, serbian_normalization, " +
                "shingle, snowball, sorani_normalization, standard, stemmer, stemmer_override, " +
-               "stop, synonym, trim, truncate, unique, uppercase, word_delimiter"));
+               "stop, synonym, trim, truncate, unique, uppercase, word_delimiter, word_delimiter_graph"));
     }
 
     @Test

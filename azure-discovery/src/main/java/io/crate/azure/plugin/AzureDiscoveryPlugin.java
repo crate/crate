@@ -38,7 +38,6 @@ import org.elasticsearch.discovery.zen.UnicastHostsProvider;
 import org.elasticsearch.plugins.DiscoveryPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.search.SearchRequestParsers;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.watcher.ResourceWatcherService;
@@ -102,7 +101,6 @@ public class AzureDiscoveryPlugin extends Plugin implements DiscoveryPlugin {
                                                ThreadPool threadPool,
                                                ResourceWatcherService resourceWatcherService,
                                                ScriptService scriptService,
-                                               SearchRequestParsers searchRequestParsers,
                                                NamedXContentRegistry xContentRegistry) {
         if (AzureConfiguration.isDiscoveryReady(settings, logger)) {
             return Collections.singletonList(azureComputeService());

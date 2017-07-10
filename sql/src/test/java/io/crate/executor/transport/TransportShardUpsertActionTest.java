@@ -207,10 +207,10 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId, null);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
-        TransportWriteAction.WriteResult<ShardResponse> result = transportShardUpsertAction.processRequestItems(
-            indexShard, request, new AtomicBoolean(false));
+        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
+            transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
-        assertThat(result.getResponse().failure(), instanceOf(VersionConflictEngineException.class));
+        assertThat(result.finalResponseIfSuccessful.failure(), instanceOf(VersionConflictEngineException.class));
     }
 
     @Test
@@ -226,10 +226,10 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId, null);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
-        TransportWriteAction.WriteResult<ShardResponse> result = transportShardUpsertAction.processRequestItems(
-            indexShard, request, new AtomicBoolean(false));
+        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
+            transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
-        ShardResponse response = result.getResponse();
+        ShardResponse response = result.finalResponseIfSuccessful;
         assertThat(response.failures().size(), is(1));
         assertThat(response.failures().get(0).message(),
                    is("VersionConflictEngineException[[default][1]: version conflict, " +
@@ -467,10 +467,10 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId, null);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
-        TransportWriteAction.WriteResult<ShardResponse> result = transportShardUpsertAction.processRequestItems(
-            indexShard, request, new AtomicBoolean(true));
+        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
+            transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
-        assertThat(result.getResponse().failure(), instanceOf(InterruptedException.class));
+        assertThat(result.finalResponseIfSuccessful.failure(), instanceOf(InterruptedException.class));
     }
 
     @Test

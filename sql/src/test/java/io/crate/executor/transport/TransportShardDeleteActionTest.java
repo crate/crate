@@ -86,10 +86,10 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         final ShardDeleteRequest request = new ShardDeleteRequest(shardId, null, UUID.randomUUID());
         request.add(1, new ShardDeleteRequest.Item("1"));
 
-        TransportWriteAction.WriteResult<ShardResponse> result = transportShardDeleteAction.processRequestItems(
-            indexShard, request, new AtomicBoolean(true));
+        TransportWriteAction.WritePrimaryResult<ShardDeleteRequest, ShardResponse> result =
+            transportShardDeleteAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
-        assertThat(result.getResponse().failure(), instanceOf(InterruptedException.class));
+        assertThat(result.finalResponseIfSuccessful.failure(), instanceOf(InterruptedException.class));
         assertThat(request.skipFromLocation(), is(1));
     }
 

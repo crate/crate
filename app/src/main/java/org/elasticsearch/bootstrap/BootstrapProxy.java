@@ -211,13 +211,12 @@ public class BootstrapProxy {
 
     }
 
-    private static Environment initialEnvironment(boolean foreground, Path pidFile, Map<String, String> esSettings) {
-        Terminal terminal = foreground ? Terminal.DEFAULT : null;
+    private static Environment initialEnvironment(boolean foreground, Path pidFile, Environment env) {
         Settings.Builder builder = Settings.builder();
         if (pidFile != null) {
             builder.put(Environment.PIDFILE_SETTING.getKey(), pidFile);
         }
-        return CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal, esSettings);
+        return CrateSettingsPreparer.prepareEnvironment(builder.build(), env);
     }
 
     private void start() throws NodeValidationException {
@@ -247,7 +246,7 @@ public class BootstrapProxy {
     public static void init(final boolean foreground,
                             final Path pidFile,
                             final boolean quiet,
-                            final Map<String, String> esSettings) throws BootstrapException, NodeValidationException, UserException {
+                            final Environment env) throws BootstrapException, NodeValidationException, UserException {
         // Set the system property before anything has a chance to trigger its use
         initLoggerPrefix();
 
@@ -257,7 +256,7 @@ public class BootstrapProxy {
 
         INSTANCE = new BootstrapProxy();
 
-        Environment environment = initialEnvironment(foreground, pidFile, esSettings);
+        Environment environment = initialEnvironment(foreground, pidFile, env);
         try {
             LogConfigurator.configure(environment);
         } catch (IOException e) {

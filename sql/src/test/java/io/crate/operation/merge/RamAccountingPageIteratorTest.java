@@ -155,7 +155,7 @@ public class RamAccountingPageIteratorTest extends CrateUnitTest {
 
         expectedException.expect(CircuitBreakingException.class);
         expectedException.expectMessage(
-            "Data too large, data for field [test] would be larger than limit of [197/197b]");
+            "Data too large, data for field [test] would be [198/198b], which is larger than the limit of [197/197b]");
         pagingIterator.merge(Arrays.asList(
             new KeyIterable<>(0, Collections.singletonList(TEST_ROWS[0])),
             new KeyIterable<>(1, Collections.singletonList(TEST_ROWS[1]))));

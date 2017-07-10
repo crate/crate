@@ -12,4 +12,3 @@ test {
     testLogging.exceptionFormat = 'full'
     jacoco.excludes = ["*Test*"]
 }
-

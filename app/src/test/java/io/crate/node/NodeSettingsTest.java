@@ -25,7 +25,6 @@ import io.crate.Constants;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -41,10 +40,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
 import java.nio.file.Paths;
-import java.util.Collections;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
+import static org.elasticsearch.env.Environment.PATH_DATA_SETTING;
+import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
+import static org.elasticsearch.env.Environment.PATH_LOGS_SETTING;
 
 
 public class NodeSettingsTest extends CrateUnitTest {
@@ -61,8 +62,8 @@ public class NodeSettingsTest extends CrateUnitTest {
         File config = tmp.newFolder("crate", "config");
 
         Settings pathSettings = Settings.builder()
-            .put("path.data", tmp.newFolder("crate", "data").getPath())
-            .put("path.logs", tmp.newFolder("crate", "logs").getPath())
+            .put(PATH_DATA_SETTING.getKey(), tmp.newFolder("crate", "data").getPath())
+            .put(PATH_LOGS_SETTING.getKey(), tmp.newFolder("crate", "logs").getPath())
             .build();
 
         try (Writer writer = new FileWriter(Paths.get(config.getPath(), "crate.yml").toFile())) {
@@ -85,12 +86,14 @@ public class NodeSettingsTest extends CrateUnitTest {
         Settings.Builder builder = Settings.builder()
             .put("node.name", "node-test")
             .put("node.data", true)
-            .put("path.home", createConfigPath())
+            .put(PATH_HOME_SETTING.getKey(), createConfigPath())
             // Avoid connecting to other test nodes
             .put("network.publish_host", "127.0.0.111");
 
-        Terminal terminal = Terminal.DEFAULT;
-        Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal, Collections.emptyMap());
+        Settings esSettings = Settings.builder()
+            .put(PATH_HOME_SETTING.getKey(), createTempDir())
+            .build();
+        Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), new Environment(esSettings));
         node = new CrateNode(environment);
         node.start();
         client = node.client();
@@ -125,8 +128,8 @@ public class NodeSettingsTest extends CrateUnitTest {
     @Test
     public void testDefaultPaths() throws Exception {
         doSetup();
-        assertTrue(node.settings().getAsArray("path.data")[0].endsWith("data"));
-        assertTrue(node.settings().get("path.logs").endsWith("logs"));
+        assertTrue(node.settings().getAsArray(PATH_DATA_SETTING.getKey())[0].endsWith("data"));
+        assertTrue(node.settings().get(PATH_LOGS_SETTING.getKey()).endsWith("logs"));
     }
 
     @Test

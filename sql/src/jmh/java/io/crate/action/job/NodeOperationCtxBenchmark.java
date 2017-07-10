@@ -27,6 +27,7 @@ import io.crate.executor.transport.NodeOperationTreeGenerator;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.planner.Plan;
+import io.crate.testing.DiscoveryNodes;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -53,8 +54,10 @@ public class NodeOperationCtxBenchmark {
         threadPool = new TestThreadPool("testing");
         SQLExecutor e = SQLExecutor.builder(
             new ClusterService(Settings.builder().put("cluster.name", "ClusterServiceTests").build(),
-            new ClusterSettings(Settings.EMPTY, Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
-            threadPool)).build();
+                new ClusterSettings(Settings.EMPTY, Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
+                threadPool,
+                () -> DiscoveryNodes.newNode("benchmarkNode")))
+            .build();
         Plan plan = e.plan("select name from sys.cluster group by name");
 
         NodeOperationTree nodeOperationTree = NodeOperationTreeGenerator.fromPlan(plan, "noop_id");

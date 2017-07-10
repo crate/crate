@@ -305,7 +305,8 @@ public class SysShardsTableInfo extends StaticTableInfo {
             concreteIndices = accessibleTables.toArray(new String[0]);
         }
 
-        GroupShardsIterator groupShardsIterator = state.getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
+        GroupShardsIterator<ShardIterator> groupShardsIterator =
+            state.getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
         for (final ShardIterator shardIt : groupShardsIterator) {
             final ShardRouting shardRouting = shardIt.nextOrNull();
             processShardRouting(locations, shardRouting, shardIt.shardId());

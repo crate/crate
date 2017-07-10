@@ -31,6 +31,7 @@ import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -85,6 +86,7 @@ public class CrateHttpsTransportTest extends CrateUnitTest {
                 BigArrays.NON_RECYCLING_INSTANCE,
                 Mockito.mock(ThreadPool.class),
                 NamedXContentRegistry.EMPTY,
+                Mockito.mock(HttpServerTransport.Dispatcher.class),
                 pipelineRegistry);
 
         Channel channel = new EmbeddedChannel();

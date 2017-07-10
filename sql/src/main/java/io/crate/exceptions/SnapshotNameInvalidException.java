@@ -23,14 +23,14 @@
 package io.crate.exceptions;
 
 
-public class SnapshotAlreadyExistsExeption extends ConflictException implements ClusterScopeException {
+public class SnapshotNameInvalidException extends ConflictException implements ClusterScopeException {
 
-    public SnapshotAlreadyExistsExeption(String repositoryName, String snapshotName) {
-        super("Snapshot \"" + repositoryName + "\".\"" + snapshotName + "\" already exists");
+    public SnapshotNameInvalidException(String msg) {
+        super(msg);
     }
 
     @Override
     public int errorCode() {
-        return 6;
+        return 9;
     }
 }

@@ -48,8 +48,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
@@ -282,9 +284,10 @@ public class PluginLoader {
 
 
     private void checkJarHell(URL url) throws Exception {
-        final List<URL> loadedJars = new ArrayList<>(Arrays.asList(JarHell.parseClassPath()));
-        loadedJars.addAll(jarsToLoad);
-        loadedJars.add(url);
-        JarHell.checkJarHell(loadedJars.toArray(new URL[0]));
+        Set<URL> jarHellSet = new HashSet<>();
+        jarHellSet.addAll(JarHell.parseClassPath());
+        jarHellSet.addAll(jarsToLoad);
+        jarHellSet.add(url);
+        JarHell.checkJarHell(jarHellSet);
     }
 }

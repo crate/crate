@@ -54,8 +54,12 @@ public class SysSnapshots {
             final String repositoryName = repository.getMetadata().name();
 
 
-            List<SnapshotId> snapshotIds = repositoriesService.repository(repositoryName).getRepositoryData().getSnapshotIds();
-            List<SnapshotInfo> snapshots = snapshotsService.snapshots(repositoryName, snapshotIds, true);
+            List<SnapshotId> compatibleSnapshotIds =
+                repositoriesService.repository(repositoryName).getRepositoryData().getSnapshotIds();
+            List<SnapshotId> incompatibleSnapshotIds =
+                repositoriesService.repository(repositoryName).getRepositoryData().getIncompatibleSnapshotIds();
+            List<SnapshotInfo> snapshots =
+                snapshotsService.snapshots(repositoryName, compatibleSnapshotIds, incompatibleSnapshotIds, true);
             sysSnapshots.addAll(Lists.transform(snapshots, new Function<SnapshotInfo, SysSnapshot>() {
                 @Nullable
                 @Override

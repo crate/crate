@@ -49,6 +49,9 @@ import java.util.Collections;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiOfLength;
+
+
 public class DocTableInfoBuilderTest extends CrateUnitTest {
 
     private ThreadPool threadPool;

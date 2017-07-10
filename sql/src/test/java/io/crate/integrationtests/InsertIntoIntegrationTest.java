@@ -37,6 +37,7 @@ import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiOfLength;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;

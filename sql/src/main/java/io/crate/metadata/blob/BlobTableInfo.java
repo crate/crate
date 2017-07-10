@@ -142,7 +142,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference, SessionContext sessionContext) {
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-        GroupShardsIterator shardIterators = clusterService.operationRouting().searchShards(
+        GroupShardsIterator<ShardIterator> shardIterators = clusterService.operationRouting().searchShards(
             clusterService.state(),
             new String[]{index},
             null,

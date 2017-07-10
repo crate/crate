@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiOfLength;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.closeTo;
