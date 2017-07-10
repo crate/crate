@@ -78,6 +78,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that caused an exception to be thrown when using
+   ``COUNT(*)`` with a ``JOIN`` on 3 or more tables.
+
  - Fixed an issue that caused an exception if a column gets added to a table
    that has been created with CrateDB version <= 1.1.
 

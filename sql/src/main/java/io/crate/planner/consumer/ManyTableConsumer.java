@@ -42,6 +42,7 @@ import io.crate.analyze.relations.RemainingOrderBy;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.FieldReplacer;
+import io.crate.analyze.symbol.FieldsVisitor;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -256,6 +257,7 @@ public class ManyTableConsumer implements Consumer {
                 Symbol symbol = splitQuery.remove(names);
                 newQuerySpec.where(new WhereClause(symbol));
             }
+            extendQSOutputs(splitQuery, it, leftName, rightName, newQuerySpec);
 
             Optional<OrderBy> remainingOrderByToApply = Optional.empty();
             if (remainingOrderBy.isPresent() && remainingOrderBy.get().validForRelations(names)) {
@@ -326,7 +328,6 @@ public class ManyTableConsumer implements Consumer {
                 JoinPairs.rewriteNames(leftName, rightName, join.getQualifiedName(), replaceFunction, joinPairs);
                 rewriteOrderByNames(remainingOrderBy, leftName, rightName, join.getQualifiedName(), replaceFunction);
                 rootQuerySpec = rootQuerySpec.copyAndReplace(replaceFunction);
-                leftQuerySpec = newQuerySpec.copyAndReplace(replaceFunction);
                 rewriteJoinConditionNames(joinConditionsMap, replaceFunction);
             }
             leftRelation = join;
@@ -353,6 +354,47 @@ public class ManyTableConsumer implements Consumer {
         }
 
         return join;
+    }
+
+
+    /**
+     * Extends the outputs of a querySpec to include symbols which are required by the next/upper
+     * joins in the tree. These are symbols that are not selected, but are for example used in a
+     * joinCondition later on.
+     *
+     * e.g.:
+     * select count(*) from t1, t2, t3 where t1.a = t2.b and t2.b = t3.c
+     *
+     *                   join
+     * outputs=t1[a]    /   \
+     *      |          /     \
+     *      +------> join    t3
+     *               / \
+     *              /   \
+     *             t1   t2
+     */
+    private static void extendQSOutputs(Map<Set<QualifiedName>, Symbol> splitQuery,
+                                        Iterator<QualifiedName> it,
+                                        final QualifiedName leftName,
+                                        final QualifiedName rightName,
+                                        QuerySpec newQuerySpec) {
+        if (it.hasNext()) {
+            Set<Symbol> fields = new LinkedHashSet<>(newQuerySpec.outputs());
+            for (Map.Entry<Set<QualifiedName>, Symbol> entry : splitQuery.entrySet()) {
+                Set<QualifiedName> relations = entry.getKey();
+                Symbol joinCondition = entry.getValue();
+                if (relations.contains(leftName) || relations.contains(rightName)) {
+                    FieldsVisitor.visitFields(joinCondition,
+                                              f -> {
+                                                if (f.relation().getQualifiedName().equals(leftName) ||
+                                                    f.relation().getQualifiedName().equals(rightName)) {
+                                                    fields.add(f);
+                                                }
+                                              });
+                }
+            }
+            newQuerySpec.outputs(new ArrayList<>(fields));
+        }
     }
 
     private static Map<Set<QualifiedName>, Symbol> rewriteSplitQueryNames(Map<Set<QualifiedName>, Symbol> splitQuery,
