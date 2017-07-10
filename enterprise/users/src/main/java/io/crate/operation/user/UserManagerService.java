@@ -73,17 +73,20 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     private final TransportCreateUserAction transportCreateUserAction;
     private final TransportDropUserAction transportDropUserAction;
     private final TransportPrivilegesAction transportPrivilegesAction;
+    private final TransportTransferTablePrivilegesAction transportTransferTablePrivilegesAction;
     private volatile Set<User> users = ImmutableSet.of(CRATE_USER);
 
     @Inject
     public UserManagerService(TransportCreateUserAction transportCreateUserAction,
                               TransportDropUserAction transportDropUserAction,
                               TransportPrivilegesAction transportPrivilegesAction,
-                              SysTableRegistry sysTableRegistry,
+                              TransportTransferTablePrivilegesAction transportTransferTablePrivilegesAction,
+			      SysTableRegistry sysTableRegistry,
                               ClusterService clusterService) {
         this.transportCreateUserAction = transportCreateUserAction;
         this.transportDropUserAction = transportDropUserAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
+        this.transportTransferTablePrivilegesAction = transportTransferTablePrivilegesAction;
         clusterService.addListener(this);
         sysTableRegistry.registerSysTable(new SysUsersTableInfo(clusterService),
             () -> CompletableFuture.completedFuture(users()),
@@ -150,6 +153,14 @@ public class UserManagerService implements UserManager, ClusterStateListener {
             return r.affectedRows();
         });
         transportPrivilegesAction.execute(new PrivilegesRequest(userNames, privileges), listener);
+        return listener;
+    }
+
+    @Override
+    public CompletableFuture<Long> transferTablePrivileges(String sourceIdent, String targetIdent) {
+        FutureActionListener<TransferTablePrivilegesResponse, Long> listener =
+            new FutureActionListener<>(r -> r.affectedRows());
+        transportTransferTablePrivilegesAction.execute(new TransferTablePrivilegesRequest(sourceIdent, targetIdent), listener);
         return listener;
     }
 

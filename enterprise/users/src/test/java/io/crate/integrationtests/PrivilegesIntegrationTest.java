@@ -134,12 +134,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         executeAsSuperuser("grant dml on table t2 to normal");
         executeAsSuperuser("grant dql on table sys.shards to normal");
 
-        UserManager userManager = internalCluster().getInstance(UserManager.class);
-        User normalUser = userManager.findUser("normal");
-        assertThat(normalUser, notNullValue());
-
-        SQLOperations.Session normalUserSession = getSessionFor(normalUser);
-
+        SQLOperations.Session normalUserSession = getSessionFor("normal");
         execute("select table_name from sys.shards order by table_name", null, normalUserSession);
         assertThat(response.rowCount(), is(4L));
         assertThat(response.rows()[0][0], is("t1"));
@@ -148,7 +143,40 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThat(response.rows()[3][0], is("t2"));
     }
 
-    private SQLOperations.Session getSessionFor(User user) {
+    @Test
+    public void testRenameTableTransfersPrivilegesToNewTable() {
+        executeAsSuperuser("create user gunther");
+        execute("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("grant dql on table t1 to gunther");
+
+        execute("alter table doc.t1 rename to t1_renamed");
+        ensureYellow();
+
+        SQLOperations.Session normalUserSession = getSessionFor("gunther");
+        execute("select * from t1_renamed", null, normalUserSession);
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void testRenamePartitionedTableTransfersPrivilegesToNewTable() {
+        executeAsSuperuser("create user rachel");
+        execute("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
+        execute("insert into t1 values (1)");
+        executeAsSuperuser("grant dql on table t1 to rachel");
+
+        execute("alter table doc.t1 rename to t1_renamed");
+        ensureYellow();
+
+        SQLOperations.Session normalUserSession = getSessionFor("rachel");
+        execute("select * from t1_renamed", null, normalUserSession);
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    private SQLOperations.Session getSessionFor(String userName) {
+        UserManager userManager = internalCluster().getInstance(UserManager.class);
+        User user = userManager.findUser(userName);
+        assertThat(user, notNullValue());
+
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, null);
         return sqlOperations.createSession(null, user, Option.NONE, DEFAULT_SOFT_LIMIT);
     }

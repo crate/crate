@@ -131,7 +131,7 @@ public class Privilege implements Writeable {
     private final Type type;
     private final Clazz clazz;
     @Nullable
-    private final String ident;  // for CLUSTER this will be always null, otherwise schemaName, tableName etc.
+    private String ident;  // for CLUSTER this will be always null, otherwise schemaName, tableName etc.
     private final String grantor;
 
     public Privilege(State state, Type type, Clazz clazz, @Nullable String ident, String grantor) {
@@ -165,6 +165,10 @@ public class Privilege implements Writeable {
     @Nullable
     public String ident() {
         return ident;
+    }
+
+    public void setIdent(@Nullable String ident) {
+        this.ident = ident;
     }
 
     public String grantor() {

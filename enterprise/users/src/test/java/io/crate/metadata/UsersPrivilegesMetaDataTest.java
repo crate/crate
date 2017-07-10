@@ -37,6 +37,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.contains;
@@ -56,11 +57,16 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
         new Privilege(Privilege.State.REVOKE, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate");
     private static final Privilege DENY_DQL =
         new Privilege(Privilege.State.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
+    private static final Privilege GRANT_TABLE_DQL =
+        new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "testSchema.test", "crate");
+    private static final Privilege GRANT_SCHEMA_DML =
+        new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, "testSchema", "crate");
 
     private static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(GRANT_DQL, GRANT_DML));
     private static final List<String> USERNAMES = Arrays.asList("Ford", "Arthur");
     private static final String USER_WITHOUT_PRIVILEGES = "noPrivilegesUser";
     private static final String USER_WITH_DENIED_DQL = "userWithDeniedDQL";
+    private static final String USER_WITH_SCHEMA_AND_TABLE_PRIVS = "userWithTableAndSchemaPrivs";
     private UsersPrivilegesMetaData usersPrivilegesMetaData;
 
     @Before
@@ -71,6 +77,7 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
         }
         usersPrivileges.put(USER_WITHOUT_PRIVILEGES, new HashSet<>());
         usersPrivileges.put(USER_WITH_DENIED_DQL, new HashSet<>(Arrays.asList(DENY_DQL)));
+        usersPrivileges.put(USER_WITH_SCHEMA_AND_TABLE_PRIVS, new HashSet<>(Arrays.asList(GRANT_SCHEMA_DML, GRANT_TABLE_DQL)));
 
         usersPrivilegesMetaData = new UsersPrivilegesMetaData(usersPrivileges);
     }
@@ -182,4 +189,25 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
         assertThat(usersPrivilegesMetaData.getUserPrivileges(USER_WITH_DENIED_DQL), contains(DENY_DQL));
     }
 
+    @Test
+    public void testTablePrivilegesAreTransfered() {
+        long affectedPrivileges = usersPrivilegesMetaData.transferTablePrivileges("testSchema.test", "testSchema.testing");
+        assertThat(affectedPrivileges, is(1L));
+
+        Set<Privilege> updatedPrivileges = usersPrivilegesMetaData.getUserPrivileges(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
+        Optional<Privilege> targetPrivilege = updatedPrivileges.stream()
+            .filter(p -> p.ident().equals("testSchema.testing"))
+            .findAny();
+        assertThat(targetPrivilege.isPresent(), is(true));
+
+        Optional<Privilege> sourcePrivilege = updatedPrivileges.stream()
+            .filter(p -> p.ident().equals("testSchema.test"))
+            .findAny();
+        assertThat(sourcePrivilege.isPresent(), is(false));
+
+        Optional<Privilege> schemaPrivilege = updatedPrivileges.stream()
+            .filter(p -> p.clazz().equals(Privilege.Clazz.SCHEMA))
+            .findAny();
+        assertThat(schemaPrivilege.isPresent() && schemaPrivilege.get().equals(GRANT_SCHEMA_DML), is(true));
+    }
 }

@@ -45,6 +45,7 @@ import io.crate.executor.transport.ddl.TransportRenameTableAction;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.user.UserManager;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
@@ -110,6 +111,7 @@ public class AlterTableOperation {
     private final TransportCloseIndexAction transportCloseIndexAction;
     private final TransportRenameTableAction transportRenameTableAction;
     private final TransportIndicesAliasesAction transportIndicesAliasesAction;
+    private final UserManager userManager;
     private final SQLOperations sqlOperations;
 
     @Inject
@@ -122,6 +124,7 @@ public class AlterTableOperation {
                                TransportCloseIndexAction transportCloseIndexAction,
                                TransportRenameTableAction transportRenameTableAction,
                                TransportIndicesAliasesAction transportIndicesAliasesAction,
+                               UserManager userManager,
                                SQLOperations sqlOperations) {
         this.clusterService = clusterService;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
@@ -132,6 +135,7 @@ public class AlterTableOperation {
         this.transportCloseIndexAction = transportCloseIndexAction;
         this.transportRenameTableAction = transportRenameTableAction;
         this.transportIndicesAliasesAction = transportIndicesAliasesAction;
+        this.userManager = userManager;
         this.sqlOperations = sqlOperations;
     }
 
@@ -278,6 +282,10 @@ public class AlterTableOperation {
             () -> renameTable(sourceIndices, targetIndices),
             () -> renameTable(targetIndices, sourceIndices)
         ));
+        actions.add(new ChainableAction<>(
+            () -> transferTablePrivileges(sourceTableIdent.fqn(), targetTableIdent.fqn()),
+            () -> transferTablePrivileges(targetTableIdent.fqn(), sourceTableIdent.fqn())
+        ));
         if (sourceTableInfo.isClosed() == false) {
             actions.add(new ChainableAction<>(
                 () -> openTable(targetIndices),
@@ -332,6 +340,10 @@ public class AlterTableOperation {
             () -> renameTable(targetIndices, sourceIndices)
         ));
         actions.add(new ChainableAction<>(
+            () -> transferTablePrivileges(sourceTableIdent.fqn(), targetTableIdent.fqn()),
+            () -> transferTablePrivileges(targetTableIdent.fqn(), sourceTableIdent.fqn())
+        ));
+        actions.add(new ChainableAction<>(
             () -> renameTemplate(sourceTableIdent, targetTableIdent),
             () -> renameTemplate(targetTableIdent, sourceTableIdent)
         ));
@@ -355,6 +367,10 @@ public class AlterTableOperation {
         FutureActionListener<RenameTableResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         transportRenameTableAction.execute(request, listener);
         return listener;
+    }
+
+    private CompletableFuture<Long> transferTablePrivileges(String sourceIdent, String targetIdent) {
+        return userManager.transferTablePrivileges(sourceIdent, targetIdent);
     }
 
     private CompletableFuture<Long> changeAliases(String[] partitions, String oldAlias, String newAlias) {
