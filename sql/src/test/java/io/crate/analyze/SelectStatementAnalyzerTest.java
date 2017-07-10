@@ -37,6 +37,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -117,10 +118,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
         DocTableInfoFactory fooTableFactory = new TestingDocTableInfoFactory(
             ImmutableMap.of(fooUserTableInfo.ident(), fooUserTableInfo));
-        UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService);
+        Functions functions = getFunctions();
+        UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
         sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .addSchema(new DocSchemaInfo("foo", clusterService, getFunctions(), udfService, fooTableFactory))
+            .addSchema(new DocSchemaInfo("foo", clusterService, functions, udfService, fooTableFactory))
             .build();
     }
 

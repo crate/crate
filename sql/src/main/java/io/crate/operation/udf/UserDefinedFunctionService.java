@@ -24,7 +24,12 @@ package io.crate.operation.udf;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
@@ -33,23 +38,31 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
 
+import javax.script.ScriptException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Stream;
 
 
 @Singleton
 public class UserDefinedFunctionService {
 
+    private static final Logger LOGGER = Loggers.getLogger(UserDefinedFunctionService.class);
+
     private final ClusterService clusterService;
-    private Map<String, UDFLanguage> languageRegistry = new HashMap<>();
+    private final Functions functions;
+    private final Map<String, UDFLanguage> languageRegistry = new HashMap<>();
 
     @Inject
-    public UserDefinedFunctionService(ClusterService clusterService) {
+    public UserDefinedFunctionService(ClusterService clusterService, Functions functions) {
         this.clusterService = clusterService;
+        this.functions = functions;
     }
 
     public UDFLanguage getLanguage(String languageName) throws IllegalArgumentException {
@@ -181,4 +194,22 @@ public class UserDefinedFunctionService {
         }
     }
 
+    public void updateImplementations(String schema, Stream<UserDefinedFunctionMetaData> userDefinedFunctions) {
+        functions.registerUdfResolversForSchema(schema, constructScalarInstances(userDefinedFunctions));
+    }
+
+    private Map<FunctionIdent, FunctionImplementation> constructScalarInstances(Stream<UserDefinedFunctionMetaData> functions) {
+        Iterator<UserDefinedFunctionMetaData> it = functions.iterator();
+        Map<FunctionIdent, FunctionImplementation> implementationsByIdent = new HashMap<>();
+        while (it.hasNext()) {
+            UserDefinedFunctionMetaData udfMetaData = it.next();
+            try {
+                Scalar scalar = getLanguage(udfMetaData.language()).createFunctionImplementation(udfMetaData);
+                implementationsByIdent.put(scalar.info().ident(), scalar);
+            } catch (ScriptException | IllegalArgumentException e) {
+                LOGGER.warn("Can't create user defined function: " + udfMetaData.specificName(), e);
+            }
+        }
+        return implementationsByIdent;
+    }
 }

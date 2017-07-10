@@ -25,7 +25,6 @@ import com.carrotsearch.hppc.ObjectLookupContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
@@ -34,14 +33,14 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.metadata.*;
+import io.crate.metadata.Functions;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.udf.UDFLanguage;
-import io.crate.operation.udf.UserDefinedFunctionMetaData;
 import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.operation.udf.UserDefinedFunctionsMetaData;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -49,11 +48,13 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.Index;
 
 import javax.annotation.Nonnull;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -113,7 +114,6 @@ import java.util.stream.Stream;
 public class DocSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "doc";
-    private static final Logger LOGGER = Loggers.getLogger(DocSchemaInfo.class);
 
     private final ClusterService clusterService;
     private final DocTableInfoFactory docTableInfoFactory;
@@ -189,7 +189,7 @@ public class DocSchemaInfo implements SchemaInfo {
             if (cause instanceof ResourceUnknownException) {
                 return null;
             }
-            throw Throwables.propagate(cause);
+            throw e;
         }
     }
 
@@ -293,33 +293,14 @@ public class DocSchemaInfo implements SchemaInfo {
             }
         }
 
+
         // re register UDFs for this schema
         UserDefinedFunctionsMetaData udfMetaData = newMetaData.custom(UserDefinedFunctionsMetaData.TYPE);
         if (udfMetaData != null) {
-            Stream<UserDefinedFunctionMetaData> udfFunctions = udfMetaData.functionsMetaData().stream()
-                .filter(function -> schemaName.equals(function.schema()));
-            // TODO: the functions field should actually be moved to the udfService for better encapsulation
-            // then the registration of the function implementations of a schema would also move to the udfService
-            functions.registerUdfResolversForSchema(schemaName, toFunctionImpl(udfFunctions::iterator));
+            udfService.updateImplementations(
+                schemaName,
+                udfMetaData.functionsMetaData().stream().filter(f -> schemaName.equals(f.schema())));
         }
-    }
-
-    @VisibleForTesting
-    Map<FunctionIdent, FunctionImplementation> toFunctionImpl(Iterable<UserDefinedFunctionMetaData> functionsMetadata) {
-        Map<FunctionIdent, FunctionImplementation> udfFunctions = new HashMap<>();
-        for (UserDefinedFunctionMetaData function : functionsMetadata) {
-            try {
-                UDFLanguage lang = udfService.getLanguage(function.language());
-                FunctionImplementation impl = lang.createFunctionImplementation(function);
-                udfFunctions.put(impl.info().ident(), impl);
-            } catch (javax.script.ScriptException | IllegalArgumentException e) {
-                LOGGER.warn(
-                    String.format(Locale.ENGLISH, "Can't create user defined function '%s'",
-                        function.specificName()
-                    ), e);
-            }
-        }
-        return udfFunctions;
     }
 
     /**

@@ -151,7 +151,7 @@ public class SQLExecutor {
         }
 
         public SQLExecutor build() {
-            UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService);
+            UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
             schemas.put(Schemas.DEFAULT_SCHEMA_NAME, new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, new TestingDocTableInfoFactory(docTables)));
             if (!blobTables.isEmpty()) {
                 schemas.put(BlobSchemaInfo.NAME, new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
