@@ -21,7 +21,6 @@
 
 package io.crate.core.collections;
 
-import java.util.NoSuchElementException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
@@ -34,16 +33,8 @@ public class BlockingEvictingQueue<E> extends ArrayBlockingQueue<E> implements B
 
     @Override
     public boolean offer(E e) {
-        while (true) {
-            if (!super.offer(e)) {
-                try {
-                    super.remove();
-                } catch (NoSuchElementException ex) {
-                    // race condition, queue was already empty
-                }
-            } else {
-                break;
-            }
+        while (!super.offer(e)) {
+            poll();
         }
         return true;
     }
