@@ -26,12 +26,12 @@ import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.reference.ReferenceResolver;
 import org.elasticsearch.action.get.GetResponse;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 
 import java.util.Map;
@@ -62,27 +62,27 @@ public class GetResponseRefResolver implements ReferenceResolver<CollectExpressi
         String fqn = columnIdent.fqn();
         switch (fqn) {
             case DocSysColumns.Names.VERSION:
-                return CollectExpression.of(GetResponse::getVersion);
+                return RowContextCollectorExpression.forFunction(GetResponse::getVersion);
 
             case DocSysColumns.Names.ID:
-                return CollectExpression.of(r -> BytesRefs.toBytesRef(r.getId()));
+                return RowContextCollectorExpression.objToBytesRef(GetResponse::getId);
 
             case DocSysColumns.Names.RAW:
-                return CollectExpression.of(r -> r.getSourceAsBytesRef().toBytesRef());
+                return RowContextCollectorExpression.forFunction(r -> r.getSourceAsBytesRef().toBytesRef());
 
             case DocSysColumns.Names.DOC:
-                return CollectExpression.of(GetResponse::getSource);
+                return RowContextCollectorExpression.forFunction(GetResponse::getSource);
 
         }
         if (docTableInfo.isPartitioned() && docTableInfo.partitionedBy().contains(columnIdent)) {
             int pkPos = docTableInfo.primaryKey().indexOf(columnIdent);
             if (pkPos >= 0) {
-                return CollectExpression.of(
+                return RowContextCollectorExpression.forFunction(
                     response -> ValueSymbolVisitor.VALUE.process(ids2Keys.get(response.getId()).values().get(pkPos)));
             }
         }
 
-        return CollectExpression.of(response -> {
+        return RowContextCollectorExpression.forFunction(response -> {
             Map<String, Object> sourceAsMap = response.getSourceAsMap();
             return ref.valueType().value(XContentMapValues.extractValue(fqn, sourceAsMap));
         });
