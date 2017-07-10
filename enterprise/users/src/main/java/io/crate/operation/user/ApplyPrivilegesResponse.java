@@ -18,40 +18,38 @@
 
 package io.crate.operation.user;
 
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.List;
 
-public class PrivilegesResponse extends AcknowledgedResponse {
+public class ApplyPrivilegesResponse extends PrivilegesResponse {
 
-    long affectedRows;
+    private List<String> unknownUserNames;
 
-    PrivilegesResponse() {
+    ApplyPrivilegesResponse() {
         affectedRows = 0L;
     }
 
-    PrivilegesResponse(boolean acknowledged, long affectedRows) {
-        super(acknowledged);
-        this.affectedRows = affectedRows;
+    ApplyPrivilegesResponse(boolean acknowledged, long affectedRows, List<String> unknownUserNames) {
+        super(acknowledged, affectedRows);
+        this.unknownUserNames = unknownUserNames;
     }
 
-    long affectedRows() {
-        return affectedRows;
+    List<String> unknownUserNames() {
+        return unknownUserNames;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        readAcknowledged(in);
-        affectedRows = in.readLong();
+        unknownUserNames = in.readList(StreamInput::readString);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        writeAcknowledged(out);
-        out.writeLong(affectedRows);
+        out.writeStringList(unknownUserNames);
     }
 }

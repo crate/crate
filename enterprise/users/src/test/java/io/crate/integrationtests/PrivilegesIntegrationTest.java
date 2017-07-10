@@ -28,6 +28,7 @@ import io.crate.testing.SQLResponse;
 import org.junit.Test;
 
 import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 
@@ -170,6 +171,22 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         SQLOperations.Session normalUserSession = getSessionFor("rachel");
         execute("select * from t1_renamed", null, normalUserSession);
         assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
+    public void testDropTableRemovesPrivileges() {
+        executeAsSuperuser("create user janice");
+        execute("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("grant dql on table t1 to janice");
+
+        execute("drop table t1");
+        ensureYellow();
+
+        execute("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        SQLOperations.Session normalUserSession = getSessionFor("janice");
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(containsString("Missing 'DQL' privilege for user 'janice'"));
+        execute("select * from t1", null, normalUserSession);
     }
 
     private SQLOperations.Session getSessionFor(String userName) {

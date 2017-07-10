@@ -34,19 +34,19 @@ public class TransferTablePrivilegesRequest extends AcknowledgedRequest<Transfer
     private String sourceIdent;
     private String targetIdent;
 
-    public TransferTablePrivilegesRequest() {
+    TransferTablePrivilegesRequest() {
     }
 
-    public TransferTablePrivilegesRequest(String sourceIdent, String targetIdent) {
+    TransferTablePrivilegesRequest(String sourceIdent, String targetIdent) {
         this.sourceIdent = sourceIdent;
         this.targetIdent = targetIdent;
     }
 
-    public String sourceIdent() {
+    String sourceIdent() {
         return sourceIdent;
     }
 
-    public String targetIdent() {
+    String targetIdent() {
         return targetIdent;
     }
 

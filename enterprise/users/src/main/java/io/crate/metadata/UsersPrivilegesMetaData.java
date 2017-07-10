@@ -143,6 +143,25 @@ public class UsersPrivilegesMetaData extends AbstractNamedDiffable<MetaData.Cust
         return affectedPrivileges;
     }
 
+    public long dropTablePrivileges(String tableIdent) {
+        long affectedPrivileges = 0L;
+        for (Set<Privilege> privileges : usersPrivileges.values()) {
+            Iterator<Privilege> privilegeIterator = privileges.iterator();
+            while (privilegeIterator.hasNext()) {
+                Privilege privilege = privilegeIterator.next();
+                if (privilege.clazz().equals(Privilege.Clazz.TABLE) == false) {
+                    continue;
+                }
+
+                if (privilege.ident().equals(tableIdent)) {
+                    privilegeIterator.remove();
+                    affectedPrivileges++;
+                }
+            }
+        }
+        return affectedPrivileges;
+    }
+
     @Nullable
     public Set<Privilege> getUserPrivileges(String userName) {
         return usersPrivileges.get(userName);

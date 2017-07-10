@@ -191,7 +191,7 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
 
     @Test
     public void testTablePrivilegesAreTransfered() {
-        long affectedPrivileges = usersPrivilegesMetaData.transferTablePrivileges("testSchema.test", "testSchema.testing");
+        long affectedPrivileges = usersPrivilegesMetaData.transferTablePrivileges(GRANT_TABLE_DQL.ident(), "testSchema.testing");
         assertThat(affectedPrivileges, is(1L));
 
         Set<Privilege> updatedPrivileges = usersPrivilegesMetaData.getUserPrivileges(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
@@ -209,5 +209,17 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
             .filter(p -> p.clazz().equals(Privilege.Clazz.SCHEMA))
             .findAny();
         assertThat(schemaPrivilege.isPresent() && schemaPrivilege.get().equals(GRANT_SCHEMA_DML), is(true));
+    }
+
+    @Test
+    public void testDropTablePrivileges() {
+        long affectedPrivileges = usersPrivilegesMetaData.dropTablePrivileges(GRANT_TABLE_DQL.ident());
+        assertThat(affectedPrivileges, is(1L));
+
+        Set<Privilege> updatedPrivileges = usersPrivilegesMetaData.getUserPrivileges(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
+        Optional<Privilege> sourcePrivilege = updatedPrivileges.stream()
+            .filter(p -> p.ident().equals("testSchema.test"))
+            .findAny();
+        assertThat(sourcePrivilege.isPresent(), is(false));
     }
 }
