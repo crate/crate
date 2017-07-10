@@ -105,18 +105,6 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
     }
 
     @Test
-    public void testEnableAuthentication() throws Exception {
-        Authentication authService = new HostBasedAuthentication(Settings.EMPTY, null);
-        assertFalse(authService.enabled());
-
-        Settings settings = Settings.builder()
-            .put(AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.getKey(), true)
-            .build();
-        authService = new HostBasedAuthentication(settings, null);
-        assertTrue(authService.enabled());
-    }
-
-    @Test
     public void testMissingUserOrAddress() throws Exception {
         authService.updateHbaConfig(Collections.emptyMap());
         AuthenticationMethod method;

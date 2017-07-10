@@ -28,8 +28,6 @@ import javax.annotation.Nullable;
 
 public interface Authentication {
 
-    boolean enabled();
-
     @Nullable
     AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties);
 }

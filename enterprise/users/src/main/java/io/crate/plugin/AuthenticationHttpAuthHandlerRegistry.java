@@ -28,6 +28,9 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
+/**
+ * Class that if instantiated causes the {@link HttpAuthUpstreamHandler} to be registered in the {@link PipelineRegistry}
+ */
 @Singleton
 public class AuthenticationHttpAuthHandlerRegistry {
 
@@ -35,13 +38,11 @@ public class AuthenticationHttpAuthHandlerRegistry {
     public AuthenticationHttpAuthHandlerRegistry(Settings settings,
                                                  PipelineRegistry pipelineRegistry,
                                                  Authentication authentication) {
-        if (authentication.enabled()) {
-            PipelineRegistry.ChannelPipelineItem pipelineItem = new PipelineRegistry.ChannelPipelineItem(
-                "blob_handler",
-                "auth_handler",
-                () -> new HttpAuthUpstreamHandler(settings, authentication)
-            );
-            pipelineRegistry.addBefore(pipelineItem);
-        }
+        PipelineRegistry.ChannelPipelineItem pipelineItem = new PipelineRegistry.ChannelPipelineItem(
+            "blob_handler",
+            "auth_handler",
+            () -> new HttpAuthUpstreamHandler(settings, authentication)
+        );
+        pipelineRegistry.addBefore(pipelineItem);
     }
 }

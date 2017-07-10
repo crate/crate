@@ -176,11 +176,6 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         }
 
         @Override
-        public boolean enabled() {
-            return true;
-        }
-
-        @Override
         public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties) {
             return new AuthenticationMethod() {
                 @Nullable
