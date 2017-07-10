@@ -18,6 +18,9 @@ Breaking Changes
 Fixes
 =====
 
+ - Fixed an issue that caused an exception to be thrown when using
+   ``COUNT(*)`` with a ``JOIN`` on 3 or more tables.
+
  - Fixed a regression that caused queries with a ``GROUP BY`` on array-columns,
    which are wrapped in a scalar function, to fail.
 

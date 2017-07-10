@@ -677,4 +677,46 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((AggregationProjection)projections.get(0)).aggregations().get(0).inputs().get(0),
                    isSQL("INPUT(0)"));
     }
+
+    @Test
+    public void testGlobalAggregationOn3TableJoinWithImplicitJoinConditions() {
+        Merge plan = e.plan("select count(*) from users t1, users t2, users t3 " +
+                            "where t1.id = t2.id and t2.id = t3.id");
+        assertThat(plan.subPlan(), instanceOf(NestedLoop.class));
+        NestedLoop outerNL = (NestedLoop)plan.subPlan();
+        assertThat(outerNL.nestedLoopPhase().projections().get(0), instanceOf(FilterProjection.class));
+        FilterProjection filterProjection = (FilterProjection) outerNL.nestedLoopPhase().projections().get(0);
+        assertThat(filterProjection.outputs(), isSQL("INPUT(0), INPUT(1)"));
+        assertThat(filterProjection.query(), isSQL("(INPUT(0) = INPUT(1))"));
+        assertThat(outerNL.nestedLoopPhase().outputTypes().size(), is(1));
+        assertThat(outerNL.nestedLoopPhase().outputTypes().get(0), is(CountAggregation.LongStateType.INSTANCE));
+
+        NestedLoop innerNL = (NestedLoop) outerNL.left();
+        assertThat(innerNL.nestedLoopPhase().projections().get(0), instanceOf(FilterProjection.class));
+        filterProjection = (FilterProjection) innerNL.nestedLoopPhase().projections().get(0);
+        assertThat(filterProjection.outputs(), isSQL("INPUT(0), INPUT(1)"));
+        assertThat(filterProjection.query(), isSQL("(INPUT(0) = INPUT(1))"));
+        assertThat(innerNL.nestedLoopPhase().outputTypes().size(), is(1));
+        assertThat(innerNL.nestedLoopPhase().outputTypes().get(0), is(DataTypes.LONG));
+
+        plan = e.plan("select count(t1.other_id) from users t1, users t2, users t3 " +
+                            "where t1.id = t2.id and t2.id = t3.id");
+        assertThat(plan.subPlan(), instanceOf(NestedLoop.class));
+        outerNL = (NestedLoop)plan.subPlan();
+        assertThat(outerNL.nestedLoopPhase().projections().get(0), instanceOf(FilterProjection.class));
+        filterProjection = (FilterProjection) outerNL.nestedLoopPhase().projections().get(0);
+        assertThat(filterProjection.outputs(), isSQL("INPUT(0), INPUT(1), INPUT(2)"));
+        assertThat(filterProjection.query(), isSQL("(INPUT(1) = INPUT(2))"));
+        assertThat(outerNL.nestedLoopPhase().outputTypes().size(), is(1));
+        assertThat(outerNL.nestedLoopPhase().outputTypes().get(0), is(CountAggregation.LongStateType.INSTANCE));
+
+        innerNL = (NestedLoop) outerNL.left();
+        assertThat(innerNL.nestedLoopPhase().projections().get(0), instanceOf(FilterProjection.class));
+        filterProjection = (FilterProjection) innerNL.nestedLoopPhase().projections().get(0);
+        assertThat(filterProjection.outputs(), isSQL("INPUT(0), INPUT(1), INPUT(2)"));
+        assertThat(filterProjection.query(), isSQL("(INPUT(0) = INPUT(2))"));
+        assertThat(innerNL.nestedLoopPhase().outputTypes().size(), is(2));
+        assertThat(innerNL.nestedLoopPhase().outputTypes().get(0), is(DataTypes.LONG));
+        assertThat(innerNL.nestedLoopPhase().outputTypes().get(1), is(DataTypes.LONG));
+    }
 }
