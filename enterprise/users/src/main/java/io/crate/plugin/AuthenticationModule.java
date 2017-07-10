@@ -22,15 +22,28 @@
 
 package io.crate.plugin;
 
+import io.crate.operation.auth.AlwaysOKAuthentication;
+import io.crate.operation.auth.AuthSettings;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.HostBasedAuthentication;
 import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.settings.Settings;
 
 public class AuthenticationModule extends AbstractModule {
 
+    private final Settings settings;
+
+    public AuthenticationModule(Settings settings) {
+        this.settings = settings;
+    }
+
     @Override
     protected void configure() {
-        bind(Authentication.class).to(HostBasedAuthentication.class);
-        bind(AuthenticationHttpAuthHandlerRegistry.class).asEagerSingleton();
+        if (AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.setting().get(settings)) {
+            bind(Authentication.class).to(HostBasedAuthentication.class);
+            bind(AuthenticationHttpAuthHandlerRegistry.class).asEagerSingleton();
+        } else {
+            bind(Authentication.class).to(AlwaysOKAuthentication.class);
+        }
     }
 }

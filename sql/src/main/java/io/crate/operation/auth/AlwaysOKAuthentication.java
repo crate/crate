@@ -40,11 +40,6 @@ public class AlwaysOKAuthentication implements Authentication {
     };
 
     @Override
-    public boolean enabled() {
-        return true;
-    }
-
-    @Override
     public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties) {
         return alwaysOk;
     }

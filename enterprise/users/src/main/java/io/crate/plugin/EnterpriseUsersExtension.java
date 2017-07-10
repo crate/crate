@@ -27,6 +27,7 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 
 import java.util.ArrayList;
@@ -80,10 +81,10 @@ public class EnterpriseUsersExtension implements UserExtension {
     }
 
     @Override
-    public Collection<Module> getModules() {
+    public Collection<Module> getModules(Settings settings) {
         return Arrays.asList(
             new UserManagementModule(),
-            new AuthenticationModule(),
+            new AuthenticationModule(settings),
             new UsersScalarFunctionModule());
     }
 }

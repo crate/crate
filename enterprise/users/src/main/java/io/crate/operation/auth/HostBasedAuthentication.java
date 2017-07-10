@@ -70,13 +70,11 @@ public class HostBasedAuthentication implements Authentication {
      }
      */
     private Map<String, Map<String, String>> hbaConf;
-    private boolean enabled;
 
     private final Map<String, Supplier<AuthenticationMethod>> authMethodRegistry = new HashMap<>();
 
     @Inject
     public HostBasedAuthentication(Settings settings, UserLookup userLookup) {
-        enabled = AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.setting().get(settings);
         hbaConf = convertHbaSettingsToHbaConf(AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings));
         authMethodRegistry.put(TrustAuthentication.NAME, () -> new TrustAuthentication(userLookup));
         authMethodRegistry.put(ClientCertAuth.NAME, () -> new ClientCertAuth(userLookup));
@@ -96,11 +94,6 @@ public class HostBasedAuthentication implements Authentication {
             hostBasedConf.put(entry.getKey(), entry.getValue().getAsMap());
         }
         return hostBasedConf.build();
-    }
-
-    @Override
-    public boolean enabled() {
-        return enabled;
     }
 
     @Override

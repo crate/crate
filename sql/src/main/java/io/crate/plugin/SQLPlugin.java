@@ -58,8 +58,8 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslConfigSettings;
 import io.crate.rest.action.RestSQLAction;
 import io.crate.settings.CrateSetting;
-import io.crate.user.UserFallbackModule;
 import io.crate.user.UserExtension;
+import io.crate.user.UserFallbackModule;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -187,7 +187,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
         modules.add(new SysNodeChecksModule());
         modules.add(new RepositorySettingsModule());
         if (userExtension != null) {
-            modules.addAll(userExtension.getModules());
+            modules.addAll(userExtension.getModules(settings));
         } else {
             modules.add(new UserFallbackModule());
         }
