@@ -26,8 +26,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.operation.udf.UDFLanguage;
 import io.crate.operation.udf.UserDefinedFunctionMetaData;
@@ -37,23 +37,25 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.index.Index;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
 import javax.script.ScriptException;
-import java.util.Map;
 
-import static org.hamcrest.core.Is.is;
+import static io.crate.testing.TestingHelpers.getFunctions;
 
 public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
-    private UserDefinedFunctionService udfService;
     private DocSchemaInfo docSchemaInfo;
+    private Functions functions;
+    private UserDefinedFunctionService udfService;
 
     @Before
     public void setup() throws Exception {
-        udfService = new UserDefinedFunctionService(clusterService);
+        functions = getFunctions();
+        udfService = new UserDefinedFunctionService(clusterService, functions);
         udfService.registerLanguage(new UDFLanguage() {
             @Override
             public Scalar createFunctionImplementation(UserDefinedFunctionMetaData metaData) throws ScriptException {
@@ -105,11 +107,13 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         );
         UserDefinedFunctionsMetaData metaData = UserDefinedFunctionsMetaData.of(invalid, valid);
         // if a functionImpl can't be created, it won't be registered
-        Map<FunctionIdent, FunctionImplementation> functionImpl =
-            docSchemaInfo.toFunctionImpl(metaData.functionsMetaData());
-        assertThat(functionImpl.size(), is(1));
-        // the valid functions will be registered
-        assertThat(functionImpl.entrySet().iterator().next().getKey().name(), is("valid"));
+
+        udfService.updateImplementations("my_schema", metaData.functionsMetaData().stream());
+
+        assertThat(functions.getUserDefined("my_schema", "valid", ImmutableList.of()), Matchers.notNullValue());
+
+        expectedException.expectMessage("unknown function: invalid()");
+        assertThat(functions.getUserDefined("my_schema", "invalid", ImmutableList.of()), Matchers.nullValue());
     }
 
     @Test

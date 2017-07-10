@@ -60,7 +60,7 @@ public class SubselectRewriterTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setupAnalyzer() throws Exception {
         Functions functions = getFunctions();
-        UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService);
+        UserDefinedFunctionService udfService = new UserDefinedFunctionService(clusterService, functions);
         TestingDocTableInfoFactory docTableInfoFactory = new TestingDocTableInfoFactory(
             ImmutableMap.of(
                 T3.T1_INFO.ident(), T3.T1_INFO,

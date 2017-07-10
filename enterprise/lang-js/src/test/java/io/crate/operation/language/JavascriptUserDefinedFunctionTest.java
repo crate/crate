@@ -63,7 +63,7 @@ public class JavascriptUserDefinedFunctionTest extends AbstractScalarFunctionsTe
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        udfService = new UserDefinedFunctionService(mock(ClusterService.class));
+        udfService = new UserDefinedFunctionService(mock(ClusterService.class), functions);
         udfService.registerLanguage(new JavaScriptLanguage(udfService));
     }
 
