@@ -247,11 +247,21 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
-    public void testRevokeFromUnknownTableThrowsException() {
+    public void testRevokeFromUnknownTableDoNotThrowException() {
+        PrivilegesAnalyzedStatement analysis = analyzePrivilegesStatement("Revoke DQL on table doc.hoichi FROM user1");
+        assertThat(analysis.privileges().size(), is(1));
+        assertThat(analysis.privileges(), contains(
+            privilegeOf(REVOKE, DQL, TABLE, "doc.hoichi"))
+        );
+    }
+
+    @Test
+    public void testGrantToUnknownTableThrowsException() {
         expectedException.expect(TableUnknownException.class);
         expectedException.expectMessage("Table 'doc.hoichi' unknown");
-        analyzePrivilegesStatement("Revoke DQL on table doc.hoichi FROM user1");
+        analyzePrivilegesStatement("Grant DQL on table doc.hoichi to user1");
     }
+
 
     @Test
     public void testGrantOnInformationSchemaTableThrowsException() {
@@ -261,9 +271,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
-    public void testRevokeOnInformationSchemaTableThrowsException() {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("GRANT/DENY/REVOKE Privileges on information_schema is not supported");
+    public void testRevokeOnInformationSchemaTableDoNotThrowException() {
         analyzePrivilegesStatement("REVOKE DQL ON TABLE information_schema.tables FROM user1");
     }
 
@@ -272,15 +280,6 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage("GRANT/DENY/REVOKE Privileges on information_schema is not supported");
         analyzePrivilegesStatement("DENY DQL ON TABLE information_schema.tables TO user1");
-    }
-
-    @Test
-    public void testRevokeOnInformationSchemaThrowsException() {
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage("GRANT/DENY/REVOKE Privileges on information_schema is not supported");
-        analyzePrivilegesStatement("REVOKE DQL ON SCHEMA information_schema FROM user1");
-        analyzePrivilegesStatement("GRANT DQL ON SCHEMA information_schema TO user1");
-        analyzePrivilegesStatement("DENY DQL ON SCHEMA information_schema TO user1");
     }
 
     @Test

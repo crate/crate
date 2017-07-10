@@ -58,7 +58,7 @@ class PrivilegesAnalyzer {
     PrivilegesAnalyzedStatement analyzeGrant(GrantPrivilege node, @Nullable User user) {
         ensureUserManagementEnabled(user);
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
-        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents());
+        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false);
 
         return new PrivilegesAnalyzedStatement(node.userNames(),
             privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.GRANT, idents,
@@ -68,7 +68,7 @@ class PrivilegesAnalyzer {
     PrivilegesAnalyzedStatement analyzeRevoke(RevokePrivilege node, @Nullable User user) {
         ensureUserManagementEnabled(user);
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
-        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents());
+        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), true);
 
         return new PrivilegesAnalyzedStatement(node.userNames(),
             privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.REVOKE, idents,
@@ -78,7 +78,7 @@ class PrivilegesAnalyzer {
     PrivilegesAnalyzedStatement analyzeDeny(DenyPrivilege node, @Nullable User user) {
         ensureUserManagementEnabled(user);
         Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
-        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents());
+        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false);
 
         return new PrivilegesAnalyzedStatement(node.userNames(),
             privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.DENY, idents,
@@ -119,8 +119,12 @@ class PrivilegesAnalyzer {
         }
     }
 
-    private List<String> validatePrivilegeIdents(Privilege.Clazz clazz, List<QualifiedName> tableOrSchemaNames) {
+    private List<String> validatePrivilegeIdents(Privilege.Clazz clazz, List<QualifiedName> tableOrSchemaNames, boolean isRevoke) {
         List<String> idents = convertQualifiedNamesToIdents(clazz, tableOrSchemaNames);
+        if (isRevoke) {
+            return idents;
+        }
+
         if (Privilege.Clazz.SCHEMA.equals(clazz)) {
             validateSchemaNames(idents);
         } else if (Privilege.Clazz.TABLE.equals(clazz)) {
