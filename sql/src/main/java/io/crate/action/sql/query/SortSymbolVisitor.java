@@ -144,17 +144,17 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         if (fieldType == null) {
             indexName = columnIdent.fqn();
             fieldComparatorSource = new NullFieldComparatorSource(LUCENE_TYPE_MAP.get(symbol.valueType()), context.reverseFlag, context.nullFirst);
+            return new SortField(
+                indexName,
+                fieldComparatorSource,
+                context.reverseFlag);
         } else {
-            indexName = fieldType.name();
-            fieldComparatorSource = context.context.fieldData()
+            return context.context.fieldData()
                 .getForField(fieldType)
-                .comparatorSource(SortOrder.missing(context.reverseFlag, context.nullFirst), sortMode, null);
+                .sortField(SortOrder.missing(context.reverseFlag, context.nullFirst),
+                    sortMode, null, context.reverseFlag);
         }
-        return new SortField(
-            indexName,
-            fieldComparatorSource,
-            context.reverseFlag
-        );
+
     }
 
     @Override
@@ -183,7 +183,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
         return new SortField(name, new IndexFieldData.XFieldComparatorSource() {
             @Override
-            public FieldComparator<?> newComparator(String fieldName, int numHits, int sortPos, boolean reversed) throws IOException {
+            public FieldComparator<?> newComparator(String fieldName, int numHits, int sortPos, boolean reversed) {
                 for (LuceneCollectorExpression collectorExpression : expressions) {
                     collectorExpression.startCollect(context.context);
                 }

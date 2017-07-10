@@ -56,7 +56,6 @@ import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.operation.udf.UserDefinedFunctionsMetaData;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslConfigSettings;
-import io.crate.rest.action.RestSQLAction;
 import io.crate.settings.CrateSetting;
 import io.crate.user.UserExtension;
 import io.crate.user.UserFallbackModule;
@@ -79,7 +78,6 @@ import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.rest.RestHandler;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -89,6 +87,7 @@ import java.util.Map;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static io.crate.settings.SharedSettings.ENTERPRISE_LICENSE_SETTING;
+import static org.elasticsearch.action.support.AutoCreateIndex.AUTO_CREATE_INDEX_SETTING;
 
 public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
@@ -111,7 +110,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
 
         // Never allow implicit creation of an index, even on partitioned tables we are creating
         // partitions explicitly
-        settingsBuilder.put("action.auto_create_index", false);
+        settingsBuilder.put(AUTO_CREATE_INDEX_SETTING.getKey(), false);
 
         return settingsBuilder.build();
     }
@@ -192,11 +191,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin, Clu
             modules.add(new UserFallbackModule());
         }
         return modules;
-    }
-
-    @Override
-    public List<Class<? extends RestHandler>> getRestHandlers() {
-        return Collections.singletonList(RestSQLAction.class);
     }
 
     @Override

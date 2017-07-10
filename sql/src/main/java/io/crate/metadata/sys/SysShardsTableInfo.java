@@ -292,7 +292,8 @@ public class SysShardsTableInfo extends StaticTableInfo {
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         ClusterState state = service.state();
         String[] concreteIndices = state.metaData().getConcreteAllIndices();
-        GroupShardsIterator groupShardsIterator = state.getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
+        GroupShardsIterator<ShardIterator> groupShardsIterator =
+            state.getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
 
         User user = sessionContext != null ? sessionContext.user() : null;
         for (final ShardIterator shardIt : groupShardsIterator) {

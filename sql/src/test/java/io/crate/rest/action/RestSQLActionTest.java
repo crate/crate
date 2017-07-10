@@ -91,7 +91,7 @@ public class RestSQLActionTest extends CrateUnitTest {
             circuitBreakerService
         );
         RestRequest request = new FakeRestRequest.Builder(xContentRegistry())
-            .withHeaders(Collections.singletonMap("X-User", "other"))
+            .withHeaders(Collections.singletonMap("X-User", Collections.singletonList("other")))
             .build();
         assertThat(restSQLAction.userFromRequest(request).name(), is("other"));
 

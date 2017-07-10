@@ -22,7 +22,15 @@
 package io.crate.executor.transport;
 
 import io.crate.jobs.JobContextService;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -186,10 +194,10 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId, null);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
-        TransportWriteAction.WriteResult<ShardResponse> result = transportShardUpsertAction.processRequestItems(
-            indexShard, request, new AtomicBoolean(false));
+        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
+            transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
-        assertThat(result.getResponse().failure(), instanceOf(VersionConflictEngineException.class));
+        assertThat(result.finalResponseIfSuccessful.failure(), instanceOf(VersionConflictEngineException.class));
     }
 
     @Test
@@ -205,10 +213,10 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId, null);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
-        TransportWriteAction.WriteResult<ShardResponse> result = transportShardUpsertAction.processRequestItems(
-            indexShard, request, new AtomicBoolean(false));
+        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
+            transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
-        ShardResponse response = result.getResponse();
+        ShardResponse response = result.finalResponseIfSuccessful;
         assertThat(response.failures().size(), is(1));
         assertThat(response.failures().get(0).message(),
                    is("VersionConflictEngineException[[default][1]: version conflict, " +
@@ -438,10 +446,10 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ).newRequest(shardId, null);
         request.add(1, new ShardUpsertRequest.Item("1", null, new Object[]{1}, null));
 
-        TransportWriteAction.WriteResult<ShardResponse> result = transportShardUpsertAction.processRequestItems(
-            indexShard, request, new AtomicBoolean(true));
+        TransportWriteAction.WritePrimaryResult<ShardUpsertRequest, ShardResponse> result =
+            transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
-        assertThat(result.getResponse().failure(), instanceOf(InterruptedException.class));
+        assertThat(result.finalResponseIfSuccessful.failure(), instanceOf(InterruptedException.class));
     }
 
     @Test

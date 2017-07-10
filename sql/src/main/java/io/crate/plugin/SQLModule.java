@@ -32,6 +32,7 @@ import io.crate.planner.TableStats;
 import io.crate.planner.TableStatsService;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.rest.action.RestSQLAction;
 import org.elasticsearch.common.inject.AbstractModule;
 
 
@@ -50,5 +51,6 @@ public class SQLModule extends AbstractModule {
         bind(TransportCreateUserDefinedFunctionAction.class).asEagerSingleton();
         bind(TransportDropUserDefinedFunctionAction.class).asEagerSingleton();
         bind(SslContextProvider.class).asEagerSingleton();
+        bind(RestSQLAction.class).asEagerSingleton();
     }
 }

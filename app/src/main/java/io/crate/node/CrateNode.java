@@ -30,12 +30,12 @@ import io.crate.udc.plugin.UDCPlugin;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.discovery.ec2.Ec2DiscoveryPlugin;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.plugin.discovery.ec2.Ec2DiscoveryPlugin;
-import org.elasticsearch.plugin.repository.s3.S3RepositoryPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
 import org.elasticsearch.transport.Netty4Plugin;
 
 import java.util.Arrays;

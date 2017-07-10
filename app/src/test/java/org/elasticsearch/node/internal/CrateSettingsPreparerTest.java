@@ -29,6 +29,7 @@ import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpTransportSettings;
+import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.elasticsearch.transport.TransportSettings;
@@ -79,8 +80,6 @@ public class CrateSettingsPreparerTest {
     @Test
     public void testDefaultCrateSettings() throws Exception {
         Settings.Builder builder = Settings.builder();
-        InternalSettingsPreparer.initializeSettings(builder, Settings.EMPTY, true, Collections.emptyMap());
-        InternalSettingsPreparer.finalizeSettings(builder, Terminal.DEFAULT);
         CrateSettingsPreparer.applyCrateDefaults(builder);
 
         assertThat(builder.get(NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY), is(Netty4Plugin.NETTY_TRANSPORT_NAME));

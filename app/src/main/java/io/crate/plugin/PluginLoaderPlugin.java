@@ -25,21 +25,26 @@ package io.crate.plugin;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.collections.Lists2;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.settings.SettingsFilter;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 
 import javax.net.ssl.SSLContext;
@@ -50,8 +55,10 @@ import java.io.InputStream;
 import java.security.KeyStore;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPlugin, ClusterPlugin {
 
@@ -109,11 +116,6 @@ public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPl
     @Override
     public Collection<Module> createGuiceModules() {
         return Lists2.concat(pluginLoader.createGuiceModules(), sqlPlugin.createGuiceModules());
-    }
-
-    @Override
-    public List<Class<? extends RestHandler>> getRestHandlers() {
-        return sqlPlugin.getRestHandlers();
     }
 
     @Override

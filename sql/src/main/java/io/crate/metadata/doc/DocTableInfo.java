@@ -199,7 +199,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         shards.add(shardRouting.id());
     }
 
-    private GroupShardsIterator getShardIterators(WhereClause whereClause,
+    private GroupShardsIterator<ShardIterator> getShardIterators(WhereClause whereClause,
                                                   @Nullable String preference) throws IndexNotFoundException {
         String[] routingIndices;
         if (whereClause.partitions().size() > 0) {
@@ -225,7 +225,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public Routing getRouting(final WhereClause whereClause,
                               @Nullable final String preference,
                               SessionContext sessionContext) {
-        GroupShardsIterator shardIterators;
+        GroupShardsIterator<ShardIterator> shardIterators;
         try {
             shardIterators = getShardIterators(whereClause, preference);
         } catch (IndexNotFoundException e) {
@@ -237,7 +237,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     private void fillLocationsFromShardIterators(Map<String, Map<String, List<Integer>>> locations,
-                                                 GroupShardsIterator shardIterators) {
+                                                 GroupShardsIterator<ShardIterator> shardIterators) {
         ShardRouting shardRouting;
         for (ShardIterator shardIterator : shardIterators) {
             shardRouting = shardIterator.nextOrNull();

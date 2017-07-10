@@ -31,6 +31,7 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.transport.Netty4Plugin;
 
@@ -55,42 +56,29 @@ import static org.elasticsearch.transport.TransportSettings.PORT;
 
 public class CrateSettingsPreparer {
 
-    /**
-     * ES_COPY_OF: core/src/main/java/org/elasticsearch/node/internal/InternalSettingsPreparer.java
-     * This is a copy of {@link InternalSettingsPreparer#prepareEnvironment(Settings, Terminal, Map)}
-     * <p>
-     * with the addition of the "applyCrateDefaults" call and resolving `crate.yml` instead of `elasticsearch.yml`.
-     */
-    public static Environment prepareEnvironment(Settings input, Terminal terminal, Map<String, String> properties) {
-        // just create enough settings to build the environment, to get the config dir
-        Settings.Builder output = Settings.builder();
-        InternalSettingsPreparer.initializeSettings(output, input, true, properties);
-        Environment environment = new Environment(output.build());
+    public static Environment prepareEnvironment(Settings input, Environment esEnvironment) {
+        Settings.Builder builder = Settings.builder();
+        builder.put(esEnvironment.settings());
+        builder.put(input);
 
+        Environment newEnvironment = new Environment(builder.build());
 
-        Path path = environment.configFile().resolve("crate.yml");
+        Path path = newEnvironment.configFile().resolve("crate.yml");
         if (Files.exists(path)) {
             try {
-                output.loadFromPath(path);
+                builder.loadFromPath(path);
             } catch (IOException e) {
                 throw new SettingsException("Failed to load settings from " + path.toString(), e);
             }
         }
 
-        // re-initialize settings now that the config file has been loaded
-        // TODO: only re-initialize if a config file was actually loaded
-        InternalSettingsPreparer.initializeSettings(output, input, false, properties);
-        InternalSettingsPreparer.finalizeSettings(output, terminal);
-
-        validateKnownSettings(output);
-        applyCrateDefaults(output);
-
-        environment = new Environment(output.build());
+        validateKnownSettings(builder);
+        applyCrateDefaults(builder);
 
         // we put back the path.logs so we can use it in the logging configuration file
-        output.put(Environment.PATH_LOGS_SETTING.getKey(), cleanPath(environment.logsFile().toAbsolutePath().toString()));
+        builder.put(Environment.PATH_LOGS_SETTING.getKey(), cleanPath(newEnvironment.logsFile().toAbsolutePath().toString()));
 
-        return new Environment(output.build());
+        return new Environment(builder.build());
     }
 
     static void validateKnownSettings(Settings.Builder builder) {
@@ -117,7 +105,8 @@ public class CrateSettingsPreparer {
         putIfAbsent(settingsBuilder, GLOBAL_NETWORK_HOST_SETTING.getKey(), DEFAULT_NETWORK_HOST);
 
         // Set the default cluster name if not explicitly defined
-        if (settingsBuilder.get(ClusterName.CLUSTER_NAME_SETTING.getKey()).equals(ClusterName.DEFAULT.value())) {
+        String clusterName = settingsBuilder.get(ClusterName.CLUSTER_NAME_SETTING.getKey());
+        if (clusterName == null || clusterName.equals(ClusterName.DEFAULT.value())) {
             settingsBuilder.put(ClusterName.CLUSTER_NAME_SETTING.getKey(), "crate");
         }
 

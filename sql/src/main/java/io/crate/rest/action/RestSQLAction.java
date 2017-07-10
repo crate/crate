@@ -46,6 +46,7 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.BaseRestHandler;
@@ -67,6 +68,7 @@ import java.util.Set;
 
 import static io.crate.action.sql.SQLOperations.Session.UNNAMED;
 
+@Singleton
 public class RestSQLAction extends BaseRestHandler {
 
     private static final String REQUEST_HEADER_USER = "User";
@@ -77,6 +79,7 @@ public class RestSQLAction extends BaseRestHandler {
     private final UserManager userManager;
     private final CircuitBreaker circuitBreaker;
 
+    @SuppressWarnings("WeakerAccess")
     @Inject
     public RestSQLAction(Settings settings,
                          RestController controller,

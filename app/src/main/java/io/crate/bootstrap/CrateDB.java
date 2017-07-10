@@ -29,22 +29,23 @@ import joptsimple.OptionSpecBuilder;
 import joptsimple.util.PathConverter;
 import org.elasticsearch.bootstrap.BootstrapProxy;
 import org.elasticsearch.bootstrap.StartupExceptionProxy;
+import org.elasticsearch.cli.EnvironmentAwareCommand;
 import org.elasticsearch.cli.ExitCodes;
-import org.elasticsearch.cli.SettingCommand;
 import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cli.UserException;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.NodeValidationException;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Map;
 
 /**
  * A main entry point when starting from the command line.
  */
-public class CrateDB extends SettingCommand {
+public class CrateDB extends EnvironmentAwareCommand {
 
     private final OptionSpecBuilder versionOption;
     private final OptionSpecBuilder daemonizeOption;
@@ -85,7 +86,7 @@ public class CrateDB extends SettingCommand {
     }
 
     @Override
-    protected void execute(Terminal terminal, OptionSet options, Map<String, String> settings) throws UserException {
+    protected void execute(Terminal terminal, OptionSet options, Environment env) throws Exception {
         if (options.nonOptionArguments().isEmpty() == false) {
             throw new UserException(ExitCodes.USAGE, "Positional arguments not allowed, found " + options.nonOptionArguments());
         }
@@ -104,16 +105,16 @@ public class CrateDB extends SettingCommand {
         final boolean quiet = options.has(quietOption);
 
         try {
-            init(daemonize, pidFile, quiet, settings);
+            init(daemonize, pidFile, quiet, env);
         } catch (NodeValidationException e) {
             throw new UserException(ExitCodes.CONFIG, e.getMessage());
         }
     }
 
-    private void init(final boolean daemonize, final Path pidFile, final boolean quiet, final Map<String, String> esSettings)
+    private void init(final boolean daemonize, final Path pidFile, final boolean quiet, Environment env)
         throws NodeValidationException, UserException {
         try {
-            BootstrapProxy.init(!daemonize, pidFile, quiet, esSettings);
+            BootstrapProxy.init(!daemonize, pidFile, quiet, env);
         } catch (BootstrapException | RuntimeException e) {
             // format exceptions to the console in a special way
             // to avoid 2MB stacktraces from guice, etc.

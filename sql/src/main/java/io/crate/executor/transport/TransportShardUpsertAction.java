@@ -80,8 +80,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.crate.exceptions.Exceptions.userFriendlyMessage;
-import static org.elasticsearch.action.support.replication.ReplicationOperation.ignoreReplicaException;
-
 @Singleton
 public class TransportShardUpsertAction extends TransportShardAction<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
@@ -115,9 +113,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @Override
-    protected WriteResult<ShardResponse> processRequestItems(IndexShard indexShard,
-                                                             ShardUpsertRequest request,
-                                                             AtomicBoolean killed) throws InterruptedException {
+    protected WritePrimaryResult<ShardUpsertRequest, ShardResponse> processRequestItems(IndexShard indexShard,
+                                                                                        ShardUpsertRequest request,
+                                                                                        AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
         DocTableInfo tableInfo = schemas.getTableInfo(TableIdent.fromIndexName(request.index()), Operation.INSERT);
 
@@ -169,11 +167,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         (e instanceof VersionConflictEngineException)));
             }
         }
-        return new WriteResult<>(shardResponse, translogLocation);
+        return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard, logger);
     }
 
     @Override
-    protected Translog.Location processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) {
+    protected WriteReplicaResult<ShardUpsertRequest> processRequestItemsOnReplica(IndexShard indexShard, ShardUpsertRequest request) throws IOException {
         Translog.Location location = null;
         for (ShardUpsertRequest.Item item : request.items()) {
             if (item.source() == null) {
@@ -183,15 +181,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
                 continue;
             }
-            try {
-                location = shardIndexOperationOnReplica(request, item, indexShard);
-            } catch (Exception e) {
-                if (!ignoreReplicaException(e)) {
-                    throw e;
-                }
-            }
+            Engine.IndexResult indexResult = shardIndexOperationOnReplica(request, item, indexShard);
+            location = indexResult.getTranslogLocation();
         }
-        return location;
+        return new WriteReplicaResult<>(request, location, null, indexShard, logger);
     }
 
     protected Translog.Location indexItem(DocTableInfo tableInfo,
@@ -201,46 +194,60 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                           boolean tryInsertFirst,
                                           Collection<ColumnIdent> notUsedNonGeneratedColumns,
                                           int retryCount) throws Exception {
-        try {
-            long version;
-            // try insert first without fetching the document
-            if (tryInsertFirst) {
-                // set version so it will fail if already exists (will be overwritten for updates, see below)
-                version = Versions.MATCH_DELETED;
-                try {
-                    item.source(prepareInsert(tableInfo, notUsedNonGeneratedColumns, request, item));
-                } catch (IOException e) {
-                    throw ExceptionsHelper.convertToElastic(e);
-                }
-                if (!request.overwriteDuplicates()) {
-                    item.opType(IndexRequest.OpType.CREATE);
-                } else {
-                    version = Versions.MATCH_ANY;
-                    item.opType(IndexRequest.OpType.INDEX);
-                }
+        long version;
+        // try insert first without fetching the document
+        if (tryInsertFirst) {
+            // set version so it will fail if already exists (will be overwritten for updates, see below)
+            version = Versions.MATCH_DELETED;
+            try {
+                item.source(prepareInsert(tableInfo, notUsedNonGeneratedColumns, request, item));
+            } catch (IOException e) {
+                throw ExceptionsHelper.convertToElastic(e);
+            }
+            if (!request.overwriteDuplicates()) {
+                item.opType(IndexRequest.OpType.CREATE);
             } else {
+                version = Versions.MATCH_ANY;
                 item.opType(IndexRequest.OpType.INDEX);
-                SourceAndVersion sourceAndVersion = prepareUpdate(tableInfo, request, item, indexShard);
-                item.source(sourceAndVersion.source);
-                version = sourceAndVersion.version;
             }
-            return shardIndexOperation(request, item, version, indexShard);
-        } catch (VersionConflictEngineException e) {
-            if (item.updateAssignments() != null) {
-                if (tryInsertFirst) {
-                    // insert failed, document already exists, try update
-                    return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns, 0);
-                } else if (item.retryOnConflict()) {
-                    if (logger.isTraceEnabled()) {
-                        logger.trace("[{}] VersionConflict, retrying operation for document id {}, retry count: {}",
-                            indexShard.shardId(), item.id(), retryCount);
+        } else {
+            item.opType(IndexRequest.OpType.INDEX);
+            SourceAndVersion sourceAndVersion = prepareUpdate(tableInfo, request, item, indexShard);
+            item.source(sourceAndVersion.source);
+            version = sourceAndVersion.version;
+        }
+
+        Engine.Index operation = prepareIndexOnPrimary(indexShard, version, request, item);
+        operation = updateMappingIfRequired(request, item, version, indexShard, operation);
+        Engine.IndexResult indexResult = indexShard.index(operation);
+
+        Exception failure = indexResult.getFailure();
+        if (failure != null) {
+            if (failure instanceof VersionConflictEngineException) {
+                if (item.updateAssignments() != null) {
+                    if (tryInsertFirst) {
+                        // insert failed, document already exists, try update
+                        return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns, 0);
+                    } else if (item.retryOnConflict()) {
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("[{}] VersionConflict, retrying operation for document id {}, retry count: {}",
+                                indexShard.shardId(), item.id(), retryCount);
+                        }
+                        return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns,
+                            retryCount + 1);
                     }
-                    return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns,
-                        retryCount + 1);
                 }
             }
-            throw e;
+            throw failure;
         }
+
+        // update the version on request for the replicas
+        item.versionType(item.versionType().versionTypeForReplicationAndRecovery());
+        item.version(indexResult.getVersion());
+
+        assert item.versionType().validateVersionForWrites(item.version()) : "item.version() must be valid";
+
+        return indexResult.getTranslogLocation();
     }
 
     /**
@@ -391,7 +398,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             indexShard.shardId().getIndexName(),
             request.type(),
             item.id(),
-            item.source()
+            item.source(),
+            XContentType.JSON
         );
 
         if (logger.isTraceEnabled()) {
@@ -402,21 +410,21 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             sourceToParse, version, item.versionType(), -1, request.isRetry());
     }
 
-    private Translog.Location shardIndexOperation(ShardUpsertRequest request,
-                                                  ShardUpsertRequest.Item item,
-                                                  long version,
-                                                  IndexShard indexShard) throws Exception {
+    private Engine.IndexResult shardIndexOperation(ShardUpsertRequest request,
+                                                   ShardUpsertRequest.Item item,
+                                                   long version,
+                                                   IndexShard indexShard) throws Exception {
         Engine.Index operation = prepareIndexOnPrimary(indexShard, version, request, item);
         operation = updateMappingIfRequired(request, item, version, indexShard, operation);
-        indexShard.index(operation);
+        Engine.IndexResult indexResult = indexShard.index(operation);
 
         // update the version on request so it will happen on the replicas
         item.versionType(item.versionType().versionTypeForReplicationAndRecovery());
-        item.version(operation.version());
+        item.version(indexResult.getVersion());
 
         assert item.versionType().validateVersionForWrites(item.version()) : "item.version() must be valid";
 
-        return operation.getTranslogLocation();
+        return indexResult;
     }
 
     private Engine.Index updateMappingIfRequired(ShardUpsertRequest request,
@@ -449,10 +457,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
     }
 
-    private Translog.Location shardIndexOperationOnReplica(ShardUpsertRequest request,
-                                                           ShardUpsertRequest.Item item,
-                                                           IndexShard indexShard) {
-        SourceToParse sourceToParse = SourceToParse.source(SourceToParse.Origin.REPLICA, request.index(), request.type(), item.id(), item.source())
+    private Engine.IndexResult shardIndexOperationOnReplica(ShardUpsertRequest request,
+                                                            ShardUpsertRequest.Item item,
+                                                            IndexShard indexShard) throws IOException {
+        SourceToParse sourceToParse = SourceToParse.source(
+                SourceToParse.Origin.REPLICA,
+                request.index(), request.type(),
+                item.id(), item.source(),
+                XContentType.JSON)
             .routing(request.routing());
 
         if (logger.isTraceEnabled()) {
@@ -462,7 +474,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 item.source().utf8ToString(),
                 item.opType(),
                 item.version(),
-                item.version());
+                item.versionType());
         }
         Engine.Index index = indexShard.prepareIndexOnReplica(
             sourceToParse, item.version(), item.versionType(), -1, request.isRetry());
@@ -473,9 +485,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 indexShard.shardId(),
                 "Mappings are not available on the replica yet, triggered update: " + update);
         }
-        indexShard.index(index);
-
-        return index.getTranslogLocation();
+        return indexShard.index(index);
     }
 
     private Map<String, Object> processGeneratedColumnsOnInsert(DocTableInfo tableInfo,
