@@ -98,19 +98,21 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
             Version.CURRENT
         );
         ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, clusterSettingsSet);
-        ClusterService clusterService = new ClusterService(Settings.builder().put("cluster.name", "ClusterServiceTests").build(),
+        ClusterService clusterService = new ClusterService(
+            Settings.builder().put("cluster.name", "ClusterServiceTests").build(),
             clusterSettings,
-            THREAD_POOL);
-        clusterService.setLocalNode(discoveryNode);
+            THREAD_POOL,
+            () -> discoveryNode
+        );
         clusterService.setNodeConnectionsService(new NodeConnectionsService(Settings.EMPTY, null, null) {
 
             @Override
-            public void connectToNodes(Iterable<DiscoveryNode> discoveryNodes) {
+            public void connectToNodes(DiscoveryNodes discoveryNodes) {
                 // skip
             }
 
             @Override
-            public void disconnectFromNodesExcept(Iterable<DiscoveryNode> nodesToKeep) {
+            public void disconnectFromNodesExcept(DiscoveryNodes nodesToKeep) {
                 // skip
             }
         });

@@ -512,7 +512,7 @@ Or get an overview of how many routines and routine types are available::
     |       48 | ANALYZER     |
     |        4 | CHAR_FILTER  |
     |       16 | TOKENIZER    |
-    |       58 | TOKEN_FILTER |
+    |       59 | TOKEN_FILTER |
     +----------+--------------+
     SELECT 4 rows in set (... sec)
 

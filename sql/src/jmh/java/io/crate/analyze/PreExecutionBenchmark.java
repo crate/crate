@@ -26,7 +26,9 @@ import io.crate.action.sql.SessionContext;
 import io.crate.planner.Plan;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
+import io.crate.testing.DiscoveryNodes;
 import io.crate.testing.SQLExecutor;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -57,7 +59,8 @@ public class PreExecutionBenchmark {
         e = SQLExecutor.builder(
             new ClusterService(Settings.builder().put("cluster.name", "ClusterServiceTests").build(),
                 new ClusterSettings(Settings.EMPTY, Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
-                threadPool)).
+                threadPool,
+                () -> DiscoveryNodes.newNode("benchmarkNode"))).
             enableDefaultTables().
             build();
         selectStatement = SqlParser.createStatement("select name from users");

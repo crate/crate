@@ -40,7 +40,6 @@ import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.rest.RestHandler;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -109,11 +108,6 @@ public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPl
     @Override
     public Collection<Module> createGuiceModules() {
         return Lists2.concat(pluginLoader.createGuiceModules(), sqlPlugin.createGuiceModules());
-    }
-
-    @Override
-    public List<Class<? extends RestHandler>> getRestHandlers() {
-        return sqlPlugin.getRestHandlers();
     }
 
     @Override

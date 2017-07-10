@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiOfLength;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 

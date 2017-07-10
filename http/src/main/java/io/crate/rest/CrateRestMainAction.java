@@ -80,7 +80,6 @@ public class CrateRestMainAction implements RestHandler {
         "/_sql",
         "/_blobs",
         "/index.html",
-        "/static",
         "/admin",
         "/_plugin"
     );
@@ -88,13 +87,11 @@ public class CrateRestMainAction implements RestHandler {
     private final Version version;
     private final ClusterName clusterName;
     private final Settings settings;
-    private final RestController controller;
     private final Path siteDirectory;
 
     @Inject
     public CrateRestMainAction(Settings settings, Environment environment, RestController controller) {
         this.settings = settings;
-        this.controller = controller;
         this.version = Version.CURRENT;
         this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
         siteDirectory = environment.libFile().resolve("site");
@@ -103,9 +100,6 @@ public class CrateRestMainAction implements RestHandler {
         if (esApiEnabled) {
             logger.warn("Unofficial Elasticsearch HTTP REST API is enabled");
         }
-    }
-
-    void registerHandler() {
         controller.registerHandler(GET, PATH, this);
         controller.registerHandler(HEAD, PATH, this);
         controller.registerHandler(GET, "/admin", (req, channel, client) -> redirectToRoot(channel));

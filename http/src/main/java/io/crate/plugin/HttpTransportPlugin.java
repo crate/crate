@@ -23,25 +23,29 @@ package io.crate.plugin;
 
 import io.crate.protocols.http.CrateNettyHttpServerTransport;
 import io.crate.rest.CrateRestMainAction;
-import io.crate.rest.CrateRestModule;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.network.NetworkService;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.SettingsFilter;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.rest.RestController;
 import org.elasticsearch.rest.RestHandler;
 import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.search.SearchRequestParsers;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.watcher.ResourceWatcherService;
 
@@ -83,7 +87,6 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin, Action
                                                ThreadPool threadPool,
                                                ResourceWatcherService resourceWatcherService,
                                                ScriptService scriptService,
-                                               SearchRequestParsers searchRequestParsers,
                                                NamedXContentRegistry xContentRegistry) {
         // pipelineRegistry is returned here so that it's bound in guice and can be injected in other places
         return Collections.singletonList(pipelineRegistry);
@@ -92,11 +95,6 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin, Action
     @Override
     public List<Setting<?>> getSettings() {
         return Collections.singletonList(ES_API_ENABLED_SETTING);
-    }
-
-    @Override
-    public Collection<Module> createGuiceModules() {
-        return Collections.singletonList(new CrateRestModule(settings));
     }
 
     @Override
@@ -114,10 +112,18 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin, Action
                                                                         CircuitBreakerService circuitBreakerService,
                                                                         NamedWriteableRegistry namedWriteableRegistry,
                                                                         NamedXContentRegistry xContentRegistry,
-                                                                        NetworkService networkService) {
+                                                                        NetworkService networkService,
+                                                                        HttpServerTransport.Dispatcher dispatcher) {
         return Collections.singletonMap(
             CRATE_HTTP_TRANSPORT_NAME,
-            () -> new CrateNettyHttpServerTransport(settings, networkService, bigArrays, threadPool, xContentRegistry, pipelineRegistry));
+            () -> new CrateNettyHttpServerTransport(
+                settings,
+                networkService,
+                bigArrays,
+                threadPool,
+                xContentRegistry,
+                dispatcher,
+                pipelineRegistry));
     }
 
     @Override
@@ -126,7 +132,13 @@ public class HttpTransportPlugin extends Plugin implements NetworkPlugin, Action
     }
 
     @Override
-    public List<Class<? extends RestHandler>> getRestHandlers() {
-        return Collections.singletonList(CrateRestMainAction.class);
+    public List<RestHandler> getRestHandlers(Settings settings,
+                                             RestController restController,
+                                             ClusterSettings clusterSettings,
+                                             IndexScopedSettings indexScopedSettings,
+                                             SettingsFilter settingsFilter,
+                                             IndexNameExpressionResolver indexNameExpressionResolver,
+                                             Supplier<DiscoveryNodes> nodesInCluster) {
+        return Collections.singletonList(new CrateRestMainAction(settings, new Environment(settings), restController));
     }
 }

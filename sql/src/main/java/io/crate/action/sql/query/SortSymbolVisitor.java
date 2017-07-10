@@ -37,14 +37,19 @@ import io.crate.operation.InputFactory;
 import io.crate.operation.collect.DocInputFactory;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.types.*;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
+import io.crate.types.LongType;
+import io.crate.types.StringType;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.SortField;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.MultiValueMode;
 
-import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -144,17 +149,17 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         if (fieldType == null) {
             indexName = columnIdent.fqn();
             fieldComparatorSource = new NullFieldComparatorSource(LUCENE_TYPE_MAP.get(symbol.valueType()), context.reverseFlag, context.nullFirst);
+            return new SortField(
+                indexName,
+                fieldComparatorSource,
+                context.reverseFlag);
         } else {
-            indexName = fieldType.name();
-            fieldComparatorSource = context.context.fieldData()
+            return context.context.fieldData()
                 .getForField(fieldType)
-                .comparatorSource(SortOrder.missing(context.reverseFlag, context.nullFirst), sortMode, null);
+                .sortField(SortOrder.missing(context.reverseFlag, context.nullFirst),
+                    sortMode, null, context.reverseFlag);
         }
-        return new SortField(
-            indexName,
-            fieldComparatorSource,
-            context.reverseFlag
-        );
+
     }
 
     @Override
@@ -183,7 +188,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
         return new SortField(name, new IndexFieldData.XFieldComparatorSource() {
             @Override
-            public FieldComparator<?> newComparator(String fieldName, int numHits, int sortPos, boolean reversed) throws IOException {
+            public FieldComparator<?> newComparator(String fieldName, int numHits, int sortPos, boolean reversed) {
                 for (LuceneCollectorExpression collectorExpression : expressions) {
                     collectorExpression.startCollect(context.context);
                 }

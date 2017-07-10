@@ -206,7 +206,7 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         assertThat(response.rowCount(), is(1L));
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Snapshot \"my_repo\".\"my_snapshot\" already exists");
+        expectedException.expectMessage("Invalid snapshot name [my_snapshot], snapshot with the same name already exists");
         execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
     }
 

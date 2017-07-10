@@ -30,7 +30,7 @@ import io.crate.operation.reference.sys.node.local.fs.NodeFsExpression;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.Discovery;
-import org.elasticsearch.http.HttpServer;
+import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
@@ -49,7 +49,7 @@ public class NodeSysExpression extends NestedObjectExpression {
     @Inject
     public NodeSysExpression(ClusterService clusterService,
                              MonitorService monitorService,
-                             @Nullable HttpServer httpServer,
+                             @Nullable HttpServerTransport httpServerTransport,
                              Discovery discovery,
                              ThreadPool threadPool,
                              ExtendedNodeInfo extendedNodeInfo) {
@@ -66,7 +66,7 @@ public class NodeSysExpression extends NestedObjectExpression {
         childImplementations.put(SysNodesTableInfo.SYS_COL_NODE_NAME,
             new NodeNameExpression(discovery));
         childImplementations.put(SysNodesTableInfo.SYS_COL_PORT, new NodePortExpression(
-            () -> httpServer == null ? null : httpServer.info().getAddress().publishAddress(),
+            () -> httpServerTransport == null ? null : httpServerTransport.info().getAddress().publishAddress(),
             () -> clusterService.localNode().getAddress()
         ));
         childImplementations.put(SysNodesTableInfo.SYS_COL_VERSION,

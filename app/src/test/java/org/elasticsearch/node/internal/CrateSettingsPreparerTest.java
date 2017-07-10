@@ -23,7 +23,6 @@
 package org.elasticsearch.node.internal;
 
 import io.crate.Constants;
-import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
@@ -36,9 +35,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.Collections;
-
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -79,8 +78,6 @@ public class CrateSettingsPreparerTest {
     @Test
     public void testDefaultCrateSettings() throws Exception {
         Settings.Builder builder = Settings.builder();
-        InternalSettingsPreparer.initializeSettings(builder, Settings.EMPTY, true, Collections.emptyMap());
-        InternalSettingsPreparer.finalizeSettings(builder, Terminal.DEFAULT);
         CrateSettingsPreparer.applyCrateDefaults(builder);
 
         assertThat(builder.get(NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY), is(Netty4Plugin.NETTY_TRANSPORT_NAME));

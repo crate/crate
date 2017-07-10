@@ -47,6 +47,7 @@ import org.apache.lucene.search.PointInSetQuery;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.RegexpQuery;
+import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.search.WildcardQuery;
@@ -304,7 +305,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testWhereStringRefInSetLiteralIsConvertedToTermsQuery() throws Exception {
         Query query = convert("name in ('foo', 'bar')");
-        assertThat(query, instanceOf(TermsQuery.class));
+        assertThat(query, instanceOf(TermInSetQuery.class));
     }
 
     /**
@@ -505,7 +506,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testWhereInIsOptimized() throws Exception {
         Query query = convert("name in ('foo', 'bar')");
-        assertThat(query, instanceOf(TermsQuery.class));
+        assertThat(query, instanceOf(TermInSetQuery.class));
         assertThat(query.toString(), is("name:bar name:foo"));
     }
 

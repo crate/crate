@@ -76,10 +76,10 @@ class NullFieldComparatorSource extends IndexFieldData.XFieldComparatorSource {
     }
 
     @Override
-    public FieldComparator<?> newComparator(String fieldname, int numHits, int sortPos, boolean reversed) throws IOException {
+    public FieldComparator<?> newComparator(String fieldname, int numHits, int sortPos, boolean reversed) {
         return new FieldComparator<Object>() {
             @Override
-            public LeafFieldComparator getLeafComparator(LeafReaderContext context) throws IOException {
+            public LeafFieldComparator getLeafComparator(LeafReaderContext context) {
                 return LEAF_FIELD_COMPARATOR;
             }
 

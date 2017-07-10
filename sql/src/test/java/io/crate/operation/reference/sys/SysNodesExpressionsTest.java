@@ -45,7 +45,7 @@ import org.elasticsearch.discovery.local.LocalDiscovery;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.http.HttpInfo;
-import org.elasticsearch.http.HttpServer;
+import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.monitor.MonitorService;
 import org.junit.After;
 import org.junit.Before;
@@ -81,7 +81,7 @@ public class SysNodesExpressionsTest extends CrateDummyClusterServiceUnitTest {
         nodeEnvironment = new NodeEnvironment(settings, environment);
         MonitorService monitorService = new MonitorService(settings, nodeEnvironment, THREAD_POOL);
 
-        HttpServer httpServer = mock(HttpServer.class);
+        HttpServerTransport httpServer = mock(HttpServerTransport.class);
         TransportAddress httpAddress = new InetSocketTransportAddress(Inet4Address.getLocalHost(), 44200);
         BoundTransportAddress boundAddress = new BoundTransportAddress(new TransportAddress[]{httpAddress}, httpAddress);
         when(httpServer.info()).thenReturn(new HttpInfo(boundAddress, 10));
