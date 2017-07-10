@@ -117,7 +117,6 @@ class PrivilegesAnalyzer {
         if (InformationSchemaInfo.NAME.equals(schemaNames)) {
             throw new UnsupportedFeatureException(ERROR_MESSAGE);
         }
-        schemas.validateSchemaName(schemaNames);
     }
 
     private List<String> validatePrivilegeIdents(Privilege.Clazz clazz, List<QualifiedName> tableOrSchemaNames) {

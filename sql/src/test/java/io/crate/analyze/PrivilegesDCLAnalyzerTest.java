@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.user.Privilege;
-import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TableIdent;
@@ -243,9 +242,7 @@ public class PrivilegesDCLAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
-    public void testGrantOnUnknownSchemaThrowsException() {
-        expectedException.expect(SchemaUnknownException.class);
-        expectedException.expectMessage("Schema 'hoichi' unknown");
+    public void testGrantOnUnknownSchemaDoesntThrowsException() {
         analyzePrivilegesStatement("GRANT DQL on schema hoichi TO user1");
     }
 
