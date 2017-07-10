@@ -23,22 +23,8 @@ package io.crate.operation.collect;
 
 
 import io.crate.data.Input;
-import io.crate.metadata.RowContextCollectorExpression;
-
-import java.util.function.Function;
 
 public interface CollectExpression<TRow, TReturnValue> extends Input<TReturnValue> {
 
     void setNextRow(TRow row);
-
-
-    static <TRow, TReturnValue> CollectExpression<TRow, TReturnValue> of(Function<TRow, TReturnValue> valueExtractor) {
-        return new RowContextCollectorExpression<TRow, TReturnValue>() {
-
-            @Override
-            public TReturnValue value() {
-                return valueExtractor.apply(row);
-            }
-        };
-    }
 }
