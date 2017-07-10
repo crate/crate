@@ -57,6 +57,11 @@ public class DummyUserManager implements UserManager {
     }
 
     @Override
+    public CompletableFuture<Long> transferTablePrivileges(String sourceIdent, String targetIdent) {
+        return null;
+    }
+
+    @Override
     public StatementAuthorizedValidator getStatementValidator(@Nullable User user) {
         return s -> {};
     }
