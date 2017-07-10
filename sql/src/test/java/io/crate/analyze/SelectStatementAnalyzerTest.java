@@ -2151,4 +2151,11 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expectMessage("Column col1['x'] unknown");
         analyze("select col1['x'] from unnest([{x=1}])");
     }
+
+    @Test
+    public void testSubSelectWithAcessToParentRelationThrowsUnsupportedFeature() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot use relation \"doc.t1\" in subquery. Correlated subqueries are not supported");
+        analyze("select (select 1 from t1 as ti where ti.x = t1.x) from t1");
+    }
 }

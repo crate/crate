@@ -28,16 +28,27 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.FullQualifedNameFieldProvider;
+import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.DummyRelation;
 import io.crate.testing.SqlExpressions;
@@ -53,7 +64,11 @@ import java.util.Map;
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.allOf;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -82,7 +97,9 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression current_time");
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(dummySources), null);
+            functions, SessionContext.SYSTEM_SESSION, paramTypeHints,
+            new FullQualifiedNameFieldProvider(dummySources, Collections.emptyMap()),
+            null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         expressionAnalyzer.convert(SqlParser.createExpression("current_time"), expressionAnalysisContext);
@@ -94,7 +111,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
             functions,
             new SessionContext(0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {}, t -> {}),
             paramTypeHints,
-            new FullQualifedNameFieldProvider(dummySources),
+            new FullQualifiedNameFieldProvider(dummySources, Collections.emptyMap()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
@@ -132,7 +149,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
             functions,
             new SessionContext(0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null, null, s -> {}, t -> {}),
             paramTypeHints,
-            new FullQualifedNameFieldProvider(dummySources),
+            new FullQualifiedNameFieldProvider(dummySources, Collections.emptyMap()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         FunctionCall subscriptFunctionCall = new FunctionCall(
@@ -159,7 +176,12 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
             new QualifiedName("t2"), tr2
         );
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(sources), null);
+            functions,
+            SessionContext.SYSTEM_SESSION,
+            paramTypeHints,
+            new FullQualifiedNameFieldProvider(sources, Collections.emptyMap()),
+            null
+        );
         Function andFunction = (Function) expressionAnalyzer.convert(
             SqlParser.createExpression("not t1.id = 1 and not t2.id = 1"), context);
 

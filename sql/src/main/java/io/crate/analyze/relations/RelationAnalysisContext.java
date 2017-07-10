@@ -41,6 +41,7 @@ public class RelationAnalysisContext {
 
     private final ExpressionAnalysisContext expressionAnalysisContext;
     private final boolean aliasedRelation;
+    private final Map<QualifiedName, AnalyzedRelation> parentSources;
     // keep order of sources.
     //  e.g. something like:  select * from t1, t2 must not become select t2.*, t1.*
     private final Map<QualifiedName, AnalyzedRelation> sources = new LinkedHashMap<>();
@@ -48,8 +49,9 @@ public class RelationAnalysisContext {
     @Nullable
     private List<JoinPair> joinPairs;
 
-    RelationAnalysisContext(boolean aliasedRelation) {
+    RelationAnalysisContext(boolean aliasedRelation, Map<QualifiedName, AnalyzedRelation> parentSources) {
         this.aliasedRelation = aliasedRelation;
+        this.parentSources = parentSources;
         expressionAnalysisContext = new ExpressionAnalysisContext();
     }
 
@@ -115,5 +117,9 @@ public class RelationAnalysisContext {
 
     public ExpressionAnalysisContext expressionAnalysisContext() {
         return expressionAnalysisContext;
+    }
+
+    public Map<QualifiedName,AnalyzedRelation> parentSources() {
+        return parentSources;
     }
 }

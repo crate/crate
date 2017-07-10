@@ -41,7 +41,11 @@ Breaking Changes (Packaging only)
 
 Changes
 =======
- 
+
+ - Queries which contain a correlated subquery will now result in an error
+   stating that correlated subqueries are not supported, instead of a more
+   confusing error indicating that a relation is unknown.
+
  - Added column ``username`` to ``sys.jobs`` and ``sys.jobs_log`` that contains
    the username under which the job was invoked.
 

@@ -23,7 +23,12 @@ package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
+import io.crate.analyze.relations.RelationAnalysisContext;
+import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.WhereClauseAnalyzer;
@@ -79,7 +84,7 @@ class DeleteAnalyzer {
             functions,
             analysis.sessionContext(),
             convertParamFunction,
-            new FullQualifedNameFieldProvider(relationAnalysisContext.sources()),
+            new FullQualifiedNameFieldProvider(relationAnalysisContext.sources(), relationAnalysisContext.parentSources()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(
