@@ -18,40 +18,42 @@
 
 package io.crate.operation.user;
 
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.action.ActionRequestValidationException;
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 
-public class PrivilegesResponse extends AcknowledgedResponse {
+public class DropTablePrivilegesRequest extends AcknowledgedRequest<DropTablePrivilegesRequest> {
 
-    long affectedRows;
+    private String tableIdent;
 
-    PrivilegesResponse() {
-        affectedRows = 0L;
+    DropTablePrivilegesRequest() {
     }
 
-    PrivilegesResponse(boolean acknowledged, long affectedRows) {
-        super(acknowledged);
-        this.affectedRows = affectedRows;
+    DropTablePrivilegesRequest(String tableIdent) {
+        this.tableIdent = tableIdent;
     }
 
-    long affectedRows() {
-        return affectedRows;
+    String tableIdent() {
+        return tableIdent;
+    }
+
+    @Override
+    public ActionRequestValidationException validate() {
+        return null;
     }
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        readAcknowledged(in);
-        affectedRows = in.readLong();
+        tableIdent = in.readString();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        writeAcknowledged(out);
-        out.writeLong(affectedRows);
+        out.writeString(tableIdent);
     }
 }
