@@ -30,7 +30,6 @@ import io.crate.metadata.doc.DocSysColumns;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.replication.ReplicationRequest;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -39,6 +38,7 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.UUID;
@@ -88,11 +88,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 insertValuesStreamer[i] = insertColumns[i].valueType().streamer();
             }
         }
-    }
-
-    public void add(int location, Item item) {
-        item.insertValuesStreamer(insertValuesStreamer);
-        super.add(location, item);
     }
 
     public String[] updateColumns() {
@@ -199,12 +194,14 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         out.writeBoolean(continueOnError);
         out.writeBoolean(overwriteDuplicates);
         out.writeBoolean(validateConstraints);
-        writeItems(out);
+        for (Item item : items) {
+            item.writeTo(out, insertValuesStreamer);
+        }
     }
 
     @Override
     protected Item readItem(StreamInput input) throws IOException {
-        return Item.readItem(input, insertValuesStreamer);
+        return new Item(input, insertValuesStreamer);
     }
 
     @Override
@@ -251,12 +248,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
         @Nullable
         private Object[] insertValues;
 
-        /**
-         * List of data type streamer needed for streaming insert values
-         */
-        @Nullable
-        private Streamer[] insertValuesStreamer;
-
         protected Item() {
         }
 
@@ -270,10 +261,6 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 this.version = version;
             }
             this.insertValues = insertValues;
-        }
-
-        public void insertValuesStreamer(@Nullable Streamer[] insertValuesStreamer) {
-            this.insertValuesStreamer = insertValuesStreamer;
         }
 
         public long version() {
@@ -323,36 +310,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             return insertValues;
         }
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            if (!super.equals(o)) return false;
-            Item item = (Item) o;
-            return version == item.version &&
-                   versionType == item.versionType &&
-                   opType == item.opType &&
-                   Objects.equal(source, item.source) &&
-                   Arrays.equals(updateAssignments, item.updateAssignments) &&
-                   Arrays.equals(insertValues, item.insertValues) &&
-                   Arrays.equals(insertValuesStreamer, item.insertValuesStreamer);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hashCode(super.hashCode(), version, versionType, opType, source, updateAssignments,
-                insertValues, insertValuesStreamer);
-        }
-
-        static Item readItem(StreamInput in, @Nullable Streamer[] streamers) throws IOException {
-            Item item = new Item();
-            item.insertValuesStreamer(streamers);
-            item.readFrom(in);
-            return item;
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
+        public Item(StreamInput in, @Nullable Streamer[] insertValueStreamers) throws IOException {
             id = in.readString();
             int assignmentsSize = in.readVInt();
             if (assignmentsSize > 0) {
@@ -363,9 +321,10 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             }
             int missingAssignmentsSize = in.readVInt();
             if (missingAssignmentsSize > 0) {
+                assert insertValueStreamers != null : "streamers are required if reading insert values";
                 this.insertValues = new Object[missingAssignmentsSize];
                 for (int i = 0; i < missingAssignmentsSize; i++) {
-                    insertValues[i] = insertValuesStreamer[i].readValueFrom(in);
+                    insertValues[i] = insertValueStreamers[i].readValueFrom(in);
                 }
             }
             this.version = Version.readVersion(in).id;
@@ -376,8 +335,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             }
         }
 
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
+        public void writeTo(StreamOutput out, @Nullable Streamer[] insertValueStreamers) throws IOException {
             out.writeString(id);
             if (updateAssignments != null) {
                 out.writeVInt(updateAssignments.length);
@@ -389,9 +347,10 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
             }
             // Stream References
             if (insertValues != null) {
+                assert insertValueStreamers != null : "streamers are required to stream insert values";
                 out.writeVInt(insertValues.length);
                 for (int i = 0; i < insertValues.length; i++) {
-                    insertValuesStreamer[i].writeValueTo(out, insertValues[i]);
+                    insertValueStreamers[i].writeValueTo(out, insertValues[i]);
                 }
             } else {
                 out.writeVInt(0);

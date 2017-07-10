@@ -30,7 +30,6 @@ import org.elasticsearch.action.support.replication.ReplicatedWriteRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
@@ -45,7 +44,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     @Nullable
     private String routing;
     private UUID jobId;
-    private List<I> items;
+    protected List<I> items;
     protected IntArrayList locations;
 
     public ShardRequest() {
@@ -125,12 +124,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         }
     }
 
-    protected void writeItems(StreamOutput out) throws IOException {
-        for (Item item : items) {
-            item.writeTo(out);
-        }
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -170,7 +163,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     /**
      * A single item with just an id.
      */
-    public static abstract class Item implements Streamable {
+    public abstract static class Item {
 
         protected String id;
 
@@ -185,12 +178,10 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             return id;
         }
 
-        @Override
         public void readFrom(StreamInput in) throws IOException {
             id = in.readString();
         }
 
-        @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(id);
         }

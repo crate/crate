@@ -56,7 +56,9 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        writeItems(out);
+        for (Item item : items) {
+            item.writeTo(out);
+        }
         if (skipFromLocation > -1) {
             out.writeBoolean(true);
             out.writeVInt(skipFromLocation);
