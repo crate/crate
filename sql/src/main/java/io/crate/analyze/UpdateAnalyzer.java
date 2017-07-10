@@ -25,17 +25,35 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.AbstractTableRelation;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.FieldProvider;
+import io.crate.analyze.relations.FieldResolver;
+import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
+import io.crate.analyze.relations.NameFieldProvider;
+import io.crate.analyze.relations.RelationAnalysisContext;
+import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.AstVisitor;
+import io.crate.sql.tree.LongLiteral;
+import io.crate.sql.tree.SubscriptExpression;
+import io.crate.sql.tree.Update;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
@@ -98,7 +116,7 @@ public class UpdateAnalyzer {
             functions,
             analysis.sessionContext(),
             analysis.parameterContext(),
-            new FullQualifedNameFieldProvider(currentRelationContext.sources()),
+            new FullQualifiedNameFieldProvider(currentRelationContext.sources(), currentRelationContext.parentSources()),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 

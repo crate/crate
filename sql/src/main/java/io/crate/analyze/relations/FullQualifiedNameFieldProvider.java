@@ -26,11 +26,13 @@ import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -41,11 +43,14 @@ import java.util.Map;
  * The Resolver also takes full qualified names so the name may contain table
  * and / or schema.
  */
-public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
+public class FullQualifiedNameFieldProvider implements FieldProvider<Field> {
 
-    private Map<QualifiedName, AnalyzedRelation> sources;
+    private final Map<QualifiedName, AnalyzedRelation> parentSources;
+    private final Map<QualifiedName, AnalyzedRelation> sources;
 
-    public FullQualifedNameFieldProvider(Map<QualifiedName, AnalyzedRelation> sources) {
+    public FullQualifiedNameFieldProvider(Map<QualifiedName, AnalyzedRelation> sources,
+                                          Map<QualifiedName, AnalyzedRelation> parentSources) {
+        this.parentSources = parentSources;
         assert !sources.isEmpty() : "Must have at least one source";
         this.sources = sources;
     }
@@ -114,6 +119,7 @@ public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
         }
         if (lastField == null) {
             if (!schemaMatched || !tableNameMatched) {
+                raiseUnsupportedFeatureIfInParentScope(columnSchema, columnTableName);
                 throw RelationUnknownException.of(columnSchema, columnTableName);
             }
             QualifiedName tableName = sources.entrySet().iterator().next().getKey();
@@ -121,5 +127,16 @@ public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
             throw new ColumnUnknownException(columnIdent.sqlFqn(), tableIdent);
         }
         return lastField;
+    }
+
+    private void raiseUnsupportedFeatureIfInParentScope(String columnSchema, String columnTableName) {
+        String schema = columnSchema == null ? Schemas.DEFAULT_SCHEMA_NAME : columnSchema;
+        QualifiedName qn = new QualifiedName(Arrays.asList(schema, columnTableName));
+        if (parentSources.containsKey(qn)) {
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "Cannot use relation \"%s.%s\" in subquery. Correlated subqueries are not supported",
+                schema,
+                columnTableName));
+        }
     }
 }

@@ -171,7 +171,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     functions,
                     statementContext.sessionContext(),
                     statementContext.convertParamFunction(),
-                    new FullQualifedNameFieldProvider(relationContext.sources()),
+                    new FullQualifiedNameFieldProvider(relationContext.sources(), relationContext.parentSources()),
                     new SubqueryAnalyzer(this, statementContext));
                 try {
                     joinCondition = expressionAnalyzer.convert(
@@ -205,7 +205,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             functions,
             statementContext.sessionContext(),
             statementContext.convertParamFunction(),
-            new FullQualifedNameFieldProvider(context.sources()),
+            new FullQualifiedNameFieldProvider(context.sources(), context.parentSources()),
             new SubqueryAnalyzer(this, statementContext));
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
         Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
