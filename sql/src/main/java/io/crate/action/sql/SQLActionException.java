@@ -22,10 +22,8 @@
 package io.crate.action.sql;
 
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.rest.RestStatus;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 /**
@@ -63,22 +61,6 @@ public class SQLActionException extends ElasticsearchException {
         this(message, errorCode, status);
         assert stackTraceElements != null : "stackTraceElements must not be null";
         setStackTrace(stackTraceElements);
-    }
-
-    @Nullable
-    public static SQLActionException fromSerializationWrapper(NotSerializableExceptionWrapper wrapper) {
-        List<String> errorCodeHeader = wrapper.getHeader(ERROR_CODE_KEY);
-        if (errorCodeHeader != null && errorCodeHeader.size() == 1) {
-            int ec = Integer.parseInt(errorCodeHeader.get(0));
-
-            /*
-             * wrapper includes className of original exception which is: "s_q_l_action_exception: "
-             * see {@link ElasticsearchException#getExceptionName(Throwable)}
-             */
-            String message = wrapper.getMessage().substring(24);
-            return new SQLActionException(message, ec, wrapper.status(), wrapper.getStackTrace());
-        }
-        return null;
     }
 
     /**

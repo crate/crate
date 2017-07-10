@@ -41,16 +41,15 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.support.AdapterActionFuture;
+import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -184,7 +183,7 @@ public class SQLTransportExecutor {
     }
 
     public static ActionFuture<SQLResponse> execute(String stmt, @Nullable Object[] args, SQLOperations.Session session) {
-        final AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new TestTransportActionFuture<>();
+        final AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new PlainActionFuture<>();
         execute(stmt, args, actionFuture, session);
         return actionFuture;
     }
@@ -482,7 +481,7 @@ public class SQLTransportExecutor {
 
     private SQLBulkResponse executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout) {
         try {
-            AdapterActionFuture<SQLBulkResponse, SQLBulkResponse> actionFuture = new TestTransportActionFuture<>();
+            AdapterActionFuture<SQLBulkResponse, SQLBulkResponse> actionFuture = new PlainActionFuture<>();
             execute(stmt, bulkArgs, actionFuture);
             return actionFuture.actionGet(timeout);
         } catch (ElasticsearchTimeoutException e) {
@@ -530,26 +529,6 @@ public class SQLTransportExecutor {
         SQLOperations sqlOperations();
     }
 
-    private static class TestTransportActionFuture<R> extends AdapterActionFuture<R, R> {
-
-        @Override
-        protected R convert(R response) {
-            return response;
-        }
-
-        @Override
-        public void onFailure(Exception e) {
-            Throwable cause = ExceptionsHelper.unwrapCause(e);
-            if (cause instanceof NotSerializableExceptionWrapper) {
-                NotSerializableExceptionWrapper wrapper = ((NotSerializableExceptionWrapper) cause);
-                SQLActionException sae = SQLActionException.fromSerializationWrapper(wrapper);
-                if (sae != null) {
-                    e = sae;
-                }
-            }
-            super.onFailure(e);
-        }
-    }
 
     private static final DataType[] EMPTY_TYPES = new DataType[0];
     private static final String[] EMPTY_NAMES = new String[0];
