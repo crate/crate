@@ -74,7 +74,8 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
             ImmutableList.of(),
             ImmutableList.of(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_BROADCAST
+            DistributionInfo.DEFAULT_BROADCAST,
+            null
         );
 
         // No read Isolation

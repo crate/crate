@@ -35,10 +35,12 @@ import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.information.InformationSchemaTableDefinitions;
 import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;
 import io.crate.metadata.pg_catalog.PgCatalogTableDefinitions;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.metadata.sys.SysTableDefinitions;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.BatchIteratorCollectorBridge;
 import io.crate.operation.collect.CrateCollector;
@@ -46,9 +48,7 @@ import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsTransformer;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.StaticTableDefinition;
-import io.crate.metadata.information.InformationSchemaTableDefinitions;
 import io.crate.operation.reference.sys.SysRowUpdater;
-import io.crate.metadata.sys.SysTableDefinitions;
 import io.crate.operation.reference.sys.check.node.SysNodeChecks;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
@@ -135,7 +135,7 @@ public class SystemCollectSource implements CollectSource {
         StaticTableDefinition<?> tableDefinition = tableDefinition(tableIdent);
 
         return BatchIteratorCollectorBridge.newInstance(
-            () -> tableDefinition.getIterable().get().thenApply(dataIterable ->
+            () -> tableDefinition.getIterable(routedCollectPhase.user()).get().thenApply(dataIterable ->
                 RowsBatchIterator.newInstance(
                     dataIterableToRowsIterable(routedCollectPhase,
                         tableDefinition.getReferenceResolver(),

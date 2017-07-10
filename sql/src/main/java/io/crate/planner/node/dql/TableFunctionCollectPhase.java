@@ -55,7 +55,8 @@ public class TableFunctionCollectPhase extends RoutedCollectPhase implements Col
             outputs,
             projections,
             whereClause,
-            DistributionInfo.DEFAULT_BROADCAST);
+            DistributionInfo.DEFAULT_BROADCAST,
+            null);
         this.relation = relation;
     }
 

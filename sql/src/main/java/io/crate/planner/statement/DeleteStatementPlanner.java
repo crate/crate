@@ -23,6 +23,7 @@
 package io.crate.planner.statement;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.DeleteAnalyzedStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
@@ -133,8 +134,9 @@ public final class DeleteStatementPlanner {
         DeleteProjection deleteProjection = new DeleteProjection(
             new InputColumn(0, DataTypes.STRING));
 
+        SessionContext sessionContext = plannerContext.transactionContext().sessionContext();
         Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type(),
-            plannerContext.transactionContext().sessionContext());
+            sessionContext);
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
@@ -144,7 +146,8 @@ public final class DeleteStatementPlanner {
             ImmutableList.of(idReference),
             ImmutableList.of(deleteProjection),
             whereClause,
-            DistributionInfo.DEFAULT_BROADCAST
+            DistributionInfo.DEFAULT_BROADCAST,
+            sessionContext.user()
         );
         Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
         return Merge.ensureOnHandler(collect, plannerContext, Collections.singletonList(MergeCountProjection.INSTANCE));

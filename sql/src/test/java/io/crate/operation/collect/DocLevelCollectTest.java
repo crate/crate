@@ -172,7 +172,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
             toCollect,
             ImmutableList.of(),
             whereClause,
-            DistributionInfo.DEFAULT_BROADCAST
+            DistributionInfo.DEFAULT_BROADCAST,
+            null
         );
     }
 

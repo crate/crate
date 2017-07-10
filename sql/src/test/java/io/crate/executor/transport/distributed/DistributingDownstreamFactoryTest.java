@@ -75,7 +75,8 @@ public class DistributingDownstreamFactoryTest extends CrateDummyClusterServiceU
             ImmutableList.of(),
             ImmutableList.of(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_MODULO
+            DistributionInfo.DEFAULT_MODULO,
+            null
         );
         MergePhase mergePhase = new MergePhase(
             jobId,

@@ -108,7 +108,8 @@ public class RemoteCollectorFactory {
             collectPhase.toCollect(),
             new ArrayList<>(Projections.shardProjections(collectPhase.projections())),
             collectPhase.whereClause(),
-            DistributionInfo.DEFAULT_BROADCAST
+            DistributionInfo.DEFAULT_BROADCAST,
+            null
         );
     }
 }

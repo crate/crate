@@ -78,7 +78,8 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             Collections.singletonList(createReference("name", DataTypes.STRING)),
             Collections.emptyList(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_BROADCAST
+            DistributionInfo.DEFAULT_BROADCAST,
+            null
         );
         transportJobAction = mock(TransportJobAction.class);
         transportKillJobsNodeAction = mock(TransportKillJobsNodeAction.class);

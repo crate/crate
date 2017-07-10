@@ -81,7 +81,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
             toCollect,
             ImmutableList.<Projection>of(),
             whereClause,
-            DistributionInfo.DEFAULT_BROADCAST
+            DistributionInfo.DEFAULT_BROADCAST,
+            null
         );
     }
 
