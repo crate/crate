@@ -18,3 +18,5 @@ Breaking Changes
 Fixes
 =====
 
+ - Fixed an issue that could cause the ``_score >= <minScore>`` filter to not
+   work correctly if used in a query with an ``ORDER BY`` clause.

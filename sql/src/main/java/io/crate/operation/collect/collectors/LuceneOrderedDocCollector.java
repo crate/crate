@@ -122,12 +122,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
             expression.setScorer(scorer);
         }
         TopFieldCollector topFieldCollector = TopFieldCollector.create(sort, batchSize, true, doDocsScores, doDocsScores);
-        Collector collector = topFieldCollector;
-        if (minScore != null) {
-            collector = new MinimumScoreCollector(collector, minScore);
-        }
-        searcher.search(query, collector);
-        return scoreDocToIterable(topFieldCollector.topDocs().scoreDocs);
+        return doSearch(topFieldCollector, minScore, query);
     }
 
     private KeyIterable<ShardId, Row> searchMore() throws IOException {
@@ -135,9 +130,23 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
             LOGGER.trace("searchMore but EXHAUSTED");
             return empty();
         }
-        LOGGER.debug("searchMore from [{}]", lastDoc);
-        TopDocs topDocs = searcher.searchAfter(lastDoc, query(lastDoc), batchSize, sort, doDocsScores, false);
-        return scoreDocToIterable(topDocs.scoreDocs);
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("searchMore from [{}]", lastDoc);
+        }
+        TopFieldCollector topFieldCollector = TopFieldCollector.create(
+            sort, batchSize, lastDoc, true, doDocsScores, doDocsScores);
+        return doSearch(topFieldCollector, minScore, query(lastDoc));
+    }
+
+    private KeyIterable<ShardId, Row> doSearch(TopFieldCollector topFieldCollector,
+                                               Float minScore,
+                                               Query query) throws IOException {
+        Collector collector = topFieldCollector;
+        if (minScore != null) {
+            collector = new MinimumScoreCollector(collector, minScore);
+        }
+        searcher.search(query, collector);
+        return scoreDocToIterable(topFieldCollector.topDocs().scoreDocs);
     }
 
     private KeyIterable<ShardId, Row> scoreDocToIterable(ScoreDoc[] scoreDocs) {
