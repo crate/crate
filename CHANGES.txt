@@ -49,7 +49,7 @@ Changes
  - Added column ``username`` to ``sys.jobs`` and ``sys.jobs_log`` that contains
    the username under which the job was invoked.
 
- - Upgraded the Admin UI to 1.4.0
+ - Upgraded the Admin UI to 1.4.1
 
  - Upgraded Crash to 0.21.3
 
