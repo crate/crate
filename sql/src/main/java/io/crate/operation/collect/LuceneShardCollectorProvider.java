@@ -36,13 +36,13 @@ import io.crate.operation.NodeJobsCounter;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.collect.collectors.CrateDocCollectorBuilder;
 import io.crate.operation.collect.collectors.LuceneOrderedDocCollector;
+import io.crate.operation.collect.collectors.OptimizeQueryForSearchAfter;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -157,17 +157,20 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 sharedShardContext.indexShard().shardId(),
                 batchSize);
         }
+        OptimizeQueryForSearchAfter optimizeQueryForSearchAfter = new OptimizeQueryForSearchAfter(
+            collectPhase.orderBy(),
+            queryContext.queryShardContext(),
+            fieldTypeLookup
+        );
         return new LuceneOrderedDocCollector(
             indexShard.shardId(),
             searcher.searcher(),
             queryContext.query(),
             queryContext.minScore(),
-            queryContext.queryShardContext(),
             Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
             batchSize,
-            fieldTypeLookup,
             collectorContext,
-            collectPhase.orderBy(),
+            optimizeQueryForSearchAfter,
             LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), docInputFactory, fieldTypeLookup),
             ctx.topLevelInputs(),
             ctx.expressions()
