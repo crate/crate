@@ -22,26 +22,18 @@
 
 package io.crate.operation.collect.collectors;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.lucene.FieldTypeLookup;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
@@ -49,8 +41,6 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.TopFieldCollector;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
@@ -58,8 +48,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-
-import static java.util.Objects.requireNonNull;
+import java.util.function.Function;
 
 public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
@@ -67,19 +56,16 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
     private final Query query;
     private final Float minScore;
-    private final QueryShardContext queryShardContext;
     private final boolean doDocsScores;
     private final int batchSize;
-    private final FieldTypeLookup fieldTypeLookup;
     private final CollectorContext collectorContext;
-    private final OrderBy orderBy;
+    private final Function<FieldDoc, Query> searchAfterQueryOptimize;
     private final Sort sort;
     private final Collection<? extends LuceneCollectorExpression<?>> expressions;
     private final ScoreDocRowFunction rowFunction;
     private final DummyScorer scorer;
     private final IndexSearcher searcher;
 
-    private final Object[] missingValues;
 
     @Nullable
     private volatile FieldDoc lastDoc = null;
@@ -88,12 +74,10 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
                                      IndexSearcher searcher,
                                      Query query,
                                      Float minScore,
-                                     QueryShardContext queryShardContext,
                                      boolean doDocsScores,
                                      int batchSize,
-                                     FieldTypeLookup fieldTypeLookup,
                                      CollectorContext collectorContext,
-                                     OrderBy orderBy,
+                                     Function<FieldDoc, Query> searchAfterQueryOptimize,
                                      Sort sort,
                                      List<? extends Input<?>> inputs,
                                      Collection<? extends LuceneCollectorExpression<?>> expressions) {
@@ -101,12 +85,10 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         this.searcher = searcher;
         this.query = query;
         this.minScore = minScore;
-        this.queryShardContext = queryShardContext;
         this.doDocsScores = doDocsScores;
         this.batchSize = batchSize;
-        this.fieldTypeLookup = fieldTypeLookup;
         this.collectorContext = collectorContext;
-        this.orderBy = orderBy;
+        this.searchAfterQueryOptimize = searchAfterQueryOptimize;
         this.sort = sort;
         this.scorer = new DummyScorer();
         this.expressions = expressions;
@@ -116,10 +98,6 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
             expressions,
             scorer
         );
-        missingValues = new Object[orderBy.orderBySymbols().size()];
-        for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
-            missingValues[i] = LuceneMissingValue.missingValue(orderBy, i);
-        }
     }
 
     /**
@@ -180,70 +158,13 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     }
 
     private Query query(FieldDoc lastDoc) {
-        Query query = nextPageQuery(lastDoc, orderBy, missingValues, fieldTypeLookup, queryShardContext);
-        if (query == null) {
+        Query optimizedQuery = searchAfterQueryOptimize.apply(lastDoc);
+        if (optimizedQuery == null) {
             return this.query;
         }
         BooleanQuery.Builder searchAfterQuery = new BooleanQuery.Builder();
         searchAfterQuery.add(this.query, BooleanClause.Occur.MUST);
-        searchAfterQuery.add(query, BooleanClause.Occur.MUST_NOT);
+        searchAfterQuery.add(optimizedQuery, BooleanClause.Occur.MUST_NOT);
         return searchAfterQuery.build();
-    }
-
-    @Nullable
-    @VisibleForTesting
-    static Query nextPageQuery(FieldDoc lastCollected,
-                               OrderBy orderBy,
-                               Object[] missingValues,
-                               FieldTypeLookup fieldTypeLookup,
-                               QueryShardContext queryShardContext) {
-        BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
-        for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
-            Symbol order = orderBy.orderBySymbols().get(i);
-            Object value = lastCollected.fields[i];
-            if (order instanceof Reference) {
-                final ColumnIdent columnIdent = ((Reference) order).ident().columnIdent();
-                if (columnIdent.isSystemColumn()) {
-                    // We can't optimize the initial query because the BooleanQuery
-                    // must not contain system columns.
-                    return null;
-                }
-                boolean nullsFirst = orderBy.nullsFirst()[i] == null ? false : orderBy.nullsFirst()[i];
-                value = value == null || value.equals(missingValues[i]) ? null : value;
-                if (nullsFirst && value == null) {
-                    // no filter needed
-                    continue;
-                }
-                String columnName = columnIdent.fqn();
-                MappedFieldType fieldType = requireNonNull(
-                    fieldTypeLookup.get(columnName), "Column must exist: " + columnName);
-
-                Query orderQuery;
-                // nulls already gone, so they should be excluded
-                if (nullsFirst) {
-                    BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
-                    booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
-                    if (orderBy.reverseFlags()[i]) {
-                        booleanQuery.add(fieldType.rangeQuery(null, value, false, true, queryShardContext), BooleanClause.Occur.MUST_NOT);
-                    } else {
-                        booleanQuery.add(fieldType.rangeQuery(value, null, true, false, queryShardContext), BooleanClause.Occur.MUST_NOT);
-                    }
-                    orderQuery = booleanQuery.build();
-                } else {
-                    if (orderBy.reverseFlags()[i]) {
-                        orderQuery = fieldType.rangeQuery(value, null, false, false, queryShardContext);
-                    } else {
-                        orderQuery = fieldType.rangeQuery(null, value, false, false, queryShardContext);
-                    }
-                }
-                queryBuilder.add(orderQuery, BooleanClause.Occur.MUST);
-            }
-        }
-        BooleanQuery query = queryBuilder.build();
-        if (query.clauses().size() > 0) {
-            return query;
-        } else {
-            return null;
-        }
     }
 }

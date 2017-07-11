@@ -26,7 +26,6 @@ import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.OrderBy;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
@@ -50,8 +49,6 @@ import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -77,7 +74,6 @@ public class OrderedLuceneBatchIteratorBenchmark {
     private IndexSearcher indexSearcher;
     private boolean[] reverseFlags = new boolean[]{true};
     private Boolean[] nullsFirst = new Boolean[]{null};
-    private FieldTypeLookup fieldTypeLookup;
     private Reference reference;
     private OrderBy orderBy;
     private CollectorContext collectorContext;
@@ -102,12 +98,6 @@ public class OrderedLuceneBatchIteratorBenchmark {
             mock(IndexFieldDataService.class),
             new CollectorFieldsVisitor(0)
         );
-        fieldTypeLookup = column -> {
-            NumberFieldMapper.NumberFieldType fieldType =
-                new NumberFieldMapper.NumberFieldType(NumberFieldMapper.NumberType.INTEGER);
-            fieldType.setName(column);
-            return fieldType;
-        };
         reference = new Reference(
             new ReferenceIdent(new TableIdent(null, "dummyTable"), columnName), RowGranularity.DOC, DataTypes.INTEGER);
         orderBy = new OrderBy(
@@ -144,12 +134,10 @@ public class OrderedLuceneBatchIteratorBenchmark {
             searcher,
             new MatchAllDocsQuery(),
             null,
-            mock(QueryShardContext.class),
             false,
             10_000_000,
-            fieldTypeLookup,
             collectorContext,
-            orderBy,
+            f -> null,
             new Sort(new SortedNumericSortField(sortByColumnName, SortField.Type.INT, reverseFlags[0])),
             expressions,
             expressions
