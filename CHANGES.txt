@@ -15,71 +15,8 @@ the appropriate section of the docs.
 Breaking Changes
 ================
 
- - ``CURRENT_USER``, ``USER`` and ``SESSION_USER`` are now reserved words as we
-   introduced them as system functions. These terms will not be available to
-   be used as table, and column names and for already existing entities they
-   will have to be quoted when referenced (otherwise the terms will be treated
-   as function calls).
-
- - ``SELECT`` statements without any ``FROM`` items are no longer executed
-   against the ``sys.cluster`` table, but against a virtual table with no
-   columns. Queries including ``sys.cluster`` columns but no explicit ``FROM``
-   item will now result in a ``ColumnUnknownException``.
-
- - onModule() method had been removed from io.crate.Plugin interface,
-   so createGuiceModules() must be used instead.
-
- - ``srv`` and ``azure`` are no longer valid configuration options for ``discovery.type``.
-   Instead there is a new ``discovery.zen.hosts_provider`` settings which can
-   be set to either ``srv`` or ``azure``.
-
-Breaking Changes (Packaging only)
-=================================
-
- - The sigar jar and object files have been moved from ``plugins/sigar`` to
-   ``lib/sigar``.
-
 Changes
 =======
 
- - Added support for ``GRANT``, ``DENY`` and ``REVOKE`` privileges for
-   accessing the tables and schemas.
-
- - Queries which contain a correlated subquery will now result in an error
-   stating that correlated subqueries are not supported, instead of a more
-   confusing error indicating that a relation is unknown.
-
- - Added column ``username`` to ``sys.jobs`` and ``sys.jobs_log`` that contains
-   the username under which the job was invoked.
-
- - Upgraded the Admin UI to 1.4.1
-
- - Upgraded Crash to 0.21.3
-
- - The table setting ``recovery.initial_shards`` has been deprecated. You may
-   set ``gateway.local.initial_shards`` per node instead. Crate will continue to
-   read the old setting but applications should be migrated to the new setting.
-
- - Updated Elasticsearch to 5.2.2
-
- - Added support for ``GRANT`` and ``REVOKE`` privileges for accessing the
-   cluster. Currently supported privilege types: ``DQL``, ``DML`` and ``DDL``.
-
- - Added support for client certificate authentication via HBA.
-
- - Added SSL/TLS support for HTTP endpoints.
-
- - Added new HBA setting ``ssl`` which allows to control whether
-   users have to connect with ssl enabled or disabled.
-
- - Added SSL/TLS support for PostgreSQL Wire Protocol.
-
- - Extended the output of the  ``EXPLAIN`` statement.
-
- - Added support for joins on virtual tables.
-
 Fixes
 =====
-
- - Corrected wrong enterprise configuration example in ``crate.yml`` from
-   ``auth.host_based.http_default_user`` to ``auth.trust.http_default_user``
