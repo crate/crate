@@ -24,17 +24,24 @@ package io.crate.operation.collect.collectors;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.data.Row;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.operation.reference.doc.lucene.CollectorContext;
+import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
+import io.crate.operation.reference.doc.lucene.ScoreCollectorExpression;
 import io.crate.types.DataTypes;
+import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
@@ -51,10 +58,17 @@ import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.search.TopFieldDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.common.unit.Fuzziness;
+import org.elasticsearch.index.fielddata.IndexFieldDataService;
+import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.LegacyLongFieldMapper;
 import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.shard.ShardId;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -62,6 +76,7 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -253,5 +268,69 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
         // returns null which leads to reuse of old query without paging optimization
         assertNull(nextPageQuery);
+    }
+
+    @Test
+    public void testSearchMoreAppliesMinScoreFilter() throws Exception {
+        IndexWriter w = new IndexWriter(new RAMDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
+        KeywordFieldMapper.KeywordFieldType fieldType = new KeywordFieldMapper.KeywordFieldType();
+        fieldType.setName("x");
+        fieldType.freeze();
+
+        for (int i = 0; i < 4; i++) {
+            Document doc = new Document();
+            Field field = new Field(fieldType.name(), "Arthur", fieldType);
+            field.setBoost(i + 1);
+            doc.add(field);
+            w.addDocument(doc);
+        }
+        w.commit();
+        IndexSearcher searcher = new IndexSearcher(DirectoryReader.open(w, true, true));
+
+        List<LuceneCollectorExpression<?>> columnReferences = Collections.singletonList(new ScoreCollectorExpression());
+        Query query = fieldType.fuzzyQuery("Arthur", Fuzziness.AUTO, 2, 3, true);
+        LuceneOrderedDocCollector collector;
+
+        // without minScore filter we get 2 and 2 docs - this is not necessary for the test but is here
+        // to make sure the "FuzzyQuery" matches the right documents
+        collector = collectorWithMinScore(searcher, columnReferences, query, null);
+        assertThat(Iterables.size(collector.collect()), is(2));
+        assertThat(Iterables.size(collector.collect()), is(2));
+
+        collector = collectorWithMinScore(searcher, columnReferences, query, 0.15f);
+        int count = 0;
+        // initialSearch -> 2 rows
+        for (Row row : collector.collect()) {
+            assertThat((float) row.get(0), Matchers.greaterThanOrEqualTo(0.15f));
+            count++;
+        }
+        assertThat(count, is(2));
+
+        count = 0;
+        // searchMore -> 1 row is below minScore
+        for (Row row : collector.collect()) {
+            assertThat((float) row.get(0), Matchers.greaterThanOrEqualTo(0.15f));
+            count++;
+        }
+        assertThat(count, is(1));
+    }
+
+    private LuceneOrderedDocCollector collectorWithMinScore(IndexSearcher searcher,
+                                                            List<LuceneCollectorExpression<?>> columnReferences,
+                                                            Query query,
+                                                            @Nullable Float minScore) {
+        return new LuceneOrderedDocCollector(
+                new ShardId("dummy", UUIDs.base64UUID(), 0),
+                searcher,
+                query,
+                minScore,
+                true,
+                2,
+                new CollectorContext(mock(IndexFieldDataService.class), new CollectorFieldsVisitor(0)),
+                f -> null,
+                new Sort(SortField.FIELD_SCORE),
+                columnReferences,
+                columnReferences
+            );
     }
 }

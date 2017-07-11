@@ -81,5 +81,8 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that could cause the ``_score >= <minScore>`` filter to not
+   work correctly if used in a query with an ``ORDER BY`` clause.
+
  - Corrected wrong enterprise configuration example in ``crate.yml`` from
    ``auth.host_based.http_default_user`` to ``auth.trust.http_default_user``
