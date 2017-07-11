@@ -117,9 +117,9 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         Long missingValue = (Long) LuceneMissingValue.missingValue(orderBy, 0);
         sortField.setMissingValue(missingValue);
         Sort sort = new Sort(sortField);
-
-        Query nextPageQuery = LuceneOrderedDocCollector.nextPageQuery(
-            lastCollected, orderBy, new Object[]{missingValue}, name -> valueFieldType);
+        OptimizeQueryForSearchAfter queryForSearchAfter =
+            new OptimizeQueryForSearchAfter(orderBy, name -> valueFieldType);
+        Query nextPageQuery = queryForSearchAfter.apply(lastCollected);
         TopFieldDocs result = search(reader, nextPageQuery, sort);
         Long results[] = new Long[result.scoreDocs.length];
         for (int i = 0; i < result.scoreDocs.length; i++) {
@@ -139,8 +139,11 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     public void testNextPageQueryWithLastCollectedNullValue() throws Exception {
         FieldDoc fieldDoc = new FieldDoc(1, 0, new Object[]{null});
         OrderBy orderBy = new OrderBy(Collections.<Symbol>singletonList(REFERENCE), new boolean[]{false}, new Boolean[]{null});
-        Object missingValue = LuceneMissingValue.missingValue(orderBy, 0);
-        LuceneOrderedDocCollector.nextPageQuery(fieldDoc, orderBy, new Object[]{missingValue}, name -> valueFieldType);
+
+        OptimizeQueryForSearchAfter queryForSearchAfter = new OptimizeQueryForSearchAfter(
+            orderBy, name -> valueFieldType);
+
+        queryForSearchAfter.apply(fieldDoc);
     }
 
     // search after queries
@@ -234,8 +237,9 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
         FieldDoc lastCollected = new FieldDoc(0, 0, new Object[]{2L});
 
-        Query nextPageQuery = LuceneOrderedDocCollector.nextPageQuery(
-            lastCollected, orderBy, new Object[]{}, name -> valueFieldType);
+        OptimizeQueryForSearchAfter queryForSearchAfter = new OptimizeQueryForSearchAfter(
+            orderBy, name -> valueFieldType);
+        Query nextPageQuery = queryForSearchAfter.apply(lastCollected);
 
         // returns null which leads to reuse of old query without paging optimization
         assertNull(nextPageQuery);

@@ -33,10 +33,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.ShardReferenceResolver;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeJobsCounter;
-import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
-import io.crate.operation.collect.collectors.CrateDocCollectorBuilder;
-import io.crate.operation.collect.collectors.LuceneOrderedDocCollector;
-import io.crate.operation.collect.collectors.OrderedDocCollector;
+import io.crate.operation.collect.collectors.*;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
@@ -154,6 +151,10 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 sharedShardContext.indexShard().shardId(),
                 batchSize);
         }
+        OptimizeQueryForSearchAfter optimizeQueryForSearchAfter = new OptimizeQueryForSearchAfter(
+            collectPhase.orderBy(),
+            fieldTypeLookup
+        );
         return new LuceneOrderedDocCollector(
             indexShard.shardId(),
             searcher.searcher(),
@@ -161,9 +162,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             queryContext.minScore(),
             Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
             batchSize,
-            fieldTypeLookup,
             collectorContext,
-            collectPhase.orderBy(),
+            optimizeQueryForSearchAfter,
             LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), docInputFactory, fieldTypeLookup),
             ctx.topLevelInputs(),
             ctx.expressions()

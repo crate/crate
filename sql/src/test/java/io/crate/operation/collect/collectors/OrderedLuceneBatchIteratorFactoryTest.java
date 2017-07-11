@@ -25,7 +25,6 @@ package io.crate.operation.collect.collectors;
 
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.analyze.OrderBy;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.Reference;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
@@ -43,8 +42,6 @@ import org.apache.lucene.search.*;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.elasticsearch.index.mapper.LegacyLongFieldMapper;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,7 +60,6 @@ public class OrderedLuceneBatchIteratorFactoryTest {
 
     private String columnName = "x";
     private Reference reference = createReference(columnName, DataTypes.LONG);
-    private FieldTypeLookup fieldTypeLookup;
     private IndexSearcher searcher1;
     private IndexSearcher searcher2;
     private OrderBy orderBy;
@@ -96,11 +92,6 @@ public class OrderedLuceneBatchIteratorFactoryTest {
 
         searcher1 = new IndexSearcher(DirectoryReader.open(iw1));
         searcher2 = new IndexSearcher(DirectoryReader.open(iw2));
-        fieldTypeLookup = columnName -> {
-            NumberFieldMapper.NumberFieldType fieldType = new NumberFieldMapper.NumberFieldType(NumberFieldMapper.NumberType.LONG);
-            fieldType.setName(columnName);
-            return fieldType;
-        };
         orderBy = new OrderBy(
             Collections.singletonList(reference),
             reverseFlags,
@@ -140,9 +131,8 @@ public class OrderedLuceneBatchIteratorFactoryTest {
             null,
             false,
             5, // batchSize < 10 to have at least one searchMore call.
-            fieldTypeLookup,
             collectorContext,
-            orderBy,
+            f -> null,
             new Sort(new SortedNumericSortField(columnName, SortField.Type.LONG, reverseFlags[0])),
             expressions,
             expressions
