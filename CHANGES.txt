@@ -51,7 +51,7 @@ Changes
 
  - Upgraded the Admin UI to 1.4.0
 
- - Upgraded Crash to 0.21.2
+ - Upgraded Crash to 0.21.3
 
  - The table setting ``recovery.initial_shards`` has been deprecated. You may
    set ``gateway.local.initial_shards`` per node instead. Crate will continue to
