@@ -105,8 +105,15 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
                                                                                Supplier<TReq> requestFactory,
                                                                                BiConsumer<TReq, ActionListener<ShardResponse>> transportAction) {
         return isLastBatch -> {
-            nodeJobsCounter.increment(localNodeId);
+            /* This optimizes cases like "update t set x = ? where part_of_pk = ?"
+             * This runs the collect on *all* shards but only a small subset has any matches
+             * So this case can happen often.
+             */
+            if (currentRequest.items().isEmpty()) {
+                return CompletableFuture.completedFuture(responses);
+            }
 
+            nodeJobsCounter.increment(localNodeId);
             Function<ShardResponse, BitSet> transformResponseFunction = response -> {
                 nodeJobsCounter.decrement(localNodeId);
                 processShardResponse(response);
@@ -128,7 +135,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
             transportAction.accept(
                 currentRequest,
                 new RetryListener<>(scheduler,
-                    (actionListener) -> transportAction.accept(currentRequest, actionListener),
+                    actionListener -> transportAction.accept(currentRequest, actionListener),
                     listener,
                     BACKOFF_POLICY
                 )
