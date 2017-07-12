@@ -22,7 +22,6 @@
 
 package io.crate.operation.projectors;
 
-import com.carrotsearch.hppc.IntArrayList;
 import io.crate.action.FutureActionListener;
 import io.crate.action.LimitedExponentialBackoff;
 import io.crate.data.BatchIterator;
@@ -98,7 +97,6 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     private final Map<String, List<PendingRequest<TItem>>> pendingRequestsByIndex = new HashMap<>();
     private final BitSet responses = new BitSet();
     private final NodeJobsCounter nodeJobsCounter;
-    private final AtomicInteger pendingItemsCount = new AtomicInteger(0);
 
     private int location = -1;
 
@@ -203,7 +201,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator batchIterator) {
         executionFuture = new CompletableFuture<>();
         new BatchIteratorBackpressureExecutor<>(batchIterator, scheduler,
-            rowConsumer, execute, backpressureTrigger, pendingItemsCount, bulkSize, BACKOFF_POLICY, executionFuture).
+            rowConsumer, execute, backpressureTrigger, bulkSize, BACKOFF_POLICY, executionFuture).
             consumeIteratorAndExecute();
 
         return executionFuture.
@@ -316,8 +314,6 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
     }
 
     private void processShardResponse(ShardResponse shardResponse) {
-        IntArrayList itemIndices = shardResponse.itemIndices();
-        pendingItemsCount.addAndGet(-itemIndices.size());
         Exception responseFailure = shardResponse.failure();
         if (responseFailure != null && responseFailure instanceof InterruptedException) {
             // abort operation completely as it's been killed

@@ -22,7 +22,6 @@
 
 package io.crate.operation.projectors;
 
-import com.carrotsearch.hppc.IntArrayList;
 import io.crate.action.FutureActionListener;
 import io.crate.action.LimitedExponentialBackoff;
 import io.crate.data.BatchIterator;
@@ -44,7 +43,6 @@ import java.util.BitSet;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -64,7 +62,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
     private final int bulkSize;
     private final ScheduledExecutorService scheduler;
     private final BitSet responses;
-    private final AtomicInteger pendingItemsCount = new AtomicInteger(0);
     private final Consumer<Row> rowConsumer;
     private final BooleanSupplier shouldPause;
     private final Function<Boolean, CompletableFuture<BitSet>> execute;
@@ -96,7 +93,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
 
     private Consumer<Row> createRowConsumer(CollectExpression<Row, ?> uidExpression,
                                             Function<String, TItem> itemFactory) {
-        return (row) -> {
+        return row -> {
             numItems++;
             uidExpression.setNextRow(row);
             currentRequest.add(numItems, itemFactory.apply(((BytesRef) uidExpression.value()).utf8ToString()));
@@ -107,7 +104,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
                                                                                NodeJobsCounter nodeJobsCounter,
                                                                                Supplier<TReq> requestFactory,
                                                                                BiConsumer<TReq, ActionListener<ShardResponse>> transportAction) {
-        return (isLastBatch) -> {
+        return isLastBatch -> {
             nodeJobsCounter.increment(localNodeId);
 
             Function<ShardResponse, BitSet> transformResponseFunction = response -> {
@@ -146,7 +143,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator batchIterator) {
         new BatchIteratorBackpressureExecutor<>(batchIterator, scheduler,
-            rowConsumer, execute, shouldPause, pendingItemsCount, bulkSize, BACKOFF_POLICY, executionFuture).
+            rowConsumer, execute, shouldPause, bulkSize, BACKOFF_POLICY, executionFuture).
             consumeIteratorAndExecute();
 
         return executionFuture.
@@ -165,8 +162,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
     }
 
     private void processShardResponse(ShardResponse shardResponse) {
-        IntArrayList itemIndices = shardResponse.itemIndices();
-        pendingItemsCount.addAndGet(-itemIndices.size());
         if (shardResponse.failure() != null) {
             executionFuture.completeExceptionally(shardResponse.failure());
             return;

@@ -58,23 +58,23 @@ public class BatchIteratorBackpressureExecutor<R> {
     private final AtomicBoolean collectingEnabled = new AtomicBoolean(false);
     private final AtomicBoolean isScheduledCollectionRunning = new AtomicBoolean(false);
     private final AtomicBoolean computeFinalResult = new AtomicBoolean(false);
-    private final AtomicInteger pendingItemsCount;
     private final Iterator<TimeValue> consumeIteratorDelays;
     private final BooleanSupplier backPressureTrigger;
-    private BiConsumer<R, Throwable> bulkExecutionCompleteListener;
-    private BiConsumer<Object, Throwable> loadNextBatchCompleteListener;
-    private Runnable scheduleConsumeIteratorJob;
-    private int indexInBulk = 0;
+    private final BiConsumer<R, Throwable> bulkExecutionCompleteListener;
+    private final BiConsumer<Object, Throwable> loadNextBatchCompleteListener;
+    private final Runnable scheduleConsumeIteratorJob;
     private final int bulkSize;
-    private volatile boolean lastBulkScheduledToExecute = false;
     private final CompletableFuture<Void> executionFuture;
+    private final AtomicInteger inFlightExecutions = new AtomicInteger(0);
+
+    private int indexInBulk = 0;
+    private volatile boolean lastBulkScheduledToExecute = false;
 
     public BatchIteratorBackpressureExecutor(BatchIterator batchIterator,
                                              ScheduledExecutorService scheduler,
                                              Consumer<Row> onRowConsumer,
                                              Function<Boolean, CompletableFuture<R>> executeFunction,
                                              BooleanSupplier backPressureTrigger,
-                                             AtomicInteger pendingItemsCount,
                                              int bulkSize,
                                              BackoffPolicy backoffPolicy,
                                              CompletableFuture<Void> executionFuture) {
@@ -83,7 +83,6 @@ public class BatchIteratorBackpressureExecutor<R> {
         this.onRowConsumer = onRowConsumer;
         this.executeFunction = executeFunction;
         this.backPressureTrigger = backPressureTrigger;
-        this.pendingItemsCount = pendingItemsCount;
         this.bulkSize = bulkSize;
         this.consumeIteratorDelays = backoffPolicy.iterator();
         this.executionFuture = executionFuture;
@@ -115,10 +114,8 @@ public class BatchIteratorBackpressureExecutor<R> {
 
     private BiConsumer<R, Throwable> createBulkExecutionCompleteListener(BatchIterator batchIterator) {
         return (r, t) -> {
-            if (lastBulkScheduledToExecute &&
-                pendingItemsCount.get() == 0 &&
-                computeFinalResult.compareAndSet(false, true)) {
-
+            int inFlight = inFlightExecutions.decrementAndGet();
+            if (inFlight == 0 && lastBulkScheduledToExecute && computeFinalResult.compareAndSet(false, true)) {
                 // all bulks are complete, close iterator and complete executionFuture
                 batchIterator.close();
                 if (t == null) {
@@ -167,7 +164,6 @@ public class BatchIteratorBackpressureExecutor<R> {
                 if (batchIterator.moveNext()) {
                     indexInBulk++;
                     onRowConsumer.accept(row);
-                    pendingItemsCount.incrementAndGet();
                 } else {
                     break;
                 }
@@ -175,6 +171,7 @@ public class BatchIteratorBackpressureExecutor<R> {
 
             if (batchIterator.allLoaded()) {
                 lastBulkScheduledToExecute = true;
+                inFlightExecutions.incrementAndGet();
                 executeFunction.apply(true).whenComplete(bulkExecutionCompleteListener);
             } else {
                 batchIterator.loadNextBatch().whenComplete(loadNextBatchCompleteListener);
@@ -193,6 +190,7 @@ public class BatchIteratorBackpressureExecutor<R> {
     private boolean tryExecuteBulk() {
         if (backPressureTrigger.getAsBoolean() == false) {
             indexInBulk = 0;
+            inFlightExecutions.incrementAndGet();
             CompletableFuture<R> bulkExecutionFuture = executeFunction.apply(false);
             bulkExecutionFuture.whenComplete(bulkExecutionCompleteListener);
             return true;

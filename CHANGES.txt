@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - Fixed a race condition which could cause ``UPDATE`` or ``DELETE`` statements
+   to get stuck.
+
  - Fixed a ClassCastException that could occur on certain queries if connected
    via the postgres protocol.
 
