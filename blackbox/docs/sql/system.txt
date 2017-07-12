@@ -893,21 +893,21 @@ The table schema is as follows:
 |                      | table.                           |             |
 +----------------------+----------------------------------+-------------+
 
-Accessing the ``sys.shards`` table is subjected to the same privileges 
-constraints as the other tables. Namely, in order to query it, the connected 
-user needs to have the ``DQL`` privilege on the ``sys.shards`` table, either 
-directly or inherited from the ``SCHEMA`` or ``CLUSTER`` (for more information 
-on privileges inheritance see :ref:`Hierarchical Inheritance of Privileges 
+Accessing the ``sys.shards`` table is subjected to the same privileges
+constraints as the other tables. Namely, in order to query it, the connected
+user needs to have the ``DQL`` privilege on the ``sys.shards`` table, either
+directly or inherited from the ``SCHEMA`` or ``CLUSTER`` (for more information
+on privileges inheritance see :ref:`Hierarchical Inheritance of Privileges
 <hierarchical_privileges_inheritance>`).
 
-However, being able to query ``sys.shards`` will not allow the user to retrieve 
-all the rows in the table, as it can contain information related to tables over 
-which the connected user does not have any privileges. The only rows that will 
+However, being able to query ``sys.shards`` will not allow the user to retrieve
+all the rows in the table, as it can contain information related to tables over
+which the connected user does not have any privileges. The only rows that will
 be returned will be the ones the user is allowed to access.
 
-For example, if the user ``john`` has any privilege on the ``doc.books`` table 
-but no privilege at all on ``doc.locations``, when ``john`` issues a 
-``SELECT * FROM sys.shards`` statement, the shards information related to the 
+For example, if the user ``john`` has any privilege on the ``doc.books`` table
+but no privilege at all on ``doc.locations``, when ``john`` issues a
+``SELECT * FROM sys.shards`` statement, the shards information related to the
 ``doc.locations`` table will not be returned.
 
 ``recovery``
@@ -1013,7 +1013,8 @@ Jobs
 ----
 
 The ``sys.jobs`` table is a constantly updated view of all jobs that are
-currently being executed by a user in the cluster::
+currently being executed in the cluster. The field ``username`` corresponds to
+the :ref:`SESSION_USER <session_user>` that is performing the query::
 
     cr> select stmt, username, started from sys.jobs where stmt like 'sel% from %jobs%';
     +---------------------------------------------------------------------------------+----------+-...-----+
@@ -1022,6 +1023,12 @@ currently being executed by a user in the cluster::
     | select stmt, username, started from sys.jobs where stmt like 'sel% from %jobs%' | crate    | ...     |
     +---------------------------------------------------------------------------------+----------+-...-----+
     SELECT 1 row in set (... sec)
+
+.. note::
+
+    If the :ref:`enterprise edition <enterprise_features>` is disabled or the
+    user management module is not available, the ``username`` is represented as
+    ``NULL``.
 
 Every request that queries data or manipulates data is considered a "job" if it
 is a valid query. Requests that are not valid queries (for example, a request
@@ -1059,8 +1066,8 @@ produce any operations.
 Logs
 ----
 
-The ``sys.jobs`` and ``sys.operations`` tables have corresponding log tables:
-``sys.jobs_log`` and ``sys.operations_log``.
+The :ref:`sys.jobs <sys-jobs>` and :ref:`sys.operations <sys-operations>` tables
+have corresponding log tables: ``sys.jobs_log`` and ``sys.operations_log``.
 
 After a job or operation finishes, the corresponding entry will be moved into
 the corresponding log table::
