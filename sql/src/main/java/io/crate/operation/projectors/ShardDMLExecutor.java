@@ -88,7 +88,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
         this.rowConsumer = createRowConsumer(uidExpression, itemFactory);
         this.shouldPause = () ->
             nodeJobsCounter.getInProgressJobsForNode(localNodeId) >= MAX_NODE_CONCURRENT_OPERATIONS;
-        this.execute = createExecuteFunction(scheduler, nodeJobsCounter, requestFactory, transportAction);
+        this.execute = createExecuteFunction(nodeJobsCounter, requestFactory, transportAction);
     }
 
     private Consumer<Row> createRowConsumer(CollectExpression<Row, ?> uidExpression,
@@ -100,8 +100,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
         };
     }
 
-    private Function<Boolean, CompletableFuture<BitSet>> createExecuteFunction(ScheduledExecutorService scheduler,
-                                                                               NodeJobsCounter nodeJobsCounter,
+    private Function<Boolean, CompletableFuture<BitSet>> createExecuteFunction(NodeJobsCounter nodeJobsCounter,
                                                                                Supplier<TReq> requestFactory,
                                                                                BiConsumer<TReq, ActionListener<ShardResponse>> transportAction) {
         return isLastBatch -> {
@@ -132,19 +131,23 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
                     }
                 };
 
-            transportAction.accept(
-                currentRequest,
-                new RetryListener<>(scheduler,
-                    actionListener -> transportAction.accept(currentRequest, actionListener),
-                    listener,
-                    BACKOFF_POLICY
-                )
-            );
+            transportAction.accept(currentRequest, withRetry(transportAction, currentRequest, listener));
             // The current bulk was submitted to the transport action for execution, so we'll continue to collect and
             // accumulate data for the next bulk in a new request object
             currentRequest = requestFactory.get();
             return listener;
         };
+    }
+
+    private RetryListener<ShardResponse> withRetry(BiConsumer<TReq, ActionListener<ShardResponse>> transportAction,
+                                                   TReq request,
+                                                   FutureActionListener<ShardResponse, BitSet> listener) {
+        return new RetryListener<>(
+            scheduler,
+            l -> transportAction.accept(request, l),
+            listener,
+            BACKOFF_POLICY
+        );
     }
 
     @Override
