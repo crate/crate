@@ -474,7 +474,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             try {
                 longLiteral = io.crate.analyze.symbol.Literal.convert(symbol, DataTypes.LONG);
             } catch (ClassCastException | IllegalArgumentException e) {
-                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printSimple(symbol), clause));
+            }
+            if (longLiteral.value() == null) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
                     "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printSimple(symbol), clause));
             }
             symbol = ordinalOutputReference(selectAnalysis.outputSymbols(), longLiteral, clause);
