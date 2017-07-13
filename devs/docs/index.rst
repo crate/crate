@@ -1,6 +1,6 @@
-===
-TOC
-===
+==============
+Developer Docs
+==============
 
 - `Basic setup <basics.rst>`_
 - `Writing documentation <write_docs.rst>`_
