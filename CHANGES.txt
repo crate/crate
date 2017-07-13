@@ -37,6 +37,10 @@ Fixes
 
  - Added support for conditionals with ``NULL`` arguments.
 
+ - Allow ``GROUP BY`` on any scalar functions. E.g.::
+
+     SELECT id + 1 FROM t GROUP BY id
+
  - Do not include Lucene indices (metadata) of ``BLOB`` tables in snapshot
    when using ``CREATE SNAPSHOT`` with ``ALL``, because the actual binary
    files of ``BLOB`` tables cannot be backed up using ``SNAPSHOT/RESTORE``

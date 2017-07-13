@@ -343,7 +343,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private static List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {
         List<Symbol> groupBy = new ArrayList<>(outputSymbols.size());
         for (Symbol symbol : outputSymbols) {
-            if (!Aggregations.containsAggregation(symbol)) {
+            if (Aggregations.containsAggregationOrscalar(symbol) == false) {
                 GroupBySymbolValidator.validate(symbol);
                 groupBy.add(symbol);
             }
@@ -357,7 +357,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (int i = 0; i < outputSymbols.size(); i++) {
             Symbol output = outputSymbols.get(i);
             if (groupBy == null || !groupBy.contains(output)) {
-                if (!Aggregations.containsAggregation(output)) {
+                if (!Aggregations.containsAggregationOrscalar(output) || !Aggregations.matchGroupBySymbol(output, groupBy)) {
                     throw new IllegalArgumentException(
                         String.format(Locale.ENGLISH, "column '%s' must appear in the GROUP BY clause " +
                                       "or be used in an aggregation function", outputNames.get(i).outputName()));
