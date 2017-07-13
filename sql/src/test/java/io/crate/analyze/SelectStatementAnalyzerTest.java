@@ -1153,6 +1153,20 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void testGroupWithInvalidLiteral() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot use 'abc' in GROUP BY clause");
+        analyze("select max(id) from users u group by 'abc'");
+    }
+
+    @Test
+    public void testGroupWithInvalidNullLiteral() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot use NULL in GROUP BY clause");
+        analyze("select max(id) from users u group by NULL");
+    }
+
+    @Test
     public void testOrderByOnArray() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Cannot ORDER BY 'friends': invalid data type 'object_array'.");
