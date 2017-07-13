@@ -64,8 +64,8 @@ public class BatchIteratorBackpressureExecutor<R> {
     private final BiConsumer<Object, Throwable> loadNextBatchCompleteListener;
     private final Runnable scheduleConsumeIteratorJob;
     private final int bulkSize;
-    private final CompletableFuture<Void> executionFuture;
     private final AtomicInteger inFlightExecutions = new AtomicInteger(0);
+    private final CompletableFuture<Void> resultFuture = new CompletableFuture<>();
 
     private int indexInBulk = 0;
     private volatile boolean lastBulkScheduledToExecute = false;
@@ -76,8 +76,7 @@ public class BatchIteratorBackpressureExecutor<R> {
                                              Function<Boolean, CompletableFuture<R>> executeFunction,
                                              BooleanSupplier backPressureTrigger,
                                              int bulkSize,
-                                             BackoffPolicy backoffPolicy,
-                                             CompletableFuture<Void> executionFuture) {
+                                             BackoffPolicy backoffPolicy) {
         this.batchIterator = batchIterator;
         this.scheduler = scheduler;
         this.onRowConsumer = onRowConsumer;
@@ -85,14 +84,14 @@ public class BatchIteratorBackpressureExecutor<R> {
         this.backPressureTrigger = backPressureTrigger;
         this.bulkSize = bulkSize;
         this.consumeIteratorDelays = backoffPolicy.iterator();
-        this.executionFuture = executionFuture;
         this.bulkExecutionCompleteListener = createBulkExecutionCompleteListener(batchIterator);
         this.loadNextBatchCompleteListener = createLoadNextBatchListener(batchIterator);
         this.scheduleConsumeIteratorJob = createScheduleConsumeIteratorJob(batchIterator);
     }
 
-    public void consumeIteratorAndExecute() {
+    public CompletableFuture<Void> consumeIteratorAndExecute() {
         safeConsumeIterator(batchIterator);
+        return resultFuture;
     }
 
     private Runnable createScheduleConsumeIteratorJob(BatchIterator batchIterator) {
@@ -107,7 +106,7 @@ public class BatchIteratorBackpressureExecutor<R> {
             if (t == null) {
                 unsafeConsumeIterator(batchIterator);
             } else {
-                executionFuture.completeExceptionally(t);
+                resultFuture.completeExceptionally(t);
             }
         };
     }
@@ -119,9 +118,9 @@ public class BatchIteratorBackpressureExecutor<R> {
                 // all bulks are complete, close iterator and complete executionFuture
                 batchIterator.close();
                 if (t == null) {
-                    executionFuture.complete(null);
+                    resultFuture.complete(null);
                 } else {
-                    executionFuture.completeExceptionally(t);
+                    resultFuture.completeExceptionally(t);
                 }
             } else {
                 safeConsumeIterator(batchIterator);
@@ -144,10 +143,6 @@ public class BatchIteratorBackpressureExecutor<R> {
      * !! THIS SHOULD ONLY BE CALLED BY THE loadNextBatch COMPLETE LISTENER !!
      */
     private void unsafeConsumeIterator(BatchIterator batchIterator) {
-        if(executionFuture.isDone()) {
-            // if the execution future was completed (most likely failed or killed) we stop consuming
-            return;
-        }
         Row row = RowBridging.toRow(batchIterator.rowData());
         try {
             while (true) {
@@ -178,7 +173,7 @@ public class BatchIteratorBackpressureExecutor<R> {
             }
         } catch (Throwable t) {
             batchIterator.close();
-            executionFuture.completeExceptionally(t);
+            resultFuture.completeExceptionally(t);
         }
     }
 
