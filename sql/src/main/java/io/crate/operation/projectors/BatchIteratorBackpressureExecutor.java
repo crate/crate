@@ -27,13 +27,12 @@ import io.crate.data.Row;
 import io.crate.data.RowBridging;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
@@ -42,7 +41,7 @@ import java.util.function.Supplier;
 
 /**
  * Consumes a BatchIterator in bulks based on the configured {@link #bulkSize}. When a bulk is complete, it checks
- * whether executing the bulk is possible (based on the provided {@link #backPressureTrigger}) in which case it runs
+ * whether executing the bulk is possible (based on the provided {@link #pauseConsumption}) in which case it runs
  * the {@link #executeFunction}. Otherwise, it stops consuming the iterator and schedules retrying the execution of the
  * bulk for later.
  * Iterator consumption is resumed once the parked/scheduled bulk is executed successfully.
@@ -55,141 +54,133 @@ public class BatchIteratorBackpressureExecutor<R> {
     private final Supplier<CompletableFuture<R>> executeFunction;
     private final Consumer<Row> onRowConsumer;
     private final ScheduledExecutorService scheduler;
-    private final AtomicBoolean collectingEnabled = new AtomicBoolean(false);
-    private final AtomicBoolean isScheduledCollectionRunning = new AtomicBoolean(false);
-    private final AtomicBoolean computeFinalResult = new AtomicBoolean(false);
-    private final Iterator<TimeValue> consumeIteratorDelays;
-    private final BooleanSupplier backPressureTrigger;
-    private final BiConsumer<R, Throwable> bulkExecutionCompleteListener;
-    private final BiConsumer<Object, Throwable> loadNextBatchCompleteListener;
-    private final Runnable scheduleConsumeIteratorJob;
+    private final Iterator<TimeValue> throttleDelay;
+    private final BooleanSupplier pauseConsumption;
+    private final BiConsumer<Object, Throwable> continueConsumptionOrFinish;
     private final int bulkSize;
     private final AtomicInteger inFlightExecutions = new AtomicInteger(0);
     private final CompletableFuture<Void> resultFuture = new CompletableFuture<>();
+    private final Semaphore semaphore = new Semaphore(1);
 
     private int indexInBulk = 0;
-    private volatile boolean lastBulkScheduledToExecute = false;
+    private volatile boolean consumptionFinished = false;
 
     public BatchIteratorBackpressureExecutor(BatchIterator batchIterator,
                                              ScheduledExecutorService scheduler,
                                              Consumer<Row> onRowConsumer,
                                              Supplier<CompletableFuture<R>> executeFunction,
-                                             BooleanSupplier backPressureTrigger,
+                                             BooleanSupplier pauseConsumption,
                                              int bulkSize,
                                              BackoffPolicy backoffPolicy) {
         this.batchIterator = batchIterator;
         this.scheduler = scheduler;
         this.onRowConsumer = onRowConsumer;
         this.executeFunction = executeFunction;
-        this.backPressureTrigger = backPressureTrigger;
+        this.pauseConsumption = pauseConsumption;
         this.bulkSize = bulkSize;
-        this.consumeIteratorDelays = backoffPolicy.iterator();
-        this.bulkExecutionCompleteListener = createBulkExecutionCompleteListener(batchIterator);
-        this.loadNextBatchCompleteListener = createLoadNextBatchListener(batchIterator);
-        this.scheduleConsumeIteratorJob = createScheduleConsumeIteratorJob(batchIterator);
+        this.throttleDelay = backoffPolicy.iterator();
+        this.continueConsumptionOrFinish = this::continueConsumptionOrFinish;
     }
 
     public CompletableFuture<Void> consumeIteratorAndExecute() {
-        safeConsumeIterator(batchIterator);
+        consumeIterator();
         return resultFuture;
     }
 
-    private Runnable createScheduleConsumeIteratorJob(BatchIterator batchIterator) {
-        return () -> {
-            isScheduledCollectionRunning.set(false);
-            safeConsumeIterator(batchIterator);
-        };
-    }
+    private void continueConsumptionOrFinish(Object ignored, Throwable failure) {
+        int inFlight = inFlightExecutions.decrementAndGet();
+        assert inFlight >= 0 : "Number of in-flight executions must not be negative";
 
-    private BiConsumer<Object, Throwable> createLoadNextBatchListener(BatchIterator batchIterator) {
-        return (r, t) -> {
-            if (t == null) {
-                unsafeConsumeIterator(batchIterator);
-            } else {
-                resultFuture.completeExceptionally(t);
+        if (consumptionFinished) {
+            if (inFlight == 0) {
+                setResult(failure);
             }
-        };
+            // else: waiting for other async-operations to finish
+        } else {
+            consumeIterator();
+        }
     }
 
-    private BiConsumer<R, Throwable> createBulkExecutionCompleteListener(BatchIterator batchIterator) {
-        return (r, t) -> {
-            int inFlight = inFlightExecutions.decrementAndGet();
-            if (inFlight == 0 && lastBulkScheduledToExecute && computeFinalResult.compareAndSet(false, true)) {
-                // all bulks are complete, close iterator and complete executionFuture
-                batchIterator.close();
-                if (t == null) {
-                    resultFuture.complete(null);
-                } else {
-                    resultFuture.completeExceptionally(t);
-                }
-            } else {
-                safeConsumeIterator(batchIterator);
-            }
-        };
-    }
-
-    /**
-     * Consumes the iterator only if there isn't another thread already consuming it.
-     */
-    private void safeConsumeIterator(BatchIterator batchIterator) {
-        if (collectingEnabled.compareAndSet(false, true)) {
-            unsafeConsumeIterator(batchIterator);
+    private void setResult(Throwable failure) {
+        batchIterator.close();
+        if (failure == null) {
+            resultFuture.complete(null);
+        } else {
+            resultFuture.completeExceptionally(failure);
         }
     }
 
     /**
-     * Consumes the iterator without guarding against concurrent access to the iterator.
+     * Consumes the rows from the BatchIterator and invokes {@link #executeFunction} every {@link #bulkSize} rows.
+     * This loop continues until either:
      *
-     * !! THIS SHOULD ONLY BE CALLED BY THE loadNextBatch COMPLETE LISTENER !!
+     *  - The BatchIterator has been fully consumed.
+     *  - {@link #pauseConsumption} returns true; In this case a scheduler is used to re-schedule the consumption
+     *    after a throttle-delay
+     *
+     * Each (async) operation which is executed *could* either set the result on {@link #resultFuture} or re-resume
+     * consumption.
+     * To make sure only a single consumer thread is active at a time a {@link #semaphore} is used.
      */
-    private void unsafeConsumeIterator(BatchIterator batchIterator) {
+    private void consumeIterator() {
+        if (semaphore.tryAcquire() == false) {
+            return;
+        }
         Row row = RowBridging.toRow(batchIterator.rowData());
         try {
-            while (true) {
+            while (batchIterator.moveNext()) {
+                indexInBulk++;
+                onRowConsumer.accept(row);
+
                 if (indexInBulk == bulkSize) {
-                    if (tryExecuteBulk() == false) {
-                        collectingEnabled.set(false);
-                        if (isScheduledCollectionRunning.compareAndSet(false, true)) {
-                            scheduleConsumeIterator();
-                        }
+                    if (pauseConsumption.getAsBoolean()) {
+                        // release semaphore inside resumeConsumption: after throttle delay has passed
+                        // to make sure callbacks of previously triggered async operations don't resume consumption
+                        scheduler.schedule(this::resumeConsumption, throttleDelay.next().getMillis(), TimeUnit.MILLISECONDS);
                         return;
                     }
-                }
-
-                if (batchIterator.moveNext()) {
-                    indexInBulk++;
-                    onRowConsumer.accept(row);
-                } else {
-                    break;
+                    executeBatch();
                 }
             }
 
+            inFlightExecutions.incrementAndGet();
             if (batchIterator.allLoaded()) {
-                lastBulkScheduledToExecute = true;
-                inFlightExecutions.incrementAndGet();
-                executeFunction.get().whenComplete(bulkExecutionCompleteListener);
+                semaphore.release();
+                consumptionFinished = true;
+                executeFunction.get().whenComplete(continueConsumptionOrFinish);
             } else {
-                batchIterator.loadNextBatch().whenComplete(loadNextBatchCompleteListener);
+                batchIterator.loadNextBatch()
+                     // consumption can only be continued after loadNextBatch completes; so keep permit until then.
+                    .whenComplete((r, f) -> {
+                        semaphore.release();
+                        continueConsumptionOrFinish.accept(r, f);
+                    });
             }
         } catch (Throwable t) {
+            // semaphore may be unreleased, but we're finished anyway.
             batchIterator.close();
             resultFuture.completeExceptionally(t);
         }
     }
 
-    private void scheduleConsumeIterator() throws EsRejectedExecutionException {
-        scheduler.schedule(scheduleConsumeIteratorJob,
-            consumeIteratorDelays.next().getMillis(), TimeUnit.MILLISECONDS);
+    private void executeBatch() {
+        indexInBulk = 0;
+        inFlightExecutions.incrementAndGet();
+        executeFunction.get().whenComplete(continueConsumptionOrFinish);
     }
 
-    private boolean tryExecuteBulk() {
-        if (backPressureTrigger.getAsBoolean() == false) {
-            indexInBulk = 0;
-            inFlightExecutions.incrementAndGet();
-            CompletableFuture<R> bulkExecutionFuture = executeFunction.get();
-            bulkExecutionFuture.whenComplete(bulkExecutionCompleteListener);
-            return true;
+    private void resumeConsumption() {
+        if (pauseConsumption.getAsBoolean()) {
+            scheduler.schedule(this::resumeConsumption, throttleDelay.next().getMillis(), TimeUnit.MILLISECONDS);
+            return;
         }
-        return false;
+        // Suspend happened once a batch was ready, so execute it now.
+        // consumeIterator would otherwise move past the indexInBulk == bulkSize check and end up building a huge batch
+        executeBatch();
+        semaphore.release();
+
+        // In case executeBatch takes some time to finish - also immediately resume consumption.
+        // The semaphore makes sure there's only 1 active consumer thread
+        consumeIterator();
     }
 }
