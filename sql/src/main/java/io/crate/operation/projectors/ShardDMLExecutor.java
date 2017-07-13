@@ -71,7 +71,6 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
     private final Consumer<Row> rowConsumer;
     private final BooleanSupplier shouldPause;
     private final String localNodeId;
-    private final CompletableFuture<Void> executionFuture = new CompletableFuture<>();
 
     private TReq currentRequest;
     private int numItems = -1;
@@ -138,12 +137,16 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
 
     @Override
     public CompletableFuture<? extends Iterable<Row>> apply(BatchIterator batchIterator) {
-        new BatchIteratorBackpressureExecutor<>(batchIterator, scheduler,
-            rowConsumer, this::executeBatch, shouldPause, bulkSize, BACKOFF_POLICY, executionFuture).
-            consumeIteratorAndExecute();
-
-        return executionFuture.
-            thenApply(ignored -> Collections.singletonList(new Row1((long) responses.cardinality())));
+        return new BatchIteratorBackpressureExecutor<>(
+            batchIterator,
+            scheduler,
+            rowConsumer,
+            this::executeBatch,
+            shouldPause,
+            bulkSize,
+            BACKOFF_POLICY
+        ).consumeIteratorAndExecute()
+            .thenApply(ignored -> Collections.singletonList(new Row1((long) responses.cardinality())));
     }
 
     @Nullable
