@@ -24,8 +24,8 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.data.Row;
-import io.crate.operation.user.ExceptionAuthorizedValidator;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.operation.user.ExceptionAuthorizedValidator;
 import io.crate.types.DataType;
 import io.netty.channel.Channel;
 

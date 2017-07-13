@@ -104,7 +104,7 @@ public class RestActionReceiversTest extends CrateUnitTest {
             t -> {},
             fields,
             0L,
-            new RowAccounting(Symbols.extractTypes(fields), new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"))),
+            new RowAccounting(Symbols.typeView(fields), new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"))),
             true
         );
         for (Row row : rows) {

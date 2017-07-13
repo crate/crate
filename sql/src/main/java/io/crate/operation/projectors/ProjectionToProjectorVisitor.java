@@ -216,7 +216,7 @@ public class ProjectionToProjectorVisitor
 
         List<Input<?>> keyInputs = ctx.topLevelInputs();
         return new GroupingProjector(
-            Symbols.extractTypes(projection.keys()),
+            Symbols.typeView(projection.keys()),
             keyInputs,
             Iterables.toArray(ctx.expressions(), CollectExpression.class),
             projection.mode(),

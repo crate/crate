@@ -141,9 +141,9 @@ public class Collect implements Plan, ResultDescription {
     public List<DataType> streamOutputs() {
         List<Projection> projections = collectPhase.projections();
         if (projections.isEmpty()) {
-            return Symbols.extractTypes(collectPhase.toCollect());
+            return Symbols.typeView(collectPhase.toCollect());
         }
         Projection lastProjection = projections.get(projections.size() - 1);
-        return Symbols.extractTypes(lastProjection.outputs());
+        return Symbols.typeView(lastProjection.outputs());
     }
 }

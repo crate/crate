@@ -131,7 +131,7 @@ public class EvaluatingNormalizer {
                 Function function = new Function(
                     io.crate.operation.predicate.MatchPredicate.INFO,
                     Arrays.asList(
-                        new Function(MapFunction.createInfo(Symbols.extractTypes(columnBoostMapArgs)), columnBoostMapArgs),
+                        new Function(MapFunction.createInfo(Symbols.typeView(columnBoostMapArgs)), columnBoostMapArgs),
                         matchPredicate.queryTerm(),
                         Literal.of(matchPredicate.matchType()),
                         matchPredicate.options()

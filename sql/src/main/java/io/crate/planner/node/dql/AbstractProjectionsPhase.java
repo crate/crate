@@ -58,9 +58,9 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
     protected static List<DataType> extractOutputTypes(List<Symbol> outputs, List<Projection> projections) {
         Projection lastProjection = Iterables.getLast(projections, null);
         if (lastProjection == null) {
-            return Symbols.extractTypes(outputs);
+            return Symbols.typeView(outputs);
         } else {
-            return Symbols.extractTypes(lastProjection.outputs());
+            return Symbols.typeView(lastProjection.outputs());
         }
     }
 
@@ -89,7 +89,7 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
         List<Projection> projections = new ArrayList<>(this.projections);
         projections.add(projection);
         this.projections = ImmutableList.copyOf(projections);
-        outputTypes = Symbols.extractTypes(projection.outputs());
+        outputTypes = Symbols.typeView(projection.outputs());
     }
 
     public Optional<Projection> finalProjection() {

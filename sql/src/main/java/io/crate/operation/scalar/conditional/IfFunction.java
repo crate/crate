@@ -110,7 +110,7 @@ public class IfFunction extends Scalar<Object, Object> {
     }
 
     public static Function createFunction(List<Symbol> arguments) {
-        return new Function(createInfo(Symbols.extractTypes(arguments)), arguments);
+        return new Function(createInfo(Symbols.typeView(arguments)), arguments);
     }
 
     private static FunctionInfo createInfo(List<DataType> dataTypes) {
