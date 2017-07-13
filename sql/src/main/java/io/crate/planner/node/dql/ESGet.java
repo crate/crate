@@ -70,7 +70,7 @@ public class ESGet extends UnnestablePlan {
         this.jobId = jobId;
         this.limit = limit;
 
-        outputTypes = Symbols.extractTypes(outputs);
+        outputTypes = Symbols.typeView(outputs);
 
         if (optOrderBY.isPresent()){
             OrderBy orderBy = optOrderBY.get();

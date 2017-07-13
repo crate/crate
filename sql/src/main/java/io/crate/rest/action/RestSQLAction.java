@@ -168,7 +168,7 @@ public class RestSQLAction extends BaseRestHandler {
                         outputFields,
                         startTime,
                         new RowAccounting(
-                            Symbols.extractTypes(outputFields),
+                            Symbols.typeView(outputFields),
                             new RamAccountingContext("http-result", circuitBreaker)),
                         request.paramAsBoolean("types", false));
                     session.execute(UNNAMED, 0, resultReceiver);

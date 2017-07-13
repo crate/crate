@@ -112,7 +112,7 @@ class BatchPortal extends AbstractPortal {
             return null;
         }
         List<Field> fields = lastAnalysis.rootRelation().fields();
-        outputTypes.add(Symbols.extractTypes(fields));
+        outputTypes.add(Symbols.typeView(fields));
         return fields;
     }
 

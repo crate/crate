@@ -71,7 +71,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         if (projections.isEmpty()) {
             outputTypes = Lists.newArrayList(inputTypes);
         } else {
-            outputTypes = Symbols.extractTypes(Iterables.getLast(projections).outputs());
+            outputTypes = Symbols.typeView(Iterables.getLast(projections).outputs());
         }
         this.positionalOrderBy = positionalOrderBy;
         this.executionNodes = executionNodes;
