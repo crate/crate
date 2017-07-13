@@ -18,8 +18,16 @@ Breaking Changes
 Fixes
 =====
 
- - Fixed an issue that can hang the nodes when running an insert from query 
-   statement for a large dataset when the target table is an empty 
+ - Allow ``DISTINCT`` to operate on literals. E.g.::
+
+     SELECT DISTINCT ['val1', 'val2'], col1, col2, ... FROM t
+
+ - Allow ``GROUP BY`` on any literal. E.g.::
+
+     SELECT {a=1, b=2}, COUNT(*) FROM t GROUP BY 1
+
+ - Fixed an issue that can hang the nodes when running an insert from query
+   statement for a large dataset when the target table is an empty
    partitioned table.
 
  - Fixed a race condition which could cause ``UPDATE`` or ``DELETE`` statements
