@@ -73,7 +73,7 @@ Looking for more help?
 
 .. _contribution docs: CONTRIBUTING.rst
 .. _Crate.io: http://crate.io/
-.. _developer docs: DEVELOP.rst
+.. _developer docs: devs/docs/index.rst
 .. _Docker image: https://hub.docker.com/_/crate/
 .. _getting started: https://crate.io/docs/getting-started
 .. _paid support: https://crate.io/pricing/
