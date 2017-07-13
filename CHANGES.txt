@@ -18,6 +18,9 @@ Breaking Changes
 Fixes
 =====
 
+ - Provide comprehensive error message when using  ``NULL`` literal in
+    ``GROUP BY``.
+
  - Allow ``DISTINCT`` to operate on literals. E.g.::
 
      SELECT DISTINCT ['val1', 'val2'], col1, col2, ... FROM t
