@@ -20,7 +20,11 @@ Changes
 
 Fixes
 =====
- 
+
+  - Allow ``GROUP BY`` on any scalar functions. E.g.::
+
+      SELECT id + 1 FROM t GROUP BY id
+
  - Internal system queries are now executed under the "crate" superuser if
    user management is enabled.
 
@@ -31,6 +35,17 @@ Fixes
 
  - Added support for conditionals with ``NULL`` arguments.
 
+ - Do not include Lucene indices (metadata) of ``BLOB`` tables in snapshot
+   when using ``CREATE SNAPSHOT`` with ``ALL``, because the actual binary
+   files of ``BLOB`` tables cannot be backed up using ``SNAPSHOT/RESTORE``
+   functionality.
+
+ - Fixed rename table operation for empty partitioned tables.
+
+ - Fixed an issue which caused unrelated table privileges to be lost after a
+   table was renamed.
+
+>>>>>>> 14edac0... add support for group by with scalar
  - Fixed an issue that caused wrong results to be returned for global
    aggregation on ``JOINS`` when literal expression in ``WHERE`` clause is
    evaluated to false. E.g.::

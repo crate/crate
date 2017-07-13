@@ -40,6 +40,7 @@ import java.util.function.UnaryOperator;
 public class Symbols {
 
     private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
+    private static final AllLiteralsMatcher ALL_LITERALS_MATCHER = new AllLiteralsMatcher();
     private static final ReplacingSymbolVisitor<Void> DEEP_COPY_VISITOR = new ReplacingSymbolVisitor<>(ReplaceMode.COPY);
 
     public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof Field || s instanceof Reference;
@@ -81,6 +82,11 @@ public class Symbols {
             }
         }
         return false;
+    }
+
+    public static boolean allLiterals(Symbol symbol) {
+        assert symbol != null : "symbol must not be null";
+        return ALL_LITERALS_MATCHER.process(symbol, null);
     }
 
     public static void toStream(Collection<? extends Symbol> symbols, StreamOutput out) throws IOException {
@@ -142,4 +148,26 @@ public class Symbols {
             return context.equals(symbol.ident().columnIdent());
         }
     }
+
+    /**
+     * Returns true if all symbols in an expression are literals and false otherwise.
+     */
+    private static class AllLiteralsMatcher extends SymbolVisitor<Void, Boolean> {
+
+        @Override
+        public Boolean visitFunction(Function function, Void context) {
+            return function.arguments().stream().allMatch(arg -> process(arg, null));
+        }
+
+        @Override
+        public Boolean visitLiteral(Literal symbol, Void context) {
+            return true;
+        }
+
+        @Override
+        public Boolean visitSymbol(Symbol symbol, Void context) {
+            return false;
+        }
+    }
+
 }
