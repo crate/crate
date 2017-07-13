@@ -86,7 +86,7 @@ public class CountConsumer implements Consumer {
             List<Projection> projections;
             Limits limits = context.plannerContext().getLimits(querySpec);
             Projection topN = ProjectionBuilder.topNOrEvalIfNeeded(
-                limits.finalLimit(), limits.offset(), 1, Symbols.extractTypes(MergeCountProjection.INSTANCE.outputs()));
+                limits.finalLimit(), limits.offset(), 1, Symbols.typeView(MergeCountProjection.INSTANCE.outputs()));
             if (topN == null) {
                 projections = Collections.singletonList(MergeCountProjection.INSTANCE);
             } else {

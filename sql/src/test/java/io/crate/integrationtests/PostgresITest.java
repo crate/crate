@@ -33,10 +33,24 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.sql.*;
-import java.util.*;
+import java.sql.BatchUpdateException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
+import java.util.UUID;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.isEmptyOrNullString;
+import static org.hamcrest.Matchers.isOneOf;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
@@ -643,6 +657,18 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             expectedException.expect(PSQLException.class);
             expectedException.expectMessage("SchemaUnknownException: Schema 'custom' unknown");
             conn.createStatement().execute("select * from custom.foo");
+        }
+    }
+
+    @Test
+    public void testCountDistinctFromJoin() throws Exception {
+        // Regression test for a bug where the Postgres-ResultReceiver received types which were a view on symbols which
+        // were mutated during analysis/planning of a join - due to that the types changed which led to a ClassCastException
+        try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties)) {
+            ResultSet resultSet = conn.createStatement().executeQuery(
+                "select count (distinct 74) from unnest([1, 2]) t1 cross join unnest([2, 3]) t2");
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getLong(1), is(1L));
         }
     }
 

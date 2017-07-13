@@ -26,7 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Symbols;
+import io.crate.collections.Lists2;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.AuthenticationMethod;
 import io.crate.operation.auth.Protocol;
@@ -601,8 +601,13 @@ class PostgresWireProtocol {
                 session.execute("", 0, rowCountReceiver);
             } else {
                 Messages.sendRowDescription(channel, fields, null);
-                ResultSetReceiver resultSetReceiver = new ResultSetReceiver(query, channel, session.sessionContext(),
-                    Symbols.extractTypes(fields), null);
+                ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
+                    query,
+                    channel,
+                    session.sessionContext(),
+                    Lists2.copyAndReplace(fields, Field::valueType),
+                    null
+                );
                 session.execute("", 0, resultSetReceiver);
             }
             ReadyForQueryCallback readyForQueryCallback = new ReadyForQueryCallback(channel);

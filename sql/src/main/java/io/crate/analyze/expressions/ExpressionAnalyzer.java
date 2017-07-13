@@ -428,7 +428,7 @@ public class ExpressionAnalyzer {
             return context.allocateFunction(
                 AnyEqOperator.createInfo(targetType),
                 Arrays.asList(
-                    left, context.allocateFunction(ArrayFunction.createInfo(Symbols.extractTypes(symbols)), symbols))
+                    left, context.allocateFunction(ArrayFunction.createInfo(Symbols.typeView(symbols)), symbols))
             );
         }
 
@@ -680,7 +680,7 @@ public class ExpressionAnalyzer {
                     arguments.add(process(value, context));
                 }
                 return context
-                    .allocateFunction(getBuiltinFunctionInfo(ArrayFunction.NAME, Symbols.extractTypes(arguments)), arguments);
+                    .allocateFunction(getBuiltinFunctionInfo(ArrayFunction.NAME, Symbols.typeView(arguments)), arguments);
             }
         }
 
@@ -696,7 +696,7 @@ public class ExpressionAnalyzer {
                 arguments.add(process(entry.getValue(), context));
             }
             return context
-                .allocateFunction(getBuiltinFunctionInfo(MapFunction.NAME, Symbols.extractTypes(arguments)), arguments);
+                .allocateFunction(getBuiltinFunctionInfo(MapFunction.NAME, Symbols.typeView(arguments)), arguments);
         }
 
         @Override
@@ -751,7 +751,7 @@ public class ExpressionAnalyzer {
                 mapArgs.add(Literal.of(e.getKey()));
                 mapArgs.add(process(e.getValue(), context));
             }
-            Function options = context.allocateFunction(MapFunction.createInfo(Symbols.extractTypes(mapArgs)), mapArgs);
+            Function options = context.allocateFunction(MapFunction.createInfo(Symbols.typeView(mapArgs)), mapArgs);
             return new io.crate.analyze.symbol.MatchPredicate(identBoostMap, queryTerm, matchType, options);
         }
 

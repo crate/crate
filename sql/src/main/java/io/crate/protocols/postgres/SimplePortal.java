@@ -30,7 +30,7 @@ import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Symbols;
+import io.crate.collections.Lists2;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.exceptions.ReadOnlyException;
@@ -45,7 +45,6 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -132,10 +131,10 @@ public class SimplePortal extends AbstractPortal {
             analysis = portalContext.getAnalyzer().boundAnalyze(
                 statement,
                 sessionContext,
-                new ParameterContext(this.rowParams, Collections.<Row>emptyList()));
+                new ParameterContext(this.rowParams, Collections.emptyList()));
             AnalyzedRelation rootRelation = analysis.rootRelation();
             if (rootRelation != null) {
-                this.outputTypes = new ArrayList<>(Symbols.extractTypes(rootRelation.fields()));
+                this.outputTypes = Lists2.copyAndReplace(rootRelation.fields(), Field::valueType);
             }
         }
         return this;
