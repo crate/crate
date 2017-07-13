@@ -708,6 +708,20 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void testDistinctOnLiteral() {
+        SelectAnalyzedStatement distinctAnalysis = analyze("select distinct [1,2,3] from users");
+        assertThat(distinctAnalysis.relation().querySpec().outputs(), isSQL("[1, 2, 3]"));
+        assertThat(distinctAnalysis.relation().querySpec().groupBy().get(), isSQL("[1, 2, 3]"));
+    }
+
+    @Test
+    public void testDistinctOnNullLiteral() {
+        SelectAnalyzedStatement distinctAnalysis = analyze("select distinct null from users");
+        assertThat(distinctAnalysis.relation().querySpec().outputs(), isSQL("NULL"));
+        assertThat(distinctAnalysis.relation().querySpec().groupBy().get(), isSQL("NULL"));
+    }
+
+    @Test
     public void testSelectGlobalDistinctAggregate() {
         SelectAnalyzedStatement distinctAnalysis = analyze("select distinct count(*) from users");
         assertThat(distinctAnalysis.relation().querySpec().groupBy().isPresent(), is(false));
@@ -1113,6 +1127,22 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         SelectAnalyzedStatement analysis = analyze(
             "select name from users u group by 1");
         assertEquals(analysis.relation().querySpec().outputs().get(0), analysis.relation().querySpec().groupBy().get().get(0));
+    }
+
+    @Test
+    public void testGroupByOnLiteral() throws Exception {
+        SelectAnalyzedStatement analysis = analyze(
+            "select [1,2,3], count(*) from users u group by 1");
+        assertThat(analysis.relation().querySpec().outputs(), isSQL("[1, 2, 3], count()"));
+        assertThat(analysis.relation().querySpec().groupBy().get(), isSQL("[1, 2, 3]"));
+    }
+
+    @Test
+    public void testGroupByOnNullLiteral() throws Exception {
+        SelectAnalyzedStatement analysis = analyze(
+            "select null, count(*) from users u group by 1");
+        assertThat(analysis.relation().querySpec().outputs(), isSQL("NULL, count()"));
+        assertThat(analysis.relation().querySpec().groupBy().get(), isSQL("NULL"));
     }
 
     @Test

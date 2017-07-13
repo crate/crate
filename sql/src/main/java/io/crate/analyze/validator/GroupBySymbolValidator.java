@@ -22,6 +22,7 @@
 package io.crate.analyze.validator;
 
 import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.MatchPredicate;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
@@ -34,6 +35,7 @@ import java.util.Locale;
 public class GroupBySymbolValidator {
 
     private final static InnerValidator INNER_VALIDATOR = new InnerValidator();
+    private final static LiteralVisitor LITERAL_VISITOR = new LiteralVisitor();
 
     public static void validate(Symbol symbol) throws IllegalArgumentException, UnsupportedOperationException {
         INNER_VALIDATOR.process(symbol, null);
@@ -54,6 +56,11 @@ public class GroupBySymbolValidator {
         public Void visitFunction(Function function, @Nullable Function parentScalar) {
             switch (function.info().type()) {
                 case SCALAR:
+                    // If is literal no further datatype validation is required
+                    if (LITERAL_VISITOR.process(function, null)) {
+                        return null;
+                    }
+
                     visitSymbol(function, parentScalar);
                     if (parentScalar == null) {
                         parentScalar = function;
@@ -79,12 +86,42 @@ public class GroupBySymbolValidator {
 
         @Override
         protected Void visitSymbol(Symbol symbol, @Nullable Function parentScalar) {
+            // If is literal no further datatype validation is required
+            if (LITERAL_VISITOR.process(symbol, null)) {
+                return null;
+            }
+
             if (parentScalar == null) {
                 validateDataType(symbol);
             } else {
                 validateDataType(parentScalar);
             }
             return null;
+        }
+    }
+
+    /**
+     * Returns true if all symbols in an expression are literals and false otherwise.
+     */
+    private static class LiteralVisitor extends SymbolVisitor<Void, Boolean> {
+
+        @Override
+        public Boolean visitFunction(Function function, Void context) {
+            boolean result = true;
+            for (Symbol arg: function.arguments()) {
+                result &= process(arg, null);
+            }
+            return result;
+        }
+
+        @Override
+        public Boolean visitLiteral(Literal symbol, Void context) {
+            return true;
+        }
+
+        @Override
+        public Boolean visitSymbol(Symbol symbol, Void context) {
+            return false;
         }
     }
 }

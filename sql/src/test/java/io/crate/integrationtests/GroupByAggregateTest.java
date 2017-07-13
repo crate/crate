@@ -1207,4 +1207,14 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         assertThat(printedTable(response.rows()), is("select| 2\n" +
                                                      "insert| 1\n"));
     }
+
+    @Test
+    public void testGroupByOnComplexLiterals() throws Exception {
+        execute("select '{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}', count(*) " +
+                "from employees group by 1");
+        assertThat(printedTable(response.rows()), is("{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}| 6\n"));
+        execute("select {id1=1, id2=36}, count(*) " +
+                "from employees group by 1");
+        assertThat(printedTable(response.rows()), is("{id1=1, id2=36}| 6\n"));
+    }
 }
