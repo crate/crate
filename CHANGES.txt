@@ -21,6 +21,8 @@ Changes
 Fixes
 =====
 
+ - Added support for conditionals with ``NULL`` arguments.
+ 
  - Do not include Lucene indices (metadata) of ``BLOB`` tables in snapshot
    when using ``CREATE SNAPSHOT`` with ``ALL``, because the actual binary
    files of ``BLOB`` tables cannot be backed up using ``SNAPSHOT/RESTORE``
