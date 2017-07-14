@@ -58,7 +58,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
     private static final Logger LOGGER = Loggers.getLogger(ShardDMLExecutor.class);
 
     private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
-    public static final int DEFAULT_BULK_SIZE = 10_000;
+    static final int DEFAULT_BULK_SIZE = 10_000;
 
     private final int bulkSize;
     private final ScheduledExecutorService scheduler;
@@ -75,14 +75,14 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
     private TReq currentRequest;
     private int numItems = -1;
 
-    public ShardDMLExecutor(int bulkSize,
-                            ScheduledExecutorService scheduler,
-                            CollectExpression<Row, ?> uidExpression,
-                            ClusterService clusterService,
-                            NodeJobsCounter nodeJobsCounter,
-                            Supplier<TReq> requestFactory,
-                            Function<String, TItem> itemFactory,
-                            BiConsumer<TReq, ActionListener<ShardResponse>> transportAction) {
+    ShardDMLExecutor(int bulkSize,
+                     ScheduledExecutorService scheduler,
+                     CollectExpression<Row, ?> uidExpression,
+                     ClusterService clusterService,
+                     NodeJobsCounter nodeJobsCounter,
+                     Supplier<TReq> requestFactory,
+                     Function<String, TItem> itemFactory,
+                     BiConsumer<TReq, ActionListener<ShardResponse>> transportAction) {
         this.bulkSize = bulkSize;
         this.scheduler = scheduler;
         this.uidExpression = uidExpression;
@@ -105,7 +105,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
         currentRequest.add(numItems, itemFactory.apply(((BytesRef) uidExpression.value()).utf8ToString()));
     }
 
-    private CompletableFuture<BitSet> executeBatch(boolean isLastBatch) {
+    private CompletableFuture<BitSet> executeBatch() {
         /* This optimizes cases like "update t set x = ? where part_of_pk = ?"
          * This runs the collect on *all* shards but only a small subset has any matches
          * So this case can happen often.

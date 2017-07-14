@@ -21,6 +21,10 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that can hang the nodes when running an insert from query 
+   statement for a large dataset when the target table is an empty 
+   partitioned table.
+
  - Fixed an issue that prevents CrateDB from bootstrap on Windows hosts.
 
  - Fixed a race condition which could cause ``UPDATE`` or ``DELETE`` statements

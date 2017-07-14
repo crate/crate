@@ -78,15 +78,12 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         "bulk.request_timeout", new TimeValue(1, TimeUnit.MINUTES),
         Setting.Property.NodeScope, Setting.Property.Dynamic), DataTypes.STRING);
 
-    private static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
-
     private static final BackoffPolicy BACKOFF_POLICY = LimitedExponentialBackoff.limitedExponential(1000);
     private static final Logger LOGGER = Loggers.getLogger(ShardingUpsertExecutor.class);
 
     private final ClusterService clusterService;
     private final ScheduledExecutorService scheduler;
     private final int bulkSize;
-    private final int createIndicesBulkSize;
     private final UUID jobId;
     private final RowShardResolver rowShardResolver;
     private final BiFunction<ShardId, String, TReq> requestFactory;
@@ -102,26 +99,25 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
 
     private final Consumer<Row> rowConsumer;
     private final BooleanSupplier backpressureTrigger;
-    private final Function<Boolean, CompletableFuture<BitSet>> execute;
+    private final Supplier<CompletableFuture<BitSet>> execute;
 
-    public ShardingUpsertExecutor(ClusterService clusterService,
-                                  NodeJobsCounter nodeJobsCounter,
-                                  ScheduledExecutorService scheduler,
-                                  int bulkSize,
-                                  UUID jobId,
-                                  RowShardResolver rowShardResolver,
-                                  Function<String, TItem> itemFactory,
-                                  BiFunction<ShardId, String, TReq> requestFactory,
-                                  List<? extends CollectExpression<Row, ?>> expressions,
-                                  Supplier<String> indexNameResolver,
-                                  boolean autoCreateIndices,
-                                  BulkRequestExecutor<TReq> requestExecutor,
-                                  TransportBulkCreateIndicesAction createIndicesAction) {
+    ShardingUpsertExecutor(ClusterService clusterService,
+                           NodeJobsCounter nodeJobsCounter,
+                           ScheduledExecutorService scheduler,
+                           int bulkSize,
+                           UUID jobId,
+                           RowShardResolver rowShardResolver,
+                           Function<String, TItem> itemFactory,
+                           BiFunction<ShardId, String, TReq> requestFactory,
+                           List<? extends CollectExpression<Row, ?>> expressions,
+                           Supplier<String> indexNameResolver,
+                           boolean autoCreateIndices,
+                           BulkRequestExecutor<TReq> requestExecutor,
+                           TransportBulkCreateIndicesAction createIndicesAction) {
         this.clusterService = clusterService;
         this.nodeJobsCounter = nodeJobsCounter;
         this.scheduler = scheduler;
         this.bulkSize = bulkSize;
-        this.createIndicesBulkSize = Math.min(bulkSize, MAX_CREATE_INDICES_BULK_SIZE);
         this.jobId = jobId;
         this.rowShardResolver = rowShardResolver;
         this.requestFactory = requestFactory;
@@ -130,7 +126,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         this.createIndicesAction = createIndicesAction;
         this.rowConsumer = createRowConsumer(rowShardResolver, itemFactory, expressions, indexNameResolver);
         this.backpressureTrigger = createBackpressureTrigger(nodeJobsCounter);
-        this.execute = createExecuteFunction();
+        this.execute = this::createExecuteFunction;
     }
 
     private Consumer<Row> createRowConsumer(RowShardResolver rowShardResolver, Function<String, TItem> itemFactory, List<? extends CollectExpression<Row, ?>> expressions, Supplier<String> indexNameResolver) {
@@ -165,35 +161,31 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         };
     }
 
-    private Function<Boolean, CompletableFuture<BitSet>> createExecuteFunction() {
-        return (isLastBatch) -> {
-            CompletableFuture<BitSet> executeBulkFuture = new CompletableFuture<>();
+    private CompletableFuture<BitSet> createExecuteFunction() {
+        CompletableFuture<BitSet> executeBulkFuture = new CompletableFuture<>();
 
-            if ((isLastBatch && pendingRequestsByIndex.isEmpty() == false)
-                || pendingRequestsByIndex.size() > createIndicesBulkSize) {
+        if (pendingRequestsByIndex.isEmpty() == false) {
+            // We create new indices in an async fashion and execute the requests after they are created.
+            // This means the iterator consumer thread can carry on accumulating rows for the next bulk.
+            // We copy and clear the current bulk global requests and pendingRequests structures in order to allow the
+            // iterator consumer thread to create the next bulk whilst we create indices and execute this bulk.
+            Map<String, List<PendingRequest<TItem>>> pendingRequestsForCurrentBulk =
+                new HashMap<>(pendingRequestsByIndex);
+            pendingRequestsByIndex.clear();
 
-                // We create new indices in an async fashion and execute the requests after they are created.
-                // This means the iterator consumer thread can carry on accumulating rows for the next bulk.
-                // We copy and clear the current bulk global requests and pendingRequests structures in order to allow the
-                // iterator consumer thread to create the next bulk whilst we create indices and execute this bulk.
-                Map<String, List<PendingRequest<TItem>>> pendingRequestsForCurrentBulk =
-                    new HashMap<>(pendingRequestsByIndex);
-                pendingRequestsByIndex.clear();
+            Map<ShardLocation, TReq> bulkRequests = new HashMap<>(requestsByShard);
+            requestsByShard.clear();
 
-                Map<ShardLocation, TReq> bulkRequests = new HashMap<>(requestsByShard);
-                requestsByShard.clear();
+            createPendingIndices(pendingRequestsForCurrentBulk)
+                .thenAccept(resp -> {
+                    bulkRequests.putAll(getFromPendingToRequestMap(pendingRequestsForCurrentBulk));
+                    sendRequestsForBulk(executeBulkFuture, bulkRequests);
+                });
+        } else {
+            sendRequestsForBulk(executeBulkFuture, requestsByShard);
+        }
 
-                createPendingIndices(pendingRequestsForCurrentBulk)
-                    .thenAccept(resp -> {
-                        bulkRequests.putAll(getFromPendingToRequestMap(pendingRequestsForCurrentBulk));
-                        sendRequestsForBulk(executeBulkFuture, bulkRequests);
-                    });
-            } else {
-                sendRequestsForBulk(executeBulkFuture, requestsByShard);
-            }
-
-            return executeBulkFuture;
-        };
+        return executeBulkFuture;
     }
 
     @Override
@@ -377,7 +369,7 @@ public class ShardingUpsertExecutor<TReq extends ShardRequest<TReq, TItem>, TIte
         private final ShardId shardId;
         private final String nodeId;
 
-        public ShardLocation(ShardId shardId, String nodeId) {
+        ShardLocation(ShardId shardId, String nodeId) {
             this.shardId = shardId;
             this.nodeId = nodeId;
         }
