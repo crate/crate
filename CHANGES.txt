@@ -17,6 +17,9 @@ Breaking Changes
 
 Changes
 =======
+ 
+ - Added table function ``generate_series`` that generates a series of numbers
+   from ``start`` to ``end`` by ``step`.`
 
  - Table functions now support value expressions as arguments.
 
