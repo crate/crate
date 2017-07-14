@@ -26,6 +26,9 @@ Breaking Changes
 
 Changes
 =======
+ 
+ - Added table function ``generate_series`` that generates a series of numbers
+   from ``start`` to ``end`` by ``step`.`
 
  - Added a warning message to the log if the Unofficial Elasticsearch HTTP
    REST API is enabled via ``es.api.enabled`` setting.

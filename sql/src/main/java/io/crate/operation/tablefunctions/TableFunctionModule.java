@@ -30,6 +30,7 @@ public class TableFunctionModule extends AbstractFunctionModule<TableFunctionImp
     @Override
     public void configureFunctions() {
         UnnestFunction.register(this);
+        GenerateSeriesFunction.register(this);
         EmptyRowTableFunction.register(this);
     }
 }
