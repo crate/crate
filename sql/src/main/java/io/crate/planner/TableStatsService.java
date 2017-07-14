@@ -82,7 +82,7 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         resultReceiver = new TableStatsResultReceiver(tableStats::updateTableStats);
         refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.setting().get(settings);
         refreshScheduledTask = scheduleRefresh(refreshInterval);
-        sqlDirectExecutor = sqlOperations.createSQLDirectExecutor("sys", TABLE_STATS, STMT, DEFAULT_SOFT_LIMIT);
+        sqlDirectExecutor = sqlOperations.createSystemExecutor("sys", TABLE_STATS, STMT, DEFAULT_SOFT_LIMIT);
 
         clusterService.getClusterSettings().addSettingsUpdateConsumer(
             STATS_SERVICE_REFRESH_INTERVAL_SETTING.setting(), this::setRefreshInterval);

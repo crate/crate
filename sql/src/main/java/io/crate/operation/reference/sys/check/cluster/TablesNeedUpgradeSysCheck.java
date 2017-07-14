@@ -92,7 +92,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
 
     private SQLOperations.SQLDirectExecutor directExecutor() {
         if (sqlDirectExecutor == null) {
-            sqlDirectExecutor = sqlOperationsProvider.get().createSQLDirectExecutor(
+            sqlDirectExecutor = sqlOperationsProvider.get().createSystemExecutor(
                 "sys", PREP_STMT_NAME, STMT, LIMIT);
         }
         return sqlDirectExecutor;

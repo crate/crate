@@ -22,6 +22,9 @@ Changes
 
 Fixes
 =====
+ 
+ - Internal system queries are now executed under the "crate" superuser if
+   user management is enabled.
 
  - ``!= ANY()`` could not operate on arrays with more than 1024 elements. This
    limit has been increased by default to 8192. A new node setting:

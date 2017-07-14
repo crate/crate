@@ -267,6 +267,22 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     /**
+     * Execute a SQL statement as system query on a specific node in the cluster
+     *
+     * @param stmt      the SQL statement
+     * @param schema    the schema that should be used for this statement
+     *                  schema is nullable, which means the default schema ("doc") is used
+     * @param node      the name of the node on which the stmt is executed
+     * @return          the SQL Response
+     */
+    public SQLResponse systemExecute(String stmt, @Nullable String schema, String node) {
+        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
+        SQLOperations.SQLDirectExecutor directExecutor = sqlOperations.createSystemExecutor(schema, "system_query", stmt, 10_000);
+        response = SQLTransportExecutor.systemExecute(stmt, directExecutor).actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
+        return response;
+    }
+
+    /**
      * Execute an SQL Statement on a random node of the cluster
      *
      * @param stmt the SQL Statement

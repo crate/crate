@@ -51,6 +51,11 @@ public abstract class BaseUsersIntegrationTest extends SQLTransportIntegrationTe
         return sqlOperations.createSession(null, new User("normal", ImmutableSet.of(), ImmutableSet.of()), Option.NONE, DEFAULT_SOFT_LIMIT);
     }
 
+    SQLOperations.Session createNullUserSession(String node) {
+        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, node);
+        return sqlOperations.createSession(null, null, Option.NONE, DEFAULT_SOFT_LIMIT);
+    }
+
     @Before
     public void setUpSessions() {
         createSessions();

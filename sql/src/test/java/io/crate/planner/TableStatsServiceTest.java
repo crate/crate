@@ -129,7 +129,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
     public void testStatsQueriesCorrectly() throws Throwable {
         final SQLOperations sqlOperations = mock(SQLOperations.class);
         SQLOperations.SQLDirectExecutor sqlDirectExecutor = mock(SQLOperations.SQLDirectExecutor.class);
-        when(sqlOperations.createSQLDirectExecutor(
+        when(sqlOperations.createSystemExecutor(
             eq("sys"),
             eq(TableStatsService.TABLE_STATS),
             eq(TableStatsService.STMT),

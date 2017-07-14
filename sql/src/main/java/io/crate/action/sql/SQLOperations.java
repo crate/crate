@@ -133,17 +133,21 @@ public class SQLOperations {
     /**
      * Create an {@link SQLDirectExecutor} instance.
      *
+     * If the user-management module is available it uses the "crate" superuser as session user.
+     * Otherwise it uses `NULL` instead.
+     *
      * @param defaultSchema the defaultSchema to use
      * @param preparedStmtName the name of the prepared statement
      * @param sqlStmt the SQL statement
      * @param defaultLimit the default limit to be applied
      * @return an instance of {@link SQLDirectExecutor} class
      */
-    public SQLDirectExecutor createSQLDirectExecutor(String defaultSchema,
-                                                     String preparedStmtName,
-                                                     String sqlStmt,
-                                                     int defaultLimit) {
-        Session session = createSession(defaultSchema, null, Option.NONE, defaultLimit);
+    public SQLDirectExecutor createSystemExecutor(String defaultSchema,
+                                                  String preparedStmtName,
+                                                  String sqlStmt,
+                                                  int defaultLimit) {
+        User crateUser = userManager.findUser("crate");
+        Session session = createSession(defaultSchema, crateUser, Option.NONE, defaultLimit);
         session.parse(preparedStmtName, sqlStmt, Collections.emptyList());
         return new SQLDirectExecutor(session, preparedStmtName, sqlStmt);
     }
@@ -424,6 +428,10 @@ public class SQLOperations {
             session.bind(preparedStmtName, preparedStmtName, params, null);
             session.execute(preparedStmtName, 0, resultReceiver);
             session.sync().whenComplete((o, throwable) -> session.close((byte) 'P', preparedStmtName));
+        }
+
+        public SQLOperations.Session getSession() {
+            return session;
         }
     }
 }
