@@ -63,8 +63,7 @@ REM Disable netty recycler
 set JAVA_OPTS=%JAVA_OPTS% -Dio.netty.noUnsafe=true -Dio.netty.noKeySetOptimization=true -Dio.netty.recycler.maxCapacityPerThread=0
 
 if "%CRATE_CLASSPATH%" == "" (
-    set CRATE_CLASSPATH=%CRATE_HOME%/lib/crate-app-2.1.0-SNAPSHOT-347d92b.jar;%CRATE_HOME%/lib/*
-    set CRATE_CLASSPATH=%CRATE_CLASSPATH%;%CRATE_HOME%/lib/enterprise/*;%CRATE_HOME%/lib/sigar/*
+    set CRATE_CLASSPATH=%CRATE_HOME%/lib/crate-app-@version@.jar;%CRATE_HOME%/lib/*;%CRATE_HOME%/lib/enterprise/*;%CRATE_HOME%/lib/sigar/*
 ) else (
     ECHO Error: Don't modify the classpath with CRATE_CLASSPATH. 1>&2
     ECHO Add plugins and their dependencies into the plugins/ folder instead. 1>&2
