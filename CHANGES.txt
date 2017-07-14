@@ -21,6 +21,8 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that prevents CrateDB from bootstrap on Windows hosts.
+
  - Fixed a race condition which could cause ``UPDATE`` or ``DELETE`` statements
    to get stuck.
 
