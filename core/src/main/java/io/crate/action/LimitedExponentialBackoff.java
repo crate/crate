@@ -31,40 +31,44 @@ import java.util.NoSuchElementException;
 
 public class LimitedExponentialBackoff extends BackoffPolicy {
 
-    private final int startValue;
+    private final int firstDelayInMS;
     private final int maxIterations;
-    private final int limit;
+    private final int maxDelayInMS;
 
-    public LimitedExponentialBackoff(int startValue, int maxIterations, int limit) {
-        assert startValue >= 0 : "startValue should be >= 0";
+    public LimitedExponentialBackoff(int firstDelayInMS, int maxIterations, int maxDelayInMS) {
+        assert firstDelayInMS >= 0 : "firstDelayInMS should be >= 0";
         assert maxIterations > 0 : "maxIterations should be > 0";
-        assert limit > 0 : "limit should be > 0";
-        this.startValue = startValue;
+        assert maxDelayInMS > 0 : "maxDelayInMS should be > 0";
+        this.firstDelayInMS = firstDelayInMS;
         this.maxIterations = maxIterations;
-        this.limit = limit;
+        this.maxDelayInMS = maxDelayInMS;
     }
 
-    public static BackoffPolicy limitedExponential(int limit) {
-        return new LimitedExponentialBackoff(0, Integer.MAX_VALUE, limit);
+    /**
+     * Creates a BackoffPolicy which will increase the delay each time it's used until {@code maxDelayInMS}
+     * is reached, at that point the delay stops increasing.
+     */
+    public static BackoffPolicy limitedExponential(int maxDelayInMS) {
+        return new LimitedExponentialBackoff(10, Integer.MAX_VALUE, maxDelayInMS);
     }
 
     private static class LimitedExponentialBackoffIterator implements Iterator<TimeValue> {
 
         private static final float FACTOR = 1.8f;
 
-        private final int startValue;
+        private final int firstDelayInMS;
         private final int maxIterations;
-        private final int limit;
-        private int currentIterations;
+        private final int mayDelayInMS;
+        private int currentIterations = 0;
 
-        private LimitedExponentialBackoffIterator(int startValue, int maxIterations, int limit) {
-            this.startValue = startValue;
+        private LimitedExponentialBackoffIterator(int firstDelayInMS, int maxIterations, int maxDelayInMs) {
+            this.firstDelayInMS = firstDelayInMS;
             this.maxIterations = maxIterations;
-            this.limit = limit;
+            this.mayDelayInMS = maxDelayInMs;
         }
 
         private int calculate(int iteration) {
-            return Math.min(limit, (int) Math.pow(iteration / Math.E, FACTOR));
+            return Math.min(mayDelayInMS, (int) Math.pow(iteration / Math.E, FACTOR));
         }
 
         @Override
@@ -78,7 +82,7 @@ public class LimitedExponentialBackoff extends BackoffPolicy {
                 throw new NoSuchElementException(
                     "Reached maximum amount of backoff iterations. Only " + maxIterations + " iterations allowed.");
             }
-            int result = startValue + calculate(currentIterations);
+            int result = firstDelayInMS + calculate(currentIterations);
             currentIterations++;
             return TimeValue.timeValueMillis(result);
         }
@@ -93,6 +97,6 @@ public class LimitedExponentialBackoff extends BackoffPolicy {
 
     @Override
     public Iterator<TimeValue> iterator() {
-        return new LimitedExponentialBackoffIterator(startValue, maxIterations, limit);
+        return new LimitedExponentialBackoffIterator(firstDelayInMS, maxIterations, maxDelayInMS);
     }
 }
