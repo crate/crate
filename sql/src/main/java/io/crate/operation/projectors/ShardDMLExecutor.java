@@ -65,8 +65,10 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
     private final NodeJobsCounter nodeJobsCounter;
     private final Consumer<Row> rowConsumer;
     private final BooleanSupplier backpressureTrigger;
-    private final Function<Boolean, CompletableFuture<BitSet>> execute;
+    private final Supplier<CompletableFuture<BitSet>> execute;
     private final String localNodeId;
+    private final BiConsumer<TReq, ActionListener<ShardResponse>> operation;
+    private final Supplier<TReq> requestFactory;
 
     private TReq currentRequest;
     private int numItems = -1;
@@ -86,10 +88,11 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
         this.responses = new BitSet();
         this.currentRequest = requestFactory.get();
         this.localNodeId = getLocalNodeId(clusterService);
-
+        this.requestFactory = requestFactory;
+        this.operation = transportAction;
         this.rowConsumer = createRowConsumer(uidExpression, itemFactory);
         this.backpressureTrigger = createBackpressureTrigger();
-        this.execute = createExecuteFunction(nodeJobsCounter, requestFactory, transportAction);
+        this.execute = this::executeBatch;
     }
 
     private Consumer<Row> createRowConsumer(CollectExpression<Row, ?> uidExpression,
@@ -111,43 +114,39 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>, TItem exte
         return nodeJobsCounter.getInProgressJobsForNode(nodeId) < MAX_NODE_CONCURRENT_OPERATIONS;
     }
 
-    private Function<Boolean, CompletableFuture<BitSet>> createExecuteFunction(NodeJobsCounter nodeJobsCounter,
-                                                                               Supplier<TReq> requestFactory,
-                                                                               BiConsumer<TReq, ActionListener<ShardResponse>> transportAction) {
-        return isLastBatch -> {
-            /* This optimizes cases like "update t set x = ? where part_of_pk = ?"
-             * This runs the collect on *all* shards but only a small subset has any matches
-             * So this case can happen often.
-             */
-            if (currentRequest.items().isEmpty()) {
-                return CompletableFuture.completedFuture(responses);
-            }
+    private CompletableFuture<BitSet> executeBatch() {
+        /* This optimizes cases like "update t set x = ? where part_of_pk = ?"
+         * This runs the collect on *all* shards but only a small subset has any matches
+         * So this case can happen often.
+         */
+        if (currentRequest.items().isEmpty()) {
+            return CompletableFuture.completedFuture(responses);
+        }
 
-            nodeJobsCounter.increment(localNodeId);
-            Function<ShardResponse, BitSet> transformResponseFunction = response -> {
-                nodeJobsCounter.decrement(localNodeId);
-                processShardResponse(response);
-                return responses;
+        nodeJobsCounter.increment(localNodeId);
+        Function<ShardResponse, BitSet> transformResponseFunction = response -> {
+            nodeJobsCounter.decrement(localNodeId);
+            processShardResponse(response);
+            return responses;
+        };
+
+        FutureActionListener<ShardResponse, BitSet> listener =
+            new FutureActionListener<ShardResponse, BitSet>(transformResponseFunction) {
+
+                // Some operations fail instantly (eg writing on a table/partition that has `blocks.write=true`)
+                @Override
+                public void onFailure(Exception e) {
+                    super.onFailure(e);
+                    nodeJobsCounter.decrement(localNodeId);
+                    executionFuture.completeExceptionally(e);
+                }
             };
 
-            FutureActionListener<ShardResponse, BitSet> listener =
-                new FutureActionListener<ShardResponse, BitSet>(transformResponseFunction) {
-
-                    // Some operations fail instantly (eg writing on a table/partition that has `blocks.write=true`)
-                    @Override
-                    public void onFailure(Exception e) {
-                        super.onFailure(e);
-                        nodeJobsCounter.decrement(localNodeId);
-                        executionFuture.completeExceptionally(e);
-                    }
-                };
-
-            transportAction.accept(currentRequest, withRetry(transportAction, currentRequest, listener));
-            // The current bulk was submitted to the transport action for execution, so we'll continue to collect and
-            // accumulate data for the next bulk in a new request object
-            currentRequest = requestFactory.get();
-            return listener;
-        };
+        operation.accept(currentRequest, withRetry(operation, currentRequest, listener));
+        // The current bulk was submitted to the transport action for execution, so we'll continue to collect and
+        // accumulate data for the next bulk in a new request object
+        currentRequest = requestFactory.get();
+        return listener;
     }
 
     private RetryListener<ShardResponse> withRetry(BiConsumer<TReq, ActionListener<ShardResponse>> transportAction,
