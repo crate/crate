@@ -481,9 +481,9 @@ do.
 Limitations
 ===========
 
- - Unless documented, global aggregation functions are unsupported in
-   combination with ``DISTINCT``.
  - ``DISTINCT`` is not supported with aggregations on :ref:`sql_joins`.
+ - Prior to 2.0.0, unless documented, global aggregation functions are
+   unsupported in combination with ``DISTINCT``.
  - Aggregation functions can only be applied to columns with a plain index,
    which is the default for all :ref:`primitive type
    <sql_ddl_datatypes_primitives>` columns. For more information, please refer
