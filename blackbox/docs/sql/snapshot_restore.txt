@@ -11,6 +11,10 @@ In CrateDB, backups are called *Snapshots*. They represent the state of the
 tables in a CrateDB cluster at the time the *Snapshot* was created. A
 *Snapshot* is always stored in a *Repository* which has to be created first.
 
+.. CAUTION::
+
+   You cannot snapshot BLOB tables.
+
 Creating a Repository
 .....................
 
