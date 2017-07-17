@@ -18,6 +18,8 @@ Breaking Changes
 Fixes
 =====
 
+ - Fixed rename table operation for empty partitioned tables.
+
  - Fixed an issue which resulted in an exception when using the same global
    aggregation symbol twice as a select item on a join query.
 

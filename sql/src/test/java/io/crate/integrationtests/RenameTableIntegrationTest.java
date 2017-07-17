@@ -103,6 +103,19 @@ public class RenameTableIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testRenameEmptyPartitionedTable() {
+        execute("create table tp1 (id int, id2 integer) partitioned by (id) with (number_of_replicas = 0)");
+        refresh();
+
+        execute("alter table tp1 rename to tp2");
+        assertThat(response.rowCount(), is(-1L));
+        ensureYellow();
+
+        execute("select * from tp2");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
     public void testRenamePartitionedTableEnsureOldTableNameCanBeUsed() {
         execute("create table tp1 (id int, id2 integer) partitioned by (id) with (number_of_replicas = 0)");
         execute("insert into tp1 (id, id2) values (1, 1), (2, 2)");

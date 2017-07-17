@@ -316,20 +316,25 @@ public class AlterTableOperation {
                 () -> updateOpenCloseOnPartitionTemplate(false, sourceTableIdent),
                 () -> updateOpenCloseOnPartitionTemplate(true, sourceTableIdent)
             ));
+            if (sourceIndicesToCloseArray.length > 0) {
+                actions.add(new ChainableAction<>(
+                    () -> closeTable(sourceIndicesToCloseArray),
+                    () -> openTable(sourceIndicesToCloseArray)
+                ));
+            }
+        }
+
+        if (sourceIndices.length > 0 && targetIndices.length > 0) {
             actions.add(new ChainableAction<>(
-                () -> closeTable(sourceIndicesToCloseArray),
-                () -> openTable(sourceIndicesToCloseArray)
+                () -> changeAliases(sourceIndices, sourceTableIdent.indexName(), targetTableIdent.indexName()),
+                () -> changeAliases(targetIndices, targetTableIdent.indexName(), sourceTableIdent.indexName())
+            ));
+            actions.add(new ChainableAction<>(
+                () -> renameTable(sourceIndices, targetIndices),
+                () -> renameTable(targetIndices, sourceIndices)
             ));
         }
 
-        actions.add(new ChainableAction<>(
-            () -> changeAliases(sourceIndices, sourceTableIdent.indexName(), targetTableIdent.indexName()),
-            () -> changeAliases(targetIndices, targetTableIdent.indexName(), sourceTableIdent.indexName())
-        ));
-        actions.add(new ChainableAction<>(
-            () -> renameTable(sourceIndices, targetIndices),
-            () -> renameTable(targetIndices, sourceIndices)
-        ));
         actions.add(new ChainableAction<>(
             () -> renameTemplate(sourceTableIdent, targetTableIdent),
             () -> renameTemplate(targetTableIdent, sourceTableIdent)
@@ -340,10 +345,13 @@ public class AlterTableOperation {
                 () -> updateOpenCloseOnPartitionTemplate(true, targetTableIdent),
                 () -> updateOpenCloseOnPartitionTemplate(false, targetTableIdent)
             ));
-            actions.add(new ChainableAction<>(
-                () -> openTable(targetIndicesToOpenArray),
-                () -> CompletableFuture.completedFuture(-1L)
-            ));
+
+            if (targetIndicesToOpenArray.length > 0) {
+                actions.add(new ChainableAction<>(
+                    () -> openTable(targetIndicesToOpenArray),
+                    () -> CompletableFuture.completedFuture(-1L)
+                ));
+            }
         }
 
         return ChainableActions.run(actions);
@@ -462,7 +470,7 @@ public class AlterTableOperation {
             request.alias(alias);
         }
 
-        FutureActionListener<PutIndexTemplateResponse, Long> listener = new FutureActionListener<>(r -> 0L);
+        FutureActionListener<PutIndexTemplateResponse, Long> listener = new FutureActionListener<>(r -> -1L);
         transportPutIndexTemplateAction.execute(request, listener);
         return listener;
     }
