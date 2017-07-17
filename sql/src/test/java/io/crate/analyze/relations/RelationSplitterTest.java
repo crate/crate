@@ -320,4 +320,14 @@ public class RelationSplitterTest extends CrateUnitTest {
         assertThat("remainingOrderBy must be false if it's safe to remove after pushDown",
             splitter.remainingOrderBy().isPresent(), is(false));
     }
+
+    @Test
+    public void testNoMatchPushedDownToAllRelations() throws Exception {
+        QuerySpec qs = new QuerySpec()
+            .outputs(Arrays.asList(asSymbol("t1.a"), asSymbol("t2.b")))
+            .where(WhereClause.NO_MATCH);
+        RelationSplitter splitter = split(qs);
+        assertThat(splitter.getSpec(T3.TR_1).where().noMatch(), is(true));
+        assertThat(splitter.getSpec(T3.TR_2).where().noMatch(), is(true));
+    }
 }

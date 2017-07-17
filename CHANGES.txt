@@ -18,6 +18,12 @@ Breaking Changes
 Fixes
 =====
 
+ - Fixed an issue that caused wrong results to be returned for global
+   aggregation on ``JOINS`` when literal expression in ``WHERE`` clause is
+   evaluated to false. E.g.::
+
+     SELECT COUNT(*) FROM t1, t2 WHERE 1=2
+
  - Provide comprehensive error message when using  ``NULL`` literal in
     ``GROUP BY``.
 
