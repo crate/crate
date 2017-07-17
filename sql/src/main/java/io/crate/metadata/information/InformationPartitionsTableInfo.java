@@ -100,6 +100,13 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
         static final Reference TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = createRef(
             InformationTablesTableInfo.Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, DataTypes.INTEGER);
 
+        static final Reference TABLE_SETTINGS_MAPPING = createRef(
+            InformationTablesTableInfo.Columns.TABLE_SETTINGS_MAPPING, DataTypes.OBJECT);
+        static final Reference TABLE_SETTINGS_MAPPING_TOTAL_FIELDS = createRef(
+            InformationTablesTableInfo.Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS, DataTypes.OBJECT);
+        static final Reference TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT = createRef(
+            InformationTablesTableInfo.Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT, DataTypes.INTEGER);
+
         static final Reference TABLE_SETTINGS_RECOVERY = createRef(
             InformationTablesTableInfo.Columns.TABLE_SETTINGS_RECOVERY, DataTypes.OBJECT);
         static final Reference TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = createRef(
@@ -188,6 +195,9 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                 .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, References.TABLE_SETTINGS_ROUTING_ALLOCATION)
                 .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, References.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE)
                 .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, References.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE)
+                .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_MAPPING, References.TABLE_SETTINGS_MAPPING)
+                .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS, References.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS)
+                .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT, References.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT)
                 .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_RECOVERY, References.TABLE_SETTINGS_RECOVERY)
                 .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, References.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS)
                 .put(InformationTablesTableInfo.Columns.TABLE_SETTINGS_WARMER, References.TABLE_SETTINGS_WARMER)
