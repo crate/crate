@@ -21,6 +21,11 @@ Changes
 Fixes
 =====
 
+ - Do not include Lucene indices (metadata) of ``BLOB`` tables in snapshot
+   when using ``CREATE SNAPSHOT`` with ``ALL``, because the actual binary
+   files of ``BLOB`` tables cannot be backed up using ``SNAPSHOT/RESTORE``
+   functionality.
+
  - Fixed rename table operation for empty partitioned tables.
 
  - Fixed an issue which caused unrelated table privileges to be lost after a

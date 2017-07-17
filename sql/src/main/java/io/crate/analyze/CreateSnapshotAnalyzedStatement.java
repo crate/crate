@@ -23,6 +23,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.blob.v2.BlobIndex;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.Snapshot;
 
@@ -30,7 +31,7 @@ import java.util.List;
 
 public class CreateSnapshotAnalyzedStatement implements DDLStatement {
 
-    public static final List<String> ALL_INDICES = ImmutableList.of("_all");
+    static final List<String> ALL_INDICES = ImmutableList.of("*", "-.blob_*");
 
     private final Snapshot snapshot;
     private final Settings snapshotSettings;
