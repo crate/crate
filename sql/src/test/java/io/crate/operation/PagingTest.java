@@ -40,4 +40,9 @@ public class PagingTest {
         int pageSize = Paging.getWeightedPageSize(10, 1.0 / 20.0);
         assertThat(pageSize, is(10));
     }
+
+    @Test
+    public void testSmallLimitIsUnchanged() throws Exception {
+        assertThat(Paging.getWeightedPageSize(10, 1.0d / 4), is(10));
+    }
 }
