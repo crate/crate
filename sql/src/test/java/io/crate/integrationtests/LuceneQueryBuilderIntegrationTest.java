@@ -22,6 +22,8 @@
 package io.crate.integrationtests;
 
 import io.crate.testing.UseJdbc;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -33,6 +35,16 @@ import static org.hamcrest.core.Is.is;
 @ESIntegTestCase.ClusterScope(randomDynamicTemplates = false, transportClientRatio = 0)
 @UseJdbc
 public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTest {
+
+    private static int NUMBER_OF_BOOLEAN_CLAUSES = 10_000;
+
+    @Override
+    protected Settings nodeSettings(int nodeOrdinal) {
+        return Settings.builder()
+                       .put(super.nodeSettings(nodeOrdinal))
+                       .put(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.getKey(), NUMBER_OF_BOOLEAN_CLAUSES)
+                       .build();
+    }
 
     @Test
     public void testWhereFunctionWithAnalyzedColumnArgument() throws Exception {
@@ -251,5 +263,25 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("select dummy from t where substr(_id, 1, 1) != '{'");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], is("yalla"));
+    }
+
+    @Test
+    public void testWhereNotEqualAnyWithLargeArray() throws Exception {
+        // Test overriding of default value 8192 for indices.query.bool.max_clause_count
+        execute("create table t1 (id integer) clustered into 2 shards with (number_of_replicas = 0)");
+        execute("create table t2 (id integer) clustered into 2 shards with (number_of_replicas = 0)");
+        ensureYellow();
+
+        int bulkSize = NUMBER_OF_BOOLEAN_CLAUSES;
+        Object[][] bulkArgs = new Object[bulkSize][];
+        for (int i = 0; i < bulkSize; i++) {
+            bulkArgs[i] = new Object[]{i};
+        }
+        execute("insert into t1 (id) values (?)", bulkArgs);
+        execute("insert into t2 (id) values (1)");
+        execute("refresh table t1, t2");
+
+        execute("select count(*) from t2 where id != any(select collect_set(id) from t1)");
+        assertThat(response.rows()[0][0], is(1L));
     }
 }

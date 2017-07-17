@@ -493,6 +493,25 @@ Repositories are used to :ref:`backup <snapshot-restore>` a CrateDB cluster.
 
 See also the :ref:`path.repo <conf-path-repo>` Setting.
 
+Queries
+-------
+
+.. _conf-indices-query-bool.max_clause_count:
+
+**indices.query.bool.max_clause_count**
+  | *Default:* ``8192``
+  | *Runtime:* ``no``
+
+  This setting defines the maximum number of elements an array can have so
+  that the ``!= ANY()``, ``LIKE ANY()`` and the ``NOT LIKE ANY()`` operators
+  can be applied on it.
+
+  .. NOTE::
+
+    Increasing this value to a large number (e.g. 10M) and applying  those
+    ``ANY`` operators on arrays of that length can lead to heavy memory,
+    consumption which could cause nodes to crash with OutOfMemory exceptions.
+
 .. _conf-cluster-settings:
 
 Cluster Wide Settings
@@ -1847,10 +1866,10 @@ The meaning of the fields of the are as follows:
 **auth.host_based.config.${order}.method**
   | *Runtime:* ``no``
 
-  | The authentication method to use when a connection matches this entry. 
+  | The authentication method to use when a connection matches this entry.
   | Valid values are ``trust`` and ``cert``. If no method is
   | specified, the ``trust`` method is used by default.
-  | See :ref:`auth_trust` and :ref:`auth_cert` for more information about the 
+  | See :ref:`auth_trust` and :ref:`auth_cert` for more information about the
   | methods.
 
 **auth.host_based.config.${order}.protocol**
