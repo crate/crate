@@ -724,4 +724,42 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(innerNL.nestedLoopPhase().outputTypes().get(0), is(DataTypes.LONG));
         assertThat(innerNL.nestedLoopPhase().outputTypes().get(1), is(DataTypes.LONG));
     }
+
+    @Test
+    public void test2TableJoinWithNoMatch() throws Exception {
+        QueryThenFetch qtf = e.plan("select * from users t1, users t2 WHERE 1=2");
+        NestedLoop nl = (NestedLoop) qtf.subPlan();
+        assertThat(nl.left(), instanceOf(Collect.class));
+        assertThat(nl.right(), instanceOf(Collect.class));
+        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).whereClause().noMatch(), is(true));
+        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).whereClause().noMatch(), is(true));
+    }
+
+    @Test
+    public void test3TableJoinWithNoMatch() throws Exception {
+        QueryThenFetch qtf = e.plan("select * from users t1, users t2, users t3 WHERE 1=2");
+        NestedLoop outer = (NestedLoop) qtf.subPlan();
+        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).whereClause().noMatch(), is(true));
+        NestedLoop inner = (NestedLoop) outer.left();
+        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).whereClause().noMatch(), is(true));
+        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).whereClause().noMatch(), is(true));
+    }
+
+    @Test
+    public void testGlobalAggregateOn2TableJoinWithNoMatch() throws Exception {
+        NestedLoop nl = e.plan("select count(*) from users t1, users t2 WHERE 1=2");
+        assertThat(nl.left(), instanceOf(Collect.class));
+        assertThat(nl.right(), instanceOf(Collect.class));
+        assertThat(((RoutedCollectPhase)((Collect)nl.left()).collectPhase()).whereClause().noMatch(), is(true));
+        assertThat(((RoutedCollectPhase)((Collect)nl.right()).collectPhase()).whereClause().noMatch(), is(true));
+    }
+
+    @Test
+    public void testGlobalAggregateOn3TableJoinWithNoMatch() throws Exception {
+        NestedLoop outer = e.plan("select count(*) from users t1, users t2, users t3 WHERE 1=2");
+        NestedLoop inner = (NestedLoop) outer.left();
+        assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).whereClause().noMatch(), is(true));
+        assertThat(((RoutedCollectPhase)((Collect)inner.left()).collectPhase()).whereClause().noMatch(), is(true));
+        assertThat(((RoutedCollectPhase)((Collect)inner.right()).collectPhase()).whereClause().noMatch(), is(true));
+    }
 }
