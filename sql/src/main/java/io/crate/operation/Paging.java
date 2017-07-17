@@ -45,6 +45,32 @@ public class Paging {
         if (1.0 / weight > limitOrPageSize) {
             return limitOrPageSize;
         }
+        /* Don't adapt pageSize for small limits
+         * The overhead of an internal "searchMore" / paging operation is bigger than it is to sort a couple of more records.
+         *
+         * Ex.
+         *  SELECT x FROM t1 ORDER BY x LIMIT ?
+         *  4 SHARDS:
+         *  weight=0.25
+         *
+         *  with adaption    |   without
+         *  -----------------+- ------------
+         * limit | duration  |
+         *    2  | 0.471     |    2 | 0.447
+         *    5  | 1.772     |    5 | 0.447
+         *   10  | 0.806     |   10 | 0.459
+         *   25  | 0.806     |   25 | 0.481
+         *   50  | 0.833     |   50 | 0.521
+         *  100  | 0.863     |  100 | 0.565
+         * 1600  | 1.351     | 1600 | 2.190
+         *
+         * There is a point where the adaption starts yielding better performance, but where this point is depends
+         * on number-of-shards per node & data.
+         * The 150 constant here was picked after graphing a few different configurations.
+         */
+        if (limitOrPageSize <= 150) {
+            return limitOrPageSize;
+        }
         int dynPageSize = Math.max((int) (limitOrPageSize * weight * overheadFactor), 1);
         if (limit == null) {
             return dynPageSize;

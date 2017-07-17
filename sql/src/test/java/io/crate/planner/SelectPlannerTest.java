@@ -498,11 +498,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testShardQueueSizeCalculation() throws Exception {
-        Merge merge = e.plan("select name from users order by name limit 100");
+        Merge merge = e.plan("select name from users order by name limit 500");
         Collect collect = (Collect) merge.subPlan();
         int shardQueueSize = ((RoutedCollectPhase) collect.collectPhase()).shardQueueSize(
             collect.collectPhase().nodeIds().iterator().next());
-        assertThat(shardQueueSize, is(75));
+        assertThat(shardQueueSize, is(375));
     }
 
     @Test
