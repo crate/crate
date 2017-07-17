@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue which caused unrelated table privileges to be lost after a
+   table was renamed.
+
  - Fixed an issue that caused wrong results to be returned for global
     aggregation on ``JOINS`` when literal expression in ``WHERE`` clause is
     evaluated to false. E.g.::

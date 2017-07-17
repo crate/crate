@@ -76,8 +76,9 @@ public class UsersPrivilegesMetaData extends AbstractNamedDiffable<MetaData.Cust
                 if (ident.equals(sourceIdent)) {
                     privileges.add(new Privilege(privilege.state(), privilege.type(), privilege.clazz(),
                         targetIdent, privilege.grantor()));
-                    privilege.setIdent(targetIdent);
                     affectedPrivileges++;
+                } else {
+                    privileges.add(privilege);
                 }
             }
             userPrivileges.put(entry.getKey(), privileges);

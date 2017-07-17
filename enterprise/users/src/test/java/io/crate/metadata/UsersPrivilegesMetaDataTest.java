@@ -60,6 +60,8 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
         new Privilege(Privilege.State.DENY, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate");
     private static final Privilege GRANT_TABLE_DQL =
         new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "testSchema.test", "crate");
+    private static final Privilege GRANT_TABLE_DDL =
+        new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.TABLE, "testSchema.test2", "crate");
     private static final Privilege GRANT_SCHEMA_DML =
         new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.SCHEMA, "testSchema", "crate");
 
@@ -77,8 +79,8 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
             usersPrivileges.put(userName, new HashSet<>(PRIVILEGES));
         }
         usersPrivileges.put(USER_WITHOUT_PRIVILEGES, new HashSet<>());
-        usersPrivileges.put(USER_WITH_DENIED_DQL, new HashSet<>(Arrays.asList(DENY_DQL)));
-        usersPrivileges.put(USER_WITH_SCHEMA_AND_TABLE_PRIVS, new HashSet<>(Arrays.asList(GRANT_SCHEMA_DML, GRANT_TABLE_DQL)));
+        usersPrivileges.put(USER_WITH_DENIED_DQL, new HashSet<>(Collections.singletonList(DENY_DQL)));
+        usersPrivileges.put(USER_WITH_SCHEMA_AND_TABLE_PRIVS, new HashSet<>(Arrays.asList(GRANT_SCHEMA_DML, GRANT_TABLE_DQL, GRANT_TABLE_DDL)));
 
         usersPrivilegesMetaData = new UsersPrivilegesMetaData(usersPrivileges);
     }
@@ -184,7 +186,7 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
     public void testDenyExistingDeniedPrivilegeIsNoOp() {
         long rowCount = usersPrivilegesMetaData.applyPrivileges(
             Collections.singletonList(USER_WITH_DENIED_DQL),
-            new HashSet<>(Arrays.asList(DENY_DQL))
+            new HashSet<>(Collections.singletonList(DENY_DQL))
         );
         assertThat(rowCount, is(0L));
         assertThat(usersPrivilegesMetaData.getUserPrivileges(USER_WITH_DENIED_DQL), contains(DENY_DQL));
@@ -207,6 +209,12 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
             .filter(p -> p.ident().equals("testSchema.test"))
             .findAny();
         assertThat(sourcePrivilege.isPresent(), is(false));
+
+        // unrelated table privileges must be still available
+        Optional<Privilege> otherTablePrivilege = updatedPrivileges.stream()
+            .filter(p -> p.ident().equals("testSchema.test2"))
+            .findAny();
+        assertThat(otherTablePrivilege.isPresent(), is(true));
 
         Optional<Privilege> schemaPrivilege = updatedPrivileges.stream()
             .filter(p -> p.clazz().equals(Privilege.Clazz.SCHEMA))
