@@ -104,6 +104,7 @@ class MultiSourceAggregationConsumer implements Consumer {
         Iterator<Function> outputsIt = splitPoints.aggregates().iterator();
         while (fieldsIt.hasNext()) {
             Field field = fieldsIt.next();
+            assert outputsIt.hasNext() : "too less collected aggregations, size must equal the outputs size";
             Symbol output = outputsIt.next();
             fieldsIt.set(new Field(field.relation(), field.path(), output.valueType()));
         }
