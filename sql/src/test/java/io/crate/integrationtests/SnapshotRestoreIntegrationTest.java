@@ -187,6 +187,18 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     }
 
     @Test
+    public void testCreateSnapshotAllBlobsExcluded() throws Exception {
+        execute("CREATE TABLE t1 (id INTEGER, name STRING)");
+        execute("CREATE BLOB TABLE b1");
+        ensureYellow();
+        execute("CREATE SNAPSHOT " + snapshotName() + " ALL WITH (wait_for_completion=true)");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("select concrete_indices from sys.snapshots");
+        assertThat(response.rows()[0][0], is(new String[]{"t1"}));
+    }
+
+    @Test
     public void testCreateExistingSnapshot() throws Exception {
         createTable("backmeup", randomBoolean());
 
