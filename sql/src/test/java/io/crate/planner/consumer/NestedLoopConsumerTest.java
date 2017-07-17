@@ -39,7 +39,6 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.Merge;
-import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PositionalOrderBy;
@@ -126,12 +125,6 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
 
     public <T extends Plan> T plan(String statement) {
         return e.plan(statement, UUID.randomUUID(), 0, 0);
-    }
-
-    @Test
-    public void testWhereWithNoMatchShouldReturnNoopPlan() throws Exception {
-        Plan plan = plan("select u1.name, u2.name from users u1, users u2 where 1 = 2");
-        assertThat(plan, instanceOf(NoopPlan.class));
     }
 
     @Test

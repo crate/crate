@@ -189,9 +189,18 @@ public final class RelationSplitter {
     }
 
     private void processWhere() {
+        // Push down NO_MATCH to all relations
+        if (querySpec.where().noMatch()) {
+            for (QuerySpec querySpec : specs.values()) {
+                querySpec.where(WhereClause.NO_MATCH);
+            }
+            return;
+        }
+
         if (!querySpec.where().hasQuery()) {
             return;
         }
+
         Symbol query = querySpec.where().query();
         assert query != null : "query must not be null";
         QuerySplittingVisitor.Context context = QuerySplittingVisitor.INSTANCE.process(querySpec.where().query(), joinPairs);
