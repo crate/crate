@@ -39,6 +39,7 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         childImplementations.put(REFRESH_INTERVAL, new TableParameterExpression(TableParameterInfo.REFRESH_INTERVAL));
         childImplementations.put(TablesSettingsBlocksExpression.NAME, new TablesSettingsBlocksExpression());
+        childImplementations.put(TablesSettingsMappingExpression.NAME, new TablesSettingsMappingExpression());
         childImplementations.put(TablesSettingsRoutingExpression.NAME, new TablesSettingsRoutingExpression());
         childImplementations.put(TablesSettingsRecoveryExpression.NAME, new TablesSettingsRecoveryExpression());
         childImplementations.put(TablesSettingsWarmerExpression.NAME, new TablesSettingsWarmerExpression());
@@ -72,6 +73,25 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
         @Override
         public BytesRef value() {
             return BytesRefs.toBytesRef(row.tableParameters().get(paramName));
+        }
+    }
+
+    static class TablesSettingsMappingExpression extends AbstractTablesSettingsExpression {
+
+        public static final String NAME = "mapping";
+
+        public TablesSettingsMappingExpression() {
+            childImplementations.put(TablesSettingsMappingTotalFieldsExpression.NAME, new TablesSettingsMappingTotalFieldsExpression());
+        }
+    }
+
+    static class TablesSettingsMappingTotalFieldsExpression extends AbstractTablesSettingsExpression {
+
+        public static final String NAME = "total_fields";
+        public static final String LIMIT = "limit";
+
+        public TablesSettingsMappingTotalFieldsExpression() {
+            childImplementations.put(LIMIT, new TableParameterExpression(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT));
         }
     }
 

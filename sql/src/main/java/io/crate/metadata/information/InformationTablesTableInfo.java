@@ -117,6 +117,11 @@ public class InformationTablesTableInfo extends InformationTableInfo {
             ImmutableList.of("warmer"));
         static final ColumnIdent TABLE_SETTINGS_WARMER_ENABLED = new ColumnIdent("settings",
             ImmutableList.of("warmer", "enabled"));
+        static final ColumnIdent TABLE_SETTINGS_MAPPING = new ColumnIdent("settings", ImmutableList.of("mapping"));
+        static final ColumnIdent TABLE_SETTINGS_MAPPING_TOTAL_FIELDS = new ColumnIdent("settings",
+            ImmutableList.of("mapping", "total_fields"));
+        static final ColumnIdent TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT = new ColumnIdent("settings",
+            ImmutableList.of("mapping", "total_fields", "limit"));
 
         static final ColumnIdent TABLE_SETTINGS_TRANSLOG = new ColumnIdent("settings",
             ImmutableList.of("translog"));
@@ -208,6 +213,13 @@ public class InformationTablesTableInfo extends InformationTableInfo {
             Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, DataTypes.STRING);
         static final Reference TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = createRef(
             Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, DataTypes.INTEGER);
+
+        static final Reference TABLE_SETTINGS_MAPPING = createRef(
+            Columns.TABLE_SETTINGS_MAPPING, DataTypes.OBJECT);
+        static final Reference TABLE_SETTINGS_MAPPING_TOTAL_FIELDS = createRef(
+            Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS, DataTypes.OBJECT);
+        static final Reference TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT = createRef(
+            Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT, DataTypes.INTEGER);
 
         static final Reference TABLE_SETTINGS_RECOVERY = createRef(
             Columns.TABLE_SETTINGS_RECOVERY, DataTypes.OBJECT);
@@ -371,6 +383,9 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 .put(Columns.TABLE_SETTINGS_UNASSIGNED, References.TABLE_SETTINGS_UNASSIGNED)
                 .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, References.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT)
                 .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, References.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
+                .put(Columns.TABLE_SETTINGS_MAPPING, References.TABLE_SETTINGS_MAPPING)
+                .put(Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS, References.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS)
+                .put(Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT, References.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT)
                 .build(),
             ImmutableList.of(
                 References.BLOBS_PATH,

@@ -36,6 +36,7 @@ public class PartitionsSettingsExpression extends RowCollectNestedObjectExpressi
 
     private void addChildImplementations() {
         childImplementations.put(PartitionsSettingsBlocksExpression.NAME, new PartitionsSettingsBlocksExpression());
+        childImplementations.put(PartitionSettingsMappingExpression.NAME, new PartitionSettingsMappingExpression());
         childImplementations.put(PartitionsSettingsRoutingExpression.NAME, new PartitionsSettingsRoutingExpression());
         childImplementations.put(PartitionsSettingsRecoveryExpression.NAME, new PartitionsSettingsRecoveryExpression());
         childImplementations.put(PartitionsSettingsWarmerExpression.NAME, new PartitionsSettingsWarmerExpression());
@@ -71,6 +72,24 @@ public class PartitionsSettingsExpression extends RowCollectNestedObjectExpressi
         }
     }
 
+    static class PartitionSettingsMappingExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
+
+        public static final String NAME = "mapping";
+
+        public PartitionSettingsMappingExpression() {
+            childImplementations.put(PartitionSettingsMappingTotalFieldsExpression.NAME, new PartitionSettingsMappingTotalFieldsExpression());
+        }
+    }
+
+    static class PartitionSettingsMappingTotalFieldsExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
+
+        public static final String NAME = "total_fields";
+        public static final String LIMIT = "limit";
+
+        public PartitionSettingsMappingTotalFieldsExpression() {
+            childImplementations.put(LIMIT, new PartitionTableParameterExpression(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT));
+        }
+    }
 
     static class PartitionsSettingsBlocksExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
 

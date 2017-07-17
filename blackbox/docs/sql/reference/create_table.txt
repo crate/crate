@@ -313,6 +313,14 @@ Allows to have a read only table.
 :values: Disables the table settings modifications if set to ``true``, if set
          to ``false`` — table settings modifications are enabled.
 
+``mapping.total_fields.limit``
+................................
+
+Sets the maximum number of columns that is allowed for a table. Default is ``1000``.
+
+:value: Maximum amount of fields in the Lucene index mapping.
+        This includes both the user facing mapping (columns) and internal fields.
+
 ``translog.flush_threshold_ops``
 ................................
 

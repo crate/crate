@@ -18,6 +18,10 @@ Breaking Changes
 Changes
 =======
 
+ - Enabled ``mapping.total_fields.limit`` setting for tables in order to be
+    able to increase maximum number of columns higher than the default
+    of ``1000``.
+
  - Table functions now support value expressions as arguments.
 
 Fixes
