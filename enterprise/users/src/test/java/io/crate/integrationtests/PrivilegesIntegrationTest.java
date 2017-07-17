@@ -21,6 +21,7 @@ package io.crate.integrationtests;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
+import io.crate.analyze.user.Privilege;
 import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
@@ -116,7 +117,7 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         String superuserName = UserManagerService.CRATE_USER.name();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("UnsupportedFeatureException: Cannot alter privileges for superuser '" +
-                                        superuserName + "'");
+            superuserName + "'");
         executeAsSuperuser("grant DQL to " + superuserName);
     }
 
@@ -137,12 +138,12 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     @Test
     public void testQuerySysShardsReturnsOnlyRowsRegardingTablesUserHasAccessOn() throws Exception {
         executeAsSuperuser("create user normal");
-        execute("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
-        execute("insert into t1 values (1)");
-        execute("insert into t1 values (2)");
-        execute("insert into t1 values (3)");
-        execute("create table doc.t2 (x int) clustered into 1 shards with (number_of_replicas = 0)");
-        execute("create table t3 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("insert into t1 values (1)");
+        executeAsSuperuser("insert into t1 values (2)");
+        executeAsSuperuser("insert into t1 values (3)");
+        executeAsSuperuser("create table doc.t2 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("create table t3 (x int) clustered into 1 shards with (number_of_replicas = 0)");
 
         executeAsSuperuser("grant dql on table t1 to normal");
         executeAsSuperuser("grant dml on table t2 to normal");
@@ -161,18 +162,18 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     public void testQueryInformationSchemaShowsOnlyRowsRegardingTablesUserHasAccessOn() throws Exception {
         executeAsSuperuser("create user information_schema_test_user");
 
-        execute("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
-        execute("insert into t1 values (1)");
-        execute("insert into t1 values (2)");
-        execute("create table my_schema.t2 (x int) clustered into 1 shards with (number_of_replicas = 0)");
-        execute("create table other_schema.t3 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("insert into t1 values (1)");
+        executeAsSuperuser("insert into t1 values (2)");
+        executeAsSuperuser("create table my_schema.t2 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("create table other_schema.t3 (x int) clustered into 1 shards with (number_of_replicas = 0)");
 
-        execute("create function my_schema.foo(long)" +
-                " returns string language dummy_lang as 'function foo(x) { return \"1\"; }'");
-        execute("create function other_func(long)" +
-                " returns string language dummy_lang as 'function foo(x) { return \"1\"; }'");
+        executeAsSuperuser("create function my_schema.foo(long)" +
+            " returns string language dummy_lang as 'function foo(x) { return \"1\"; }'");
+        executeAsSuperuser("create function other_func(long)" +
+            " returns string language dummy_lang as 'function foo(x) { return \"1\"; }'");
 
-        executeAsSuperuser("grant dql on table t1 to information_schema_test_user");
+        executeAsSuperuser("grant dql on table doc.t1 to information_schema_test_user");
         executeAsSuperuser("grant dml on table my_schema.t2 to information_schema_test_user");
         executeAsSuperuser("grant dql on schema my_schema to information_schema_test_user");
 
@@ -181,13 +182,13 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         assertThat(printedTable(response.rows()), is("my_schema\n"));
         execute("select table_name from information_schema.tables order by table_name", null, normalUserSession);
         assertThat(printedTable(response.rows()), is("t1\n" +
-                                                     "t2\n"));
+            "t2\n"));
         execute("select table_name from information_schema.table_partitions order by table_name", null, normalUserSession);
         assertThat(printedTable(response.rows()), is("t1\n" +
-                                                     "t1\n"));
+            "t1\n"));
         execute("select table_name from information_schema.columns order by table_name", null, normalUserSession);
         assertThat(printedTable(response.rows()), is("t1\n" +
-                                                     "t2\n"));
+            "t2\n"));
         execute("select table_name from information_schema.table_constraints order by table_name", null, normalUserSession);
         assertThat(printedTable(response.rows()), is("t2\n"));
         execute("select routine_schema from information_schema.routines order by routine_schema", null, normalUserSession);
@@ -195,31 +196,36 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     }
 
     @Test
-    public void testRenameTableTransfersPrivilegesToNewTable() {
+    public void testRenameTableTransfersPrivilegesToNewTable() throws Exception {
         executeAsSuperuser("create user gunther");
-        execute("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
-        executeAsSuperuser("grant dql on table t1 to gunther");
-
-        executeAsSuperuser("alter table doc.t1 rename to t1_renamed");
+        executeAsSuperuser("create table doc.t_gunther (x int) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
+        executeAsSuperuser("grant dql on table doc.t_gunther to gunther");
+        ensureGreen();
 
-        SQLOperations.Session normalUserSession = getSessionFor("gunther");
-        execute("select * from t1_renamed", null, normalUserSession);
+        executeAsSuperuser("alter table doc.t_gunther rename to t_gunther_old");
+        ensureGreen();
+
+        execute("select * from t_gunther_old", null, getSessionFor("gunther", Privilege.Clazz.TABLE, "doc.t_gunther_old"));
         assertThat(response.rowCount(), is(0L));
     }
 
     @Test
-    public void testRenamePartitionedTableTransfersPrivilegesToNewTable() {
+    public void testRenamePartitionedTableTransfersPrivilegesToNewTable() throws Exception {
         executeAsSuperuser("create user rachel");
-        executeAsSuperuser("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
-        executeAsSuperuser("insert into t1 values (1)");
-        executeAsSuperuser("grant dql on table t1 to rachel");
+        executeAsSuperuser("create table doc.t1_rachel (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        ensureGreen();
 
-        executeAsSuperuser("alter table doc.t1 rename to t1_renamed");
-        ensureYellow();
+        executeAsSuperuser("insert into doc.t1_rachel values (1)");
+        refresh();
 
-        SQLOperations.Session normalUserSession = getSessionFor("rachel");
-        execute("select * from t1_renamed", null, normalUserSession);
+        executeAsSuperuser("grant dql on table doc.t1_rachel to rachel");
+        ensureGreen();
+
+        executeAsSuperuser("alter table doc.t1_rachel rename to t1_rachel_old");
+        ensureGreen();
+
+        execute("select * from doc.t1_rachel_old", null, getSessionFor("rachel", Privilege.Clazz.TABLE, "doc.t1_rachel_old"));
         assertThat(response.rowCount(), is(1L));
     }
 
@@ -227,12 +233,14 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
     public void testDropTableRemovesPrivileges() {
         executeAsSuperuser("create user janice");
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
-        executeAsSuperuser("grant dql on table t1 to janice");
+        ensureYellow();
+        executeAsSuperuser("grant dql on table doc.t1 to janice");
 
         executeAsSuperuser("drop table t1");
         ensureYellow();
 
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        ensureYellow();
         SQLOperations.Session normalUserSession = getSessionFor("janice");
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage(containsString("Missing 'DQL' privilege for user 'janice'"));
@@ -243,7 +251,20 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         UserManager userManager = internalCluster().getInstance(UserManager.class);
         User user = userManager.findUser(userName);
         assertThat(user, notNullValue());
+        logger.info("getSession - findUser {}", user);
 
+        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, null);
+        return sqlOperations.createSession(null, user, Option.NONE, DEFAULT_SOFT_LIMIT);
+    }
+
+    private SQLOperations.Session getSessionFor(String userName, Privilege.Clazz clazz, String ident) throws Exception {
+        UserManager userManager = internalCluster().getInstance(UserManager.class);
+        User user = userManager.findUser(userName);
+        while (user == null || !user.hasAnyPrivilege(clazz, ident)) {
+            userManager = internalCluster().getInstance(UserManager.class);
+            user = userManager.findUser(userName);
+        }
+        logger.info("getSession - findUser{}", user);
         SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, null);
         return sqlOperations.createSession(null, user, Option.NONE, DEFAULT_SOFT_LIMIT);
     }
