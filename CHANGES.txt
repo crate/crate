@@ -21,6 +21,8 @@ Changes
 Fixes
 =====
 
+ - Fixed rename table operation for empty partitioned tables.
+
  - Fixed an issue which caused unrelated table privileges to be lost after a
    table was renamed.
 
