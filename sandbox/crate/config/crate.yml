@@ -11,3 +11,5 @@ ssl.http.enabled: false
 ssl.keystore_filepath: ./enterprise/ssl-impl/src/test/resources/keystore.jks
 ssl.keystore_password: keystorePassword
 ssl.keystore_key_password: serverKeyPassword
+
+path.repo: ./sandbox/crate/repo
