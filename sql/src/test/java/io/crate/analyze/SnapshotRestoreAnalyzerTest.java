@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.*;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.apache.lucene.util.BytesRef;
@@ -58,10 +59,13 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
                 .putCustom(RepositoriesMetaData.TYPE, repositoriesMetaData))
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
+        TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "my_blobs");
+        TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent, clusterService);
         executor = SQLExecutor.builder(clusterService)
             .addDocTable(USER_TABLE_INFO)
             .addDocTable(TEST_DOC_LOCATIONS_TABLE_INFO)
             .addDocTable(TEST_PARTITIONED_TABLE_INFO)
+            .addBlobTable(myBlobsTableInfo)
             .build();
     }
 
@@ -172,6 +176,13 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
         expectedException.expect(TableUnknownException.class);
         expectedException.expectMessage("Table 'doc.user*' unknown");
         analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE \"user*\"");
+    }
+
+    @Test
+    public void testCreateSnapshotFromBlobTable() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("The relation \"blob.my_blobs\" doesn't support or allow CREATE SNAPSHOT operations.");
+        analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE blob.my_blobs");
     }
 
     @Test
