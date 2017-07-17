@@ -23,8 +23,13 @@ Changes
 Fixes
 =====
 
+ - ``!= ANY()`` could not operate on arrays with more than 1024 elements. This
+   limit has been increased by default to 8192. A new node setting:
+   ``indices.query.bool.max_clause_count`` has been exposed to allow to
+    configure this limit.
+
  - Added support for conditionals with ``NULL`` arguments.
- 
+
  - Do not include Lucene indices (metadata) of ``BLOB`` tables in snapshot
    when using ``CREATE SNAPSHOT`` with ``ALL``, because the actual binary
    files of ``BLOB`` tables cannot be backed up using ``SNAPSHOT/RESTORE``
@@ -36,10 +41,10 @@ Fixes
    table was renamed.
 
  - Fixed an issue that caused wrong results to be returned for global
-    aggregation on ``JOINS`` when literal expression in ``WHERE`` clause is
-    evaluated to false. E.g.::
+   aggregation on ``JOINS`` when literal expression in ``WHERE`` clause is
+   evaluated to false. E.g.::
 
-      SELECT COUNT(*) FROM t1, t2 WHERE 1=2
+     SELECT COUNT(*) FROM t1, t2 WHERE 1=2
 
  - Fixed an issue which resulted in an exception when using the same global
    aggregation symbol twice as a select item on a join query.
