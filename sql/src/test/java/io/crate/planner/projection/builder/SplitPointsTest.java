@@ -28,10 +28,10 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
+import static org.hamcrest.Matchers.contains;
 
 public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
@@ -45,7 +45,22 @@ public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
         SplitPoints splitPoints = SplitPoints.create(relation.querySpec());
 
         //noinspection unchecked
-        assertThat(splitPoints.toCollect(), Matchers.contains(isFunction("coalesce")));
-        assertThat(splitPoints.aggregates(), Matchers.contains(isFunction("sum")));
+        assertThat(splitPoints.toCollect(), contains(isFunction("coalesce")));
+        assertThat(splitPoints.aggregates(), contains(isFunction("sum")));
+    }
+
+    @Test
+    public void testSplitPointsCreationSelectItemAggregationsAreAlwaysAdded() throws Exception {
+        SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
+
+        AnalyzedStatement analyze = e.analyze("select sum(coalesce(x, 0::integer)), sum(coalesce(x, 0::integer)) + 10 from t1");
+        QueriedRelation relation = ((SelectAnalyzedStatement) analyze).relation();
+
+        SplitPoints splitPoints = SplitPoints.create(relation.querySpec());
+
+        //noinspection unchecked
+        assertThat(splitPoints.toCollect(), contains(isFunction("coalesce")));
+        //noinspection unchecked
+        assertThat(splitPoints.aggregates(), contains(isFunction("sum"), isFunction("sum")));
     }
 }

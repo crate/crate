@@ -39,6 +39,7 @@ final class SplitPointVisitor extends DefaultTraversalSymbolVisitor<SplitPointVi
         final ArrayList<Symbol> toCollect;
         final ArrayList<Function> aggregates;
         boolean aggregateSeen;
+        boolean collectingOutputs = true;
 
         Context(ArrayList<Symbol> toCollect, ArrayList<Function> aggregates) {
             this.toCollect = toCollect;
@@ -52,7 +53,8 @@ final class SplitPointVisitor extends DefaultTraversalSymbolVisitor<SplitPointVi
         }
 
         void allocateAggregate(Function aggregate) {
-            if (!aggregates.contains(aggregate)) {
+            // while processing outputs aggregates must be added always, otherwise outputs and aggregates differs
+            if (collectingOutputs || aggregates.contains(aggregate) == false) {
                 aggregates.add(aggregate);
             }
         }
@@ -72,6 +74,7 @@ final class SplitPointVisitor extends DefaultTraversalSymbolVisitor<SplitPointVi
     static void addAggregatesAndToCollectSymbols(QuerySpec querySpec, SplitPoints splitContext) {
         Context context = new Context(splitContext.toCollect(), splitContext.aggregates());
         INSTANCE.process(querySpec.outputs(), context);
+        context.collectingOutputs = false;
         if (querySpec.orderBy().isPresent()) {
             INSTANCE.process(querySpec.orderBy().get().orderBySymbols(), context);
         }

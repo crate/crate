@@ -21,6 +21,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue which resulted in an exception when using the same global
+   aggregation symbol twice as a select item on a join query.
+
  - Provide comprehensive error message when using  ``NULL`` literal in
     ``GROUP BY``.
 
