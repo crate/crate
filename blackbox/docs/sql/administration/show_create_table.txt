@@ -37,6 +37,7 @@ already existing user-created doc tables in the cluster::
     |    "blocks.read_only" = false,                      |
     |    "blocks.write" = false,                          |
     |    column_policy = 'dynamic',                       |
+    |    "mapping.total_fields.limit" = 1000,             |
     |    number_of_replicas = '0-1',                      |
     |    "recovery.initial_shards" = 'quorum',            |
     |    refresh_interval = 1000,                         |

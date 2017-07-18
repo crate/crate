@@ -157,6 +157,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
+    public void testCreateTableWithTotalFieldsLimit() throws Exception {
+        CreateTableAnalyzedStatement analysis = e.analyze(
+            "CREATE TABLE foo (id int primary key) " +
+            "with (\"mapping.total_fields.limit\"=5000)");
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT), is("5000"));
+    }
+
+    @Test
     public void testCreateTableWithRefreshInterval() throws Exception {
         CreateTableAnalyzedStatement analysis = e.analyze(
             "CREATE TABLE foo (id int primary key, content string) " +
@@ -183,6 +191,20 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "ALTER TABLE user_refresh_interval " +
             "RESET (refresh_interval)");
         assertEquals("1000ms", analysisReset.tableParameter().settings().get(TableParameterInfo.REFRESH_INTERVAL));
+    }
+
+    @Test
+    public void testTotalFieldsLimitCanBeUsedWithAlterTable() throws Exception {
+        AlterTableAnalyzedStatement analysisSet = e.analyze(
+            "ALTER TABLE users " +
+            "SET (\"mapping.total_fields.limit\" = '5000')");
+        assertEquals("5000", analysisSet.tableParameter().settings().get(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT));
+
+        // Check if reseting total_fields results in default value
+        AlterTableAnalyzedStatement analysisReset = e.analyze(
+            "ALTER TABLE users " +
+            "RESET (\"mapping.total_fields.limit\")");
+        assertEquals("1000", analysisReset.tableParameter().settings().get(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT));
     }
 
     @Test

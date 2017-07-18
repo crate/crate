@@ -203,6 +203,15 @@ Column Policy
 
   Specifies the column policy of the table.
 
+Mapping
+-------
+
+**mapping.total_fields.limit**
+  | *Default:*    ``1000``
+  | *Runtime:*   ``yes``
+
+  Sets the maximum amount of fields in the Lucene index mapping.
+  This includes both the user facing mapping (columns) and internal fields.
 
 Node Specific Settings
 ======================

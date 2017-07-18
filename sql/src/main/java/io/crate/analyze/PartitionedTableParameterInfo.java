@@ -44,6 +44,7 @@ public class PartitionedTableParameterInfo extends TableParameterInfo {
             .add(FLUSH_THRESHOLD_SIZE)
             .add(ROUTING_ALLOCATION_ENABLE)
             .add(TOTAL_SHARDS_PER_NODE)
+            .add(MAPPING_TOTAL_FIELDS_LIMIT)
             .add(RECOVERY_INITIAL_SHARDS)
             .add(WARMER_ENABLED)
             .build();

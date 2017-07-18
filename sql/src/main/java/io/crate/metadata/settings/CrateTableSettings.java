@@ -44,6 +44,8 @@ public class CrateTableSettings {
 
     public static final IntSetting TOTAL_SHARDS_PER_NODE = new IntSetting(TableParameterInfo.TOTAL_SHARDS_PER_NODE, -1);
 
+    public static final IntSetting TOTAL_FIELDS_LIMIT = new IntSetting(TableParameterInfo.MAPPING_TOTAL_FIELDS_LIMIT, 1000);
+
     public static final StringSetting ROUTING_ALLOCATION_ENABLE = new StringSetting(
         TableParameterInfo.ROUTING_ALLOCATION_ENABLE,
         ImmutableSet.of("primaries",

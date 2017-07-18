@@ -26,6 +26,7 @@ import io.crate.testing.UseJdbc;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Locale;
 import java.util.Map;
 
 @UseJdbc
@@ -49,7 +50,8 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
                 "\"refresh_interval\" = '1000'," +
                 "\"unassigned.node_left.delayed_timeout\" = '1m'," +
                 "\"number_of_replicas\" = 0 ," +
-                "\"write.wait_for_active_shards\" = 1" +
+                "\"write.wait_for_active_shards\" = 1 ," +
+                "\"mapping.total_fields.limit\" = 1000" +
                 ")");
     }
 
@@ -64,6 +66,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
         execute("select settings from information_schema.tables where table_name = 'settings_table'");
         for (Object[] row : response.rows()) {
             assertTrue(((Map<String, Object>) row[0]).containsKey("blocks"));
+            assertTrue(((Map<String, Object>) row[0]).containsKey("mapping"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("routing"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("translog"));
             assertTrue(((Map<String, Object>) row[0]).containsKey("recovery"));
@@ -113,6 +116,25 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testMappingTotalFieldsLimit() throws Exception {
+        execute("create table test (id int)");
+        // The total amount of fields on table test is now 12 (system fields)
+        // plus the column id, that we've just created.
+        // Each additional column increases this number by 1.
+        int totalFields = 13;
+        execute("alter table test set (\"mapping.total_fields.limit\"=?)", new Object[]{totalFields + 1});
+        // Add a column is within the limit
+        execute("alter table test add column new_column int");
+
+
+        // One more column exceeds the limit
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "Limit of total fields [%d] in index [test] has been exceeded", totalFields + 1));
+        execute("alter table test add column new_column2 int");
+    }
+
+    @Test
     public void testFilterOnByteSizeValue() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings['translog']['flush_threshold_size'] < 2000000");
@@ -136,7 +158,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultWaitForActiveShardsSettings() {
         execute("select settings['write']['wait_for_active_shards'] from information_schema.tables " +
-            "where table_name = 'settings_table'");
+                "where table_name = 'settings_table'");
         assertEquals(1, response.rowCount());
         assertEquals("1", response.rows()[0][0]);
     }
