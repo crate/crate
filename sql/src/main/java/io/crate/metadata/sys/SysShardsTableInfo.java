@@ -291,21 +291,24 @@ public class SysShardsTableInfo extends StaticTableInfo {
         // TODO: filter on whereClause
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         ClusterState state = service.state();
-        String[] concreteIndices = state.metaData().getConcreteAllIndices();
-        GroupShardsIterator groupShardsIterator = state.getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
+        String[] concreteIndices = state.metaData().getConcreteAllOpenIndices();
 
         User user = sessionContext != null ? sessionContext.user() : null;
+        if (user != null) {
+            List<String> accessibleTables = new ArrayList<>(concreteIndices.length);
+            for (String indexName : concreteIndices) {
+                String tableName = TableIdent.fqnFromIndexName(indexName);
+                if (user.hasAnyPrivilege(Privilege.Clazz.TABLE, tableName)) {
+                    accessibleTables.add(indexName);
+                }
+            }
+            concreteIndices = accessibleTables.toArray(new String[0]);
+        }
+
+        GroupShardsIterator groupShardsIterator = state.getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
         for (final ShardIterator shardIt : groupShardsIterator) {
             final ShardRouting shardRouting = shardIt.nextOrNull();
-            ShardId shardId = shardIt.shardId();
-            if (user != null) {
-                String tableName = TableIdent.fromIndexName(shardId.getIndexName()).fqn();
-                if (user.hasAnyPrivilege(Privilege.Clazz.TABLE, tableName)) {
-                    processShardRouting(locations, shardRouting, shardId);
-                }
-            } else {
-                processShardRouting(locations, shardRouting, shardId);
-            }
+            processShardRouting(locations, shardRouting, shardIt.shardId());
         }
         return new Routing(locations);
     }

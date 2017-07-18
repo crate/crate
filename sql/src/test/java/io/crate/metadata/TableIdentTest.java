@@ -66,4 +66,26 @@ public class TableIdentTest extends CrateUnitTest {
         ti = new TableIdent("s", "t");
         assertThat(ti.fqn(), is("s.t"));
     }
+
+    @Test
+    public void testFqnFromIndexName() throws Exception {
+        assertThat(TableIdent.fqnFromIndexName("t1"), is(Schemas.DEFAULT_SCHEMA_NAME + ".t1"));
+        assertThat(TableIdent.fqnFromIndexName("my_schema.t1"), is("my_schema.t1"));
+        assertThat(TableIdent.fqnFromIndexName(".partitioned.t1.abc"), is(Schemas.DEFAULT_SCHEMA_NAME + ".t1"));
+        assertThat(TableIdent.fqnFromIndexName("my_schema..partitioned.t1.abc"), is("my_schema.t1"));
+    }
+
+    @Test
+    public void testFqnFromIndexNameUnsupported3Parts() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid index name: my_schema.t1.foo");
+        TableIdent.fqnFromIndexName("my_schema.t1.foo");
+    }
+
+    @Test
+    public void testFqnFromIndexNameUnsupportedMoreThan5Parts() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Invalid index name: my_schema..partitioned.t1.abc.foo");
+        TableIdent.fqnFromIndexName("my_schema..partitioned.t1.abc.foo");
+    }
 }
