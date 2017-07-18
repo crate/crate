@@ -25,14 +25,9 @@ import com.carrotsearch.hppc.ObjectLookupContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Iterators;
-import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
-import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
@@ -50,12 +45,11 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.Index;
 
-import javax.annotation.Nonnull;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.stream.Stream;
@@ -120,18 +114,7 @@ public class DocSchemaInfo implements SchemaInfo {
     private final Functions functions;
     private final UserDefinedFunctionService udfService;
 
-    private final LoadingCache<String, DocTableInfo> cache = CacheBuilder.newBuilder()
-        .maximumSize(10000)
-        .build(
-            new CacheLoader<String, DocTableInfo>() {
-                @Override
-                public DocTableInfo load(@Nonnull String key) throws Exception {
-                    synchronized (DocSchemaInfo.this) {
-                        return innerGetTableInfo(key);
-                    }
-                }
-            }
-        );
+    private final ConcurrentHashMap<String, DocTableInfo> docTableByName = new ConcurrentHashMap<>();
 
     private static final Predicate<String> NO_BLOB = ((Predicate<String>)BlobIndex::isBlobIndex).negate();
     private static final Predicate<String> NO_PARTITION = ((Predicate<String>)PartitionName::isPartition).negate();
@@ -178,18 +161,9 @@ public class DocSchemaInfo implements SchemaInfo {
     @Override
     public DocTableInfo getTableInfo(String name) {
         try {
-            return cache.get(name);
-        } catch (ExecutionException e) {
-            throw new UnhandledServerException("Failed to get TableInfo", e.getCause());
-        } catch (UncheckedExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause == null) {
-                throw e;
-            }
-            if (cause instanceof ResourceUnknownException) {
-                return null;
-            }
-            throw e;
+            return docTableByName.computeIfAbsent(name, this::innerGetTableInfo);
+        } catch (ResourceUnknownException e) {
+            return null;
         }
     }
 
@@ -231,7 +205,7 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public void invalidateTableCache(String tableName) {
-        cache.invalidate(tableName);
+        docTableByName.remove(tableName);
     }
 
     @Override
@@ -261,7 +235,7 @@ public class DocSchemaInfo implements SchemaInfo {
         }
 
         // search indices with changed meta data
-        Iterator<String> currentTablesIt = cache.asMap().keySet().iterator();
+        Iterator<String> currentTablesIt = docTableByName.keySet().iterator();
         ObjectLookupContainer<String> templates = newTemplates.keys();
         ImmutableOpenMap<String, IndexMetaData> indices = newMetaData.indices();
         while (currentTablesIt.hasNext()) {
@@ -270,11 +244,11 @@ public class DocSchemaInfo implements SchemaInfo {
 
             IndexMetaData newIndexMetaData = newMetaData.index(indexName);
             if (newIndexMetaData == null) {
-                cache.invalidate(tableName);
+                docTableByName.remove(tableName);
             } else {
                 IndexMetaData oldIndexMetaData = prevMetaData.index(indexName);
                 if (oldIndexMetaData != null && ClusterChangedEvent.indexMetaDataChanged(oldIndexMetaData, newIndexMetaData)) {
-                    cache.invalidate(tableName);
+                    docTableByName.remove(tableName);
                     // invalidate aliases of changed indices
                     invalidateAliases(newIndexMetaData.getAliases());
                     invalidateAliases(oldIndexMetaData.getAliases());
@@ -284,7 +258,7 @@ public class DocSchemaInfo implements SchemaInfo {
                     if (templates.contains(possibleTemplateName)) {
                         for (ObjectObjectCursor<String, IndexMetaData> indexEntry : indices) {
                             if (PartitionName.isPartition(indexEntry.key)) {
-                                cache.invalidate(tableName);
+                                docTableByName.remove(tableName);
                                 break;
                             }
                         }
@@ -326,7 +300,7 @@ public class DocSchemaInfo implements SchemaInfo {
     private void invalidateAliases(ImmutableOpenMap<String, AliasMetaData> aliases) {
         assert aliases != null : "aliases must not be null";
         if (aliases.size() > 0) {
-            aliases.keysIt().forEachRemaining(cache::invalidate);
+            aliases.keysIt().forEachRemaining(docTableByName::remove);
         }
     }
 
