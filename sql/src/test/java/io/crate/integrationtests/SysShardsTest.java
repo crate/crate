@@ -116,10 +116,10 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
             SQLResponse response = execute("select sum(num_docs), table_name, sum(num_docs) from sys.shards group by table_name order by table_name desc limit 1000");
             assertThat(response.rowCount(), is(4L));
             assertThat(TestingHelpers.printedTable(response.rows()),
-                is("0.0| t| 0.0\n" +
-                   "0.0| quotes| 0.0\n" +
-                   "14.0| characters| 14.0\n" +
-                   "0.0| blobs| 0.0\n"));
+                is("0| t| 0\n" +
+                   "0| quotes| 0\n" +
+                   "14| characters| 14\n" +
+                   "0| blobs| 0\n"));
         } finally {
             execute("drop table t");
         }

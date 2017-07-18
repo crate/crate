@@ -285,7 +285,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t1");
 
         execute("select sum(x) from t1 where x = (select 1)");
-        assertThat(printedTable(response.rows()), is("1.0\n"));
+        assertThat(printedTable(response.rows()), is("1\n"));
     }
 
     @Test
@@ -296,7 +296,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t1");
 
         execute("select sum(x), x from t1 where x = (select 1) group by x");
-        assertThat(printedTable(response.rows()), is("1.0| 1\n"));
+        assertThat(printedTable(response.rows()), is("1| 1\n"));
     }
 
     @Test
@@ -366,7 +366,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
 
         // orderBy and limit in subQuery to prevent rewrite to non-subquery
         execute("select sum(x) from (select x from t order by x limit 1) as t");
-        assertThat(printedTable(response.rows()), is("1.0\n"));
+        assertThat(printedTable(response.rows()), is("1\n"));
     }
 
     @Test
@@ -376,7 +376,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t1");
 
         execute("select sum(ids) from (select date_trunc('day', ts), count(distinct id) as ids from t1 group by 1) tt");
-        assertThat(printedTable(response.rows()), is("1.0\n"));
+        assertThat(printedTable(response.rows()), is("1\n"));
     }
 
     @Test
@@ -387,7 +387,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t");
 
         execute("select sum(x) from (select min(x) as x from (select max(x) as x from t) as t) as t");
-        assertThat(printedTable(response.rows()), is("2.0\n"));
+        assertThat(printedTable(response.rows()), is("2\n"));
     }
 
     @Test
@@ -397,7 +397,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
                 "       where t1.col1 = (select 1) " +
                 "       order by x limit 3" +
                 ") t");
-        assertThat(printedTable(response.rows()), is("3.0\n"));
+        assertThat(printedTable(response.rows()), is("3\n"));
     }
 
     @Test

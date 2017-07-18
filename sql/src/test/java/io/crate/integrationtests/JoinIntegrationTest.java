@@ -632,13 +632,13 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table t1");
 
         execute("select sum(t1.x) from t1, t1 as t2");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("6.0\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("6\n"));
     }
 
     @Test
     public void testAggOnJoinWithScalarAfterAggregation() throws Exception {
         execute("select sum(t1.col1) * 2 from unnest([1, 2]) t1, unnest([3, 4]) t2");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("12.0\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("12\n"));
     }
 
     @Test
@@ -662,13 +662,13 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                 "   sum(t1.col1) " +
                 "from unnest([1, 1]) t1, unnest([1, 1]) t2 " +
                 "limit 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("4.0\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("4\n"));
     }
 
     @Test
     public void testJoinOnAggWithOrderBy() throws Exception {
         execute("select sum(t1.col1) from unnest([1, 1]) t1, unnest([1, 1]) t2 order by 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("4.0\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("4\n"));
     }
 
     @Test
@@ -686,7 +686,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testGlobalAggregateMultiTableJoin() throws Exception {
-        execute("create table t1 (id int primary key, t2 int, val float)");
+        execute("create table t1 (id int primary key, t2 int, val double)");
         execute("create table t2 (id int primary key, t3 int)");
         execute("create table t3 (id int primary key)");
         ensureYellow();
@@ -697,7 +697,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
 
         refresh();
         execute("select sum(t1.val), avg(t2.id), min(t3.id) from t1 inner join t2 on t1.t2 = t2.id inner join t3 on t2.t3 = t3.id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("3.689999930560589| 2.0| 1\n"));
+        assertThat(TestingHelpers.printedTable(response.rows()), is("3.69| 2.0| 1\n"));
     }
 
     @Test

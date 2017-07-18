@@ -992,10 +992,10 @@ Some Examples::
     +---------------+-------------+
     | sum_positions | kind        |
     +---------------+-------------+
-    | 10.0          | Star System |
-    | 13.0          | Galaxy      |
-    | 15.0          | Planet      |
-    | 29.0          | City        |
+    |            10 | Star System |
+    |            13 | Galaxy      |
+    |            15 | Planet      |
+    |            29 | City        |
     +---------------+-------------+
     SELECT 4 rows in set (... sec)
 

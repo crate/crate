@@ -27,6 +27,9 @@ Changes
 Fixes
 =====
 
+ - Implemented flexible return type of sum-function depending on the input
+   types, which was previously only double.
+
  - Fixed a regression causing incorrect results for queries with ``DISTINCT``
    on scalar functions. E.g.::
 

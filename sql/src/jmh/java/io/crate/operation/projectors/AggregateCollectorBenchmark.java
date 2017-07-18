@@ -42,6 +42,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
+
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 @State(Scope.Benchmark)
@@ -51,14 +53,14 @@ public class AggregateCollectorBenchmark {
         new RamAccountingContext("dummy", new NoopCircuitBreaker("dummy"));
     private final List<Row> rows = IntStream.range(0, 10_000).mapToObj(Row1::new).collect(Collectors.toList());
 
-    private AggregateCollector colllector;
+    private AggregateCollector collector;
 
     @Setup
     public void setup() {
         InputCollectExpression inExpr0 = new InputCollectExpression(0);
-
-        SumAggregation sumAggregation = new SumAggregation(DataTypes.INTEGER);
-        colllector = new AggregateCollector(
+        SumAggregation sumAggregation = ((SumAggregation) getFunctions().getBuiltin(
+            SumAggregation.NAME, Collections.singletonList(DataTypes.INTEGER)));
+        collector = new AggregateCollector(
             Collections.singletonList(inExpr0),
             RAM_ACCOUNTING_CONTEXT,
             AggregateMode.ITER_FINAL,
@@ -69,9 +71,9 @@ public class AggregateCollectorBenchmark {
 
     @Benchmark
     public Object[] measureAggregateCollector() {
-        Object[] state = colllector.supplier().get();
-        BiConsumer<Object[], Row> accumulator = colllector.accumulator();
-        Function<Object[], Object[]> finisher = colllector.finisher();
+        Object[] state = collector.supplier().get();
+        BiConsumer<Object[], Row> accumulator = collector.accumulator();
+        Function<Object[], Object[]> finisher = collector.finisher();
         for (int i = 0; i < rows.size(); i++) {
             accumulator.accept(state, rows.get(i));
         }

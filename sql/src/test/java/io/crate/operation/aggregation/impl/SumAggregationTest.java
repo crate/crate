@@ -35,8 +35,17 @@ public class SumAggregationTest extends AggregationTest {
 
     @Test
     public void testReturnType() throws Exception {
-        // Return type is fixed to Double
-        assertEquals(DataTypes.DOUBLE, functions.getBuiltin("sum", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+        DataType type = DataTypes.DOUBLE;
+        assertEquals(type, functions.getBuiltin("sum", ImmutableList.of(type)).info().returnType());
+
+        type = DataTypes.FLOAT;
+        assertEquals(type, functions.getBuiltin("sum", ImmutableList.of(type)).info().returnType());
+
+        type = DataTypes.LONG;
+        assertEquals(type, functions.getBuiltin("sum", ImmutableList.of(type)).info().returnType());
+        assertEquals(type, functions.getBuiltin("sum", ImmutableList.of(DataTypes.INTEGER)).info().returnType());
+        assertEquals(type, functions.getBuiltin("sum", ImmutableList.of(DataTypes.SHORT)).info().returnType());
+        assertEquals(type, functions.getBuiltin("sum", ImmutableList.of(DataTypes.BYTE)).info().returnType());
     }
 
     @Test
@@ -50,28 +59,45 @@ public class SumAggregationTest extends AggregationTest {
     public void testFloat() throws Exception {
         Object[][] result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}});
 
-        assertEquals(1.0d, result[0][0]);
-    }
-
-    @Test
-    public void testInteger() throws Exception {
-        Object[][] result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}});
-
-        assertEquals(10d, result[0][0]);
+        assertEquals(1.0f, result[0][0]);
     }
 
     @Test
     public void testLong() throws Exception {
         Object[][] result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}});
 
-        assertEquals(10d, result[0][0]);
+        assertEquals(10L, result[0][0]);
+    }
+
+    @Test(expected = ArithmeticException.class)
+    public void testLongOverflow() throws Exception {
+        Object[][] result = executeAggregation(DataTypes.LONG, new Object[][]{{Long.MAX_VALUE}, {1}});
+    }
+
+    @Test(expected = ArithmeticException.class)
+    public void testLongUnderflow() throws Exception {
+        Object[][] result = executeAggregation(DataTypes.LONG, new Object[][]{{Long.MIN_VALUE}, {-1}});
+    }
+
+    @Test
+    public void testInteger() throws Exception {
+        Object[][] result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}});
+
+        assertEquals(10L, result[0][0]);
     }
 
     @Test
     public void testShort() throws Exception {
         Object[][] result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}});
 
-        assertEquals(10d, result[0][0]);
+        assertEquals(10L, result[0][0]);
+    }
+
+    @Test
+    public void testByte() throws Exception {
+        Object[][] result = executeAggregation(DataTypes.BYTE, new Object[][]{{(byte) 7}, {(byte) 3}});
+
+        assertEquals(10L, result[0][0]);
     }
 
     @Test(expected = NullPointerException.class)
