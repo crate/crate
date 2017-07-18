@@ -24,10 +24,11 @@ package io.crate.operation.reference.partitioned;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.RowContextCollectorExpression;
+import io.crate.operation.reference.RowCollectNestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
-public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpression {
+public class PartitionsSettingsExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
 
     public PartitionsSettingsExpression() {
         addChildImplementations();
@@ -71,7 +72,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
     }
 
 
-    static class PartitionsSettingsBlocksExpression extends AbstractPartitionsSettingsExpression {
+    static class PartitionsSettingsBlocksExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
 
         public static final String NAME = "blocks";
 
@@ -92,7 +93,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         }
     }
 
-    static class PartitionsSettingsRoutingExpression extends AbstractPartitionsSettingsExpression {
+    static class PartitionsSettingsRoutingExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
 
         public static final String NAME = "routing";
 
@@ -105,7 +106,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         }
     }
 
-    static class PartitionsSettingsRoutingAllocationExpression extends AbstractPartitionsSettingsExpression {
+    static class PartitionsSettingsRoutingAllocationExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
 
         public static final String NAME = "allocation";
 
@@ -122,7 +123,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         }
     }
 
-    static class PartitionsSettingsRecoveryExpression extends AbstractPartitionsSettingsExpression {
+    static class PartitionsSettingsRecoveryExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
 
         public static final String NAME = "recovery";
 
@@ -137,7 +138,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         }
     }
 
-    static class PartitionsSettingsWarmerExpression extends AbstractPartitionsSettingsExpression {
+    static class PartitionsSettingsWarmerExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
 
         public static final String NAME = "warmer";
 
@@ -152,7 +153,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         }
     }
 
-    static class PartitionsSettingsTranslogExpression extends AbstractPartitionsSettingsExpression {
+    static class PartitionsSettingsTranslogExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
 
         public static final String NAME = "translog";
 
@@ -171,7 +172,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         }
     }
 
-    static class PartitionsSettingsUnassignedExpression extends AbstractPartitionsSettingsExpression {
+    static class PartitionsSettingsUnassignedExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
 
         public static final String NAME = "unassigned";
 
@@ -185,7 +186,7 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
         }
     }
 
-    static class PartitionsSettingsNodeLeftExpression extends AbstractPartitionsSettingsExpression {
+    static class PartitionsSettingsNodeLeftExpression extends RowCollectNestedObjectExpression<PartitionInfo> {
 
         public static final String NAME = "node_left";
 
