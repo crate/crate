@@ -61,6 +61,7 @@ public class LongTypeTest extends CrateUnitTest {
     @Test
     public void testOnlyPlusSign() throws Exception {
         expectedException.expect(NumberFormatException.class);
+        expectedException.expectMessage("\"+\" cannot be converted to type long");
         assertBytesRefParsing("+", 1L);
     }
 

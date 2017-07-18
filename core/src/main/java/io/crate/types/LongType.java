@@ -87,7 +87,7 @@ LongType extends DataType<Long> implements FixedWidthType, Streamer<Long>, DataT
         int digit;
 
         if (len <= 0) {
-            throw new NumberFormatException(value.utf8ToString());
+            throw raiseNumberFormatException(value);
         }
 
         char firstChar = (char) bytes[i];
@@ -96,11 +96,11 @@ LongType extends DataType<Long> implements FixedWidthType, Streamer<Long>, DataT
                 negative = true;
                 limit = Long.MIN_VALUE;
             } else if (firstChar != '+') {
-                throw new NumberFormatException(value.utf8ToString());
+                throw raiseNumberFormatException(value);
             }
 
             if (len == 1) { // lone '+' or '-'
-                throw new NumberFormatException(value.utf8ToString());
+                throw raiseNumberFormatException(value);
             }
             i++;
         }
@@ -109,18 +109,22 @@ LongType extends DataType<Long> implements FixedWidthType, Streamer<Long>, DataT
             digit = Character.digit((char) bytes[i], radix);
             i++;
             if (digit < 0) {
-                throw new NumberFormatException(value.utf8ToString());
+                throw raiseNumberFormatException(value);
             }
             if (result < multmin) {
-                throw new NumberFormatException(value.utf8ToString());
+                throw raiseNumberFormatException(value);
             }
             result *= radix;
             if (result < limit + digit) {
-                throw new NumberFormatException(value.utf8ToString());
+                throw raiseNumberFormatException(value);
             }
             result -= digit;
         }
         return negative ? result : -result;
+    }
+
+    private NumberFormatException raiseNumberFormatException(BytesRef value) {
+        throw new NumberFormatException('"' + value.utf8ToString() + "\" cannot be converted to type long");
     }
 
     @Override
