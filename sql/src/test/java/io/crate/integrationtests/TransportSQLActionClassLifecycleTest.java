@@ -226,7 +226,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         response = execute("select sum(age) as sum_age from characters");
         assertEquals(1, response.rowCount());
         assertEquals("sum_age", response.cols()[0]);
-        assertEquals(221.0d, response.rows()[0][0]);
+        assertEquals(221L, response.rows()[0][0]);
     }
 
     @Test
@@ -260,7 +260,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     public void testGlobalAggregateMany() throws Exception {
         SQLResponse response = execute("select sum(age), min(age), max(age), avg(age) from characters");
         assertEquals(1, response.rowCount());
-        assertEquals(221.0d, response.rows()[0][0]);
+        assertEquals(221L, response.rows()[0][0]);
         assertEquals(32, response.rows()[0][1]);
         assertEquals(112, response.rows()[0][2]);
         assertEquals(55.25d, response.rows()[0][3]);

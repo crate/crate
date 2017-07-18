@@ -434,16 +434,16 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         assertEquals(4, response.rowCount());
 
         assertEquals("HR", response.rows()[0][1]);
-        assertEquals(12.0d, response.rows()[0][0]);
+        assertEquals(12L, response.rows()[0][0]);
 
         assertEquals("engineering", response.rows()[1][1]);
-        assertEquals(101.0d, response.rows()[1][0]);
+        assertEquals(101L, response.rows()[1][0]);
 
         assertEquals("internship", response.rows()[2][1]);
-        assertEquals(28.0d, response.rows()[2][0]);
+        assertEquals(28L, response.rows()[2][0]);
 
         assertEquals("management", response.rows()[3][1]);
-        assertEquals(45.0d, response.rows()[3][0]);
+        assertEquals(45L, response.rows()[3][0]);
 
     }
 

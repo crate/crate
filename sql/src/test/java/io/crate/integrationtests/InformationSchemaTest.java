@@ -633,7 +633,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(3, response.rows()[0][0]);
         assertEquals(10, response.rows()[0][1]);
         assertEquals(6.0d, response.rows()[0][2]);
-        assertEquals(18.0d, response.rows()[0][3]);
+        assertEquals(18L, response.rows()[0][3]);
     }
 
     @Test
@@ -649,7 +649,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(2, response.rows()[0][0]);
         assertEquals(3, response.rows()[0][1]);
         assertEquals(2.5d, response.rows()[0][2]);
-        assertEquals(5.0d, response.rows()[0][3]);
+        assertEquals(5L, response.rows()[0][3]);
     }
 
     @Test

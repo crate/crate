@@ -283,8 +283,8 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("select i%3, sum(l) from t where i+1 > 2 group by i%3 order by sum(l)");
         assertThat(response.rowCount(), is(2L));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "2| 5.0\n" +
-            "1| 3.1234594454E10\n"));
+            "2| 5\n" +
+            "1| 31234594454\n"));
     }
 
     @Test

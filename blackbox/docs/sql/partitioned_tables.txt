@@ -387,7 +387,7 @@ partitioned table. However, the shard configuration will only be applied on
     +------------+----------+
     | num_shards | num_docs |
     +------------+----------+
-    |         10 |      1.0 |
+    |         10 |      1   |
     +------------+----------+
     SELECT 1 row in set (... sec)
 
