@@ -18,6 +18,8 @@ Breaking Changes
 Changes
 =======
 
+ - Table functions now support value expressions as arguments.
+
 Fixes
 =====
 

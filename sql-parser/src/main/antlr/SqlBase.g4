@@ -178,7 +178,7 @@ tableWithPartition
 
 table
     : qname
-    | ident '(' parameterOrLiteral? (',' parameterOrLiteral)* ')'
+    | ident '(' valueExpression? (',' valueExpression)* ')'
     ;
 
 aliasedColumns
