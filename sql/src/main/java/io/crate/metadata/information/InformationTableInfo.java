@@ -92,6 +92,13 @@ public class InformationTableInfo extends StaticTableInfo {
             ImmutableList.of("warmer"));
         public static final ColumnIdent TABLE_SETTINGS_WARMER_ENABLED = new ColumnIdent("settings",
             ImmutableList.of("warmer", "enabled"));
+        public static final ColumnIdent TABLE_SETTINGS_MAPPING = new ColumnIdent("settings",
+            ImmutableList.of("mapping"));
+        public static final ColumnIdent TABLE_SETTINGS_MAPPING_TOTAL_FIELDS = new ColumnIdent("settings",
+            ImmutableList.of("mapping", "total_fields"));
+        public static final ColumnIdent TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT = new ColumnIdent("settings",
+            ImmutableList.of("mapping", "total_fields", "limit"));
+
 
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG = new ColumnIdent("settings",
             ImmutableList.of("translog"));

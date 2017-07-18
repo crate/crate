@@ -87,6 +87,13 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
         public static final Reference TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE = createRef(
             Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, DataTypes.INTEGER);
 
+        public static final Reference TABLE_SETTINGS_MAPPING = createRef(
+            Columns.TABLE_SETTINGS_MAPPING, DataTypes.OBJECT);
+        public static final Reference TABLE_SETTINGS_MAPPING_TOTAL_FIELDS = createRef(
+            Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS, DataTypes.OBJECT);
+        public static final Reference TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT = createRef(
+            Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT, DataTypes.INTEGER);
+
         public static final Reference TABLE_SETTINGS_RECOVERY = createRef(
             Columns.TABLE_SETTINGS_RECOVERY, DataTypes.OBJECT);
         public static final Reference TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS = createRef(
@@ -143,6 +150,9 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
                 .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION, References.TABLE_SETTINGS_ROUTING_ALLOCATION)
                 .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE, References.TABLE_SETTINGS_ROUTING_ALLOCATION_ENABLE)
                 .put(Columns.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE, References.TABLE_SETTINGS_ROUTING_ALLOCATION_TOTAL_SHARDS_PER_NODE)
+                .put(Columns.TABLE_SETTINGS_MAPPING, References.TABLE_SETTINGS_MAPPING)
+                .put(Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS, References.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS)
+                .put(Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT, References.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT)
                 .put(Columns.TABLE_SETTINGS_RECOVERY, References.TABLE_SETTINGS_RECOVERY)
                 .put(Columns.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS, References.TABLE_SETTINGS_RECOVERY_INITIAL_SHARDS)
                 .put(Columns.TABLE_SETTINGS_WARMER, References.TABLE_SETTINGS_WARMER)

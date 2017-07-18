@@ -109,6 +109,13 @@ public class InformationTablesTableInfo extends InformationTableInfo {
         public static final Reference TABLE_SETTINGS_WARMER_ENABLED = createRef(
             Columns.TABLE_SETTINGS_WARMER_ENABLED, DataTypes.BOOLEAN);
 
+        public static final Reference TABLE_SETTINGS_MAPPING = createRef(
+            Columns.TABLE_SETTINGS_MAPPING, DataTypes.OBJECT);
+        public static final Reference TABLE_SETTINGS_MAPPING_TOTAL_FIELDS = createRef(
+            Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS, DataTypes.OBJECT);
+        public static final Reference TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT = createRef(
+            Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT, DataTypes.INTEGER);
+
         public static final Reference TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL = createRef(
             Columns.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL, DataTypes.LONG);
 
@@ -173,6 +180,10 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 .put(Columns.TABLE_SETTINGS_UNASSIGNED, References.TABLE_SETTINGS_UNASSIGNED)
                 .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, References.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT)
                 .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, References.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
+                .put(Columns.TABLE_SETTINGS_MAPPING, References.TABLE_SETTINGS_MAPPING)
+                .put(Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS, References.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS)
+                .put(Columns.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT, References.TABLE_SETTINGS_MAPPING_TOTAL_FIELDS_LIMIT)
+
                 .build(),
             ImmutableList.of(
                 References.BLOBS_PATH,
