@@ -22,6 +22,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableSet;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.user.Privilege;
+import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UserAlreadyExistsException;
 import io.crate.exceptions.UserUnknownException;
 import io.crate.metadata.UsersMetaData;
@@ -54,6 +56,14 @@ public class UserManagerService implements UserManager, ClusterStateListener {
     };
     @VisibleForTesting
     static final ExceptionAuthorizedValidator NOOP_EXCEPTION_VALIDATOR = t -> {
+    };
+
+    static final StatementAuthorizedValidator ALWAYS_FAIL_STATEMENT_VALIDATOR = s -> {
+        throw new UnauthorizedException("User `null` is not authorized to execute statement");
+    };
+
+    static final ExceptionAuthorizedValidator ALWAYS_FAIL_EXCEPTION_VALIDATOR = s -> {
+        throw new MissingPrivilegeException(s.getMessage());
     };
 
     private static final Consumer<User> ENSURE_DROP_USER_NOT_SUPERUSER = user -> {
@@ -181,6 +191,9 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     @Override
     public StatementAuthorizedValidator getStatementValidator(@Nullable User user) {
+        if (user == null) {
+            return ALWAYS_FAIL_STATEMENT_VALIDATOR;
+        }
         if (authorizedValidationRequired(user)) {
             return new StatementPrivilegeValidator(user);
         }
@@ -189,6 +202,9 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     @Override
     public ExceptionAuthorizedValidator getExceptionValidator(@Nullable User user) {
+        if (user == null) {
+            return ALWAYS_FAIL_EXCEPTION_VALIDATOR;
+        }
         if (authorizedValidationRequired(user)) {
             return new ExceptionPrivilegeValidator(user);
         }
@@ -197,13 +213,6 @@ public class UserManagerService implements UserManager, ClusterStateListener {
 
     @SuppressWarnings({"SimplifiableIfStatement", "PointlessBooleanExpression"})
     private boolean authorizedValidationRequired(@Nullable User user) {
-        if (user == null) {
-            // this can occur when the hba setting is not there,
-            // in this case there is no authentication and everyone
-            // can access the cluster
-            return false;
-        }
-
         return user.isSuperUser() == false;
     }
 
