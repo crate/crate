@@ -88,4 +88,10 @@ class TableFunctionITest extends SQLTransportIntegrationTest {
         execute("select col1 from unnest([1, 2]) where col1 = 2")
         assert printedTable(response.rows()) == "2\n"
     }
+
+    @Test
+    public void testValueExpression() throws Exception {
+        execute("select * from unnest(coalesce([1,2]))")
+        assert printedTable(response.rows()) == "1\n2\n"
+    }
 }

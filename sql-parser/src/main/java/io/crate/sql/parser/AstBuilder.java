@@ -877,10 +877,10 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     @Override
     public Node visitTable(SqlBaseParser.TableContext context) {
         if (context.qname() != null) {
-            return new Table(getQualifiedName(context.qname()), visit(context.parameterOrLiteral(), Assignment.class));
+            return new Table(getQualifiedName(context.qname()), visit(context.valueExpression(), Assignment.class));
         }
         FunctionCall fc = new FunctionCall(
-            getQualifiedName(context.ident()), visit(context.parameterOrLiteral(), Expression.class));
+            getQualifiedName(context.ident()), visit(context.valueExpression(), Expression.class));
         return new TableFunction(fc);
     }
 
