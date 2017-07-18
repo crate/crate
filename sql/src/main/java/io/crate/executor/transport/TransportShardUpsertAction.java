@@ -22,25 +22,30 @@
 package io.crate.executor.transport;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.analyze.AnalyzedColumnDefinition;
 import io.crate.analyze.ConstraintsValidator;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
-import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.data.ArrayRow;
+import io.crate.data.Input;
+import io.crate.data.Row;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.operation.InputFactory;
+import io.crate.operation.collect.CollectExpression;
+import io.crate.operation.reference.ReferenceResolver;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchGenerationException;
@@ -86,6 +91,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -104,12 +110,10 @@ import static org.elasticsearch.action.support.replication.ReplicationOperation.
 public class TransportShardUpsertAction extends TransportShardAction<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
     private final static String ACTION_NAME = "indices:crate/data/write/upsert";
-    private final static SymbolToFieldExtractor<GetResult> SYMBOL_TO_FIELD_EXTRACTOR =
-        new SymbolToFieldExtractor<>(new GetResultFieldExtractorFactory());
 
     private final SchemaUpdateClient schemaUpdateClient;
-    private final Functions functions;
     private final Schemas schemas;
+    private final InputFactory inputFactory;
 
     @Inject
     public TransportShardUpsertAction(Settings settings,
@@ -127,8 +131,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         super(settings, ACTION_NAME, transportService, indexNameExpressionResolver, clusterService,
             indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest::new);
         this.schemaUpdateClient = schemaUpdateClient;
-        this.functions = functions;
         this.schemas = schemas;
+        this.inputFactory = new InputFactory(functions);
         jobContextService.addListener(this);
     }
 
@@ -261,17 +265,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
     }
 
-    /**
-     * Prepares an update request by converting it into an index request.
-     * <p/>
-     * TODO: detect a NOOP and return an update response if true
-     */
-    @SuppressWarnings("unchecked")
-    private SourceAndVersion prepareUpdate(DocTableInfo tableInfo,
-                                           ShardUpsertRequest request,
-                                           ShardUpsertRequest.Item item,
-                                           IndexShard indexShard) throws ElasticsearchException {
-        final GetResult getResult = indexShard.getService().get(
+    private GetResult getDocument(IndexShard indexShard, ShardUpsertRequest request, ShardUpsertRequest.Item item) {
+        GetResult getResult = indexShard.getService().get(
             request.type(),
             item.id(),
             new String[]{RoutingFieldMapper.NAME, ParentFieldMapper.NAME, TTLFieldMapper.NAME},
@@ -295,13 +290,54 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, item.id(), "TODO: add explanation");
         }
 
-        Tuple<XContentType, Map<String, Object>> sourceAndContent = XContentHelper.convertToMap(getResult.internalSourceRef(), true);
-        final Map<String, Object> updatedSourceAsMap;
-        final XContentType updateSourceContentType = sourceAndContent.v1();
+        return getResult;
+    }
 
-        updatedSourceAsMap = sourceAndContent.v2();
+    private List<Input<?>> resolveSymbols(ReferenceResolver<CollectExpression<GetResult, ?>> referenceResolver,
+                                          GetResult getResult,
+                                          Iterable<? extends Symbol> updateAssignments,
+                                          @Nullable Object[] insertValues) {
 
-        SymbolToFieldExtractorContext ctx = new SymbolToFieldExtractorContext(functions, item.insertValues());
+        InputFactory.ContextInputAware<CollectExpression<GetResult, ?>> universalContext =
+            inputFactory.ctxForRefsWithInputCols(referenceResolver);
+
+        List<Input<?>> updateInputs = new ArrayList<>();
+        for (Symbol symbol : updateAssignments) {
+            if (symbol instanceof GeneratedReference) {
+                symbol = ((GeneratedReference) symbol).generatedExpression();
+            }
+            updateInputs.add(universalContext.add(symbol));
+        }
+
+        List<CollectExpression<GetResult, ?>> expressions = universalContext.expressions();
+        for (CollectExpression<GetResult, ?> expression : expressions) {
+            expression.setNextRow(getResult);
+        }
+
+        List<CollectExpression<Row, ?>> inputColExpressions = universalContext.inputColExpressions();
+        ArrayRow arrayRow = new ArrayRow();
+        arrayRow.cells(insertValues);
+        for (CollectExpression<Row, ?> rowCollectExpression : inputColExpressions) {
+            rowCollectExpression.setNextRow(arrayRow);
+        }
+
+        return updateInputs;
+    }
+
+    /**
+     * Prepares an update request by converting it into an index request.
+     * <p/>
+     * TODO: detect a NOOP and return an update response if true
+     */
+    private SourceAndVersion prepareUpdate(DocTableInfo tableInfo,
+                                           ShardUpsertRequest request,
+                                           ShardUpsertRequest.Item item,
+                                           IndexShard indexShard) throws ElasticsearchException {
+
+        GetResult getResult = getDocument(indexShard, request, item);
+
+        List<Input<?>> updateInputs = resolveSymbols(GetResultRefResolver.INSTANCE,
+            getResult, Arrays.asList(item.updateAssignments()), item.insertValues());
 
         Map<String, Object> pathsToUpdate = new LinkedHashMap<>();
         Map<String, Object> updatedGeneratedColumns = new LinkedHashMap<>();
@@ -311,7 +347,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
              * the data might be returned in the wrong format (date as string instead of long)
              */
             String columnPath = request.updateColumns()[i];
-            Object value = SYMBOL_TO_FIELD_EXTRACTOR.convert(item.updateAssignments()[i], ctx).apply(getResult);
+            Object value = updateInputs.get(i).value();
+
             Reference reference = tableInfo.getReference(ColumnIdent.fromPath(columnPath));
 
             if (reference != null) {
@@ -333,6 +370,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         // Currently the validation is done only for generated columns.
         processGeneratedColumns(tableInfo, pathsToUpdate, updatedGeneratedColumns, true, getResult);
 
+        Tuple<XContentType, Map<String, Object>> sourceAndContent =
+            XContentHelper.convertToMap(getResult.internalSourceRef(), true);
+        final XContentType updateSourceContentType = sourceAndContent.v1();
+        final Map<String, Object> updatedSourceAsMap = sourceAndContent.v2();
+
         updateSourceByPaths(updatedSourceAsMap, pathsToUpdate);
 
         try {
@@ -348,6 +390,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                          Collection<ColumnIdent> notUsedNonGeneratedColumns,
                                          ShardUpsertRequest request,
                                          ShardUpsertRequest.Item item) throws IOException {
+
         List<GeneratedReference> generatedReferencesWithValue = new ArrayList<>();
         BytesReference source;
         if (request.isRawSourceInsert()) {
@@ -392,8 +435,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         if (numMissingGeneratedColumns > 0 ||
             (generatedReferencesWithValue.size() > 0 && request.validateConstraints())) {
             // we need to evaluate some generated column expressions
-            Map<String, Object> sourceMap = processGeneratedColumnsOnInsert(tableInfo, request.insertColumns(), item.insertValues(),
-                request.isRawSourceInsert(), request.validateConstraints());
+            Map<String, Object> sourceMap = processGeneratedColumnsOnInsert(tableInfo, request.insertColumns(),
+                item.insertValues(), request.isRawSourceInsert(), request.validateConstraints());
             source = XContentFactory.jsonBuilder().map(sourceMap).bytes();
         }
 
@@ -479,7 +522,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 item.source().utf8ToString(),
                 item.opType(),
                 item.version(),
-                item.version());
+                item.versionType());
         }
         Engine.Index index = indexShard.prepareIndexOnReplica(
             sourceToParse, item.version(), item.versionType(), -1, request.isRetry());
@@ -501,7 +544,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                                 boolean isRawSourceInsert,
                                                                 boolean validateExpressionValue) {
         Map<String, Object> sourceAsMap = buildMapFromSource(insertColumns, insertValues, isRawSourceInsert);
-        processGeneratedColumns(tableInfo, sourceAsMap, sourceAsMap, validateExpressionValue);
+        processGeneratedColumns(tableInfo, sourceAsMap, sourceAsMap, validateExpressionValue, null);
         return sourceAsMap;
     }
 
@@ -523,21 +566,21 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @VisibleForTesting
-    void processGeneratedColumns(final DocTableInfo tableInfo,
+    void processGeneratedColumns(DocTableInfo tableInfo,
                                  Map<String, Object> updatedColumns,
                                  Map<String, Object> updatedGeneratedColumns,
-                                 boolean validateConstraints) {
-        processGeneratedColumns(tableInfo, updatedColumns, updatedGeneratedColumns, validateConstraints, null);
-    }
+                                 boolean validateConstraints,
+                                 @Nullable GetResult getResult) {
 
-    private void processGeneratedColumns(final DocTableInfo tableInfo,
-                                         Map<String, Object> updatedColumns,
-                                         Map<String, Object> updatedGeneratedColumns,
-                                         boolean validateConstraints,
-                                         @Nullable GetResult getResult) {
-        SymbolToFieldExtractorContext ctx = new SymbolToFieldExtractorContext(functions, updatedColumns);
+        List<GeneratedReference> generatedReferences = tableInfo.generatedColumns();
 
-        for (GeneratedReference reference : tableInfo.generatedColumns()) {
+        List<Input<?>> generatedSymbols = resolveSymbols(
+            new GetResultOrGeneratedColumnsResolver(updatedColumns),
+            getResult,
+            generatedReferences,
+            null);
+        for(int i = 0; i < generatedReferences.size(); i++) {
+            final GeneratedReference reference = generatedReferences.get(i);
             // partitionedBy columns cannot be updated
             if (!tableInfo.partitionedByColumns().contains(reference)) {
                 Object userSuppliedValue = updatedGeneratedColumns.get(reference.ident().columnIdent().fqn());
@@ -549,8 +592,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     ||
                     generatedExpressionEvaluationNeeded(reference.referencedReferences(), updatedColumns.keySet())) {
                     // at least one referenced column was updated, need to evaluate expression and update column
-                    Function<GetResult, Object> extractor = SYMBOL_TO_FIELD_EXTRACTOR.convert(reference.generatedExpression(), ctx);
-                    Object generatedValue = extractor.apply(getResult);
+                    Object generatedValue = generatedSymbols.get(i).value();
 
                     if (userSuppliedValue == null) {
                         // add column & value
@@ -642,60 +684,61 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return columnsNotUsed;
     }
 
-    private static class SymbolToFieldExtractorContext extends SymbolToFieldExtractor.Context {
+    private static class GetResultRefResolver implements ReferenceResolver<CollectExpression<GetResult, ?>> {
 
-        private final Object[] insertValues;
-        private final Map<String, Object> updatedColumnValues;
-
-        private SymbolToFieldExtractorContext(Functions functions,
-                                              int size,
-                                              @Nullable Object[] insertValues,
-                                              @Nullable Map<String, Object> updatedColumnValues) {
-            super(functions, size);
-            this.insertValues = insertValues;
-            this.updatedColumnValues = updatedColumnValues;
-
-        }
-
-        SymbolToFieldExtractorContext(Functions functions, Object[] insertValues) {
-            this(functions, insertValues != null ? insertValues.length : 0, insertValues, null);
-        }
-
-        SymbolToFieldExtractorContext(Functions functions, Map<String, Object> updatedColumnValues) {
-            this(functions, updatedColumnValues.size(), null, updatedColumnValues);
-        }
+        private static final GetResultRefResolver INSTANCE = new GetResultRefResolver();
 
         @Override
-        public Object inputValueFor(InputColumn inputColumn) {
-            assert insertValues != null : "insertValues must not be null";
-            return insertValues[inputColumn.index()];
-        }
+        public CollectExpression<GetResult, ?> getImplementation(Reference ref) {
+            ColumnIdent columnIdent = ref.ident().columnIdent();
+            String fqn = columnIdent.fqn();
+            switch (fqn) {
+                case DocSysColumns.Names.VERSION:
+                    return RowContextCollectorExpression.forFunction(GetResult::getVersion);
 
-        @Nullable
-        @Override
-        public Object referenceValue(Reference reference) {
-            if (updatedColumnValues == null) {
-                return super.referenceValue(reference);
+                case DocSysColumns.Names.ID:
+                    return RowContextCollectorExpression.objToBytesRef(GetResult::getId);
+
+                case DocSysColumns.Names.RAW:
+                    return RowContextCollectorExpression.forFunction(r -> r.sourceRef().toBytesRef());
+
+                case DocSysColumns.Names.DOC:
+                    return RowContextCollectorExpression.forFunction(GetResult::getSource);
+
             }
 
-            Object value = updatedColumnValues.get(reference.ident().columnIdent().fqn());
-            if (value == null && !reference.ident().isColumn()) {
-                value = XContentMapValues.extractValue(reference.ident().columnIdent().fqn(), updatedColumnValues);
-            }
-            return reference.valueType().value(value);
+            return RowContextCollectorExpression.forFunction(response -> {
+                if (response == null) {
+                    return null;
+                }
+                Map<String, Object> sourceAsMap = response.sourceAsMap();
+                return ref.valueType().value(XContentMapValues.extractValue(fqn, sourceAsMap));
+            });
         }
     }
 
-    private static class GetResultFieldExtractorFactory implements FieldExtractorFactory<GetResult, SymbolToFieldExtractor.Context> {
+    private static class GetResultOrGeneratedColumnsResolver extends GetResultRefResolver {
+
+        private final Map<String, Object> updatedColumns;
+
+        GetResultOrGeneratedColumnsResolver(Map<String, Object> updatedColumns) {
+            super();
+            this.updatedColumns = updatedColumns;
+        }
+
         @Override
-        public Function<GetResult, Object> build(final Reference reference, SymbolToFieldExtractor.Context context) {
-            return getResult -> {
-                if (getResult == null) {
-                    return null;
-                }
-                return reference.valueType().value(XContentMapValues.extractValue(
-                    reference.ident().columnIdent().fqn(), getResult.sourceAsMap()));
-            };
+        public CollectExpression<GetResult, ?> getImplementation(Reference ref) {
+            Object suppliedValue = updatedColumns.get(ref.ident().columnIdent().fqn());
+            final Object value;
+            if (suppliedValue == null && !ref.ident().isColumn()) {
+                value = XContentMapValues.extractValue(ref.ident().columnIdent().fqn(), updatedColumns);
+            } else {
+                value = suppliedValue;
+            }
+            if (value != null) {
+                return RowContextCollectorExpression.forFunction(ignored -> ref.valueType().value(value));
+            }
+            return super.getImplementation(ref);
         }
     }
 
