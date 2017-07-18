@@ -84,5 +84,26 @@ The resulting tarball and zip file will be written to the
 
 We have a Jenkins_ job that will build the tarball for you.
 
+Archiving Docs Versions
+=======================
+
+Check the `versions hosted on ReadTheDocs`_.
+
+We only host the docs for:
+
+- `latest`
+- `stable`
+- The branch corresponding to the current testing release
+- The branch corresponding to the current stable release
+- The two branches preceding the branch corresponding to the current stable
+  release
+- The most recent branch for each major release
+
+Sometimes you might find that there are multiple older releases that need to be
+archived.
+
+You can archive releases by selecting *Edit*, unselecting the *Active*
+checkbox, and then saving.
 
 .. _Jenkins: http://jenkins-ci.org/
+.. _versions hosted on ReadTheDocs: https://readthedocs.org/projects/crate-dbal/versions/
