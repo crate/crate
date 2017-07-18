@@ -29,9 +29,7 @@ import org.junit.Test;
 
 import java.util.Set;
 
-import static io.crate.operation.user.UserManagerService.CRATE_USER;
-import static io.crate.operation.user.UserManagerService.NOOP_EXCEPTION_VALIDATOR;
-import static io.crate.operation.user.UserManagerService.NOOP_STATEMENT_VALIDATOR;
+import static io.crate.operation.user.UserManagerService.*;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -65,7 +63,7 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGetNoopStatementValidatorForNullUser() throws Exception {
         StatementAuthorizedValidator validator = userManagerService.getStatementValidator(null);
-        assertThat(validator, is(NOOP_STATEMENT_VALIDATOR));
+        assertThat(validator, is(ALWAYS_FAIL_STATEMENT_VALIDATOR));
     }
 
     @Test
@@ -77,7 +75,7 @@ public class UserManagerServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGetNoopExceptionValidatorForNullUser() throws Exception {
         ExceptionAuthorizedValidator validator = userManagerService.getExceptionValidator(null);
-        assertThat(validator, is(NOOP_EXCEPTION_VALIDATOR));
+        assertThat(validator, is(ALWAYS_FAIL_EXCEPTION_VALIDATOR));
     }
 
     @Test

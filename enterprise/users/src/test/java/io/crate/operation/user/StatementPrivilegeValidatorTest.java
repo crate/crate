@@ -130,9 +130,10 @@ public class StatementPrivilegeValidatorTest extends CrateDummyClusterServiceUni
     }
 
     @Test
-    public void testNoUserByPassesValidation() throws Exception {
+    public void testSelectStatementNotAllowedAsNullUser() throws Exception {
+        expectedException.expect(UnauthorizedException.class);
+        expectedException.expectMessage("User `null` is not authorized to execute statement");
         analyze("select * from sys.cluster", null);
-        assertThat(validationCallArguments.size(), is(0));
     }
 
     @Test
