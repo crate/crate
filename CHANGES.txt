@@ -19,8 +19,8 @@ Changes
 =======
 
  - Enabled ``mapping.total_fields.limit`` setting for tables in order to be
-    able to increase maximum number of columns higher than the default
-    of ``1000``.
+   able to increase maximum number of columns higher than the default of
+   ``1000``.
 
  - Table functions now support value expressions as arguments.
 
@@ -38,61 +38,15 @@ Fixes
        ) NOT NULL
      )
 
- - Internal system queries are now executed under the "crate" superuser if
-   user management is enabled.
+ - Internal system queries are now executed under the "crate" superuser if user
+   management is enabled.
 
  - ``!= ANY()`` could not operate on arrays with more than 1024 elements. This
    limit has been increased by default to 8192. A new node setting:
    ``indices.query.bool.max_clause_count`` has been exposed to allow to
-    configure this limit.
-
- - Added support for conditionals with ``NULL`` arguments.
-
- - Allow ``GROUP BY`` on any scalar functions. E.g.::
-
-     SELECT id + 1 FROM t GROUP BY id
-
- - Do not include Lucene indices (metadata) of ``BLOB`` tables in snapshot
-   when using ``CREATE SNAPSHOT`` with ``ALL``, because the actual binary
-   files of ``BLOB`` tables cannot be backed up using ``SNAPSHOT/RESTORE``
-   functionality.
-
- - Fixed rename table operation for empty partitioned tables.
+   configure this limit.
 
  - Fixed an issue which caused unrelated table privileges to be lost after a
    table was renamed.
 
- - Fixed an issue that caused wrong results to be returned for global
-   aggregation on ``JOINS`` when literal expression in ``WHERE`` clause is
-   evaluated to false. E.g.::
-
-     SELECT COUNT(*) FROM t1, t2 WHERE 1=2
-
- - Fixed an issue which resulted in an exception when using the same global
-   aggregation symbol twice as a select item on a join query.
-
- - Provide comprehensive error message when using  ``NULL`` literal in
-    ``GROUP BY``.
-
- - Allow ``DISTINCT`` to operate on literals. E.g.::
-
-     SELECT DISTINCT ['val1', 'val2'], col1, col2, ... FROM t
-
- - Allow ``GROUP BY`` on any literal. E.g.::
-
-     SELECT {a=1, b=2}, COUNT(*) FROM t GROUP BY 1
-
- - Fixed an issue that can hang the nodes when running an insert from query
-   statement for a large dataset when the target table is an empty
-   partitioned table.
-
  - Fixed an issue that prevents CrateDB from bootstrap on Windows hosts.
-
- - Fixed a race condition which could cause ``UPDATE`` or ``DELETE`` statements
-   to get stuck.
-
- - Fixed a ClassCastException that could occur on certain queries if connected
-   via the postgres protocol.
-
- - Fixed an issue that could cause the ``_score >= <minScore>`` filter to not
-   work correctly if used in a query with an ``ORDER BY`` clause.
