@@ -2,7 +2,7 @@
 
    This is a reference work.
 
-   If you're just getting started, check out `the CrateDB Guide`_.
+   If you are just getting started, check out `the CrateDB Guide`_. The guide also includes information on best practices, and so on.
 
 .. rubric:: Table of Contents
 
@@ -11,10 +11,8 @@
 
    architecture/index
    release_notes/index
-   installation
    configuration
    cli
-   hello
    sql/index
    blob
    plugins
