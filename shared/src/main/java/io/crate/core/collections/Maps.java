@@ -32,4 +32,17 @@ public final class Maps {
     public static <K, V> Map<K, V> mapOrNullIfNullValues(Map<K, V> map) {
         return map.values().stream().anyMatch(Objects::nonNull) ? map : null;
     }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T getNested(Map map, String key) {
+        return (T) map.get(key);
+    }
+
+    public static <T> T getNested(@Nullable Map map, String key, T defaultValue) {
+        if (map == null) {
+            return defaultValue;
+        }
+        //noinspection unchecked
+        return (T) map.getOrDefault(key, defaultValue);
+    }
 }
