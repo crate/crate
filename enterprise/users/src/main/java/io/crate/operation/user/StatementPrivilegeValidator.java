@@ -283,7 +283,7 @@ class StatementPrivilegeValidator implements StatementAuthorizedValidator {
                 if (PartitionName.isPartition(indexName)) {
                     tableName = PartitionName.fromIndexOrTemplate(indexName).tableIdent().toString();
                 } else {
-                    tableName = TableIdent.fromIndexName(indexName).toString();
+                    tableName = TableIdent.fqnFromIndexName(indexName);
                 }
                 Privileges.ensureUserHasPrivilege(
                     Privilege.Type.DQL,

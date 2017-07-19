@@ -99,7 +99,7 @@ public class TransportTransferTablePrivilegesAction extends TransportMasterNodeA
         }
 
         // create a new instance of the metadata, to guarantee the cluster changed action.
-        Tuple<UsersPrivilegesMetaData, Long> newMetaDataAndAffectedRows = UsersPrivilegesMetaData.copyAndReplace(
+        Tuple<UsersPrivilegesMetaData, Long> newMetaDataAndAffectedRows = UsersPrivilegesMetaData.copyAndReplaceTableIdents(
             oldMetaData, request.sourceIdent(), request.targetIdent());
         Long affectedRows = newMetaDataAndAffectedRows.v2();
 

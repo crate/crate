@@ -115,19 +115,19 @@ public class SysPrivilegesTableInfo extends StaticTableInfo {
             .put(Columns.TYPE, () -> new RowContextCollectorExpression<PrivilegeRow, BytesRef>() {
                 @Override
                 public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.privilege.type());
+                    return BytesRefs.toBytesRef(row.privilege.ident().type());
                 }
             })
             .put(Columns.CLASS, () -> new RowContextCollectorExpression<PrivilegeRow, BytesRef>() {
                 @Override
                 public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.privilege.clazz());
+                    return BytesRefs.toBytesRef(row.privilege.ident().clazz());
                 }
             })
             .put(Columns.IDENT, () -> new RowContextCollectorExpression<PrivilegeRow, BytesRef>() {
                 @Override
                 public BytesRef value() {
-                    return BytesRefs.toBytesRef(row.privilege.ident());
+                    return BytesRefs.toBytesRef(row.privilege.ident().ident());
                 }
             })
             .build();

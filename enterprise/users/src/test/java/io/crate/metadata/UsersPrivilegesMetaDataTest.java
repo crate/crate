@@ -194,42 +194,42 @@ public class UsersPrivilegesMetaDataTest extends CrateUnitTest {
 
     @Test
     public void testTablePrivilegesAreTransfered() throws Exception {
-        Tuple<UsersPrivilegesMetaData, Long> usersMetaDataAndAffectedRows = UsersPrivilegesMetaData.copyAndReplace(
-            usersPrivilegesMetaData, GRANT_TABLE_DQL.ident(), "testSchema.testing");
+        Tuple<UsersPrivilegesMetaData, Long> usersMetaDataAndAffectedRows = UsersPrivilegesMetaData.copyAndReplaceTableIdents(
+            usersPrivilegesMetaData, GRANT_TABLE_DQL.ident().ident(), "testSchema.testing");
 
         assertThat(usersMetaDataAndAffectedRows.v2(), is(1L));
 
         Set<Privilege> updatedPrivileges = usersMetaDataAndAffectedRows.v1().getUserPrivileges(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
         Optional<Privilege> targetPrivilege = updatedPrivileges.stream()
-            .filter(p -> p.ident().equals("testSchema.testing"))
+            .filter(p -> p.ident().ident().equals("testSchema.testing"))
             .findAny();
         assertThat(targetPrivilege.isPresent(), is(true));
 
         Optional<Privilege> sourcePrivilege = updatedPrivileges.stream()
-            .filter(p -> p.ident().equals("testSchema.test"))
+            .filter(p -> p.ident().ident().equals("testSchema.test"))
             .findAny();
         assertThat(sourcePrivilege.isPresent(), is(false));
 
         // unrelated table privileges must be still available
         Optional<Privilege> otherTablePrivilege = updatedPrivileges.stream()
-            .filter(p -> p.ident().equals("testSchema.test2"))
+            .filter(p -> p.ident().ident().equals("testSchema.test2"))
             .findAny();
         assertThat(otherTablePrivilege.isPresent(), is(true));
 
         Optional<Privilege> schemaPrivilege = updatedPrivileges.stream()
-            .filter(p -> p.clazz().equals(Privilege.Clazz.SCHEMA))
+            .filter(p -> p.ident().clazz().equals(Privilege.Clazz.SCHEMA))
             .findAny();
         assertThat(schemaPrivilege.isPresent() && schemaPrivilege.get().equals(GRANT_SCHEMA_DML), is(true));
     }
 
     @Test
     public void testDropTablePrivileges() {
-        long affectedPrivileges = usersPrivilegesMetaData.dropTablePrivileges(GRANT_TABLE_DQL.ident());
+        long affectedPrivileges = usersPrivilegesMetaData.dropTablePrivileges(GRANT_TABLE_DQL.ident().ident());
         assertThat(affectedPrivileges, is(1L));
 
         Set<Privilege> updatedPrivileges = usersPrivilegesMetaData.getUserPrivileges(USER_WITH_SCHEMA_AND_TABLE_PRIVS);
         Optional<Privilege> sourcePrivilege = updatedPrivileges.stream()
-            .filter(p -> p.ident().equals("testSchema.test"))
+            .filter(p -> p.ident().ident().equals("testSchema.test"))
             .findAny();
         assertThat(sourcePrivilege.isPresent(), is(false));
     }

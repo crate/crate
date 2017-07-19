@@ -25,13 +25,7 @@ import org.junit.Test;
 
 import java.util.Collections;
 
-import static io.crate.operation.user.UserManagerService.CRATE_USER;
-
 public class PrivilegesTest extends CrateUnitTest {
-
-    private static final User USER = new User("normal", Collections.emptySet(), Collections.singleton(
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, CRATE_USER.name())
-    ));
 
     @Test
     public void testExceptionIsThrownIfUserHasNotRequiredPrivilege() throws Exception {

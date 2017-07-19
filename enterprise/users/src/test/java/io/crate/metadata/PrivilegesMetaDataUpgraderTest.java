@@ -77,7 +77,7 @@ public class PrivilegesMetaDataUpgraderTest extends CrateUnitTest {
         assertThat(privilegesMetaData, notNullValue());
         Set<Privilege> userPrivileges = privilegesMetaData.getUserPrivileges("Arthur");
         assertThat(userPrivileges, notNullValue());
-        Set<Privilege.Type> privilegeTypes = userPrivileges.stream().map(Privilege::type).collect(Collectors.toSet());
+        Set<Privilege.Type> privilegeTypes = userPrivileges.stream().map(p -> p.ident().type()).collect(Collectors.toSet());
         assertThat(privilegeTypes, containsInAnyOrder(Privilege.Type.values()));
     }
 

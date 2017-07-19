@@ -21,6 +21,7 @@ package io.crate.metadata;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.analyze.user.Privilege;
 import io.crate.analyze.user.Privilege.State;
+import io.crate.analyze.user.PrivilegeIdent;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.cluster.AbstractNamedDiffable;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -45,6 +46,9 @@ public class UsersPrivilegesMetaData extends AbstractNamedDiffable<MetaData.Cust
 
     public static final String TYPE = "users_privileges";
 
+    /**
+     * Returns a copy of {@link UsersPrivilegesMetaData} including a copied list of privileges.
+     */
     public static UsersPrivilegesMetaData copyOf(@Nullable UsersPrivilegesMetaData oldMetaData) {
         if (oldMetaData == null) {
             return new UsersPrivilegesMetaData();
@@ -57,24 +61,29 @@ public class UsersPrivilegesMetaData extends AbstractNamedDiffable<MetaData.Cust
         return new UsersPrivilegesMetaData(userPrivileges);
     }
 
-    public static Tuple<UsersPrivilegesMetaData, Long> copyAndReplace(UsersPrivilegesMetaData oldMetaData,
-                                                                      String sourceIdent,
-                                                                      String targetIdent) {
+    /**
+     * Returns a copy of the {@link UsersPrivilegesMetaData} including a copied list of privileges.
+     * Privileges of class {@link Privilege.Clazz#TABLE} whose idents are matching the given source ident are replaced
+     * by a copy where the ident is changed to the given target ident.
+     */
+    public static Tuple<UsersPrivilegesMetaData, Long> copyAndReplaceTableIdents(UsersPrivilegesMetaData oldMetaData,
+                                                                                 String sourceIdent,
+                                                                                 String targetIdent) {
         long affectedPrivileges = 0L;
         Map<String, Set<Privilege>> userPrivileges = new HashMap<>(oldMetaData.usersPrivileges.size());
         for (Map.Entry<String, Set<Privilege>> entry : oldMetaData.usersPrivileges.entrySet()) {
             Set<Privilege> privileges = new HashSet<>(entry.getValue().size());
             for (Privilege privilege : entry.getValue()) {
-                if (privilege.clazz().equals(Privilege.Clazz.TABLE) == false) {
-                    privileges.add(new Privilege(privilege.state(), privilege.type(), privilege.clazz(),
-                        privilege.ident(), privilege.grantor()));
+                PrivilegeIdent privilegeIdent = privilege.ident();
+                if (privilegeIdent.clazz().equals(Privilege.Clazz.TABLE) == false) {
+                    privileges.add(privilege);
                     continue;
                 }
 
-                String ident = privilege.ident();
+                String ident = privilegeIdent.ident();
                 assert ident != null : "ident must not be null for privilege class 'TABLE'";
                 if (ident.equals(sourceIdent)) {
-                    privileges.add(new Privilege(privilege.state(), privilege.type(), privilege.clazz(),
+                    privileges.add(new Privilege(privilege.state(), privilegeIdent.type(), privilegeIdent.clazz(),
                         targetIdent, privilege.grantor()));
                     affectedPrivileges++;
                 } else {
@@ -124,7 +133,8 @@ public class UsersPrivilegesMetaData extends AbstractNamedDiffable<MetaData.Cust
             boolean userHadPrivilegeOnSameObject = false;
             while (iterator.hasNext()) {
                 Privilege userPrivilege = iterator.next();
-                if (userPrivilege.onSameObject(newPrivilege)) {
+                PrivilegeIdent privilegeIdent = userPrivilege.ident();
+                if (privilegeIdent.equals(newPrivilege.ident())) {
                     userHadPrivilegeOnSameObject = true;
                     if (newPrivilege.state().equals(State.REVOKE)) {
                         iterator.remove();
@@ -158,11 +168,12 @@ public class UsersPrivilegesMetaData extends AbstractNamedDiffable<MetaData.Cust
             Iterator<Privilege> privilegeIterator = privileges.iterator();
             while (privilegeIterator.hasNext()) {
                 Privilege privilege = privilegeIterator.next();
-                if (privilege.clazz().equals(Privilege.Clazz.TABLE) == false) {
+                PrivilegeIdent privilegeIdent = privilege.ident();
+                if (privilegeIdent.clazz().equals(Privilege.Clazz.TABLE) == false) {
                     continue;
                 }
 
-                String ident = privilege.ident();
+                String ident = privilegeIdent.ident();
                 assert ident != null : "ident must not be null for privilege class 'TABLE'";
                 if (ident.equals(tableIdent)) {
                     privilegeIterator.remove();
@@ -265,9 +276,9 @@ public class UsersPrivilegesMetaData extends AbstractNamedDiffable<MetaData.Cust
     private static void privilegeToXContent(Privilege privilege, XContentBuilder builder) throws IOException {
         builder.startObject()
             .field("state", privilege.state().ordinal())
-            .field("type", privilege.type().ordinal())
-            .field("class", privilege.clazz().ordinal())
-            .field("ident", privilege.ident())
+            .field("type", privilege.ident().type().ordinal())
+            .field("class", privilege.ident().clazz().ordinal())
+            .field("ident", privilege.ident().ident())
             .field("grantor", privilege.grantor())
             .endObject();
     }

@@ -38,12 +38,12 @@ public class User {
 
     private final String name;
 
-    private final Set<Privilege> privileges;
+    private final UserPrivileges privileges;
 
     public User(String name, Set<Role> roles, Set<Privilege> privileges) {
         this.roles = roles;
         this.name = name;
-        this.privileges = privileges;
+        this.privileges = new UserPrivileges(privileges);
     }
 
     public String name() {
@@ -55,7 +55,7 @@ public class User {
         return roles.contains(Role.SUPERUSER);
     }
 
-    public Set<Privilege> privileges() {
+    public Iterable<Privilege> privileges() {
         return privileges;
     }
 
@@ -67,7 +67,7 @@ public class User {
      * @param ident          ident of the object
      */
     public boolean hasPrivilege(Privilege.Type type, Privilege.Clazz clazz, @Nullable String ident) {
-        return isSuperUser() || Privilege.matchPrivilege(privileges, type, clazz, ident);
+        return isSuperUser() || privileges.matchPrivilege(type, clazz, ident);
     }
 
     /**
@@ -78,7 +78,7 @@ public class User {
      * @param ident ident of the object
      */
     public boolean hasAnyPrivilege(Privilege.Clazz clazz, @Nullable String ident) {
-        return isSuperUser() || Privilege.matchPrivilege(privileges, clazz, ident);
+        return isSuperUser() || privileges.matchPrivilegeOfAnyType(clazz, ident);
     }
 
     @Override

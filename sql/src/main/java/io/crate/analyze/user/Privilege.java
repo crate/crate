@@ -23,17 +23,15 @@
 package io.crate.analyze.user;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.Schemas;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 public class Privilege implements Writeable {
 
@@ -62,91 +60,30 @@ public class Privilege implements Writeable {
     }
 
     /**
-     * Try to match a privilege at the given collection ignoring the type.
-     * Also see {@link Privilege#matchPrivilege(Collection, Type, Clazz, String)}.
+     * Parses the schema name out of a given table ident string.
      */
-    public static boolean matchPrivilege(Collection<Privilege> privileges,
-                                         Clazz clazz,
-                                         @Nullable String ident) {
-        return matchPrivilege(privileges, null, clazz, ident);
+    public static String schemaNameFromTableIdent(String ident) {
+        int dotPos = ident.indexOf('.');
+        if (dotPos == -1) {
+            return Schemas.DEFAULT_SCHEMA_NAME;
+        }
+        return ident.substring(0, dotPos);
     }
 
-    /**
-     * Try to match a privilege at the given collection.
-     * If none is found for the current {@link Clazz}, try to find one on the upper class.
-     * If a privilege with a {@link State#DENY} state is found, false is returned.
-     */
-    public static boolean matchPrivilege(Collection<Privilege> privileges,
-                                         @Nullable Type type,
-                                         Clazz clazz,
-                                         @Nullable String ident) {
-        Privilege foundPrivilege = matchPrivilegeOfClass(privileges, type, clazz, ident);
-        if (foundPrivilege == null) {
-            switch (clazz) {
-                case SCHEMA:
-                    foundPrivilege = matchPrivilegeOfClass(privileges, type, Clazz.CLUSTER, ident);
-                    break;
-                case TABLE:
-                    String schemaIdent = TableIdent.fromIndexName(ident).schema();
-                    foundPrivilege = matchPrivilegeOfClass(privileges, type, Clazz.SCHEMA, schemaIdent);
-                    if (foundPrivilege == null) {
-                        foundPrivilege = matchPrivilegeOfClass(privileges, type, Clazz.CLUSTER, null);
-                    }
-            }
-        }
-        if (foundPrivilege == null) {
-            return false;
-        }
-        switch (foundPrivilege.state()) {
-            case GRANT:
-                return true;
-            case DENY:
-            default:
-                return false;
-        }
-    }
-
-    @Nullable
-    private static Privilege matchPrivilegeOfClass(Collection<Privilege> privileges,
-                                                   @Nullable Type type,
-                                                   Clazz clazz,
-                                                   @Nullable String ident) {
-        Optional<Privilege> matchedPrivilege = privileges.stream()
-            .filter(p -> {
-                String pIdent = p.ident();
-                boolean matched = p.clazz().equals(clazz);
-                if (matched && pIdent != null) {
-                    matched = pIdent.equals(ident);
-                }
-                if (matched && type != null) {
-                    matched = p.type().equals(type);
-                }
-                return matched;
-            })
-            .findFirst();
-        return matchedPrivilege.orElse(null);
-    }
 
     private final State state;
-    private final Type type;
-    private final Clazz clazz;
-    @Nullable
-    private final String ident;  // for CLUSTER this will be always null, otherwise schemaName, tableName etc.
+    private final PrivilegeIdent ident;
     private final String grantor;
 
     public Privilege(State state, Type type, Clazz clazz, @Nullable String ident, String grantor) {
         this.state = state;
-        this.type = type;
-        this.clazz = clazz;
-        this.ident = ident;
+        this.ident = new PrivilegeIdent(type, clazz, ident);
         this.grantor = grantor;
     }
 
     public Privilege(StreamInput in) throws IOException {
         state = State.VALUES.get(in.readInt());
-        type = Type.VALUES.get(in.readInt());
-        clazz = Clazz.VALUES.get(in.readInt());
-        ident = in.readOptionalString();
+        ident = new PrivilegeIdent(in);
         grantor = in.readString();
     }
 
@@ -154,37 +91,12 @@ public class Privilege implements Writeable {
         return state;
     }
 
-    public Type type() {
-        return type;
-    }
-
-    public Clazz clazz() {
-        return clazz;
-    }
-
-    @Nullable
-    public String ident() {
+    public PrivilegeIdent ident() {
         return ident;
     }
 
     public String grantor() {
         return grantor;
-    }
-
-    /**
-     * Checks if both the current and the provided privilege point to the same object.
-     */
-    public boolean onSameObject(Privilege other) {
-        if (this == other) {
-            return true;
-        }
-        //noinspection SimplifiableIfStatement
-        if (other == null || getClass() != other.getClass()) {
-            return false;
-        }
-        return type == other.type &&
-               clazz == other.clazz &&
-               Objects.equals(ident, other.ident);
     }
 
     /**
@@ -197,8 +109,6 @@ public class Privilege implements Writeable {
         if (o == null || getClass() != o.getClass()) return false;
         Privilege privilege = (Privilege) o;
         return state == privilege.state &&
-               type == privilege.type &&
-               clazz == privilege.clazz &&
                Objects.equals(ident, privilege.ident);
     }
 
@@ -208,15 +118,13 @@ public class Privilege implements Writeable {
      */
     @Override
     public int hashCode() {
-        return Objects.hash(state, type, clazz, ident);
+        return Objects.hash(state, ident);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeInt(state.ordinal());
-        out.writeInt(type.ordinal());
-        out.writeInt(clazz.ordinal());
-        out.writeOptionalString(ident);
+        ident.writeTo(out);
         out.writeString(grantor);
     }
 }
