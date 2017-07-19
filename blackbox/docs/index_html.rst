@@ -1,25 +1,18 @@
-===========
-First Steps
-===========
+.. NOTE::
 
-- In order to get CrateDB up and running take a look at the :doc:`installation`.
+   This is a reference work.
 
-- If you are new to CrateDB, it is probably the best to say :doc:`hello`.
+   If you are just getting started, check out `the CrateDB Guide`_. The guide also includes information on best practices, and so on.
 
-- For details about working with CrateDB, see :doc:`sql/index`.
-
-Contents
-========
+.. rubric:: Table of Contents
 
 .. toctree::
    :maxdepth: 2
 
    architecture/index
    release_notes/index
-   installation
    configuration
    cli
-   hello
    sql/index
    blob
    plugins
@@ -30,3 +23,5 @@ Contents
    enterprise/index
    administration/index
    monitoring/index
+
+.. _the CrateDB Guide: https://crate.io/docs/crate/guide
