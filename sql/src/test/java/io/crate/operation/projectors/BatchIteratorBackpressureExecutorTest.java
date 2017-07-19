@@ -22,6 +22,7 @@
 
 package io.crate.operation.projectors;
 
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.BatchSimulatingIterator;
 import io.crate.testing.TestingBatchIterators;
 import org.elasticsearch.action.bulk.BackoffPolicy;
@@ -38,21 +39,19 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-
-public class BatchIteratorBackpressureExecutorTest {
+public class BatchIteratorBackpressureExecutorTest extends CrateUnitTest {
 
     private ExecutorService executor;
     private ScheduledExecutorService scheduler;
 
     @Before
-    public void setUp() throws Exception {
+    public void initExecutor() throws Exception {
         executor = Executors.newFixedThreadPool(4);
         scheduler = Executors.newSingleThreadScheduledExecutor();
     }
 
     @After
-    public void tearDown() throws Exception {
+    public void shutdownExecutor() throws Exception {
         executor.shutdown();
         scheduler.shutdown();
         executor.awaitTermination(10, TimeUnit.SECONDS);
@@ -69,12 +68,12 @@ public class BatchIteratorBackpressureExecutorTest {
             it,
             scheduler,
             r -> numRows.incrementAndGet(),
-            () -> CompletableFuture.supplyAsync(() -> {
-                numBatches.incrementAndGet();
+            () -> {
                 int rowsReceived = numRows.getAndSet(0);
                 assertThat("rowsReceived must not be larger than the bulkSize", rowsReceived, Matchers.lessThanOrEqualTo(3));
-                return null;
-            }, this.executor),
+
+                return CompletableFuture.supplyAsync(() -> { numBatches.incrementAndGet(); return null; }, this.executor);
+            },
             () -> {
                 if (numBatches.get() == 0 && numPauses.get() == 0) {
                     numPauses.incrementAndGet();
