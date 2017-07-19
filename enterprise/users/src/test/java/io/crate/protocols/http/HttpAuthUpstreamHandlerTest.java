@@ -18,9 +18,12 @@
 
 package io.crate.protocols.http;
 
+import com.google.common.collect.ImmutableSet;
 import io.crate.operation.auth.AlwaysOKAuthentication;
+import io.crate.operation.auth.AlwaysOKNullAuthentication;
 import io.crate.operation.auth.Authentication;
 import io.crate.operation.auth.HostBasedAuthentication;
+import io.crate.operation.user.User;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -39,6 +42,7 @@ import org.junit.Test;
 import javax.net.ssl.SSLSession;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
+import java.util.EnumSet;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -46,13 +50,13 @@ import static org.mockito.Mockito.when;
 
 public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
 
-    private final Settings settings = Settings.builder()
+    private final Settings hbaEnabled = Settings.builder()
         .put("auth.host_based.enabled", true)
         .put("auth.host_based.config.0.user", "crate")
         .build();
 
     // UserLookup always returns null, so there are no users (even no default crate super user)
-    private final Authentication authService = new HostBasedAuthentication(settings, userName -> null);
+    private final Authentication authService = new HostBasedAuthentication(hbaEnabled, userName -> null);
 
     private static void assertUnauthorized(DefaultFullHttpResponse resp, String expectedBody) {
         assertThat(resp.status(), is(HttpResponseStatus.UNAUTHORIZED));
@@ -98,7 +102,7 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
 
     @Test
     public void testAuthorized() throws Exception {
-        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, new AlwaysOKAuthentication());
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, new AlwaysOKNullAuthentication());
         EmbeddedChannel ch = new EmbeddedChannel(handler);
 
         DefaultHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
@@ -148,5 +152,36 @@ public class HttpAuthUpstreamHandlerTest extends CrateUnitTest {
         String userName = HttpAuthUpstreamHandler.userFromRequest(request, session, Settings.EMPTY);
 
         assertThat(userName, is("example.com"));
+    }
+
+    @Test
+    public void testUserAuthenticationWithDisabledHBA() throws Exception {
+        User crateUser = new User("crate", EnumSet.of(User.Role.SUPERUSER), ImmutableSet.of());
+        Authentication authServiceNoHBA = new AlwaysOKAuthentication(userName -> crateUser);
+
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA);
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
+
+        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request.headers().add("X-User", "crate");
+
+        ch.writeInbound(request);
+
+        assertTrue(handler.authorized());
+    }
+
+    @Test
+    public void testUnauthorizedUserWithDisabledHBA() throws Exception {
+        Authentication authServiceNoHBA = new AlwaysOKAuthentication(userName -> null);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA);
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
+
+        HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request.headers().add("X-User", "Arthur");
+
+        ch.writeInbound(request);
+
+        assertFalse(handler.authorized());
+        assertUnauthorized(ch.readOutbound(), "trust authentication failed for user \"Arthur\"\n");
     }
 }

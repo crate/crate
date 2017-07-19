@@ -20,18 +20,27 @@
  * agreement.
  */
 
-package io.crate.user;
+package io.crate.operation.auth;
 
-import io.crate.operation.auth.AlwaysOKNullAuthentication;
-import io.crate.operation.auth.Authentication;
-import io.crate.operation.user.UserManager;
-import org.elasticsearch.common.inject.AbstractModule;
+import io.crate.operation.user.UserLookup;
+import io.crate.protocols.postgres.ConnectionProperties;
+import org.elasticsearch.common.inject.Inject;
 
-public class UserFallbackModule extends AbstractModule {
+/**
+ * Fallback if host-based authentication is disabled
+ * and the user management is enabled
+ */
+public class AlwaysOKAuthentication implements Authentication {
+
+    private final UserLookup userLookup;
+
+    @Inject
+    public AlwaysOKAuthentication(UserLookup userLookup) {
+        this.userLookup = userLookup;
+    }
 
     @Override
-    protected void configure() {
-        bind(UserManager.class).to(StubUserManager.class);
-        bind(Authentication.class).to(AlwaysOKNullAuthentication.class);
+    public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties) {
+        return new TrustAuthenticationMethod(userLookup);
     }
 }

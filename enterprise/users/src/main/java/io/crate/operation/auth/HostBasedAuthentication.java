@@ -76,7 +76,7 @@ public class HostBasedAuthentication implements Authentication {
     @Inject
     public HostBasedAuthentication(Settings settings, UserLookup userLookup) {
         hbaConf = convertHbaSettingsToHbaConf(AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.setting().get(settings));
-        authMethodRegistry.put(TrustAuthentication.NAME, () -> new TrustAuthentication(userLookup));
+        authMethodRegistry.put(TrustAuthenticationMethod.NAME, () -> new TrustAuthenticationMethod(userLookup));
         authMethodRegistry.put(ClientCertAuth.NAME, () -> new ClientCertAuth(userLookup));
     }
 
