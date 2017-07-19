@@ -168,7 +168,7 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
                         "sys.jobs_log must have an entry WHERE stmt=" + stmtStr, resultSet.next(), is(true));
                     assertThat(resultSet.getString(1), is(stmtStr));
                     if (checkForError) {
-                        assertThat(resultSet.getString(2), is("Cannot insert null value for column a"));
+                        assertThat(resultSet.getString(2), is("Cannot insert null value for column 'a'"));
                     }
                 }
             } catch (Exception e) {

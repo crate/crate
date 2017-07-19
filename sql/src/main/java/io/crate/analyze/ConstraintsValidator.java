@@ -36,7 +36,7 @@ public final class ConstraintsValidator {
         // Validate NOT NULL constraint
         if (value == null && !targetColumn.isNullable()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "Cannot insert null value for column %s", targetColumn.ident().columnIdent().fqn()));
+                "Cannot insert null value for column '%s'", targetColumn.ident().columnIdent()));
         }
     }
 
@@ -60,7 +60,7 @@ public final class ConstraintsValidator {
         for (ColumnIdent column : notUsedNonGeneratedColumns) {
             if (!tableInfo.getReference(column).isNullable()) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot insert null value for column %s", column.fqn()));
+                    "Cannot insert null value for column '%s'", column));
             }
         }
     }
