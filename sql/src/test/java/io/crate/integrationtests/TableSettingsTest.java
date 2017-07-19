@@ -26,6 +26,7 @@ import io.crate.testing.UseJdbc;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Locale;
 import java.util.Map;
 
 @UseJdbc
@@ -128,8 +129,8 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
 
         // One more column exceeds the limit
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(String.format("Limit of total fields [%d] in index [test] has been exceeded",
-            totalFields + 1));
+        expectedException.expectMessage(String.format(Locale.ENGLISH,
+            "Limit of total fields [%d] in index [test] has been exceeded", totalFields + 1));
         execute("alter table test add column new_column2 int");
     }
 
