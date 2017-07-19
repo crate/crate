@@ -19,7 +19,7 @@
 package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.operation.auth.AlwaysOKAuthentication;
+import io.crate.operation.auth.AlwaysOKNullAuthentication;
 import io.crate.test.integration.CrateUnitTest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -53,7 +53,7 @@ public class SslReqHandlerTest extends CrateUnitTest {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 mock(SQLOperations.class),
-                new AlwaysOKAuthentication(),
+                new AlwaysOKNullAuthentication(),
                 // use a simple ssl context
                 getSelfSignedSslContext());
 

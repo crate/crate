@@ -43,6 +43,9 @@ For HTTP connections the ``X-REAL-IP`` request header has priority over the
 actual client IP address in order to allow proxied clients to authenticate.
 
 If ``auth.host_based`` is not set, the host based authentication is disabled.
+In this case CrateDB **trusts all connections** and accepts the user provided by
+the client given that this user exists.
+
 If the setting ``auth.host_based`` is present and the configurations list does
 not contain any entry, then no client can authenticate.
 

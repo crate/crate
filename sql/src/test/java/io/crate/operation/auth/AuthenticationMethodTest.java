@@ -22,31 +22,20 @@
 
 package io.crate.operation.auth;
 
-import io.crate.operation.user.User;
-import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
-
-import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
 
 public class AuthenticationMethodTest extends CrateUnitTest {
 
     @Test
-    public void testTrustAuthentication() throws Exception {
-        TrustAuthentication trustAuth = new TrustAuthentication(userName -> {
-            if (userName.equals("crate")) {
-                return new User("crate", Collections.emptySet(), Collections.emptySet());
-            }
-            return null;
-        });
-        assertThat(trustAuth.name(), is("trust"));
+    public void testAlwaysOKNullAuthentication() throws Exception {
+        AlwaysOKNullAuthentication alwaysOkNullAuth = new AlwaysOKNullAuthentication();
 
-        ConnectionProperties connectionProperties = new ConnectionProperties(null, Protocol.POSTGRES, null);
-        assertThat(trustAuth.authenticate("crate", connectionProperties).name(), is("crate"));
+        AuthenticationMethod alwaysOkNullAuthMethod = alwaysOkNullAuth.resolveAuthenticationType("crate", null);
 
-        expectedException.expectMessage("trust authentication failed for user \"cr8\"");
-        trustAuth.authenticate("cr8", connectionProperties);
+        assertThat(alwaysOkNullAuthMethod.name(), is("alwaysOkNull"));
+        assertNull(alwaysOkNullAuthMethod.authenticate("crate", null));
     }
 }

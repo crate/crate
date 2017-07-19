@@ -24,7 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.executor.Executor;
-import io.crate.operation.auth.AlwaysOKAuthentication;
+import io.crate.operation.auth.AlwaysOKNullAuthentication;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.operation.user.User;
 import io.crate.operation.user.UserManager;
@@ -99,7 +99,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 mock(SQLOperations.class),
-                new AlwaysOKAuthentication(),
+                new AlwaysOKNullAuthentication(),
                 null);
         EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
@@ -128,7 +128,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 sqlOperations,
-                new AlwaysOKAuthentication(),
+                new AlwaysOKNullAuthentication(),
                 null);
         EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
@@ -147,7 +147,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 sqlOperations,
-                new AlwaysOKAuthentication(),
+                new AlwaysOKNullAuthentication(),
                 null);
         EmbeddedChannel channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
@@ -170,7 +170,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         PostgresWireProtocol ctx =
             new PostgresWireProtocol(
                 mock(SQLOperations.class),
-                new AlwaysOKAuthentication(),
+                new AlwaysOKNullAuthentication(),
                 null);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);

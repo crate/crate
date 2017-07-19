@@ -23,12 +23,12 @@ import io.crate.operation.user.UserLookup;
 import io.crate.protocols.postgres.ConnectionProperties;
 
 
-public class TrustAuthentication implements AuthenticationMethod {
+public class TrustAuthenticationMethod implements AuthenticationMethod {
 
     static final String NAME = "trust";
     private final UserLookup userLookup;
 
-    public TrustAuthentication(UserLookup userLookup) {
+    public TrustAuthenticationMethod(UserLookup userLookup) {
         this.userLookup = userLookup;
     }
 

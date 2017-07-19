@@ -25,9 +25,9 @@ package io.crate.operation.auth;
 import io.crate.operation.user.User;
 import io.crate.protocols.postgres.ConnectionProperties;
 
-public class AlwaysOKAuthentication implements Authentication {
+public class AlwaysOKNullAuthentication implements Authentication {
 
-    private final AuthenticationMethod alwaysOk = new AuthenticationMethod() {
+    private final AuthenticationMethod alwaysOkNull = new AuthenticationMethod() {
         @Override
         public User authenticate(String userName, ConnectionProperties connectionProperties) {
             return null;
@@ -35,12 +35,12 @@ public class AlwaysOKAuthentication implements Authentication {
 
         @Override
         public String name() {
-            return "alwaysOk";
+            return "alwaysOkNull";
         }
     };
 
     @Override
     public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties) {
-        return alwaysOk;
+        return alwaysOkNull;
     }
 }

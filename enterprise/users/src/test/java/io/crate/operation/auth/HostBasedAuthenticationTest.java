@@ -127,7 +127,7 @@ public class HostBasedAuthenticationTest extends CrateUnitTest {
         authService.updateHbaConfig(createHbaConf(HBA_1));
         AuthenticationMethod method =
             authService.resolveAuthenticationType("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
-        assertThat(method, instanceOf(TrustAuthentication.class));
+        assertThat(method, instanceOf(TrustAuthenticationMethod.class));
     }
 
     @Test

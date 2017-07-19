@@ -41,9 +41,9 @@ public class AuthenticationModule extends AbstractModule {
     protected void configure() {
         if (AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.setting().get(settings)) {
             bind(Authentication.class).to(HostBasedAuthentication.class);
-            bind(AuthenticationHttpAuthHandlerRegistry.class).asEagerSingleton();
         } else {
             bind(Authentication.class).to(AlwaysOKAuthentication.class);
         }
+        bind(AuthenticationHttpAuthHandlerRegistry.class).asEagerSingleton();
     }
 }
