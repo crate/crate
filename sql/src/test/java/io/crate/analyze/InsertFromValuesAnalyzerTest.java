@@ -340,7 +340,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
     public void testInsertNotNullConstraintAbsentColumn() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot insert null value for column name");
+        expectedException.expectMessage("Cannot insert null value for column 'name'");
         e.analyze("insert into not_null_column (id) values (1)");
     }
 

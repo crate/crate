@@ -182,7 +182,7 @@ public class PostgresJobsLogsITest extends SQLTransportIntegrationTest {
                         assertThat(resultSet.next(), is(true));
                         assertThat(resultSet.getString(1), is(stmtStr));
                         if (checkForError) {
-                            assertThat(resultSet.getString(2), is("Cannot insert null value for column a"));
+                            assertThat(resultSet.getString(2), is("Cannot insert null value for column 'a'"));
                         }
                     }
                 } catch (Exception e) {
