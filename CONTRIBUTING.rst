@@ -104,6 +104,6 @@ If you're happy, force push::
 
 .. _CLA: https://crate.io/community/contribute/agreements/
 .. _Crate.io: http://crate.io/
-.. _developer guide: DEVELOP.rst
+.. _developer guide: devs/docs/index.rst
 .. _Slack: https://crate.io/docs/support/slackin/
 .. _search the existing issues: https://github.com/issues?utf8=%E2%9C%93&q=is%3Aopen+is%3Aissue+user%3Acrate+
