@@ -22,7 +22,15 @@
 package io.crate.executor.transport;
 
 import io.crate.jobs.JobContextService;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -35,7 +43,6 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
-import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -61,13 +68,27 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -89,7 +110,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                                  ThreadPool threadPool,
                                                  ClusterService clusterService,
                                                  TransportService transportService,
-                                                 MappingUpdatedAction mappingUpdatedAction,
+                                                 SchemaUpdateClient schemaUpdateClient,
                                                  ActionFilters actionFilters,
                                                  JobContextService jobContextService,
                                                  IndicesService indicesService,
@@ -97,7 +118,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                                  Functions functions,
                                                  Schemas schemas,
                                                  IndexNameExpressionResolver indexNameExpressionResolver) {
-            super(settings, threadPool, clusterService, transportService, mappingUpdatedAction, actionFilters,
+            super(settings, threadPool, clusterService, transportService, schemaUpdateClient, actionFilters,
                 jobContextService, indicesService, shardStateAction, functions, schemas, indexNameExpressionResolver);
         }
 
@@ -149,7 +170,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             mock(ThreadPool.class),
             clusterService,
             MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL, clusterService.getClusterSettings()),
-            mock(MappingUpdatedAction.class),
+            mock(SchemaUpdateClient.class),
             mock(ActionFilters.class),
             mock(JobContextService.class),
             indicesService,

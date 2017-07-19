@@ -48,7 +48,6 @@ import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
-import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -108,7 +107,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     private final static SymbolToFieldExtractor<GetResult> SYMBOL_TO_FIELD_EXTRACTOR =
         new SymbolToFieldExtractor<>(new GetResultFieldExtractorFactory());
 
-    private final MappingUpdatedAction mappingUpdatedAction;
+    private final SchemaUpdateClient schemaUpdateClient;
     private final Functions functions;
     private final Schemas schemas;
 
@@ -117,7 +116,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       ThreadPool threadPool,
                                       ClusterService clusterService,
                                       TransportService transportService,
-                                      MappingUpdatedAction mappingUpdatedAction,
+                                      SchemaUpdateClient schemaUpdateClient,
                                       ActionFilters actionFilters,
                                       JobContextService jobContextService,
                                       IndicesService indicesService,
@@ -127,7 +126,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, ACTION_NAME, transportService, indexNameExpressionResolver, clusterService,
             indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest::new);
-        this.mappingUpdatedAction = mappingUpdatedAction;
+        this.schemaUpdateClient = schemaUpdateClient;
         this.functions = functions;
         this.schemas = schemas;
         jobContextService.addListener(this);
@@ -446,8 +445,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         Mapping update = operation.parsedDoc().dynamicMappingsUpdate();
         if (update != null) {
             validateMapping(update.root().iterator(), TableIdent.fromIndexName(request.shardId().getIndexName()));
-            mappingUpdatedAction.updateMappingOnMaster(
-                request.shardId().getIndex(), request.type(), update);
+            schemaUpdateClient.blockingUpdateOnMaster(request.shardId().getIndex(), update);
 
             operation = prepareIndexOnPrimary(indexShard, version, request, item);
             if (operation.parsedDoc().dynamicMappingsUpdate() != null) {
