@@ -31,14 +31,29 @@ import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 public class AnalyzedTableElements {
 
@@ -138,13 +153,27 @@ public class AnalyzedTableElements {
         if (notNullColumns == null) {
             notNullColumns = new HashSet<>();
             for (AnalyzedColumnDefinition column : columns) {
-                String fqn = column.ident().fqn();
-                if (column.hasNotNullConstraint() && !primaryKeys().contains(fqn)) { // Columns part of pk are implicitly not null
-                    notNullColumns.add(fqn);
-                }
+                addNotNullFromChildren(column);
             }
         }
         return notNullColumns;
+    }
+
+    /**
+     * Recursively add all not null constraints from child columns (object columns)
+     */
+    private void addNotNullFromChildren(AnalyzedColumnDefinition parentColumn) {
+        LinkedList<AnalyzedColumnDefinition> childColumns = new LinkedList<>();
+        childColumns.add(parentColumn);
+
+        while (!childColumns.isEmpty()) {
+            AnalyzedColumnDefinition column = childColumns.remove();
+            String fqn = column.ident().fqn();
+            if (column.hasNotNullConstraint() && !primaryKeys().contains(fqn)) { // Columns part of pk are implicitly not null
+                notNullColumns.add(fqn);
+            }
+            childColumns.addAll(column.children());
+        }
     }
 
     public Set<String> primaryKeys() {

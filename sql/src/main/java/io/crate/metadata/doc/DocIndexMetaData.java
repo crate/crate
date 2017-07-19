@@ -613,6 +613,10 @@ public class DocIndexMetaData {
         return generatedColumnReferences;
     }
 
+    ImmutableCollection<ColumnIdent> notNullColumns() {
+        return notNullColumns;
+    }
+
     public ImmutableList<ColumnIdent> primaryKey() {
         return primaryKey;
     }

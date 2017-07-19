@@ -37,7 +37,12 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
@@ -507,11 +512,17 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
                 "b byte, " +
                 "s short, " +
                 "d double, " +
-                "f float)");
+                "f float, " +
+                "stuff object(dynamic) AS (" +
+                "  level1 object(dynamic) AS (" +
+                "    level2 string not null," +
+                "    level2_nullable string" +
+                "  ) not null" +
+                ") not null)");
 
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Columns where table_schema='doc'");
-        assertEquals(7L, response.rowCount());
+        assertEquals(11L, response.rowCount());
         assertEquals("age", response.rows()[0][11]); // column_name
         assertEquals("integer", response.rows()[0][12]); // data_type
         assertEquals(null, response.rows()[0][13]); // datetime_precision
@@ -539,6 +550,14 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(53, response.rows()[4][22]);
         assertEquals("f", response.rows()[5][11]);
         assertEquals(24, response.rows()[5][22]);
+        assertEquals("stuff", response.rows()[7][11]);
+        assertEquals(false, response.rows()[7][21]); // is_nullable
+        assertEquals("stuff['level1']", response.rows()[8][11]);
+        assertEquals(false, response.rows()[8][21]); // is_nullable
+        assertEquals("stuff['level1']['level2']", response.rows()[9][11]);
+        assertEquals(false, response.rows()[9][21]); // is_nullable
+        assertEquals("stuff['level1']['level2_nullable']", response.rows()[10][11]);
+        assertEquals(true, response.rows()[10][21]); // is_nullable
     }
 
     @Test

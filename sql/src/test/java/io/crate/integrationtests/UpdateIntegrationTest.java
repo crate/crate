@@ -86,6 +86,41 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testUpdateWithNotNull1LevelNestedColumn() {
+        execute("create table test (" +
+                "stuff object(dynamic) AS (" +
+                "  level1 string not null" +
+                ") not null)");
+        ensureYellow();
+        execute("insert into test (stuff) values('{\"level1\":\"value\"}')");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("SQLParseException: Cannot insert null value for column 'stuff['level1']'");
+        execute("update test set stuff['level1']=null");
+    }
+
+    @Test
+    public void testUpdateWithNotNull2LevelsNestedColumn() {
+        execute("create table test (" +
+                "stuff object(dynamic) AS (" +
+                "  level1 object(dynamic) AS (" +
+                "    level2 string not null" +
+                "  ) not null" +
+                ") not null)");
+        ensureYellow();
+        execute("insert into test (stuff) values('{\"level1\":{\"level2\":\"value\"}}')");
+        assertEquals(1, response.rowCount());
+        refresh();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("SQLParseException: Cannot insert null value for column " +
+                                        "'stuff['level1']['level2']'");
+        execute("update test set stuff['level1']['level2']=null");
+    }
+
+    @Test
     public void testUpdateNullDynamicColumn() {
         /*
          * Regression test

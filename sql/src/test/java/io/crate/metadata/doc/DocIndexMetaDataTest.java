@@ -7,8 +7,21 @@ import com.google.common.collect.Lists;
 import io.crate.Constants;
 import io.crate.Version;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.*;
-import io.crate.metadata.*;
+import io.crate.analyze.Analysis;
+import io.crate.analyze.CreateTableAnalyzedStatement;
+import io.crate.analyze.CreateTableStatementAnalyzer;
+import io.crate.analyze.NumberOfShards;
+import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.ParameterContext;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.Functions;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexReference;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.operation.udf.UserDefinedFunctionService;
 import io.crate.sql.parser.SqlParser;
@@ -38,11 +51,23 @@ import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
-import static io.crate.testing.SymbolMatchers.*;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasItems;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.mockito.Mockito.mock;
 
@@ -638,6 +663,43 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetaData md = newMeta(metaData, "test_notnull_columns");
         assertThat(md.columns().get(0).isNullable(), is(false));
         assertThat(md.columns().get(1).isNullable(), is(false));
+    }
+
+    @Test
+    public void testSchemaWithNotNullNestedColumns() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+        .startObject()
+            .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .startObject("_meta")
+                    .startObject("constraints")
+                        .array("not_null", "nested.level1", "nested.level1.level2")
+                    .endObject()
+                .endObject()
+                .startObject("properties")
+                    .startObject("nested")
+                        .field("type", "object")
+                            .startObject("properties")
+                                .startObject("level1")
+                                    .field("type", "object")
+                                    .startObject("properties")
+                                        .startObject("level2")
+                                            .field("type", "string")
+                                        .endObject()
+                                    .endObject()
+                                .endObject()
+                             .endObject()
+                    .endObject()
+                .endObject()
+            .endObject()
+        .endObject();
+        IndexMetaData metaData = getIndexMetaData("test_notnull_columns", builder);
+        DocIndexMetaData md = newMeta(metaData, "test_notnull_columns");
+
+        ColumnIdent level1 = new ColumnIdent("nested", "level1");
+        ColumnIdent level2 = new ColumnIdent("nested", Arrays.asList("level1", "level2"));
+        assertThat(md.notNullColumns(), containsInAnyOrder(level1, level2));
+        assertThat(md.references().get(level1).isNullable(), is(false));
+        assertThat(md.references().get(level2).isNullable(), is(false));
     }
 
     @Test

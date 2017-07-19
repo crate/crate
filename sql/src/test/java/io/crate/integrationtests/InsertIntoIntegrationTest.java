@@ -37,7 +37,11 @@ import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
@@ -363,6 +367,35 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("SQLParseException: Cannot insert null value for column 'message'");
         Object[] args = new Object[]{"1", null};
         execute("insert into t (pk_col, message) values (?, ?)", args);
+    }
+
+    @Test
+    public void testInsertWithNotNull1LevelNestedColumn() {
+        execute("create table test (" +
+                "stuff object(dynamic) AS (" +
+                "  level1 string not null" +
+                ") not null)");
+        ensureYellow();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("SQLParseException: Cannot insert null value for column 'stuff['level1']'");
+        execute("insert into test (stuff) values('{\"other_field\":\"value\"}')");
+    }
+
+    @Test
+    public void testInsertWithNotNull2LevelsNestedColumn() {
+        execute("create table test (" +
+                "stuff object(dynamic) AS (" +
+                "  level1 object(dynamic) AS (" +
+                "    level2 string not null" +
+                "  ) not null" +
+                ") not null)");
+        ensureYellow();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("SQLParseException: Cannot insert null value for column " +
+                                        "'stuff['level1']['level2']'");
+        execute("insert into test (stuff) values('{\"level1\":{\"other_field\":\"value\"}}')");
     }
 
     @Test

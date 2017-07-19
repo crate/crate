@@ -21,7 +21,6 @@
 
 package io.crate.executor.transport;
 
-
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Throwables;
@@ -33,7 +32,13 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
 import io.crate.executor.transport.task.elasticsearch.SymbolToFieldExtractor;
 import io.crate.jobs.JobContextService;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import org.apache.lucene.util.BytesRef;
@@ -66,7 +71,12 @@ import org.elasticsearch.index.engine.DocumentSourceMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.get.GetResult;
-import org.elasticsearch.index.mapper.*;
+import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.index.mapper.Mapping;
+import org.elasticsearch.index.mapper.ParentFieldMapper;
+import org.elasticsearch.index.mapper.RoutingFieldMapper;
+import org.elasticsearch.index.mapper.SourceToParse;
+import org.elasticsearch.index.mapper.TTLFieldMapper;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
@@ -78,7 +88,16 @@ import org.elasticsearch.transport.TransportService;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.elasticsearch.action.support.replication.ReplicationOperation.ignoreReplicaException;
@@ -309,7 +328,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                  * it is possible to insert NULL into column that does not exist yet.
                  * if there is no column reference, we must not validate!
                  */
-                ConstraintsValidator.validate(value, reference);
+                ConstraintsValidator.validate(value, reference, tableInfo.notNullColumns());
             }
 
             if (reference instanceof GeneratedReference) {
@@ -356,7 +375,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 Object value = item.insertValues()[i];
                 Reference ref = request.insertColumns()[i];
 
-                ConstraintsValidator.validate(value, ref);
+                ConstraintsValidator.validate(value, ref, tableInfo.notNullColumns());
 
                 if (ref.granularity() == RowGranularity.DOC) {
                     // don't include values for partitions in the _source
@@ -533,7 +552,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             if (!tableInfo.partitionedByColumns().contains(reference)) {
                 Object userSuppliedValue = updatedGeneratedColumns.get(reference.ident().columnIdent().fqn());
                 if (validateConstraints) {
-                    ConstraintsValidator.validate(userSuppliedValue, reference);
+                    ConstraintsValidator.validate(userSuppliedValue, reference, tableInfo.notNullColumns());
                 }
 
                 if ((userSuppliedValue != null && validateConstraints)

@@ -18,3 +18,14 @@ Breaking Changes
 Fixes
 =====
 
+ - Implemented ``NOT NULL`` constraint validation for nested object columns,
+   which was previously ignored. E.g.::
+
+     CREATE TABLE test (
+       stuff object(dynamic) AS (
+         level1 object(dynamic) AS (
+           level2 string not null
+         ) NOT NULL
+       ) NOT NULL
+     )
+

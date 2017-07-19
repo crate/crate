@@ -21,6 +21,7 @@
 
 package io.crate.metadata.doc;
 
+import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Version;
 import io.crate.analyze.PartitionedTableParameterInfo;
@@ -29,9 +30,21 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.UnavailableShardsException;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexReference;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.Routing;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.sys.TableColumn;
-import io.crate.metadata.table.*;
+import io.crate.metadata.table.ColumnPolicy;
+import io.crate.metadata.table.Operation;
+import io.crate.metadata.table.ShardedTable;
+import io.crate.metadata.table.StoredTable;
+import io.crate.metadata.table.TableInfo;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -42,7 +55,14 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.IndexNotFoundException;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 
 /**
@@ -57,6 +77,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final List<Reference> columns;
     private final List<GeneratedReference> generatedColumns;
     private final List<Reference> partitionedByColumns;
+    private final ImmutableCollection<ColumnIdent> notNullColumns;
     private final Map<ColumnIdent, IndexReference> indexColumns;
     private final ImmutableMap<ColumnIdent, Reference> references;
     private final ImmutableMap<ColumnIdent, String> analyzers;
@@ -92,6 +113,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                         List<Reference> columns,
                         List<Reference> partitionedByColumns,
                         List<GeneratedReference> generatedColumns,
+                        ImmutableCollection<ColumnIdent> notNullColumns,
                         ImmutableMap<ColumnIdent, IndexReference> indexColumns,
                         ImmutableMap<ColumnIdent, Reference> references,
                         ImmutableMap<ColumnIdent, String> analyzers,
@@ -121,6 +143,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.columns = columns;
         this.partitionedByColumns = partitionedByColumns;
         this.generatedColumns = generatedColumns;
+        this.notNullColumns = notNullColumns;
         this.indexColumns = indexColumns;
         this.references = references;
         this.analyzers = analyzers;
@@ -439,5 +462,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public String toString() {
         return ident.fqn();
+    }
+
+    public Collection<ColumnIdent> notNullColumns() {
+        return notNullColumns;
     }
 }
