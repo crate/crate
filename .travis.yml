@@ -22,9 +22,6 @@ cache:
 notifications:
   email: false
 
-before_install:
-  - ulimit -u 65535
-
 script:
   - ./gradlew -s test
   - ./gradlew -s itest
