@@ -26,10 +26,6 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 
 public class SchemaUpdateResponse extends AcknowledgedResponse {
 
-    public SchemaUpdateResponse() {
-        super();
-    }
-
     public SchemaUpdateResponse(boolean isAcknowledged) {
         super(isAcknowledged);
     }

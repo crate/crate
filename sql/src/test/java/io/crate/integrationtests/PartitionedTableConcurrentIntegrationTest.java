@@ -53,6 +53,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
@@ -357,5 +358,42 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         countDownLatch.await();
         execute("select count(*) from information_schema.columns where table_name = 'dyn_parted'");
         assertThat(response.rows()[0][0], is(3L + numCols * buckets.length));
+    }
+
+    @Test
+    public void testConcurrentPartitionCreationWithColumnCreationTypeMissMatch() throws Exception {
+        // dynamic column creation must result in a consistent type across partitions
+        execute("create table t1 (p int) " +
+                "clustered into 1 shards " +
+                "partitioned by (p) " +
+                "with (number_of_replicas = 0)");
+
+        Thread insertNumbers = new Thread(() -> {
+            for (int i = 0; i < 10; i++) {
+                try {
+                    execute("insert into t1 (p, x) values (?, ?)", $(i, i));
+                } catch (Throwable e) {
+                    // may fail if other thread is faster
+                }
+            }
+        });
+        Thread insertStrings = new Thread(() -> {
+            for (int i = 0; i < 10; i++) {
+                try {
+                    execute("insert into t1 (p, x) values (?, ?)", $(i, "foo" + i));
+                } catch (Throwable e) {
+                    // may fail if other thread is faster
+                }
+            }
+        });
+
+        insertNumbers.start();
+        insertStrings.start();
+
+        insertNumbers.join();
+        insertStrings.join();
+
+        // this query should never fail
+        execute("select * from t1 order by x limit 50");
     }
 }

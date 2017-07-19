@@ -27,6 +27,10 @@ Changes
 Fixes
 =====
 
+ - Fixed a race condition which made it possible to create new columns in a
+   partition of a partitioned table that didn't match the type of the same
+   column of sibling partitions.
+
  - Fixed a NPE when running ``select port from sys.nodes`` and
    ``psql.enabled: false`` was set
 
