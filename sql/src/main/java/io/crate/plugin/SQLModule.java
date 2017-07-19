@@ -23,6 +23,7 @@ package io.crate.plugin;
 
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.action.sql.SQLOperations;
+import io.crate.executor.transport.TransportSchemaUpdateAction;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.operation.udf.TransportCreateUserDefinedFunctionAction;
 import io.crate.operation.udf.TransportDropUserDefinedFunctionAction;
@@ -49,6 +50,7 @@ public class SQLModule extends AbstractModule {
         bind(UserDefinedFunctionService.class).asEagerSingleton();
         bind(TransportCreateUserDefinedFunctionAction.class).asEagerSingleton();
         bind(TransportDropUserDefinedFunctionAction.class).asEagerSingleton();
+        bind(TransportSchemaUpdateAction.class).asEagerSingleton();
         bind(SslContextProvider.class).asEagerSingleton();
     }
 }
