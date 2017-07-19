@@ -23,9 +23,11 @@
 package io.crate.operation.tablefunctions;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
+import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -45,7 +47,6 @@ public class GenerateSeriesFunction {
 
     private static final String NAME = "generate_series";
     private static final TableIdent TABLE_IDENT = new TableIdent(null, NAME);
-    private static final Set<DataType> NUMERIC_WITH_DECIMAL = ImmutableSet.of(DataTypes.FLOAT, DataTypes.DOUBLE);
 
     private static final Map<DataType, FunctionImplementation> implTwoArgs;
     private static final Map<DataType, FunctionImplementation> implThreeArgs;
@@ -75,7 +76,6 @@ public class GenerateSeriesFunction {
         implThreeArgs.put(type, new DoubleGenerateSeriesFunctionImplementation(new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(type, type, type)), type, FunctionInfo.Type.TABLE)));
     }
 
-
     public static void register(TableFunctionModule module){
         module.register(NAME, new BaseFunctionResolver(
             Signature.numArgs(2,3).and(Signature.withLenientVarArgs(Signature.ArgMatcher.NUMERIC))) {
@@ -87,10 +87,11 @@ public class GenerateSeriesFunction {
                 DataType third = dataTypes.size() > 2 ? dataTypes.get(2) : DataTypes.INTEGER;
 
                 DataType implType;
-                if(NUMERIC_WITH_DECIMAL.contains(first) || NUMERIC_WITH_DECIMAL.contains(third))
-                    implType = dataTypes.contains(DataTypes.DOUBLE) || dataTypes.contains(DataTypes.LONG) ? DataTypes.DOUBLE : DataTypes.FLOAT;
+                final boolean hasDoubleOrLong = dataTypes.contains(DataTypes.DOUBLE) || dataTypes.contains(DataTypes.LONG);
+                if(DataTypes.NUMERIC_WITH_DECIMAL.contains(first) || DataTypes.NUMERIC_WITH_DECIMAL.contains(third))
+                    implType = hasDoubleOrLong ? DataTypes.DOUBLE : DataTypes.FLOAT;
                 else
-                    implType = dataTypes.contains(DataTypes.LONG) ? DataTypes.LONG : DataTypes.INTEGER;
+                    implType = hasDoubleOrLong ? DataTypes.LONG : DataTypes.INTEGER;
                 return impl.get(implType);
             }
         });
@@ -118,6 +119,14 @@ public class GenerateSeriesFunction {
         @Override
         public FunctionInfo info() {
             return info;
+        }
+
+        @Override
+        public Symbol normalizeSymbol(Function function, @Nullable TransactionContext transactionContext) {
+            for(int i = 0; i < function.arguments().size(); i++) {
+                function.arguments().set(i, ExpressionAnalyzer.castIfNeededOrFail(function.arguments().get(i), info.returnType()));
+            }
+            return function;
         }
 
         @Override
@@ -161,12 +170,6 @@ public class GenerateSeriesFunction {
                             current = plus(current, step);
                             currentIdx++;
                             return row;
-                        }
-
-                        @Override
-                        public void remove() {
-                            throw new UnsupportedOperationException("remove is not supported for " +
-                                GenerateSeriesFunction.class.getSimpleName() + "$iterator");
                         }
                     };
                 }
