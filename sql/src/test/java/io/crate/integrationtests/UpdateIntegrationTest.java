@@ -30,7 +30,6 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -82,7 +81,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("SQLParseException: Cannot insert null value for column message");
+        expectedException.expectMessage("SQLParseException: Cannot insert null value for column 'message'");
         execute("update test set message=null where id=1");
     }
 
@@ -778,7 +777,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("SQLParseException: Cannot insert null value for column gen_col");
+        expectedException.expectMessage("SQLParseException: Cannot insert null value for column 'gen_col'");
         execute("update generated_column set ts=null where id=1");
     }
 
@@ -795,7 +794,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("SQLParseException: Cannot insert null value for column gen_col");
+        expectedException.expectMessage("SQLParseException: Cannot insert null value for column 'gen_col'");
         execute("update generated_column set gen_col=null where id=1");
     }
 
