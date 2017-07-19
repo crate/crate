@@ -22,9 +22,6 @@ cache:
 notifications:
   email: false
 
-before_install:
-  - ulimit -u 65535
-  - ulimit -n 65536
 
 script:
   - ./gradlew -s :sql:test
