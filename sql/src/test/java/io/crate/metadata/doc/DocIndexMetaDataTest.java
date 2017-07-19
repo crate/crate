@@ -63,6 +63,7 @@ import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.instanceOf;
@@ -662,6 +663,43 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
         DocIndexMetaData md = newMeta(metaData, "test_notnull_columns");
         assertThat(md.columns().get(0).isNullable(), is(false));
         assertThat(md.columns().get(1).isNullable(), is(false));
+    }
+
+    @Test
+    public void testSchemaWithNotNullNestedColumns() throws Exception {
+        XContentBuilder builder = XContentFactory.jsonBuilder()
+        .startObject()
+            .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                .startObject("_meta")
+                    .startObject("constraints")
+                        .array("not_null", "nested.level1", "nested.level1.level2")
+                    .endObject()
+                .endObject()
+                .startObject("properties")
+                    .startObject("nested")
+                        .field("type", "object")
+                            .startObject("properties")
+                                .startObject("level1")
+                                    .field("type", "object")
+                                    .startObject("properties")
+                                        .startObject("level2")
+                                            .field("type", "string")
+                                        .endObject()
+                                    .endObject()
+                                .endObject()
+                             .endObject()
+                    .endObject()
+                .endObject()
+            .endObject()
+        .endObject();
+        IndexMetaData metaData = getIndexMetaData("test_notnull_columns", builder);
+        DocIndexMetaData md = newMeta(metaData, "test_notnull_columns");
+
+        ColumnIdent level1 = new ColumnIdent("nested", "level1");
+        ColumnIdent level2 = new ColumnIdent("nested", Arrays.asList("level1", "level2"));
+        assertThat(md.notNullColumns(), containsInAnyOrder(level1, level2));
+        assertThat(md.references().get(level1).isNullable(), is(false));
+        assertThat(md.references().get(level2).isNullable(), is(false));
     }
 
     @Test

@@ -31,6 +31,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             ),
             ImmutableList.of(),
             ImmutableList.of(),
+            ImmutableList.of(),
             ImmutableMap.of(),
             ImmutableMap.of(),
             ImmutableMap.of(),
@@ -85,6 +86,7 @@ public class DocTableInfoTest extends CrateUnitTest {
         DocTableInfo info = new DocTableInfo(
             dummy,
             ImmutableList.of(strictParent),
+            ImmutableList.of(),
             ImmutableList.of(),
             ImmutableList.of(),
             ImmutableMap.of(),

@@ -71,6 +71,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 columns,
                 partitionedByColumns,
                 generatedColumns,
+                ImmutableList.of(),
                 indexColumns,
                 references,
                 analyzers,

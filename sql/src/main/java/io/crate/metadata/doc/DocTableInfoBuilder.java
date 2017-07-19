@@ -195,6 +195,7 @@ class DocTableInfoBuilder {
             md.columns(),
             md.partitionedByColumns(),
             md.generatedColumnReferences(),
+            md.notNullColumns(),
             md.indices(),
             md.references(),
             md.analyzers(),

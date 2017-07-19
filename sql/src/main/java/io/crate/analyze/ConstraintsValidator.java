@@ -22,21 +22,49 @@
 
 package io.crate.analyze;
 
+import io.crate.core.collections.Maps;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.types.DataTypes;
 
 import java.util.Collection;
 import java.util.Locale;
+import java.util.Map;
 
 public final class ConstraintsValidator {
 
-    public static void validate(Object value, Reference targetColumn) {
+    public static void validate(Object value, Reference targetColumn, Collection<ColumnIdent> notNullColumns) {
         assert targetColumn != null: "targetColumn is required to be able to validate it";
         // Validate NOT NULL constraint
         if (value == null && !targetColumn.isNullable()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot insert null value for column '%s'", targetColumn.ident().columnIdent()));
+        }
+        validateNotNullOnChildren(value, targetColumn, notNullColumns);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void validateNotNullOnChildren(Object value,
+                                                  Reference targetColumn,
+                                                  Collection<ColumnIdent> notNullColumns) {
+        if (targetColumn.valueType() == DataTypes.OBJECT) {
+            Map<String, Object> valueMap = (Map<String, Object>) value;
+            for (ColumnIdent columnIdent : notNullColumns) {
+                if (columnIdent.isChildOf(targetColumn.ident().columnIdent())) {
+                    Map<String, Object> map = valueMap;
+                    for (String path : columnIdent.path()) {
+                        Object nested = Maps.getNested(map, path);
+                        if (nested == null) {
+                            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                                                                             "Cannot insert null value for column '%s'", columnIdent));
+                        }
+                        if (nested instanceof Map) {
+                            map = (Map<String, Object>) nested;
+                        }
+                    }
+                }
+            }
         }
     }
 

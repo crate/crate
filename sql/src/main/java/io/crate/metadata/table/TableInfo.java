@@ -21,13 +21,13 @@
 
 package io.crate.metadata.table;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
-import io.crate.action.sql.SessionContext;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
