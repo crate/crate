@@ -24,6 +24,8 @@ package io.crate.operation.tablefunctions;
 
 import org.junit.Test;
 
+import java.util.Iterator;
+
 public class GenerateSeriesFunctionTest extends AbstractTableFunctionsTest {
 
     private void generateSeries(int start, int stop, int step) {
@@ -70,21 +72,102 @@ public class GenerateSeriesFunctionTest extends AbstractTableFunctionsTest {
         assertExecute("generate_series("+start+"::double,"+stop+"::double,"+step+"::double)", sb.toString());
     }
 
+    private Iterator<String> getNumericString(int start, int step) {
+        return new Iterator<String>() {
+            int idx = 0;
+
+            @Override
+            public boolean hasNext() {
+                return true;
+            }
+
+            @Override
+            public String next() {
+                return Integer.valueOf(start + idx++ * step).toString();
+            }
+        };
+    }
+
+    private Iterator<String> getNumericString(long start, long step) {
+        return new Iterator<String>() {
+            int idx = 0;
+
+            @Override
+            public boolean hasNext() {
+                return true;
+            }
+
+            @Override
+            public String next() {
+                return Long.valueOf(start + idx++ * step).toString();
+            }
+        };
+    }
+
+    private Iterator<String> getNumericString(float start, float step) {
+        return new Iterator<String>() {
+            int idx = 0;
+
+            @Override
+            public boolean hasNext() {
+                return true;
+            }
+
+            @Override
+            public String next() {
+                return Float.valueOf(start + idx++ * step).toString();
+            }
+        };
+    }
+
+    private Iterator<String> getNumericString(double start, double step) {
+        return new Iterator<String>() {
+            int idx = 0;
+
+            @Override
+            public boolean hasNext() {
+                return true;
+            }
+
+            @Override
+            public String next() {
+                return Double.valueOf(start + idx++ * step).toString();
+            }
+        };
+    }
 
     @Test
     public void testNormalCaseWithDefaultStep() throws Exception {
-        generateSeries(0, 1000, 1);
-        generateSeries((long)0, 1000, 1);
-        generateSeries((float)0, 1000, 1);
-        generateSeries((double)0, 1000, 1);
+
+        Iterator i;
+        i = getNumericString(0, 1);
+        assertExecute("generate_series(0::integer,3::integer)", i.next()+"\n"+i.next()+"\n"+i.next()+"\n"+i.next()+"\n");
+
+        i = getNumericString(0L, 1L);
+        assertExecute("generate_series(0::long,3::long)", i.next()+"\n"+i.next()+"\n"+i.next()+"\n"+i.next()+"\n");
+
+        i = getNumericString(0.7f, 1.0f);
+        assertExecute("generate_series(0.7::float,3.7::float)", i.next()+"\n"+i.next()+"\n"+i.next()+"\n"+i.next()+"\n");
+
+        i = getNumericString(0.7d, 1.0d);
+        assertExecute("generate_series(0.7::double,3.7::double)", i.next()+"\n"+i.next()+"\n"+i.next()+"\n"+i.next()+"\n");
     }
 
     @Test
     public void testNormalCaseWithCustomStep() throws Exception {
-        generateSeries(0, 1000, 5);
-        generateSeries((long)0, 1000, 5);
-        generateSeries((float)0, 1000, 5);
-        generateSeries((double)0, 1000, 5);
+
+        Iterator i;
+        i = getNumericString(0, 3);
+        assertExecute("generate_series(0::integer,8::integer,3::integer)", i.next()+"\n"+i.next()+"\n"+i.next()+"\n");
+
+        i = getNumericString(0L, 3L);
+        assertExecute("generate_series(0::long,8::long,3::long)", i.next()+"\n"+i.next()+"\n"+i.next()+"\n");
+
+        i = getNumericString(0.7f, 3.1f);
+        assertExecute("generate_series(0.7::float,8.7::float,3.1::float)", i.next()+"\n"+i.next()+"\n"+i.next()+"\n");
+
+        i = getNumericString(0.7d, 3.1d);
+        assertExecute("generate_series(0.7::double,8.7::double,3.1::double)", i.next()+"\n"+i.next()+"\n"+i.next()+"\n");
     }
 
     @Test
