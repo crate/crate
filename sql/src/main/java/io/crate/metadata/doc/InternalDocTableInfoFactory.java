@@ -24,11 +24,9 @@ package io.crate.metadata.doc;
 
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
 @Singleton
@@ -36,15 +34,12 @@ public class InternalDocTableInfoFactory implements DocTableInfoFactory {
 
     private final Functions functions;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private final Provider<TransportPutIndexTemplateAction> putIndexTemplateActionProvider;
 
     @Inject
     public InternalDocTableInfoFactory(Functions functions,
-                                       IndexNameExpressionResolver indexNameExpressionResolver,
-                                       Provider<TransportPutIndexTemplateAction> putIndexTemplateActionProvider) {
+                                       IndexNameExpressionResolver indexNameExpressionResolver) {
         this.functions = functions;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.putIndexTemplateActionProvider = putIndexTemplateActionProvider;
     }
 
     @Override
@@ -55,7 +50,6 @@ public class InternalDocTableInfoFactory implements DocTableInfoFactory {
             ident,
             clusterService,
             indexNameExpressionResolver,
-            putIndexTemplateActionProvider.get(),
             checkAliasSchema
         );
         return builder.build();

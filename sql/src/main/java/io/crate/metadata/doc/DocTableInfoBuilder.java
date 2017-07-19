@@ -29,7 +29,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -57,7 +56,6 @@ class DocTableInfoBuilder {
     private final Functions functions;
     private final ClusterService clusterService;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final MetaData metaData;
     private String[] concreteIndices;
     private String[] concreteOpenIndices;
@@ -67,12 +65,10 @@ class DocTableInfoBuilder {
                         TableIdent ident,
                         ClusterService clusterService,
                         IndexNameExpressionResolver indexNameExpressionResolver,
-                        TransportPutIndexTemplateAction transportPutIndexTemplateAction,
                         boolean checkAliasSchema) {
         this.functions = functions;
         this.clusterService = clusterService;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.ident = ident;
         this.state = clusterService.state();
         this.metaData = state.metaData();
@@ -108,17 +104,12 @@ class DocTableInfoBuilder {
             }
         }
 
-        if ((!createdFromTemplate && concreteIndices.length == 1) || !checkAliasSchema) {
+        if (!checkAliasSchema || concreteIndices.length == 1) {
             return docIndexMetaData;
         }
-        for (String concreteIndex : concreteIndices) {
-            try {
-                docIndexMetaData = docIndexMetaData.merge(
-                    buildDocIndexMetaData(concreteIndex),
-                    transportPutIndexTemplateAction,
-                    createdFromTemplate);
-            } catch (IOException e) {
-                throw new UnhandledServerException("Unable to merge/build new DocIndexMetaData", e);
+        if (!createdFromTemplate) {
+            for (String concreteIndex : concreteIndices) {
+                docIndexMetaData = docIndexMetaData.ensureEqual(buildDocIndexMetaData(concreteIndex));
             }
         }
         return docIndexMetaData;

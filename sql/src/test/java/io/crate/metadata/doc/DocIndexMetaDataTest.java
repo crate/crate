@@ -18,7 +18,6 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
@@ -31,14 +30,10 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -69,7 +64,6 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.mockito.Mockito.mock;
 
 // @formatter:off
 public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
@@ -941,12 +935,9 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
     private DocIndexMetaData getDocIndexMetaDataFromStatement(String stmt) throws IOException {
         Statement statement = SqlParser.createStatement(stmt);
 
-        final TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
-        Provider<TransportPutIndexTemplateAction> indexTemplateActionProvider = () -> transportPutIndexTemplateAction;
         DocTableInfoFactory docTableInfoFactory = new InternalDocTableInfoFactory(
             functions,
-            new IndexNameExpressionResolver(Settings.EMPTY),
-            indexTemplateActionProvider
+            new IndexNameExpressionResolver(Settings.EMPTY)
         );
         DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, functions, udfService, docTableInfoFactory);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
@@ -1244,49 +1235,6 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             is(new ArrayType(DataTypes.IP)));
         assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("nested.inner_nested")).valueType(),
             is(new ArrayType(DataTypes.TIMESTAMP)));
-    }
-
-    @Test
-    public void testMergePartitionWithDifferentShardsAndReplicas() throws Exception {
-        XContentBuilder builder = XContentFactory.jsonBuilder()
-            .startObject()
-                .startObject("_meta")
-                    .field("primary_keys", "id")
-                    .startArray("partitioned_by")
-                        .startArray().value("datum").value("date").endArray()
-                    .endArray()
-                .endObject()
-                .startObject("properties")
-                    .startObject("id")
-                        .field("type", "integer")
-                    .endObject()
-                .endObject()
-            .endObject();
-        Settings templateSettings = Settings.builder()
-            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 2)
-            .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 6)
-            .build();
-        IndexMetaData metaData = getIndexMetaData("test1", builder, templateSettings, null);
-        DocIndexMetaData md = newMeta(metaData, "test1");
-
-        PartitionName partitionName = new PartitionName("test1", Arrays.asList(new BytesRef("0")));
-        Settings partitionSettings = Settings.builder()
-            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 10)
-            .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 50)
-            .build();
-        AliasMetaData aliasMetaData = AliasMetaData.newAliasMetaDataBuilder("test1")
-            .build();
-        IndexMetaData partitionMetaData = getIndexMetaData(partitionName.asIndexName(), builder,
-            partitionSettings, aliasMetaData);
-        DocIndexMetaData partitionMD = newMeta(partitionMetaData, partitionName.asIndexName());
-        assertThat(partitionMD.aliases().size(), is(1));
-        assertThat(partitionMD.aliases(), hasItems("test1"));
-        assertThat(partitionMD.isAlias(), is(false));
-        assertThat(partitionMD.concreteIndexName(), is(partitionName.asIndexName()));
-        DocIndexMetaData merged = md.merge(partitionMD, mock(TransportPutIndexTemplateAction.class), true);
-
-        assertThat(merged.numberOfReplicas(), is(BytesRefs.toBytesRef(2)));
-        assertThat(merged.numberOfShards(), is(6));
     }
 
     @Test

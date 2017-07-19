@@ -22,8 +22,12 @@
 
 package io.crate.executor.transport;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.TableIdent;
+import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
@@ -32,23 +36,37 @@ import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentHelper;
+import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+
+import static org.elasticsearch.index.mapper.MapperService.parseMapping;
 
 @Singleton
 public class TransportSchemaUpdateAction extends TransportMasterNodeAction<SchemaUpdateRequest, SchemaUpdateResponse> {
 
     private final NodeClient nodeClient;
+    private final NamedXContentRegistry xContentRegistry;
 
     @Inject
     public TransportSchemaUpdateAction(Settings settings,
@@ -57,7 +75,8 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
                                        ThreadPool threadPool,
                                        ActionFilters actionFilters,
                                        IndexNameExpressionResolver indexNameExpressionResolver,
-                                       NodeClient nodeClient) {
+                                       NodeClient nodeClient,
+                                       NamedXContentRegistry xContentRegistry) {
         super(settings,
             "crate/sql/ddl/schema_update",
             transportService,
@@ -67,11 +86,13 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
             indexNameExpressionResolver,
             SchemaUpdateRequest::new);
         this.nodeClient = nodeClient;
+        this.xContentRegistry = xContentRegistry;
     }
 
     @Override
     protected String executor() {
-        return ThreadPool.Names.GENERIC;
+        // we go async right away
+        return ThreadPool.Names.SAME;
     }
 
     @Override
@@ -81,9 +102,20 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
 
     @Override
     protected void masterOperation(SchemaUpdateRequest request, ClusterState state, ActionListener<SchemaUpdateResponse> listener) throws Exception {
-        updateMapping(request.index(), request.masterNodeTimeout(), request.mappingSource())
-            .thenApply(r -> new SchemaUpdateResponse(true))
-            .whenComplete(ActionListeners.asBiConsumer(listener));
+        // ideally we'd handle the index mapping update together with the template update in a single clusterStateUpdateTask
+        // but the index mapping-update logic is difficult to re-use
+        if (PartitionName.isPartition(request.index().getName())) {
+            updateMapping(request.index(), request.masterNodeTimeout(), request.mappingSource())
+                .thenCompose(r -> updateTemplate(
+                    request.index().getName(),
+                    request.mappingSource(),
+                    request.masterNodeTimeout()))
+                .whenComplete(ActionListeners.asBiConsumer(listener));
+        } else {
+            updateMapping(request.index(), request.masterNodeTimeout(), request.mappingSource())
+                .thenApply(r -> new SchemaUpdateResponse(r.isAcknowledged()))
+                .whenComplete(ActionListeners.asBiConsumer(listener));
+        }
     }
 
     private CompletableFuture<PutMappingResponse> updateMapping(Index index,
@@ -101,8 +133,64 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         return putMappingListener;
     }
 
+    private CompletableFuture<SchemaUpdateResponse> updateTemplate(String indexName,
+                                                           String mappingSource,
+                                                           TimeValue timeout) {
+        CompletableFuture<SchemaUpdateResponse> future = new CompletableFuture<>();
+        clusterService.submitStateUpdateTask("update-template-mapping", new ClusterStateUpdateTask(Priority.HIGH) {
+            @Override
+            public ClusterState execute(ClusterState currentState) throws Exception {
+                return updateTemplate(xContentRegistry, currentState, indexName, mappingSource);
+            }
+
+            @Override
+            public TimeValue timeout() {
+                return timeout;
+            }
+
+            @Override
+            public void onFailure(String source, Exception e) {
+                future.completeExceptionally(e);
+            }
+
+            @Override
+            public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
+                future.complete(new SchemaUpdateResponse(true));
+            }
+        });
+        return future;
+    }
+
+    private static ClusterState updateTemplate(NamedXContentRegistry xContentRegistry,
+                                               ClusterState currentState,
+                                               String indexName,
+                                               String mappingSource) throws Exception {
+        PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexName);
+        TableIdent tableIdent = partitionName.tableIdent();
+        String templateName = PartitionName.templateName(tableIdent.schema(), tableIdent.name());
+        IndexTemplateMetaData template = currentState.metaData().templates().get(templateName);
+        if (template == null) {
+            throw new ResourceNotFoundException("Template \"" + templateName + "\" for partitioned table is missing");
+        }
+        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, mappingSource);
+        Map<String, Object> newMapping = parser.map();
+
+        IndexTemplateMetaData.Builder templateBuilder = new IndexTemplateMetaData.Builder(template);
+        for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
+            Map<String, Object> source = parseMapping(xContentRegistry, cursor.value.toString());
+            XContentHelper.update(source, newMapping, true);
+            try (XContentBuilder xContentBuilder = JsonXContent.contentBuilder()) {
+                templateBuilder.putMapping(cursor.key, xContentBuilder.map(source).string());
+            }
+        }
+
+        MetaData.Builder builder = MetaData.builder(currentState.metaData()).put(templateBuilder);
+        return ClusterState.builder(currentState).metaData(builder).build();
+    }
+
     @Override
     protected ClusterBlockException checkBlock(SchemaUpdateRequest request, ClusterState state) {
+        // no separate block check as it will be done in TransportPutMappingAction
         return null;
     }
 }

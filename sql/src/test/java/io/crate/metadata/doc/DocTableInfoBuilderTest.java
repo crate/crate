@@ -30,7 +30,6 @@ import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -49,8 +48,6 @@ import org.mockito.Mock;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
-
-import static org.mockito.Mockito.mock;
 
 public class DocTableInfoBuilderTest extends CrateUnitTest {
 
@@ -111,7 +108,6 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
             new TableIdent(schemaName, "test"),
             clusterService,
             new IndexNameExpressionResolver(Settings.EMPTY),
-            mock(TransportPutIndexTemplateAction.class),
             false
         );
 

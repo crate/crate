@@ -55,7 +55,7 @@ public class SchemaUpdateClient extends AbstractComponent {
         this.dynamicMappingUpdateTimeout = dynamicMappingUpdateTimeout;
     }
 
-    public void blockingUpdateOnMaster(Index index, Mapping mappingUpdate) throws TimeoutException{
+    public void blockingUpdateOnMaster(Index index, Mapping mappingUpdate) throws TimeoutException {
         TimeValue timeout = this.dynamicMappingUpdateTimeout;
         SchemaUpdateResponse schemaUpdateResponse = schemaUpdateAction.execute(
             new SchemaUpdateRequest(index, mappingUpdate.toString())).actionGet();

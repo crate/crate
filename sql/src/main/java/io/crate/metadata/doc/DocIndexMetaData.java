@@ -21,7 +21,6 @@
 
 package io.crate.metadata.doc;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -59,15 +58,10 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.alias.Alias;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentHelper;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -649,39 +643,12 @@ public class DocIndexMetaData {
         return true;
     }
 
-    protected DocIndexMetaData merge(DocIndexMetaData other,
-                                     TransportPutIndexTemplateAction transportPutIndexTemplateAction,
-                                     boolean thisIsCreatedFromTemplate) throws IOException {
+    protected DocIndexMetaData ensureEqual(DocIndexMetaData other) {
         if (schemaEquals(other)) {
-            return this;
-        } else if (thisIsCreatedFromTemplate) {
-            boolean mappingChanged = XContentHelper.update(this.mappingMap, other.mappingMap, true);
-            if (mappingChanged) {
-                IndexMetaData indexMetaData = mergeIndexMetaData(other.metaData);
-                DocIndexMetaData ret = new DocIndexMetaData(functions, indexMetaData, other.ident).build();
-                updateTemplate(ret, transportPutIndexTemplateAction, this.metaData.getSettings());
-                return ret;
-            }
             return this;
         } else {
             throw new TableAliasSchemaException(other.ident);
         }
-    }
-
-    private void updateTemplate(DocIndexMetaData md,
-                                TransportPutIndexTemplateAction transportPutIndexTemplateAction,
-                                Settings updateSettings) {
-        String templateName = PartitionName.templateName(ident.schema(), ident.name());
-        PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
-            .mapping(Constants.DEFAULT_MAPPING_TYPE, md.mappingMap)
-            .create(false)
-            .settings(updateSettings.filter(s ->
-                s.equals(IndexMetaData.SETTING_VERSION_CREATED) == false))
-            .template(templateName + "*");
-        for (String alias : md.aliases()) {
-            request = request.alias(new Alias(alias));
-        }
-        transportPutIndexTemplateAction.execute(request);
     }
 
     /**
@@ -770,32 +737,5 @@ public class DocIndexMetaData {
 
     public boolean isClosed() {
         return closed;
-    }
-
-    /**
-     * Merges this {@link IndexMetaData} with the given one,
-     * but comparing to {@link IndexMetaData#builder(IndexMetaData)}, it won't set {@link IndexMetaData#primaryTerms}
-     * as the number of shards can differ (its applied via the settings).
-     */
-    private IndexMetaData mergeIndexMetaData(IndexMetaData other) {
-        IndexMetaData.Builder builder = IndexMetaData.builder(other.getIndex().getName())
-            .settings(this.metaData.getSettings())
-            .state(other.getState())
-            .version(other.getVersion());
-
-        // mappings are expected to be merged already, so we use this one's
-        try {
-            builder.putMapping(new MappingMetaData(Constants.DEFAULT_MAPPING_TYPE, mappingMap));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        for (ObjectObjectCursor<String, AliasMetaData> cursor : other.getAliases()) {
-            builder.putAlias(cursor.value);
-        }
-        for (ObjectObjectCursor<String, IndexMetaData.Custom> cursor : other.getCustoms()) {
-            builder.putCustom(cursor.key, cursor.value);
-        }
-        return builder.build();
     }
 }
