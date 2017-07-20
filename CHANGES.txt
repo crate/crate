@@ -27,6 +27,8 @@ Changes
 Fixes
 =====
 
+ - Dropping an empty partitioned table did not drop related table privileges.
+
  - Implemented ``NOT NULL`` constraint validation for nested object columns,
    which was previously ignored. E.g.::
 

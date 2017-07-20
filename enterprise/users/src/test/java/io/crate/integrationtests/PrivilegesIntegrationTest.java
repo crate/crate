@@ -236,4 +236,22 @@ public class PrivilegesIntegrationTest extends BaseUsersIntegrationTest {
         expectedException.expectMessage(containsString("Missing 'DQL' privilege for user '"+ TEST_USERNAME + "'"));
         execute("select * from t1", null, testUserSession());
     }
+
+    @Test
+    public void testDropEmptyPartitionedTableRemovesPrivileges() {
+        executeAsSuperuser("create table doc.t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
+        executeAsSuperuser("grant dql on table t1 to "+ TEST_USERNAME);
+
+        executeAsSuperuser("drop table t1");
+        ensureYellow();
+
+        executeAsSuperuser("select * from sys.privileges where grantee = ? and ident = ?",
+            new Object[]{TEST_USERNAME, "doc.t1"});
+        assertThat(response.rowCount(), is(0L));
+
+        executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(containsString("Missing 'DQL' privilege for user '"+ TEST_USERNAME + "'"));
+        execute("select * from t1", null, testUserSession());
+    }
 }

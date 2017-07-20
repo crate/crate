@@ -85,6 +85,14 @@ public class DropTableTask extends JobTask {
                     if (!tableInfo.partitions().isEmpty()) {
                         deleteESIndex(tableInfo.ident(), consumer);
                     } else {
+                        userManager.dropTablePrivileges(tableInfo.ident().fqn()).whenComplete((r, t) -> {
+                            if (t != null) {
+                                logger.warn(
+                                    String.format(Locale.ENGLISH, "Unable to drop existing privileges for table %s.", tableInfo.ident().fqn()),
+                                    t);
+                            }
+                            consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null);
+                        });
                         consumer.accept(RowsBatchIterator.newInstance(ROW_ONE), null);
                     }
                 }
