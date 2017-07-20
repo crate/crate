@@ -1342,7 +1342,7 @@ repositories (see :ref:`snapshot-restore`).
 |                      | ``IN_PROGRESS``, ``SUCCESS``,    |                   |
 |                      | ``PARTIAL``, or ``FAILED``.      |                   |
 +----------------------+----------------------------------+-------------------+
-| ``version``          | The CrateDB version this         | ``String``        |
+| ``version``          | An internal version this         | ``String``        |
 |                      | snapshot was created with.       |                   |
 +----------------------+----------------------------------+-------------------+
 

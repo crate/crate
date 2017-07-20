@@ -27,6 +27,10 @@ Changes
 Fixes
 =====
 
+ - Corrected the documentation of the ``version`` column of the ``sys.snapshots``
+   table. It was described as the CrateDB version wereas it's an internal
+   version instead.
+
  - Dropping an empty partitioned table did not drop related table privileges.
 
  - Implemented ``NOT NULL`` constraint validation for nested object columns,
