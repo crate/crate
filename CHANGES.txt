@@ -27,6 +27,9 @@ Changes
 Fixes
 =====
 
+ - Fixed an issue that caused statements with a ``HAVING`` clause to fail for 
+   fields aliased with the name of a real column.
+
  - Dropping an empty partitioned table did not drop related table privileges.
 
  - Implemented ``NOT NULL`` constraint validation for nested object columns,

@@ -1569,6 +1569,16 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void testGroupByHavingAliasForRealColumn() {
+        SelectAnalyzedStatement analysis = analyze(
+            "select id as name from users group by id, name having name != null;");
+
+        Optional<HavingClause> havingClause = analysis.relation().querySpec().having();
+        assertThat(havingClause.isPresent(), is(true));
+        assertThat(havingClause.get().query(), nullValue());
+    }
+
+    @Test
     public void testGroupByHavingByGroupKey() throws Exception {
         SelectAnalyzedStatement analysis = analyze(
             "select sum(floats), name from users group by name having name like 'Slartibart%'");
