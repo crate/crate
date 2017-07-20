@@ -179,12 +179,16 @@ Resulting partitions of the last insert by query::
    ``limit``, ``offset`` and ``order by`` are not supported inside the query
    statement.
 
-``ON DUPLICATE KEY UPDATE``
----------------------------
+Upserts (``ON DUPLICATE KEY UPDATE``)
+-------------------------------------
 
 The ``ON DUPLICATE KEY UPDATE`` clause is used to update the existing row if
 inserting is not possible because of a duplicate-key conflict if a document
-with the same ``PRIMARY KEY`` already exists::
+with the same ``PRIMARY KEY`` already exists. This is type of opperation is
+commonly referred to as an *upsert*, being a combination of "update" and
+"insert".
+
+::
 
     cr> select
     ...     name,
