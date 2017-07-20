@@ -105,6 +105,11 @@ status of a created snapshot can be retrieved by querying the
 Restore
 -------
 
+.. CAUTION::
+
+   If you are restoring a snapshot into a newer version of CrateDB, be sure to
+   check the :ref:`release_notes` for upgrade instructions.
+
 Once a snapshot is created, it can be used to restore its tables to the state
 when the snapshot was created.
 
