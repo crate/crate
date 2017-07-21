@@ -26,7 +26,6 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.TableIdent;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
@@ -38,11 +37,13 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.block.ClusterBlockException;
+import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -60,6 +61,7 @@ import org.elasticsearch.transport.TransportService;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import static io.crate.concurrent.CompletableFutures.failedFuture;
 import static org.elasticsearch.index.mapper.MapperService.parseMapping;
 
 @Singleton
@@ -107,6 +109,7 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         if (PartitionName.isPartition(request.index().getName())) {
             updateMapping(request.index(), request.masterNodeTimeout(), request.mappingSource())
                 .thenCompose(r -> updateTemplate(
+                    state.getMetaData().getTemplates(),
                     request.index().getName(),
                     request.mappingSource(),
                     request.masterNodeTimeout()))
@@ -133,14 +136,26 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         return putMappingListener;
     }
 
-    private CompletableFuture<SchemaUpdateResponse> updateTemplate(String indexName,
-                                                           String mappingSource,
-                                                           TimeValue timeout) {
+    private CompletableFuture<SchemaUpdateResponse> updateTemplate(ImmutableOpenMap<String, IndexTemplateMetaData> templates,
+                                                                   String indexName,
+                                                                   String mappingSource,
+                                                                   TimeValue timeout) {
         CompletableFuture<SchemaUpdateResponse> future = new CompletableFuture<>();
+        String templateName = PartitionName.templateName(indexName);
+        Map<String, Object> newMapping;
+        try {
+            XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, mappingSource);
+            newMapping = parser.map();
+            if (newMappingAlreadyApplied(templates.get(templateName), newMapping)) {
+                return CompletableFuture.completedFuture(new SchemaUpdateResponse(true));
+            }
+        } catch (Exception e) {
+            return failedFuture(e);
+        }
         clusterService.submitStateUpdateTask("update-template-mapping", new ClusterStateUpdateTask(Priority.HIGH) {
             @Override
             public ClusterState execute(ClusterState currentState) throws Exception {
-                return updateTemplate(xContentRegistry, currentState, indexName, mappingSource);
+                return updateTemplate(xContentRegistry, currentState, templateName, newMapping);
             }
 
             @Override
@@ -161,19 +176,20 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
         return future;
     }
 
+    private boolean newMappingAlreadyApplied(IndexTemplateMetaData template, Map<String, Object> newMapping) throws Exception {
+        CompressedXContent defaultMapping = template.getMappings().get(Constants.DEFAULT_MAPPING_TYPE);
+        Map<String, Object> currentMapping = parseMapping(xContentRegistry, defaultMapping.toString());
+        return !XContentHelper.update(currentMapping, newMapping, true);
+    }
+
     private static ClusterState updateTemplate(NamedXContentRegistry xContentRegistry,
                                                ClusterState currentState,
-                                               String indexName,
-                                               String mappingSource) throws Exception {
-        PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexName);
-        TableIdent tableIdent = partitionName.tableIdent();
-        String templateName = PartitionName.templateName(tableIdent.schema(), tableIdent.name());
+                                               String templateName,
+                                               Map<String, Object> newMapping) throws Exception {
         IndexTemplateMetaData template = currentState.metaData().templates().get(templateName);
         if (template == null) {
             throw new ResourceNotFoundException("Template \"" + templateName + "\" for partitioned table is missing");
         }
-        XContentParser parser = JsonXContent.jsonXContent.createParser(NamedXContentRegistry.EMPTY, mappingSource);
-        Map<String, Object> newMapping = parser.map();
 
         IndexTemplateMetaData.Builder templateBuilder = new IndexTemplateMetaData.Builder(template);
         for (ObjectObjectCursor<String, CompressedXContent> cursor : template.mappings()) {
@@ -190,7 +206,6 @@ public class TransportSchemaUpdateAction extends TransportMasterNodeAction<Schem
 
     @Override
     protected ClusterBlockException checkBlock(SchemaUpdateRequest request, ClusterState state) {
-        // no separate block check as it will be done in TransportPutMappingAction
-        return null;
+        return state.blocks().indexBlockedException(ClusterBlockLevel.METADATA_WRITE, "");
     }
 }

@@ -72,6 +72,11 @@ public class PartitionName {
         return DOT_JOINER.join(tableIdent.schema(), PARTITIONED_TABLE_PREFIX, tableIdent.name(), ident);
     }
 
+    public static String templateName(String indexName) {
+        TableIdent tableIdent = PartitionName.fromIndexOrTemplate(indexName).tableIdent;
+        return templateName(tableIdent.schema(), tableIdent.name());
+    }
+
     /**
      * decodes an encoded ident into it's values
      */
