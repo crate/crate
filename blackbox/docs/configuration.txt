@@ -56,7 +56,7 @@ Node Specific Settings
   The name of the node. If no name is configured a random one will be
   generated.
 
-.. note::
+.. NOTE::
 
    Node names must be unique in a CrateDB cluster.
 
@@ -174,7 +174,7 @@ Hosts
   This setting is used by a CrateDB node to publish its own address to the rest
   of the cluster.
 
-  .. note::
+  .. NOTE::
 
     Apart from IPv4 and IPv6 addresses there are some special values that can
     be used for all above settings:
@@ -391,7 +391,7 @@ Elasticsearch HTTP REST API
 
   Enable or disable elasticsearch HTTP REST API.
 
-  .. warning::
+  .. WARNING::
 
     Manipulating your data via elasticsearch API and not via SQL might result
     in inconsistent data. You have been warned!
@@ -589,7 +589,7 @@ Collecting Stats
 
   If the value is set to ``0``, time based log entry eviction is disabled.
 
-  .. note::
+  .. NOTE::
 
      If both the :ref:`stats.operations_log_size <stats.operations_log_size>`
      and
@@ -625,7 +625,7 @@ Collecting Stats
   overrides :ref:`stats.operations_log_size <stats.operations_log_size>`. If
   the value is set to ``0`` the time based log entry eviction is disabled.
 
-  .. note::
+  .. NOTE::
 
     If both setttings :ref:`stats.operations_log_size
     <stats.operations_log_size>` and :ref:`stats.operations_log_expiration
@@ -647,7 +647,7 @@ Collecting Stats
 
   If the value provided is ``0`` then the refresh is disabled.
 
-  .. note::
+  .. NOTE::
 
     Using a very small value can cause a high load on the cluster.
 
@@ -762,7 +762,7 @@ nodes of the cluster:
   ``full``: All records and all replicas need to be available after the node
   has shut down. Data availability is full.
 
-  .. note::
+  .. NOTE::
 
      This option is ignored if there is only 1 node in a cluster!
 
@@ -780,7 +780,7 @@ nodes of the cluster:
   to reallocate shards in order to ensure the minimum data availability set
   with ``min_availability``.
 
-  .. note::
+  .. NOTE::
 
      Make sure you have enough nodes and enough disk space for the
      reallocation.
@@ -1084,7 +1084,7 @@ Routing Allocation
   this value before gracefully stopping the first node and reset it to ``all``
   after starting the last updated node.
 
-.. note::
+.. NOTE::
 
    This allocation setting has no effect on recovery of primary shards! Even
    when ``cluster.routing.allocation.enable`` is set to ``none``, nodes will
@@ -1631,7 +1631,7 @@ Possible log levels are the same as for Log4j_: ``TRACE``, ``DEBUG``, ``INFO``,
 ``WARN``, and ``ERROR``. They must be provided as string literals in the
 ``SET`` statement.
 
-.. note::
+.. NOTE::
 
    Be careful using the ``TRACE`` log level because it's extremely verbose,
    can obscure other important log messages and even fill up entire data disks
@@ -1701,7 +1701,7 @@ memory for faster access. So if all system memory is assigned to CrateDB's
 HEAP, there won't be any left-over for `Lucene`_ which can cause serious
 performance impacts.
 
-.. note::
+.. NOTE::
 
    A good recommendation is to assign 50% of the available memory to CrateDB's
    HEAP while leaving the other 50% free. It will not get unused, `Lucene`_
@@ -1726,7 +1726,7 @@ object pointers now consume twice as much.
 This boundary should be considered an upper bound for the heap size of any JVM
 application.
 
-.. note::
+.. NOTE::
 
    In order to ensure that `Compressed Oops`_ are used no matter what JVM
    CrateDB runs on, configuring the heap to a value less than or equal to *30.5

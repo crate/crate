@@ -29,7 +29,7 @@ escaped when adding a single-quote before it. For example a single quote
 character within a string literal can be included by writing two adjacent
 single quotes, e.g. ``'Jack''s car'``.
 
-.. note::
+.. NOTE::
 
    Two adjacent single quotes are **not** equivalent to the double-quote
    character ``"``.
@@ -165,7 +165,7 @@ Example::
       data OBJECT
     ) WITH (number_of_replicas = 0);
 
-.. note::
+.. NOTE::
 
   Key words and unquoted identifiers are case insensitive.
 
@@ -196,7 +196,7 @@ Quoted identifiers can contain an arbitrary sequence of charactes enclosed by
 double quotes (``"``). Quoted identifiers are never keywords, so you can use
 ``"update"`` as a table or column name.
 
-.. note::
+.. NOTE::
 
   It is even possible to create column names that look like subscript notation,
   e.g. ``"column['looks_like_nested']"``. When querying the information schema,

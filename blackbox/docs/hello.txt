@@ -71,7 +71,7 @@ Here it is used with a filter to only lookup Ford's tweets::
     +------------+----+-----------+--------+-------------------------...-+---------+
     SELECT 1 row in set (... sec)
 
-.. seealso::
+.. SEEALSO::
 
  :doc:`Data Definition <sql/ddl/index>` - To see what options the create table
  statement supports and to learn more about sharding and replication.

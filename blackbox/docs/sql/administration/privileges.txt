@@ -5,7 +5,7 @@
 Privileges
 ==========
 
-.. note::
+.. NOTE::
 
     Privileges are only part of the CrateDB `Enterprise Edition`_.
     When the CrateDB Enterprise Edition is disabled, there will be
@@ -16,7 +16,7 @@ The superuser uses ``GRANT``, ``DENY`` and ``REVOKE`` statements to control
 access to the resource. The privileges are either applied on the whole cluster
 or on instances of objects such as schema, or table.
 
-.. note::
+.. NOTE::
 
     Superusers are allowed to execute any statement without any privilege
     checks. Currently only ``DQL``, ``DML`` and ``DDL`` privileges can be
@@ -91,7 +91,7 @@ and functions of the ``doc`` schema::
     cr> DENY DQL ON TABLE doc.accounting TO riley;
     DENY OK, 1 row affected (... sec)
 
-.. note::
+.. NOTE::
 
     In CrateDB, schemas are just namespaces that are created and dropped
     implicitly. Therefore, when ``GRANT``, ``DENY`` or ```REVOKE`` are invoked
@@ -102,7 +102,7 @@ This statement will deny ``DQL`` privilege to user riley on the ``doc`` schema
 table ``doc.accounting``. However, user riley, will still have ``DQL``
 privilege on all the other tables of the ``doc`` schema.
 
-.. note::
+.. NOTE::
 
     Privileges can be managed on all schemas and tables of the cluster,
     except the ``information_schema``.
@@ -110,7 +110,7 @@ privilege on all the other tables of the ``doc`` schema.
 Behavior of ``GRANT``, ``DENY`` and ``REVOKE``
 ==============================================
 
-.. note::
+.. NOTE::
 
     Stale permissions might be introduced if ``DDL`` statements were invoked
     while the Enterprise Edition is temporarily disabled. To allow clients
@@ -162,7 +162,7 @@ wolfgang::
 Using "ALL PRIVILEGES" is a shortcut to grant all the currently grantable
 privileges to a user, namely ``DQL``, ``DML`` and ``DDL``.
 
-.. note::
+.. NOTE::
 
     If no schema is specified in the table ``ident``, the table will be
     looked up in the current schema.
@@ -237,7 +237,7 @@ like this::
     cr> REVOKE ALL FROM will;
     REVOKE OK, 3 rows affected (... sec)
 
-.. note::
+.. NOTE::
 
     The ``REVOKE`` statement can remove only privileges that have been granted
     or denied through the ``GRANT`` or ``DENY`` statements. If the privilege

@@ -100,17 +100,17 @@ Arguments
 :match_type: Optional. Defaults to ``best_fields`` for fulltext indices. For
              details see :ref:`predicates_match_types`.
 
-.. note::
+.. NOTE::
 
     The ``MATCH`` predicate can only be used in the :ref:`sql_dql_where_clause`
     and on user-created tables. Using the ``MATCH`` predicate on system tables
     is not supported.
 
-.. note::
+.. NOTE::
 
     One MATCH predicate cannot combine columns of both relations of a join.
 
-.. note::
+.. NOTE::
 
     MATCH predicates cannot be used on columns of both relations of a join if
     they cannot be logically applied to each of them separately. For example:
@@ -279,7 +279,7 @@ the :ref:`_score <sql_administration_system_column_score>` can be selected::
     +-----------+-----------+
     SELECT 2 rows in set (... sec)
 
-.. note::
+.. NOTE::
 
    The `_score` is not an absolute value. It just sets a row in relation to the
    other ones.
@@ -398,7 +398,7 @@ text and document because it's a ratio relative to all results, and by
 filtering on :ref:`_score <sql_administration_system_column_score>`, 'all
 results' has already changed.
 
-.. warning::
+.. WARNING::
 
    As noted above :ref:`_score <sql_administration_system_column_score>` is a
    relative number and not comparable across searches. Filtering is therefore

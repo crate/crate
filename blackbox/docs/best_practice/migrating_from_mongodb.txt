@@ -33,7 +33,7 @@ Once the script is downloaded convert the data:
 
     mongoexport --db <dbname> --collection <data> | python convert_json.py > out.json
 
-.. seealso::
+.. SEEALSO::
 
  - `MongoDB Manual - Extended JSON <http://docs.mongodb.org/manual/reference/mongodb-extended-json/>`_
 
@@ -99,7 +99,7 @@ But this has some limitations. For example timestamps in long format won't be
 recognised as timestamps. Due to this limitation it is recommended to specify
 fields up-front.
 
-.. seealso::
+.. SEEALSO::
 
  - :ref:`sql_ddl`
  - :ref:`ref-create-table`

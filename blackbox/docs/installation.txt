@@ -49,11 +49,11 @@ your browser once CrateDB is started::
 
   http://host1.example.com:4200/
 
-.. note::
+.. NOTE::
 
     The admin interface runs on each node where CrateDB is installed.
 
-.. note::
+.. NOTE::
 
     If the previous URL is accessed via libraries (eg. cURL), or via offline
     browsers (eg. wget) the request will be handled by the CrateDB Rest API,
@@ -90,7 +90,7 @@ In case your distribution is missing feel free to `contact us
 <https://crate.io/about/contact/>`_. We're happy to create and maintain
 additional packages if we see enough interest.
 
-.. seealso::
+.. SEEALSO::
 
  :doc:`Configuring CrateDB <configuration>`
 

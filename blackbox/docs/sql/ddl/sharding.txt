@@ -36,7 +36,7 @@ Example::
 If the number of shards is not defined explicitly, the sensible default value
 is applied, (see :ref:`ref_clustered_clause`).
 
-.. note::
+.. NOTE::
 
    The number of shards can only be set on table creation, it cannot be changed
    later on.

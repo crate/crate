@@ -26,7 +26,7 @@ default. Currently there are three choices related to index definition:
 
   - `Fulltext index with analyzer`_
 
-.. warning::
+.. WARNING::
 
    Creating an index after a table was already created is currently not
    supported, so think carefully while designing your table definition.
@@ -64,7 +64,7 @@ When a not indexed column is queried the query will return an error.
     cr> select * from my_table1b where first_column = 'hello';
     SQLActionException[UnhandledServerException: java.lang.IllegalArgumentException: Cannot search on field [first_column] since it is not indexed.]
 
-.. note::
+.. NOTE::
 
     Operations such as data aggregations (:ref:`sql_dql_aggregation`), grouping
     (:ref:`sql_dql_group_by`), and sorting (:ref:`sql_reference_order_by`)
@@ -254,11 +254,11 @@ the used type/char-filter.
 
 Tokenizer and token-filters can be customized in the same way.
 
-.. note::
+.. NOTE::
 
     Altering analyzers is not supported yet.
 
-.. seealso::
+.. SEEALSO::
 
   :ref:`ref-create-analyzer` for the syntax reference.
 

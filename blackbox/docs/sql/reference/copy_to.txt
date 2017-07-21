@@ -29,7 +29,7 @@ The created files are JSON formatted and contain one table row per line and,
 due to the distributed nature of CrateDB, *will remain on the same nodes*
 *where the shards are*.
 
-.. note::
+.. NOTE::
 
    Currently only user tables can be exported. System tables like `sys.nodes`
    and blob tables don't work with the `COPY TO` statement.
@@ -42,7 +42,7 @@ Parameters
 
 :column: (optional) A list of column expressions that should be exported.
 
-.. note::
+.. NOTE::
 
     Declaring columns changes the output to JSON list format, which is
     currently not supported by the COPY FROM statement.
@@ -66,20 +66,20 @@ The resulting string should be a valid URI of one of the supporting schemes:
 If no scheme is given (e.g.: '/path/to/dir') the default uri-scheme ``file://``
 will be used.
 
-.. note::
+.. NOTE::
 
     If the s3 scheme is used without specifying any credentials an attempt is
     made to read these information from the AWS_ACCESS_KEY_ID and
     AWS_SECRET_KEY environment variables. In addition to that the Java System
     properties aws.accessKeyId and aws.secretKey are also used as a fallback.
 
-.. note::
+.. NOTE::
 
    A ``secretkey`` provided by Amazon Web Service can contain characters such
    as '/', '+' or '='. Such characters must be URI encoded. The same encoding
    as in :ref:`copy_from_s3` applies.
 
-.. note::
+.. NOTE::
 
   Versions prior to 0.51.x use HTTP for connections to S3. Since 0.51.x these
   connections are using the HTTPS protocol. Please make sure you update your
@@ -105,7 +105,7 @@ not part of the partitioned tables.
 
 :value: The columns value.
 
-.. note::
+.. NOTE::
 
     If ``COPY TO`` is used on a partitioned table without the ``PARTITION``
     clause, the partition columns and values will be included in the rows of

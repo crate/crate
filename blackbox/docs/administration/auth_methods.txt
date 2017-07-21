@@ -42,7 +42,7 @@ setting like this:
 
 
 
-.. note::
+.. NOTE::
 
    When the Enterprise Edition, and the User Management are enabled,
    the user of the Admin UI needs to be granted the following privileges:
@@ -60,7 +60,7 @@ Client Certificate Authentication Method
 ========================================
 
 When the ``cert`` authentication method is used, the client has to connect to
-CrateDB using SSL with a valid client certificate. 
+CrateDB using SSL with a valid client certificate.
 
 If connecting via HTTP where the username is optional, the ``common name`` will
 be used as username. In case a username is already provided, it has to match
@@ -74,7 +74,7 @@ Please consult the relevant client documentations for instructions on how to
 connect using SSL with client certificate.
 
 
-.. seealso::
+.. SEEALSO::
 
   :ref:`administration_hba`
 

@@ -168,7 +168,7 @@ accross a cluster.
 
     num_shards = max(4, num_data_nodes * 2)
 
-.. note::
+.. NOTE::
 
    The minimum value of ``num_shards`` is set to ``4``. This means if the
    calculation of ``num_shards`` does not exceeds its minimum it applies the
@@ -204,7 +204,7 @@ Several restrictions apply to columns that can be used here:
 * if the table has a :ref:`primary_key_constraint` the columns in PARTITIONED
   clause have to be part of it
 
-.. note::
+.. NOTE::
 
    Columns referenced in the PARTITIONED clause cannot be altered by an
    ``UPDATE`` statement.
@@ -257,7 +257,7 @@ to 1000 milliseconds.
         0 turns off the automatic refresh. A value of greater than 0 schedules
         a periodic refresh of the table.
 
-.. note::
+.. NOTE::
 
    a ``refresh_interval`` of 0 does not guarantee that new writes are *NOT*
    visible to subsequent reads. Only the periodic refresh is disabled. There
@@ -349,7 +349,7 @@ Sets period of no flushing after which force flush occurs.
 
 :value: set ``true`` to disable flushing, otherwise set to ``false``.
 
-.. note::
+.. NOTE::
 
    It is recommended to use ``disable_flush`` only for short periods of time.
 

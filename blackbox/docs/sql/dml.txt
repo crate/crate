@@ -11,7 +11,7 @@ Inserting Data
 
 Inserting data to CrateDB is done by using the SQL ``INSERT`` statement.
 
-.. note::
+.. NOTE::
 
     The column list is always ordered alphabetically by column name. If the
     insert columns are omitted, the values in the ``VALUES`` clauses must
@@ -174,7 +174,7 @@ Resulting partitions of the last insert by query::
    cr> drop table locations_parted;
     DROP OK, 1 row affected (... sec)
 
-.. note::
+.. NOTE::
 
    ``limit``, ``offset`` and ``order by`` are not supported inside the query
    statement.
@@ -359,7 +359,7 @@ increment a number like this::
     cr> update locations set position = position + 1 where position < 3;
     UPDATE OK, 6 rows affected (... sec)
 
-.. note::
+.. NOTE::
 
     If the same documents are updated concurrently an VersionConflictException
     might occur. CrateDB contains a retry logic that tries to resolve the
@@ -393,7 +393,7 @@ Example JSON data::
     {"id": 1, "quote": "Don't panic"}
     {"id": 2, "quote": "Ford, you're turning into a penguin. Stop it."}
 
-.. note::
+.. NOTE::
 
   * The ``COPY FROM`` statement will not convert or validate your data. Please
     make sure that it fits your schema.

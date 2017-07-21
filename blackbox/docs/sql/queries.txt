@@ -98,7 +98,7 @@ A table can be aliased for the sake of brevity too::
 Joins
 -----
 
-.. note::
+.. NOTE::
 
     CrateDB currently supports only a limited set of JOINs.
 
@@ -271,7 +271,7 @@ metacharacter ``#``  for the empty string or ``~`` for negation and others. By
 default all Lucene extensions are enabled. See the Lucene documentation for
 more details.
 
-.. note::
+.. NOTE::
 
     Since case-insensitive matching using ``~*`` or ``!~*`` implicitly uses the
     regular expression engine of the Java standard library, features of `Lucene
@@ -366,7 +366,7 @@ escape them using a backslash::
     +-------------------------+
     SELECT 1 row in set (... sec)
 
-.. note::
+.. NOTE::
 
     Queries with a like clause can be quite slow. Especially if the like clause
     starts with a wildcard character. Because in that case CrateDB has to
@@ -392,7 +392,7 @@ The result type is boolean.
     null        null
     ==========  ======
 
-.. warning::
+.. WARNING::
 
    CrateDB handles the case of `NOT (NULL)` inconsistently. The above is only
    true when the `NOT` appears in a `SELECT` clause or a `WHERE` clause that
@@ -575,7 +575,7 @@ array using the ``operator``. The comparison must yield a boolean result.
   The result is also null, if no ``true`` comparison is obtained and any
   element of the array is null.
 
-.. note::
+.. NOTE::
 
     The following is not supported by the ANY operator:
 
@@ -666,7 +666,7 @@ expanding the default limit.
 When using the PostgreSQL wire protocol, there is no implicit **10000** row
 limit on SELECT statements.
 
-.. note::
+.. NOTE::
 
     The sum of ``LIMIT`` and ``OFFSET`` may not exceed 2147483630
     (which is Lucene's ``MAX_ARRAY_LENGTH``).
@@ -800,7 +800,7 @@ index greater than the actual array size results in a NULL value.
     +-------------------+------------+
     SELECT 3 rows in set (... sec)
 
-.. note::
+.. NOTE::
 
    Only 1 array notation inside a subscript expression is supported,
    e.g. following won't work:
@@ -1022,18 +1022,18 @@ This is useful if used in conjunction with aggregation functions::
     +----------+-------------+
     SELECT 4 rows in set (... sec)
 
-.. note::
+.. NOTE::
 
    All columns that are used either as result column or in the order by clause
    have to be used within the group by clause. Otherwise the statement won't
    execute.
 
-.. note::
+.. NOTE::
 
    Grouping on multi-value fields doesn't work. If such a field is encountered
    during a group by operation an error is thrown.
 
-.. note::
+.. NOTE::
 
    Grouping can only be applied to columns with a plain index, which is the
    default for all columns.

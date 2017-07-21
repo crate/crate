@@ -22,7 +22,7 @@ default, the refresh interval is set to 1000 milliseconds. The refresh interval
 of a table can be changed with the table parameter ``refresh_interval`` (see
 :ref:`sql_ref_refresh_interval`).
 
-.. seealso::
+.. SEEALSO::
 
  :doc:`Optimistic Concurrency Control <occ>`
 
@@ -56,7 +56,7 @@ is completed.
     cr> REFRESH TABLE locations, parted_table;
     REFRESH OK, 2 rows affected (... sec)
 
-.. note::
+.. NOTE::
 
     If one or more tables or partitions do not exist, none of the given
     tables/partitions are refreshed and an error is returned. The error returns

@@ -14,7 +14,7 @@ also one for EC2. EC2 discovery uses the `EC2 API`_ to look up other EC2 hosts
 that are then used as unicast hosts for node discovery (see
 :ref:`conf_host_discovery`).
 
-.. note::
+.. NOTE::
 
   Note that this best practice only describes how to use the EC2 discovery and
   its settings, and not how to set up a cluster on EC2 securely.
@@ -81,7 +81,7 @@ this API permissions/actions:
 This policy allows the instances to find each other if they have been assigned
 to this role on startup.
 
-.. note::
+.. NOTE::
 
   The same environment variables are used when performing ``COPY FROM`` and
   ``COPY TO``. This means that if you use want these statement you'll have
@@ -91,7 +91,7 @@ You could also provide them as system properties or as settings in the
 ``crate.yml``, but the advantage of env variables is that also
 ``COPY FROM/TO`` statements use the same environment variables.
 
-.. note::
+.. NOTE::
 
   Note that the env variables need to be provided for the user that runs the
   CrateDB process, which is usually the user ``crate`` in production.

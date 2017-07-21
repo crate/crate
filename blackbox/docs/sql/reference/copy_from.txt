@@ -52,7 +52,7 @@ but not for other :ref:`column_constraints` like ``NOT NULL``.
 For example a `WKT`_ string cannot be imported into a column of ``geo_shape``
 or ``geo_point`` type, since there is no implict cast to the `GeoJSON`_ format.
 
-.. note::
+.. NOTE::
 
    In case the ``COPY FROM`` statement fails, the log output on the node will
    provide an error message. Any data that has been imported until then has
@@ -117,13 +117,13 @@ If no credentials are set the s3 client will operate in anonymous mode, see
 
 Using the 's3://' URI scheme sets the ``shared`` option implicitly.
 
-.. note::
+.. NOTE::
 
    A ``secretkey`` provided by Amazon Web Services can contain characters such
    as '/', '+' or '='. These characters must be `URL encoded`_. For a detailed
    explanation read the official `AWS documentation`_.
 
-.. note::
+.. NOTE::
 
    Versions prior to 0.51.x use HTTP for connections to S3. Since 0.51.x these
    connections are using the HTTPS protocol. Please make sure you update your
@@ -167,7 +167,7 @@ each column a value.
 
 :value: The column's value.
 
-.. note::
+.. NOTE::
 
    Partitioned tables do not store the value for the partition column in each
    row, hence every row will be imported into the specified partition

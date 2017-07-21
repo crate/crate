@@ -15,7 +15,7 @@ supported, the actual SQL statements have to be supported by CrateDB's SQL
 dialect. A notable difference is that CrateDB doesn't support transactions,
 which is why clients should generally enable ``autocommit``.
 
-.. note::
+.. NOTE::
 
     In order to use ``setFetchSize`` in JDBC it is possible to set autocommit
     to false.
@@ -45,7 +45,7 @@ SSL support is only available in the `Enterprise Edition`_. If enterprise is
 disabled, all ``SSLRequests`` are answered with ``N``, indicating to the client
 that SSL is not available.
 
-.. seealso::
+.. SEEALSO::
 
   :doc:`/administration/ssl`
 
@@ -200,7 +200,7 @@ Connection Failover and Load Balancing
 Connection failover and load balancing is supported as described here:
 `PostgreSQL JDBC connection failover`_.
 
-.. note::
+.. NOTE::
 
    It is not recommended to use the **targetServerType** parameter since
    CrateDB has no concept of Master/Slave nodes.

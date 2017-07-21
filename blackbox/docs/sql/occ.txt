@@ -42,7 +42,7 @@ It's possible to fetch the ``_version`` by selecting it::
 
 These ``_version`` values can now be used on updates and deletes.
 
-.. note::
+.. NOTE::
 
     Optimistic concurrency control only works using the ``=`` operator,
     checking for the exact ``_version`` your update/delete is based on.
@@ -84,7 +84,7 @@ Known Limitations
     SQLActionException[UnsupportedFeatureException: _version is not allowed in
     delete queries without specifying a primary key]
 
-.. note::
+.. NOTE::
 
    Both, ``DELETE`` and ``UPDATE``, commands will return a row count of 0 if
    the given required version does not match the actual version of the relevant

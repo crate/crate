@@ -78,7 +78,7 @@ listed below and include:
 In addition to the preconfigured *Cloud-Init* setup, it is possible to inject
 commands as a *User-Data* shell-script.
 
-.. note::
+.. NOTE::
 
    Note that *User-Data* scripts are called before the pre-installed
    *Cloud-Init* scripts and therefore the injected *User-Data* settings might
@@ -92,7 +92,7 @@ The AMI uses *EC2 discovery* as a default unicast host discovery mechanism.
 use `IAM roles`_ instead of providing your AWS credentials manually on your
 instances (see :ref:`ec2_authentication`).
 
-.. note::
+.. NOTE::
 
    *EC2 discovery* is only available on CrateDB version 0.51.0 or higher.
 
@@ -132,7 +132,7 @@ file.
 
     sh$ aws ec2 run-instances --image-id ami-544c1923 --count 1 --iam-instance-profile Name="crate-ec2" --instance-type m3.medium --user-data $(base64 user-data.sh) --key-name my_key_pair
 
-.. note::
+.. NOTE::
 
    In case you want to filter machines by instance tags or security groups, add
    this configuration to the ``USER-DATA`` field parameter (see
@@ -166,7 +166,7 @@ instances`_.
 
     sh$ aws ec2 run-instances --image-id ami-544c1923 --count 1 --instance-type m3.medium --block-device-mappings "[{\"DeviceName\": \"/dev/sdc\",\"VirtualName\":\"ephemeral1\"}]"
 
-.. note::
+.. NOTE::
 
    Note that the data stored on ephemeral disks is not permanent and only
    persists during the lifetime of an instance.

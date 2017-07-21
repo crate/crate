@@ -85,7 +85,7 @@ See the CREATE TABLE :ref:`with_clause` for a list of available parameters.
 If the table is partitioned this clause can be used to alter only a single
 partition.
 
-.. note::
+.. NOTE::
 
    BLOB tables cannot be partitioned and hence this clause cannot be used.
 
@@ -103,4 +103,4 @@ columns with a value each to identify the partition to alter.
 
 :value: The columns value.
 
-.. seealso:: :ref:`Alter Partitioned Tables <partitioned_tables_alter>`
+.. SEEALSO:: :ref:`Alter Partitioned Tables <partitioned_tables_alter>`

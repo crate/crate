@@ -560,7 +560,7 @@ When analyzing the cpu usage over time, always use
 ``process['probe_timestamp']`` to calculate the time difference between 2
 probes.
 
-.. note::
+.. NOTE::
 
     If one of the queried nodes is not responding within three seconds it
     returns ``null`` every column except ``id`` and ``name``. This behaviour
@@ -638,7 +638,7 @@ flag::
   cr> update sys.node_checks set acknowledged = true where id = 1;
   UPDATE OK, 1 row affected (... sec)
 
-.. note::
+.. NOTE::
 
    Updates on this column are transient, so changed values are lost after the
    affected node is restarted.
@@ -1026,7 +1026,7 @@ the :ref:`SESSION_USER <session_user>` that is performing the query::
     +---------------------------------------------------------------------------------+----------+-...-----+
     SELECT 1 row in set (... sec)
 
-.. note::
+.. NOTE::
 
     If the :ref:`enterprise edition <enterprise_features>` is disabled or the
     user management module is not available, the ``username`` is represented as
@@ -1057,7 +1057,7 @@ An operation is a node-specific sub-component of a job (for when a job involves
 multi-node processing). Jobs that do not require multi-node processing will not
 produce any operations.
 
-.. note::
+.. NOTE::
 
     In some cases, operations are generated for internal CrateDB work that does
     not directly correspond to a user request. These entries do not have
@@ -1357,7 +1357,7 @@ unavailable) primaries (cluster state is *YELLOW*) the snapshot succeeds and
 all shards are included (state ``SUCCESS``). Building on a ``PARTIAL`` snapshot
 will include all primaries again.
 
-.. warning::
+.. WARNING::
 
     In case of a ``PARTIAL`` state another snapshot should be created in order
     to guarantee a full backup! Only ``SUCCESS`` includes all shards.

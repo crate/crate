@@ -20,7 +20,7 @@ Description
 
 ``CREATE REPOSITORY`` will register a new repository in the cluster.
 
-.. note::
+.. NOTE::
 
    If the repository configuration points to a location with existing
    snapshots, these are made available to the cluster.
@@ -76,7 +76,7 @@ The supported types are the following. More types are supported via
 A repository storing its snapshots to a shared filesystem that must be
 accessible by all master and data nodes in the cluster.
 
-.. note::
+.. NOTE::
 
    To create repositories of this type, it's necessary to configure the
    possible locations for repositories inside the ``crate.yml`` file under

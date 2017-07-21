@@ -58,7 +58,7 @@ The following schema names are reserved and may not be used:
         * information_schema
         * sys
 
-.. note::
+.. NOTE::
 
    Schemas are primarily namespaces for tables. There is no notion of access
    control. Everybody can see and manipulate tables in every schema.

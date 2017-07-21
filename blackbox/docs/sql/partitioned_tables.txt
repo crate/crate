@@ -24,7 +24,7 @@ partitions.
 Deletion is faster too if you delete whole partitions at once, as a whole table
 can be deleted and no expensive query is involved.
 
-.. note::
+.. NOTE::
 
    Keep in mind that the values of the columns used for partitioning are
    internally base32 encoded into the partition name (which is a separate
@@ -362,7 +362,7 @@ partitioned table. However, the shard configuration will only be applied on
     cr> ALTER TABLE parted_table SET (number_of_shards = 10)
     ALTER OK, -1 rows affected (... sec)
 
-.. note::
+.. NOTE::
 
    This will not change the number of shards of existing partitions, but the
    new number of shards will be taken into account when new partitions are

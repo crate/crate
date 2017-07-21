@@ -41,6 +41,6 @@ Range Explanation
 
 For details of the range syntax refer to :ref:`number_of_replicas`.
 
-.. note::
+.. NOTE::
 
   The number of replicas can be changed at any time.

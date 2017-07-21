@@ -5,7 +5,7 @@ Storage and Consistency
 This document provides an overview on how CrateDB stores and distributes state
 across the cluster and what consistency and durability guarantees are provided.
 
-.. note::
+.. NOTE::
 
   Since CrateDB heavily relies on Elasticsearch_ and Lucene_ for storage and
   cluster consensus, concepts shown here might look familiar to Elasticsearch_
@@ -130,14 +130,14 @@ that row is looked up by its primary key after that update the changes will
 always be visible, since the information will be retrieved directly from the
 translog.
 
-.. note::
+.. NOTE::
 
   Every replica shard is updated synchronously with its primary and always
   carries the same information. Therefore it does not matter if the primary or
   a replica shard is accessed in terms of consistency. Only the refresh of the
   ``IndexReader`` affects consistency.
 
-.. caution::
+.. CAUTION::
 
    Some outage conditions can affect these consistency claims. See the
    `resiliency documentation`_ for details.
@@ -172,7 +172,7 @@ configuration at all, any node in the cluster can be elected as a master. There
 is also an automatic re-election if the current master node goes down for some
 reason.
 
-.. note::
+.. NOTE::
 
   To avoid a scenario where two masters are elected due to network partitioning
   it's required to define a quorum of nodes with which it's possible to elect a
