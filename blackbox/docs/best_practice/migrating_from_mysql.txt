@@ -21,7 +21,7 @@ schema::
   ...  fruits set('apple', 'pear', 'banana')
   ... ) CHARACTER SET utf8 COLLATE utf8_unicode_ci;
 
-Sampledata::
+Sample data::
 
   cr> INSERT INTO foo (id, name, date, fruits)
   ...  VALUES (1, 'foo', '2014-10-31 09:22:56', 'apple,banana'),

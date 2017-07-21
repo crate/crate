@@ -32,7 +32,8 @@ requests but will make sure that any pending requests are finished.
    fail during a rolling upgrade.
 
 This process will ensure a certain data availability. Which can either be
-``none``, ``primaries`` or ``full`` and can be configured using :ref:`ref-set`.
+``none``, ``primaries``, or ``full`` and can be configured using
+:ref:`ref-set`.
 
 Using ``full``, all shards currently located on the node will be moved to the
 other nodes in order to stop gracefully. Using this setting the cluster will

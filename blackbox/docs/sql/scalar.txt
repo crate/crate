@@ -1028,10 +1028,10 @@ The regular expression functions in CrateDB use `Java Regular Expressions`_.
 
 See the api documentation for more details.
 
-.. note:
+.. note::
 
-   Be aware that, in contrast to the functions, the :ref:`sql_ddl_regexp
-   <regular expression operator>` is using `Lucene Regular Expressions`_.
+   Be aware that, in contrast to the functions, the :ref:`regular expression
+   operator <sql_ddl_regexp>` is using `Lucene Regular Expressions`_.
 
 .. _Lucene Regular Expressions: http://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
 
@@ -1623,8 +1623,8 @@ The default schema can be set when using the `JDBC
 
 .. note::
 
-    The ``CURRENT_SCHEMA`` function has a special SQL syntax, meaning that it 
-    must be called without trailing parenthesis (``()``). However, CrateDB also 
+    The ``CURRENT_SCHEMA`` function has a special SQL syntax, meaning that it
+    must be called without trailing parenthesis (``()``). However, CrateDB also
     supports the optional parenthesis.
 
 Synopsis::
@@ -1650,14 +1650,14 @@ Example::
 
    ``CURRENT_USER`` is an Enterprise Edition feature.
 
-The ``CURRENT_USER`` system information function returns the name of the 
+The ``CURRENT_USER`` system information function returns the name of the
 current connected user or NULL if the user management module is disabled.
 
 Returns: ``string``
 
 Synopsis::
 
-    CURRENT_USER 
+    CURRENT_USER
 
 Example::
 
@@ -1684,7 +1684,7 @@ Returns: ``string``
 
 Synopsis::
 
-    USER 
+    USER
 
 Example::
 
@@ -1732,8 +1732,8 @@ Example::
 
 .. note::
 
-    The `CURRENT_USER`_, `SESSION_USER`_ and `USER`_ functions have a  
-    a special SQL syntax, meaning that they must be called without trailing 
+    The `CURRENT_USER`_, `SESSION_USER`_ and `USER`_ functions have a
+    a special SQL syntax, meaning that they must be called without trailing
     parenthesis (``()``).
 
 .. rubric:: Footnotes

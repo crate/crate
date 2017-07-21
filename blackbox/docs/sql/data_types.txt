@@ -636,8 +636,9 @@ Combined::
 ``array``
 =========
 
-CrateDB supports arrays. An array is a collection of other data types. These
-are:
+CrateDB supports arrays.
+
+An array is a collection of other data types. These are:
 
 * boolean
 * string
@@ -710,8 +711,9 @@ Type Conversion
 
 A type ``cast`` specifies a conversion from one data type to another. It will
 only succeed if the value of the expression is convertible to the desired data
-type, otherwise an error is thrown. CrateDB supports two equivalent syntaxes
-for type casts:
+type, otherwise an error is thrown.
+
+CrateDB supports two equivalent syntaxes for type casts:
 
 ::
 

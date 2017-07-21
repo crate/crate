@@ -1,8 +1,8 @@
 .. _sql_ddl_alter_table:
 
-===========
-Alter Table
-===========
+===============
+``ALTER TABLE``
+===============
 
 .. NOTE::
 

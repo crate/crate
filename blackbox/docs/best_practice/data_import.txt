@@ -46,8 +46,10 @@ various types::
 There's nothing wrong with this method and it does the job, but it's not very
 performant and therefore not what we want to use in a real world application.
 
-Shards & Replicas
------------------
+.. _import_shards_replicas:
+
+Shards and Replicas
+-------------------
 
 If you do not set the number of shards and/or number of replicas, the default
 configuration will be used:

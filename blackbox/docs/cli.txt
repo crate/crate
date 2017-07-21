@@ -17,7 +17,7 @@ parameters. This will start the process in the foreground.
   sh$ ./bin/crate
 
 You can also start CrateDB in the background using the ``-d`` option. When
-starting CrateDB in the background it is helpful to write the process id into a
+starting CrateDB in the background it is helpful to write the process ID into a
 pid file so you can find out the process id easlily::
 
   sh$ ./bin/crate -d -p ./crate.pid

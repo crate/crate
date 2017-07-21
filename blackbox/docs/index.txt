@@ -2,8 +2,8 @@
 CrateDB Documentation
 =====================
 
-Welcome to CrateDB - a new breed of database to serve today’s mammoth data
-needs.
+CrateDB is a distributed SQL database that makes it simple to store and analyze
+massive amounts of machine data in real-time.
 
 .. only:: html
 
