@@ -25,6 +25,9 @@ Changes
 Fixes
 =====
 
+ - Fixed a NPE when running ``select port from sys.nodes`` and
+   ``psql.enabled: false`` was set
+
  - Implemented ``NOT NULL`` constraint validation for nested object columns,
    which was previously ignored. E.g.::
 
