@@ -130,7 +130,7 @@ Counts the number of bits in a string.
 
 Returns: ``integer``
 
-.. note::
+.. NOTE::
 
     CrateDB uses UTF-8 encoding internally, which uses between 1 and 4 bytes
     per character.
@@ -426,7 +426,7 @@ The ``CURRENT_TIMESTAMP`` expression returns the timestamp in milliseconds
 since epoch at the time the SQL statement was handled. Therefore, the same
 timestamp value is returned for every invocation of a single statement.
 
-.. note::
+.. NOTE::
 
     If the ``CURRENT_TIMESTAMP`` function is used in
     :ref:`sql-ddl-generated-columns` it behaves slightly different in
@@ -442,7 +442,7 @@ synopsis::
 the timestamp will have second precision, no fractional seconds (milliseconds)
 are given.
 
-.. note::
+.. NOTE::
 
    The ``CURRENT_TIMESTAMP`` will be evaluated  using javas
    ``System.currentTimeMillis()``. So its actual result depends on the
@@ -584,7 +584,7 @@ This scalar function can always be used in both the ``WHERE`` and ``ORDER BY``
 clauses. With the limitation that one of the arguments must be a literal and
 the other argument must be a column reference.
 
-.. note::
+.. NOTE::
 
     The algorithm of the calculation which is used when the distance function
     is used as part of the result column list has a different precision than
@@ -803,7 +803,7 @@ See below for an example::
     +-------+
     SELECT 1 row in set (... sec)
 
-.. note::
+.. NOTE::
 
     An error is returned for arguments which lead to undefined or illegal
     results. E.g. ln(0) results in ``minus infinity``, and therefore, an error
@@ -836,7 +836,7 @@ The second argument (``b``) is optional. If not present, base 10 is used::
     +----------+
     SELECT 1 row in set (... sec)
 
-.. note::
+.. NOTE::
 
     An error is returned for arguments which lead to undefined or illegal
     results. E.g. log(0) results in ``minus infinity``, and therefore, an error
@@ -873,7 +873,7 @@ The ``random`` function returns a random value in the range 0.0 <= X < 1.0.
 
 Returns: ``double``
 
-.. note::
+.. NOTE::
 
     Every call to ``random`` will yield a new random number.
 
@@ -1028,7 +1028,7 @@ The regular expression functions in CrateDB use `Java Regular Expressions`_.
 
 See the api documentation for more details.
 
-.. note::
+.. NOTE::
 
    Be aware that, in contrast to the functions, the :ref:`regular expression
    operator <sql_ddl_regexp>` is using `Lucene Regular Expressions`_.
@@ -1288,7 +1288,7 @@ It can be used to append elements to array fields
     +--------------------+
     SELECT 1 row in set (... sec)
 
-.. note::
+.. NOTE::
 
    Appending to arrays with array_cat in updates is handy, but unfortunately
    not isolated. We use optimistic concurrency control to ensure that your
@@ -1476,7 +1476,7 @@ Example:
     +----+-------------+
     SELECT 4 rows in set (... sec)
 
-.. note::
+.. NOTE::
 
    All *result* expressions must result in the same data type.
 
@@ -1621,7 +1621,7 @@ The default schema can be set when using the `JDBC
 <https://crate.io/docs/reference/protocols/http.html#default-schema>`_ such as
 `CrateDB PDO`_.
 
-.. note::
+.. NOTE::
 
     The ``CURRENT_SCHEMA`` function has a special SQL syntax, meaning that it
     must be called without trailing parenthesis (``()``). However, CrateDB also
@@ -1724,13 +1724,13 @@ Example::
     +--------------+
     SELECT 1 row in set (... sec)
 
-.. note::
+.. NOTE::
 
     CrateDB doesn't currently support the switching of execution context. This
     makes `SESSION_USER`_ functionally equivalent to `CURRENT_USER`_. We
     provide it as it's part of the SQL standard.
 
-.. note::
+.. NOTE::
 
     The `CURRENT_USER`_, `SESSION_USER`_ and `USER`_ functions have a
     a special SQL syntax, meaning that they must be called without trailing

@@ -158,7 +158,7 @@ file into CrateDB.
 
   cr> COPY foo_imported FROM '/tmp/import.json' WITH (bulk_size=1000);
 
-.. note::
+.. NOTE::
 
    Read :ref:`efficient_data_import` for more information how to import huge
    datasets into CrateDB.
@@ -176,7 +176,7 @@ The simplest way to do so is like this:
 
   sh$ csvsql --db crate://localhost:4200 --insert /tmp/dump.csv
 
-.. note::
+.. NOTE::
 
   See also the documentation of `csvsql`_. To use the SQLAlchemy driver of
   CrateDB, the latest version of the `CrateDB Python package`_ is required.

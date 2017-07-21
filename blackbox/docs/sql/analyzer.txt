@@ -33,7 +33,7 @@ results for data provided in a certain language.
 Below the builtin analyzers, tokenizers, token-filters and char-filters are
 listed. They can be used as is or can be extended.
 
-.. seealso::
+.. SEEALSO::
 
   :ref:`fulltext-indices` for examples showing how to create tables which make
   use of analyzers.
@@ -166,7 +166,7 @@ pattern
 flags
     The regular expression flags.
 
-.. note::
+.. NOTE::
 
    The regular expression should match the token separators, not the tokens
    themselves.
@@ -418,7 +418,7 @@ flags
 group
     Which group to extract into tokens. Defaults to -1 (split).
 
-.. note::
+.. NOTE::
 
    The regular expression should match the token separators, not the tokens
    themselves.
@@ -610,7 +610,7 @@ side
 
 Transforms the token stream as per the Porter stemming algorithm.
 
-.. note::
+.. NOTE::
 
     The input to the stemming filter must already be in lower case, so you will
     need to use Lower Case Token Filter or Lower Case Tokenizer farther down
@@ -1053,7 +1053,7 @@ query_mode
     Generates bigrams then removes common words and single terms followed by a
     common word (defaults to false).
 
-.. note::
+.. NOTE::
 
     Either ``common_words`` or ``common_words_path`` must be given.
 

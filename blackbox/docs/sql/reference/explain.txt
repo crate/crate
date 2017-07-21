@@ -20,7 +20,7 @@ The ``EXPLAIN`` command displays the execution plan that the planner generates
 for the supplied statement. The plan is returned as a nested object containing
 the plan tree.
 
-.. note::
+.. NOTE::
 
    The content of the returned plan tree should be considered experimental and
    subject to change in future versions. Also not all plan nodes provide

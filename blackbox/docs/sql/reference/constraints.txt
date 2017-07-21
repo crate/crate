@@ -29,7 +29,7 @@ be declared as PRIMARY KEY instead.
 
 Adding a PRIMARY KEY column is only possible if the table is empty.
 
-.. warning::
+.. WARNING::
 
     The verification if the table is empty and the schema update isn't atomic.
     That means that it could be possible to add a primary key column to a table

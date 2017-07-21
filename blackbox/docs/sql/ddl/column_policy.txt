@@ -76,7 +76,7 @@ which is exactly the same as::
 New columns added to ``dynamic`` tables are, once added, usable as usual
 columns. One can retrieve them, sort by them and use them in where clauses.
 
-.. warning::
+.. WARNING::
 
    The mapping update is processed asynchrously on multiple nodes. If a new
    field gets added to the local mapping of two shards, these shards are

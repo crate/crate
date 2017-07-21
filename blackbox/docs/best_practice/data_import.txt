@@ -64,7 +64,7 @@ So we recommend you choose the number of shards wisely. They depend on the
 number of nodes in the cluster as well as on the amount of data that goes into
 the table.
 
-.. note::
+.. NOTE::
 
   Be careful, you cannot change the number of shards once the table is created!
 
@@ -95,7 +95,7 @@ The ``CREATE TABLE`` statement now looks like::
   ... WITH (number_of_replicas = 0);
   CREATE OK, 1 row affected (... sec)
 
-.. seealso::
+.. SEEALSO::
 
   - :ref:`replication`
 
@@ -141,7 +141,7 @@ value (time in ms)::
   cr> ALTER TABLE users SET (refresh_interval = 1000);
   ALTER OK, -1 rows affected (... sec)
 
-.. seealso::
+.. SEEALSO::
 
   - :ref:`refresh_data`
   - :ref:`sql_ref_refresh_interval`
@@ -176,7 +176,7 @@ After import don't forget to turn throttling on again by setting its value to
   cr> SET GLOBAL TRANSIENT indices.store.throttle.type = 'merge';
   SET OK, 1 row affected (... sec)
 
-.. seealso::
+.. SEEALSO::
 
   - :ref:`indices.store.throttle`
 
@@ -228,7 +228,7 @@ will return successfully, reporting ``COPY OK, 0 rows affected (... sec)``.
   cr> REFRESH TABLE users;
   REFRESH OK, 1 row affected (... sec)
 
-.. note::
+.. NOTE::
 
   When importing data using ``COPY FROM`` CrateDB does not check if the types
   from the columns and the types from the import file match. It does not cast
@@ -356,7 +356,7 @@ Similarly, the number of shards can be adjusted for newly created partitions to
 adapt to the increasing data volume! Simply use ``ALTER TABLE users SET
 (number_of_shards = X)`` before creating a new partition.
 
-.. seealso::
+.. SEEALSO::
 
   - Detailed documentation of :ref:`partitioned_tables`
   - Table creation of :ref:`partitioned_by_clause`
@@ -386,6 +386,6 @@ And last but not least:
 Further Reading
 ===============
 
-.. seealso::
+.. SEEALSO::
 
   - :ref:`importing_data`

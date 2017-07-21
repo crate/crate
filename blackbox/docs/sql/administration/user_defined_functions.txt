@@ -4,7 +4,7 @@
 User Defined Functions
 ======================
 
-.. note::
+.. NOTE::
 
     The following examples use :ref:`udf_lang_js` as language for functions.
     The JavaScript language, however, is only available as an Enterprise
@@ -77,7 +77,7 @@ and ``end_point``, you would do it like this::
     CREATE OK, 1 row affected  (... sec)
 
 
-.. note::
+.. NOTE::
 
     Argument names are used for query documentation purposes only. You cannot
     reference arguments by name in the function body.
@@ -94,7 +94,7 @@ You can explicitly assign a schema like this::
     CREATE OK, 1 row affected  (... sec)
 
 
-.. warning::
+.. WARNING::
 
    :ref:`snapshot-restore` can't be used to backup functions, because snapshots
    contain table data only.
@@ -106,7 +106,7 @@ The argument types, and the return type of the function can be any of the
 CrateDB supported :ref:`sql_ddl_datatypes`. Data types of values passed into a
 function must strictly correspond to its argument data types.
 
-.. note::
+.. NOTE::
 
     The value returned by the function will be casted to the return type
     provided in the definition if required. An exception will be thrown if the
@@ -140,7 +140,7 @@ This would overload our ``multiply`` function with more arguments::
     ...  AS 'function multiply(a, b, c) { return a * b * c; }';
     CREATE OK, 1 row affected  (... sec)
 
-.. note::
+.. NOTE::
 
     It is considered bad practice to create functions that have the same name
     as the CrateDB built-in functions.
@@ -157,7 +157,7 @@ This would overload our ``multiply`` function with more arguments::
 Determinism
 ===========
 
-.. warning::
+.. WARNING::
 
     User-defined functions need to be deterministic, meaning that they must
     always return the same result value when called with the same argument

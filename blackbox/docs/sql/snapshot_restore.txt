@@ -165,7 +165,7 @@ partition belongs to.
 Or if no matching partition table exists, it will be implicitly created during
 restore.
 
-.. note::
+.. NOTE::
 
     This is only possible with CrateDB version 0.55.5 or greater!
 
@@ -282,7 +282,7 @@ ignored::
  - xz-1.0.jar
  - zookeeper-3.4.6.jar
 
-.. note::
+.. NOTE::
 
    Only `Hadoop` version **2.x** is supported and as of writing this
    documentation, the latest stable `Hadoop (YARN)` version is **2.7.1**.

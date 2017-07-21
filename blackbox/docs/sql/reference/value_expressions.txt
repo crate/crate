@@ -44,7 +44,7 @@ Different types have different notations. The simplest forms are:
 
 - numeric literals: ``42``
 
-.. seealso::
+.. SEEALSO::
 
     - :doc:`/sql/reference/lexical_structure`
     - :doc:`/sql/data_types`
@@ -65,7 +65,7 @@ multiple alias or table definitions::
 
     tab0.columnname
 
-.. seealso::
+.. SEEALSO::
 
     - :doc:`/sql/reference/lexical_structure`
 
@@ -91,7 +91,7 @@ There are two different types of operators in CrateDB:
 
 - Unary: ``operator expression``
 
-.. seealso::
+.. SEEALSO::
 
     - :ref:`sql_dql_where_clause`
     - :doc:`/sql/arithmetic`
@@ -115,7 +115,7 @@ element of an array::
 ``array_index`` is a 1 based integer specifying the position of the element in
 the array which should be retrieved.
 
-.. seealso::
+.. SEEALSO::
 
     - :ref:`sql_dql_object_arrays_select`
 
@@ -130,7 +130,7 @@ element of the object::
 The ``key`` must be a string literal which is the name of the element which
 should be retrieved.
 
-.. seealso::
+.. SEEALSO::
 
     - :ref:`sql_dql_objects`
 
@@ -142,7 +142,7 @@ parentheses::
 
     function_name([expression [, expression ... ]])
 
-.. seealso::
+.. SEEALSO::
 
     - :doc:`/sql/scalar`
     - :doc:`/sql/aggregation`
@@ -154,7 +154,7 @@ A type cast specifies the conversion from one type to another. The syntax is::
 
     CAST ( expression as type )
 
-.. seealso::
+.. SEEALSO::
 
     - :doc:`/sql/data_types`
 
@@ -169,7 +169,7 @@ enclosed in curly brackets::
 
     { elementNameIdent = valueExpression [, elementNameIdent = valueExpression ...] }
 
-.. seealso::
+.. SEEALSO::
 
     - :ref:`data-type-object-literals`
 
@@ -182,7 +182,7 @@ optionally prefixed with ``ARRAY``::
 
     [ ARRAY ] '[' expression [, expression ... ] ']'
 
-.. seealso::
+.. SEEALSO::
 
     - :ref:`data-type-array-literals`
 
@@ -199,7 +199,7 @@ Columns from relations from outside of the subquery cannot be accessed from
 within the subquery. Trying to do so will result in an error which states that
 the column is unknown.
 
-.. note::
+.. NOTE::
 
     Scalar subqueries are restricted to SELECT statements and cannot be used in
     other statements.

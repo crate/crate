@@ -9,7 +9,7 @@ The Information Schema is a special schema that contains virtual tables which
 are read-only and can be queried to get information about the state of the
 cluster.
 
-.. note::
+.. NOTE::
 
     When the user management is enabled, accessing the ``information_schema``
     is open to all users and it does not require any privileges.
@@ -221,7 +221,7 @@ infinite recursion of your mind, beware!)::
     +---------------------------+-----------+------------------+
     SELECT 32 rows in set (... sec)
 
-.. note::
+.. NOTE::
 
   Columns are always sorted alphabetically in ascending order regardless of the
   order they were defined on table creation. Thus the ``ordinal_position``
@@ -325,7 +325,7 @@ Table Constraints
 This table can be queried to get a list of all defined table constraints, their
 type, name and which table they are defined in.
 
-.. note::
+.. NOTE::
 
     Currently only ``PRIMARY_KEY`` constraints are supported.
 

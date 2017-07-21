@@ -8,7 +8,7 @@ Arithmetic Operators
 Arithmetic operators perform mathematical operations on two expressions of
 numeric data types or timestamps.
 
-.. note::
+.. NOTE::
 
     The same restrictions that apply to scalar functions also apply to
     arithmetic operators. See :ref:`scalar`.

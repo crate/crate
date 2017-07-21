@@ -106,7 +106,7 @@ To list all blobs inside a blob table a ``SELECT`` statement can be used::
     +------------------------------------------+---------------+
     SELECT 1 row in set (... sec)
 
-.. note::
+.. NOTE::
 
     To query blob tables it is necessary to always specify the schema name
     ``blob``.
@@ -119,7 +119,7 @@ To download a blob simply use a GET request::
     sh$ curl -sS '127.0.0.1:4200/_blobs/myblobs/4a756ca07e9487f482465a99e8286abc86ba4dc7'
     contents
 
-.. note::
+.. NOTE::
 
     Since the blobs are sharded throughout the cluster not every node has all
     the blobs. In case that the GET request has been sent to a node that
@@ -142,7 +142,7 @@ used::
     expires: Thu, 31 Dec 2037 23:59:59 GMT
     cache-control: max-age=315360000
 
-.. note::
+.. NOTE::
 
     The cache headers for blobs are static and basically allows clients to
     cache the response forever since the blob is immutable.

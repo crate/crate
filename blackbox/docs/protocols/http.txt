@@ -12,7 +12,7 @@ endpoint is accessible under ``<servername:port>/_sql``.
 SQL statements are sent to the ``_sql`` endpoint in ``json`` format, whereby
 the statement is sent as value associated to the key ``stmt``.
 
-.. seealso::
+.. SEEALSO::
 
     :doc:`../sql/dml`
 
@@ -28,7 +28,7 @@ A simple ``SELECT`` statement can be submitted like this::
       "duration" : ...
     }
 
-.. note::
+.. NOTE::
 
     We're using a simple command line invokation of ``curl`` here so you can
     see how to run this by hand in the terminal. For the rest of the examples
@@ -66,12 +66,12 @@ expected under the ``args`` key::
       "duration" : ...
     }
 
-.. note::
+.. NOTE::
 
     In this example the placeholders start with an backslash due to shell
     escaping.
 
-.. warning::
+.. WARNING::
 
     Parameter substition must not be used within subscript notation.
 
@@ -95,7 +95,7 @@ The same query using question marks as placeholders looks like this::
       "duration" : ...
     }
 
-.. note::
+.. NOTE::
 
     With some queries the row count is not ascertainable. In this cases
     rowcount is ``-1``.
@@ -292,7 +292,7 @@ GET parameter can be specified to return the stack trace::
       "error_trace" : "..."
     }
 
-.. note::
+.. NOTE::
 
     This parameter is intended for CrateDB developers or for users requesting
     support for CrateDB. Client libraries shouldn't make use of this option and
@@ -402,7 +402,7 @@ error::
       } ]
     }
 
-.. note::
+.. NOTE::
 
    Every bulk operation will be executed, independent if one of the operation
    fails.

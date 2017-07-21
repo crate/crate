@@ -3,7 +3,7 @@
 User Management
 ===============
 
-.. note::
+.. NOTE::
 
     User Management is only part of the CrateDB `Enterprise Edition`_.
 
@@ -102,13 +102,13 @@ To list all existing users query that table::
 The column ``name`` shows the unique name of the user, the column ``superuser``
 shows whether the user has superuser privileges or not.
 
-.. note::
- 
-    CrateDB also supports retrieving the current connected user using the 
-    system information functions: :ref:`CURRENT_USER <current_user>`, 
+.. NOTE::
+
+    CrateDB also supports retrieving the current connected user using the
+    system information functions: :ref:`CURRENT_USER <current_user>`,
     :ref:`USER <user>` and :ref:`SESSION_USER <session_user>`.
 
-.. warning::
+.. WARNING::
 
    When the :ref:`es_api_setting` is enabled, it is possible to read the users
    data via the Elasticsearch API. Therefore access to the users table is not

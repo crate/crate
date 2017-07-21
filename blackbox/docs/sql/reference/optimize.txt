@@ -35,7 +35,7 @@ See :ref:`partitioned_tables` for more information on partitioned tables.
 
 For further information see :ref:`optimize`.
 
-.. note::
+.. NOTE::
 
     System tables cannot be optimized
 
@@ -95,6 +95,6 @@ Available parameters are:
                    table/partition to the current version of storage engine.
                    Defaults to false.
 
-.. note::
+.. NOTE::
 
     ``upgrade_segments`` cannot be used in combination with other parameters

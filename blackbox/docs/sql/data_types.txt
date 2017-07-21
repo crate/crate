@@ -89,7 +89,7 @@ characters are allowed. Example::
 
 Columns of type string can also be analyzed. See :ref:`sql_ddl_index_fulltext`.
 
-.. note::
+.. NOTE::
 
    Maximum indexed string length is restricted to 32766 bytes, when encoded
    with UTF-8 unless the string is analyzed using full text.
@@ -235,13 +235,13 @@ Examples::
     cr> insert into my_table4 (id, first_column) values (3, 'wrong');
     SQLActionException[ColumnValidationException: Validation failed for first_column: 'wrong' cannot be cast to type timestamp]
 
-.. note::
+.. NOTE::
 
     When inserting timestamps smaller than ``-999999999999999`` (equals to
     ``-29719-04-05T22:13:20.001Z``) or bigger than ``999999999999999`` (equals to
     ``33658-09-27T01:46:39.999Z``) rouding issues may occur.
 
-.. note::
+.. NOTE::
 
     If a column is dynamically created the type detection won't recognize
     timestamps. That means columns of type timestamp must always be declared beforehand.
@@ -262,11 +262,11 @@ Alternatively a `WKT`_ string can also be used to declare geo points::
 
     'POINT ( <lon_value> <lat_value> )'
 
-.. note::
+.. NOTE::
 
     Empty geo points are not supported.
 
-.. note::
+.. NOTE::
 
     If a column is dynamically created the type detection won't recognize
     neither WKT strings nor double arrays. That means columns of type geo_point
@@ -292,7 +292,7 @@ A geo_shape column can store different kinds of `GeoJSON geometry objects`_.
 Thus it is possible to store e.g. ``LineString`` and ``MultiPolygon`` shapes in
 the same column.
 
-.. note::
+.. NOTE::
 
     Empty ``Polygon`` and ``LineString`` geo shapes are not supported.
 
@@ -403,7 +403,7 @@ Alternatively a `WKT`_ string can be used to represent a geo_shape as well::
 
     'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))'
 
-.. note::
+.. NOTE::
 
     It is not possible to detect a geo_shape type for a dynamically created
     column. Like with :ref:`geo_point_data_type` type, geo_shape columns need
@@ -558,7 +558,7 @@ inserted into it, but otherwise ignore them.
     cr> drop table my_table15;
     DROP OK, 1 row affected (... sec)
 
-.. note::
+.. NOTE::
 
    ``Ignored`` objects should be mainly used for storing and fetching.
    Filtering by and ordering on them is possible but very performance
@@ -573,7 +573,7 @@ Object Literals
 
 To insert values into object columns one can use object literals or parameters.
 
-.. note::
+.. NOTE::
 
    Even though they look like `JSON` - object literals are not `JSON`
    compatible.
@@ -656,7 +656,7 @@ Array types are defined as follows::
     ... );
     CREATE OK, 1 row affected (... sec)
 
-.. note::
+.. NOTE::
 
     Currently arrays cannot be nested. Something like array(array(string))
     won't work.
@@ -756,7 +756,7 @@ converting an array of integer values to a boolean array.
     +---------------------+
     SELECT 1 row in set (... sec)
 
-.. note::
+.. NOTE::
 
    It is not possible to cast to or from ``object``, ``geopoint``, and
    ``geoshape`` data type.

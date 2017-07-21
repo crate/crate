@@ -38,7 +38,7 @@ Or using a alternate syntax::
     ... );
     CREATE OK, 1 row affected (... sec)
 
-.. note::
+.. NOTE::
 
    Not all column types can be used as PRIMARY KEY.
 
