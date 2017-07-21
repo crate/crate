@@ -41,15 +41,18 @@ SQL Handler
 -----------
 
 The SQL Handler part of a node is responsible for three aspects:
+
 (a) handling incoming client requests,
 (b) parsing and analyzing the SQL statement from the request and
 (c) creating an execution plan based on the analyzed statement
-(`abstract syntax tree`_).
+    (`abstract syntax tree`_)
 
 The SQL Handler is the only of the four components that interfaces with the
 "outside world". CrateDB supports two protocols to handle client requests:
+
 (a) HTTP and
-(b) a Binary Transport Protocol.
+(b) a Binary Transport Protocol
+
 A typical request contains a SQL statement and its corresponding arguments.
 
 Job Execution Service
@@ -67,10 +70,12 @@ Cluster State Service
 ---------------------
 
 The three main functions of the Cluster State Service are:
+
 (a) cluster state management,
 (b) election of the Metadata Primary and
 (c) node discovery, thus being the main component for cluster building (as
-described in section :ref:`shared_nothing_clusters`).
+    described in section :ref:`shared_nothing_clusters`).
+
 It communicates using the Binary Transport Protocol.
 
 Data Storage
@@ -78,6 +83,7 @@ Data Storage
 
 The data storage component handles operations to store and retrieve data from
 disk based on the execution plan.
+
 In CrateDB, the data stored in the tables is sharded, meaning that tables are
 divided and (usually) stored across multiple nodes. Each shard is a separate
 Lucene index that is stored physically on the filesystem. Reads and writes are
@@ -173,12 +179,15 @@ Node discovery happens in multiple steps:
   when it is starting up. That list can either be provided by a static
   configuration or can be dynamically generated, for example by fetching DNS
   SRV records, querying the Amazon EC2 API, and so on.
+
 * All potential host addresses are pinged. Nodes which receive the request
   respond to it with information about the cluster it belongs to, the current
   Metadata Primary, and its own node name.
+
 * Now that the node knows the Metadata Primary, it sends a join request. The
   Primary verifies the incoming request and adds the new node to the cluster
   state that now contains the complete list of all nodes in the cluster.
+
 * The cluster state is then published across the cluster. This guarantees the
   common knowledge of the node addition.
 

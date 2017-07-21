@@ -127,8 +127,9 @@ will be used instead.
 Column Types
 ============
 
-CrateDB can respond a list ``col_types`` with the data type id of every responded
-column. This way one can know what exact data type a column is holding.
+CrateDB can respond a list ``col_types`` with the data type ID of every
+responded column. This way one can know what exact data type a column is
+holding.
 
 In order to get the list of column data types, a ``types`` query parameter must
 be passed to the request::

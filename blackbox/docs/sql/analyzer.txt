@@ -296,7 +296,7 @@ max_token_length
 This tokenizer is a grammar based tokenizer that is good for English language
 documents. This tokenizer has heuristics for special treatment of acronyms,
 company names, email addresses, and internet host names. However, these rules
-don’t always work, and the tokenizer doesn’t work well for most languages other
+don't always work, and the tokenizer doesn't work well for most languages other
 than English.
 
 Parameters
@@ -327,7 +327,7 @@ max_gram
 
 token_chars
     Characters classes to keep in the tokens, will split on characters that
-    don’t belong to any of these classes. default: [] (Keep all characters).
+    don't belong to any of these classes. default: [] (Keep all characters).
 
     **Classes:** letter, digit, whitespace, punctuation, symbol
 
@@ -384,7 +384,7 @@ max_gram
 
 token_chars
     Characters classes to keep in the tokens, will split on characters that
-    don’t belong to any of these classes. default: [] (Keep all characters).
+    don't belong to any of these classes. default: [] (Keep all characters).
 
     **Classes:** letter, digit, whitespace, punctuation, symbol
 
@@ -722,7 +722,7 @@ split_on_numerics
     If true causes "j2se" to be three tokens; "j" "2" "se". Defaults to true.
 
 stem_english_possessive
-    If true causes trailing "'s" to be removed for each subword: "O’Neil’s" ⇒
+    If true causes trailing "'s" to be removed for each subword: "O'Neil's" ⇒
     "O", "Neil". Defaults to true.
 
 protected_words
@@ -1032,7 +1032,7 @@ recursion_level
 
 Generates bigrams for frequently occuring terms. Single terms are still
 indexed. It can be used as an alternative to the :ref:`stop-tokenfilter` Token
-filter when we don’t want to completely ignore common terms.
+filter when we don't want to completely ignore common terms.
 
 Parameters
 ..........
@@ -1304,7 +1304,7 @@ with_rotation
     Whether or not to fill empty buckets with the value of the first non-empty
     bucket to its circular right. Only takes effect if hash_set_size is equal
     to one. Defaults to ``true`` if bucket_count is greater than ``1``, else
-    f``alse``.
+    ``false``.
 
 .. _fingerprint-tokenfilter:
 

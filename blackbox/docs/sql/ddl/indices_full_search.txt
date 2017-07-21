@@ -18,7 +18,7 @@ Index Definition
 ================
 
 In CrateDB, every column's data is indexed using the ``plain`` index method by
-default.  Currently there are 3 choices related to index definition:
+default. Currently there are three choices related to index definition:
 
   - `Disable indexing`_
 

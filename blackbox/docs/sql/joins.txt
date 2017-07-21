@@ -210,4 +210,3 @@ Limitations
 
 .. _`nightly builds`: https://cdn.crate.io/downloads/releases/nightly/
 .. _`Cartesian Product`: https://en.wikipedia.org/wiki/Cartesian_product
-.. _`Crate.io blog`: https://crate.io/blog/

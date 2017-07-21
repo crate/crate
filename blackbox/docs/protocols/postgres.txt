@@ -12,8 +12,8 @@ If a node is started with postgres support enabled it will bind to port
 
 However, even though connecting PostgreSQL tools and client libraries is
 supported, the actual SQL statements have to be supported by CrateDB's SQL
-dialect. A notable difference is that CrateDB doesn't support transactions, which
-is why clients should generally enable ``autocommit``.
+dialect. A notable difference is that CrateDB doesn't support transactions,
+which is why clients should generally enable ``autocommit``.
 
 .. note::
 

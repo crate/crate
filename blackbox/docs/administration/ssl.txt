@@ -46,7 +46,7 @@ should be signed by a certificate authority (CA). A third-party CA or your
 organization's existing CA can be used.
 
 When a client connects to a node using SSL/TLS, the client receives the
-certificate provided by the node and will determine if the node’s certificate
+certificate provided by the node and will determine if the node's certificate
 is valid, trusted, and matches the hostname or IP address it is trying to
 connect to.
 

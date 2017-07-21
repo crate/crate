@@ -7,7 +7,7 @@ Troubleshooting with sys-Tables
 
 CrateDB maintains a set of diagnostic tables in the **sys** schema. It consists
 currently of ten tables that provide an overview of the cluster state. If
-something is going wrong and you initially don’t know why, they help you to
+something is going wrong and you initially don't know why, they help you to
 analyze, identify the problem and start mitigating. While there is `detailed
 documentation about each single table
 <https://crate.io/docs/reference/sql/system.html>`__, this guide runs you
@@ -44,7 +44,7 @@ For these to work you have to enable status logging with::
     SET OK, 1 row affected (... sec)
 
 before you query these tables. Each syntactically correct request that got
-parsed and planned is listed in the **sys.jobs** table while it’s executed::
+parsed and planned is listed in the **sys.jobs** table while it's executed::
 
     cr> SELECT id as job_uuid, date_format(started) AS start, stmt FROM sys.jobs;
     +--------------------------------------+-----------------------------+-------------------------------------...----------------------------------+
@@ -76,9 +76,9 @@ and **sys.operations_log**, respectively.
 Step 3: Analyzing Cluster Resources
 ===================================
 
-Sometimes it’s not a single query that causes problems, but a component of your
+Sometimes it's not a single query that causes problems, but a component of your
 distributed cluster. To find out more about it, check the table
-**sys.cluster**, which holds a single row containing the name and id of the
+**sys.cluster**, which holds a single row containing the name and ID of the
 current master along with several other settings. To list all available data,
 run::
 
@@ -133,7 +133,7 @@ CrateDB divides the rows of each table into shards that are distinctively
 distributed to all nodes in your cluster. Replication uses the same mechanism
 to add redundancy and thus resilience to your data. While most of the time
 CrateDB takes transparently care of distributing and replicating the shards,
-it’s useful during troubleshooting to actually find out some more about these
+it's useful during troubleshooting to actually find out some more about these
 data structures. The **sys.shards** table provides access to the status and
 size of shards, its names and IDs::
 
@@ -174,10 +174,10 @@ size of shards, its names and IDs::
 
 The cluster state is somewhat delicate when nodes join or leave, since in those
 situations shards have to be rearranged to ensure that each of them is
-replicated to different nodes. As long as the **state** attribute is ‘STARTED’
-for all shards, the cluster is in a stable state, otherwise CrateDB is occupied
-with some background activity. The cluster state indicators on the admin UI
-evaluate these values as well.
+replicated to different nodes. As long as the **state** attribute is
+``STARTED`` for all shards, the cluster is in a stable state, otherwise CrateDB
+is occupied with some background activity. The cluster state indicators on the
+admin UI evaluate these values as well.
 
 The **sys.shards** table contains even more information about the rebalancing
 activities. Sometimes CrateDB needs to transfer one shard to another node,
@@ -197,11 +197,11 @@ run this query::
 It lists pairs of rows, in which the first row denotes the destination shard
 and the second row the source shard.
 
-Each row contains the shard's hostname, id and the recovery percentage of the
+Each row contains the shard's hostname, ID, and the recovery percentage of the
 transferred shard. When the shard starts relocating, a new shard entry appears
-in the  **sys.shards** table with a **routing_state** of `INITIALIZING`. The
-**state** of this row is `RECOVERING`. Meanwhile, the value of
-**routing_state** of the source row switches from `STARTED` to `RELOCATING`
+in the  **sys.shards** table with a **routing_state** of ``INITIALIZING``. The
+**state** of this row is ``RECOVERING``. Meanwhile, the value of
+**routing_state** of the source row switches from ``STARTED`` to ``RELOCATING``
 until the transfer is done. After that, the source row is deleted from
 **sys.shards** automatically.
 
@@ -217,10 +217,8 @@ the **_node** system column that is available for this table. As an example::
     SELECT ... in set (... sec)
 
 list the hosts and tables with the highest number of rows inside a single
-shard. There’s a lot of additional information available for shards. To find
-out more about that, see our
-[documentation](https://crate.io/docs/reference/best_practice/data_import.html#
-shards-replicas).
+shard. There's a lot of additional information available for shards. To find
+out more about that, see our :ref:`documentation <import_shards_replicas>`.
 
 Step 5: Managing Snapshots
 ==========================
@@ -250,5 +248,5 @@ to restore. Suppose you make nightly backups, the command::
     +------------------+----------+------+------------+---------+-------+---------+
     SELECT ... in set (... sec)
 
-shows you last week’s snapshots along with its name, the stored indices, and
+shows you last week's snapshots along with its name, the stored indices, and
 how long they took.

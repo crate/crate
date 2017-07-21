@@ -95,7 +95,7 @@ Breaking Changes
    - The ``index.translog.interval``, ``translog.disable_flush`` and
      ``translog.flush_threshold_period`` table settings have been removed.
 
-   - The ``index.translog.sync_interval`` table setting doesn’t accept a value
+   - The ``index.translog.sync_interval`` table setting doesn't accept a value
      less than ``100ms`` which prevents fsyncing too often if async durability
      is enabled. The special value ``0`` is no longer supported.
 
@@ -141,7 +141,7 @@ Changes
  - Extended the subselect support. See :ref:`SELECT Reference
    <sql_reference_subselect>` for details.
 
- - Added support for host based authentication (HBA). 
+ - Added support for host based authentication (HBA).
    Please see :ref:`Host Based Authentication <administration_hba>`.
 
  - Added support for renaming tables using the `ALTER ... RENAME TO ...`
@@ -164,7 +164,7 @@ Changes
 
      SELECT x, COUNT(*) FROM (SELECT x FROM t LIMIT 1) AS tt GROUP BY x;
 
- - Implemented hash sum scalar functions (MD5, SHA1). 
+ - Implemented hash sum scalar functions (MD5, SHA1).
    Please see :ref:`sha1 <sha1>`.
 
  - Various admin UI improvements.
@@ -188,7 +188,7 @@ Changes
    incremental manner.
 
  - Optimized performance of negation queries on ``NOT NULL`` columns.
-   E.g.:: 
+   E.g.::
 
      SELECT * FROM t WHERE not_null_col != 10
 

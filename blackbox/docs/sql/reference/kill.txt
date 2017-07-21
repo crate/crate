@@ -28,7 +28,7 @@ leave the data in an inconsistent state. So take care when using ``KILL``.
 
 
 Certain fast running operations have a small time frame in which they can be
-killed. For example if you delete a single document by id, the document could
+killed. For example if you delete a single document by ID the document could
 be deleted before the ``KILL`` command is processed, but the client might
 receive an error that the operation has been killed because the ``KILL``
 command processed before the final result is sent to the client.

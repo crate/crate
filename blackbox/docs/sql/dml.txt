@@ -457,7 +457,7 @@ Replicated data is not exported. So every row of an exported table is stored
 only once.
 
 This example shows how to export a given table into files named after the table
-and shard id with gzip compression::
+and shard ID with gzip compression::
 
     cr> refresh table quotes;
     REFRESH OK...

@@ -318,7 +318,7 @@ Plugins
 
   A list of plugins that are required for a node to startup.
 
-  If any plugin listed here, the CrateDB node will fail to start.
+  If any plugin listed here is missing, the CrateDB node will fail to start.
 
 Memory
 ------
@@ -948,7 +948,7 @@ discovery the ``discovery.type`` setting needs to be set to ``ec2``.
 **cloud.aws.access_key**
   | *Runtime:*  ``no``
 
-  The access key id to identify the API calls.
+  The access key ID to identify the API calls.
 
 **cloud.aws.secret_key**
   | *Runtime:*  ``no``
@@ -966,7 +966,7 @@ Following settings control the discovery:
 **discovery.ec2.groups**
   | *Runtime:*  ``no``
 
-  A list of security groups; either by id or name. Only instances with the
+  A list of security groups; either by ID or name. Only instances with the
   given group will be used for unicast host discovery.
 
 **discovery.ec2.any_group**

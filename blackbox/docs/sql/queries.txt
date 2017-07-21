@@ -101,6 +101,7 @@ Joins
 .. note::
 
     CrateDB currently supports only a limited set of JOINs.
+
     See the :ref:`sql_joins` for current state.
 
 .. _sql_dql_distinct_clause:

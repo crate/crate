@@ -90,7 +90,7 @@ Addressing of Documents
 Every document has an internal identifier (see
 :ref:`_id <sql_administration_system_column_id>`) . By default this identifier
 is derived from the primary key. Documents living in tables without a primary
-key are assigned a unique auto-generated id automatically when created.
+key are assigned a unique auto-generated ID automatically when created.
 
 Each document is routed by its routing key to one specific shard. By default
 this key is the value of the ``_id`` column. However this can be configured in
@@ -179,8 +179,8 @@ reason.
   master. For details in how to do this and further information see
   :ref:`shared_nothing_primary_election`.
 
-To explain the flow of events for any cluster state change - here an example
-flow for an "ALTER TABLE" statement which changes the schema of a table:
+To explain the flow of events for any cluster state change, here is an example
+flow for an ``ALTER TABLE`` statement which changes the schema of a table:
 
 #. A node in the cluster receives the ``ALTER TABLE`` request.
 

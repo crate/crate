@@ -30,7 +30,7 @@ To gather good statistics about CrateDB usage, UDC collects this information:
     ================  =========================================================
     Kernel Version    The build number, and if there are any modifications to
                       the kernel.
-    Cluster Id        A randomized globally unique id created every time the
+    Cluster Id        A randomized globally unique ID created every time the
                       whole cluster is restarted.
     Master            Boolean whether the current node is master.
     Ping Count        UDC holds an internal counter per node which is
@@ -53,7 +53,7 @@ done with a HTTP GET.
 Admin UI Tracking
 =================
 
-Since Admin UI v0.16.0 we are tracking the user-id along with the cluster-id to
+Since Admin UI v0.16.0 we are tracking the user ID along with the cluster ID to
 know how many active users are currently using CrateDB.
 
 Configuration

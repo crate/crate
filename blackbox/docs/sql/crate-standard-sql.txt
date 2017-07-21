@@ -6,7 +6,7 @@ Standard SQL compliance
 
 CrateDB aims to provide an SQL implementation that is familiar to anyone having
 used other databases providing a standards-compliant SQL language. However, it
-is worth being aware of some unique characteristics in CrateDB’s SQL dialect.
+is worth being aware of some unique characteristics in CrateDB's SQL dialect.
 
 Data Types
 ==========
@@ -143,7 +143,7 @@ The currently supported and unsupported features in CrateDB are exposed in the
 :ref:`information_schema` table (see :ref:`sql_features` for usage).
 :
 If you are missing features, functions or dialect improvements and have a great
-use case for it, let us know on `Github`_. We’re always improving and extending
+use case for it, let us know on `Github`_. We're always improving and extending
 CrateDB, and we love to hear feedback.
 
 .. _Github: https://github.com/crate/crate
