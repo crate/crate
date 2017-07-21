@@ -24,14 +24,19 @@ package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.TwoTableJoin;
 import io.crate.analyze.relations.JoinPair;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.OutputName;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
@@ -39,6 +44,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
+import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -120,6 +126,48 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testGetNamesFromOrderBy() {
+        JoinPair pair1 = JoinPair.crossJoin(T3.T1, T3.T2);
+        JoinPair pair2 = JoinPair.crossJoin(T3.T2, T3.T3);
+        OrderBy orderBy = new OrderBy(
+            ImmutableList.of(
+                new Field(T3.TR_3, new OutputName("z"), DataTypes.INTEGER),
+                new Field(T3.TR_2, new OutputName("y"), DataTypes.INTEGER)),
+            new boolean[]{false, false},
+            new Boolean[]{false, false});
+        assertThat(ManyTableConsumer.getNamesFromOrderBy(orderBy, ImmutableList.of(pair1, pair2)),
+            contains(T3.T3, T3.T2));
+    }
+
+    @Test
+    public void testGetNamesFromOrderByWithOuterJoins() {
+        JoinPair pair1 = JoinPair.crossJoin(T3.T1, T3.T2);
+        JoinPair pair2 = JoinPair.of(T3.T2, T3.T3, JoinType.FULL, Literal.NULL);
+        OrderBy orderBy = new OrderBy(
+            ImmutableList.of(
+                new Field(T3.TR_1, new OutputName("x"), DataTypes.INTEGER),
+                new Field(T3.TR_3, new OutputName("z"), DataTypes.INTEGER),
+                new Field(T3.TR_2, new OutputName("y"), DataTypes.INTEGER)),
+            new boolean[]{false, false, false},
+            new Boolean[]{false, false, false});
+        assertThat(ManyTableConsumer.getNamesFromOrderBy(orderBy, ImmutableList.of(pair1, pair2)), contains(T3.T1));
+    }
+
+    @Test
+    public void testGetNamesFromOrderByWithOuterJoinsNoPreorderKept() {
+        JoinPair pair1 = JoinPair.of(T3.T1, T3.T2, JoinType.FULL, Literal.NULL);
+        JoinPair pair2 = JoinPair.of(T3.T2, T3.T3, JoinType.FULL, Literal.NULL);
+        OrderBy orderBy = new OrderBy(
+            ImmutableList.of(
+                new Field(T3.TR_1, new OutputName("x"), DataTypes.INTEGER),
+                new Field(T3.TR_3, new OutputName("z"), DataTypes.INTEGER),
+                new Field(T3.TR_2, new OutputName("y"), DataTypes.INTEGER)),
+            new boolean[]{false, false, false},
+            new Boolean[]{false, false, false});
+        assertThat(ManyTableConsumer.getNamesFromOrderBy(orderBy, ImmutableList.of(pair1, pair2)).isEmpty(), is(true));
+    }
+
+    @Test
     public void testOptimizeJoinNoPresort() throws Exception {
         JoinPair pair1 = JoinPair.crossJoin(T3.T1, T3.T2);
         JoinPair pair2 = JoinPair.crossJoin(T3.T2, T3.T3);
@@ -146,16 +194,16 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testNoOptimizeWithSortingAndOuterJoin() throws Exception {
-        JoinPair pair1 = JoinPair.of(T3.T1, T3.T2, JoinType.LEFT, expressions.asSymbol("t1.a = t2.b"));
-        JoinPair pair2 = JoinPair.of(T3.T2, T3.T3, JoinType.LEFT, expressions.asSymbol("t2.b = t3.c"));
-        @SuppressWarnings("unchecked")
-        Collection<QualifiedName> qualifiedNames = ManyTableConsumer.orderByJoinConditions(
-            Arrays.asList(T3.T1, T3.T2, T3.T3),
-            ImmutableSet.<Set<QualifiedName>>of(),
-            ImmutableList.of(pair1, pair2),
-            ImmutableList.of(T3.T3, T3.T2));
+        MultiSourceSelect mss = analyze("select * from t1 " +
+                                        "left join t2 on t1.a = t2.b " +
+                                        "left join t3 on t2.b = t3.c " +
+                                        "order by t3.c, t2.b");
+        Set<Set<QualifiedName>> sets = Sets.newLinkedHashSet();
+        sets.add(ImmutableSet.of(T3.T1, T3.T2));
+        sets.add(ImmutableSet.of(T3.T2, T3.T3));
 
-        assertThat(qualifiedNames, contains(T3.T1, T3.T2, T3.T3));
+        assertThat(ManyTableConsumer.getOrderedRelationNames(mss, sets),
+            contains(T3.T1, T3.T2, T3.T3));
     }
 
     @Test
