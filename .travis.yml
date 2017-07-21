@@ -2,7 +2,7 @@ language: java
 jdk:
   - oraclejdk8
 
-sudo: false
+sudo: required
 env:
   global:
     - secure: "LLqhKxqgRMp/C/TzZWv8YuhpmEm1twggm76NBUAQfZmOPLCkQSpAO8hoBM3qaIlDPSKPgoYj9f0TBuNi0iIFghQf0Xc4pXPCV0AnoGpXwRGiJATTAXfnG7RBa/hXRRBeAKlGmAI9GLtIoCQbUKYhq8gqwbzQVQXq+90rhsMH4zo="
