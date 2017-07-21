@@ -42,6 +42,8 @@ Fixes
    partition of a partitioned table that didn't match the type of the same
    column of sibling partitions.
 
+ - Upgraded Admin UI version to fix an issue with the Twitter tutorial
+
  - Fixed a NPE when running ``select port from sys.nodes`` and
    ``psql.enabled: false`` was set
 
