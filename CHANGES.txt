@@ -26,7 +26,10 @@ Changes
 
 Fixes
 =====
- 
+
+ - Fixed a NPE when running ``select port from sys.nodes`` and
+   ``psql.enabled: false`` was set
+
  - Fixed an issue where the user that gets provided by the client on connect is
    not always used as current user if host based authentication is disabled.
  

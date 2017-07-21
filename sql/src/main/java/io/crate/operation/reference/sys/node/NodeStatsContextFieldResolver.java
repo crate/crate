@@ -38,6 +38,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.monitor.MonitorService;
@@ -72,6 +73,7 @@ public class NodeStatsContextFieldResolver {
     private final JvmService jvmService;
 
     @Inject
+    @SuppressWarnings("unused")
     public NodeStatsContextFieldResolver(ClusterService clusterService,
                                          MonitorService monitorService,
                                          @Nullable HttpServer httpServer,
@@ -84,7 +86,13 @@ public class NodeStatsContextFieldResolver {
             () -> httpServer == null ? null : httpServer.info().getAddress().publishAddress(),
             threadPool,
             extendedNodeInfo,
-            () -> postgresNetty.boundAddress().publishAddress()
+            () -> {
+                BoundTransportAddress boundTransportAddress = postgresNetty.boundAddress();
+                if (boundTransportAddress == null) {
+                    return null;
+                }
+                return boundTransportAddress.publishAddress();
+            }
         );
     }
 
